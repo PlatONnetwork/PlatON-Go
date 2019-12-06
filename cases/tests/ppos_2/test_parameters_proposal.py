@@ -323,7 +323,7 @@ def test_POP_012(client_consensus, client_new_node):
     assert_code(result, 0)
 
     parameters_amount = client_consensus.economic.delegate_limit + \
-                        client_consensus.node.web3.toWei(10, "ether")
+        client_consensus.node.web3.toWei(10, "ether")
     block = param_governance_verify_before_endblock(client_consensus, "staking", "operatingThreshold",
                                                     str(parameters_amount))
     wait_block_number(client_new_node.node, block)
@@ -341,7 +341,7 @@ def test_POP_012(client_consensus, client_new_node):
     msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
     withdrew_delegate = delegate_amount * 2 - parameters_amount + \
-                        client_consensus.node.web3.toWei(1, "ether")
+        client_consensus.node.web3.toWei(1, "ether")
     result = client_new_node.delegate.withdrew_delegate(staking_blocknum, address_delegate,
                                                         amount=withdrew_delegate)
     assert_code(result, 0)

@@ -15,7 +15,7 @@ if len(sys.argv) > 1 and ("--platonUrl" in sys.argv or "--platonUrl=" in "".join
     url = None
     for arg in sys.argv:
         if "--platonUrl" == arg:
-            url = sys.argv[i+1]
+            url = sys.argv[i + 1]
             break
         elif "--platonUrl=" in arg:
             url = arg.split("=")[1]

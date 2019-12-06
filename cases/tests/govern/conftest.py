@@ -8,6 +8,7 @@ from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, a
 from typing import List
 from tests.lib import Pip
 
+
 def get_refund_to_account_block(pip, blocknumber=None):
     '''
     Get refund to account block
@@ -41,7 +42,7 @@ def version_proposal_vote(pip, vote_option=None):
     if not vote_option:
         vote_option = pip.cfg.vote_option_yeas
     result = pip.vote(pip.node.node_id, proposalinfo.get('ProposalID'), vote_option,
-                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('The node {} vote result {}'.format(pip.node.node_id, result))
     return result
 
@@ -52,9 +53,10 @@ def proposal_vote(pip, vote_option=None, proposaltype=3):
     proposalinfo = pip.get_effect_proposal_info_of_vote(proposaltype)
     log.info('proposalinfo: {}'.format(proposalinfo))
     result = pip.vote(pip.node.node_id, proposalinfo.get('ProposalID'), vote_option,
-                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Node {} vote param proposal result {}'.format(pip.node.node_id, result))
     return result
+
 
 def verifier_node_version(obj, version=None):
     if not isinstance(obj, Client):
@@ -65,6 +67,7 @@ def verifier_node_version(obj, version=None):
         return node_version
     else:
         assert_code(node_version, version)
+
 
 @pytest.fixture()
 def no_vp_proposal(global_test_env, client_verifier):
@@ -80,8 +83,8 @@ def no_vp_proposal(global_test_env, client_verifier):
 def submit_version(no_vp_proposal):
     pip = no_vp_proposal
     result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 10,
-                                   pip.node.staking_address,
-                                   transaction_cfg=pip.cfg.transaction_cfg)
+                               pip.node.staking_address,
+                               transaction_cfg=pip.cfg.transaction_cfg)
     log.info('submit version result : {}'.format(result))
     assert_code(result, 0)
     return pip
@@ -95,7 +98,7 @@ def submit_param(no_vp_proposal, all_clients):
     if int(get_governable_parameter_value(client, 'slashBlocksReward')) == 1:
         newvalue = '2'
     result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', newvalue,
-                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                             pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     return pip
@@ -107,7 +110,7 @@ def submit_cancel(submit_version):
     propolsalinfo = pip.get_effect_proposal_info_of_vote()
     log.info('get voting version proposal info :{}'.format(propolsalinfo))
     result = pip.submitCancel(pip.node.node_id, str(time.time()), 2, propolsalinfo.get('ProposalID'),
-                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('submit cancel proposal result : {}'.format(result))
     assert_code(result, 0)
     return pip
@@ -119,7 +122,7 @@ def submit_cancel_param(submit_param):
     propolsalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
     log.info('Get voting param proposal info :{}'.format(propolsalinfo))
     result = pip.submitCancel(pip.node.node_id, str(time.time()), 2, propolsalinfo.get('ProposalID'),
-                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('submit cancel proposal result : {}'.format(result))
     assert_code(result, 0)
     return pip
@@ -129,7 +132,7 @@ def submit_cancel_param(submit_param):
 def submit_text(client_verifier):
     pip = client_verifier.pip
     result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
-                                transaction_cfg=pip.cfg.transaction_cfg)
+                            transaction_cfg=pip.cfg.transaction_cfg)
     log.info('submit text result:'.format(result))
     assert_code(result, 0)
     return pip
@@ -146,14 +149,14 @@ def new_node_has_proposal(client_new_node, client_verifier, client_noconsensus):
         if proposalinfo.get('EndVotingBlock') - pip.node.block_number < 2 * pip.economic.consensus_size:
             client_new_node.economic.env.deploy_all()
             result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 5,
-                                           pip.node.staking_address,
-                                           transaction_cfg=pip.cfg.transaction_cfg)
+                                       pip.node.staking_address,
+                                       transaction_cfg=pip.cfg.transaction_cfg)
             assert_code(result, 0)
             return client_noconsensus.pip
         else:
             return client_new_node.pip
     result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 5,
-                                   pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                               pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     assert_code(result, 0)
     return client_new_node.pip
 
@@ -250,12 +253,13 @@ def proposal_pips(all_clients):
         else:
             pip.economic.env.deploy_all()
     result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version5, 10,
-                                   pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                               pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
     clients_verifier = get_clients_by_nodeid(verifier_list, all_clients)
     return [client.pip for client in clients_verifier]
+
 
 @pytest.fixture()
 def preactive_proposal_pips(all_clients):
@@ -270,8 +274,8 @@ def preactive_proposal_pips(all_clients):
     client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
     pips = [client_verifier.pip for client_verifier in client_verifiers]
     result = pips[0].submitVersion(pips[0].node.node_id, str(time.time_ns()),
-                                           pips[0].cfg.version5, 2, pips[0].node.staking_address,
-                                           transaction_cfg=pips[0].cfg.transaction_cfg)
+                                   pips[0].cfg.version5, 2, pips[0].node.staking_address,
+                                   transaction_cfg=pips[0].cfg.transaction_cfg)
     log.info('submit version proposal, result : {}'.format(result))
     proposalinfo = pips[0].get_effect_proposal_info_of_vote()
     log.info('Version proposalinfo: {}'.format(proposalinfo))
@@ -294,8 +298,8 @@ def preactive_large_version_proposal_pips(all_clients):
     client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
     pips = [client.pip for client in client_verifiers]
     result = pips[0].submitVersion(pips[0].node.node_id, str(time.time_ns()),
-                                           pips[0].cfg.version8, 2, pips[0].node.staking_address,
-                                           transaction_cfg=pips[0].cfg.transaction_cfg)
+                                   pips[0].cfg.version8, 2, pips[0].node.staking_address,
+                                   transaction_cfg=pips[0].cfg.transaction_cfg)
     log.info('submit version proposal, result : {}'.format(result))
     proposalinfo = pips[0].get_effect_proposal_info_of_vote()
     log.info('Version proposalinfo: {}'.format(proposalinfo))
@@ -305,5 +309,3 @@ def preactive_large_version_proposal_pips(all_clients):
     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
     assert pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 4
     return pips
-
-

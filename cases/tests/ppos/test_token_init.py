@@ -304,7 +304,7 @@ def consensus_node_pledge_award_assertion(client, address):
     log.info(
         "incentive pool address：{} amount：{}".format(EconomicConfig.INCENTIVEPOOL_ADDRESS, incentive_pool_balance2))
     assert incentive_pool_balance2 - incentive_pool_balance < client.node.web3.toWei(1,
-                                                                                                  'ether'), "ErrMsg:Balance of incentive pool：{}".format(
+                                                                                     'ether'), "ErrMsg:Balance of incentive pool：{}".format(
         incentive_pool_balance2)
 
 
@@ -640,7 +640,7 @@ def create_pledge_node(client, base, multiple=2):
                                                account_balance))
     # create account
     address, _ = client.economic.account.generate_account(client.node.web3,
-                                                                       client.economic.create_staking_limit * multiple)
+                                                          client.economic.create_staking_limit * multiple)
 
     log.info("address: {} ,amount: {}".format(address, client.node.eth.getBalance(address)))
     benifit_address, _ = client.economic.account.generate_account(client.node.web3, 0)
@@ -795,7 +795,7 @@ def assert_benifit_reward(client, benifit_address, address):
             log.info("benifit_balance: {}".format(benifit_balance1))
             assert benifit_balance + staking_reward + blocknumber * Decimal(
                 str(block_reward)) - benifit_balance1 < client.node.web3.toWei(1,
-                                                                                            'ether'), "ErrMsg:benifit_balance: {}".format(
+                                                                               'ether'), "ErrMsg:benifit_balance: {}".format(
                 benifit_balance1)
             break
         else:

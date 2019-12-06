@@ -361,7 +361,6 @@ def test_UP_FV_009(clients_new_node):
         assert_code(restricting_info, 304005)
 
 
-
 @pytest.mark.P2
 def test_UP_FV_010(client_new_node, reset_environment):
     """

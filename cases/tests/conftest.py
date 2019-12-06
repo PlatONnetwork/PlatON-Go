@@ -213,7 +213,7 @@ def param_governance_verify(client, module, name, newvalue, effectiveflag=True):
             pip.is_exist_effective_proposal_for_vote(pip.cfg.version_proposal):
         raise Exception('There is effective param proposal or version proposal')
     result = pip.submitParam(pip.node.node_id, str(time.time()), module, name, newvalue, pip.node.staking_address,
-                                 transaction_cfg=pip.cfg.transaction_cfg)
+                             transaction_cfg=pip.cfg.transaction_cfg)
     log.info('submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -221,7 +221,7 @@ def param_governance_verify(client, module, name, newvalue, effectiveflag=True):
     all_clients = []
     for node_obj in pip.economic.env.get_all_nodes():
         all_clients.append(Client(pip.economic.env, node_obj,
-                                      StakingConfig("externalId", "nodeName", "website", "details")))
+                                  StakingConfig("externalId", "nodeName", "website", "details")))
     client = get_client_by_nodeid(pip.node.node_id, all_clients)
     verifier_list = get_pledge_list(client.ppos.getVerifierList)
     log.info('verifierlist : {}'.format(verifier_list))
@@ -232,8 +232,8 @@ def param_governance_verify(client, module, name, newvalue, effectiveflag=True):
             if client.node.block_number < blocknum and blocknum != 0:
                 wait_block_number(client.node, blocknum)
             result = client.pip.vote(client.node.node_id, proposalinfo.get('ProposalID'),
-                                         client.pip.cfg.vote_option_yeas,
-                                         client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
+                                     client.pip.cfg.vote_option_yeas,
+                                     client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
             log.info('Node {} vote proposal result : {}'.format(client.node.node_id, result))
             blocknum = client.node.block_number
     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
@@ -263,7 +263,7 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
             pip.is_exist_effective_proposal_for_vote(pip.cfg.version_proposal):
         raise Exception('There is effective param proposal or version proposal')
     result = pip.submitParam(pip.node.node_id, str(time.time()), module, name, newvalue, pip.node.staking_address,
-                                 transaction_cfg=pip.cfg.transaction_cfg)
+                             transaction_cfg=pip.cfg.transaction_cfg)
     log.info('submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -271,7 +271,7 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
     all_clients = []
     for node in pip.economic.env.get_all_nodes():
         all_clients.append(Client(pip.economic.env, node,
-                                      StakingConfig("externalId", "nodeName", "website", "details")))
+                                  StakingConfig("externalId", "nodeName", "website", "details")))
     client = get_client_by_nodeid(pip.node.node_id, all_clients)
     verifier_list = get_pledge_list(client.ppos.getVerifierList)
     log.info('verifierlist : {}'.format(verifier_list))
@@ -282,8 +282,8 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
             if client.node.block_number < blocknum and blocknum != 0:
                 wait_block_number(client.node, blocknum)
             result = client.pip.vote(client.node.node_id, proposalinfo.get('ProposalID'),
-                                         client.pip.cfg.vote_option_yeas,
-                                         client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
+                                     client.pip.cfg.vote_option_yeas,
+                                     client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
             log.info('Node {} vote proposal result : {}'.format(client.node.node_id, result))
             blocknum = client.node.block_number
     log.info('The proposal endvoting block is {}'.format(proposalinfo.get('EndVotingBlock')))

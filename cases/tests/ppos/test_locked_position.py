@@ -34,7 +34,7 @@ def test_LS_FV_001(client_consensus):
     for i in range(len(release_plans_list)):
         assert release_plans_list[i] == EconomicConfig.release_info[
             i], "Year {} Height of block to be released: {} Release amount: {}".format(i + 1, release_plans_list[i][
-            'blockNumber'], release_plans_list[i]['amount'])
+                'blockNumber'], release_plans_list[i]['amount'])
 
 
 def create_restrictingplan(client, epoch, amount, multiple=2):
@@ -365,11 +365,11 @@ def test_LS_RV_003(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
 
 
@@ -392,14 +392,14 @@ def test_LS_RV_004(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+        'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
     assert restricting_info['Ret']['plans'][1][
-               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+        'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][1]['amount'])
 
 
@@ -425,11 +425,11 @@ def test_LS_RV_005(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
 
 
@@ -462,14 +462,14 @@ def test_LS_RV_006(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
     assert restricting_info['Ret']['plans'][1][
-               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][1]['amount'])
 
 
@@ -495,17 +495,17 @@ def test_LS_RV_007(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
     assert restricting_info['Ret']['plans'][1][
-               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+        'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][1]['amount'])
     assert restricting_info['Ret']['plans'][2][
-               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+        'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][2]['amount'])
 
 

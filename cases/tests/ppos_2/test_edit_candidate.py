@@ -42,7 +42,7 @@ def test_MPI_003(clients_new_node):
     """
     client = clients_new_node[0]
     address, _ = client.economic.account.generate_account(client.node.web3,
-                                                                       10 ** 18 * 10000000)
+                                                          10 ** 18 * 10000000)
     value = client.economic.create_staking_limit * 2
     result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
@@ -170,7 +170,7 @@ def test_MPI_009(client_new_node):
     address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                    10 ** 18 * 10000000)
     result = client_new_node.staking.create_staking(0, address, address)
-    assert_code(result,0)
+    assert_code(result, 0)
     cfg = {"gas": 1}
     status = 0
     try:
@@ -190,15 +190,15 @@ def test_MPI_010(client_new_node):
     """
 
     account = client_new_node.economic.account
-    client= client_new_node
+    client = client_new_node
     node = client.node
     address, _ = account.generate_account(node.web3, 10 ** 18 * 10000000)
-    result = client.staking.create_staking(0,address,address)
-    assert_code(result,0)
+    result = client.staking.create_staking(0, address, address)
+    assert_code(result, 0)
     balance = node.eth.getBalance(address)
     status = 0
     try:
-        result = client.staking.edit_candidate(address, address,transaction_cfg={"gasPrice":balance})
+        result = client.staking.edit_candidate(address, address, transaction_cfg={"gasPrice": balance})
         log.info(result)
     except BaseException:
         status = 1

@@ -591,7 +591,7 @@ def asster_income_account_amount(client, first_report_amount, first_incentive_po
     log.info("second_incentive_pool_account {} ,first_incentive_pool_account {} , incentive_pool_reward {}".format(
         second_incentive_pool_account, first_incentive_pool_account, incentive_pool_reward))
     assert second_incentive_pool_account == first_incentive_pool_account + incentive_pool_reward + (
-            first_report_amount + proportion_reward - second_report_amount), "ErrMsg:Incentive pool account {}".format(
+        first_report_amount + proportion_reward - second_report_amount), "ErrMsg:Incentive pool account {}".format(
         second_incentive_pool_account)
 
 

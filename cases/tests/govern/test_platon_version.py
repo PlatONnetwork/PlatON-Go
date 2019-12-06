@@ -2,6 +2,7 @@ from dacite import from_dict
 from tests.lib import Genesis
 from tests.lib.utils import assert_code
 
+
 class TestPlatonVersion:
     def test_VE_DE_001(self, new_genesis_env, client_noconsensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
