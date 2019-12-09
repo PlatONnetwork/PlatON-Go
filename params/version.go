@@ -21,7 +21,6 @@ import (
 )
 
 const (
-
 	//These versions are meaning the current code version.
 	VersionMajor = 0          // Major version component of the current release
 	VersionMinor = 7          // Minor version component of the current release
@@ -29,7 +28,7 @@ const (
 	VersionMeta  = "unstable" // Version metadata to append to the version string
 
 	//CAUTION: DO NOT MODIFY THIS ONCE THE CHAIN HAS BEEN INITIALIZED!!!
-	GenesisVersion = uint32(0<<16 | 7<<8 | 1)
+	GenesisVersion = uint32(0<<16 | 7<<8 | 5)
 )
 
 // Version holds the textual version string.
