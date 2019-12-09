@@ -341,18 +341,30 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// which is used to calculate the average annual block production rate
 	epochBlocks := xutil.CalcBlocksEachEpoch()
 	if yearNumber > 0 {
-		if yearStartBlockNumber == 1 {
-			yearStartBlockNumber += epochBlocks - 1
-		} else {
-			yearStartBlockNumber += epochBlocks
-		}
-		yearStartTime = snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time.Int64()
-		if err := StorageYearStartTime(blockHash, rmp.db, yearStartBlockNumber, yearStartTime); nil != err {
-			log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+		incIssuanceNumber, err := LoadIncIssuanceNumber(blockHash, rmp.db)
+		if nil != err {
 			return nil, nil, err
 		}
-		log.Debug("Call CalcEpochReward, Adjust the sampling range of the block time", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
-			"epochBlocks", epochBlocks, "yearNumber", yearNumber, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime)
+		addition := true
+		if yearStartBlockNumber == 1 {
+			if head.Number.Uint64() <= incIssuanceNumber {
+				addition = false
+			}
+		}
+		if addition {
+			if yearStartBlockNumber == 1 {
+				yearStartBlockNumber += epochBlocks - 1
+			} else {
+				yearStartBlockNumber += epochBlocks
+			}
+			yearStartTime = snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time.Int64()
+			if err := StorageYearStartTime(blockHash, rmp.db, yearStartBlockNumber, yearStartTime); nil != err {
+				log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+				return nil, nil, err
+			}
+			log.Debug("Call CalcEpochReward, Adjust the sampling range of the block time", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
+				"epochBlocks", epochBlocks, "yearNumber", yearNumber, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime)
+		}
 	}
 
 	// First calculation, calculated according to the default block interval.
