@@ -1139,8 +1139,8 @@ type CandidateVersion struct {
 }
 
 type Reward struct {
-	PackageReward     *hexutil.Big
-	StakingReward     *hexutil.Big
+	PackageReward     hexutil.Big
+	StakingReward     hexutil.Big
 	YearNum     uint32
 	RemainBlocks     uint64
 	RemainEpoch     uint32
