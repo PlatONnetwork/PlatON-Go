@@ -213,6 +213,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			remainEpoch = int(math2.Ceil(remainBlocks / float64(epochBlocks)))
 		}
 
+		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
 			PackageReward: (*hexutil.Big)(packageReward),
 			StakingReward: (*hexutil.Big)(stakingReward),
@@ -221,6 +222,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			RemainEpoch:uint32(remainEpoch),
 			AvgPackTime:avgPackTime,
 		}
+		log.Debug("staking.Reward ,LoadNewBlockReward and LoadStakingReward", "packageReward", reward.PackageReward, "stakingReward", reward.StakingReward, "hash", block.Hash(), "number", block.Number())
 		dataReward, err := rlp.EncodeToBytes(reward)
 		if nil != err {
 			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
@@ -343,7 +345,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		if remainBlocks > float64(epochBlocks) {
 			remainEpoch = int(math2.Ceil(remainBlocks / float64(epochBlocks)))
 		}
-
+		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
 			PackageReward: (*hexutil.Big)(packageReward),
 			StakingReward: (*hexutil.Big)(stakingReward),
@@ -352,6 +354,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			RemainEpoch:uint32(remainEpoch),
 			AvgPackTime:avgPackTime,
 		}
+		log.Debug("staking.Reward ,LoadNewBlockReward and LoadStakingReward", "packageReward", reward.PackageReward, "stakingReward", reward.StakingReward, "hash", block.Hash(), "number", block.Number())
 		dataReward, err := rlp.EncodeToBytes(reward)
 		if nil != err {
 			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
