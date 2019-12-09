@@ -1,4 +1,6 @@
 import math
+import time
+
 import pytest
 from dacite import from_dict
 from common.log import log
@@ -89,7 +91,41 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
                 developer_foundation)
             log.info("{} Year additional Balance:{}".format(i + 1, init_tt))
             # Waiting for the end of the annual issuance cycle
-            economic.wait_annual_blocknum(node)
+            # economic.wait_annual_blocknum(node)
+            remaining_settlement_cycle = 0
+            while remaining_settlement_cycle != 1:
+                tmp_current_block = node.eth.blockNumber
+                if tmp_current_block % economic.settlement_size == 0:
+                    time.sleep(1)
+                block_info = node.eth.getBlock(1)
+                first_timestamp = block_info['timestamp']
+                log.info("First block timestamp： {}".format(first_timestamp))
+                issuing_cycle_timestamp = first_timestamp + (economic.additional_cycle_time * 60000)
+                log.info("End time stamp of current issue cycle： {}".format(issuing_cycle_timestamp))
+
+                last_settlement_block = (math.ceil(
+                    tmp_current_block / economic.settlement_size) - 1) * economic.settlement_size
+                log.info("The last block height of the previous settlement period： {}".format(last_settlement_block))
+                settlement_block_info = node.eth.getBlock(last_settlement_block)
+                settlement_timestamp = settlement_block_info['timestamp']
+                log.info(
+                    "High block timestamp at the end of the current settlement cycle： {}".format(settlement_timestamp))
+                issuing_cycle_timestamp = first_timestamp + (economic.additional_cycle_time * 60) * 1000
+                log.info("End time stamp of current issue cycle： {}".format(issuing_cycle_timestamp))
+                remaining_additional_time = issuing_cycle_timestamp - settlement_timestamp
+                log.info("Remaining time of current issuance cycle： {}".format(remaining_additional_time))
+                average_interval = (settlement_timestamp - first_timestamp) // (last_settlement_block - 1)
+                log.info("Block interval in the last settlement cycle： {}".format(average_interval))
+                number_of_remaining_blocks = math.ceil(remaining_additional_time / average_interval)
+                log.info("Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
+                remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
+                log.info(
+                    "remaining settlement cycles in the current issuance cycle： {}".format(remaining_settlement_cycle))
+                consensus_verification_list = node.ppos.getVerifierList()
+                log.info("List of consensus validators in the current settlement cycle： {}".format(
+                    consensus_verification_list))
+                economic.wait_settlement_blocknum(node)
+
         elif 0 < i < 9:
             FOUNDATION = 0
             # Current annual total issuance
