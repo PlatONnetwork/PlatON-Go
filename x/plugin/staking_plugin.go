@@ -215,8 +215,8 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 
 		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
-			PackageReward: *packageReward,
-			StakingReward: *stakingReward,
+			PackageReward: packageReward,
+			StakingReward: stakingReward,
 			YearNum: yearNum,
 			RemainBlocks:uint64(remainBlocks),
 			RemainEpoch:uint32(remainEpoch),
@@ -347,8 +347,8 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		}
 		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
-			PackageReward: *packageReward,
-			StakingReward: *stakingReward,
+			PackageReward: packageReward,
+			StakingReward: stakingReward,
 			YearNum: yearNum,
 			RemainBlocks:uint64(remainBlocks),
 			RemainEpoch:uint32(remainEpoch),
@@ -1569,7 +1569,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 }
 
 func (sk *StakingPlugin) GetHistoryReward(blockHash common.Hash, blockNumber uint64) (
-	staking.Reward, error) {
+	staking.RewardReturn, error) {
 
 	i := uint64(0)
 	if blockNumber != i {
@@ -1581,17 +1581,28 @@ func (sk *StakingPlugin) GetHistoryReward(blockHash common.Hash, blockNumber uin
 	log.Debug("wow,GetHistoryReward query number:", "num string", numStr)
 	data, err := STAKING_DB.HistoryDB.Get([]byte(RewardName + numStr))
 	var reward staking.Reward
+	var rewardReturn staking.RewardReturn
 	if nil != err {
-		return reward, err
+		return rewardReturn, err
 	}
 
 	err = rlp.DecodeBytes(data, &reward)
 	if nil != err {
-		return reward, err
+		return rewardReturn, err
 	}
-	xcom.PrintObject("wow,GetHistoryReward", reward)
+	log.Debug("wow,GetHistoryReward reward:", "PackageReward",  reward.PackageReward, "StakingReward",  reward.StakingReward)
+	rewardReturn = staking.RewardReturn{
+		PackageReward: (*hexutil.Big)(reward.PackageReward),
+		StakingReward:  (*hexutil.Big)(reward.StakingReward),
+		YearNum: reward.YearNum,
+		RemainBlocks:reward.RemainBlocks,
+		RemainEpoch:reward.RemainEpoch,
+		AvgPackTime:reward.AvgPackTime,
+	}
+	log.Debug("wow,GetHistoryReward rewardReturn:", "PackageReward",  rewardReturn.PackageReward, "StakingReward",  rewardReturn.StakingReward)
+	xcom.PrintObject("wow,GetHistoryReward", rewardReturn)
 
-	return reward, nil
+	return rewardReturn, nil
 }
 
 func (sk *StakingPlugin) GetNodeVersion(blockHash common.Hash,blockNumber uint64) (staking.CandidateVersionQueue,error){
