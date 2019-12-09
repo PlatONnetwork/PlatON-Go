@@ -126,6 +126,7 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 		snapshotdb.Instance().Clear()
 	}()
 	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
 	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
 		tmp := new(big.Int).Set(b)
 		return tmp.Add(tmp, big.NewInt(1000))
