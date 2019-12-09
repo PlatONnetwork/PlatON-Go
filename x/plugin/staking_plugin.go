@@ -215,8 +215,8 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 
 		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
-			PackageReward: (hexutil.Big)(*packageReward),
-			StakingReward: (hexutil.Big)(*stakingReward),
+			PackageReward: *packageReward,
+			StakingReward: *stakingReward,
 			YearNum: yearNum,
 			RemainBlocks:uint64(remainBlocks),
 			RemainEpoch:uint32(remainEpoch),
@@ -347,8 +347,8 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		}
 		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
-			PackageReward: (hexutil.Big)(*packageReward),
-			StakingReward: (hexutil.Big)(*stakingReward),
+			PackageReward: *packageReward,
+			StakingReward: *stakingReward,
 			YearNum: yearNum,
 			RemainBlocks:uint64(remainBlocks),
 			RemainEpoch:uint32(remainEpoch),
