@@ -13,13 +13,19 @@ def test_staking_gas(client_new_node):
     economic = client_new_node.economic
     benifit_address, pri_key = client_new_node.economic.account.generate_account(node.web3,
                                                                                  economic.create_staking_limit * 2)
-    benifit_address = benifit_address
+    benifit_address = node.web3.toChecksumAddress(benifit_address)
     balance1 = node.eth.getBalance(benifit_address)
     log.info(balance1)
-    program_version_sign = node.program_version_sign
-    benifit_address = node.web3.toChecksumAddress(benifit_address)
     benifit_address_ = benifit_address[2:]
-    program_version_sign_ = program_version_sign[2:]
+    program_version_sign_ = node.program_version_sign[2:]
+    result = client_new_node.ppos.createStaking(0, benifit_address_, node.node_id, external_id,
+                                                node_name, website,
+                                                website, economic.create_staking_limit,
+                                                node.program_version, node.program_version_sign, node.blspubkey,
+                                                node.schnorr_NIZK_prove,
+                                                pri_key)
+
+    assert_code(result, 0)
     data = rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(bytes.fromhex(benifit_address_)),
                        rlp.encode(bytes.fromhex(node.node_id)), rlp.encode(external_id),
                        rlp.encode(node_name),
@@ -33,16 +39,6 @@ def test_staking_gas(client_new_node):
     log.info(gas)
     gasPrice = node.web3.platon.gasPrice
     log.info(gasPrice)
-    result = client_new_node.ppos.createStaking(0, benifit_address, node.node_id, external_id,
-                                                node_name, website,
-                                                website, economic.create_staking_limit,
-                                                node.program_version, node.program_version_sign, node.blspubkey,
-                                                node.schnorr_NIZK_prove,
-                                                pri_key, transaction_cfg={"gasPrice": gasPrice})
-    transactiondict = {"to": "0x1000000000000000000000000000000000000002", "data": data}
-    gas_ = node.eth.estimateGas(transactiondict)
-    log.info(gas_)
-    assert_code(result, 0)
     balance2 = node.eth.getBalance(benifit_address)
     log.info(balance2)
     assert balance1 - economic.create_staking_limit - gas * gasPrice == balance2
