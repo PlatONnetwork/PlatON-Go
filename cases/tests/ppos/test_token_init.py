@@ -538,6 +538,7 @@ def test_AL_BI_002(new_genesis_env, staking_cfg):
     verifier_list = client2.ppos.getVerifierList()
     log.info("verifier_list: {}".format(verifier_list))
     slash_blocks = get_governable_parameter_value(client2, 'slashBlocksReward')
+    log.info("slash_blocks".format(slash_blocks))
     # Get the penalty amount
     penalty_amount = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("penalty_amount: {}".format(penalty_amount))
@@ -1053,7 +1054,7 @@ def test_AL_NBI_018(new_genesis_env, client_new_node):
     # Check account balance
     balance = node.eth.getBalance(address1)
     log.info("Account Balance： {}".format(balance))
-    block_reward, staking_reward = economic.get_current_year_reward(node, new_block_rate=60)
+    block_reward, staking_reward = economic.get_current_year_reward(node)
     # # Get the number of certifiers in the billing cycle list
     # verifier_list = get_pledge_list(node.ppos.getVerifierList)
     # verifier_num = len(verifier_list)

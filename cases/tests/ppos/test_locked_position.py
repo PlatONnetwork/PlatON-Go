@@ -27,14 +27,15 @@ def test_LS_FV_001(client_consensus):
     log.info("Lock in contract amount: {}".format(lock_up_amount))
     # view Lockup plan
     result = client_consensus.ppos.getRestrictingInfo(EconomicConfig.INCENTIVEPOOL_ADDRESS)
-    release_plans_list = result['Ret']['plans']
-    assert_code(result, 0)
-    log.info("Lockup plan information: {}".format(result))
-    # assert louck up amount
-    for i in range(len(release_plans_list)):
-        assert release_plans_list[i] == EconomicConfig.release_info[
-            i], "Year {} Height of block to be released: {} Release amount: {}".format(i + 1, release_plans_list[i][
-                'blockNumber'], release_plans_list[i]['amount'])
+    assert_code(result, 304005)
+    # release_plans_list = result['Ret']['plans']
+    # assert_code(result, 0)
+    # log.info("Lockup plan information: {}".format(result))
+    # # assert louck up amount
+    # for i in range(len(release_plans_list)):
+    #     assert release_plans_list[i] == EconomicConfig.release_info[
+    #         i], "Year {} Height of block to be released: {} Release amount: {}".format(i + 1, release_plans_list[i][
+    #             'blockNumber'], release_plans_list[i]['amount'])
 
 
 def create_restrictingplan(client, epoch, amount, multiple=2):
@@ -677,7 +678,7 @@ def test_LS_RV_012(new_genesis_env, clients_new_node):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 20
+    genesis.economicModel.slashing.slashBlocksReward = 30
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
