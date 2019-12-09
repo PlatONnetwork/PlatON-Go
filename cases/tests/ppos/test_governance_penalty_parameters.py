@@ -125,7 +125,7 @@ def test_PIP_PVF_004(client_consensus, clients_noconsensus, reset_environment):
     log.info("Current connection non-consensus node：{}".format(first_client.node.node_mark))
     economic = consensus_client.economic
     node = consensus_client.node
-    change_parameter_value = '60100'
+    change_parameter_value = '49999'
     # get pledge amount1 and block reward
     consensus_pledge_amount, block_reward, first_slash_blocks = information_before_slash_blocks(consensus_client)
     # create Parametric proposal
@@ -172,7 +172,7 @@ def test_PIP_PVF_005(client_consensus, clients_noconsensus, reset_environment):
     log.info("Current connection non-consensus node：{}".format(first_client.node.node_mark))
     economic = consensus_client.economic
     node = consensus_client.node
-    change_parameter_value = '60100'
+    change_parameter_value = '4999'
     # get pledge amount1 and block reward
     consensus_pledge_amount, block_reward, first_slash_blocks = information_before_slash_blocks(consensus_client)
     # create Parametric proposal
