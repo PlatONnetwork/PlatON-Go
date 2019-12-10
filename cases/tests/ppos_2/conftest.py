@@ -81,10 +81,10 @@ def set_not_need_analyze(client_new_node):
 
 def check_receipt(node, hash, key, expected_result):
     result = node.eth.waitForTransactionReceipt(hash)
-    if key in result["logs"][0]:
+    if result["logs"] and key in result["logs"][0]:
         value = result["logs"][0][key]
-        assert value == expected_result
+        assert value == expected_result,"Value contrast error"
     else:
-        assert result[key] == expected_result
+        assert result[key] == expected_result,"Value contrast error"
 
 
