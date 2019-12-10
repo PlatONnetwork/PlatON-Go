@@ -192,16 +192,6 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			log.Error("Failed to LoadChainYearNumber on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
-		number, err := LoadIncIssuanceNumber(block.Hash(), sk.db.GetDB())
-		if nil != err {
-			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
-			return err
-		}
-		incIssuanceTime, err := LoadIncIssuanceTime(block.Hash(), sk.db.GetDB())
-		if nil != err {
-			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
-			return err
-		}
 
 		avgPackTime, err := xcom.LoadCurrentAvgPackTime()
 
@@ -209,24 +199,15 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			log.Error("Failed to LoadAvgPackTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
-		epochBlocks := xutil.CalcBlocksEachEpoch()
-		remainTime := incIssuanceTime - block.Header().Time.Int64()
-		remainEpoch := 1
-		remainBlocks := math2.Ceil(float64(remainTime) / float64(avgPackTime))
-		if remainBlocks > float64(epochBlocks) {
-			remainEpoch = int(math2.Ceil(remainBlocks / float64(epochBlocks)))
-		}
 
-		//get the num of year
-		blocks := block.Number().Uint64() + uint64(remainEpoch) * epochBlocks
 		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
 			PackageReward: packageReward,
 			StakingReward: stakingReward,
 			YearNum: yearNum,
-			YearStartNum: number,
-			YearEndNum: blocks,
-			RemainEpoch:uint32(remainEpoch),
+			YearStartNum: 0,
+			YearEndNum: xutil.CalcBlocksEachYear(),
+			RemainEpoch: uint32(xutil.EpochsPerYear()),
 			AvgPackTime:avgPackTime,
 		}
 		log.Debug("staking.Reward ,LoadNewBlockReward and LoadStakingReward", "packageReward", reward.PackageReward, "stakingReward", reward.StakingReward, "hash", block.Hash(), "number", block.Number())
