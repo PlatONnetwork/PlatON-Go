@@ -83,6 +83,7 @@ const (
 	ValidatorName = "Validator"
 	VerifierName  = "Verifier"
 	RewardName  = "Reward"
+	YearName  = "Year"
 )
 
 // Instance a global StakingPlugin
@@ -212,7 +213,12 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		STAKING_DB.HistoryDB.Put([]byte(RewardName+"0"), dataReward)
 		xcom.PrintObject("wow,insert reward  0:", dataReward)
 
-
+		numberStart, err := rlp.EncodeToBytes(uint64(0))
+		if nil != err {
+			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		STAKING_DB.HistoryDB.Put([]byte(YearName+"1"), numberStart)
 	}
 	if xutil.IsElection(block.NumberU64()) {
 
@@ -333,7 +339,29 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		}
 		//get the num of year
 		blocks := block.Number().Uint64() + uint64(remainEpoch) * epochBlocks
-		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
+		if number != 0 && block.Number().Uint64() % number == 0{
+			yearTemp := strconv.FormatUint(uint64(yearNum + 1), 10)
+			numberStart, err := rlp.EncodeToBytes(number)
+			if nil != err {
+				log.Error("mygod,Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
+				return err
+			}
+			STAKING_DB.HistoryDB.Put([]byte(YearName+yearTemp), numberStart)
+			log.Debug("set yearNum", "yearTemp", yearTemp, "number", block.Number())
+		}
+		if number == blocks {
+			yearTemp := strconv.FormatUint(uint64(yearNum + 1), 10)
+			data, err := STAKING_DB.HistoryDB.Get([]byte(YearName+yearTemp))
+			if nil != err {
+				log.Error("mygod,get YearName error","key", YearName+yearTemp, "err", err)
+			}
+			err = rlp.DecodeBytes(data, &number)
+			if nil != err {
+				log.Error("mygod,DecodeBytes YearName error","key", YearName+yearTemp, "err", err)
+			}
+		}
+		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "block number", block.Number(),
+			"blocks", blocks,"number", number)
 		reward := staking.Reward{
 			PackageReward: packageReward,
 			StakingReward: stakingReward,
