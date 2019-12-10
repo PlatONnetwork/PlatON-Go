@@ -193,22 +193,15 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			return err
 		}
 
-		avgPackTime, err := xcom.LoadCurrentAvgPackTime()
-
-		if nil != err {
-			log.Error("Failed to LoadAvgPackTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
-			return err
-		}
-
 		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
 			PackageReward: packageReward,
 			StakingReward: stakingReward,
-			YearNum: yearNum,
+			YearNum: yearNum + 1,
 			YearStartNum: 0,
 			YearEndNum: xutil.CalcBlocksEachYear(),
 			RemainEpoch: uint32(xutil.EpochsPerYear()),
-			AvgPackTime:avgPackTime,
+			AvgPackTime: xcom.Interval(),
 		}
 		log.Debug("staking.Reward ,LoadNewBlockReward and LoadStakingReward", "packageReward", reward.PackageReward, "stakingReward", reward.StakingReward, "hash", block.Hash(), "number", block.Number())
 		dataReward, err := rlp.EncodeToBytes(reward)
@@ -344,7 +337,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		reward := staking.Reward{
 			PackageReward: packageReward,
 			StakingReward: stakingReward,
-			YearNum: yearNum,
+			YearNum: yearNum + 1,
 			YearStartNum: number,
 			YearEndNum: blocks,
 			RemainEpoch:uint32(remainEpoch),
