@@ -10,6 +10,22 @@ from common.key import generate_key
 from tests.ppos_2.conftest import calculate
 
 
+@pytest.fixture()
+def staking_client(client_new_node):
+    amount = calculate(client_new_node.economic.create_staking_limit, 5)
+    staking_amount = calculate(client_new_node.economic.create_staking_limit, 2)
+    staking_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3, amount)
+    delegate_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            client_new_node.economic.add_staking_limit * 2)
+    client_new_node.staking.create_staking(0, staking_address, staking_address, amount=staking_amount)
+    setattr(client_new_node, "staking_address", staking_address)
+    setattr(client_new_node, "delegate_address", delegate_address)
+    setattr(client_new_node, "amount", amount)
+    setattr(client_new_node, "staking_amount", staking_amount)
+    yield client_new_node
+    client_new_node.economic.env.deploy_all()
+
+
 @allure.title("The verifier applies for returning the pledge money (hesitation period)")
 @pytest.mark.P0
 @pytest.mark.compatibility
@@ -90,10 +106,10 @@ def test_RV_003(staking_client):
     msg = node.ppos.getCandidateInfo(node.node_id)
     log.info("Pledge information {}".format(msg))
     assert msg["Ret"][
-        "Shares"] == client.staking_amount + economic.add_staking_limit, "Expected display of the amount of deposit + increase in holding amount"
+               "Shares"] == client.staking_amount + economic.add_staking_limit, "Expected display of the amount of deposit + increase in holding amount"
     assert msg["Ret"]["Released"] == client.staking_amount, "Expected display of the amount of the deposit"
     assert msg["Ret"][
-        "ReleasedHes"] == economic.add_staking_limit, "Expected increase in holdings is shown during the hesitation period"
+               "ReleasedHes"] == economic.add_staking_limit, "Expected increase in holdings is shown during the hesitation period"
     block_reward, staking_reward = economic.get_current_year_reward(node)
 
     balance = node.eth.getBalance(staking_address)
@@ -105,7 +121,7 @@ def test_RV_003(staking_client):
     msg = node.ppos.getCandidateInfo(node.node_id)
     log.info("Initiate a refund after pledge information{}".format(msg))
     assert msg["Ret"][
-        "ReleasedHes"] == 0, "The amount of expected increase in shareholding has been returned, showing 0"
+               "ReleasedHes"] == 0, "The amount of expected increase in shareholding has been returned, showing 0"
     balance1 = node.eth.getBalance(client.staking_address)
     log.info(balance1)
     log.info("Enter the 3rd cycle")
@@ -265,14 +281,14 @@ def test_RV_006(staking_client):
     log.info("Query the lockout plan after the second cycle initiated revocation {}".format(locked_info))
     assert_code(locked_info, 0)
     assert locked_info["Ret"][
-        "Pledge"] == economic.add_staking_limit, "The amount in the lockout plan is expected to be the lockout period amount."
+               "Pledge"] == economic.add_staking_limit, "The amount in the lockout plan is expected to be the lockout period amount."
 
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info("Query the pledge of node {}".format(msg))
 
     assert msg["Ret"]["ReleasedHes"] == 0, "Expected amount of hesitation has been refunded"
     assert msg["Ret"][
-        "RestrictingPlanHes"] == 0, "Expected lockout amount has been refunded during the hesitation period"
+               "RestrictingPlanHes"] == 0, "Expected lockout amount has been refunded during the hesitation period"
 
     log.info("Enter the 3rd cycle")
     economic.wait_settlement_blocknum(node)
@@ -407,7 +423,7 @@ def test_RV_012(global_test_env, clients_noconsensus):
 
     result = clients_noconsensus[0].staking.create_staking(0, address1, address1,
                                                            amount=clients_noconsensus[
-                                                               0].economic.create_staking_limit * 2)
+                                                                      0].economic.create_staking_limit * 2)
     assert_code(result, 0)
 
     result = clients_noconsensus[1].staking.create_staking(0, address2, address2,
@@ -496,7 +512,7 @@ def test_RV_017(staking_client):
     assert_code(msg, 0)
     msg = node.ppos.getCandidateInfo(node.node_id)
     assert msg[
-        "Ret"] == "Query candidate info failed:Candidate info is not found", "Expected pledge to be successful; pledge information is deleted"
+               "Ret"] == "Query candidate info failed:Candidate info is not found", "Expected pledge to be successful; pledge information is deleted"
     msg = client.staking.withdrew_staking(staking_address)
     assert_code(msg, 301102)
 
