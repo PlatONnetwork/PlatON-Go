@@ -192,7 +192,11 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			log.Error("Failed to LoadChainYearNumber on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
-
+		number, err := LoadIncIssuanceNumber(block.Hash(), sk.db.GetDB())
+		if nil != err {
+			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
 		incIssuanceTime, err := LoadIncIssuanceTime(block.Hash(), sk.db.GetDB())
 		if nil != err {
 			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
@@ -213,12 +217,15 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			remainEpoch = int(math2.Ceil(remainBlocks / float64(epochBlocks)))
 		}
 
+		//get the num of year
+		blocks := block.Number().Uint64() + uint64(remainEpoch) * epochBlocks
 		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
 			PackageReward: packageReward,
 			StakingReward: stakingReward,
 			YearNum: yearNum,
-			RemainBlocks:uint64(remainBlocks),
+			YearStartNum: number,
+			YearEndNum: blocks,
 			RemainEpoch:uint32(remainEpoch),
 			AvgPackTime:avgPackTime,
 		}
@@ -332,6 +339,11 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
+		number, err := LoadIncIssuanceNumber(block.Hash(), sk.db.GetDB())
+		if nil != err {
+			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
 
 		avgPackTime, err := xcom.LoadCurrentAvgPackTime()
 		if nil != err {
@@ -345,12 +357,15 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		if remainBlocks > float64(epochBlocks) {
 			remainEpoch = int(math2.Ceil(remainBlocks / float64(epochBlocks)))
 		}
+		//get the num of year
+		blocks := block.Number().Uint64() + uint64(remainEpoch) * epochBlocks
 		log.Debug("LoadNewBlockReward and LoadStakingReward", "packageReward", packageReward, "stakingReward", stakingReward, "hash", block.Hash(), "number", block.Number())
 		reward := staking.Reward{
 			PackageReward: packageReward,
 			StakingReward: stakingReward,
 			YearNum: yearNum,
-			RemainBlocks:uint64(remainBlocks),
+			YearStartNum: number,
+			YearEndNum: blocks,
 			RemainEpoch:uint32(remainEpoch),
 			AvgPackTime:avgPackTime,
 		}
@@ -1595,7 +1610,8 @@ func (sk *StakingPlugin) GetHistoryReward(blockHash common.Hash, blockNumber uin
 		PackageReward: (*hexutil.Big)(reward.PackageReward),
 		StakingReward:  (*hexutil.Big)(reward.StakingReward),
 		YearNum: reward.YearNum,
-		RemainBlocks:reward.RemainBlocks,
+		YearStartNum:reward.YearStartNum,
+		YearEndNum:reward.YearEndNum,
 		RemainEpoch:reward.RemainEpoch,
 		AvgPackTime:reward.AvgPackTime,
 	}
