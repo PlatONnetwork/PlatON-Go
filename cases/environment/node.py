@@ -69,6 +69,12 @@ class Node:
         self.__is_connected = False
         self.__rpc = None
 
+        self.__is_connected_ppos = False
+        self.__ppos = None
+
+        self.__is_connected_pip = False
+        self.__pip = None
+
         self.__is_ws_connected = False
         self.__ws_rpc = None
 
@@ -519,11 +525,17 @@ class Node:
 
     @property
     def ppos(self) -> Ppos:
-        return Ppos(self.web3)
+        if not self.__is_connected_ppos:
+            self.__ppos = Ppos(self.web3)
+            self.__is_connected_ppos = True
+        return self.__ppos
 
     @property
     def pip(self) -> Pip:
-        return Pip(self.web3)
+        if not self.__is_connected_pip:
+            self.__ppos = Pip(self.web3)
+            self.__is_connected_pip = True
+        return self.__pip
 
     @property
     def block_number(self) -> int:
