@@ -18,7 +18,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 
@@ -205,9 +204,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	)
 
 	// todo: shield contract to created in temporary
-	if contractCreation {
+	/*if contractCreation {
 		return nil, params.TxGasContractCreation, false, fmt.Errorf("contract creation is not allowed")
-	}
+	}*/
 
 	if contractCreation {
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
