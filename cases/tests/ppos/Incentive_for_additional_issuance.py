@@ -53,6 +53,9 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
     FOUNDATION = 0
     # Additional amount
     init_tt = 0
+    remaining_settlement_cycle = 0
+    issuing_cycle_timestamp = None
+    end_cycle_timestamp = None
     # Annual issuance
     for i in range(10):
         if i == 0:
@@ -90,28 +93,24 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
                 EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
                 developer_foundation)
             log.info("{} Year additional Balance:{}".format(i + 1, init_tt))
-            # Waiting for the end of the annual issuance cycle
-            # economic.wait_annual_blocknum(node)
-            remaining_settlement_cycle = 0
+            time.sleep(5)
+            economic.wait_settlement_blocknum(node)
             while remaining_settlement_cycle != 1:
                 tmp_current_block = node.eth.blockNumber
                 if tmp_current_block % economic.settlement_size == 0:
                     time.sleep(1)
                 block_info = node.eth.getBlock(1)
+                log.info("block_info：{}".format(block_info))
                 first_timestamp = block_info['timestamp']
                 log.info("First block timestamp： {}".format(first_timestamp))
                 issuing_cycle_timestamp = first_timestamp + (economic.additional_cycle_time * 60000)
                 log.info("End time stamp of current issue cycle： {}".format(issuing_cycle_timestamp))
 
-                last_settlement_block = (math.ceil(
-                    tmp_current_block / economic.settlement_size) - 1) * economic.settlement_size
+                last_settlement_block = (math.ceil(tmp_current_block / economic.settlement_size) - 1) * economic.settlement_size
                 log.info("The last block height of the previous settlement period： {}".format(last_settlement_block))
                 settlement_block_info = node.eth.getBlock(last_settlement_block)
                 settlement_timestamp = settlement_block_info['timestamp']
-                log.info(
-                    "High block timestamp at the end of the current settlement cycle： {}".format(settlement_timestamp))
-                issuing_cycle_timestamp = first_timestamp + (economic.additional_cycle_time * 60) * 1000
-                log.info("End time stamp of current issue cycle： {}".format(issuing_cycle_timestamp))
+                log.info("High block timestamp at the end settlement cycle： {}".format(settlement_timestamp))
                 remaining_additional_time = issuing_cycle_timestamp - settlement_timestamp
                 log.info("Remaining time of current issuance cycle： {}".format(remaining_additional_time))
                 average_interval = (settlement_timestamp - first_timestamp) // (last_settlement_block - 1)
@@ -121,9 +120,6 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
                 remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
                 log.info(
                     "remaining settlement cycles in the current issuance cycle： {}".format(remaining_settlement_cycle))
-                consensus_verification_list = node.ppos.getVerifierList()
-                log.info("List of consensus validators in the current settlement cycle： {}".format(
-                    consensus_verification_list))
                 economic.wait_settlement_blocknum(node)
 
         elif 0 < i < 9:
@@ -137,7 +133,7 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
             # Total amount of additional issuance
             init_tt = init_tt + additional_amount
             # Current annual incentive pool amount
-            init_incentive_pool = init_incentive_pool + incentive_pool_additional_amount + EconomicConfig.release_info[i - 1]['amount']
+            init_incentive_pool = incentive_pool_additional_amount + EconomicConfig.release_info[i - 1]['amount']
             # Current annual Developer Fund Amount
             developer_foundation = developer_foundation + developer_foundation_s_additional_amount
             # Query the current annual incentive pool amount
@@ -165,7 +161,30 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
             assert current_annual_foundation_amount == 0, '{} Year Initialization Foundation Address: {} balance: {}'.format(
                 i + 1, EconomicConfig.FOUNDATION_ADDRESS, FOUNDATION)
             # Waiting for the end of the annual issuance cycle
-            economic.wait_annual_blocknum(node)
+            end_cycle_timestamp = issuing_cycle_timestamp + (economic.additional_cycle_time * 60000)
+            log.info("End time stamp of current issue cycle： {}".format(issuing_cycle_timestamp))
+            while remaining_settlement_cycle != 1:
+                tmp_current_block = node.eth.blockNumber
+                if tmp_current_block % economic.settlement_size == 0:
+                    time.sleep(economic.interval)
+                tmp_current_block = node.eth.blockNumber
+                last_settlement_block = (math.ceil(tmp_current_block / economic.settlement_size) - 1) * economic.settlement_size
+                log.info("The last block height of the previous settlement period： {}".format(last_settlement_block))
+                settlement_block_info = node.eth.getBlock(last_settlement_block)
+                settlement_timestamp = settlement_block_info['timestamp']
+                log.info("High block timestamp at the end of the current settlement cycle： {}".format(settlement_timestamp))
+                remaining_additional_time = end_cycle_timestamp - settlement_timestamp
+                log.info("Remaining time of current issuance cycle： {}".format(remaining_additional_time))
+                result = client.ppos.getAvgPackTime()
+                average_interval = result['Ret']
+                log.info("Block interval on the chain：{}".format(average_interval))
+                number_of_remaining_blocks = math.ceil(remaining_additional_time / average_interval)
+                log.info("Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
+                remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
+                log.info("remaining settlement cycles issuance cycle： {}".format(remaining_settlement_cycle))
+                economic.wait_settlement_blocknum(node)
+            issuing_cycle_timestamp = end_cycle_timestamp
+
         else:
             # Current annual total issuance
             additional_amount = int(Decimal(str(init_tt)) / Decimal(str(40)))
@@ -179,7 +198,7 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
             # Total amount of additional issuance
             init_tt = init_tt + additional_amount
             # Current annual incentive pool amount
-            init_incentive_pool = init_incentive_pool + incentive_pool_additional_amount
+            init_incentive_pool = incentive_pool_additional_amount
             # Current annual Developer Fund Amount
             developer_foundation = developer_foundation + developer_foundation_s_additional_amount
             # Current annual fund amount

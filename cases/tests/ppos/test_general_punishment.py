@@ -60,7 +60,8 @@ def verify_low_block_rate_penalty(first_client, second_client, block_reward, sla
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("Low block rate penalty amount: {}".format(punishment_amonut))
     if punishment_amonut < pledge_amount:
-        assert (amount_after_punishment == pledge_amount - punishment_amonut) or (amount_after_punishment == pledge_amount - punishment_amonut * 2), "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
+        assert (amount_after_punishment == pledge_amount - punishment_amonut) or (
+                    amount_after_punishment == pledge_amount - punishment_amonut * 2), "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
             amount_after_punishment)
     else:
         assert amount_after_punishment == 0, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
@@ -171,7 +172,8 @@ def test_VP_GPFV_004(client_new_node_obj_list_reset):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'RestrictingPlan')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
-    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'RestrictingPlan')
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1,
+                                  'RestrictingPlan')
     log.info("Check amount completed")
 
 
@@ -216,7 +218,8 @@ def test_VP_GPFV_005(client_new_node_obj_list_reset):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'RestrictingPlan')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
-    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'RestrictingPlan')
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1,
+                                  'RestrictingPlan')
     log.info("Check amount completed")
 
 
@@ -595,76 +598,75 @@ def test_VP_GPFV_014(new_genesis_env, clients_noconsensus):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert (pledge_amount2 == pledge_amount1 - punishment_amonut * 2) or (
-        pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
+            pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
     assert pledge_amount3 == increase_amount, "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
-@pytest.mark.P2
-def test_VP_GPFV_015(new_genesis_env, clients_noconsensus):
-    """
-    低出块率被最高处罚金等于于自由处罚金（自由金额质押）
-    :param new_genesis_env:
-    :return:
-    """
-    # Change configuration parameters
-    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 13
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
-    genesis.to_file(new_file)
-    new_genesis_env.deploy_all(new_file)
-
-    client1 = clients_noconsensus[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = clients_noconsensus[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
-    # create account
-    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
-    # create Restricting Plan
-    amount = economic.create_staking_limit
-    plan = [{'Epoch': 1, 'Amount': amount}]
-    result = client1.restricting.createRestrictingPlan(address, plan, address)
-    assert_code(result, 0)
-    # view block_reward
-    block_reward, staking_reward = client1.economic.get_current_year_reward(node)
-    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
-    # Get governable parameters
-    slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
-    # create staking
-    staking_amount = int(Decimal(str(block_reward)) * Decimal(slash_blocks))
-    result = client1.staking.create_staking(0, address, address, amount=staking_amount * 2)
-    assert_code(result, 0)
-    # increase staking
-    increase_amount = von_amount(economic.create_staking_limit, 0.5)
-    result = client1.staking.increase_staking(1, address, amount=increase_amount)
-    assert_code(result, 0)
-    # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
-    # view Consensus Amount of pledge
-    candidate_info = client1.ppos.getCandidateInfo(node.node_id)
-    log.info("Pledge node information: {}".format(candidate_info))
-    pledge_amount1 = candidate_info['Ret']['Released']
-    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
-    # stop node
-    client1.node.stop()
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
-    # view verifier list
-    verifier_list = client2.ppos.getVerifierList()
-    log.info("verifier_list: {}".format(verifier_list))
-    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
-    log.info("Pledge node information： {}".format(candidate_info))
-    info = candidate_info['Ret']
-    pledge_amount2 = info['Released']
-    pledge_amount3 = info['RestrictingPlan']
-    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    assert pledge_amount2 == pledge_amount1 - punishment_amonut * 2, "ErrMsg:Pledge Released {}".format(
-        pledge_amount2)
-    assert pledge_amount3 == increase_amount, "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
-
+# @pytest.mark.P2
+# def test_VP_GPFV_015(new_genesis_env, clients_noconsensus):
+#     """
+#     低出块率被最高处罚金等于于自由处罚金（自由金额质押）
+#     :param new_genesis_env:
+#     :return:
+#     """
+#     # Change configuration parameters
+#     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+#     genesis.economicModel.slashing.slashBlocksReward = 13
+#     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+#     genesis.to_file(new_file)
+#     new_genesis_env.deploy_all(new_file)
+#
+#     client1 = clients_noconsensus[0]
+#     log.info("Current connection node1: {}".format(client1.node.node_mark))
+#     client2 = clients_noconsensus[1]
+#     log.info("Current connection node2: {}".format(client2.node.node_mark))
+#     economic = client1.economic
+#     node = client1.node
+#     # create account
+#     address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
+#     # create Restricting Plan
+#     amount = economic.create_staking_limit
+#     plan = [{'Epoch': 1, 'Amount': amount}]
+#     result = client1.restricting.createRestrictingPlan(address, plan, address)
+#     assert_code(result, 0)
+#     # view block_reward
+#     block_reward, staking_reward = client1.economic.get_current_year_reward(node)
+#     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+#     # Get governable parameters
+#     slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
+#     # create staking
+#     staking_amount = int(Decimal(str(block_reward)) * Decimal(slash_blocks))
+#     result = client1.staking.create_staking(0, address, address, amount=staking_amount * 2)
+#     assert_code(result, 0)
+#     # increase staking
+#     increase_amount = von_amount(economic.create_staking_limit, 0.5)
+#     result = client1.staking.increase_staking(1, address, amount=increase_amount)
+#     assert_code(result, 0)
+#     # Wait for the settlement round to end
+#     economic.wait_settlement_blocknum(node)
+#     # view Consensus Amount of pledge
+#     candidate_info = client1.ppos.getCandidateInfo(node.node_id)
+#     log.info("Pledge node information: {}".format(candidate_info))
+#     pledge_amount1 = candidate_info['Ret']['Released']
+#     log.info("Current block height: {}".format(client1.node.eth.blockNumber))
+#     # stop node
+#     client1.node.stop()
+#     # Waiting for a settlement round
+#     client2.economic.wait_consensus_blocknum(client2.node, 3)
+#     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+#     # view verifier list
+#     verifier_list = client2.ppos.getVerifierList()
+#     log.info("verifier_list: {}".format(verifier_list))
+#     candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
+#     log.info("Pledge node information： {}".format(candidate_info))
+#     info = candidate_info['Ret']
+#     pledge_amount2 = info['Released']
+#     pledge_amount3 = info['RestrictingPlan']
+#     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+#     assert pledge_amount2 == pledge_amount1 - punishment_amonut * 2, "ErrMsg:Pledge Released {}".format(
+#         pledge_amount2)
+#     assert pledge_amount3 == increase_amount, "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 @pytest.mark.P2
 def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
@@ -675,7 +677,7 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 13
+    genesis.economicModel.slashing.slashBlocksReward = 30
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -729,10 +731,10 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert (pledge_amount2 == 0) or (
-        pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
+            pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
     assert (pledge_amount3 == increase_amount - (punishment_amonut * 2 - pledge_amount1)) or (
-        pledge_amount3 == 0), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+            pledge_amount3 == 0), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -744,7 +746,7 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 5
+    genesis.economicModel.slashing.slashBlocksReward = 10
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -792,76 +794,77 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
     assert pledge_amount3 == economic.create_staking_limit - (
-        punishment_amonut * 2 - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+            punishment_amonut * 2 - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
-@pytest.mark.P2
-def test_VP_GPFV_018(new_genesis_env, clients_noconsensus):
-    """
-    低出块率被最高处罚金等于质押金额（锁仓金额质押）
-    :param new_genesis_env:
-    :return:
-    """
-    # Change configuration parameters
-    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 13
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
-    genesis.to_file(new_file)
-    new_genesis_env.deploy_all(new_file)
-
-    client1 = clients_noconsensus[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = clients_noconsensus[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
-    # create account
-    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
-    # create Restricting Plan
-    amount = von_amount(economic.create_staking_limit, 3)
-    plan = [{'Epoch': 1, 'Amount': amount}]
-    result = client1.restricting.createRestrictingPlan(address, plan, address)
-    assert_code(result, 0)
-    # view block_reward
-    block_reward, staking_reward = client1.economic.get_current_year_reward(node)
-    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
-    # Get governable parameters
-    slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
-    # create staking
-    staking_amount = von_amount(block_reward, 26)
-    log.info("staking_amount: {}".format(staking_amount))
-    result = client1.staking.create_staking(1, address, address, amount=staking_amount)
-    assert_code(result, 0)
-    # increase staking
-    increase_amount = von_amount(economic.create_staking_limit, 0.5)
-    result = client1.staking.increase_staking(0, address, amount=increase_amount)
-    assert_code(result, 0)
-    # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
-    # view Consensus Amount of pledge
-    candidate_info = client1.ppos.getCandidateInfo(node.node_id)
-    log.info("Pledge node information: {}".format(candidate_info))
-    pledge_amount1 = candidate_info['Ret']['Released']
-    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
-    # stop node
-    client1.node.stop()
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
-    # view verifier list
-    verifier_list = client2.ppos.getVerifierList()
-    log.info("verifier_list: {}".format(verifier_list))
-    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
-    log.info("Pledge node information： {}".format(candidate_info))
-    info = candidate_info['Ret']
-    pledge_amount2 = info['Released']
-    pledge_amount3 = info['RestrictingPlan']
-    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    log.info("punishment_amonut: {}".format(punishment_amonut))
-    assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert (pledge_amount3 == staking_amount - (von_amount(punishment_amonut, 2) - increase_amount)) or (
-        pledge_amount3 == staking_amount - (
-            punishment_amonut - increase_amount)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+#
+# @pytest.mark.P2
+# def test_VP_GPFV_018(new_genesis_env, clients_noconsensus):
+#     """
+#     低出块率被最高处罚金等于质押金额（锁仓金额质押）
+#     :param new_genesis_env:
+#     :return:
+#     """
+#     # Change configuration parameters
+#     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+#     genesis.economicModel.slashing.slashBlocksReward = 13
+#     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+#     genesis.to_file(new_file)
+#     new_genesis_env.deploy_all(new_file)
+#
+#     client1 = clients_noconsensus[0]
+#     log.info("Current connection node1: {}".format(client1.node.node_mark))
+#     client2 = clients_noconsensus[1]
+#     log.info("Current connection node2: {}".format(client2.node.node_mark))
+#     economic = client1.economic
+#     node = client1.node
+#     # create account
+#     address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
+#     # create Restricting Plan
+#     amount = von_amount(economic.create_staking_limit, 3)
+#     plan = [{'Epoch': 1, 'Amount': amount}]
+#     result = client1.restricting.createRestrictingPlan(address, plan, address)
+#     assert_code(result, 0)
+#     # view block_reward
+#     block_reward, staking_reward = client1.economic.get_current_year_reward(node)
+#     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+#     # Get governable parameters
+#     slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
+#     # create staking
+#     staking_amount = von_amount(block_reward, 26)
+#     log.info("staking_amount: {}".format(staking_amount))
+#     result = client1.staking.create_staking(1, address, address, amount=staking_amount)
+#     assert_code(result, 0)
+#     # increase staking
+#     increase_amount = von_amount(economic.create_staking_limit, 0.5)
+#     result = client1.staking.increase_staking(0, address, amount=increase_amount)
+#     assert_code(result, 0)
+#     # Wait for the settlement round to end
+#     economic.wait_settlement_blocknum(node)
+#     # view Consensus Amount of pledge
+#     candidate_info = client1.ppos.getCandidateInfo(node.node_id)
+#     log.info("Pledge node information: {}".format(candidate_info))
+#     pledge_amount1 = candidate_info['Ret']['Released']
+#     log.info("Current block height: {}".format(client1.node.eth.blockNumber))
+#     # stop node
+#     client1.node.stop()
+#     # Waiting for a settlement round
+#     client2.economic.wait_consensus_blocknum(client2.node, 3)
+#     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+#     # view verifier list
+#     verifier_list = client2.ppos.getVerifierList()
+#     log.info("verifier_list: {}".format(verifier_list))
+#     candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
+#     log.info("Pledge node information： {}".format(candidate_info))
+#     info = candidate_info['Ret']
+#     pledge_amount2 = info['Released']
+#     pledge_amount3 = info['RestrictingPlan']
+#     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+#     log.info("punishment_amonut: {}".format(punishment_amonut))
+#     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
+#     assert (pledge_amount3 == staking_amount - (von_amount(punishment_amonut, 2) - increase_amount)) or (
+#         pledge_amount3 == staking_amount - (
+#             punishment_amonut - increase_amount)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -874,7 +877,7 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 13
+    genesis.economicModel.slashing.slashBlocksReward = 25
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -892,9 +895,6 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     plan = [{'Epoch': 1, 'Amount': amount}]
     result = client1.restricting.createRestrictingPlan(address, plan, address)
     assert_code(result, 0)
-    # view block_reward
-    block_reward, staking_reward = client1.economic.get_current_year_reward(node)
-    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
     slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
     # create staking
@@ -911,6 +911,9 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     log.info("Pledge node information: {}".format(candidate_info))
     pledge_amount1 = candidate_info['Ret']['Released']
     log.info("Current block height: {}".format(client1.node.eth.blockNumber))
+    # view block_reward
+    block_reward, staking_reward = client1.economic.get_current_year_reward(node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
@@ -927,8 +930,8 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert pledge_amount3 == amount - (
-        punishment_amonut * 2 - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert (pledge_amount3 == amount - (punishment_amonut * 2 - pledge_amount1)) or (pledge_amount3 == amount - (
+                punishment_amonut - pledge_amount1)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
