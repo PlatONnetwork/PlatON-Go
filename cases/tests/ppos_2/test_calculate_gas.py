@@ -18,9 +18,9 @@ def test_staking_gas(client_new_node):
     log.info(balance1)
     benifit_address_ = benifit_address[2:]
     program_version_sign_ = node.program_version_sign[2:]
-    result = client_new_node.ppos.createStaking(0, benifit_address_, node.node_id, external_id,
+    result = client_new_node.ppos.createStaking(0, benifit_address, node.node_id, external_id,
                                                 node_name, website,
-                                                website, economic.create_staking_limit,
+                                                details, economic.create_staking_limit,
                                                 node.program_version, node.program_version_sign, node.blspubkey,
                                                 node.schnorr_NIZK_prove,
                                                 pri_key)

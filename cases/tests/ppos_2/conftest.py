@@ -71,3 +71,4 @@ def free_locked_delegate_client(client_new_node):
     setattr(client_new_node, "delegate_amount", delegate_amount)
     setattr(client_new_node, "staking_blocknum", staking_blocknum)
     yield client_new_node
+
