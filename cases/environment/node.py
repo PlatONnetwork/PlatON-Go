@@ -533,7 +533,7 @@ class Node:
     @property
     def pip(self) -> Pip:
         if not self.__is_connected_pip:
-            self.__ppos = Pip(self.web3)
+            self.__pip = Pip(self.web3)
             self.__is_connected_pip = True
         return self.__pip
 
