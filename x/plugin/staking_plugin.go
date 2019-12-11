@@ -1401,7 +1401,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 		if nil != err {
 			return nil, err
 		}
-		xcom.PrintObject("wow,GetHistoryValidatorList candidateHexQueue", candidateHexQueue)
+		xcom.PrintObject("wow,GetHistoryVerifierList candidateHexQueue", candidateHexQueue)
 	}
 	for i, v := range verifierList.Arr {
 
@@ -1417,6 +1417,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 					valEx.Website = vc.Website
 					valEx.Description = vc.Description
 					valEx.ExternalId = vc.ExternalId
+					valEx.NodeName = vc.NodeName
 					break
 				}
 			}
@@ -1628,6 +1629,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 					valEx.Website = vc.Website
 					valEx.Description = vc.Description
 					valEx.ExternalId = vc.ExternalId
+					valEx.NodeName = vc.NodeName
 					break
 				}
 			}
