@@ -497,10 +497,9 @@ class TestVotingProposalVE:
     @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_046(self, large_version_proposal_pips):
         pip = large_version_proposal_pips[0]
-        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
-        verifier_node_version(pip, node_version)
+        verifier_node_version(pip, pip.cfg.version3)
 
         result = wrong_verisonsign_declare(pip, large_version_proposal_pips[1])
         assert_code(result, 302024)
@@ -1090,7 +1089,7 @@ class TestNoProposalCA:
         pip = noproposal_candidate_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
-        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN2)
+        verifier_node_version(pip, pip.cfg.version2)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1367,10 +1366,9 @@ class TestNoProposalCA:
     def test_DE_CA_046(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
-        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
-        verifier_node_version(pip, node_version)
+        verifier_node_version(pip, pip.cfg.version3)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)

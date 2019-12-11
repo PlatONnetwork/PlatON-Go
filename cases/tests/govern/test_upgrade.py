@@ -358,7 +358,7 @@ class TestUpgradeVP:
                                                            transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
         programversion = client_noconsensus.staking.get_version()
-        assert_code(programversion, self.calculate_version(pip.cfg.version0))
+        assert_code(programversion, pip.cfg.version0)
         pip_test.economic.wait_settlement_blocknum(pip_test.node)
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
@@ -404,7 +404,7 @@ class TestUpgradeVP:
                                                            transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
         programversion = client_noconsensus.staking.get_version()
-        assert_code(programversion, self.calculate_version(pip.cfg.version0))
+        assert_code(programversion, pip.cfg.version0)
         pip_test.economic.wait_settlement_blocknum(pip_test.node)
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
@@ -418,7 +418,7 @@ class TestUpgradeVP:
         replace_version_declare(pip_test, pip_test.cfg.PLATON_NEW_BIN, pip_test.cfg.version5)
         assert_code(result, 0)
         programversion = client_noconsensus.staking.get_version()
-        assert_code(programversion, self.calculate_version(pip_test.cfg.version0))
+        assert_code(programversion, pip.cfg.version0)
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
         verifier_node_version(pip, proposalinfo.get('NewVersion'))
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
@@ -439,9 +439,9 @@ class TestUpgradeVP:
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id in verifier_list
         programversion = clients_consensus[0].staking.get_version()
-        assert_code(programversion, self.calculate_version(pip.cfg.version5))
+        assert_code(programversion, pip.cfg.version5)
         programversion = client_noconsensus.staking.get_version()
-        assert_code(programversion, self.calculate_version(pip_test.cfg.version5))
+        assert_code(programversion, pip_test.cfg.version5)
 
     @pytest.mark.P1
     @allure.title('Version proposal statistical function verification')

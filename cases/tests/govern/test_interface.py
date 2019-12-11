@@ -403,7 +403,7 @@ class TestgetAccuVerifiersCount:
 
         result = pip.pip.getAccuVerifiersCount(proposalinfo.get('ProposalID'), block_hash='')
         log.info('Interface getAccuVerifiersCount result : {}'.format(result))
-        assert not result
+        assert_code(result, 3)
 
         result = pip.pip.getAccuVerifiersCount(proposalinfo.get('ProposalID'),
                                                block_hash='0x5941605fe43ab32fbaf9c6e08dc0970eae50efb7da4248a9a8941f0e50711111')
