@@ -84,6 +84,7 @@ const (
 	VerifierName  = "Verifier"
 	RewardName  = "Reward"
 	YearName  = "Year"
+	InitNodeName  = "InitNode"
 )
 
 // Instance a global StakingPlugin
@@ -175,6 +176,20 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		}
 		STAKING_DB.HistoryDB.Put([]byte(VerifierName+"0"), dataVerifier)
 		xcom.PrintObject("wow,insert verifier  0:", currentVerifier)
+
+		currentCandidate, error := sk.GetCandidateList(block.Hash(), block.NumberU64())
+		if nil != error {
+			log.Error("Failed to Query Current Round candidate on stakingPlugin Confirmed When Settletmetn block",
+				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
+			return err
+		}
+		dataCandidate, err := rlp.EncodeToBytes(currentCandidate)
+		if nil != err {
+			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		STAKING_DB.HistoryDB.Put([]byte(InitNodeName+"0"), dataCandidate)
+		xcom.PrintObject("wow,insert candidate  0:", currentCandidate)
 
 		//set reward history
 		packageReward, err := LoadNewBlockReward(block.Hash(), sk.db.GetDB())
@@ -1566,19 +1581,37 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 	}
 	xcom.PrintObject("wow,GetHistoryValidatorList", validatorArr)
 	queue := make(staking.ValidatorExQueue, len(validatorArr.Arr))
+	var candidateHexQueue staking.CandidateHexQueue
 
+	if queryNumber == 0 {
+		data, err := STAKING_DB.HistoryDB.Get([]byte(InitNodeName + numStr))
+		if nil != err {
+			return nil, err
+		}
+
+		err = rlp.DecodeBytes(data, &candidateHexQueue)
+		if nil != err {
+			return nil, err
+		}
+		xcom.PrintObject("wow,GetHistoryValidatorList candidateHexQueue", candidateHexQueue)
+	}
 	for i, v := range validatorArr.Arr {
 
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
-			//StakingAddress:  can.StakingAddress,
-			//BenefitAddress:  can.BenefitAddress,
-			//StakingTxIndex:  can.StakingTxIndex,
-			//ProgramVersion:  can.ProgramVersion,
-			//StakingBlockNum: can.StakingBlockNum,
-			//Shares: (*hexutil.Big)(shares),
-			//Description:     can.Description,
 			ValidatorTerm: v.ValidatorTerm,
+		}
+		if queryNumber == 0 {
+			for _, vc := range candidateHexQueue{
+				if vc.NodeId == v.NodeId{
+					valEx.BenefitAddress = vc.BenefitAddress
+					valEx.StakingAddress = vc.StakingAddress
+					valEx.Website = vc.Website
+					valEx.Description = vc.Description
+					valEx.ExternalId = vc.ExternalId
+					break
+				}
+			}
 		}
 		queue[i] = valEx
 	}
