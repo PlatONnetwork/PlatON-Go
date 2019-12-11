@@ -241,6 +241,12 @@ func GetPreActiveVersion(state xcom.StateDB) uint32 {
 	return common.BytesToUint32(value)
 }
 
+// Delete pre-active version
+func delPreActiveVersion(state xcom.StateDB) error {
+	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), nil)
+	return nil
+}
+
 // Set active version record
 func AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.StateDB) error {
 	avList, err := ListActiveVersion(state)
@@ -418,6 +424,14 @@ func ListAccuVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover
 	} else {
 		return l, nil
 	}
+}
+
+func ClearAccuVerifiers(blockHash common.Hash, proposalID common.Hash) error {
+	if err := delAccuVerifiers(blockHash, proposalID); err != nil {
+		log.Error("clear voted verifiers in snapshot db failed", "proposalID", proposalID, "blockHash", blockHash.Hex(), "error", err)
+		return err
+	}
+	return nil
 }
 
 func AddPIPID(pipID string, state xcom.StateDB) error {
