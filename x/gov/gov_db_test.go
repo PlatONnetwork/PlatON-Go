@@ -830,6 +830,13 @@ func TestGovDB_FindGovernParamValue(t *testing.T) {
 	}
 }
 
+func TestGovDB_byteBuffer(t *testing.T) {
+	var buffer bytes.Buffer
+	buffer.Write(nil)
+
+	ver := common.BytesToUint32(buffer.Bytes())
+	t.Log("ver=", ver)
+}
 func newBlock(blockNumber *big.Int) (common.Hash, error) {
 
 	recognizedHash := generateHash("recognizedHash")

@@ -209,6 +209,10 @@ func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]discover
 	return nil, nil
 }
 
+func delAccuVerifiers(blockHash common.Hash, proposalId common.Hash) error {
+	return del(blockHash, KeyAccuVerifier(proposalId))
+}
+
 func addGovernParam(module, name, desc string, paramValue *ParamValue, blockHash common.Hash) error {
 	itemList, err := listGovernParamItem("", blockHash)
 	if err != nil {
