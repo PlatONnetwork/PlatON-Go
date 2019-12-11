@@ -217,7 +217,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			YearStartNum: 0,
 			YearEndNum: xutil.CalcBlocksEachYear(),
 			RemainEpoch: uint32(xutil.EpochsPerYear()),
-			AvgPackTime: xcom.Interval(),
+			AvgPackTime: xcom.Interval() * 1000,
 		}
 		log.Debug("staking.Reward ,LoadNewBlockReward and LoadStakingReward", "packageReward", reward.PackageReward, "stakingReward", reward.StakingReward, "hash", block.Hash(), "number", block.Number())
 		dataReward, err := rlp.EncodeToBytes(reward)
