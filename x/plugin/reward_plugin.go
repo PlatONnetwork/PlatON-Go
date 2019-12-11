@@ -48,6 +48,7 @@ const (
 	AfterFoundationYearFoundRewardRate     = 50
 	IncreaseIssue                          = 40
 	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
+	VERSIONTrueActive                      = 500
 )
 
 var (
@@ -198,7 +199,11 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 func (rmp *RewardMgrPlugin) allocatePackageBlock(blockNumber uint64, blockHash common.Hash, coinBase common.Address, reward *big.Int, state xcom.StateDB) {
 
 	if coinBase != vm.RewardManagerPoolAddr {
-
+		if gov.GetCurrentActiveVersion(state) <= uint32(params.VersionMajor<<16|params.VersionMinor<<8|params.VersionPatch) {
+			if blockNumber >= VERSIONTrueActive {
+				reward.Sub(reward, new(big.Int).SetUint64(params.LAT))
+			}
+		}
 		log.Debug("allocate package reward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"coinBase", coinBase.String(), "reward", reward)
 
@@ -225,9 +230,6 @@ func (rmp *RewardMgrPlugin) calculateExpectReward(thisYear, lastYear uint32, sta
 
 	newBlockReward := new(big.Int).Div(totalNewBlockReward, big.NewInt(int64(blocks)))
 	stakingReward := new(big.Int).Div(totalStakingReward, big.NewInt(int64(epochs)))
-	if gov.GetCurrentActiveVersion(state) == uint32(params.VersionMajor<<16|params.VersionMinor<<8|params.VersionPatch) {
-		newBlockReward.Sub(newBlockReward, new(big.Int).SetUint64(params.LAT))
-	}
 	log.Debug("Call calculateExpectReward", "thisYear", thisYear, "lastYear", lastYear,
 		"lastYearBalance", lastYearBalance, "totalNewBlockReward", totalNewBlockReward,
 		"totalStakingReward", totalStakingReward, "epochs of this year", epochs,
