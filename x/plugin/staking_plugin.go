@@ -1389,18 +1389,37 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 
 	queue := make(staking.ValidatorExQueue, len(verifierList.Arr))
 
+	var candidateHexQueue staking.CandidateHexQueue
+
+	if queryNumber == 0 {
+		data, err := STAKING_DB.HistoryDB.Get([]byte(InitNodeName + numStr))
+		if nil != err {
+			return nil, err
+		}
+
+		err = rlp.DecodeBytes(data, &candidateHexQueue)
+		if nil != err {
+			return nil, err
+		}
+		xcom.PrintObject("wow,GetHistoryValidatorList candidateHexQueue", candidateHexQueue)
+	}
 	for i, v := range verifierList.Arr {
 
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
-			//StakingAddress:  can.StakingAddress,
-			//BenefitAddress:  can.BenefitAddress,
-			//StakingTxIndex:  can.StakingTxIndex,
-			//ProgramVersion:  can.ProgramVersion,
-			//StakingBlockNum: can.StakingBlockNum,
-			//Shares: (*hexutil.Big)(shares),
-			//Description:     can.Description,
 			ValidatorTerm: v.ValidatorTerm,
+		}
+		if queryNumber == 0 {
+			for _, vc := range candidateHexQueue{
+				if vc.NodeId == v.NodeId{
+					valEx.BenefitAddress = vc.BenefitAddress
+					valEx.StakingAddress = vc.StakingAddress
+					valEx.Website = vc.Website
+					valEx.Description = vc.Description
+					valEx.ExternalId = vc.ExternalId
+					break
+				}
+			}
 		}
 		queue[i] = valEx
 	}
