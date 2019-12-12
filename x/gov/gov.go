@@ -318,7 +318,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 					return NotifyStakingDeclaredVersionError
 				}
 			} else {
-				log.Error("declared version should be pre-active version", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
+				log.Error("declared version should be pre-active version", "activeVersion", activeVersion, "preActiveVersion", preActiveVersion, "declaredVersion", declaredVersion)
 				return DeclareVersionError
 			}
 		}
@@ -537,7 +537,15 @@ func ClearProcessingProposals(blockHash common.Hash, state xcom.StateDB) error {
 		if err := clearProcessingProposal(preactiveID, false, blockHash, state); err != nil {
 			return err
 		}
+	} else {
+		if preactiveVersion := GetPreActiveVersion(state); preactiveVersion > 0 {
+			if err := DelPreActiveVersion(state); err != nil {
+				log.Error("remove pre-active version from stateDB failed", "blockHash", blockHash)
+				return err
+			}
+		}
 	}
+
 	return nil
 }
 
@@ -553,7 +561,7 @@ func clearProcessingProposal(proposalID common.Hash, isVoting bool, blockHash co
 			return err
 		}
 
-		if err := delPreActiveVersion(state); err != nil {
+		if err := DelPreActiveVersion(state); err != nil {
 			log.Error("delete pre-active version failed", "blockHash", blockHash)
 			return err
 		}
