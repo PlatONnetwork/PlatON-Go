@@ -33,7 +33,7 @@ def large_version_proposal_pips(all_clients):
             return [client.pip for client in clients]
         else:
             pip.economic.env.deploy_all()
-    result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version8, 10,
+    result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version8, 10,
                                pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
@@ -146,7 +146,7 @@ def proposal_voted_pips(all_clients):
     log.info('verifier list {}'.format(verifier_list))
     pip = get_client_by_nodeid(verifier_list[0], all_clients).pip
     pip.economic.env.deploy_all()
-    result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version5, 10,
+    result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 10,
                                pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
     assert_code(result, 0)
@@ -169,7 +169,7 @@ def large_version_proposal_voted_pips(all_clients):
     log.info('verifier list {}'.format(verifier_list))
     pip = get_client_by_nodeid(verifier_list[0], all_clients).pip
     pip.economic.env.deploy_all()
-    result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version8, 10,
+    result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version8, 10,
                                pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)

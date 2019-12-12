@@ -252,7 +252,7 @@ def proposal_pips(all_clients):
             return [client.pip for client in clients_verifier]
         else:
             pip.economic.env.deploy_all()
-    result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version5, 10,
+    result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 10,
                                pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
@@ -273,7 +273,7 @@ def preactive_proposal_pips(all_clients):
     log.info('verifierlist :{}'.format(verifier_list))
     client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
     pips = [client_verifier.pip for client_verifier in client_verifiers]
-    result = pips[0].submitVersion(pips[0].node.node_id, str(time.time_ns()),
+    result = pips[0].submitVersion(pips[0].node.node_id, str(time.time()),
                                    pips[0].cfg.version5, 2, pips[0].node.staking_address,
                                    transaction_cfg=pips[0].cfg.transaction_cfg)
     log.info('submit version proposal, result : {}'.format(result))
@@ -297,7 +297,7 @@ def preactive_large_version_proposal_pips(all_clients):
     log.info('verifierlist :{}'.format(verifier_list))
     client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
     pips = [client.pip for client in client_verifiers]
-    result = pips[0].submitVersion(pips[0].node.node_id, str(time.time_ns()),
+    result = pips[0].submitVersion(pips[0].node.node_id, str(time.time()),
                                    pips[0].cfg.version8, 2, pips[0].node.staking_address,
                                    transaction_cfg=pips[0].cfg.transaction_cfg)
     log.info('submit version proposal, result : {}'.format(result))
