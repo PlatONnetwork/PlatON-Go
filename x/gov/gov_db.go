@@ -242,7 +242,7 @@ func GetPreActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // Delete pre-active version
-func delPreActiveVersion(state xcom.StateDB) error {
+func DelPreActiveVersion(state xcom.StateDB) error {
 	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), nil)
 	return nil
 }
