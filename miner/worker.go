@@ -1013,7 +1013,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	defer func() {
 		if engine, ok := w.engine.(consensus.Bft); ok {
 			w.commitWorkEnv.nextBlockTime.Store(engine.CalcNextBlockTime(common.MillisToTime(timestamp)))
-			log.Debug("Next block time", "time", w.commitWorkEnv.nextBlockTime.Load().(time.Time).Format("2006-01-02 15:04:05.999"))
+			log.Debug("Next block time", "time", common.Beautiful(w.commitWorkEnv.nextBlockTime.Load().(time.Time)))
 		}
 	}()
 
@@ -1268,11 +1268,17 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 	currentBaseBlock := w.commitWorkEnv.getCurrentBaseBlock()
 	nextBaseBlock := w.engine.NextBaseBlock()
-	nextBlockTime := w.commitWorkEnv.nextBlockTime.Load().(time.Time)
+	nextBaseBlockTime := common.MillisToTime(nextBaseBlock.Time().Int64())
 
-	blockTime := w.engine.(consensus.Bft).CalcNextBlockTime(common.MillisToTime(nextBaseBlock.Time().Int64()))
+	if timestamp.Before(nextBaseBlockTime) {
+		log.Warn("Invalid packing timestamp,current timestamp is lower than the parent timestamp", "parentBlockTime", common.Beautiful(nextBaseBlockTime), "currentBlockTime", common.Beautiful(timestamp))
+		return false, nil
+	}
+
+	nextBlockTime := w.commitWorkEnv.nextBlockTime.Load().(time.Time)
+	blockTime := w.engine.(consensus.Bft).CalcNextBlockTime(nextBaseBlockTime)
 	if nextBlockTime.Before(blockTime) && time.Now().Before(blockTime) {
-		log.Debug("Invalid nextBlockTime, recalc it", "nextBlockTime", nextBlockTime.Format("2006-01-02 15:04:05.999"), "blockTime", blockTime.Format("2006-01-02 15:04:05.999"))
+		log.Debug("Invalid nextBlockTime,recalc it", "nextBlockTime", common.Beautiful(nextBlockTime), "blockTime", common.Beautiful(blockTime))
 		w.commitWorkEnv.nextBlockTime.Store(blockTime)
 		return false, nil
 	}
