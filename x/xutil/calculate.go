@@ -189,7 +189,8 @@ func CalActiveBlock(endVotingBlock uint64) uint64 {
 }
 
 func IsSpecialBlock(blockNumber uint64) bool {
-	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || IsYearEnd(blockNumber) {
+	yes, _ := xcom.IsYearEnd(common.ZeroHash, blockNumber)
+	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || yes {
 		return true
 	}
 	return false
@@ -207,12 +208,6 @@ func IsBeginOfConsensus(blockNumber uint64) bool {
 	size := ConsensusSize()
 	mod := blockNumber % size
 	return mod == 1
-}
-
-func IsYearEnd(blockNumber uint64) bool {
-	size := CalcBlocksEachYear()
-	mod := blockNumber % size
-	return mod == 0
 }
 
 func IsEndOfEpoch(blockNumber uint64) bool {
