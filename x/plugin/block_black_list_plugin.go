@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	FORKHASH    = "0xe34b4b2cfc9df86b0b0ae331d7ffa09e2172bb8ba56b07db8f77b9ba7e8f899e"
-	FORKNUM     = 695
+	FORKHASH    = "0x433cdf648bab8bee93467c3b2f39a5053fff9dbdb0ed19c4b71ab57039240ccd"
+	FORKNUM     = 559860
 	FORKVERSION = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 )
 
