@@ -1214,7 +1214,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {
 		log.Error("Failed to ProcessDirectly", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err)
-		if err != plugin.BlockBlackListERROR {
+		if err != plugin.BlockBlackListERROR && err != plugin.CollectDeclareVersionERROR {
 			bc.reportBlock(block, receipts, err)
 		}
 		return nil, err

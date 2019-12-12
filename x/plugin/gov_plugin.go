@@ -106,10 +106,10 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 
-			if err = gov.DelPreActiveVersion(state); err != nil {
-				log.Error("remove pre-active version from stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
-				return err
-			}
+			//if err = gov.DelPreActiveVersion(state); err != nil {
+			//	log.Error("remove pre-active version from stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+			//	return err
+			//}
 
 			if err = gov.ClearActiveNodes(blockHash, preActiveVersionProposalID); err != nil {
 				log.Error("clear version proposal active nodes failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)

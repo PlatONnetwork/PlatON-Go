@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -11,6 +11,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
+
+var CollectDeclareVersionERROR = errors.New("the block Collect Declare Version less than ")
 
 func NewCollectDeclareVersionPlugin() *CollectDeclareVersionPlugin {
 	cd := new(CollectDeclareVersionPlugin)
@@ -59,7 +61,8 @@ func (b *CollectDeclareVersionPlugin) EndBlock(blockHash common.Hash, header *ty
 		wantSize := (len(list)*2)/3 + 1
 		log.Debug("CollectDeclareVersionPlugin begin ClearProcessingProposals,count size", "size", size, "want", wantSize)
 		if size < wantSize {
-			return fmt.Errorf("the block Collect Declare Version less than %v", wantSize)
+			log.Warn("the block Collect Declare Version less ", "wantSize", wantSize)
+			return CollectDeclareVersionERROR
 		}
 	}
 	return nil
