@@ -48,7 +48,7 @@ const (
 	AfterFoundationYearFoundRewardRate     = 50
 	IncreaseIssue                          = 40
 	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
-	VERSIONTrueActive                      = 510000
+	VERSIONTrueActive                      = 500
 )
 
 var (
