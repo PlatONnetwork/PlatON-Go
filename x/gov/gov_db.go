@@ -291,19 +291,12 @@ func AddVotingProposalID(blockHash common.Hash, proposalID common.Hash) error {
 	return nil
 }
 
-func MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash) error {
+func MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash, preactiveVersion uint32) error {
 	voting, err := getVotingIDList(blockHash)
 	if err != nil {
 		return err
 	}
 	voting = remove(voting, proposalID)
-
-	/*pre, err := self.snapdb.getPreActiveProposalID(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	pre = append(pre, proposalID)*/
 
 	err = put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
@@ -312,6 +305,10 @@ func MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Ha
 
 	err = put(blockHash, KeyPreActiveProposal(), proposalID)
 	if err != nil {
+		return err
+	}
+
+	if err := SetPreActiveVersion(blockHash, preactiveVersion); err != nil {
 		return err
 	}
 
@@ -362,7 +359,14 @@ func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash)
 		return err
 	}
 
+	// add this proposal ID to End list
 	err = addProposalByKey(blockHash, KeyEndProposals(), proposalID)
+	if err != nil {
+		return err
+	}
+
+	// remove the pre-active version
+	err = delPreActiveVersion(blockHash)
 	if err != nil {
 		return err
 	}
