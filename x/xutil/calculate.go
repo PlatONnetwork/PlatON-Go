@@ -90,18 +90,25 @@ func CalcBlocksEachEpoch() uint64 {
 	return ConsensusSize() * EpochSize()
 }
 
-// CalcBlocksEachEpoch returns the epoch duration in seconds
-func CalcEpochDuration() uint64 {
-	return CalcBlocksEachEpoch() * xcom.Interval()
+func EstimateConsensusRoundsForGov(seconds uint64) uint64 {
+	//v0.7.5, hard code 1 second for block interval for estimating.
+	blockInterval := uint64(1)
+	return seconds / (blockInterval * ConsensusSize())
 }
 
-func CalcConsensusRounds(seconds uint64) uint64 {
-	//v0.7.5, hard code 1 second per block.
-	return seconds / (1 * ConsensusSize())
-}
+func EstimateEndVotingBlockForParaProposal(blockNumber uint64, seconds uint64) uint64 {
+	consensusSize := ConsensusSize()
+	epochMaxDuration := xcom.MaxEpochMinutes() //minutes
+	//estimate how many consensus rounds in a epoch.
+	//v0.7.5, hard code 1 second for block interval for estimating.
+	blockInterval := uint64(1)
+	consensusRoundsEachEpoch := epochMaxDuration * 60 / (blockInterval * consensusSize)
 
-func CalcEpochRounds(seconds uint64) uint64 {
-	return seconds / CalcEpochDuration()
+	blocksEachEpoch := consensusRoundsEachEpoch * consensusSize
+	durationEachEpoch := blocksEachEpoch * blockInterval
+
+	epochRounds := seconds / durationEachEpoch
+	return blockNumber + blocksEachEpoch - blockNumber%blocksEachEpoch + epochRounds*blocksEachEpoch
 }
 
 // calculate returns how many blocks per year.
@@ -150,32 +157,6 @@ func CalculateRound(blockNumber uint64) uint64 {
 	return round
 }
 
-// calculate the year by blockNumber.
-// (V.0.1) If blockNumber eqs 0, year eqs 0 too, else rounded up the result of
-// the blockNumber divided by the expected number of blocks per year
-func CalculateYear(blockNumber uint64) uint32 {
-	size := CalcBlocksEachYear()
-
-	div := blockNumber / size
-	mod := blockNumber % size
-
-	if mod == 0 {
-		return uint32(div)
-	} else {
-		return uint32(div + 1)
-	}
-}
-
-func CalculateLastYear(blockNumber uint64) uint32 {
-	thisYear := CalculateYear(blockNumber)
-
-	if thisYear == 0 {
-		return 0
-	} else {
-		return thisYear - 1
-	}
-}
-
 func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
 	for _, v := range nodeIDList {
 		if nodeID == v {
@@ -201,11 +182,6 @@ func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
 	return blockNumber + consensusSize - blockNumber%consensusSize + endVotingRounds*consensusSize - electionDistance
 }
 
-func CalEndVotingBlockForParamProposal(blockNumber uint64, endVotingEpochRounds uint64) uint64 {
-	blocksPerEpoach := CalcBlocksEachEpoch()
-	return blockNumber + blocksPerEpoach - blockNumber%blocksPerEpoach + endVotingEpochRounds*blocksPerEpoach
-}
-
 // active-block = the begin of a consensus period, so, it is possible that active-block also is the begin of a epoch.
 func CalActiveBlock(endVotingBlock uint64) uint64 {
 	//return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
@@ -217,12 +193,6 @@ func IsSpecialBlock(blockNumber uint64) bool {
 		return true
 	}
 	return false
-}
-
-func IsYearBegin(blockNumber uint64) bool {
-	size := CalcBlocksEachYear()
-	mod := blockNumber % size
-	return mod == 1
 }
 
 // IsBeginOfEpoch returns true if current block is the first block of a Epoch
@@ -247,12 +217,6 @@ func IsYearEnd(blockNumber uint64) bool {
 
 func IsEndOfEpoch(blockNumber uint64) bool {
 	size := CalcBlocksEachEpoch()
-	mod := blockNumber % size
-	return mod == 0
-}
-
-func IsEndOfConsensus(blockNumber uint64) bool {
-	size := ConsensusSize()
 	mod := blockNumber % size
 	return mod == 0
 }
