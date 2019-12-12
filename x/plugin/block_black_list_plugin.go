@@ -14,7 +14,7 @@ import (
 const (
 	FORKHASH    = "0x433cdf648bab8bee93467c3b2f39a5053fff9dbdb0ed19c4b71ab57039240ccd"
 	FORKNUM     = 559860
-	FORKVERSION = uint32(params.VersionMajor<<16|params.VersionMinor<<8|params.VersionPatch) + 1
+	FORKVERSION = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 )
 
 var BlockBlackListERROR = fmt.Errorf("the block is exist in BlackList,hash:%v", FORKHASH)
