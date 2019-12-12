@@ -210,12 +210,6 @@ func IsBeginOfConsensus(blockNumber uint64) bool {
 	return mod == 1
 }
 
-/*func IsYearEnd(blockNumber uint64) bool {
-	size := CalcBlocksEachYear()
-	mod := blockNumber % size
-	return mod == 0
-}*/
-
 func IsEndOfEpoch(blockNumber uint64) bool {
 	size := CalcBlocksEachEpoch()
 	mod := blockNumber % size
