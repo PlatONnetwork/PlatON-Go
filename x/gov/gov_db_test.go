@@ -836,11 +836,66 @@ func TestGovDB_FindGovernParamValue(t *testing.T) {
 	}
 }
 
+func TestGovDB_setPreactiveVersion(t *testing.T) {
+	Init()
+	defer snapshotdb.Instance().Clear()
+
+	blockHash, _ := newBlock(big.NewInt(1))
+	version := uint32(2561)
+	if err := setPreActiveVersion(blockHash, version); err != nil {
+		t.Fatalf("add govern param error...%s", err)
+	}
+
+	ver := getPreActiveVersion(blockHash)
+	assert.Equal(t, version, ver)
+}
+
+func TestGovDB_setPreactiveProposalID(t *testing.T) {
+	Init()
+	defer snapshotdb.Instance().Clear()
+
+	//create block
+	blockHash, _ := newBlock(big.NewInt(1))
+	tp := getTxtProposal()
+	if err := SetProposal(tp, statedb); err != nil {
+		t.Fatalf("set proposal error,%s", err)
+	}
+	if err := AddVotingProposalID(blockHash, tp.ProposalID); err != nil {
+		t.Fatalf("add voting proposal ID error,%s", err)
+	}
+
+	if err := MoveVotingProposalIDToPreActive(blockHash, tp.ProposalID); err != nil {
+		t.Fatalf("move voting ID to pre-active ID error,%s", err)
+	}
+	if p, err := getPreActiveProposalID(blockHash); err != nil {
+		t.Fatalf("find  pre-active ID error,%s", err)
+	} else {
+		t.Log("p:", p)
+		assert.Equal(t, tp.ProposalID, p)
+	}
+
+	if err := put(blockHash, KeyPreActiveProposal(), common.Hash{0x00}); err != nil {
+		t.Fatalf("reset pre-active ID error,%s", err)
+	}
+
+	if p, err := GetPreActiveProposalID(blockHash); err != nil {
+		t.Fatalf("find  pre-active ID error,%s", err)
+	} else {
+		t.Log("p:", p)
+		assert.Equal(t, common.ZeroHash, p)
+	}
+}
+
 func TestGovDB_Version(t *testing.T) {
 	version := uint32(0<<16 | 7<<8 | 4)
 	fmt.Println(version)
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	log.Warn("Store version for gov into genesis statedb", "genesis version", fmt.Sprintf("%d/%s", version, params.FormatVersion(version)))
+
+	var hash common.Hash
+	assert.Equal(t, common.ZeroHash, hash)
+	assert.Equal(t, common.Hash{}, hash)
+	assert.Equal(t, common.Hash{0x00}, hash)
 }
 
 func newBlock(blockNumber *big.Int) (common.Hash, error) {
