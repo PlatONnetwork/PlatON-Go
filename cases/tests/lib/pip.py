@@ -391,8 +391,8 @@ class Pip:
     def is_exist_effective_proposal(self, proposal_type=None):
         """
         Determine if there is a valid upgrade proposal on the chain - to determine if a proposal can be initiated
-                                                                :param proposal_type: 2 is the upgrade proposal 1. Text proposal 4. Cancel the proposal
-                                                                :return:
+    :param proposal_type: 2 is the upgrade proposal 1. Text proposal 4. Cancel the proposal
+    :return:
         """
         if proposal_type is None:
             proposal_type = self.cfg.version_proposal

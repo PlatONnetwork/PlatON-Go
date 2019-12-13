@@ -106,6 +106,40 @@ def test_PP_SU_001_PP_UN_001_VP_UN_003(submit_param):
     log.info('There is a voting param proposal,submit version proposal result : {}'.format(result))
     assert_code(result, 302032)
 
+@pytest.mark.P2
+def test_PP_SU_021(new_genesis_env, client_consensus):
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.config.cbft.period = 1000 * 2 * genesis.config.cbft.amount
+    genesis.economicModel.common.maxEpochMinutes = 6
+    genesis.economicModel.gov.textProposalVoteDurationSeconds = 161
+    new_genesis_env.set_genesis(genesis.to_dict())
+    new_genesis_env.deploy_all()
+    pip = client_consensus.pip
+    result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators', '99', pip.node.staking_address,
+                             transaction_cfg=pip.cfg.transaction_cfg)
+    assert_code(result, 0)
+    proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
+    log.info('Param proposal information : {}'.format(proposalinfo))
+    endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip.economic.settlement_size +
+                                     pip.economic.pp_vote_settlement_wheel
+                                     ) * pip.economic.settlement_size
+    log.info('Calculated endvoting block {},interface returned endvoting block {}'.format(endvotingblock_count,
+                                                                                          proposalinfo.get(
+                                                                                              'EndVotingBlock')))
+    assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
+    result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
+                            transaction_cfg=pip.cfg.transaction_cfg)
+    log.info('Submit text proposal result : {}'.format(result))
+    assert_code(result, 0)
+    proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.text_proposal)
+    log.info('Get text proposal information :{}'.format(proposalinfo))
+    endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip.economic.consensus_size + 4
+                                     ) * pip.economic.consensus_size - 20
+    log.info('calcuted endvoting block {},interface returns {}'.format(endvotingblock_count,
+                                                                       proposalinfo.get('EndVotingBlock')))
+    assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
+
+
 
 @pytest.mark.P0
 @allure.title('Submit version proposal function verification')

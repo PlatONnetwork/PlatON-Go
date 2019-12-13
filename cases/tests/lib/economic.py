@@ -37,7 +37,7 @@ class Economic:
         # Number of settlement periods
         self.settlement_size = self.consensus_wheel * (self.interval * self.per_round_blocks * self.validator_count)
         # Consensus round number
-        self.consensus_size = self.interval * self.per_round_blocks * self.validator_count
+        self.consensus_size = self.per_round_blocks * self.validator_count
 
         # Minimum amount limit
         # Minimum deposit amount
@@ -49,9 +49,7 @@ class Economic:
         # unstaking freeze duration
         self.unstaking_freeze_ratio = self.genesis.economicModel.staking.unStakeFreezeDuration
         # ParamProposalVote_DurationSeconds
-        self.pp_vote_settlement_wheel = self.genesis.economicModel.gov.paramProposalVoteDurationSeconds // (
-            (self.interval * self.per_round_blocks * self.validator_count) * self.consensus_wheel
-        )
+        self.pp_vote_settlement_wheel = self.genesis.economicModel.gov.paramProposalVoteDurationSeconds // self.settlement_size
         # slash blocks reward
         self.slash_blocks_reward = self.genesis.economicModel.slashing.slashBlocksReward
         # text proposal vote duration senconds
