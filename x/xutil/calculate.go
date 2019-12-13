@@ -100,11 +100,11 @@ func EstimateEndVotingBlockForParaProposal(blockNumber uint64, seconds uint64) u
 	consensusSize := ConsensusSize()
 	epochMaxDuration := xcom.MaxEpochMinutes() //minutes
 	//estimate how many consensus rounds in a epoch.
+	consensusRoundsEachEpoch := epochMaxDuration * 60 / (xcom.Interval() * consensusSize)
+	blocksEachEpoch := consensusRoundsEachEpoch * consensusSize
+
 	//v0.7.5, hard code 1 second for block interval for estimating.
 	blockInterval := uint64(1)
-	consensusRoundsEachEpoch := epochMaxDuration * 60 / (blockInterval * consensusSize)
-
-	blocksEachEpoch := consensusRoundsEachEpoch * consensusSize
 	durationEachEpoch := blocksEachEpoch * blockInterval
 
 	epochRounds := seconds / durationEachEpoch
@@ -189,7 +189,8 @@ func CalActiveBlock(endVotingBlock uint64) uint64 {
 }
 
 func IsSpecialBlock(blockNumber uint64) bool {
-	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || IsYearEnd(blockNumber) {
+	yes, _ := xcom.IsYearEnd(common.ZeroHash, blockNumber)
+	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || yes {
 		return true
 	}
 	return false
@@ -207,12 +208,6 @@ func IsBeginOfConsensus(blockNumber uint64) bool {
 	size := ConsensusSize()
 	mod := blockNumber % size
 	return mod == 1
-}
-
-func IsYearEnd(blockNumber uint64) bool {
-	size := CalcBlocksEachYear()
-	mod := blockNumber % size
-	return mod == 0
 }
 
 func IsEndOfEpoch(blockNumber uint64) bool {

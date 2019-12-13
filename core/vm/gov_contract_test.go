@@ -136,7 +136,7 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("verionPIPID"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
-	input = append(input, common.MustRlpEncode(xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())))
+	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())))
 
 	return common.MustRlpEncode(input)
 }
@@ -159,7 +159,7 @@ func buildSubmitCancelInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ..
 	input = append(input, common.MustRlpEncode("cancelPIPID"))
-	input = append(input, common.MustRlpEncode(xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1))
+	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1))
 	input = append(input, common.MustRlpEncode(defaultProposalID))
 	return common.MustRlpEncode(input)
 }
@@ -601,12 +601,12 @@ func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
 	defer clear(chain, t)
 
 	//submit a proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
 	//submit a proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t, gov.VotingVersionProposalExist)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.VotingVersionProposalExist)
 }
 
 func TestGovContract_SubmitVersion_Passed(t *testing.T) {
@@ -698,7 +698,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	//skip empty blocks, this version proposal is pre-active
 	skip_emptyBlock(chain, p.GetActiveBlock()-1)
 	//submit another version proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t, gov.PreActiveVersionProposalExist)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.PreActiveVersionProposalExist)
 }
 
 func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
@@ -793,7 +793,7 @@ func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
 func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t, gov.NewVersionError)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.NewVersionError)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooSmall(t *testing.T) {
@@ -807,7 +807,7 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
 	defer clear(chain, t)
 
 	//the default rounds is 6 for developer test net
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())+1), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())+1), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_Float(t *testing.T) {
@@ -987,16 +987,16 @@ func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
 	defer clear(chain, t)
 
 	//submit a proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
 
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[3])
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[2], "cancelPIPIDAnother", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.VotingCancelProposalExist)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[2], "cancelPIPIDAnother", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.VotingCancelProposalExist)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
@@ -1006,7 +1006,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()), defaultProposalID), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), defaultProposalID), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testing.T) {
@@ -1018,7 +1018,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testin
 
 	prepair_sndb(chain, txHashArr[2])
 	//the version proposal's endVotingRounds=5
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1, txHashArr[3]), t, gov.TobeCanceledProposalNotFound)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, txHashArr[3]), t, gov.TobeCanceledProposalNotFound)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal(t *testing.T) {
@@ -1030,7 +1030,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal
 
 	prepair_sndb(chain, txHashArr[2])
 	//try to cancel a text proposal
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalTypeError)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalTypeError)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t *testing.T) {
@@ -1050,7 +1050,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t
 
 	prepair_sndb(chain, txHashArr[3])
 	//try to cancel a closed version proposal
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalNotAtVoting)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalNotAtVoting)
 }
 
 func TestGovContract_GetCancelProposal(t *testing.T) {
@@ -1062,7 +1062,7 @@ func TestGovContract_GetCancelProposal(t *testing.T) {
 
 	prepair_sndb(chain, txHashArr[2])
 	//submit a proposal and get it.
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[3])

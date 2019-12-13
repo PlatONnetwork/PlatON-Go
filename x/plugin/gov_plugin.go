@@ -255,7 +255,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 			return err
 		}
 
-		if err := gov.MoveVotingProposalIDToPreActive(blockHash, proposalID); err != nil {
+		if err := gov.MoveVotingProposalIDToPreActive(blockHash, proposalID, proposal.NewVersion); err != nil {
 			log.Error("move version proposal ID to pre-active failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
 			return err
 		}
