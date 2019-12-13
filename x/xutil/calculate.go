@@ -100,11 +100,11 @@ func EstimateEndVotingBlockForParaProposal(blockNumber uint64, seconds uint64) u
 	consensusSize := ConsensusSize()
 	epochMaxDuration := xcom.MaxEpochMinutes() //minutes
 	//estimate how many consensus rounds in a epoch.
+	consensusRoundsEachEpoch := epochMaxDuration * 60 / (xcom.Interval() * consensusSize)
+	blocksEachEpoch := consensusRoundsEachEpoch * consensusSize
+
 	//v0.7.5, hard code 1 second for block interval for estimating.
 	blockInterval := uint64(1)
-	consensusRoundsEachEpoch := epochMaxDuration * 60 / (blockInterval * consensusSize)
-
-	blocksEachEpoch := consensusRoundsEachEpoch * consensusSize
 	durationEachEpoch := blocksEachEpoch * blockInterval
 
 	epochRounds := seconds / durationEachEpoch
