@@ -87,6 +87,7 @@ class TestsubmitCP:
 @allure.title('Submit param proposal function verification')
 def test_PP_SU_001_PP_UN_001_VP_UN_003(submit_param):
     pip = submit_param
+    log.info('test chain version : {}'.format(pip.chain_version))
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
     log.info('param proposalinfo : {}'.format(proposalinfo))
     endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip.economic.settlement_size +
