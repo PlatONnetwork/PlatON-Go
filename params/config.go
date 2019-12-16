@@ -110,7 +110,8 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter: "wasm",
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -133,7 +134,8 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter: "wasm",
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the test network.
@@ -152,22 +154,23 @@ var (
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
+		GenesisVersion: GenesisVersion,
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, ""}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, "", GenesisVersion}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers into the Clique consensus.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), &CliqueConfig{Period: 0, Epoch: 30000}, nil, ""}
+	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), &CliqueConfig{Period: 0, Epoch: 30000}, nil, "", GenesisVersion}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), ""}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), "", GenesisVersion}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -197,7 +200,8 @@ type ChainConfig struct {
 	Cbft   *CbftConfig   `json:"cbft,omitempty"`
 
 	// Various vm interpreter
-	VMInterpreter string `json:"interpreter,omitempty"`
+	VMInterpreter  string `json:"interpreter,omitempty"`
+	GenesisVersion uint32 `json:"GenesisVersion"`
 }
 
 type CbftNode struct {
