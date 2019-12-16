@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package vm
 
 import (
@@ -15,14 +31,15 @@ func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byt
 	// verify the tx data by contracts method
 	_, fn, params, err := plugin.VerifyTxData(input, command)
 	if nil != err {
-		log.Error("Failed to verify contract tx", "err", err)
-		return nil, err
+		log.Error("Failed to verify contract tx before exec", "err", err)
+		return xcom.NewFailedResult(common.InvalidParameter), err
 	}
 
 	// execute contracts method
 	result := reflect.ValueOf(fn).Call(params)
 	if err, ok := result[1].Interface().(error); ok {
-		return nil, err
+		log.Error("Failed to execute contract tx", "err", err)
+		return xcom.NewFailedResult(common.InternalError), err
 	}
 	return result[0].Bytes(), nil
 }

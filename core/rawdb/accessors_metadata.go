@@ -89,18 +89,19 @@ func WriteEconomicModel(db DatabaseWriter, hash common.Hash, ec *xcom.EconomicMo
 }
 
 // ReadEconomicModel retrieves the EconomicModel settings based on the given genesis hash.
-func ReadEconomicModel(db DatabaseReader, hash common.Hash, ec *xcom.EconomicModel) *xcom.EconomicModel {
+func ReadEconomicModel(db DatabaseReader, hash common.Hash) *xcom.EconomicModel {
 	data, _ := db.Get(economicModelKey(hash))
 	if len(data) == 0 {
 		return nil
 	}
 
+	var ec xcom.EconomicModel
 	// reset the global ec
-	if err := json.Unmarshal(data, ec); err != nil {
+	if err := json.Unmarshal(data, &ec); err != nil {
 		log.Error("Invalid EconomicModel JSON", "hash", hash, "err", err)
 		return nil
 	}
-	return ec
+	return &ec
 }
 
 // ReadPreimage retrieves a single preimage of the provided hash.

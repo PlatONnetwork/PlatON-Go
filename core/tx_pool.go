@@ -801,6 +801,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	// Verify inner contract tx
 	if nil != tx.To() {
 		if err := bcr.VerifyTx(tx, *(tx.To())); nil != err {
+			log.Error("Failed to verify tx", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err)
 			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
 		}
 	}
@@ -1000,7 +1001,13 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 	case <-pool.exitCh:
 		return nil
 	case pool.txExtBuffer <- txExt:
-		return nil
+		select {
+		case err := <-errCh:
+			if e, ok := err.(error); ok {
+				return e
+			}
+			return nil
+		}
 	default:
 		return nil
 	}

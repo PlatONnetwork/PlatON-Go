@@ -12,12 +12,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/event"
 )
 
-func TestBlockChainReactor_Close(t *testing.T) {
+func TestBlockChainReactorClose(t *testing.T) {
 	t.Run("close after commit", func(t *testing.T) {
 		eventmux := new(event.TypeMux)
 		reacter := NewBlockChainReactor(eventmux)
-		reacter.bftResultSub = eventmux.Subscribe(cbfttypes.CbftResult{})
-		go func() { reacter.loop() }()
+		reacter.Start(common.PPOS_VALIDATOR_MODE)
 		var parenthash common.Hash
 		cbftress := make(chan cbfttypes.CbftResult, 5)
 		go func() {

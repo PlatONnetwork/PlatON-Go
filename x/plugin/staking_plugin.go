@@ -1011,7 +1011,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		End:   oldIndex.End + xutil.CalcBlocksEachEpoch(),
 	}
 
-	currOriginVersion := gov.GetVersionForStaking(state)
+	currOriginVersion := gov.GetVersionForStaking(blockHash, state)
 	currVersion := xutil.CalcVersion(currOriginVersion)
 
 	maxvalidators, err := gov.GovernMaxValidators(blockNumber, blockHash)
@@ -1565,7 +1565,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	lowRatioValidMap := make(map[common.Address]*staking.Candidate) // The map collect candidate info that need to clean lowRatio status
 
 	// Query Valid programVersion
-	originVersion := gov.GetVersionForStaking(state)
+	originVersion := gov.GetVersionForStaking(blockHash, state)
 	currVersion := xutil.CalcVersion(originVersion)
 
 	// Collecting removed as a result of being slashed

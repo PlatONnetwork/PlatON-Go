@@ -151,7 +151,7 @@ type worker struct {
 
 	mu       sync.RWMutex // The lock used to protect the coinbase and extra fields
 	coinbase common.Address
-	extra    []byte
+	//extra    []byte
 
 	pendingMu    sync.RWMutex
 	pendingTasks map[common.Hash]*task
@@ -180,7 +180,7 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor /*, gasCeil*/ uint64, isLocalBlock func(*types.Block) bool,
+func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor uint64, isLocalBlock func(*types.Block) bool,
 	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
 		config:       config,
@@ -243,18 +243,18 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 }
 
 // setEtherbase sets the etherbase used to initialize the block coinbase field.
-func (w *worker) setEtherbase(addr common.Address) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.coinbase = addr
-}
+//func (w *worker) setEtherbase(addr common.Address) {
+//	w.mu.Lock()
+//	defer w.mu.Unlock()
+//	w.coinbase = addr
+//}
 
-// setExtra sets the content used to initialize the block extra field.
-func (w *worker) setExtra(extra []byte) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.extra = extra
-}
+//// setExtra sets the content used to initialize the block extra field.
+//func (w *worker) setExtra(extra []byte) {
+//	w.mu.Lock()
+//	defer w.mu.Unlock()
+//	w.extra = extra
+//}
 
 // setRecommitInterval updates the interval for miner sealing work recommitting.
 func (w *worker) setRecommitInterval(interval time.Duration) {
@@ -567,6 +567,7 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Unlock()
 
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+
 				// Save stateDB to cache, receipts to cache
 				w.blockChainCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
 				w.blockChainCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
@@ -771,7 +772,9 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 	var bftEngine = w.config.Cbft != nil
 
 	for {
-		if bftEngine && (blockDeadline.Equal(time.Now()) || blockDeadline.Before(time.Now())) {
+		now := time.Now()
+		if bftEngine && (blockDeadline.Equal(now) || blockDeadline.Before(now)) {
+
 			log.Warn("interrupt current tx-executing", "now", time.Now().UnixNano()/1e6, "timestamp", timestamp, "commitDuration", w.commitDuration, "deadlineDuration", common.Millis(blockDeadline)-timestamp)
 			//log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
 			timeout = true
@@ -1037,9 +1040,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.gasFloor /*, w.gasCeil*/),
-		//Extra:      w.makeExtraData(),
-		Time: big.NewInt(timestamp),
+		GasLimit:   core.CalcGasLimit(parent, w.gasFloor),
+		Time:       big.NewInt(timestamp),
 	}
 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
@@ -1052,6 +1054,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
+	// Initialize the header extra in Prepare function of engine
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return

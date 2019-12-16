@@ -4,60 +4,12 @@ import pytest
 
 
 # Undo delegate use cases from 031 to 049
-@pytest.fixture()
-def staking_delegate_client(client_new_node_obj):
-    staking_amount = client_new_node_obj.economic.create_staking_limit
-    delegate_amount = client_new_node_obj.economic.add_staking_limit
-    staking_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                               staking_amount * 2)
-    delegate_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                staking_amount * 2)
-    result = client_new_node_obj.staking.create_staking(0, staking_address, staking_address)
-    assert_code(result, 0)
-    result = client_new_node_obj.delegate.delegate(0, delegate_address, amount=delegate_amount * 2)
-    assert_code(result, 0)
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
-    staking_blocknum = msg["Ret"]["StakingBlockNum"]
-    setattr(client_new_node_obj, "staking_address", staking_address)
-    setattr(client_new_node_obj, "delegate_address", delegate_address)
-    setattr(client_new_node_obj, "delegate_amount", delegate_amount)
-    setattr(client_new_node_obj, "staking_blocknum", staking_blocknum)
-    yield client_new_node_obj
-
-
-@pytest.fixture()
-def free_locked_delegate_client(client_new_node_obj):
-    staking_amount = client_new_node_obj.economic.create_staking_limit
-    delegate_amount = client_new_node_obj.economic.add_staking_limit
-    staking_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                               staking_amount * 2)
-    delegate_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                staking_amount * 2)
-    result = client_new_node_obj.staking.create_staking(0, staking_address, staking_address)
-    assert_code(result, 0)
-    result = client_new_node_obj.delegate.delegate(0, delegate_address, amount=delegate_amount * 2)
-    assert_code(result, 0)
-
-    lockup_amount = client_new_node_obj.node.web3.toWei(50, "ether")
-    plan = [{'Epoch': 2, 'Amount': lockup_amount}]
-    # Create a lock plan
-    result = client_new_node_obj.restricting.createRestrictingPlan(delegate_address, plan, delegate_address)
-    assert_code(result, 0)
-    result = client_new_node_obj.delegate.delegate(1, delegate_address)
-    assert_code(result, 0)
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
-    staking_blocknum = msg["Ret"]["StakingBlockNum"]
-    setattr(client_new_node_obj, "staking_address", staking_address)
-    setattr(client_new_node_obj, "delegate_address", delegate_address)
-    setattr(client_new_node_obj, "delegate_amount", delegate_amount)
-    setattr(client_new_node_obj, "staking_blocknum", staking_blocknum)
-    yield client_new_node_obj
 
 
 @pytest.mark.P2
 def test_ROE_031(staking_delegate_client):
     """
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = staking_delegate_client

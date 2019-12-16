@@ -45,7 +45,8 @@ import (
 )
 
 var (
-	ErrNoGenesis = errors.New("Genesis not found in chain")
+	ErrNoGenesis          = errors.New("Genesis not found in chain")
+	defaultCapNodePercent = common.StorageSize(1) / 4
 )
 
 // CacheConfig contains the configuration values for the trie caching/pruning
@@ -935,6 +936,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
 		limit := common.StorageSize(bc.cacheConfig.TrieNodeLimit) * 1024 * 1024
+		oversize := false
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
 			triedb.Reference(root, common.Hash{})
 			if err := triedb.Commit(root, false, false); err != nil {
@@ -942,6 +944,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				return NonStatTy, err
 			}
 			triedb.Dereference(currentBlock.Root())
+			nodes, _ := triedb.Size()
+			oversize = nodes > limit
 		} else {
 			triedb.Reference(root, common.Hash{})
 			if err := triedb.Commit(root, false, false); err != nil {
@@ -965,12 +969,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				nodes, _ = triedb.Size()
 				reserve -= 1
 			}
+			oversize = reserve != bc.cacheConfig.DBGCBlock-1
 		}
-		var (
-			nodes, _ = triedb.Size()
-		)
-		if nodes > limit {
-			triedb.CapNode(limit - ethdb.IdealBatchSize)
+
+		if oversize {
+			triedb.CapNode(limit * defaultCapNodePercent)
 		}
 		log.Debug("archive node commit stateDB trie", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 	} else {

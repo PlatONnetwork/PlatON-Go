@@ -26,9 +26,9 @@ import (
 	"time"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -174,7 +174,7 @@ func TestBlockSubscription(t *testing.T) {
 
 		//ctx         = node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
 		//chain, _    = core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), db, 10, func(i int, gen *core.BlockGen) {})
-		chain, _    = core.GenerateChain(params.TestChainConfig, genesis, cbft.NewFaker(), db, 10, func(i int, gen *core.BlockGen) {})
+		chain, _    = core.GenerateChain(params.TestChainConfig, genesis, consensus.NewFaker(), db, 10, func(i int, gen *core.BlockGen) {})
 		chainEvents = []core.ChainEvent{}
 	)
 

@@ -20,6 +20,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
@@ -32,7 +34,7 @@ func TestStrictTxListAdd(t *testing.T) {
 
 	txs := make(types.Transactions, 1024)
 	for i := 0; i < len(txs); i++ {
-		txs[i] = transaction(uint64(i), 0, key)
+		txs[i] = transaction(uint64(i), 0, key, common.Big1)
 	}
 	// Insert the transactions in a random order
 	list := newTxList(true)
