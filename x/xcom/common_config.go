@@ -207,9 +207,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFoundationYear: 10,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x72188da050f4B3dD9a991b209221DBFE0A0fdC42"),
+				PlatONFundAccount: common.HexToAddress("0x01c71cecaeff76b78325577e6a74a94d24a86be2"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0x8BAb06a9706F7613188d4Fb6310b1E5117dfd914"),
+				CDFAccount:        common.HexToAddress("0x02cdda362dca508709a651fde1513b22d3c2a4e5"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}

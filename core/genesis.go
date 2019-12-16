@@ -392,7 +392,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 func DefaultGenesisBlock() *Genesis {
 
 	// TODO this should change
-	generalAddr := common.HexToAddress("0x5437959B69eD1014cf6Aa8B4a2c77e7Ba2341955")
+	generalAddr := common.HexToAddress("0x99dd0a64d2809e3e293e43bdbf2704cffd87acec")
 	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
