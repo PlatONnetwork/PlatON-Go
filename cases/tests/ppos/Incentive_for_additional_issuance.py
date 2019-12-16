@@ -124,7 +124,6 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
                 economic.wait_settlement_blocknum(node)
 
         elif 0 < i < 9:
-            log.info("total_amount_of_issuance: {}".format(total_amount_of_issuance))
             annual_last_block = (math.ceil(node.eth.blockNumber / economic.settlement_size) - 1) * economic.settlement_size
             log.info("The last block height in the last issue cycle: {}".format(annual_last_block))
             # Current annual total issuance
@@ -252,7 +251,7 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
 
 
 @pytest.mark.p1
-def AL_FI_004_005(new_genesis_env, staking_cfg):
+def test_AL_FI_004_005(new_genesis_env, staking_cfg):
     """
     AL_FI_004:查看每年区块奖励变化
     AL_FI_005:查看每年质押奖励变化
@@ -279,30 +278,18 @@ def AL_FI_004_005(new_genesis_env, staking_cfg):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     normal_node = new_genesis_env.get_a_normal_node()
-    client1 = Client(new_genesis_env, normal_node, staking_cfg)
-    economic = client1.economic
-    node = client1.node
+    client = Client(new_genesis_env, normal_node, staking_cfg)
+    economic = client.economic
+    node = client.node
     log.info("Current connection node：{}".format(node.node_mark))
     log.info("Current connection nodeid：{}".format(node.node_id))
-    address, _ = client1.economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     log.info("address: {}".format(address))
-    address1, _ = client1.economic.account.generate_account(node.web3, 0)
+    address1, _ = economic.account.generate_account(node.web3, 0)
     log.info("address1: {}".format(address1))
+    end_cycle_timestamp = None
     for i in range(10):
-        current_block = node.eth.blockNumber
-        log.info("Current query block height： {}".format(node.eth.blockNumber))
-        annualcycle = (economic.additional_cycle_time * 60) // economic.settlement_size
-        annual_size = annualcycle * economic.settlement_size
-        starting_block_height = math.floor(current_block / annual_size) * annual_size
-        amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, starting_block_height)
-        log.info("Current annual incentive pool amount: {}".format(amount))
-        # if i == 0:
-        #     current_annual_incentive_pool_amount = 262215742000000000000000000
-        # else:
-        #     current_annual_incentive_pool_amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
-        #     log.info("Current annual incentive pool amount: {}".format(current_annual_incentive_pool_amount))
-        # Free amount application pledge node
-        result = client1.staking.create_staking(0, address1, address)
+        result = client.staking.create_staking(0, address1, address)
         assert_code(result, 0)
         # view account amount
         benifit_balance = node.eth.getBalance(address1)
@@ -313,17 +300,17 @@ def AL_FI_004_005(new_genesis_env, staking_cfg):
         verifier_list = node.ppos.getVerifierList()
         log.info("verifier_list: {}".format(verifier_list))
         # view block_reward
-        block_reward, staking_reward = economic.get_current_year_reward(node, amount=amount)
+        block_reward, staking_reward = economic.get_current_year_reward(node)
         log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
         # withdrew of pledge
-        result = client1.staking.withdrew_staking(address)
+        result = client.staking.withdrew_staking(address)
         assert_code(result, 0)
         # wait settlement block
-        client1.economic.wait_settlement_blocknum(node)
+        economic.wait_settlement_blocknum(node)
         # wait consensus block
-        client1.economic.wait_consensus_blocknum(node)
+        economic.wait_consensus_blocknum(node)
         # count the number of blocks
-        blocknumber = client1.economic.get_block_count_number(client1.node, 10)
+        blocknumber = economic.get_block_count_number(node, 10)
         log.info("blocknumber: {}".format(blocknumber))
         # view account amount again
         benifit_balance1 = node.eth.getBalance(address1)
@@ -331,6 +318,51 @@ def AL_FI_004_005(new_genesis_env, staking_cfg):
         reward = int(blocknumber * Decimal(str(block_reward)))
         assert benifit_balance1 == benifit_balance + staking_reward + reward, "ErrMsg:benifit_balance: {}".format(
             benifit_balance1)
-        # Waiting for the end of the annual increase
-        economic.wait_annual_blocknum(node)
+        if i == 0:
+            block_info = node.eth.getBlock(1)
+            log.info("block_info：{}".format(block_info))
+            first_timestamp = block_info['timestamp']
+            log.info("First block timestamp： {}".format(first_timestamp))
+            end_cycle_timestamp = first_timestamp + (economic.additional_cycle_time * 60000)
+            log.info("End time stamp of current issue cycle： {}".format(end_cycle_timestamp))
+        else:
+            # Waiting for the end of the annual issuance cycle
+            end_cycle_timestamp = end_cycle_timestamp + (economic.additional_cycle_time * 60000)
+            log.info("End time stamp of current issue cycle： {}".format(end_cycle_timestamp))
+        annual_last_block = (math.ceil(node.eth.blockNumber / economic.settlement_size) - 1) * economic.settlement_size
+        log.info("The last block height in the last issue cycle: {}".format(annual_last_block))
+        settlement_block_info = node.eth.getBlock(annual_last_block)
+        settlement_timestamp = settlement_block_info['timestamp']
+        log.info("High block timestamp at the end of settlement cycle： {}".format(settlement_timestamp))
+        remaining_additional_time = end_cycle_timestamp - settlement_timestamp
+        log.info("Remaining time of current issuance cycle： {}".format(remaining_additional_time))
+        result = client.ppos.getAvgPackTime()
+        average_interval = result['Ret']
+        log.info("Block interval on the chain：{}".format(average_interval))
+        log.info("Block interval on the chain：{}".format(average_interval))
+        number_of_remaining_blocks = math.ceil(remaining_additional_time / average_interval)
+        log.info("Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
+        remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
+        log.info("remaining settlement cycles issuance cycle： {}".format(remaining_settlement_cycle))
+        while remaining_settlement_cycle != 1:
+            tmp_current_block = node.eth.blockNumber
+            if tmp_current_block % economic.settlement_size == 0:
+                time.sleep(economic.interval)
+            tmp_current_block = node.eth.blockNumber
+            last_settlement_block = (math.ceil(
+                tmp_current_block / economic.settlement_size) - 1) * economic.settlement_size
+            log.info("The last block height of the previous settlement period： {}".format(last_settlement_block))
+            settlement_block_info = node.eth.getBlock(last_settlement_block)
+            settlement_timestamp = settlement_block_info['timestamp']
+            log.info("High block timestamp at the end of settlement cycle： {}".format(settlement_timestamp))
+            remaining_additional_time = end_cycle_timestamp - settlement_timestamp
+            log.info("Remaining time of current issuance cycle： {}".format(remaining_additional_time))
+            result = client.ppos.getAvgPackTime()
+            average_interval = result['Ret']
+            log.info("Block interval on the chain：{}".format(average_interval))
+            number_of_remaining_blocks = math.ceil(remaining_additional_time / average_interval)
+            log.info("Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
+            remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
+            log.info("remaining settlement cycles issuance cycle： {}".format(remaining_settlement_cycle))
+            economic.wait_settlement_blocknum(node)
 

@@ -279,11 +279,18 @@ def test_IP_CP_002_validator_mode(reset_cfg_env_node, value):
     创世文件共识参数验证
     :return:
     """
-    genesis = reset_cfg_env_node.genesis
-    genesis.config.cbft.validatorMode = value
-    new_file = reset_cfg_env_node.genesis_path
-    genesis.to_file(new_file)
-    assert_error_deploy(reset_cfg_env_node, new_file, "Abnormal validatorMode")
+    if value == "":
+        genesis = reset_cfg_env_node.genesis
+        genesis.config.cbft.validatorMode = value
+        new_file = reset_cfg_env_node.genesis_path
+        genesis.to_file(new_file)
+        reset_cfg_env_node.deploy_me(new_file)
+    else:
+        genesis = reset_cfg_env_node.genesis
+        genesis.config.cbft.validatorMode = value
+        new_file = reset_cfg_env_node.genesis_path
+        genesis.to_file(new_file)
+        assert_error_deploy(reset_cfg_env_node, new_file, "Abnormal validatorMode")
 
 
 @pytest.mark.P2

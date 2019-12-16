@@ -605,6 +605,7 @@ def test_VP_PV_030(client_consensus, reset_environment):
     client = client_consensus
     economic = client.economic
     node = client.node
+    client.economic.env.deploy_all()
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Obtain information of report evidence
