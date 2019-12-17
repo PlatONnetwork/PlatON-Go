@@ -255,15 +255,15 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 			return err
 		}
 
-		if err := gov.MoveVotingProposalIDToPreActive(blockHash, proposalID); err != nil {
+		if err := gov.MoveVotingProposalIDToPreActive(blockHash, proposalID, proposal.NewVersion); err != nil {
 			log.Error("move version proposal ID to pre-active failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
 			return err
 		}
-
-		if err := gov.SetPreActiveVersion(blockHash, proposal.NewVersion); err != nil {
+		// this moved into MoveVotingProposalIDToPreActive()
+		/*if err := gov.SetPreActiveVersion(blockHash, proposal.NewVersion); err != nil {
 			log.Error("save pre-active version to state failed", "proposalID", proposalID, "blockHash", blockHash, "newVersion", proposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(proposal.NewVersion))
 			return err
-		}
+		}*/
 
 		activeList, err := gov.GetActiveNodeList(blockHash, proposalID)
 		if err != nil {
