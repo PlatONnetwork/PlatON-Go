@@ -196,13 +196,30 @@ func initGenesis(ctx *cli.Context) error {
 	if err := json.NewDecoder(file).Decode(&genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
+
+	if nil == genesis || nil == genesis.Config {
+		utils.Fatalf("genesis configuration is missed")
+	}
+	if nil == genesis.Config.Cbft {
+		utils.Fatalf("cbft configuration is missed")
+	}
+	if genesis.Config.Cbft.Period == 0 {
+		utils.Fatalf("cbft.period configuration is missed")
+	}
+	if genesis.Config.Cbft.Amount == 0 {
+		utils.Fatalf("cbft.amount configuration is missed")
+	}
+	if nil == genesis.EconomicModel {
+		utils.Fatalf("economic configuration is missed")
+	}
+	if genesis.Config.GenesisVersion == 0 {
+		utils.Fatalf("genesis version configuration is missed")
+	}
+
 	xcom.ResetEconomicDefaultConfig(genesis.EconomicModel)
 	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
-	if nil != genesis && nil != genesis.Config && nil != genesis.Config.Cbft && nil != genesis.EconomicModel {
-		xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
-		xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
-
-	}
+	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
 
 	// check EconomicModel configuration
 	if err := xcom.CheckEconomicModel(); nil != err {

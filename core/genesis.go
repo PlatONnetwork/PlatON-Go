@@ -203,9 +203,9 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 	ecCfg := rawdb.ReadEconomicModel(db, stored)
 	if nil == ecCfg {
 		log.Warn("Found genesis block without EconomicModel config")
-		rawdb.WriteEconomicModel(db, stored, xcom.GetEc(xcom.DefaultMainNet))
+		ecCfg = xcom.GetEc(xcom.DefaultMainNet)
+		rawdb.WriteEconomicModel(db, stored, ecCfg)
 	}
-
 	xcom.ResetEconomicDefaultConfig(ecCfg)
 
 	// Get the existing chain configuration.
@@ -301,14 +301,28 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 		panic("Failed to init govern parameter in snapshotdb")
 	}
 
-	// Store genesis version into governance data
-	if err := genesisPluginState(g, statedb, genesisIssuance, params.GenesisVersion); nil != err {
-		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
-	}
+	if g.configEmpty() {
+		log.Warn("the genesis config or cbft or initialNodes is nil, don't build staking data And don't store plugin genesis state")
+	} else {
 
-	// Store genesis staking data
-	if err := genesisStakingData(snapDB, g, statedb, params.GenesisVersion); nil != err {
-		panic("Failed Store staking: " + err.Error())
+		if g.Config.GenesisVersion == 0 {
+			log.Error("genesis version is zero")
+			panic("genesis version is zero")
+		}
+
+		// Store genesis version into governance data And somethings about reward
+		if err := genesisPluginState(g, statedb, genesisIssuance); nil != err {
+			panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
+		}
+
+		// Store genesis staking data
+		if err := genesisStakingData(snapDB, g, statedb); nil != err {
+			panic("Failed Store staking: " + err.Error())
+			// Store genesis staking data
+			if err := genesisStakingData(snapDB, g, statedb); nil != err {
+				panic("Failed Store staking: " + err.Error())
+			}
+		}
 	}
 
 	root := statedb.IntermediateRoot(false)
@@ -345,6 +359,20 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 
 	log.Debug("Call ToBlock finished", "genesisHash", block.Hash().Hex())
 	return block
+}
+
+func (g *Genesis) configEmpty() bool {
+	isDone := false
+	switch {
+	case nil == g.Config:
+		isDone = true
+	case nil == g.Config.Cbft:
+		isDone = true
+	case len(g.Config.Cbft.InitialNodes) == 0:
+		isDone = true
+	}
+
+	return isDone
 }
 
 // Commit writes the block and state of a genesis specification to the database.
