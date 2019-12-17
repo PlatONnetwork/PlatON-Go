@@ -72,19 +72,12 @@ def free_locked_delegate_client(client_new_node):
     yield client_new_node
 
 
-@pytest.fixture()
-def set_not_need_analyze(client_new_node):
-    client_new_node.ppos.need_analyze = False
-    yield client_new_node
-    client_new_node.ppos.need_analyze = True
-
-
 def check_receipt(node, hash, key, expected_result):
     result = node.eth.waitForTransactionReceipt(hash)
     if result["logs"] and key in result["logs"][0]:
         value = result["logs"][0][key]
-        assert value == expected_result,"Value contrast error"
+        assert value == expected_result, "Value contrast error"
     else:
-        assert result[key] == expected_result,"Value contrast error"
+        assert result[key] == expected_result, "Value contrast error"
 
 

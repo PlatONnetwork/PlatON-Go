@@ -471,8 +471,9 @@ def test_POP_015(client_consensus, clients_noconsensus, new_genesis_env):
     staking_amount = client1.economic.create_staking_limit
     result = client1.staking.create_staking(0, address, address, amount=staking_amount * 2)
     assert_code(result, 0)
+    param = 6
     block = param_governance_verify_before_endblock(client_consensus, "staking", "maxValidators",
-                                                    "6")
+                                                    str(param))
     wait_block_number(client2.node, block)
     address1, _ = client2.economic.account.generate_account(client2.node.web3,
                                                             10 ** 18 * 10000000)
@@ -504,9 +505,9 @@ def test_POP_016(client_consensus, clients_noconsensus, new_genesis_env):
     new_genesis_env.deploy_all()
     client1 = clients_noconsensus[0]
     client2 = clients_noconsensus[1]
-
+    param = 5
     block = param_governance_verify_before_endblock(client_consensus, "staking", "maxValidators",
-                                                    "5")
+                                                    str(param))
     wait_block_number(client2.node, block)
     address, _ = client1.economic.account.generate_account(client1.node.web3,
                                                            10 ** 18 * 10000000)
@@ -537,8 +538,9 @@ def test_POP_017(client_consensus, clients_noconsensus, new_genesis_env):
     genesis.economicModel.staking.maxValidators = 5
     new_genesis_env.set_genesis(genesis.to_dict())
     new_genesis_env.deploy_all()
+    param = 6
     block = param_governance_verify_before_endblock(client_consensus, "staking", "maxValidators",
-                                                    "6", effectiveflag=False)
+                                                    str(param), effectiveflag=False)
     client1 = clients_noconsensus[0]
     client2 = clients_noconsensus[1]
     wait_block_number(client2.node, block)
@@ -580,8 +582,9 @@ def test_POP_018(client_consensus, clients_noconsensus, new_genesis_env):
 
     result = client1.staking.create_staking(0, address, address, amount=staking_amount * 2)
     assert_code(result, 0)
+    param = 5
     block = param_governance_verify_before_endblock(client_consensus, "staking", "maxValidators",
-                                                    "5", effectiveflag=False)
+                                                    str(param), effectiveflag=False)
     wait_block_number(client2.node, block)
     address1, _ = client2.economic.account.generate_account(client2.node.web3,
                                                             10 ** 18 * 10000000)

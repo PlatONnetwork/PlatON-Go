@@ -283,35 +283,46 @@ def test_MPI_014(client_new_node):
 
 @allure.title("Candidates whose commissions have been penalized are still frozen")
 @pytest.mark.P2
-def test_MPI_015_016(client_new_node, client_consensus):
+def test_MPI_015_016(clients_new_node, client_consensus):
     """
     015:Candidates whose commissions have been penalized are still frozen
     016:A candidate whose mandate has expired after a freeze period
     :param client_new_node_obj:
     :return:
     """
-    address, pri_key = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                         10 ** 18 * 10000000)
+    client = clients_new_node[0]
+    node = client.node
+    other_node = client_consensus.node
+    economic = client.economic
+    address, pri_key = economic.account.generate_account(node.web3,
+                                                         10 ** 18 * 10000000)
 
-    value = client_new_node.economic.create_staking_limit * 2
-    result = client_new_node.staking.create_staking(0, address, address, amount=value)
+    value = economic.create_staking_limit * 2
+    result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
+    economic.wait_consensus_blocknum(other_node, number=4)
+    validator_list = get_pledge_list(other_node.ppos.getValidatorList)
+    assert node.node_id in validator_list
+    candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
+    log.info(candidate_info)
     log.info("Close one node")
-    client_new_node.node.stop()
-    node = client_consensus.node
-    log.info("The next two periods")
-    client_new_node.economic.wait_settlement_blocknum(node, number=2)
+    node.stop()
+    for i in range(4):
+        economic.wait_consensus_blocknum(other_node, number=i)
+        candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
+        log.info(candidate_info)
+        if candidate_info["Ret"]["Released"] < value:
+            break
+
     log.info("Restart the node")
-    client_new_node.node.start()
+    node.start()
     time.sleep(10)
-    result = client_new_node.staking.edit_candidate(address, address)
+    result = client.staking.edit_candidate(address, address)
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
-    time.sleep(10)
-    result = client_new_node.staking.edit_candidate(address, address)
-    log.info(result)
+    economic.wait_settlement_blocknum(node, number=2)
+    result = client.staking.edit_candidate(address, address)
     assert_code(result, 301102)
 
 

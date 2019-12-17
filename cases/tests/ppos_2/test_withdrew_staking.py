@@ -649,7 +649,7 @@ def test_RV_023(staking_client, global_test_env):
     log.info("Stop the new verifier node")
     node.stop()
     log.info("Go to the next billing cycle")
-    economic.wait_settlement_blocknum(other_node, 2)
+    economic.wait_consensus_blocknum(other_node, 3)
     msg = get_pledge_list(other_node.ppos.getCandidateList)
     log.info("Real-time certifier list {}".format(msg))
     verifier_list = get_pledge_list(other_node.ppos.getVerifierList)
@@ -660,8 +660,7 @@ def test_RV_023(staking_client, global_test_env):
     log.info("Go to the next billing cycle")
     candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
     log.info(candidate_info)
-    economic.wait_settlement_blocknum(other_node)
-    time.sleep(10)
+    economic.wait_settlement_blocknum(other_node,number=2)
     balance_after = other_node.eth.getBalance(staking_address)
     log.info("The balance after the penalty is refunded to the account:{}".format(balance_after))
     assert balance_before + candidate_info["Ret"][
