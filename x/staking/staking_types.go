@@ -440,6 +440,7 @@ func (queue CandidateQueue) String() string {
 }
 
 type CandidateHexQueue []*CandidateHex
+type CandidateVersionQueue []*CandidateVersion
 
 func (queue CandidateHexQueue) IsNotEmpty() bool {
 	return !queue.IsEmpty()
@@ -1130,4 +1131,29 @@ func (queue SlashQueue) String() string {
 		arr[i] = s.String()
 	}
 	return "[" + strings.Join(arr, ",") + "]"
+}
+
+type CandidateVersion struct {
+	NodeId             discover.NodeID
+	ProgramVersion     uint32
+}
+
+type Reward struct {
+	PackageReward     *big.Int
+	StakingReward     *big.Int
+	YearNum     uint32
+	YearStartNum     uint64
+	YearEndNum     uint64
+	RemainEpoch     uint32
+	AvgPackTime      uint64
+}
+
+type RewardReturn struct {
+	PackageReward     *hexutil.Big
+	StakingReward     *hexutil.Big
+	YearNum     uint32
+	YearStartNum     uint64
+	YearEndNum     uint64
+	RemainEpoch     uint32
+	AvgPackTime      uint64
 }
