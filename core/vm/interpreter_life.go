@@ -6,12 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/core/lru"
 	"github.com/PlatONnetwork/PlatON-Go/life/utils"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"math/big"
 	"reflect"
 	"runtime"
 	"strings"
@@ -86,131 +83,22 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		}
 	}()
 
-	if len(contract.Code) == 0 {
-		return nil, nil
-	}
-	_, abi, code, er := parseRlpData(contract.Code)
-	if er != nil {
-		return nil, er
-	}
-
-	context := &exec.VMContext{
-		Config:   DEFAULT_VM_CONFIG,
-		Addr:     contract.Address(),
-		GasLimit: contract.Gas,
-		StateDB:  NewWasmStateDB(in.wasmStateDB, contract),
-		Log:      in.WasmLogger,
-	}
-
-	var lvm *exec.VirtualMachine
-	var module *lru.WasmModule
-	module, ok := lru.WasmCache().Get(contract.Address())
-
-	if !ok {
-		module = &lru.WasmModule{}
-		module.Module, module.FunctionCode, err = exec.ParseModuleAndFunc(code, nil)
-		if err != nil {
-			return nil, err
-		}
-		lru.WasmCache().Add(contract.Address(), module)
-	}
-
-	lvm, err = exec.NewVirtualMachineWithModule(module.Module, module.FunctionCode, context, in.resolver, nil)
+	//todo parse code vm type
+	creator, err := NewWasmEngineCreator(contract.Code[0])
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		lvm.Stop()
-	}()
 
-	contract.Input = input
-	var (
-		funcName   string
-		txType     int
-		params     []int64
-		returnType string
-	)
-
-	if input == nil {
-		funcName = "init" // init function.
-	} else {
-		// parse input.
-		txType, funcName, params, returnType, err = parseInputFromAbi(lvm, input, abi)
-		if err != nil {
-			if err == errReturnInsufficientParams && txType == 0 { // transfer to contract address.
-				return nil, nil
-			}
-			return nil, err
-		}
-		if txType == 0 {
-			return nil, nil
-		}
-	}
-	entryID, ok := lvm.GetFunctionExport(funcName)
-	if !ok {
-		return nil, fmt.Errorf("entryId not found.")
-	}
-	res, err := lvm.RunWithGasLimit(entryID, int(context.GasLimit), params...)
+	engine, err := creator.Create(in.evm, in.cfg, in.evm.StateDB)
 	if err != nil {
-		fmt.Println("throw exception:", err.Error())
 		return nil, err
 	}
-	if contract.Gas > context.GasUsed {
-		contract.Gas = contract.Gas - context.GasUsed
-	} else {
-		return nil, fmt.Errorf("out of gas.")
+
+	if ret, err := engine.Run(contract, input, false); err != nil {
+		return ret, err
 	}
 
-	if input == nil {
-		return contract.Code, nil
-	}
-
-	// todo: more type need to be completed
-	switch returnType {
-	case "void", "int8", "int", "int32", "int64":
-		if txType == CALL_CANTRACT_FLAG {
-			return utils.Int64ToBytes(res), nil
-		}
-		bigRes := new(big.Int)
-		bigRes.SetInt64(res)
-		finalRes := utils.Align32Bytes(math.U256(bigRes).Bytes())
-		return finalRes, nil
-	case "uint8", "uint16", "uint32", "uint64":
-		if txType == CALL_CANTRACT_FLAG {
-			return utils.Uint64ToBytes(uint64(res)), nil
-		}
-		finalRes := utils.Align32Bytes(utils.Uint64ToBytes((uint64(res))))
-		return finalRes, nil
-	case "string":
-		returnBytes := make([]byte, 0)
-		copyData := lvm.Memory.Memory[res:]
-		for _, v := range copyData {
-			if v == 0 {
-				break
-			}
-			returnBytes = append(returnBytes, v)
-		}
-		if txType == CALL_CANTRACT_FLAG {
-			return returnBytes, nil
-		}
-		strHash := common.BytesToHash(common.Int32ToBytes(32))
-		sizeHash := common.BytesToHash(common.Int64ToBytes(int64((len(returnBytes)))))
-		var dataRealSize = len(returnBytes)
-		if (dataRealSize % 32) != 0 {
-			dataRealSize = dataRealSize + (32 - (dataRealSize % 32))
-		}
-		dataByt := make([]byte, dataRealSize)
-		copy(dataByt[0:], returnBytes)
-
-		finalData := make([]byte, 0)
-		finalData = append(finalData, strHash.Bytes()...)
-		finalData = append(finalData, sizeHash.Bytes()...)
-		finalData = append(finalData, dataByt...)
-
-		//fmt.Println("CallReturn:", string(returnBytes))
-		return finalData, nil
-	}
-	return nil, nil
+	return ret, nil
 }
 
 // CanRun tells if the contract, passed as an argument, can be run
