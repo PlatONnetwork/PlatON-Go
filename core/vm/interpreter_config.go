@@ -15,4 +15,6 @@ type Config struct {
 	JumpTable [256]operation
 
 	ConsoleOutput bool
+
+	WasmType string
 }

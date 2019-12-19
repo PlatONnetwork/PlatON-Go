@@ -31,11 +31,15 @@ func decodeInput(input []byte) (byte, []byte, error) {
 
 }
 
-var engines = map[byte]wasmEngineCreator{
-	0x1: &wagonEngineCreator{},
+var engines = map[string]wasmEngineCreator{
+	"wagon": &wagonEngineCreator{},
 }
 
-func NewWasmEngineCreator(vm byte) (wasmEngineCreator, error) {
+func NewWasmEngineCreator(vm string) (wasmEngineCreator, error) {
+	if vm == "" {
+		return engines["wagon"], nil
+	}
+
 	if engine, ok := engines[vm]; ok {
 		return engine, nil
 	}

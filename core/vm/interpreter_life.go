@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	errReturnInvalidRlpFormat = errors.New("interpreter_life: invalid rlp format.")
+	errReturnInvalidRlpFormat   = errors.New("interpreter_life: invalid rlp format.")
 	errReturnInsufficientParams = errors.New("interpreter_life: invalid input. ele must greater than 2")
-	errReturnInvalidAbi = errors.New("interpreter_life: invalid abi, encoded fail.")
+	errReturnInvalidAbi         = errors.New("interpreter_life: invalid abi, encoded fail.")
 )
 
 const (
@@ -83,8 +83,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		}
 	}()
 
-	//todo parse code vm type
-	creator, err := NewWasmEngineCreator(contract.Code[0])
+	creator, err := NewWasmEngineCreator(in.cfg.WasmType)
 	if err != nil {
 		return nil, err
 	}
