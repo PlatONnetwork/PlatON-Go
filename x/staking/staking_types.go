@@ -218,17 +218,26 @@ type CandidateMutable struct {
 	RestrictingPlan *big.Int
 	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
 	RestrictingPlanHes *big.Int
+	// The epoch number at delegate or edit
+	DelegateEpoch uint32
+	// Effective total delegate
+	DelegateTotal *big.Int
+	// hesitant total delegate
+	DelegateTotalHes *big.Int
 }
 
 func (can *CandidateMutable) String() string {
-	return fmt.Sprintf(`{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d}`,
+	return fmt.Sprintf(`{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d}`,
 		can.Status,
 		can.StakingEpoch,
 		can.Shares,
 		can.Released,
 		can.ReleasedHes,
 		can.RestrictingPlan,
-		can.RestrictingPlanHes)
+		can.RestrictingPlanHes,
+		can.DelegateEpoch,
+		can.DelegateTotal,
+		can.DelegateTotalHes)
 }
 
 func (can *CandidateMutable) CleanLowRatioStatus() {
@@ -951,15 +960,21 @@ type Delegation struct {
 	RestrictingPlan *big.Int
 	// The delegate von  is RestrictingPlan for hesitant epoch (in hesitation)
 	RestrictingPlanHes *big.Int
+	// Cumulative delegate income (Waiting for withdrawal)
+	CumulativeIncome *big.Int
+	// Calculate the starting epoch of cumulative returns
+	IncomeStartEpoch uint32
 }
 
 func (del *Delegation) String() string {
-	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%d","ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d}`,
+	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%d","ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"CumulativeIncome": %d,"IncomeStartEpoch": %d}`,
 		del.DelegateEpoch,
 		del.Released,
 		del.ReleasedHes,
 		del.RestrictingPlan,
-		del.RestrictingPlanHes)
+		del.RestrictingPlanHes,
+		del.CumulativeIncome,
+		del.IncomeStartEpoch)
 }
 
 func (del *Delegation) IsNotEmpty() bool {

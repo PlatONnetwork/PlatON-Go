@@ -2136,7 +2136,6 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 	log.Debug("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
 
-
 	for _, nodeId := range nodeIds {
 
 		addr, _ := xutil.NodeId2Addr(nodeId)
@@ -2332,6 +2331,11 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
 
 }
 
+// The total delegate amount of the compute node
+func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable) {
+
+}
+
 func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 
 	// When the first time, there was no previous changeAmountEpoch
@@ -2361,6 +2365,16 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 	}
 
 	log.Debug("lazyCalcDelegateAmount end", "epoch", epoch, "del", del)
+}
+
+// Update the amount of delegate for the effective period
+func updateDelegateAmount(epoch uint64, del *staking.Delegation) {
+
+}
+
+// Calculating Total Entrusted Income
+func calcDelegateIncome(epoch uint64, del *staking.Delegation) {
+
 }
 
 type sortValidator struct {
