@@ -188,6 +188,18 @@ func (rmp *RewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash 
 	return nil
 }
 
+func (rmp *RewardMgrPlugin) handleDelegatePerReward(node discover.NodeID, delegateAmount, delegateRewardAmount *big.Int, state xcom.StateDB) error {
+	return nil
+}
+
+func (rmp *RewardMgrPlugin) WithdrawDelegateReward(account common.Address, blockNumber uint64, state xcom.StateDB) (*big.Int, error) {
+	return nil, nil
+}
+
+func (rmp *RewardMgrPlugin) GetDelegateReward(account common.Address, nodes []discover.NodeID, state xcom.StateDB) ([]reward.NodeDelegateReward, error) {
+	return nil, nil
+}
+
 func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, list staking.ValidatorExQueue, reward *big.Int) {
 	validatorNum := int64(len(list))
 	everyValidatorReward := new(big.Int).Div(reward, big.NewInt(validatorNum))
@@ -219,6 +231,14 @@ func (rmp *RewardMgrPlugin) allocatePackageBlock(blockNumber uint64, blockHash c
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
 		state.AddBalance(coinBase, reward)
 	}
+}
+
+func GetDelegateRewardPerList(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, epoch uint32) (*reward.DelegateRewardPerList, error) {
+	return nil, nil
+}
+
+func SetDelegateRewardPerList(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, epoch uint32, list *reward.DelegateRewardPerList) error {
+	return nil
 }
 
 //  Calculation percentage ,  input 100,10    cal:  100*10/100 = 10
