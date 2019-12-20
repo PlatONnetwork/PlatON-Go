@@ -256,7 +256,7 @@ func GetYearEndBalance(state xcom.StateDB, year uint32) *big.Int {
 }
 
 func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-	yes, err := IsYearEnd(blockHash, head.Number.Uint64(), rmp.db)
+	yes, err := xcom.IsYearEnd(blockHash, head.Number.Uint64())
 	if nil != err {
 		log.Error("Failed to execute runIncreaseIssuance function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return err
@@ -271,7 +271,7 @@ func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *typ
 			log.Error("Failed to execute runIncreaseIssuance function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
-		incIssuanceTime, err := LoadIncIssuanceTime(blockHash, rmp.db)
+		incIssuanceTime, err := xcom.LoadIncIssuanceTime(blockHash, rmp.db)
 		if nil != err {
 			return err
 		}
@@ -281,7 +281,7 @@ func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *typ
 			log.Error("Failed to execute runIncreaseIssuance function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
-		if err := StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime+int64(xcom.AdditionalCycleTime()*uint64(minutes))); nil != err {
+		if err := xcom.StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime+int64(xcom.AdditionalCycleTime()*uint64(minutes))); nil != err {
 			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
@@ -289,7 +289,7 @@ func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *typ
 		if nil != err {
 			return err
 		}
-		incIssuanceTime, err = LoadIncIssuanceTime(blockHash, rmp.db)
+		incIssuanceTime, err = xcom.LoadIncIssuanceTime(blockHash, rmp.db)
 		if nil != err {
 			return err
 		}
@@ -310,7 +310,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
-	incIssuanceTime, err := LoadIncIssuanceTime(blockHash, rmp.db)
+	incIssuanceTime, err := xcom.LoadIncIssuanceTime(blockHash, rmp.db)
 	if nil != err {
 		log.Error("load incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
@@ -319,7 +319,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		yearStartBlockNumber = head.Number.Uint64()
 		yearStartTime = head.Time.Int64()
 		incIssuanceTime = yearStartTime + int64(xcom.AdditionalCycleTime()*uint64(minutes))
-		if err := StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime); nil != err {
+		if err := xcom.StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime); nil != err {
 			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return nil, nil, err
 		}
@@ -341,18 +341,30 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// which is used to calculate the average annual block production rate
 	epochBlocks := xutil.CalcBlocksEachEpoch()
 	if yearNumber > 0 {
-		if yearStartBlockNumber == 1 {
-			yearStartBlockNumber += epochBlocks - 1
-		} else {
-			yearStartBlockNumber += epochBlocks
-		}
-		yearStartTime = snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time.Int64()
-		if err := StorageYearStartTime(blockHash, rmp.db, yearStartBlockNumber, yearStartTime); nil != err {
-			log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+		incIssuanceNumber, err := xcom.LoadIncIssuanceNumber(blockHash, rmp.db)
+		if nil != err {
 			return nil, nil, err
 		}
-		log.Debug("Call CalcEpochReward, Adjust the sampling range of the block time", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
-			"epochBlocks", epochBlocks, "yearNumber", yearNumber, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime)
+		addition := true
+		if yearStartBlockNumber == 1 {
+			if head.Number.Uint64() <= incIssuanceNumber {
+				addition = false
+			}
+		}
+		if addition {
+			if yearStartBlockNumber == 1 {
+				yearStartBlockNumber += epochBlocks - 1
+			} else {
+				yearStartBlockNumber += epochBlocks
+			}
+			yearStartTime = snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time.Int64()
+			if err := StorageYearStartTime(blockHash, rmp.db, yearStartBlockNumber, yearStartTime); nil != err {
+				log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+				return nil, nil, err
+			}
+			log.Debug("Call CalcEpochReward, Adjust the sampling range of the block time", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
+				"epochBlocks", epochBlocks, "yearNumber", yearNumber, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime)
+		}
 	}
 
 	// First calculation, calculated according to the default block interval.
@@ -398,7 +410,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// If the last settlement cycle is left, record the increaseIssuance block height
 	if remainReward.Cmp(common.Big0) == 0 {
 		incIssuanceNumber := new(big.Int).Add(head.Number, new(big.Int).SetUint64(epochBlocks)).Uint64()
-		if err := StorageIncIssuanceNumber(blockHash, rmp.db, incIssuanceNumber); nil != err {
+		if err := xcom.StorageIncIssuanceNumber(blockHash, rmp.db, incIssuanceNumber); nil != err {
 			return nil, nil, err
 		}
 		log.Info("Call CalcEpochReward, IncIssuanceNumber stored successfully", "currBlockNumber", head.Number, "currBlockHash", blockHash,
@@ -468,28 +480,6 @@ func LoadYearStartTime(hash common.Hash, snapshotDB snapshotdb.DB) (yearStartBlo
 		yearStartTime = common.BytesToInt64(yearStartTimeByte)
 	}
 	return
-}
-
-func StorageIncIssuanceTime(hash common.Hash, snapshotDB snapshotdb.DB, incTime int64) error {
-	if err := snapshotDB.Put(hash, reward.IncIssuanceTimeKey, common.Int64ToBytes(incTime)); nil != err {
-		log.Error("Failed to execute StorageIncIssuanceTime function", "hash", hash.TerminalString(), "key", string(reward.IncIssuanceTimeKey),
-			"value", incTime, "err", err)
-		return err
-	}
-	return nil
-}
-
-func LoadIncIssuanceTime(hash common.Hash, snapshotDB snapshotdb.DB) (int64, error) {
-	incTimeByte, err := snapshotDB.Get(hash, reward.IncIssuanceTimeKey)
-	if nil != err {
-		if err != snapshotdb.ErrNotFound {
-			log.Error("Failed to execute LoadIncIssuanceTime function", "hash", hash.TerminalString(), "key", string(reward.IncIssuanceTimeKey), "err", err)
-			return 0, err
-		} else {
-			return 0, nil
-		}
-	}
-	return common.BytesToInt64(incTimeByte), nil
 }
 
 func StorageRemainingReward(hash common.Hash, snapshotDB snapshotdb.DB, remainReward *big.Int) error {
@@ -564,35 +554,4 @@ func LoadChainYearNumber(hash common.Hash, snapshotDB snapshotdb.DB) (uint32, er
 		return 0, err
 	}
 	return common.BytesToUint32(chainYearNumberByte), nil
-}
-
-func StorageIncIssuanceNumber(hash common.Hash, snapshotDB snapshotdb.DB, incIssuanceNumber uint64) error {
-	if err := snapshotDB.Put(hash, reward.IncIssuanceNumberKey, common.Uint64ToBytes(incIssuanceNumber)); nil != err {
-		log.Error("Failed to execute StorageIncIssuanceNumber function", "hash", hash.TerminalString(), "incIssuanceNumber", incIssuanceNumber, "err", err)
-		return err
-	}
-	return nil
-}
-
-func LoadIncIssuanceNumber(hash common.Hash, snapshotDB snapshotdb.DB) (uint64, error) {
-	incIssuanceNumberByte, err := snapshotDB.Get(hash, reward.IncIssuanceNumberKey)
-	if nil != err {
-		if err == snapshotdb.ErrNotFound {
-			return 0, nil
-		}
-		log.Error("Failed to execute LoadIncIssuanceNumber function", "hash", hash.TerminalString(), "key", string(reward.IncIssuanceNumberKey), "err", err)
-		return 0, err
-	}
-	return common.BytesToUint64(incIssuanceNumberByte), nil
-}
-
-func IsYearEnd(hash common.Hash, blockNumber uint64, db snapshotdb.DB) (bool, error) {
-	number, err := LoadIncIssuanceNumber(hash, db)
-	if nil != err {
-		return false, err
-	}
-	if number == blockNumber {
-		return true, nil
-	}
-	return false, nil
 }

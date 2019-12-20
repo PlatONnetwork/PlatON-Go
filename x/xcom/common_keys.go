@@ -1,5 +1,7 @@
 package xcom
 
 var (
-	AvgPackTimeKey = []byte("AvgPackTimeKey")
+	AvgPackTimeKey       = []byte("AvgPackTimeKey")
+	IncIssuanceNumberKey = []byte("IncIssuanceNumberKey")
+	IncIssuanceTimeKey   = []byte("IncIssuanceTimeKey")
 )
