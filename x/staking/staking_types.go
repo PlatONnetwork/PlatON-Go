@@ -218,6 +218,10 @@ type CandidateMutable struct {
 	RestrictingPlan *big.Int
 	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
 	RestrictingPlanHes *big.Int
+	// Delegate reward amount percent for current settlement cycle
+	RewardPer uint16
+	// Delegate reward amount percent for next settlement cycle
+	NextRewardPer uint16
 }
 
 func (can *CandidateMutable) String() string {
@@ -337,6 +341,8 @@ type CandidateHex struct {
 	BlsPubKey          bls.PublicKeyHex
 	StakingAddress     common.Address
 	BenefitAddress     common.Address
+	RewardPer          uint16
+	NextRewardPer      uint16
 	StakingTxIndex     uint32
 	ProgramVersion     uint32
 	Status             CandidateStatus
