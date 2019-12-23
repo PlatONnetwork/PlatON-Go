@@ -893,6 +893,10 @@ type ValidatorEx struct {
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
 	BenefitAddress common.Address
+	// Delegate reward amount percent for current settlement cycle
+	RewardPer uint16
+	// Delegate reward amount percent for next settlement cycle
+	NextRewardPer uint16
 	// The tx index at the time of staking
 	StakingTxIndex uint32
 	// The version of the node process
@@ -910,12 +914,14 @@ type ValidatorEx struct {
 }
 
 func (vex *ValidatorEx) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d}`,
+	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d}`,
 		vex.NodeId.String(),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BenefitAddress.Bytes()),
+		vex.RewardPer,
+		vex.NextRewardPer,
 		vex.StakingTxIndex,
 		vex.ProgramVersion,
 		vex.StakingBlockNum,

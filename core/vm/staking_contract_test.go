@@ -101,6 +101,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -134,6 +135,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -247,6 +249,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 
 	benefitAddress, _ := rlp.EncodeToBytes(addrArr[0])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	rewardPer, _ := rlp.EncodeToBytes(uint64(8000))
 	externalId, _ := rlp.EncodeToBytes("I am Xu !?")
 	nodeName, _ := rlp.EncodeToBytes("Xu, China")
 	website, _ := rlp.EncodeToBytes("https://www.Xu.net")
@@ -255,6 +258,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	params = append(params, fnType)
 	params = append(params, benefitAddress)
 	params = append(params, nodeId)
+	params = append(params, rewardPer)
 	params = append(params, externalId)
 	params = append(params, nodeName)
 	params = append(params, website)
