@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"math/big"
 	"sort"
 	"strconv"
@@ -2373,7 +2374,7 @@ func updateDelegateAmount(epoch uint64, del *staking.Delegation) {
 }
 
 // Calculating Total Entrusted Income
-func calcDelegateIncome(epoch uint64, del *staking.Delegation) {
+func calcDelegateIncome(epoch uint64, del *staking.Delegation, rewardPer reward.DelegateRewardPerList) {
 
 }
 
