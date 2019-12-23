@@ -51,7 +51,7 @@ func DelegateRewardPerKey(nodeID discover.NodeID, epoch uint32) []byte {
 	return nil
 }
 
-func CurrentEpochDelegateRewardKey() []byte {
+func CurrentEpochDelegateRewardKey(nodeID discover.NodeID) []byte {
 	return nil
 }
 
@@ -60,10 +60,15 @@ type DelegateRewardPer struct {
 	NodeCount uint
 }
 
-type DelegateRewardPerList [1000]DelegateRewardPer
+type DelegateRewardPerList []DelegateRewardPer
 
-//this is use for NodeCounts--
-func (d *DelegateRewardPerList) HandleNodeCount(epoch uint) {
+//if true ,NodeCount will ++
+//if false,NodeCount will ++--
+func (d *DelegateRewardPerList) HandleNodeCount(epoch uint, addOrSub bool) {
+
+}
+
+func (d *DelegateRewardPerList) SetDelegateRewardPer(epoch uint, amount *big.Int) {
 
 }
 
