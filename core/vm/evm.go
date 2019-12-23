@@ -188,7 +188,7 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 	// vmConfig.EVMInterpreter will be used by EVM-C, it won't be checked here
 	// as we always want to have the built-in EVM as the failover option.
 	// todo: replace the evm to wasm for the interpreter.
-	if strings.EqualFold("evm", chainConfig.VMInterpreter) {
+	if !strings.EqualFold("wasm", chainConfig.VMInterpreter) {
 		evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
 	} else {
 		evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
