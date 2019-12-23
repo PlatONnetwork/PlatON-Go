@@ -62,9 +62,8 @@ type DelegateRewardPer struct {
 
 type DelegateRewardPerList []DelegateRewardPer
 
-//if true ,NodeCount will ++
-//if false,NodeCount will ++--
-func (d *DelegateRewardPerList) HandleNodeCount(epoch uint, addOrSub bool) {
+//this is use for NodeCounts--
+func (d *DelegateRewardPerList) HandleNodeCount(epoch uint) {
 
 }
 
