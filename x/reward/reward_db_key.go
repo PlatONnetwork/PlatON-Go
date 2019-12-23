@@ -56,6 +56,7 @@ func CurrentEpochDelegateRewardKey(nodeID discover.NodeID) []byte {
 }
 
 type DelegateRewardPer struct {
+	Epoch     uint64 `rlp:"nil"`
 	Amount    *big.Int
 	NodeCount uint
 }

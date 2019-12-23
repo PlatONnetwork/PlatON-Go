@@ -346,7 +346,7 @@ func GetDelegateRewardPerList(blockNumber uint64, blockHash common.Hash, nodeID 
 	return nil, nil
 }
 
-func SetDelegateRewardPerList(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, epoch uint32, list *reward.DelegateRewardPerList) error {
+func UpdateDelegateRewardPer(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, epoch uint32, list reward.DelegateRewardPer) error {
 	return nil
 }
 
