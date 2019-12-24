@@ -930,10 +930,12 @@ type ValidatorEx struct {
 	// this is the term of validator in consensus round
 	// [0, N]
 	ValidatorTerm uint32
+	// Effective total delegate
+	DelegateTotal *hexutil.Big
 }
 
 func (vex *ValidatorEx) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d}`,
+	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d,"DelegateTotal": "%s"}`,
 		vex.NodeId.String(),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BlsPubKey.Bytes()),
@@ -949,7 +951,8 @@ func (vex *ValidatorEx) String() string {
 		vex.NodeName,
 		vex.Website,
 		vex.Details,
-		vex.ValidatorTerm)
+		vex.ValidatorTerm,
+		vex.DelegateTotal)
 }
 
 type ValidatorExQueue []*ValidatorEx

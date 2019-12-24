@@ -712,11 +712,12 @@ func (sk *StakingPlugin) GetDelegateExInfo(blockHash common.Hash, delAddr common
 		NodeId:          nodeId,
 		StakingBlockNum: stakeBlockNumber,
 		DelegationHex: staking.DelegationHex{
-			DelegateEpoch:      del.DelegateEpoch,
-			Released:           (*hexutil.Big)(del.Released),
-			ReleasedHes:        (*hexutil.Big)(del.ReleasedHes),
-			RestrictingPlan:    (*hexutil.Big)(del.RestrictingPlan),
-			RestrictingPlanHes: (*hexutil.Big)(del.RestrictingPlanHes),
+			DelegateEpoch:    del.DelegateEpoch,
+			Released:         (*hexutil.Big)(del.Released),
+			ReleasedHes:      (*hexutil.Big)(del.ReleasedHes),
+			RestrictingPlan:  (*hexutil.Big)(del.RestrictingPlan),
+			CumulativeIncome: (*hexutil.Big)(del.CumulativeIncome),
+			IncomeStartEpoch: del.IncomeStartEpoch,
 		},
 	}, nil
 }
@@ -742,6 +743,8 @@ func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNu
 			ReleasedHes:        (*hexutil.Big)(del.ReleasedHes),
 			RestrictingPlan:    (*hexutil.Big)(del.RestrictingPlan),
 			RestrictingPlanHes: (*hexutil.Big)(del.RestrictingPlanHes),
+			CumulativeIncome:   (*hexutil.Big)(del.CumulativeIncome),
+			IncomeStartEpoch:   del.IncomeStartEpoch,
 		},
 	}, nil
 }
@@ -1185,6 +1188,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			Shares:          (*hexutil.Big)(v.Shares),
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
+			DelegateTotal:   (*hexutil.Big)(can.DelegateTotal),
 		}
 		queue[i] = valEx
 	}
@@ -1340,6 +1344,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			Shares:          (*hexutil.Big)(v.Shares),
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
+			DelegateTotal:   (*hexutil.Big)(can.DelegateTotal),
 		}
 		queue[i] = valEx
 	}
@@ -3249,6 +3254,9 @@ func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 		ReleasedHes:        (*hexutil.Big)(can.ReleasedHes),
 		RestrictingPlan:    (*hexutil.Big)(can.RestrictingPlan),
 		RestrictingPlanHes: (*hexutil.Big)(can.RestrictingPlanHes),
+		DelegateEpoch:      can.DelegateEpoch,
+		DelegateTotal:      (*hexutil.Big)(can.DelegateTotal),
+		DelegateTotalHes:   (*hexutil.Big)(can.DelegateTotalHes),
 		Description:        can.Description,
 	}
 }
