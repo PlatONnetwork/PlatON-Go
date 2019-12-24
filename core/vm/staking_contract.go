@@ -121,7 +121,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	log.Debug("Call createStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "typ", typ,
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "externalId", externalId,
-		"nodeName", nodeName, "website", website, "details", details, "amount", amount,
+		"nodeName", nodeName, "website", website, "details", details, "amount", amount, "rewardPer", rewardPer,
 		"programVersion", programVersion, "programVersionSign", programVersionSign.Hex(),
 		"from", from.Hex(), "blsPubKey", blsPubKey, "blsProof", blsProof)
 
@@ -131,6 +131,12 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if txHash == common.ZeroHash {
 		return nil, nil
+	}
+
+	if !verifyRewardPer(rewardPer) {
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("invalid param rewardPer: %d", rewardPer),
+			TxCreateStaking, int(staking.ErrInvalidRewardPer.Code)), nil
 	}
 
 	if len(blsPubKey) != BLSPUBKEYLEN {
@@ -250,6 +256,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		ReleasedHes:        new(big.Int).SetInt64(0),
 		RestrictingPlan:    new(big.Int).SetInt64(0),
 		RestrictingPlanHes: new(big.Int).SetInt64(0),
+		RewardPer:          rewardPer,
+		NextRewardPer:      rewardPer,
 	}
 
 	can := &staking.Candidate{}
@@ -296,20 +304,21 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 }
 
 func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {
-
 	proofByte, err := proofHex.MarshalText()
 	if nil != err {
 		return err
 	}
-
 	// proofHex to proof
 	proof := new(bls.SchnorrProof)
 	if err = proof.UnmarshalText(proofByte); nil != err {
 		return err
 	}
-
 	// verify proof
 	return proof.VerifySchnorrNIZK(*pubKey)
+}
+
+func verifyRewardPer(rewardPer uint16) bool {
+	return rewardPer >= 0 && rewardPer <= 10000 //	1BP(BasePoint)=0.01%
 }
 
 func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId discover.NodeID, rewardPer uint16,
@@ -322,7 +331,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	log.Debug("Call editCandidate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(),
+		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "rewardPer", rewardPer,
 		"externalId", externalId, "nodeName", nodeName, "website", website,
 		"details", details, "from", from.Hex())
 
@@ -332,6 +341,12 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	if txHash == common.ZeroHash {
 		return nil, nil
+	}
+
+	if !verifyRewardPer(rewardPer) {
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+			fmt.Sprintf("invalid rewardPer: %d", rewardPer),
+			TxEditorCandidate, int(staking.ErrInvalidRewardPer.Code)), nil
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -383,6 +398,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	}
 
 	canOld.Description = *desc
+	canOld.NextRewardPer = rewardPer
 
 	err = stkc.Plugin.EditCandidate(blockHash, blockNumber, canAddr, canOld)
 	if nil != err {
@@ -394,7 +410,6 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 				"blockNumber", blockNumber, "err", err)
 			return nil, err
 		}
-
 	}
 
 	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
@@ -810,7 +825,6 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 }
 
 func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
-
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 
