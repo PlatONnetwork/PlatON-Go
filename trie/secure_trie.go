@@ -161,10 +161,28 @@ func (t *SecureTrie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	return t.trie.Commit(onleaf)
 }
 
+func (t *SecureTrie) ParallelCommit(onleaf LeafCallback) (root common.Hash, err error) {
+	t.trie.db.lock.Lock()
+	if len(t.getSecKeyCache()) > 0 {
+		for hk, key := range t.secKeyCache {
+			t.trie.db.insertPreimage(common.BytesToHash([]byte(hk)), key)
+		}
+		t.secKeyCache = make(map[string][]byte)
+	}
+
+	t.trie.db.lock.Unlock()
+
+	return t.trie.ParallelCommit(onleaf)
+}
+
 // Hash returns the root hash of SecureTrie. It does not write to the
 // database and can be used even if the trie doesn't have one.
 func (t *SecureTrie) Hash() common.Hash {
 	return t.trie.Hash()
+}
+
+func (t *SecureTrie) ParallelHash() common.Hash {
+	return t.trie.ParallelHash()
 }
 
 // Root returns the root hash of SecureTrie.

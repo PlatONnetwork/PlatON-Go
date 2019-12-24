@@ -20,6 +20,7 @@ package trie
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -450,8 +451,24 @@ func (t *Trie) Root() []byte { return t.Hash().Bytes() }
 // Hash returns the root hash of the trie. It does not write to the
 // database and can be used even if the trie doesn't have one.
 func (t *Trie) Hash() common.Hash {
+	tm := time.Now()
 	hash, cached, _ := t.hashRoot(nil, nil)
+	if time.Since(tm) >= 10*time.Millisecond {
+		log.Error("Trie Hash", "duration", time.Since(tm))
+	}
 	t.root = cached
+	return common.BytesToHash(hash.(hashNode))
+}
+
+func (t *Trie) ParallelHash() common.Hash {
+	tm := time.Now()
+	hash, cached, err := t.parallelHashRoot(nil, nil)
+	if time.Since(tm) >= 10*time.Millisecond {
+		log.Error("Trie Parallel Hash", "duration", time.Since(tm))
+	}
+	if err == nil {
+		t.root = cached
+	}
 	return common.BytesToHash(hash.(hashNode))
 }
 
@@ -461,7 +478,29 @@ func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	if t.db == nil {
 		panic("commit called on trie with nil database")
 	}
+	tm := time.Now()
 	hash, cached, err := t.hashRoot(t.db, onleaf)
+	if time.Since(tm) >= 10*time.Millisecond {
+		log.Error("Trie Commit", "duration", time.Since(tm))
+	}
+	if err != nil {
+		return common.Hash{}, err
+	}
+	t.root = cached
+	t.cachegen++
+	return common.BytesToHash(hash.(hashNode)), nil
+}
+
+func (t *Trie) ParallelCommit(onleaf LeafCallback) (root common.Hash, err error) {
+	if t.db == nil {
+		panic("commit called on trie with nil database")
+	}
+
+	tm := time.Now()
+	hash, cached, err := t.parallelHashRoot(t.db, onleaf)
+	if time.Since(tm) >= 10*time.Millisecond {
+		log.Error("Trie Parallel Commit", "duration", time.Since(tm))
+	}
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -478,6 +517,16 @@ func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	defer returnHasherToPool(h)
 	return h.hash(t.root, db, true)
 }
+
+func (t *Trie) parallelHashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
+	if t.root == nil {
+		return hashNode(emptyRoot.Bytes()), nil, nil
+	}
+	dag := NewTrieDAG(t.cachegen, t.cachelimit)
+	dag.init(t.root)
+	return dag.hash(db, true, onleaf)
+}
+
 func (t *Trie) DeepCopyTrie() *Trie {
 	cpyRoot := t.root
 	switch n := t.root.(type) {
