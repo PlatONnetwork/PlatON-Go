@@ -37,7 +37,7 @@ import (
 
 const (
 	contentType             = "application/json"
-	maxRequestContentLength = 1024 * 1024	// 128
+	maxRequestContentLength = 128 * 1024 // 128
 )
 
 var nullAddr, _ = net.ResolveTCPAddr("tcp", "127.0.0.1:0")
