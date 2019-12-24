@@ -2334,7 +2334,18 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
 
 // The total delegate amount of the compute node
 func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable) {
+	changeAmountEpoch := can.DelegateEpoch
+	sub := epoch - uint64(changeAmountEpoch)
+	log.Debug("lazyCalcNodeTotalDelegateAmount before", "current epoch", epoch, "canMutable", can)
 
+	// If it is during the same hesitation period, short circuit
+	if sub < xcom.HesitateRatio() {
+		return
+	}
+	if can.DelegateTotalHes.Cmp(common.Big0) > 0 {
+		can.DelegateTotal = new(big.Int).Add(can.DelegateTotal, can.DelegateTotalHes)
+		can.DelegateTotalHes = new(big.Int).SetInt64(0)
+	}
 }
 
 func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
@@ -2369,13 +2380,27 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 }
 
 // Update the amount of delegate for the effective period
-func updateDelegateAmount(epoch uint64, del *staking.Delegation) {
-
+func updateDelegateAmount(epoch uint64, del *staking.Delegation) error {
+	return nil
 }
 
 // Calculating Total Entrusted Income
-func calcDelegateIncome(epoch uint64, del *staking.Delegation, rewardPer reward.DelegateRewardPerList) {
+func calcDelegateIncome(epoch uint64, del *staking.Delegation, rewardPerList reward.DelegateRewardPerList) {
+	// If the settlement period at which the income starts is greater than or equal to the current settlement period,
+	// there is no need to calculate the income
+	if uint64(del.IncomeStartEpoch) >= epoch {
+		return
+	}
 
+	for _, rewardPer := range rewardPerList {
+		totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
+		del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, new(big.Int).Mul(totalReleased, rewardPer.Amount))
+		if del.IncomeStartEpoch == del.DelegateEpoch {
+
+		} else {
+
+		}
+	}
 }
 
 type sortValidator struct {
