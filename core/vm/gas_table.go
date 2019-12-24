@@ -410,7 +410,15 @@ func gasRevert(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, m
 
 func gasSuicide(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var gas uint64
-
+	// EIP150 homestead gas reprice fork:
+	gas = gt.Suicide
+	var (
+		address = common.BigToAddress(stack.Back(0))
+	)
+	// if empty and transfers value
+	if evm.StateDB.Empty(address) && evm.StateDB.GetBalance(contract.Address()).Sign() != 0 {
+		gas += gt.CreateBySuicide
+	}
 	if !evm.StateDB.HasSuicided(contract.Address()) {
 		evm.StateDB.AddRefund(params.SuicideRefundGas)
 	}
