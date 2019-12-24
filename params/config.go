@@ -258,7 +258,7 @@ func (c *ChainConfig) IsEWASM(num *big.Int) bool {
 //
 // The returned GasTable's fields shouldn't, under any circumstances, be changed.
 func (c *ChainConfig) GasTable(num *big.Int) GasTable {
-	return GasTableHomestead
+	return GasTableConstantinople
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
