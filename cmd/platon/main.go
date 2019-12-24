@@ -170,6 +170,10 @@ var (
 		utils.DBGCMptFlag,
 		utils.DBGCBlockFlag,
 	}
+
+	vmFlags = []cli.Flag{
+		utils.VMWasmType,
+	}
 )
 
 func init() {
@@ -218,6 +222,7 @@ func init() {
 	// for cbft
 	app.Flags = append(app.Flags, cbftFlags...)
 	app.Flags = append(app.Flags, dbFlags...)
+	app.Flags = append(app.Flags, vmFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

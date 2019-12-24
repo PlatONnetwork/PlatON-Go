@@ -254,6 +254,12 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "VM",
+		Flags: []cli.Flag{
+			utils.VMWasmType,
+		},
+	},
+	{
 		Name: "MISC",
 	},
 }

@@ -108,13 +108,20 @@ func IntrinsicGas(data []byte, contractCreation bool) (uint64, error) {
 
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
+	// Discard the vmtype in transaction input
+	var data []byte
+	if len(msg.Data()) != 0 {
+		data := msg.Data()
+		data = data[1:]
+	}
+
 	return &StateTransition{
 		gp:       gp,
 		evm:      evm,
 		msg:      msg,
 		gasPrice: msg.GasPrice(),
 		value:    msg.Value(),
-		data:     msg.Data(),
+		data:     data,
 		state:    evm.StateDB,
 	}
 }
@@ -214,7 +221,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		//log.Debug("Nonce tracking: SetNonce", "from", msg.From(), "nonce", st.state.GetNonce(sender.Address()))
 		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 	if vmerr != nil {

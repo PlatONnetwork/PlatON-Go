@@ -1,13 +1,14 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/life/utils"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/life/utils"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 type ContractRefSelf struct {

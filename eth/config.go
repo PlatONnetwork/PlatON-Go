@@ -29,10 +29,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 )
 
-const (
-	datadirCbftConfig = "cbft.json" // Path within the datadir to the cbft config
-)
-
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
@@ -59,6 +55,7 @@ var DefaultConfig = Config{
 	DBGCTimeout:   time.Minute,
 	DBGCMpt:       true,
 	DBGCBlock:     10,
+	VMWasmType:    "wagon",
 	MinerGasPrice: big.NewInt(params.GVon),
 	MinerRecommit: 3 * time.Second,
 
@@ -122,6 +119,9 @@ type Config struct {
 	DBGCTimeout        time.Duration
 	DBGCMpt            bool
 	DBGCBlock          int
+
+	// VM options
+	VMWasmType string
 
 	// Mining-related options
 	MinerExtraData []byte `toml:",omitempty"`

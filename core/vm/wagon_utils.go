@@ -3,6 +3,7 @@ package vm
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/PlatONnetwork/wagon/validate"
 	"github.com/PlatONnetwork/wagon/wasm"

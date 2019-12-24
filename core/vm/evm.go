@@ -18,7 +18,6 @@ package vm
 
 import (
 	"math/big"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -133,7 +132,8 @@ type Context struct {
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
 
-	BlockHash common.Hash // Only, the value will be available after the current block has been sealed.
+	BlockHash       common.Hash // Only, the value will be available after the current block has been sealed.
+	InterpreterType InterpType  // Decide on the type of VM executor based on the analysis result of the input  of the transaction
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -185,15 +185,16 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		interpreters: make([]Interpreter, 0, 1),
 	}
 
-	// vmConfig.EVMInterpreter will be used by EVM-C, it won't be checked here
-	// as we always want to have the built-in EVM as the failover option.
-	// todo: replace the evm to wasm for the interpreter.
-	if strings.EqualFold("evm", chainConfig.VMInterpreter) {
+	// Build vm interpreter according to interpreterType option
+	switch evm.InterpreterType {
+	case EvmInterp:
 		evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
-	} else {
+	case WasmInterp:
 		evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
 	}
-	evm.interpreter = evm.interpreters[0]
+	if len(evm.interpreters) != 0 {
+		evm.interpreter = evm.interpreters[0]
+	}
 	return evm
 }
 
@@ -243,13 +244,23 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
+
+	// Check if the interpreter type is the same in the contract code and transaction input
+	// The storage format of the contract code :
+	// vmtype(one byte)|code(some bytes)
+	code := evm.StateDB.GetCode(addr)
+	if !validateVmTypeByCode(code, evm.InterpreterType) {
+		return nil, gas, ErrVmType
+	} else {
+		code = spitRealCode(code)
+	}
+
 	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := NewContract(caller, to, value, gas)
-
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), code)
 	start := time.Now()
 
 	// Capture the tracer start/end events in debug mode
@@ -299,11 +310,22 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 		snapshot = evm.StateDB.Snapshot()
 		to       = AccountRef(caller.Address())
 	)
+
+	// Check if the interpreter type is the same in the contract code and transaction input
+	// The storage format of the contract code :
+	// vmtype(one byte)|code(some bytes)
+	code := evm.StateDB.GetCode(addr)
+	if !validateVmTypeByCode(code, evm.InterpreterType) {
+		return nil, gas, ErrVmType
+	} else {
+		code = spitRealCode(code)
+	}
+
 	// initialise a new contract and set the code that is to be used by the
 	// EVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := NewContract(caller, to, value, gas)
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), code)
 
 	ret, err = run(evm, contract, input, false)
 	if err != nil {
@@ -334,9 +356,19 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 		to       = AccountRef(caller.Address())
 	)
 
+	// Check if the interpreter type is the same in the contract code and transaction input
+	// The storage format of the contract code :
+	// vmtype(one byte)|code(some bytes)
+	code := evm.StateDB.GetCode(addr)
+	if !validateVmTypeByCode(code, evm.InterpreterType) {
+		return nil, gas, ErrVmType
+	} else {
+		code = spitRealCode(code)
+	}
+
 	// Initialise a new contract and make initialise the delegate values
 	contract := NewContract(caller, to, nil, gas).AsDelegate()
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), code)
 
 	ret, err = run(evm, contract, input, false)
 	if err != nil {
@@ -365,11 +397,22 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		to       = AccountRef(addr)
 		snapshot = evm.StateDB.Snapshot()
 	)
+
+	// Check if the interpreter type is the same in the contract code and transaction input
+	// The storage format of the contract code :
+	// vmtype(one byte)|code(some bytes)
+	code := evm.StateDB.GetCode(addr)
+	if !validateVmTypeByCode(code, evm.InterpreterType) {
+		return nil, gas, ErrVmType
+	} else {
+		code = spitRealCode(code)
+	}
+
 	// Initialise a new contract and set the code that is to be used by the
 	// EVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := NewContract(caller, to, new(big.Int), gas)
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), code)
 
 	// When an error was returned by the EVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
@@ -406,6 +449,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	snapshot := evm.StateDB.Snapshot()
 	evm.StateDB.CreateAccount(address)
 	evm.StateDB.SetNonce(address, 1)
+
 	evm.Transfer(evm.StateDB, caller.Address(), address, value)
 
 	// initialise a new contract and set the code that is to be used by the
@@ -434,6 +478,13 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	if err == nil && !maxCodeSizeExceeded {
 		createDataGas := uint64(len(ret)) * params.CreateDataGas
 		if contract.UseGas(createDataGas) {
+
+			// Need to add the correct vmtype to the front before the contract code bytes is stored
+			// The storage format of the contract code :
+			// vmtype(one byte)|code(some bytes)
+			storageCode := []byte{evm.InterpreterType.Byte()}
+			ret := append(storageCode, ret...)
+
 			evm.StateDB.SetCode(address, ret)
 		} else {
 			err = ErrCodeStoreOutOfGas

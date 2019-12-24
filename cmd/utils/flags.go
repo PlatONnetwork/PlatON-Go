@@ -601,6 +601,13 @@ var (
 		Usage: "Number of cache block states, default 10",
 		Value: eth.DefaultConfig.DBGCBlock,
 	}
+
+	VMWasmType = cli.StringFlag{
+		Name:   "vm.wasm_type",
+		Usage:  "The actual implementation type of the wasm instance",
+		EnvVar: "",
+		Value:  eth.DefaultConfig.VMWasmType,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1193,6 +1200,11 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		if b > 0 {
 			cfg.DBGCBlock = b
 		}
+	}
+
+	// vm options
+	if ctx.GlobalIsSet(VMWasmType.Name) {
+		cfg.VMWasmType = ctx.GlobalString(VMWasmType.Name)
 	}
 }
 
