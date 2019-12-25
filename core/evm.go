@@ -67,6 +67,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Con
 		GasLimit:    header.GasLimit,
 		GasPrice:    new(big.Int).Set(msg.GasPrice()),
 		BlockHash:   blockHash,
+		Difficulty:  new(big.Int).SetUint64(0),
 	}
 }
 
