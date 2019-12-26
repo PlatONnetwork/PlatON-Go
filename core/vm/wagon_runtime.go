@@ -251,7 +251,7 @@ func NewHostModule() *wasm.Module {
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
-			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
 			Host: reflect.ValueOf(Transfer),
@@ -493,7 +493,7 @@ func Caller(proc *exec.Process, dst uint32) {
 	proc.WriteAt(ctx.contract.caller.Address().Bytes(), int64(dst))
 }
 
-// define: int64_t callValue();
+// define: uint8_t callValue();
 func CallValue(proc *exec.Process, dst uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
 	value := ctx.contract.value.Bytes()
@@ -524,7 +524,7 @@ func CallerNonce(proc *exec.Process) uint64 {
 	return ctx.evm.StateDB.GetNonce(addr)
 }
 
-func Transfer(proc *exec.Process, dst uint32, dstLen uint32, amount uint32, len uint32) int64 {
+func Transfer(proc *exec.Process, dst uint32, dstLen uint32, amount uint32, len uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 	address := make([]byte, dstLen)
 
