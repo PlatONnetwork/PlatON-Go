@@ -24,13 +24,11 @@ type Vertex struct {
 }
 
 type DAG struct {
-	vtxs     sync.Map // key: uint64 value: *Vertex
+	vtxs     map[uint64]*Vertex
 	topLevel *list.List
 
 	lock sync.Mutex
 	cv   *sync.Cond
-
-	done common.AtomicBool
 
 	totalVertexs  uint32
 	totalConsumed uint32
@@ -38,71 +36,68 @@ type DAG struct {
 
 func NewDAG() *DAG {
 	dag := &DAG{
+		vtxs:          make(map[uint64]*Vertex),
 		topLevel:      list.New(),
 		totalConsumed: 0,
 	}
-
 	dag.cv = sync.NewCond(&dag.lock)
+
 	return dag
 }
 
 func (d *DAG) addVertex(id uint64) {
-	if _, ok := d.vtxs.Load(id); !ok {
+	if _, ok := d.vtxs[id]; !ok {
 		d.totalVertexs++
 	}
-	d.vtxs.Store(id, &Vertex{
+	d.vtxs[id] = &Vertex{
 		inDegree: 0,
 		outEdge:  make([]uint64, 0),
-	})
+	}
 }
 
 func (d *DAG) addEdge(from, to uint64) {
-	if _, ok := d.vtxs.Load(from); !ok {
-		d.vtxs.Store(from, &Vertex{
+	if _, ok := d.vtxs[from]; !ok {
+		d.vtxs[from] = &Vertex{
 			inDegree: 0,
 			outEdge:  make([]uint64, 0),
-		})
+		}
 	}
-	f, _ := d.vtxs.Load(from)
-	v := f.(*Vertex)
-	v.outEdge = append(v.outEdge, to)
+	vtx := d.vtxs[from]
+	vtx.outEdge = append(vtx.outEdge, to)
 
-	if _, ok := d.vtxs.Load(to); !ok {
-		d.vtxs.Store(to, &Vertex{
+	if _, ok := d.vtxs[to]; !ok {
+		d.vtxs[to] = &Vertex{
 			inDegree: 0,
 			outEdge:  make([]uint64, 0),
-		})
+		}
 	}
-	f, _ = d.vtxs.Load(to)
-	v = f.(*Vertex)
-	v.inDegree += 1
+	d.vtxs[to].inDegree += 1
 }
 
 func (d *DAG) generate() {
-	d.vtxs.Range(func(key, val interface{}) bool {
-		v := val.(*Vertex)
+	for k, v := range d.vtxs {
 		if v.inDegree == 0 {
-			d.topLevel.PushBack(key.(uint64))
+			d.topLevel.PushBack(k)
 		}
-		return true
-	})
+	}
 }
 
 func (d *DAG) waitPop() uint64 {
+	if d.hasFinished() {
+		return invalidId
+	}
+
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	if d.topLevel.Len() == 0 && !d.done.IsSet() && !d.hasFinished() {
+	if d.topLevel.Len() == 0 && !d.hasFinished() {
 		d.cv.Wait()
 	}
 
-	if d.done.IsSet() || d.hasFinished() {
+	if d.hasFinished() || d.topLevel.Len() == 0 {
 		return invalidId
 	}
 
 	el := d.topLevel.Front()
-	if el == nil {
-		return invalidId
-	}
 	id := el.Value.(uint64)
 	d.topLevel.Remove(el)
 	return id
@@ -117,13 +112,9 @@ func (d *DAG) consume(id uint64) uint64 {
 	var nextID uint64 = invalidId
 	var degree uint32 = 0
 
-	v, _ := d.vtxs.Load(id)
-	vtx := v.(*Vertex)
-	for _, k := range vtx.outEdge {
-		ov, _ := d.vtxs.Load(k)
-		ovtx := ov.(*Vertex)
-		degree = atomic.AddUint32(&ovtx.inDegree, ^uint32(0))
-
+	for _, k := range d.vtxs[id].outEdge {
+		vtx := d.vtxs[k]
+		degree = atomic.AddUint32(&vtx.inDegree, ^uint32(0))
 		if degree == 0 {
 			producedNum += 1
 			if producedNum == 1 {
@@ -132,13 +123,11 @@ func (d *DAG) consume(id uint64) uint64 {
 				d.lock.Lock()
 				d.topLevel.PushBack(k)
 				d.lock.Unlock()
-				d.cv.Signal()
 			}
 		}
 	}
 
 	if atomic.AddUint32(&d.totalConsumed, 1) == d.totalVertexs {
-		d.done.Set(true)
 		d.cv.Broadcast()
 	}
 
@@ -146,8 +135,8 @@ func (d *DAG) consume(id uint64) uint64 {
 }
 
 func (d *DAG) clear() {
-	d.vtxs = sync.Map{}
-	d.done.Set(false)
+	d.vtxs = make(map[uint64]*Vertex)
+	d.topLevel = list.New()
 	d.totalConsumed = 0
 	d.totalVertexs = 0
 }
@@ -330,7 +319,6 @@ func (td *TrieDAG) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 			if n.pid == 0 {
 				resHash = hashed
 				newRoot = n.cached
-				td.dag.done.Set(true)
 				break
 			}
 
@@ -344,7 +332,6 @@ func (td *TrieDAG) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 		}
 		returnHasherToPool(hasher)
 		wg.Done()
-		td.dag.cv.Broadcast()
 	}
 
 	for i := 0; i < numCPU; i++ {

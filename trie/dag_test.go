@@ -26,8 +26,8 @@ func TestDAG(t *testing.T) {
 	assert.True(t, dag.totalVertexs == 5)
 
 	dag.addEdge(1, 2)
-	//assert.True(t, dag.vtxs[1].outEdge[0] == 2)
-	//assert.True(t, dag.vtxs[2].inDegree == 1)
+	assert.True(t, dag.vtxs[1].outEdge[0] == 2)
+	assert.True(t, dag.vtxs[2].inDegree == 1)
 
 	dag.addEdge(2, 3)
 	dag.addEdge(3, 4)
