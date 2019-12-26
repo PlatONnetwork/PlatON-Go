@@ -87,8 +87,8 @@ func (d *DAG) waitPop() uint64 {
 		return invalidId
 	}
 
-	d.lock.Lock()
-	defer d.lock.Unlock()
+	d.cv.L.Lock()
+	defer d.cv.L.Unlock()
 	if d.topLevel.Len() == 0 && !d.hasFinished() {
 		d.cv.Wait()
 	}
@@ -128,7 +128,9 @@ func (d *DAG) consume(id uint64) uint64 {
 	}
 
 	if atomic.AddUint32(&d.totalConsumed, 1) == d.totalVertexs {
+		d.cv.L.Lock()
 		d.cv.Broadcast()
+		d.cv.L.Unlock()
 	}
 
 	return nextID
