@@ -88,19 +88,16 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 }
 
 func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
-	/*
-	if in.evm.chainRules.IsByzantium {
-		if in.readOnly {
-			// If the interpreter is operating in readonly mode, make sure no
-			// state-modifying operation is performed. The 3rd stack item
-			// for a call operation is the value. Transferring value from one
-			// account to the others means the state is modified and should also
-			// return with an error.
-			if operation.writes || (op == CALL && stack.Back(2).BitLen() > 0) {
-				return errWriteProtection
-			}
+	if in.readOnly {
+		// If the interpreter is operating in readonly mode, make sure no
+		// state-modifying operation is performed. The 3rd stack item
+		// for a call operation is the value. Transferring value from one
+		// account to the others means the state is modified and should also
+		// return with an error.
+		if operation.writes || (op == CALL && stack.Back(2).BitLen() > 0) {
+			return errWriteProtection
 		}
-	}*/
+	}
 	return nil
 }
 
