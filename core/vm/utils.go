@@ -11,6 +11,10 @@ var (
 	ErrVmType = errors.New("vmtype  of contract code and input data  is not same")
 )
 
+const (
+	VmTypeLen = 1
+)
+
 func decodeInput(input []byte) (byte, []byte, error) {
 	kind, content, _, err := rlp.Split(input)
 
@@ -25,7 +29,7 @@ func decodeInput(input []byte) (byte, []byte, error) {
 	switch {
 	case err != nil:
 		return 0, nil, err
-	case len(vmType) != 1:
+	case len(vmType) != VmTypeLen:
 		return 0, nil, fmt.Errorf("vm type error")
 	}
 	return vmType[0], rest, nil
@@ -40,5 +44,5 @@ func validateVmTypeByCode(code []byte, interpType InterpType) bool {
 }
 
 func spitRealCode(code []byte) []byte {
-	return code[1:]
+	return code[VmTypeLen:]
 }

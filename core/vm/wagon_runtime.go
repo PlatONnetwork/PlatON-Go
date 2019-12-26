@@ -1,15 +1,17 @@
 package vm
 
 import (
+	"math"
+	"math/big"
+	"reflect"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	inner "github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/PlatONnetwork/wagon/wasm"
-	"math"
-	"math/big"
-	"reflect"
 )
 
 type VMContext struct {
@@ -20,6 +22,7 @@ type VMContext struct {
 	Input    []byte
 	CallOut  []byte
 	Output   []byte
+	readOnly bool // Whether to throw on stateful modifications
 }
 
 func addFuncExport(m *wasm.Module, sig wasm.FunctionSig, function wasm.Function, export wasm.ExportEntry) {
@@ -391,6 +394,145 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
+	// todo
+	// int64_t platon_call(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* amount, size_t amountLen)
+	// func $platon_call  (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i64)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(CallContract),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_call",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// todo
+	// int64_t platon_delegatecall(const uint8_t* to, const uint8_t* args, size_t argsLen)
+	// func $platon_delegatecall (param $0 i32) (param $1 i32) (param $2 i32) (result i64)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(DelegateCallContract),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_delegatecall",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// todo
+	// int64_t platon_staticcall(const uint8_t* to, const uint8_t* args, size_t argsLen)
+	// func $platon_staticcall (param $0 i32) (param $1 i32) (param $2 i32) (result i64)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(StaticCallContract),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_staticcall",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// todo
+	// int64_t platon_destroy()
+	// func $platon_destroy (result i64)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(DestroyContract),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_destroy",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// todo
+	// void platon_event(const uint8_t* args, size_t argsLen)
+	// func $platon_event (param $0 i32) (param $1 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(EmitEvent),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_event",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// todo
+	// void platon_event1(const uint8_t* topic, size_t topicLen, const uint8_t* args, size_t argsLen)
+	// func $platon_event1 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(EmitEvent1),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_event1",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// todo
+	// void platon_event2(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* args, size_t argsLen)
+	// func $platon_event2 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(EmitEvent2),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_event2",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// todo
+	// void platon_event3(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* topic3, size_t topic3Len, uint8_t* args, size_t argsLen)
+	// func $platon_event3 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(EmitEvent3),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_event3",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
 	return m
 }
 
@@ -510,6 +652,9 @@ func Transfer(proc *exec.Process, dst uint32, dstLen uint32, v uint32) int64 {
 
 func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
+	if ctx.readOnly {
+		panic("This operation does not support read-only calls")
+	}
 	keyBuf := make([]byte, keyLen)
 	proc.ReadAt(keyBuf, int64(key))
 	valBuf := make([]byte, valLen)
@@ -573,4 +718,194 @@ func ReturnContract(proc *exec.Process, dst uint32, len uint32) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func CallContract(proc *exec.Process, addrPtr uint32, args uint32, argsLen uint32, val uint32, valLen uint32) int64 {
+	ctx := proc.HostCtx().(*VMContext)
+
+	address := make([]byte, common.AddressLength)
+	proc.ReadAt(address, int64(addrPtr))
+	addr := common.BytesToAddress(address)
+
+	input := make([]byte, argsLen)
+	proc.ReadAt(input, int64(args))
+
+	value := make([]byte, valLen)
+	proc.ReadAt(input, int64(val))
+	bValue := new(big.Int)
+	// 256 bits
+	bValue.SetBytes(value)
+	bValue = inner.U256(bValue)
+
+	gas := ctx.evm.callGasTemp
+	if bValue.Sign() != 0 {
+		gas += params.CallStipend
+	}
+
+	ret, _, err := ctx.evm.Call(ctx.contract, addr, input, gas, bValue)
+	if err != nil {
+		return 0
+	}
+
+	ctx.CallOut = ret
+	return int64(len(ctx.CallOut))
+}
+
+func DelegateCallContract(proc *exec.Process, addrPtr uint32, params uint32, paramsLen uint32) int64 {
+	ctx := proc.HostCtx().(*VMContext)
+
+	address := make([]byte, common.AddressLength)
+	proc.ReadAt(address, int64(addrPtr))
+	addr := common.BytesToAddress(address)
+
+	input := make([]byte, paramsLen)
+	proc.ReadAt(input, int64(params))
+
+	ret, _, err := ctx.evm.DelegateCall(ctx.contract, addr, input, ctx.evm.callGasTemp)
+	if err != nil {
+		return 0
+	}
+
+	ctx.CallOut = ret
+	return int64(len(ctx.CallOut))
+}
+
+func StaticCallContract(proc *exec.Process, addrPtr uint32, params uint32, paramsLen uint32) int64 {
+	ctx := proc.HostCtx().(*VMContext)
+
+	address := make([]byte, common.AddressLength)
+	proc.ReadAt(address, int64(addrPtr))
+	addr := common.BytesToAddress(address)
+
+	input := make([]byte, paramsLen)
+	proc.ReadAt(input, int64(params))
+
+	ret, _, err := ctx.evm.StaticCall(ctx.contract, addr, input, ctx.evm.callGasTemp)
+	if err != nil {
+		return 0
+	}
+
+	ctx.CallOut = ret
+	return int64(len(ctx.CallOut))
+}
+
+func TerminateContract() {
+
+}
+
+func DestroyContract(proc *exec.Process) int64 {
+	ctx := proc.HostCtx().(*VMContext)
+
+	if ctx.readOnly {
+		panic("This operation does not support read-only calls")
+	}
+
+	balance := ctx.evm.StateDB.GetBalance(ctx.contract.Address())
+	done := ctx.evm.StateDB.Suicide(ctx.contract.Address())
+	if !done {
+		return 1
+	}
+	ctx.evm.StateDB.AddBalance(ctx.contract.Caller(), balance)
+	return 0
+}
+
+func MigrateContract() {
+
+}
+
+func EmitEvent(proc *exec.Process, args uint32, argsLen uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+
+	if ctx.readOnly {
+		panic("This operation does not support read-only calls")
+	}
+
+	topics := make([]common.Hash, 0)
+
+	input := make([]byte, argsLen)
+	proc.ReadAt(input, int64(args))
+
+	bn := ctx.evm.BlockNumber.Uint64()
+	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+}
+
+func EmitEvent1(proc *exec.Process, t uint32, tLen uint32, args uint32, argsLen uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+
+	if ctx.readOnly {
+		panic("This operation does not support read-only calls")
+	}
+
+	topic := make([]byte, tLen)
+	proc.ReadAt(topic, int64(t))
+	topics := []common.Hash{common.BytesToHash(crypto.Keccak256(topic))}
+
+	input := make([]byte, argsLen)
+	proc.ReadAt(input, int64(args))
+
+	bn := ctx.evm.BlockNumber.Uint64()
+	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+}
+
+func EmitEvent2(proc *exec.Process, t1 uint32, t1Len uint32, t2 uint32, t2Len uint32, args uint32, argsLen uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+
+	if ctx.readOnly {
+		panic("This operation does not support read-only calls")
+	}
+
+	topic1 := make([]byte, t1Len)
+	proc.ReadAt(topic1, int64(t1))
+	topic2 := make([]byte, t2Len)
+	proc.ReadAt(topic2, int64(t2))
+
+	arr := [][]byte{topic1, topic2}
+	topics := make([]common.Hash, len(arr))
+	for i, t := range arr {
+		topics[i] = common.BytesToHash(crypto.Keccak256(t))
+	}
+
+	input := make([]byte, argsLen)
+	proc.ReadAt(input, int64(args))
+
+	bn := ctx.evm.BlockNumber.Uint64()
+	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+}
+
+func EmitEvent3(proc *exec.Process, t1 uint32, t1Len uint32, t2 uint32, t2Len uint32, t3 uint32, t3Len uint32, args uint32, argsLen uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+
+	if ctx.readOnly {
+		panic("This operation does not support read-only calls")
+	}
+
+	topic1 := make([]byte, t1Len)
+	proc.ReadAt(topic1, int64(t1))
+	topic2 := make([]byte, t2Len)
+	proc.ReadAt(topic2, int64(t2))
+
+	topic3 := make([]byte, t3Len)
+	proc.ReadAt(topic3, int64(t3))
+
+	arr := [][]byte{topic1, topic2, topic3}
+	topics := make([]common.Hash, len(arr))
+	for i, t := range arr {
+		topics[i] = common.BytesToHash(crypto.Keccak256(t))
+	}
+
+	input := make([]byte, argsLen)
+	proc.ReadAt(input, int64(args))
+
+	bn := ctx.evm.BlockNumber.Uint64()
+	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+}
+
+func addLog(state StateDB, address common.Address, topics []common.Hash, data []byte, bn uint64) {
+	log := &types.Log{
+		Address:     address,
+		Topics:      topics,
+		Data:        data,
+		BlockNumber: bn,
+	}
+	state.AddLog(log)
 }

@@ -78,7 +78,7 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 		return nil, moduleErr
 	}
 
-	if err := engine.prepare(module, input); nil != err {
+	if err := engine.prepare(module, input, readOnly); nil != err {
 		return nil, err
 	}
 
@@ -90,7 +90,7 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 	return ret, err
 }
 
-func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte) error {
+func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte, readOnly bool) error {
 	vm, err := exec.NewVMWithCompiled(module, memoryLimit)
 	if nil != err {
 		return err
@@ -101,6 +101,7 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte) er
 		config:   engine.Config(),
 		db:       engine.StateDB(),
 		Input:    input, //set input bytes
+		readOnly: readOnly,
 	}
 	vm.SetHostCtx(ctx)
 	engine.vm = vm
