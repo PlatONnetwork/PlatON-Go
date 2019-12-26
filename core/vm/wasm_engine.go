@@ -108,7 +108,12 @@ func (w *wagonEngine) Run(contract *Contract, input []byte, readOnly bool) (ret 
 
 	//exec vm
 	_, err = vm.ExecCode(index)
-	if err != nil {
+	switch {
+	case ctx.Revert:
+		return nil, errExecutionReverted
+	case vm.Abort():
+		return nil, ErrAbort
+	case err != nil:
 		return nil, errors.Wrap(err, "execute function code")
 	}
 
