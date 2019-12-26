@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/pkg/errors"
@@ -80,13 +81,15 @@ func (w *wagonEngine) Run(contract *Contract, input []byte, readOnly bool) (ret 
 
 	vm, err := exec.NewVMWithCompiled(module, memoryLimit)
 
-	//set input bytes
-	vm.SetHostCtx(&VMContext{
+	vm.RecoverPanic = true
+	ctx := &VMContext{
 		evm:    w.evm,
 		config: w.config,
 		db:     w.db,
 		Input:  data,
-	})
+		log:    NewWasmLogger(w.config, log.WasmRoot()),
+	}
+	vm.SetHostCtx(ctx)
 	//verify function name in module
 	entry, ok := module.RawModule.Export.Entries[callEntryName]
 	if !ok {
@@ -109,5 +112,5 @@ func (w *wagonEngine) Run(contract *Contract, input []byte, readOnly bool) (ret 
 		return nil, errors.Wrap(err, "execute function code")
 	}
 
-	return ret, err
+	return ctx.Output, err
 }
