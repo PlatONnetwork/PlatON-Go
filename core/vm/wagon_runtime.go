@@ -20,6 +20,8 @@ type VMContext struct {
 	Input    []byte
 	CallOut  []byte
 	Output   []byte
+	Revert   bool
+	log      *WasmLogger
 }
 
 func addFuncExport(m *wasm.Module, sig wasm.FunctionSig, function wasm.Function, export wasm.ExportEntry) {
@@ -244,11 +246,11 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int64_t platon_transfer(const uint8_t* to, size_t toLen, uint8_t amount[32])
-	// func $platon_transfer  (param $0 i32) (param $1 i32) (param $2 i32) (result i64)
+	// int64_t platon_transfer(const uint8_t* to, size_t toLen, uint8_t *amount, size_t len)
+	// func $platon_transfer  (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
 		},
 		wasm.Function{
@@ -277,19 +279,19 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// size_t platon_get_state_size(const uint8_t* key, size_t klen)
-	// func $platon_get_state_size (param $0 i32) (param $1 i32) (result i32)
+	// size_t platon_get_state_length (const uint8_t* key, size_t klen)
+	// func $platon_get_state_length (param $0 i32) (param $1 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
-			Host: reflect.ValueOf(GetStateSize),
+			Host: reflect.ValueOf(GetStateLength),
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_get_state_size",
+			FieldStr: "platon_get_state_length",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
@@ -391,6 +393,50 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
+	// void platon_revert()
+	// func $platon_return()
+	addFuncExport(m,
+		wasm.FunctionSig{},
+		wasm.Function{
+			Host: reflect.ValueOf(Revert),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_revert",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// void platon_panic()
+	// func $platon_panic()
+	addFuncExport(m,
+		wasm.FunctionSig{},
+		wasm.Function{
+			Host: reflect.ValueOf(Panic),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_panic",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// void platon_debug(uint8_t *dst, size_t len)
+	// func $platon_debug (param i32 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Debug),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_debug",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
 	return m
 }
 
@@ -478,14 +524,14 @@ func CallerNonce(proc *exec.Process) uint64 {
 	return ctx.evm.StateDB.GetNonce(addr)
 }
 
-func Transfer(proc *exec.Process, dst uint32, dstLen uint32, v uint32) int64 {
+func Transfer(proc *exec.Process, dst uint32, dstLen uint32, amount uint32, len uint32) int64 {
 	ctx := proc.HostCtx().(*VMContext)
 	address := make([]byte, dstLen)
 
 	proc.ReadAt(address, int64(dst))
 
-	value := make([]byte, 32)
-	proc.ReadAt(value, int64(v))
+	value := make([]byte, len)
+	proc.ReadAt(value, int64(amount))
 	bValue := new(big.Int)
 	// 256 bits
 	bValue.SetBytes(value)
@@ -496,11 +542,12 @@ func Transfer(proc *exec.Process, dst uint32, dstLen uint32, v uint32) int64 {
 	if bValue.Sign() != 0 {
 		gas += params.CallStipend
 	}
+
 	_, returnGas, err := ctx.evm.Call(ctx.contract, addr, nil, gas, bValue)
 	if err != nil {
 		return 1
 	}
-	if ctx.contract.UseGas(returnGas) {
+	if !ctx.contract.UseGas(returnGas) {
 		return 1
 	}
 	return 0
@@ -517,7 +564,7 @@ func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen 
 	ctx.evm.StateDB.SetState(ctx.contract.Address(), keyBuf, valBuf)
 }
 
-func GetStateSize(proc *exec.Process, key uint32, keyLen uint32) uint32 {
+func GetStateLength(proc *exec.Process, key uint32, keyLen uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
 	keyBuf := make([]byte, keyLen)
 	proc.ReadAt(keyBuf, int64(key))
@@ -573,4 +620,21 @@ func ReturnContract(proc *exec.Process, dst uint32, len uint32) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func Revert(proc *exec.Process) {
+	ctx := proc.HostCtx().(*VMContext)
+	ctx.Revert = true
+	proc.Terminate()
+}
+
+func Panic(proc *exec.Process) {
+	panic("transaction panic")
+}
+
+func Debug(proc *exec.Process, dst uint32, len uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+	buf := make([]byte, len)
+	proc.ReadAt(buf, int64(dst))
+	ctx.log.Debug(string(buf))
 }
