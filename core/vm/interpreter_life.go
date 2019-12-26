@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/life/utils"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"reflect"
 	"runtime"
@@ -35,28 +34,15 @@ var DEFAULT_VM_CONFIG = exec.VMConfig{
 
 // WASMInterpreter represents an WASM interpreter
 type WASMInterpreter struct {
-	evm         *EVM
-	cfg         Config
-	wasmStateDB *WasmStateDB
-	WasmLogger  log.Logger
-	resolver    exec.ImportResolver
-	returnData  []byte
+	evm *EVM
+	cfg Config
 }
 
 // NewWASMInterpreter returns a new instance of the Interpreter
 func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
-
-	wasmStateDB := &WasmStateDB{
-		StateDB: evm.StateDB,
-		evm:     evm,
-		cfg:     &cfg,
-	}
 	return &WASMInterpreter{
-		evm:         evm,
-		cfg:         cfg,
-		WasmLogger:  NewWasmLogger(cfg, log.WasmRoot()),
-		wasmStateDB: wasmStateDB,
-		resolver:    resolver.NewResolver(0x01),
+		evm: evm,
+		cfg: cfg,
 	}
 }
 
@@ -75,12 +61,6 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	in.evm.depth++
 	defer func() {
 		in.evm.depth--
-		if in.evm.depth == 0 {
-			logger, ok := in.WasmLogger.(*WasmLogger)
-			if ok {
-				logger.Flush()
-			}
-		}
 	}()
 
 	creator, err := NewWasmEngineCreator(in.cfg.WasmType)
