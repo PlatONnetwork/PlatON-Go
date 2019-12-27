@@ -84,6 +84,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -117,6 +118,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -167,6 +169,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -200,6 +203,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -246,6 +250,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -279,6 +284,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -327,6 +333,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -360,6 +367,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -381,6 +389,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	details2, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold2, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount2, _ := rlp.EncodeToBytes(StakeThreshold2)
+	rewardPer2, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion2, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -414,6 +423,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	args = append(args, website2)
 	args = append(args, details2)
 	args = append(args, amount2)
+	args = append(args, rewardPer2)
 	args = append(args, programVersion2)
 	args = append(args, sign2)
 	args = append(args, blsPkm2)
@@ -484,6 +494,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -517,6 +528,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -581,6 +593,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	StakeThreshold := new(big.Int).Sub(xcom.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
 
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -614,6 +627,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -682,6 +696,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -715,6 +730,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -783,6 +799,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 
 	amount, _ := rlp.EncodeToBytes(initBalance)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -816,6 +833,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -886,6 +904,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -919,6 +938,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -983,6 +1003,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
@@ -1016,6 +1037,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -1080,6 +1102,7 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 
 	version := uint32(0<<16 | 9<<8 | 0)
 
@@ -1116,6 +1139,7 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
+	params = append(params, rewardPer)
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
@@ -1169,6 +1193,7 @@ func Test_EditStake_by_RightParams(t *testing.T) {
 
 	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 	externalId, _ := rlp.EncodeToBytes("test low version")
 	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", Low version")
 	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".lowVersion.com")
@@ -1177,6 +1202,7 @@ func Test_EditStake_by_RightParams(t *testing.T) {
 	params = append(params, fnType)
 	params = append(params, benefitAddress)
 	params = append(params, nodeId)
+	params = append(params, rewardPer)
 	params = append(params, externalId)
 	params = append(params, nodeName)
 	params = append(params, website)
