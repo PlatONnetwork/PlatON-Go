@@ -380,6 +380,8 @@ func build_staking_data(genesisHash common.Hash) {
 			ReleasedHes:        common.Big32,
 			RestrictingPlan:    common.Big1,
 			RestrictingPlanHes: common.Big257,
+			RewardPer:          5000,
+			NextRewardPer:      8000,
 		},
 	}
 
@@ -415,6 +417,8 @@ func build_staking_data(genesisHash common.Hash) {
 			ReleasedHes:        common.Big32,
 			RestrictingPlan:    common.Big1,
 			RestrictingPlanHes: common.Big257,
+			RewardPer:          1000,
+			NextRewardPer:      2200,
 		},
 	}
 
@@ -450,6 +454,8 @@ func build_staking_data(genesisHash common.Hash) {
 			ReleasedHes:        common.Big32,
 			RestrictingPlan:    common.Big1,
 			RestrictingPlanHes: common.Big257,
+			RewardPer:          6300,
+			NextRewardPer:      3300,
 		},
 	}
 
