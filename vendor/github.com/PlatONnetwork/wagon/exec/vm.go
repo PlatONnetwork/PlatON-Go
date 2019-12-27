@@ -71,7 +71,6 @@ type VM struct {
 	RecoverPanic bool
 
 	abort bool // Flag for host functions to terminate execution
-
 	nativeBackend *nativeCompiler
 
 	hostCtx interface{}
@@ -484,6 +483,10 @@ func (vm *VM) Close() error {
 		}
 	}
 	return nil
+}
+
+func (vm *VM) Abort() bool  {
+	return vm.abort
 }
 
 // Process is a proxy passed to host functions in order to access
