@@ -75,18 +75,18 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 
 func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
 	/*
-	if in.evm.chainRules.IsByzantium {
-		if in.readOnly {
-			// If the interpreter is operating in readonly mode, make sure no
-			// state-modifying operation is performed. The 3rd stack item
-			// for a call operation is the value. Transferring value from one
-			// account to the others means the state is modified and should also
-			// return with an error.
-			if operation.writes || (op == CALL && stack.Back(2).BitLen() > 0) {
-				return errWriteProtection
+		if in.evm.chainRules.IsByzantium {
+			if in.readOnly {
+				// If the interpreter is operating in readonly mode, make sure no
+				// state-modifying operation is performed. The 3rd stack item
+				// for a call operation is the value. Transferring value from one
+				// account to the others means the state is modified and should also
+				// return with an error.
+				if operation.writes || (op == CALL && stack.Back(2).BitLen() > 0) {
+					return errWriteProtection
+				}
 			}
-		}
-	}*/
+		}*/
 	return nil
 }
 
@@ -120,10 +120,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// as every returning call will return new data anyway.
 	in.returnData = nil
 
-	// Don't bother with the execution if there's no code.
-	if len(contract.Code) == 0 {
-		return nil, nil
-	}
+	//// Don't bother with the execution if there's no code.
+	//if len(contract.Code) == 0 {
+	//	return nil, nil
+	//}
 
 	var (
 		op    OpCode        // current opcode
@@ -239,5 +239,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 // CanRun tells if the contract, passed as an argument, can be
 // run by the current interpreter.
 func (in *EVMInterpreter) CanRun(code []byte) bool {
-	return true
+	if len(code) != 0 {
+		magicNum := BytesToInterpType(code[:InterpTypeLen])
+		if magicNum == EvmInterpOld || magicNum == EvmInterpNew {
+			return true
+		}
+	}
+	return false
 }

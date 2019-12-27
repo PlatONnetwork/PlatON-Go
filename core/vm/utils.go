@@ -1,18 +1,9 @@
 package vm
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-)
-
-var (
-	ErrVmType = errors.New("vmtype  of contract code and input data  is not same")
-)
-
-const (
-	VmTypeLen = 1
 )
 
 func decodeInput(input []byte) (byte, []byte, error) {
@@ -29,20 +20,9 @@ func decodeInput(input []byte) (byte, []byte, error) {
 	switch {
 	case err != nil:
 		return 0, nil, err
-	case len(vmType) != VmTypeLen:
+	case len(vmType) != 1:
 		return 0, nil, fmt.Errorf("vm type error")
 	}
 	return vmType[0], rest, nil
 
-}
-
-func validateVmTypeByCode(code []byte, interpType InterpType) bool {
-	if 0 == len(code) {
-		return false
-	}
-	return code[0] == interpType.Byte()
-}
-
-func spitRealCode(code []byte) []byte {
-	return code[VmTypeLen:]
 }

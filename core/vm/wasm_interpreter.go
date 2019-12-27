@@ -54,6 +54,11 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		}
 	}()
 
+	//// Don't bother with the execution if there's no code.
+	//if len(contract.Code) == 0 {
+	//	return nil, nil
+	//}
+
 	creator, err := NewWasmEngineCreator(in.cfg.WasmType)
 	if err != nil {
 		return nil, err
@@ -73,8 +78,14 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 
 // CanRun tells if the contract, passed as an argument, can be run
 // by the current interpreter
-func (in *WASMInterpreter) CanRun(input []byte) bool {
-	return true
+func (in *WASMInterpreter) CanRun(code []byte) bool {
+	if len(code) == 0 {
+		magicNum := BytesToInterpType(code[:InterpTypeLen])
+		if magicNum == WasmInterp {
+			return true
+		}
+	}
+	return false
 }
 
 type WasmInsType byte

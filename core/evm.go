@@ -50,17 +50,16 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Con
 	}
 
 	return vm.Context{
-		CanTransfer:     CanTransfer,
-		Transfer:        Transfer,
-		GetHash:         GetHashFn(header, chain),
-		Origin:          msg.From(),
-		Coinbase:        beneficiary,
-		BlockNumber:     new(big.Int).Set(header.Number),
-		Time:            new(big.Int).Set(header.Time),
-		GasLimit:        header.GasLimit,
-		GasPrice:        new(big.Int).Set(msg.GasPrice()),
-		BlockHash:       blockHash,
-		InterpreterType: selectVmInterpByInput(msg.Data()),
+		CanTransfer: CanTransfer,
+		Transfer:    Transfer,
+		GetHash:     GetHashFn(header, chain),
+		Origin:      msg.From(),
+		Coinbase:    beneficiary,
+		BlockNumber: new(big.Int).Set(header.Number),
+		Time:        new(big.Int).Set(header.Time),
+		GasLimit:    header.GasLimit,
+		GasPrice:    new(big.Int).Set(msg.GasPrice()),
+		BlockHash:   blockHash,
 	}
 }
 
@@ -100,12 +99,4 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
-}
-
-func selectVmInterpByInput(data []byte) vm.InterpType {
-	if len(data) != 0 {
-		return vm.Byte2Interp(data[0])
-	}
-	// default support evm interpreter
-	return vm.EvmInterp
 }

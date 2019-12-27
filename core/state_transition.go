@@ -107,20 +107,13 @@ func IntrinsicGas(data []byte, contractCreation bool) (uint64, error) {
 
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
-	// Discard the vmtype in transaction input
-	var data []byte
-	if len(msg.Data()) != 0 {
-		data := msg.Data()
-		data = data[vm.VmTypeLen:]
-	}
-
 	return &StateTransition{
 		gp:       gp,
 		evm:      evm,
 		msg:      msg,
 		gasPrice: msg.GasPrice(),
 		value:    msg.Value(),
-		data:     data,
+		data:     msg.Data(),
 		state:    evm.StateDB,
 	}
 }
