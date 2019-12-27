@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/lru"
@@ -95,12 +96,14 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte, re
 	if nil != err {
 		return err
 	}
+	vm.RecoverPanic = true
 	ctx := &VMContext{
 		evm:      engine.EVM(),
 		contract: engine.Contract(),
 		config:   engine.Config(),
 		db:       engine.StateDB(),
 		Input:    input, //set input bytes
+		log:      NewWasmLogger(engine.config, log.WasmRoot()),
 		readOnly: readOnly,
 	}
 	vm.SetHostCtx(ctx)
@@ -114,7 +117,16 @@ func (engine *wagonEngine) exec(index int64) ([]byte, error) {
 		return nil, errors.Wrap(err, "execute function code")
 	}
 	ctx := engine.vm.HostCtx().(*VMContext)
-	return ctx.Output, nil
+
+	switch {
+	case ctx.Revert:
+		return nil, errExecutionReverted
+	case engine.vm.Abort():
+		return nil, ErrAbort
+	case err != nil:
+		return nil, errors.Wrap(err, "execute function code")
+	}
+	return ctx.Output, err
 }
 
 func (engine *wagonEngine) MakeModule(deploy bool) (*exec.CompiledModule, int64, error) {
