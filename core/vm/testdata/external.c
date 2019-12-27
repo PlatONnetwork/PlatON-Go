@@ -13,7 +13,7 @@ void platon_coinbase(uint8_t hash[20]);
 uint8_t platon_balance(uint8_t addr[32], uint8_t balance[32]);
 void platon_origin(uint8_t hash[20]);
 void platon_caller(uint8_t hash[20]);
-int64_t platon_transfer(const uint8_t* to, size_t toLen, uint8_t *amount, size_t len);
+int32_t platon_transfer(const uint8_t* to, size_t toLen, uint8_t *amount, size_t len);
 uint8_t platon_call_value(uint8_t val[32]);
 void platon_address(uint8_t hash[20]);
 void platon_sha3(const uint8_t *src, size_t srcLen, uint8_t *dest, size_t destLen);
