@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"math/big"
 	"sort"
 	"strconv"
@@ -717,7 +716,6 @@ func (sk *StakingPlugin) GetDelegateExInfo(blockHash common.Hash, delAddr common
 			ReleasedHes:      (*hexutil.Big)(del.ReleasedHes),
 			RestrictingPlan:  (*hexutil.Big)(del.RestrictingPlan),
 			CumulativeIncome: (*hexutil.Big)(del.CumulativeIncome),
-			IncomeStartEpoch: del.IncomeStartEpoch,
 		},
 	}, nil
 }
@@ -744,7 +742,6 @@ func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNu
 			RestrictingPlan:    (*hexutil.Big)(del.RestrictingPlan),
 			RestrictingPlanHes: (*hexutil.Big)(del.RestrictingPlanHes),
 			CumulativeIncome:   (*hexutil.Big)(del.CumulativeIncome),
-			IncomeStartEpoch:   del.IncomeStartEpoch,
 		},
 	}, nil
 }
@@ -781,7 +778,12 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	typ uint16, amount *big.Int) error {
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
-	lazyCalcDelegateAmount(epoch, del)
+
+	if err := calcDelegateIncome(blockNumber.Uint64(), blockHash, can.NodeId, uint32(epoch), del); nil != err {
+		log.Error("Failed to calcDelegateIncome", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "epoch", epoch,
+			"delAddr", delAddr.Hash(), "nodeID", can.NodeId.TerminalString())
+		return err
+	}
 
 	if typ == FreeVon { // from account free von
 		origin := state.GetBalance(delAddr)
@@ -831,6 +833,10 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	// add the candidate power
 	can.AddShares(amount)
+	// Update total delegate
+	lazyCalcNodeTotalDelegateAmount(epoch, can.CandidateMutable)
+	can.DelegateTotalHes = new(big.Int).Add(can.DelegateTotalHes, amount)
+	can.DelegateEpoch = uint32(epoch)
 
 	// set new power of can
 	if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
@@ -880,7 +886,16 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 	refundAmount := calcRealRefund(blockNumber.Uint64(), blockHash, total, amount)
 	realSub := refundAmount
-	lazyCalcDelegateAmount(epoch, del)
+
+	if err := calcDelegateIncome(blockNumber.Uint64(), blockHash, can.NodeId, uint32(epoch), del); nil != err {
+		log.Error("Failed to calcDelegateIncome", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "epoch", epoch,
+			"delAddr", delAddr.Hash(), "nodeID", can.NodeId.TerminalString())
+		return err
+	}
+
+	// Update total delegate
+	lazyCalcNodeTotalDelegateAmount(epoch, can.CandidateMutable)
+
 	del.DelegateEpoch = uint32(epoch)
 
 	switch {
@@ -905,6 +920,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 					"refund balance", refundAmount, "releaseHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes, "err", err)
 				return err
 			}
+			can.DelegateTotalHes = new(big.Int).Sub(can.DelegateTotalHes, new(big.Int).Sub(refundAmount, rm))
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
 		}
 
@@ -917,6 +933,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 					"refund balance", refundAmount, "release", del.Released, "restrictingPlan", del.RestrictingPlan, "err", err)
 				return err
 			}
+			can.DelegateTotal = new(big.Int).Sub(can.DelegateTotal, new(big.Int).Sub(refundAmount, rm))
 			refundAmount, del.Released, del.RestrictingPlan = rm, rbalance, lbalance
 		}
 
@@ -2380,19 +2397,21 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
 }
 
 // The total delegate amount of the compute node
-func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable) {
+func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable) bool {
 	changeAmountEpoch := can.DelegateEpoch
 	sub := epoch - uint64(changeAmountEpoch)
 	log.Debug("lazyCalcNodeTotalDelegateAmount before", "current epoch", epoch, "canMutable", can)
 
 	// If it is during the same hesitation period, short circuit
 	if sub < xcom.HesitateRatio() {
-		return
+		return false
 	}
 	if can.DelegateTotalHes.Cmp(common.Big0) > 0 {
 		can.DelegateTotal = new(big.Int).Add(can.DelegateTotal, can.DelegateTotalHes)
 		can.DelegateTotalHes = new(big.Int).SetInt64(0)
+		return true
 	}
+	return false
 }
 
 func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
@@ -2426,28 +2445,30 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 	log.Debug("lazyCalcDelegateAmount end", "epoch", epoch, "del", del)
 }
 
-// Update the amount of delegate for the effective period
-func updateDelegateAmount(epoch uint64, del *staking.Delegation) error {
-	return nil
-}
-
 // Calculating Total Entrusted Income
-func calcDelegateIncome(epoch uint64, del *staking.Delegation, rewardPerList reward.DelegateRewardPerList) {
-	// If the settlement period at which the income starts is greater than or equal to the current settlement period,
-	// there is no need to calculate the income
-	if uint64(del.IncomeStartEpoch) >= epoch {
-		return
+func calcDelegateIncome(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, epoch uint32, del *staking.Delegation) error {
+	// Triggered again in the same cycle, no need to calculate revenue
+	if del.DelegateEpoch == epoch {
+		return nil
 	}
-
-	for _, rewardPer := range rewardPerList {
-		totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
-		del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, new(big.Int).Mul(totalReleased, rewardPer.Amount))
-		if del.IncomeStartEpoch == del.DelegateEpoch {
-
-		} else {
-
+	rewardPerList, err := GetDelegateRewardPerList(blockNumber, blockHash, nodeID, del.DelegateEpoch, epoch)
+	if nil != err {
+		return err
+	}
+	if rewardPerList == nil {
+		return nil
+	}
+	totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
+	for i, rewardPer := range *rewardPerList {
+		if totalReleased.Cmp(common.Big0) > 0 {
+			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, new(big.Int).Mul(totalReleased, rewardPer.Amount))
+			// TODO 这里需要调用rewardPerList的减值操作
+		}
+		if i == 0 {
+			lazyCalcDelegateAmount(uint64(epoch), del)
 		}
 	}
+	return nil
 }
 
 type sortValidator struct {

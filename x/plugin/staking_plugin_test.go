@@ -1562,7 +1562,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	/**
 	Start Delegate
 	*/
-	_, err = delegate(state, blockHash2, blockNumber2, can, 0, index, t)
+	del, err := delegate(state, blockHash2, blockNumber2, can, 0, index, t)
 	if nil != err {
 		t.Error("Failed to Delegate:", err)
 		return
@@ -1572,11 +1572,14 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 		t.Error("Commit 2 err", err)
 
 	}
-	t.Log("Finish Delegate ~~")
+	t.Log("Finish Delegate ~~, Info is:", del)
 	can, err = getCandidate(blockHash2, index)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
 	assert.True(t, nil != can)
+	assert.True(t, can.DelegateTotalHes.Cmp(del.ReleasedHes) == 0)
+	assert.True(t, can.DelegateEpoch == del.DelegateEpoch)
+	assert.True(t, del.CumulativeIncome == nil)
 	t.Log("Get Candidate Info is:", can)
 
 }
@@ -1645,7 +1648,9 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	/**
 	Start Withdrew Delegate
 	*/
-	err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, common.Big257, addrArr[index+1],
+	amount := common.Big257
+	delegateTotalHes := can.DelegateTotalHes
+	err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, amount, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
@@ -1660,6 +1665,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
 	assert.True(t, nil != can)
+	assert.True(t, new(big.Int).Sub(delegateTotalHes, amount).Cmp(can.DelegateTotalHes) == 0)
 	t.Log("Get Candidate Info is:", can)
 }
 
@@ -3514,4 +3520,18 @@ func Test_IteratorCandidate(t *testing.T) {
 	arrJson, _ := json.Marshal(queue)
 	t.Log("CandidateList:", string(arrJson))
 	t.Log("Candidate queue length:", len(queue))
+}
+
+func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
+
+	nodeId := nodeIdArr[0]
+	del := new(staking.Delegation)
+	del.Released = common.Big0
+	del.RestrictingPlan = common.Big0
+	del.ReleasedHes = common.Big0
+	del.RestrictingPlanHes = common.Big0
+	del.DelegateEpoch = 1
+	if err := calcDelegateIncome(1, common.ZeroHash, nodeId, 3, del); nil != err {
+		t.Fatal(err)
+	}
 }
