@@ -643,6 +643,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		del.RestrictingPlan = new(big.Int).SetInt64(0)
 		del.ReleasedHes = new(big.Int).SetInt64(0)
 		del.RestrictingPlanHes = new(big.Int).SetInt64(0)
+		del.CumulativeIncome = new(big.Int).SetInt64(0)
 	}
 	can := &staking.Candidate{}
 	can.CandidateBase = canBase
@@ -703,7 +704,8 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 			"del is nil", TxWithdrewDelegate, int(staking.ErrDelegateNoExist.Code)), nil
 	}
 
-	err = stkc.Plugin.WithdrewDelegate(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del)
+	// issueIncome
+	_, err = stkc.Plugin.WithdrewDelegate(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 

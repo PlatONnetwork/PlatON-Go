@@ -1650,7 +1650,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	*/
 	amount := common.Big257
 	delegateTotalHes := can.DelegateTotalHes
-	err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, amount, addrArr[index+1],
+	_, err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, amount, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
@@ -3523,15 +3523,15 @@ func Test_IteratorCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
-
 	nodeId := nodeIdArr[0]
 	del := new(staking.Delegation)
-	del.Released = common.Big0
-	del.RestrictingPlan = common.Big0
-	del.ReleasedHes = common.Big0
-	del.RestrictingPlanHes = common.Big0
-	del.DelegateEpoch = 1
-	if err := calcDelegateIncome(1, common.ZeroHash, nodeId, 3, del); nil != err {
+	del.Released = new(big.Int).SetInt64(0)
+	del.RestrictingPlan = new(big.Int).SetInt64(0)
+	del.ReleasedHes = new(big.Int).SetInt64(100)
+	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
+	del.DelegateEpoch = 2
+	if err := calcDelegateIncome(3, common.ZeroHash, nodeId, 3, del); nil != err {
 		t.Fatal(err)
 	}
+	t.Log(del)
 }
