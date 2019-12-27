@@ -39,7 +39,7 @@ type ChainContext interface {
 
 // NewEVMContext creates a new context for use in the EVM.
 func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Context {
-	// If we don't have an explicit author (i.e. not mining), extract from the header
+
 	beneficiary := header.Coinbase // we're must using header validation
 
 	blockHash := common.ZeroHash
