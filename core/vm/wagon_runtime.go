@@ -700,6 +700,9 @@ func Transfer(proc *exec.Process, dst uint32, dstLen uint32, amount uint32, len 
 
 func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
+	if ctx.readOnly {
+		panic("This operation does not support read-only calls")
+	}
 	keyBuf := make([]byte, keyLen)
 	proc.ReadAt(keyBuf, int64(key))
 	valBuf := make([]byte, valLen)
@@ -872,6 +875,10 @@ func DestroyContract(proc *exec.Process) int64 {
 }
 
 func MigrateContract() {
+
+	//if ctx.readOnly {
+	//	panic("This operation does not support read-only calls")
+	//}
 
 }
 
