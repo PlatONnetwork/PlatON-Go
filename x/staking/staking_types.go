@@ -131,7 +131,7 @@ type Candidate struct {
 }
 
 func (can *Candidate) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d,"RewardPer": %d,"NextRewardPer": %d}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -149,7 +149,12 @@ func (can *Candidate) String() string {
 		can.ExternalId,
 		can.NodeName,
 		can.Website,
-		can.Details)
+		can.Details,
+		can.DelegateEpoch,
+		can.DelegateTotal,
+		can.DelegateTotalHes,
+		can.RewardPer,
+		can.NextRewardPer)
 }
 
 func (can *Candidate) IsNotEmpty() bool {
@@ -987,19 +992,16 @@ type Delegation struct {
 	RestrictingPlanHes *big.Int
 	// Cumulative delegate income (Waiting for withdrawal)
 	CumulativeIncome *big.Int
-	// Calculate the starting epoch of cumulative returns
-	IncomeStartEpoch uint32
 }
 
 func (del *Delegation) String() string {
-	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%d","ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"CumulativeIncome": %d,"IncomeStartEpoch": %d}`,
+	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%d","ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"CumulativeIncome": %d}`,
 		del.DelegateEpoch,
 		del.Released,
 		del.ReleasedHes,
 		del.RestrictingPlan,
 		del.RestrictingPlanHes,
-		del.CumulativeIncome,
-		del.IncomeStartEpoch)
+		del.CumulativeIncome)
 }
 
 func (del *Delegation) IsNotEmpty() bool {
@@ -1023,19 +1025,16 @@ type DelegationHex struct {
 	RestrictingPlanHes *hexutil.Big
 	// Cumulative delegate income (Waiting for withdrawal)
 	CumulativeIncome *hexutil.Big
-	// Calculate the starting epoch of cumulative returns
-	IncomeStartEpoch uint32
 }
 
 func (delHex *DelegationHex) String() string {
-	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s,"IncomeStartEpoch": %d}`,
+	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s}`,
 		delHex.DelegateEpoch,
 		delHex.Released,
 		delHex.ReleasedHes,
 		delHex.RestrictingPlan,
 		delHex.RestrictingPlanHes,
-		delHex.CumulativeIncome,
-		delHex.IncomeStartEpoch)
+		delHex.CumulativeIncome)
 }
 
 func (del *DelegationHex) IsNotEmpty() bool {
@@ -1054,7 +1053,7 @@ type DelegationEx struct {
 }
 
 func (dex *DelegationEx) String() string {
-	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s,"IncomeStartEpoch": %d}`,
+	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s}`,
 		dex.Addr.String(),
 		fmt.Sprintf("%x", dex.NodeId.Bytes()),
 		dex.StakingBlockNum,
@@ -1063,8 +1062,7 @@ func (dex *DelegationEx) String() string {
 		dex.ReleasedHes,
 		dex.RestrictingPlan,
 		dex.RestrictingPlanHes,
-		dex.CumulativeIncome,
-		dex.IncomeStartEpoch)
+		dex.CumulativeIncome)
 }
 
 func (dex *DelegationEx) IsNotEmpty() bool {
