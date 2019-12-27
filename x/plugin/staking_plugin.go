@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"math/big"
 	"sort"
 	"strconv"
@@ -711,11 +712,12 @@ func (sk *StakingPlugin) GetDelegateExInfo(blockHash common.Hash, delAddr common
 		NodeId:          nodeId,
 		StakingBlockNum: stakeBlockNumber,
 		DelegationHex: staking.DelegationHex{
-			DelegateEpoch:      del.DelegateEpoch,
-			Released:           (*hexutil.Big)(del.Released),
-			ReleasedHes:        (*hexutil.Big)(del.ReleasedHes),
-			RestrictingPlan:    (*hexutil.Big)(del.RestrictingPlan),
-			RestrictingPlanHes: (*hexutil.Big)(del.RestrictingPlanHes),
+			DelegateEpoch:    del.DelegateEpoch,
+			Released:         (*hexutil.Big)(del.Released),
+			ReleasedHes:      (*hexutil.Big)(del.ReleasedHes),
+			RestrictingPlan:  (*hexutil.Big)(del.RestrictingPlan),
+			CumulativeIncome: (*hexutil.Big)(del.CumulativeIncome),
+			IncomeStartEpoch: del.IncomeStartEpoch,
 		},
 	}, nil
 }
@@ -741,6 +743,8 @@ func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNu
 			ReleasedHes:        (*hexutil.Big)(del.ReleasedHes),
 			RestrictingPlan:    (*hexutil.Big)(del.RestrictingPlan),
 			RestrictingPlanHes: (*hexutil.Big)(del.RestrictingPlanHes),
+			CumulativeIncome:   (*hexutil.Big)(del.CumulativeIncome),
+			IncomeStartEpoch:   del.IncomeStartEpoch,
 		},
 	}, nil
 }
@@ -1184,6 +1188,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			Shares:          (*hexutil.Big)(v.Shares),
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
+			DelegateTotal:   (*hexutil.Big)(can.DelegateTotal),
 		}
 		queue[i] = valEx
 	}
@@ -1339,6 +1344,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			Shares:          (*hexutil.Big)(v.Shares),
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
+			DelegateTotal:   (*hexutil.Big)(can.DelegateTotal),
 		}
 		queue[i] = valEx
 	}
@@ -2373,6 +2379,22 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
 
 }
 
+// The total delegate amount of the compute node
+func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable) {
+	changeAmountEpoch := can.DelegateEpoch
+	sub := epoch - uint64(changeAmountEpoch)
+	log.Debug("lazyCalcNodeTotalDelegateAmount before", "current epoch", epoch, "canMutable", can)
+
+	// If it is during the same hesitation period, short circuit
+	if sub < xcom.HesitateRatio() {
+		return
+	}
+	if can.DelegateTotalHes.Cmp(common.Big0) > 0 {
+		can.DelegateTotal = new(big.Int).Add(can.DelegateTotal, can.DelegateTotalHes)
+		can.DelegateTotalHes = new(big.Int).SetInt64(0)
+	}
+}
+
 func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 
 	// When the first time, there was no previous changeAmountEpoch
@@ -2402,6 +2424,30 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 	}
 
 	log.Debug("lazyCalcDelegateAmount end", "epoch", epoch, "del", del)
+}
+
+// Update the amount of delegate for the effective period
+func updateDelegateAmount(epoch uint64, del *staking.Delegation) error {
+	return nil
+}
+
+// Calculating Total Entrusted Income
+func calcDelegateIncome(epoch uint64, del *staking.Delegation, rewardPerList reward.DelegateRewardPerList) {
+	// If the settlement period at which the income starts is greater than or equal to the current settlement period,
+	// there is no need to calculate the income
+	if uint64(del.IncomeStartEpoch) >= epoch {
+		return
+	}
+
+	for _, rewardPer := range rewardPerList {
+		totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
+		del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, new(big.Int).Mul(totalReleased, rewardPer.Amount))
+		if del.IncomeStartEpoch == del.DelegateEpoch {
+
+		} else {
+
+		}
+	}
 }
 
 type sortValidator struct {
@@ -3208,6 +3254,9 @@ func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 		ReleasedHes:        (*hexutil.Big)(can.ReleasedHes),
 		RestrictingPlan:    (*hexutil.Big)(can.RestrictingPlan),
 		RestrictingPlanHes: (*hexutil.Big)(can.RestrictingPlanHes),
+		DelegateEpoch:      can.DelegateEpoch,
+		DelegateTotal:      (*hexutil.Big)(can.DelegateTotal),
+		DelegateTotalHes:   (*hexutil.Big)(can.DelegateTotalHes),
 		Description:        can.Description,
 	}
 }

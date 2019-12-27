@@ -567,6 +567,8 @@ func (s *Ethereum) Stop() error {
 
 // RegisterPlugin one by one
 func handlePlugin(reactor *core.BlockChainReactor) {
+	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
+
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
 	xplugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidence)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
