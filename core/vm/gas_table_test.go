@@ -129,3 +129,19 @@ func TestGasCodeCopy(t *testing.T) {
 		t.Error("not expected error")
 	}
 }
+
+func TestGasExtCodeCopy(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasExtCodeCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 113 {
+		t.Errorf("Expected: 113, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
