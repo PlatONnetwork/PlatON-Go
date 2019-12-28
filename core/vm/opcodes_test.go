@@ -49,3 +49,21 @@ func TestStringToOp(t *testing.T) {
 	t.Log(str)
 
 }
+
+func TestOpCode_IsPush(t *testing.T) {
+	testCases := []struct {
+		opCode OpCode
+		want   bool
+	}{
+		{opCode: CALLCODE, want: false},
+		{opCode: CALLDATALOAD, want: false},
+		{opCode: MLOAD, want: false},
+		{opCode: SUB, want: false},
+		{opCode: PUSH, want: true},
+		{opCode: PUSH1, want: true},
+	}
+	for _, v := range testCases {
+		assert.Equal(t, v.want, v.opCode.IsPush())
+		assert.Equal(t, false, v.opCode.IsStaticJump())
+	}
+}
