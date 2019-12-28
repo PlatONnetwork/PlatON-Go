@@ -47,11 +47,18 @@ func NewDAG() *DAG {
 
 func (d *DAG) addVertex(id uint64) {
 	if _, ok := d.vtxs[id]; !ok {
+		d.vtxs[id] = &Vertex{
+			inDegree: 0,
+			outEdge:  make([]uint64, 0),
+		}
 		d.totalVertexs++
 	}
-	d.vtxs[id] = &Vertex{
-		inDegree: 0,
-		outEdge:  make([]uint64, 0),
+}
+
+func (d *DAG) delVertex(id uint64) {
+	if _, ok := d.vtxs[id]; ok {
+		d.totalVertexs--
+		delete(d.vtxs, id)
 	}
 }
 
@@ -61,20 +68,51 @@ func (d *DAG) addEdge(from, to uint64) {
 			inDegree: 0,
 			outEdge:  make([]uint64, 0),
 		}
+		d.totalVertexs++
 	}
 	vtx := d.vtxs[from]
-	vtx.outEdge = append(vtx.outEdge, to)
-
-	if _, ok := d.vtxs[to]; !ok {
-		d.vtxs[to] = &Vertex{
-			inDegree: 0,
-			outEdge:  make([]uint64, 0),
+	found := false
+	for _, t := range vtx.outEdge {
+		if t == to {
+			found = true
+			break
 		}
 	}
-	d.vtxs[to].inDegree += 1
+	if !found {
+		vtx.outEdge = append(vtx.outEdge, to)
+	}
+
+	/*
+		if _, ok := d.vtxs[to]; !ok {
+			d.vtxs[to] = &Vertex{
+				inDegree: 0,
+				outEdge:  make([]uint64, 0),
+			}
+			d.totalVertexs++
+		}
+		d.vtxs[to].inDegree += 1
+	*/
+}
+
+func (d *DAG) delEdge(id uint64) {
+	/*
+		if _, ok := d.vtxs[id]; ok {
+			for _, k := range d.vtxs[id].outEdge {
+				if vtx, found := d.vtxs[k]; found {
+					vtx.inDegree--
+				}
+			}
+		}
+	*/
 }
 
 func (d *DAG) generate() {
+	for _, v := range d.vtxs {
+		for _, pid := range v.outEdge {
+			d.vtxs[pid].inDegree++
+		}
+	}
+
 	for k, v := range d.vtxs {
 		if v.inDegree == 0 {
 			d.topLevel.PushBack(k)
@@ -89,7 +127,7 @@ func (d *DAG) waitPop() uint64 {
 
 	d.cv.L.Lock()
 	defer d.cv.L.Unlock()
-	if d.topLevel.Len() == 0 && !d.hasFinished() {
+	for d.topLevel.Len() == 0 && !d.hasFinished() {
 		d.cv.Wait()
 	}
 
@@ -115,6 +153,7 @@ func (d *DAG) consume(id uint64) uint64 {
 	for _, k := range d.vtxs[id].outEdge {
 		vtx := d.vtxs[k]
 		degree = atomic.AddUint32(&vtx.inDegree, ^uint32(0))
+		//fmt.Printf("id: %d k: %d degree: %d consumed: %d total: %d\n", id, k, degree, atomic.LoadUint32(&d.totalConsumed), d.totalVertexs)
 		if degree == 0 {
 			producedNum += 1
 			if producedNum == 1 {
@@ -133,6 +172,7 @@ func (d *DAG) consume(id uint64) uint64 {
 		d.cv.L.Unlock()
 	}
 
+	//fmt.Printf("id: %d nextId: %d consumed: %d total: %d\n", id, nextID, atomic.LoadUint32(&d.totalConsumed), d.totalVertexs)
 	return nextID
 }
 
@@ -347,4 +387,206 @@ func (td *TrieDAG) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 		return hashNode{}, nil, e.Load().(error)
 	}
 	return resHash, newRoot, nil
+}
+
+// TrieDAGV2
+type TrieDAGV2 struct {
+	nodes map[uint64]*DAGNode
+
+	dag *DAG
+
+	cachegen   uint16
+	cachelimit uint16
+}
+
+func newTrieDAGV2() *TrieDAGV2 {
+	return &TrieDAGV2{
+		nodes: make(map[uint64]*DAGNode),
+		dag:   NewDAG(),
+	}
+}
+
+func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
+	var pid uint64
+	if len(pprefix) > 0 {
+		pid = xxhash.Sum64(pprefix)
+	}
+
+	switch nc := n.(type) {
+	case *shortNode:
+		collapsed, cached := nc.copy(), nc.copy()
+		collapsed.Key = hexToCompact(nc.Key)
+		cached.Key = common.CopyBytes(nc.Key)
+
+		id := xxhash.Sum64(append(prefix, nc.Key...))
+		td.nodes[id] = &DAGNode{
+			collapsed: collapsed,
+			cached:    cached,
+			pid:       pid,
+		}
+		if len(prefix) > 0 {
+			td.nodes[id].idx = int(prefix[len(prefix)-1])
+		}
+		td.dag.addVertex(id)
+
+		if pid > 0 {
+			td.dag.addEdge(id, pid)
+		}
+
+	case *fullNode:
+		collapsed, cached := nc.copy(), nc.copy()
+
+		dagNode := &DAGNode{
+			collapsed: collapsed,
+			cached:    cached,
+			pid:       pid,
+		}
+		if len(prefix) > 0 {
+			dagNode.idx = int(prefix[len(prefix)-1])
+		}
+
+		id := xxhash.Sum64(append(prefix, fullNodeSuffix...))
+		td.nodes[id] = dagNode
+		td.dag.addVertex(id)
+		if pid > 0 {
+			td.dag.addEdge(id, pid)
+		}
+	}
+}
+
+func (td *TrieDAGV2) delVertexAndEdge(key []byte) {
+	id := xxhash.Sum64(key)
+	td.dag.delEdge(id)
+	td.dag.delVertex(id)
+	delete(td.nodes, id)
+}
+
+func (td *TrieDAGV2) clear() {
+	td.dag.clear()
+	td.nodes = make(map[uint64]*DAGNode)
+}
+
+func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, node, error) {
+	var wg sync.WaitGroup
+	var errDone common.AtomicBool
+	var e atomic.Value // error
+	var resHash node = hashNode{}
+	var newRoot node
+	numCPU := runtime.NumCPU()
+
+	cachedHash := func(n, c node) (node, node, bool) {
+		if hash, dirty := n.cache(); len(hash) != 0 {
+			if db == nil {
+				return hash, c, true
+			}
+
+			if n.canUnload(td.cachegen, td.cachelimit) {
+				cacheUnloadCounter.Inc(1)
+				return hash, hash, true
+			}
+			if !dirty {
+				return hash, c, true
+			}
+		}
+		return n, n, false
+	}
+
+	process := func() {
+		hasher := newHasher(td.cachegen, td.cachelimit, onleaf)
+
+		id := td.dag.waitPop()
+		if id == invalidId {
+			returnHasherToPool(hasher)
+			wg.Done()
+			return
+		}
+
+		var hashed node
+		var cached node
+		var err error
+		var hasCache bool
+		for id != invalidId {
+			n := td.nodes[id]
+
+			tmpForce := false
+			if n.pid == 0 {
+				tmpForce = force
+			}
+
+			hashed, cached, hasCache = cachedHash(n.collapsed, n.cached)
+			if !hasCache {
+				hashed, err = hasher.store(n.collapsed, db, tmpForce)
+				if err != nil {
+					e.Store(err)
+					errDone.Set(true)
+					break
+				}
+				cached = n.cached
+			}
+
+			if n.pid > 0 {
+				p := td.nodes[n.pid]
+				switch ptype := p.collapsed.(type) {
+				case *shortNode:
+					ptype.Val = hashed
+				case *fullNode:
+					ptype.Children[n.idx] = hashed
+				}
+
+				switch nc := p.cached.(type) {
+				case *shortNode:
+					nc.Val = cached
+				case *fullNode:
+					nc.Children[n.idx] = cached
+				}
+			}
+
+			cachedHash, _ := hashed.(hashNode)
+			switch cn := n.cached.(type) {
+			case *shortNode:
+				*cn.flags.hash = cachedHash
+				if db != nil {
+					*cn.flags.dirty = false
+				}
+			case *fullNode:
+				*cn.flags.hash = cachedHash
+				if db != nil {
+					*cn.flags.dirty = false
+				}
+			}
+
+			id = td.dag.consume(id)
+			if n.pid == 0 {
+				resHash = hashed
+				newRoot = n.cached
+				break
+			}
+
+			if errDone.IsSet() {
+				break
+			}
+
+			if id == invalidId && !td.dag.hasFinished() {
+				id = td.dag.waitPop()
+			}
+		}
+		returnHasherToPool(hasher)
+		wg.Done()
+	}
+
+	for i := 0; i < numCPU; i++ {
+		wg.Add(1)
+		_ = ants.Submit(process)
+	}
+
+	wg.Wait()
+
+	if e.Load() != nil && e.Load().(error) != nil {
+		return hashNode{}, nil, e.Load().(error)
+	}
+	return resHash, newRoot, nil
+}
+
+func (td *TrieDAGV2) init() {
+	td.dag.generate()
 }
