@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -46,4 +47,20 @@ func TestConstGasFunc(t *testing.T) {
 	gasRes, err := gasFunc(params.GasTableHomestead, &EVM{}, &Contract{}, &Stack{}, &Memory{}, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, gas, gasRes)
+}
+
+func TestGasCallDataCopy(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasCallDataCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 113 {
+		t.Errorf("Expected: 113, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
 }
