@@ -69,9 +69,17 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 		if nil != err {
 			return nil, err
 		}
+
+		if err := validateFunc(calldata, deploy); nil != err {
+			return nil, err
+		}
+
 		engine.Contract().Code = contractCode
 		input = calldata
 	} else { // call contract
+		if err := validateFunc(input, !deploy); nil != err {
+			return nil, err
+		}
 	}
 
 	module, entryIndex, moduleErr := engine.MakeModule(deploy)
@@ -135,6 +143,36 @@ func (engine *wagonEngine) MakeModule(deploy bool) (*exec.CompiledModule, int64,
 	} else {
 		return engine.makeModuleWithDeploy()
 	}
+}
+
+func validateFunc(input []byte, deploy bool) error {
+	if deploy {
+		return validateDeployFunc(input)
+	} else {
+		return validateCallFunc(input)
+	}
+}
+
+func validateDeployFunc(input []byte) error {
+	funcName, _, err := decodeFuncAndParams(input)
+	if nil != err {
+		return err
+	}
+	if funcName != initFn {
+		return errors.New("deploy contract must be call init func")
+	}
+	return nil
+}
+
+func validateCallFunc(input []byte) error {
+	funcName, _, err := decodeFuncAndParams(input)
+	if nil != err {
+		return err
+	}
+	if funcName == initFn {
+		return errors.New("init func can only be called when deploy contract")
+	}
+	return nil
 }
 
 func (engine *wagonEngine) makeModuleWithDeploy() (*exec.CompiledModule, int64, error) {
@@ -213,12 +251,6 @@ func assemblyDeployCode(code []byte) (contractCode []byte, calldata []byte, err 
 	if prefixMagic != codeMagic {
 		return nil, nil, errors.New("No contract code to be parsed")
 	}
-
-	//initByte, err := rlp.EncodeToBytes(initFn)
-	//if nil != err {
-	//	return
-	//}
-	//data[0] = initByte
 
 	calldata, err = rlp.EncodeToBytes(data[1:])
 	if nil != err {

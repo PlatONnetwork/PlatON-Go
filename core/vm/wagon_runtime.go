@@ -250,7 +250,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int64_t platon_transfer(const uint8_t* to, size_t toLen, uint8_t *amount, size_t len)
+	// int32_t platon_transfer(const uint8_t* to, size_t toLen, uint8_t *amount, size_t len)
 	// func $platon_transfer  (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
