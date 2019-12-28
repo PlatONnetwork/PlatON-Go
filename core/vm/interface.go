@@ -69,6 +69,7 @@ type StateDB interface {
 	Snapshot() int
 
 	AddLog(*types.Log)
+	GetLogs(hash common.Hash) []*types.Log
 	AddPreimage(common.Hash, []byte)
 
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)

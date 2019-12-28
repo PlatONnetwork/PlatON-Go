@@ -1,9 +1,13 @@
 package mock
 
 import (
+	"bytes"
 	"math/big"
 	"math/rand"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
@@ -11,6 +15,13 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+)
+
+const (
+	MockCodeKey     = "mock_code"
+	MockCodeHashKey = "mock_codeHash"
+	MockNonce       = "mock_nonce"
+	MockSuicided    = "mock_suicided"
 )
 
 type Chain struct {
@@ -117,6 +128,7 @@ func NewChain() *Chain {
 	db := new(MockStateDB)
 	db.State = make(map[common.Address]map[string][]byte)
 	db.Balance = make(map[common.Address]*big.Int)
+	db.Logs = make(map[common.Hash][]*types.Log)
 	c.StateDB = db
 	c.SnapDB = snapshotdb.Instance()
 	return c
@@ -125,14 +137,16 @@ func NewChain() *Chain {
 type MockStateDB struct {
 	Balance      map[common.Address]*big.Int
 	State        map[common.Address]map[string][]byte
-	thash, bhash common.Hash
-	txIndex      int
+	Thash, Bhash common.Hash
+	TxIndex      int
+	logSize      uint
+	Logs         map[common.Hash][]*types.Log
 }
 
 func (s *MockStateDB) Prepare(thash, bhash common.Hash, ti int) {
-	s.thash = thash
-	s.bhash = bhash
-	s.txIndex = ti
+	s.Thash = thash
+	s.Bhash = bhash
+	s.TxIndex = ti
 }
 
 func (s *MockStateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
@@ -179,28 +193,75 @@ func (s *MockStateDB) SetState(adr common.Address, key, val []byte) {
 	}
 }
 
-func (s *MockStateDB) CreateAccount(common.Address) {
-	return
+func (s *MockStateDB) CreateAccount(addr common.Address) {
+	storage, ok := s.State[addr]
+	if !ok {
+		storage = make(map[string][]byte)
+		s.State[addr] = storage
+	}
 }
 
-func (s *MockStateDB) GetNonce(common.Address) uint64 {
-	return 0
+func (s *MockStateDB) GetNonce(addr common.Address) uint64 {
+	storage, ok := s.State[addr]
+	if !ok {
+		return 0
+	}
+	nonce, ok := storage[MockNonce]
+	if !ok {
+		return 0
+	}
+	return common.BytesToUint64(nonce)
 }
-func (s *MockStateDB) SetNonce(common.Address, uint64) {
-	return
+func (s *MockStateDB) SetNonce(addr common.Address, nonce uint64) {
+	storage, ok := s.State[addr]
+	if !ok {
+		storage = make(map[string][]byte)
+	}
+	storage[MockNonce] = common.Uint64ToBytes(nonce)
+	s.State[addr] = storage
 }
 
-func (s *MockStateDB) GetCodeHash(common.Address) common.Hash {
-	return common.ZeroHash
+func (s *MockStateDB) GetCodeHash(addr common.Address) common.Hash {
+
+	storage, ok := s.State[addr]
+	if !ok {
+		return common.ZeroHash
+	}
+	hash, ok := storage[MockCodeHashKey]
+	if !ok {
+		return common.ZeroHash
+	}
+
+	return common.BytesToHash(hash)
 }
-func (s *MockStateDB) GetCode(common.Address) []byte {
-	return nil
+func (s *MockStateDB) GetCode(addr common.Address) []byte {
+	storage, ok := s.State[addr]
+	if !ok {
+		return nil
+	}
+	return storage[MockCodeKey]
 }
-func (s *MockStateDB) SetCode(common.Address, []byte) {
-	return
+func (s *MockStateDB) SetCode(addr common.Address, code []byte) {
+
+	storage, ok := s.State[addr]
+	if !ok {
+		storage = make(map[string][]byte)
+	}
+	storage[MockCodeKey] = code
+
+	var h common.Hash
+	hw := sha3.NewKeccak256()
+	rlp.Encode(hw, code)
+	hw.Sum(h[:0])
+	storage[MockCodeHashKey] = h[:]
+	s.State[addr] = storage
 }
-func (s *MockStateDB) GetCodeSize(common.Address) int {
-	return 0
+func (s *MockStateDB) GetCodeSize(addr common.Address) int {
+	storage, ok := s.State[addr]
+	if !ok {
+		return 0
+	}
+	return len(storage[MockCodeKey])
 }
 
 func (s *MockStateDB) GetAbiHash(common.Address) common.Hash {
@@ -230,10 +291,27 @@ func (s *MockStateDB) GetCommittedState(common.Address, []byte) []byte {
 //GetState(common.Address, common.Hash) common.Hash
 //SetState(common.Address, common.Hash, common.Hash)
 
-func (s *MockStateDB) Suicide(common.Address) bool {
+func (s *MockStateDB) Suicide(addr common.Address) bool {
+	storage, ok := s.State[addr]
+	if !ok {
+		storage = make(map[string][]byte)
+	}
+	storage[MockSuicided] = []byte{0x01}
+	s.State[addr] = storage
 	return true
 }
-func (s *MockStateDB) HasSuicided(common.Address) bool {
+func (s *MockStateDB) HasSuicided(addr common.Address) bool {
+	storage, ok := s.State[addr]
+	if !ok {
+		return false
+	}
+	suicided, ok := storage[MockSuicided]
+	if !ok {
+		return false
+	}
+	if bytes.Compare(suicided, []byte{0x01}) != 0 {
+		return false
+	}
 	return true
 }
 
@@ -256,9 +334,19 @@ func (s *MockStateDB) Snapshot() int {
 	return 0
 }
 
-func (s *MockStateDB) AddLog(*types.Log) {
-	return
+func (s *MockStateDB) AddLog(logInfo *types.Log) {
+	logInfo.TxHash = s.Thash
+	logInfo.BlockHash = s.Bhash
+	logInfo.TxIndex = uint(s.TxIndex)
+	logInfo.Index = s.logSize
+	s.Logs[s.Thash] = append(s.Logs[s.Thash], logInfo)
+	s.logSize++
 }
+
+func (s *MockStateDB) GetLogs(hash common.Hash) []*types.Log {
+	return s.Logs[hash]
+}
+
 func (s *MockStateDB) AddPreimage(common.Hash, []byte) {
 	return
 }
@@ -268,10 +356,10 @@ func (s *MockStateDB) ForEachStorage(common.Address, func(common.Hash, common.Ha
 }
 
 func (s *MockStateDB) TxHash() common.Hash {
-	return s.thash
+	return s.Thash
 }
 func (s *MockStateDB) TxIdx() uint32 {
-	return uint32(s.txIndex)
+	return uint32(s.TxIndex)
 }
 
 func generateHeader(num *big.Int, parentHash common.Hash, htime *big.Int) *types.Header {

@@ -79,7 +79,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 // CanRun tells if the contract, passed as an argument, can be run
 // by the current interpreter
 func (in *WASMInterpreter) CanRun(code []byte) bool {
-	if len(code) == 0 {
+	if len(code) != 0 {
 		magicNum := BytesToInterpType(code[:InterpTypeLen])
 		if magicNum == WasmInterp {
 			return true

@@ -113,6 +113,9 @@ func (w *WasmLDBCache) Get(key common.Address) (*WasmModule, bool) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 	value, ok := w.lru.Get(key)
+	if !ok {
+		return nil, ok
+	}
 	//if !ok {
 	//	if w.db != nil {
 	//		if value, err := w.db.Get(key.Bytes(), nil); err == nil {

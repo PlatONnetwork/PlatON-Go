@@ -192,12 +192,15 @@ func assemblyDeployCode(code []byte) (contractCode []byte, calldata []byte, err 
 		return nil, nil, errors.New("No contract code to be parsed")
 	}
 
+	// discard the magic number
+	prefixMagic, code := BytesToInterpType(code[:InterpTypeLen]), code[InterpTypeLen:]
+
 	var data [][]byte
 	if err = rlp.DecodeBytes(code, &data); nil != err {
 		return
 	}
 
-	if len(data) == 0 {
+	if len(data) != 2 {
 		return nil, nil, errors.New("No contract code to be parsed")
 	}
 
@@ -205,14 +208,19 @@ func assemblyDeployCode(code []byte) (contractCode []byte, calldata []byte, err 
 	if err = rlp.DecodeBytes(data[0], &contractCode); nil != err {
 		return
 	}
-
-	initByte, err := rlp.EncodeToBytes(initFn)
-	if nil != err {
-		return
+	codeMagic := BytesToInterpType(contractCode[:InterpTypeLen])
+	// check magic on contract code
+	if prefixMagic != codeMagic {
+		return nil, nil, errors.New("No contract code to be parsed")
 	}
-	data[0] = initByte
 
-	calldata, err = rlp.EncodeToBytes(data)
+	//initByte, err := rlp.EncodeToBytes(initFn)
+	//if nil != err {
+	//	return
+	//}
+	//data[0] = initByte
+
+	calldata, err = rlp.EncodeToBytes(data[1:])
 	if nil != err {
 		return
 	}

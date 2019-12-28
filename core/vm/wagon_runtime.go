@@ -443,12 +443,12 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// todo
-	// int64_t platon_call(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* amount, size_t amountLen)
-	// func $platon_call  (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i64)
+	// int32_t platon_call(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* amount, size_t amountLen)
+	// func $platon_call  (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
-			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
 			Host: reflect.ValueOf(CallContract),
@@ -461,12 +461,12 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// todo
-	// int64_t platon_delegatecall(const uint8_t* to, const uint8_t* args, size_t argsLen)
-	// func $platon_delegatecall (param $0 i32) (param $1 i32) (param $2 i32) (result i64)
+	// int32_t platon_delegatecall(const uint8_t* to, const uint8_t* args, size_t argsLen)
+	// func $platon_delegatecall (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
-			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
 			Host: reflect.ValueOf(DelegateCallContract),
@@ -479,12 +479,12 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// todo
-	// int64_t platon_staticcall(const uint8_t* to, const uint8_t* args, size_t argsLen)
-	// func $platon_staticcall (param $0 i32) (param $1 i32) (param $2 i32) (result i64)
+	// int32_t platon_staticcall(const uint8_t* to, const uint8_t* args, size_t argsLen)
+	// func $platon_staticcall (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
-			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
 			Host: reflect.ValueOf(StaticCallContract),
@@ -497,11 +497,11 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// todo
-	// int64_t platon_destroy()
-	// func $platon_destroy (result i64)
+	// int32_t platon_destroy()
+	// func $platon_destroy (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
 			Host: reflect.ValueOf(DestroyContract),
@@ -785,7 +785,7 @@ func Debug(proc *exec.Process, dst uint32, len uint32) {
 	ctx.log.Debug(string(buf))
 }
 
-func CallContract(proc *exec.Process, addrPtr uint32, args uint32, argsLen uint32, val uint32, valLen uint32) int64 {
+func CallContract(proc *exec.Process, addrPtr uint32, args uint32, argsLen uint32, val uint32, valLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
@@ -796,7 +796,7 @@ func CallContract(proc *exec.Process, addrPtr uint32, args uint32, argsLen uint3
 	proc.ReadAt(input, int64(args))
 
 	value := make([]byte, valLen)
-	proc.ReadAt(input, int64(val))
+	proc.ReadAt(value, int64(val))
 	bValue := new(big.Int)
 	// 256 bits
 	bValue.SetBytes(value)
@@ -813,10 +813,10 @@ func CallContract(proc *exec.Process, addrPtr uint32, args uint32, argsLen uint3
 	}
 
 	ctx.CallOut = ret
-	return int64(len(ctx.CallOut))
+	return int32(len(ctx.CallOut))
 }
 
-func DelegateCallContract(proc *exec.Process, addrPtr uint32, params uint32, paramsLen uint32) int64 {
+func DelegateCallContract(proc *exec.Process, addrPtr uint32, params uint32, paramsLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
@@ -826,16 +826,17 @@ func DelegateCallContract(proc *exec.Process, addrPtr uint32, params uint32, par
 	input := make([]byte, paramsLen)
 	proc.ReadAt(input, int64(params))
 
+	//fmt.Println("Addr:", addr.String(), "Data:", input)
 	ret, _, err := ctx.evm.DelegateCall(ctx.contract, addr, input, ctx.evm.callGasTemp)
 	if err != nil {
 		return 0
 	}
 
 	ctx.CallOut = ret
-	return int64(len(ctx.CallOut))
+	return int32(len(ctx.CallOut))
 }
 
-func StaticCallContract(proc *exec.Process, addrPtr uint32, params uint32, paramsLen uint32) int64 {
+func StaticCallContract(proc *exec.Process, addrPtr uint32, params uint32, paramsLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
@@ -845,20 +846,17 @@ func StaticCallContract(proc *exec.Process, addrPtr uint32, params uint32, param
 	input := make([]byte, paramsLen)
 	proc.ReadAt(input, int64(params))
 
+	//fmt.Println("Addr:", addr.String(), "Data:", input)
 	ret, _, err := ctx.evm.StaticCall(ctx.contract, addr, input, ctx.evm.callGasTemp)
 	if err != nil {
 		return 0
 	}
 
 	ctx.CallOut = ret
-	return int64(len(ctx.CallOut))
+	return int32(len(ctx.CallOut))
 }
 
-func TerminateContract() {
-
-}
-
-func DestroyContract(proc *exec.Process) int64 {
+func DestroyContract(proc *exec.Process) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
@@ -866,6 +864,8 @@ func DestroyContract(proc *exec.Process) int64 {
 	}
 
 	balance := ctx.evm.StateDB.GetBalance(ctx.contract.Address())
+	//fmt.Println("sender:", ctx.contract.Caller().String(), "to:", ctx.contract.Address().String(), "value:", balance)
+
 	done := ctx.evm.StateDB.Suicide(ctx.contract.Address())
 	if !done {
 		return 1
@@ -895,6 +895,8 @@ func EmitEvent(proc *exec.Process, args uint32, argsLen uint32) {
 	proc.ReadAt(input, int64(args))
 
 	bn := ctx.evm.BlockNumber.Uint64()
+
+	//fmt.Println("input:", string(input), "blockNUm:", bn)
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
@@ -913,6 +915,8 @@ func EmitEvent1(proc *exec.Process, t uint32, tLen uint32, args uint32, argsLen 
 	proc.ReadAt(input, int64(args))
 
 	bn := ctx.evm.BlockNumber.Uint64()
+
+	//fmt.Println("topic:", string(topic), "input:", string(input), "blockNUm:", bn)
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
@@ -938,6 +942,8 @@ func EmitEvent2(proc *exec.Process, t1 uint32, t1Len uint32, t2 uint32, t2Len ui
 	proc.ReadAt(input, int64(args))
 
 	bn := ctx.evm.BlockNumber.Uint64()
+
+	//fmt.Println("topic1:", string(topic1), "topic2:", string(topic2), "input:", string(input), "blockNUm:", bn)
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
@@ -966,6 +972,8 @@ func EmitEvent3(proc *exec.Process, t1 uint32, t1Len uint32, t2 uint32, t2Len ui
 	proc.ReadAt(input, int64(args))
 
 	bn := ctx.evm.BlockNumber.Uint64()
+
+	//fmt.Println("topic1:", string(topic1), "topic2:", string(topic2), "topic3:", string(topic3), "input:", string(input), "blockNUm:", bn)
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
