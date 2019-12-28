@@ -209,3 +209,19 @@ func TestGasCreate(t *testing.T) {
 		t.Error("not expected error")
 	}
 }
+
+func TestGasCreate2(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasCreate2(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 32122 {
+		t.Errorf("Expected: 32122, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
