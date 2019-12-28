@@ -16,7 +16,12 @@
 
 package vm
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestMemoryGasCost(t *testing.T) {
 	//size := uint64(math.MaxUint64 - 64)
@@ -33,4 +38,12 @@ func TestMemoryGasCost(t *testing.T) {
 	if err == nil {
 		t.Error("expected error")
 	}
+}
+
+func TestConstGasFunc(t *testing.T) {
+	gas := uint64(100)
+	gasFunc := constGasFunc(gas)
+	gasRes, err := gasFunc(params.GasTableHomestead, &EVM{}, &Contract{}, &Stack{}, &Memory{}, 10)
+	assert.Nil(t, err)
+	assert.Equal(t, gas, gasRes)
 }
