@@ -16,7 +16,13 @@
 
 package vm
 
-import "testing"
+import (
+	"math/big"
+	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestMemoryGasCost(t *testing.T) {
 	//size := uint64(math.MaxUint64 - 64)
@@ -32,5 +38,190 @@ func TestMemoryGasCost(t *testing.T) {
 	_, err = memoryGasCost(&Memory{}, size+1)
 	if err == nil {
 		t.Error("expected error")
+	}
+}
+
+func TestConstGasFunc(t *testing.T) {
+	gas := uint64(100)
+	gasFunc := constGasFunc(gas)
+	gasRes, err := gasFunc(params.GasTableHomestead, &EVM{}, &Contract{}, &Stack{}, &Memory{}, 10)
+	assert.Nil(t, err)
+	assert.Equal(t, gas, gasRes)
+}
+
+func TestGasCallDataCopy(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasCallDataCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 113 {
+		t.Errorf("Expected: 113, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasReturnDataCopy(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasReturnDataCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 113 {
+		t.Errorf("Expected: 113, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestMakeGasLog(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gasLogFunc := makeGasLog(4)
+	gas, err := gasLogFunc(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 2773 {
+		t.Errorf("Expected: 2773, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasSha3(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasSha3(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 152 {
+		t.Errorf("Expected: 152, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasCodeCopy(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasCodeCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 113 {
+		t.Errorf("Expected: 113, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasExtCodeCopy(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasExtCodeCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 113 {
+		t.Errorf("Expected: 113, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasMLoad(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasMLoad(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 101 {
+		t.Errorf("Expected: 101, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasMStore8(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasMStore8(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 101 {
+		t.Errorf("Expected: 101, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasMStore(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasMStore(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 101 {
+		t.Errorf("Expected: 101, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasCreate(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasCreate(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 32098 {
+		t.Errorf("Expected: 32098, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasCreate2(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasCreate2(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 32122 {
+		t.Errorf("Expected: 32122, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
 	}
 }
