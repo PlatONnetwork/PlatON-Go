@@ -80,3 +80,20 @@ func TestGasReturnDataCopy(t *testing.T) {
 		t.Error("not expected error")
 	}
 }
+
+func TestMakeGasLog(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gasLogFunc := makeGasLog(4)
+	gas, err := gasLogFunc(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 2773 {
+		t.Errorf("Expected: 2773, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
