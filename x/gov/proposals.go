@@ -144,7 +144,7 @@ func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state 
 		return err
 	}
 
-	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, xutil.CalcConsensusRounds(xcom.TextProposalVote_DurationSeconds()))
+	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, xutil.EstimateConsensusRoundsForGov(xcom.TextProposalVote_DurationSeconds()))
 	tp.EndVotingBlock = endVotingBlock
 
 	log.Debug("text proposal", "endVotingBlock", tp.EndVotingBlock, "consensusSize", xutil.ConsensusSize(), "xcom.ElectionDistance()", xcom.ElectionDistance())
@@ -219,7 +219,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return EndVotingRoundsTooSmall
 	}
 
-	if vp.EndVotingRounds > xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()) {
+	if vp.EndVotingRounds > xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()) {
 		return EndVotingRoundsTooLarge
 	}
 
@@ -453,8 +453,7 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 		return PreActiveVersionProposalExist
 	}
 
-	epochRounds := xutil.CalcEpochRounds(xcom.ParamProposalVote_DurationSeconds())
-	endVotingBlock := xutil.CalEndVotingBlockForParamProposal(submitBlock, epochRounds)
+	endVotingBlock := xutil.EstimateEndVotingBlockForParaProposal(submitBlock, xcom.ParamProposalVote_DurationSeconds())
 	pp.EndVotingBlock = endVotingBlock
 
 	return nil

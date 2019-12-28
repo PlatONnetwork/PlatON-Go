@@ -70,8 +70,8 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 		if err := rp.releaseRestricting(expect, state); err != nil {
 			return err
 		}
-		if ok, _ := IsYearEnd(blockHash, head.Number.Uint64(), rp.db); ok {
-			rp.log.Info(fmt.Sprintf("release genesis restricting plan, blocknumber:%d",head.Number.Uint64()))
+		if ok, _ := xcom.IsYearEnd(blockHash, head.Number.Uint64()); ok {
+			rp.log.Info(fmt.Sprintf("release genesis restricting plan, blocknumber:%d", head.Number.Uint64()))
 			return rp.releaseGenesisRestrictingPlans(blockHash, state)
 		}
 	}
@@ -138,7 +138,7 @@ func (rp *RestrictingPlugin) updateGenesisRestrictingPlans(plans []*big.Int, sta
 	if val, err := rlp.EncodeToBytes(plans); nil != err {
 		return fmt.Errorf("Failed to Store genesisAllowancePlans Info: rlp encodeing failed")
 	} else {
-		stateDB.SetState(vm.RestrictingContractAddr,restricting.InitialFoundationRestricting,val)
+		stateDB.SetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting, val)
 	}
 	return nil
 }
@@ -188,7 +188,7 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 				allowance := genesisAllowancePlans[0]
 				statedb.SubBalance(vm.RestrictingContractAddr, allowance)
 				statedb.AddBalance(vm.RewardManagerPoolAddr, allowance)
-				rp.log.Info("Genesis restricting plan release","remains",remains,"allowance",allowance)
+				rp.log.Info("Genesis restricting plan release", "remains", remains, "allowance", allowance)
 				genesisAllowancePlans = append(genesisAllowancePlans[:0], genesisAllowancePlans[1:]...)
 				if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {
 					return err
@@ -196,7 +196,7 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 			} else {
 				statedb.SetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting, []byte{})
 			}
-			rp.log.Info("release genesis restricting plan", "remains:",remains,"left:",len(genesisAllowancePlans))
+			rp.log.Info("release genesis restricting plan", "remains:", remains, "left:", len(genesisAllowancePlans))
 		}
 	} else {
 		rp.log.Info("Genesis restricting plan had all been released")
@@ -204,6 +204,7 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 
 	return nil
 }
+
 // AddRestrictingRecord stores four K-V record in StateDB:
 // RestrictingInfo: the account info to be released
 // ReleaseEpoch:   the number of accounts to be released on the epoch corresponding to the target block height
