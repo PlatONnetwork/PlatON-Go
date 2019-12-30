@@ -482,3 +482,25 @@ func BenchmarkPrecompiledBn256Pairing(bench *testing.B) {
 		benchmarkPrecompiled("08", test, bench)
 	}
 }
+
+// Tests the rewardEmpty.
+func TestRewardEmpty(t *testing.T) {
+	empty := &rewardEmpty{}
+	// for requiredGas.
+	gas := empty.RequiredGas([]byte{})
+	if gas != 0 {
+		t.Errorf("Expected 0, got %d", gas)
+	}
+
+	_, err := empty.Run([]byte{})
+	if err != nil {
+		t.Errorf("Expected nil, got %s", err.Error())
+	}
+
+	err = empty.CheckGasPrice(nil, 0)
+	if err != nil {
+		t.Errorf("Expected nil, got %s", err.Error())
+	}
+	// May not need to do anything.
+	empty.FnSigns()
+}
