@@ -15,3 +15,23 @@
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
+
+import (
+	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+)
+
+func TestAsDelegate(t *testing.T) {
+	contract := &Contract{
+		caller: &Contract{
+			CallerAddress: common.BytesToAddress([]byte("aaa")),
+			self:          &MockAddressRef{},
+			value:         buildBigInt(1),
+		},
+	}
+	c := contract.AsDelegate()
+	if c.CallerAddress != contract.caller.Address() {
+		t.Logf("Not equal, expect: %s, actual: %s", contract.caller.Address(), c.CallerAddress)
+	}
+}
