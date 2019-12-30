@@ -57,3 +57,7 @@ class Delegate:
             amount = self.economic.delegate_limit
         pri_key = self.economic.account.find_pri_key(from_address)
         return self.ppos.withdrewDelegate(staking_blocknum, node_id, amount, pri_key, transaction_cfg)
+
+    def withdraw_delegate_reward(self, from_address, transaction_cfg=None):
+        pri_key = self.economic.account.find_pri_key(from_address)
+        return self.ppos.withdrawDelegateReward(pri_key, transaction_cfg)
