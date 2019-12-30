@@ -79,7 +79,7 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 		engine.Contract().Code = contractCode
 		input = calldata
 	} else { // call contract
-		if err := validateFunc(input, !deploy); nil != err {
+		if err := validateFunc(input, deploy); nil != err {
 			return nil, err
 		}
 	}
