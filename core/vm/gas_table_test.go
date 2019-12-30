@@ -280,3 +280,21 @@ func TestGasExp(t *testing.T) {
 		t.Error("not expected error")
 	}
 }
+
+func TestGasCall(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stateDB, _, _ := newChainState()
+
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasCall(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), 1024)
+	if gas != 34898 {
+		t.Errorf("Expected: 34898, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
