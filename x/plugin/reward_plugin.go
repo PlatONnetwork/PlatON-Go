@@ -496,8 +496,7 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, sta
 		if err := rlp.DecodeBytes(val, list); err != nil {
 			return nil, err
 		}
-		for _, epoch := range list.Epochs {
-			per := list.Pers[epoch]
+		for _, per := range list.Pers {
 			if per.Epoch >= fromEpoch && per.Epoch <= toEpoch {
 				if per.Amount.Cmp(common.Big0) > 0 {
 					pers = append(pers, per)
@@ -508,27 +507,27 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, sta
 	return pers, nil
 }
 
-func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) *common.BizError {
+func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) error {
 	key := reward.DelegateRewardPerKey(nodeID, stakingNum, per.Epoch)
 	list := reward.NewDelegateRewardPerList()
 	val, err := db.Get(blockHash, key)
 	if err != nil {
 		if err != snapshotdb.ErrNotFound {
-			return common.InternalError.Wrap(err.Error())
+			return err
 		}
 	} else {
 		if err := rlp.DecodeBytes(val, list); err != nil {
-			return common.InternalError.Wrap(err.Error())
+			return err
 		}
 	}
 
 	list.AppendDelegateRewardPer(per)
 	v, err := rlp.EncodeToBytes(list)
 	if err != nil {
-		return common.InternalError.Wrap(err.Error())
+		return err
 	}
 	if err := db.Put(blockHash, key, v); err != nil {
-		return common.InternalError.Wrap(err.Error())
+		return err
 	}
 	return nil
 }
@@ -551,17 +550,20 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 		for _, receive := range receives {
 			list.DecreaseTotalAmount(receive.Epoch, receive.Reward)
 		}
-		if list.ShouldDel() {
-			if err := db.Del(blockHash, key); err != nil {
-				return err
-			}
-		} else {
-			v, err := rlp.EncodeToBytes(list)
-			if err != nil {
-				return err
-			}
-			if err := db.Put(blockHash, key, v); err != nil {
-				return err
+		if list.IsChange() {
+			log.Debug("updateDelegateRewardPer list is change", "del", list.ShouldDel())
+			if list.ShouldDel() {
+				if err := db.Del(blockHash, key); err != nil {
+					return err
+				}
+			} else {
+				v, err := rlp.EncodeToBytes(list)
+				if err != nil {
+					return err
+				}
+				if err := db.Put(blockHash, key, v); err != nil {
+					return err
+				}
 			}
 		}
 	}
