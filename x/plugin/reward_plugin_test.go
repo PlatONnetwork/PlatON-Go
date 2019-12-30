@@ -317,6 +317,9 @@ func TestIncreaseIssuance(t *testing.T) {
 
 func TestSaveRewardDelegateRewardPer(t *testing.T) {
 	chain := mock.NewChain()
+
+	defer chain.SnapDB.Clear()
+
 	chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		return nil
 	})
