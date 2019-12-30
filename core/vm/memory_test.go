@@ -81,3 +81,26 @@ func TestResize(t *testing.T) {
 		assert.Equal(t, int(v.size), len(m.store))
 	}
 }
+
+func TestGet(t *testing.T) {
+	m := NewMemory()
+	testCases := []struct {
+		value  []byte
+		offset uint64
+		size   uint64
+		want   string
+	}{
+		{[]byte{0x00}, 0, 0, ""},
+		{[]byte{0x00}, 0, 1, "00"},
+		{[]byte{0x01}, 0, 1, "01"},
+		{[]byte{0x00, 0x01, 0x02}, 0, 3, "000102"},
+	}
+	for _, v := range testCases {
+		m.Resize(v.size)
+		m.Set(v.offset, v.size, v.value)
+		actual := common.Bytes2Hex(m.Get(int64(v.offset), int64(v.size)))
+		if actual != v.want {
+			t.Errorf("Expected: %s, got: %s", v.want, actual)
+		}
+	}
+}
