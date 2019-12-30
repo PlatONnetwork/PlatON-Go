@@ -31,3 +31,14 @@ func TestMemorySha3(t *testing.T) {
 		t.Errorf("Expected: 3, got %d", r.Uint64())
 	}
 }
+
+func TestMemoryCallDataCopy(t *testing.T) {
+	stack := newstack()
+	stack.push(byteutil.BytesToBigInt([]byte{0x01}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x02}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x03}))
+	r := memoryCallDataCopy(stack)
+	if r.Uint64() != 4 {
+		t.Errorf("Expected: 4, got %d", r.Uint64())
+	}
+}
