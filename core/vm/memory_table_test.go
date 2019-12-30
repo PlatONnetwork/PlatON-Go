@@ -126,3 +126,21 @@ func TestMemoryCreate(t *testing.T) {
 		t.Errorf("Expected: 11, got %d", r.Uint64())
 	}
 }
+
+func TestMemoryCall(t *testing.T) {
+	stack := newstack()
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x06}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x03}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	r := memoryCall(stack)
+	if r.Uint64() != 16 {
+		t.Errorf("Expected: 16, got %d", r.Uint64())
+	}
+
+}
