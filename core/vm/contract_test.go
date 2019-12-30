@@ -34,7 +34,7 @@ func TestAsDelegate(t *testing.T) {
 	}
 	c := contract.AsDelegate()
 	if c.CallerAddress != contract.caller.Address() {
-		t.Logf("Not equal, expect: %s, actual: %s", contract.caller.Address(), c.CallerAddress)
+		t.Errorf("Not equal, expect: %s, actual: %s", contract.caller.Address(), c.CallerAddress)
 	}
 }
 
@@ -94,6 +94,26 @@ func TestCaller(t *testing.T) {
 	}
 	cr := contract.Caller()
 	if cr != addr {
-		t.Logf("Not equal, expect: %s, actual: %s", addr, cr)
+		t.Errorf("Not equal, expect: %s, actual: %s", addr, cr)
+	}
+}
+
+func TestUseGas(t *testing.T) {
+	contract := &Contract{
+		Gas: 1000,
+	}
+	cr := contract.UseGas(100)
+	if !cr {
+		t.Errorf("Expected: true, got false")
+	}
+	laveGas := contract.Gas - 100
+	if laveGas != 800 {
+		t.Errorf("Expected: 800, actual: %d", laveGas)
+	}
+
+	// Simulation does not hold.
+	cr = contract.UseGas(1000)
+	if cr {
+		t.Errorf("Expected: false, got true")
 	}
 }
