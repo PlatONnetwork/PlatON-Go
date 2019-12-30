@@ -32,7 +32,6 @@ class Staking:
     stakeThreshold: int
     operatingThreshold: int
     maxValidators: int
-    hesitateRatio: int
     unStakeFreezeDuration: int
 
 
