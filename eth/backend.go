@@ -168,8 +168,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	var (
 		vmConfig = vm.Config{
-			ConsoleOutput: config.Debug,
-			WasmType:      vm.Str2WasmType(config.VMWasmType),
+			ConsoleOutput:     config.Debug,
+			WasmType:          vm.Str2WasmType(config.VMWasmType),
+			VmTimeoutDuration: config.VmTimeoutDuration,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,

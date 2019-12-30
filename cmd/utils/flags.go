@@ -608,6 +608,13 @@ var (
 		EnvVar: "",
 		Value:  eth.DefaultConfig.VMWasmType,
 	}
+
+	VmTimeoutDuration = cli.Uint64Flag{
+		Name:   "vm.timeout_duration",
+		Usage:  "The VM execution timeout duration (uint: ms)",
+		EnvVar: "",
+		Value:  eth.DefaultConfig.VmTimeoutDuration,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1206,6 +1213,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(VMWasmType.Name) {
 		cfg.VMWasmType = ctx.GlobalString(VMWasmType.Name)
 	}
+	if ctx.GlobalIsSet(VmTimeoutDuration.Name) {
+		cfg.VmTimeoutDuration = ctx.GlobalUint64(VmTimeoutDuration.Name)
+	}
+
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {

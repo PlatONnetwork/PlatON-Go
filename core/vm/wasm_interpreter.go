@@ -3,8 +3,6 @@ package vm
 import (
 	"errors"
 	"fmt"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 var (
@@ -15,18 +13,19 @@ var (
 
 // WASMInterpreter represents an WASM interpreter
 type WASMInterpreter struct {
-	evm        *EVM
-	cfg        Config
-	WasmLogger log.Logger
+	evm *EVM
+	cfg Config
+	//WasmLogger log.Logger
+	engine wasmEngine
 }
 
 // NewWASMInterpreter returns a new instance of the Interpreter
 func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 
 	return &WASMInterpreter{
-		evm:        evm,
-		cfg:        cfg,
-		WasmLogger: NewWasmLogger(cfg, log.WasmRoot()),
+		evm: evm,
+		cfg: cfg,
+		//WasmLogger: NewWasmLogger(cfg, log.WasmRoot()),
 	}
 }
 
@@ -46,12 +45,12 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	in.evm.depth++
 	defer func() {
 		in.evm.depth--
-		if in.evm.depth == 0 {
-			logger, ok := in.WasmLogger.(*WasmLogger)
-			if ok {
-				logger.Flush()
-			}
-		}
+		//if in.evm.depth == 0 {
+		//	logger, ok := in.WasmLogger.(*WasmLogger)
+		//	if ok {
+		//		logger.Flush()
+		//	}
+		//}
 	}()
 
 	//// Don't bother with the execution if there's no code.
@@ -86,6 +85,12 @@ func (in *WASMInterpreter) CanRun(code []byte) bool {
 		}
 	}
 	return false
+}
+
+func (in *WASMInterpreter) Terminate() {
+	if nil != in.engine {
+		in.engine.terminate()
+	}
 }
 
 type WasmInsType byte

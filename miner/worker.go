@@ -747,7 +747,8 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, *w.vmConfig)
+	receipt, _, err := core.ApplyTransaction(w.config, w.chain, w.current.gasPool, w.current.state,
+		w.current.header, tx, &w.current.header.GasUsed, *w.vmConfig, true)
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "err", err)
 		w.current.state.RevertToSnapshot(snap)

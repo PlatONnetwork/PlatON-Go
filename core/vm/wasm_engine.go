@@ -34,6 +34,7 @@ func (w *wagonEngineCreator) Create(evm *EVM, config Config, contract *Contract)
 
 type wasmEngine interface {
 	Run(input []byte, readOnly bool) (ret []byte, err error)
+	terminate()
 }
 
 type wagonEngine struct {
@@ -97,6 +98,12 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 		return engine.Contract().Code, err
 	}
 	return ret, err
+}
+
+func (engine *wagonEngine) terminate() {
+	if nil != engine.vm {
+		exec.NewProcess(&engine.vm.VM).Terminate()
+	}
 }
 
 func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte, readOnly bool) error {

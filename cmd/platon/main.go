@@ -173,6 +173,7 @@ var (
 
 	vmFlags = []cli.Flag{
 		utils.VMWasmType,
+		utils.VmTimeoutDuration,
 	}
 )
 

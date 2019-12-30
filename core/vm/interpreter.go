@@ -44,6 +44,10 @@ type Interpreter interface {
 	// }
 	// ```
 	CanRun([]byte) bool
+
+	// When the virtual machine execution time duration limit is exceeded,
+	// the virtual machine execution of the smart contract is terminated.
+	Terminate()
 }
 
 // EVMInterpreter represents an EVM interpreter
@@ -246,4 +250,8 @@ func (in *EVMInterpreter) CanRun(code []byte) bool {
 		}
 	}
 	return false
+}
+
+func (in *EVMInterpreter) Terminate() {
+	in.evm.Cancel()
 }

@@ -50,14 +50,15 @@ var DefaultConfig = Config{
 	TrieDBCache:   512,
 	MinerGasFloor: params.GenesisGasLimit,
 	//MinerGasCeil:  4000 * 21000 * 1.2,
-	DBDisabledGC:  false,
-	DBGCInterval:  86400,
-	DBGCTimeout:   time.Minute,
-	DBGCMpt:       true,
-	DBGCBlock:     10,
-	VMWasmType:    "wagon",
-	MinerGasPrice: big.NewInt(params.GVon),
-	MinerRecommit: 3 * time.Second,
+	DBDisabledGC:      false,
+	DBGCInterval:      86400,
+	DBGCTimeout:       time.Minute,
+	DBGCMpt:           true,
+	DBGCBlock:         10,
+	VMWasmType:        "wagon",
+	VmTimeoutDuration: 2,
+	MinerGasPrice:     big.NewInt(params.GVon),
+	MinerRecommit:     3 * time.Second,
 
 	MiningLogAtDepth:       7,
 	TxChanSize:             4096,
@@ -121,7 +122,8 @@ type Config struct {
 	DBGCBlock          int
 
 	// VM options
-	VMWasmType string
+	VMWasmType        string
+	VmTimeoutDuration uint64
 
 	// Mining-related options
 	MinerExtraData []byte `toml:",omitempty"`

@@ -38,28 +38,28 @@ type ChainContext interface {
 }
 
 // NewEVMContext creates a new context for use in the EVM.
-func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Context {
+func NewEVMContext(msg Message, header *types.Header, chain ChainContext, limitTimeout bool) vm.Context {
 
 	beneficiary := header.Coinbase // we're must using header validation
 
 	blockHash := common.ZeroHash
-
 	// store the sign in  header.Extra[32:97]
 	if !xutil.IsWorker(header.Extra) {
 		blockHash = header.Hash()
 	}
 
 	return vm.Context{
-		CanTransfer: CanTransfer,
-		Transfer:    Transfer,
-		GetHash:     GetHashFn(header, chain),
-		Origin:      msg.From(),
-		Coinbase:    beneficiary,
-		BlockNumber: new(big.Int).Set(header.Number),
-		Time:        new(big.Int).Set(header.Time),
-		GasLimit:    header.GasLimit,
-		GasPrice:    new(big.Int).Set(msg.GasPrice()),
-		BlockHash:   blockHash,
+		CanTransfer:  CanTransfer,
+		Transfer:     Transfer,
+		GetHash:      GetHashFn(header, chain),
+		Origin:       msg.From(),
+		Coinbase:     beneficiary,
+		BlockNumber:  new(big.Int).Set(header.Number),
+		Time:         new(big.Int).Set(header.Time),
+		GasLimit:     header.GasLimit,
+		GasPrice:     new(big.Int).Set(msg.GasPrice()),
+		BlockHash:    blockHash,
+		LimitTimeout: limitTimeout,
 	}
 }
 

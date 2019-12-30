@@ -137,7 +137,8 @@ type Context struct {
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
 
-	BlockHash common.Hash // Only, the value will be available after the current block has been sealed.
+	BlockHash    common.Hash // Only, the value will be available after the current block has been sealed.
+	LimitTimeout bool        // Whether we should limit the timeout duration of virtual machine execution smart contracts.
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -205,6 +206,9 @@ func (evm *EVM) Cancel() {
 func (evm *EVM) Interpreter() Interpreter {
 	return evm.interpreter
 }
+func (evm *EVM) Interpreters() []Interpreter {
+	return evm.interpreters
+}
 
 // Call executes the contract associated with the addr with the given input as
 // parameters. It also handles any necessary value transfer required and takes
@@ -231,7 +235,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsHomestead
 
-		if precompiles[addr] == nil && PlatONPrecompiledContracts[addr] == nil && value.Sign() == 0 {
+		if precompiles[addr] == nil && !IsPlatONPrecompiledContract(addr) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
@@ -487,6 +491,6 @@ func (evm *EVM) GetEvm() *EVM {
 	return evm
 }
 
-func (evm *EVM) GetConfig() Config {
+func (evm *EVM) GetVMConfig() Config {
 	return evm.vmConfig
 }

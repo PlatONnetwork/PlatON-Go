@@ -3,13 +3,13 @@ package runtime
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/life/utils"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/life/utils"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -55,26 +55,26 @@ func TestEVM(t *testing.T) {
 	Execute(code, nil, nil)
 }
 
-func TestExecute(t *testing.T) {
-	code := genCodeInput()
-	input := genInput()
-	ret, _, err := Execute(code, input, nil)
-	if err != nil {
-		t.Fatal("didn't expect error", err)
-	}
-	// [255,255,255,255,......,158]
-
-	/*buf := bytes.NewBuffer(ret)
-	binary.Read(buf, binary.BigEndian, &result)*/
-	hexRes := common.Bytes2Hex(ret)
-	fmt.Println(hexRes)
-	//result.UnmarshalText(ret)
-	result, _ := math.ParseBig256(hexRes)
-	/*if big.Int(result).Cmp(big.NewInt(-100)) != 0 {
-		t.Error("Expected 10, got", big.Int(result))
-	}*/
-	fmt.Println("....", result)
-}
+//func TestExecute(t *testing.T) {
+//	code := genCodeInput()
+//	input := genInput()
+//	ret, _, err := Execute(code, input, nil)
+//	if err != nil {
+//		t.Fatal("didn't expect error", err)
+//	}
+//	// [255,255,255,255,......,158]
+//
+//	/*buf := bytes.NewBuffer(ret)
+//	binary.Read(buf, binary.BigEndian, &result)*/
+//	hexRes := common.Bytes2Hex(ret)
+//	fmt.Println(hexRes)
+//	//result.UnmarshalText(ret)
+//	result, _ := math.ParseBig256(hexRes)
+//	/*if big.Int(result).Cmp(big.NewInt(-100)) != 0 {
+//		t.Error("Expected 10, got", big.Int(result))
+//	}*/
+//	fmt.Println("....", result)
+//}
 
 func TestCall(t *testing.T) {
 	state, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
@@ -97,7 +97,7 @@ func TestCall(t *testing.T) {
 	}
 }
 
-func TestCallCode(t *testing.T){
+func TestCallCode(t *testing.T) {
 	code := genInput()
 	hexcode := common.Bytes2Hex(code)
 	fmt.Println("encoded(Input):", hexcode)
@@ -197,7 +197,7 @@ func genCodeInput() []byte {
 	return buffer.Bytes()
 }
 
-func TestCreateCode(t *testing.T){
+func TestCreateCode(t *testing.T) {
 	code := genCodeInput()
 	hexcode := common.Bytes2Hex(code)
 	fmt.Println("encoded :", hexcode)
@@ -258,7 +258,7 @@ func TestParseCode(t *testing.T) {
 func TestParseInput(t *testing.T) {
 	data := "f86e880000000000000002897472616e7366657231aa307861613331636139643839323830306161363733383362623838313134623631383638323231656532aa3078616133316361396438393238303061613637333833626238383131346236313836383232316565338400000014"
 	input := common.Hex2Bytes(data)
-	parseInputFromAbi(input,nil)
+	parseInputFromAbi(input, nil)
 }
 
 // parse input(payload)
@@ -291,5 +291,5 @@ func parseInputFromAbi(input []byte, abi []byte) (txType int, funcName string, p
 	if v, ok := iRlpList[1].([]byte); ok {
 		funcName = string(v)
 	}
-	return txType, funcName, params, returnType,nil
+	return txType, funcName, params, returnType, nil
 }

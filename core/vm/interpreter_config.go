@@ -19,4 +19,7 @@ type Config struct {
 	// The actual implementation type of the wasm instance
 	// This option is used in the configuration or command line
 	WasmType WasmInsType
+
+	// VM execution timeout duration (unit: ms)
+	VmTimeoutDuration uint64
 }
