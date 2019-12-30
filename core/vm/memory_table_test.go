@@ -50,8 +50,8 @@ func TestMemoryReturnDataCopy(t *testing.T) {
 	stack.push(byteutil.BytesToBigInt([]byte{0x03}))
 	stack.push(byteutil.BytesToBigInt([]byte{0x05}))
 	r := memoryReturnDataCopy(stack)
-	if r.Uint64() != 8 {
-		t.Errorf("Expected: 8, got %d", r.Uint64())
+	if r.Uint64() != 7 {
+		t.Errorf("Expected: 7, got %d", r.Uint64())
 	}
 }
 
@@ -153,5 +153,28 @@ func TestMemoryCall(t *testing.T) {
 	r = memoryDelegateCall(stack)
 	if r.Uint64() != 16 {
 		t.Errorf("Expected: 16, got %d", r.Uint64())
+	}
+}
+
+func TestMemoryReturn(t *testing.T) {
+	stack := newstack()
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x03}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	r := memoryReturn(stack)
+	if r.Uint64() != 11 {
+		t.Errorf("Expected: 11, got %d", r.Uint64())
+	}
+
+	// for memoryRevert.
+	r = memoryRevert(stack)
+	if r.Uint64() != 11 {
+		t.Errorf("Expected: 11, got %d", r.Uint64())
+	}
+
+	// for memoryLog.
+	r = memoryLog(stack)
+	if r.Uint64() != 11 {
+		t.Errorf("Expected: 11, got %d", r.Uint64())
 	}
 }
