@@ -176,6 +176,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	var plugin = RewardMgrInstance()
 	StakingInstance()
+	plugin.SetCurrentNodeID(nodeIdArr[0])
 	chain := mock.NewChain()
 	packTime := int64(xcom.Interval() * uint64(millisecond))
 	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
