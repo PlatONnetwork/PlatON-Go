@@ -233,7 +233,7 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 	}
 	switch n := n.(type) {
 	case *shortNode:
-		t.dag.delVertexAndEdge(append(prefix, n.Key...))
+		//t.dag.delVertexAndEdge(append(prefix, n.Key...))
 
 		matchlen := prefixLen(key, n.Key)
 		// If the whole key matches, keep this short node as is
@@ -244,7 +244,7 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 				return false, n, err
 			}
 			rn := &shortNode{n.Key, nn, t.newFlag()}
-			t.dag.addVertexAndEdge(fprefix, prefix, rn)
+			//t.dag.addVertexAndEdge(fprefix, prefix, rn)
 			return true, rn, nil
 		}
 		// Otherwise branch out at the index where they differ.
@@ -266,13 +266,13 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 
 		// Replace this shortNode with the branch if it occurs at index 0.
 		if matchlen == 0 {
-			t.dag.addVertexAndEdge(fprefix, prefix, branch)
+			//t.dag.addVertexAndEdge(fprefix, prefix, branch)
 			return true, branch, nil
 		}
-		t.dag.addVertexAndEdge(append(prefix, key[:matchlen]...), append(prefix, key[:matchlen]...), branch)
+		//t.dag.addVertexAndEdge(append(prefix, key[:matchlen]...), append(prefix, key[:matchlen]...), branch)
 		// Otherwise, replace it with a short node leading up to the branch.
 		nn := &shortNode{key[:matchlen], branch, t.newFlag()}
-		t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		//t.dag.addVertexAndEdge(fprefix, prefix, nn)
 		return true, nn, nil
 
 	case *fullNode:
@@ -285,13 +285,13 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 		n = n.copy()
 		n.flags = t.newFlag()
 		n.Children[key[0]] = nn
-		t.dag.addVertexAndEdge(fprefix, prefix, n)
+		//t.dag.addVertexAndEdge(fprefix, prefix, n)
 		return true, n, nil
 
 	case nil:
-		t.dag.delVertexAndEdge(append(prefix, key...))
+		//t.dag.delVertexAndEdge(append(prefix, key...))
 		nn := &shortNode{key, value, t.newFlag()}
-		t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		//t.dag.addVertexAndEdge(fprefix, prefix, nn)
 		return true, nn, nil
 
 	case hashNode:
@@ -307,7 +307,7 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 			return false, rn, err
 		}
 
-		t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		//t.dag.addVertexAndEdge(fprefix, prefix, nn)
 		return true, nn, nil
 
 	default:
