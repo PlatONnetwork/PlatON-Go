@@ -20,6 +20,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/stretchr/testify/assert"
@@ -82,4 +84,21 @@ func TestBigUint64(t *testing.T) {
 		assert.Equal(t, v.wantv, resv)
 		assert.Equal(t, v.wantr, resr)
 	}
+}
+
+func TestToWordSize(t *testing.T) {
+	testCases := []struct {
+		v      uint64
+		expect uint64
+	}{
+		{100, 4},
+		{10000, 313},
+		{math.MaxUint64 - 1, 576460752303423488},
+		{math.MaxUint64 - 2, 576460752303423488},
+	}
+	for _, v := range testCases {
+		resv := toWordSize(v.v)
+		assert.Equal(t, v.expect, resv)
+	}
+
 }
