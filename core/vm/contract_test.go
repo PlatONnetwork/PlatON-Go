@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -126,5 +127,15 @@ func TestAddress(t *testing.T) {
 	cr := contract.Address()
 	if cr != addr {
 		t.Errorf("Expected: %s, got: %s", addr, cr)
+	}
+}
+
+func TestValue(t *testing.T) {
+	contract := &Contract{
+		value: buildBigInt(100),
+	}
+	cr := contract.Value()
+	if cr.Cmp(new(big.Int).SetUint64(100)) != 0 {
+		t.Errorf("Expected: 100, got: %d", cr)
 	}
 }
