@@ -168,9 +168,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	var (
 		vmConfig = vm.Config{
-			ConsoleOutput:     config.Debug,
-			WasmType:          vm.Str2WasmType(config.VMWasmType),
-			VmTimeoutDuration: config.VmTimeoutDuration,
+			ConsoleOutput: config.Debug,
+			WasmType:      vm.Str2WasmType(config.VMWasmType),
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
@@ -246,7 +245,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 
 	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, &vmConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
-		config.MinerGasFloor, eth.isLocalBlock, blockChainCache)
+		config.MinerGasFloor, eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
 
 	//extra data for each block will be set by worker.go
 	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))

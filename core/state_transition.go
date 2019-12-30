@@ -209,7 +209,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	// Except precompiled contracts.
 	ctx := context.Background()
 	var cancelFn context.CancelFunc
-	if evm.LimitTimeout && evm.GetVMConfig().VmTimeoutDuration > 0 &&
+	if evm.GetVMConfig().VmTimeoutDuration > 0 &&
 		(contractCreation || vm.IsPrecompiledContract(*(msg.To()))) {
 
 		timeout := time.Duration(evm.GetVMConfig().VmTimeoutDuration) * time.Millisecond
@@ -218,16 +218,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		ctx, cancelFn = context.WithCancel(ctx)
 	}
 	defer cancelFn()
-	go func(ctx context.Context) {
-		<-ctx.Done()
-		// shutdown all interpreters (One transaction can only be executed by one interpreter)
-		// So, for security, we should shutdown all interpreters
-		for _, interp := range evm.Interpreters() {
-			if nil != interp {
-				interp.Terminate()
-			}
-		}
-	}(ctx)
+	// set req context to vm context
+	evm.Ctx = ctx
 
 	if contractCreation {
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)

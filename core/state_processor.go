@@ -73,7 +73,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, _, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg, false)
+		receipt, _, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			return nil, nil, 0, err
 		}
@@ -102,7 +102,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	statedb *state.StateDB, header *types.Header, tx *types.Transaction,
-	usedGas *uint64, cfg vm.Config, limitTimeout bool) (*types.Receipt, uint64, error) {
+	usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
 
 	msg, err := tx.AsMessage(types.NewEIP155Signer(config.ChainID))
 
@@ -110,7 +110,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 		return nil, 0, err
 	}
 	// Create a new context to be used in the EVM environment
-	context := NewEVMContext(msg, header, bc, limitTimeout)
+	context := NewEVMContext(msg, header, bc)
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)

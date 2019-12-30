@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"context"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
@@ -34,7 +36,6 @@ func (w *wagonEngineCreator) Create(evm *EVM, config Config, contract *Contract)
 
 type wasmEngine interface {
 	Run(input []byte, readOnly bool) (ret []byte, err error)
-	terminate()
 }
 
 type wagonEngine struct {
@@ -92,18 +93,18 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 		return nil, err
 	}
 
+	go func(ctx context.Context) {
+		<-ctx.Done()
+		// shutdown vm, change th vm.abort mark
+		exec.NewProcess(&engine.vm.VM).Terminate()
+	}(engine.evm.Ctx)
+
 	//exec vm
 	ret, err := engine.exec(entryIndex)
 	if deploy {
 		return engine.Contract().Code, err
 	}
 	return ret, err
-}
-
-func (engine *wagonEngine) terminate() {
-	if nil != engine.vm {
-		exec.NewProcess(&engine.vm.VM).Terminate()
-	}
 }
 
 func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte, readOnly bool) error {

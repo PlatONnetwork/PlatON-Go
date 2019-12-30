@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"context"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -137,8 +138,9 @@ type Context struct {
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
 
-	BlockHash    common.Hash // Only, the value will be available after the current block has been sealed.
-	LimitTimeout bool        // Whether we should limit the timeout duration of virtual machine execution smart contracts.
+	BlockHash common.Hash // Only, the value will be available after the current block has been sealed.
+
+	Ctx context.Context
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides

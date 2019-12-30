@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 
@@ -44,10 +45,6 @@ type Interpreter interface {
 	// }
 	// ```
 	CanRun([]byte) bool
-
-	// When the virtual machine execution time duration limit is exceeded,
-	// the virtual machine execution of the smart contract is terminated.
-	Terminate()
 }
 
 // EVMInterpreter represents an EVM interpreter
@@ -101,6 +98,13 @@ func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, st
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
 func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+
+	go func(ctx context.Context) {
+		<-ctx.Done()
+		// shutdown vm, change th vm.abort mark
+		in.evm.Cancel()
+	}(in.evm.Ctx)
+
 	if in.intPool == nil {
 		in.intPool = poolOfIntPools.get()
 		defer func() {
@@ -250,8 +254,4 @@ func (in *EVMInterpreter) CanRun(code []byte) bool {
 		}
 	}
 	return false
-}
-
-func (in *EVMInterpreter) Terminate() {
-	in.evm.Cancel()
 }
