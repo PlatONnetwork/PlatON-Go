@@ -19,6 +19,8 @@ package vm
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
@@ -33,5 +35,29 @@ func TestAsDelegate(t *testing.T) {
 	c := contract.AsDelegate()
 	if c.CallerAddress != contract.caller.Address() {
 		t.Logf("Not equal, expect: %s, actual: %s", contract.caller.Address(), c.CallerAddress)
+	}
+}
+
+func TestGetOp(t *testing.T) {
+	code := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06}
+	testCases := []struct {
+		n    uint64
+		want OpCode
+	}{
+		{n: 0, want: STOP},
+		{n: 1, want: ADD},
+		{n: 2, want: MUL},
+		{n: 3, want: SUB},
+		{n: 4, want: DIV},
+		{n: 5, want: SDIV},
+		{n: 6, want: MOD},
+	}
+	c := &Contract{
+		Code: code,
+	}
+	// iterate and verify.
+	for _, v := range testCases {
+		opCode := c.GetOp(v.n)
+		assert.Equal(t, v.want, opCode)
 	}
 }
