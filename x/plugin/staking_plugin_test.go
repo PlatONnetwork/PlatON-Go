@@ -1727,6 +1727,8 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	}
 
 	expectedIssueIncome := new(big.Int).Mul(del.ReleasedHes, delegateRewardPerList[1].Amount)
+	expectedBalance := new(big.Int).Add(state.GetBalance(addrArr[index+1]), expectedIssueIncome)
+	expectedBalance = new(big.Int).Add(expectedBalance, del.ReleasedHes)
 	issueIncome, err := StakingInstance().WithdrewDelegate(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList)
 
@@ -1734,7 +1736,10 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 		return
 	}
 
+	can, err = getCandidate(blockHash3, index)
+
 	assert.True(t, expectedIssueIncome.Cmp(issueIncome) == 0)
+	assert.True(t, expectedBalance.Cmp(state.GetBalance(addrArr[index+1])) == 0)
 	t.Log("Get Candidate Info is:", can)
 }
 
