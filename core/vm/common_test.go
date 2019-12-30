@@ -64,3 +64,22 @@ func TestGetData(t *testing.T) {
 		assert.Equal(t, v.want, common.Bytes2Hex(r))
 	}
 }
+
+func TestBigUint64(t *testing.T) {
+	v1, _ := new(big.Int).SetString("1000000000000000000000", 10)
+	v2, _ := new(big.Int).SetString("1000000000000000000000", 10)
+	testCases := []struct {
+		v     *big.Int
+		wantv uint64
+		wantr bool
+	}{
+		{v: buildBigInt(10), wantv: 10, wantr: false},
+		{v: v1, wantv: v2.Uint64(), wantr: true},
+		{v: buildBigInt(0), wantv: 0, wantr: false},
+	}
+	for _, v := range testCases {
+		resv, resr := bigUint64(v.v)
+		assert.Equal(t, v.wantv, resv)
+		assert.Equal(t, v.wantr, resr)
+	}
+}
