@@ -20,6 +20,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,5 +44,23 @@ func TestCalcMemSize(t *testing.T) {
 	for _, v := range testCases {
 		res := calcMemSize(v.off, v.l)
 		assert.Equal(t, v.want.Uint64(), res.Uint64())
+	}
+}
+
+func TestGetData(t *testing.T) {
+	testCases := []struct {
+		b     []byte
+		start uint64
+		want  string
+	}{
+		{b: []byte{0x01, 0x02, 0x03}, start: 2, want: "03000000000000000000"},
+		{b: []byte{0x01, 0x02, 0x02}, start: 2, want: "02000000000000000000"},
+		{b: []byte{0x01, 0x02, 0x04}, start: 2, want: "04000000000000000000"},
+		{b: []byte{0x01, 0x02, 0x03}, start: 1, want: "02030000000000000000"},
+		{b: []byte{0x01, 0x02, 0x03}, start: 0, want: "01020300000000000000"},
+	}
+	for _, v := range testCases {
+		r := getData(v.b, v.start, 10)
+		assert.Equal(t, v.want, common.Bytes2Hex(r))
 	}
 }
