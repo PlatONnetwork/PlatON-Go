@@ -101,3 +101,17 @@ func TestToWordSize(t *testing.T) {
 		assert.Equal(t, v.expect, resv)
 	}
 }
+
+func TestAllZero(t *testing.T) {
+	testCases := []struct {
+		v      []byte
+		expect bool
+	}{
+		{[]byte{0x00, 0x00}, true},
+		{[]byte{0x00, 0x01}, false},
+	}
+	for _, v := range testCases {
+		resv := allZero(v.v)
+		assert.Equal(t, v.expect, resv)
+	}
+}
