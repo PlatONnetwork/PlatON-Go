@@ -22,6 +22,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"math/big"
 	mrand "math/rand"
 	"testing"
@@ -423,7 +424,9 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 
 	canAddr, _ := xutil.NodeId2Addr(can.NodeId)
 
-	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, 0, amount)
+	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
+
+	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, 0, amount, delegateRewardPerList)
 }
 
 func getDelegate(blockHash common.Hash, stakingNum uint64, index int, t *testing.T) *staking.Delegation {
@@ -1651,7 +1654,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	amount := common.Big257
 	delegateTotalHes := can.DelegateTotalHes
 	_, err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, amount, addrArr[index+1],
-		nodeIdArr[index], blockNumber.Uint64(), del)
+		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0))
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
 		return
@@ -3523,15 +3526,39 @@ func Test_IteratorCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
-	nodeId := nodeIdArr[0]
 	del := new(staking.Delegation)
 	del.Released = new(big.Int).SetInt64(0)
 	del.RestrictingPlan = new(big.Int).SetInt64(0)
 	del.ReleasedHes = new(big.Int).SetInt64(100)
 	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
-	del.DelegateEpoch = 2
-	if err := calcDelegateIncome(3, common.ZeroHash, nodeId, 3, del); nil != err {
-		t.Fatal(err)
-	}
-	t.Log(del)
+	del.DelegateEpoch = 1
+	per := make([]*reward.DelegateRewardPer, 0)
+	per = append(per, &reward.DelegateRewardPer{
+		Epoch:  1,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	per = append(per, &reward.DelegateRewardPer{
+		Epoch:  2,
+		Amount: new(big.Int).SetUint64(20),
+	})
+	calcDelegateIncome(3, del, per)
+	assert.True(t, del.CumulativeIncome.Cmp(new(big.Int).SetUint64(2000)) == 0)
+
+	del2 := new(staking.Delegation)
+	del2.Released = new(big.Int).SetInt64(100)
+	del2.RestrictingPlan = new(big.Int).SetInt64(0)
+	del2.ReleasedHes = new(big.Int).SetInt64(100)
+	del2.RestrictingPlanHes = new(big.Int).SetInt64(0)
+	del2.DelegateEpoch = 2
+	per2 := make([]*reward.DelegateRewardPer, 0)
+	per2 = append(per2, &reward.DelegateRewardPer{
+		Epoch:  2,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	per2 = append(per2, &reward.DelegateRewardPer{
+		Epoch:  3,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	calcDelegateIncome(4, del2, per2)
+	assert.True(t, del2.CumulativeIncome.Cmp(new(big.Int).SetUint64(3000)) == 0)
 }

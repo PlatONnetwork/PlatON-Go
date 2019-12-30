@@ -265,11 +265,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 	rewards := make([]reward.NodeDelegateReward, 0)
 	receiveReward := new(big.Int)
 	for _, delWithPer := range list {
-		rewardsReceive, err := calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
-		if err != nil {
-			//define check err code
-			return nil, err
-		}
+		rewardsReceive := calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
 		if err := UpdateDelegateRewardPer(blockHash, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, rewardsReceive, rmp.db); err != nil {
 			return nil, err
 		}
@@ -327,11 +323,7 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 	rewards := make([]reward.NodeDelegateRewardPresenter, 0)
 
 	for _, delWithPer := range delegationInfoWithRewardPerList {
-		_, err := calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
-		if err != nil {
-			//define check err code
-			return nil, common.InternalError.Wrap(err.Error())
-		}
+		calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
 
 		rewards = append(rewards, reward.NodeDelegateRewardPresenter{
 			NodeID:     delWithPer.DelegationInfo.NodeID,
