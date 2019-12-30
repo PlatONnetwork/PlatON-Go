@@ -96,7 +96,7 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 	go func(ctx context.Context) {
 		<-ctx.Done()
 		// shutdown vm, change th vm.abort mark
-		exec.NewProcess(&engine.vm.VM).Terminate()
+		engine.vm.Close()
 	}(engine.evm.Ctx)
 
 	//exec vm
