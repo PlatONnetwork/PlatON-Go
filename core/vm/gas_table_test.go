@@ -251,3 +251,16 @@ func TestGasExtCodeSize(t *testing.T) {
 		t.Error("not expected error")
 	}
 }
+
+func TestGasSLoad(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasSLoad(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 200 {
+		t.Errorf("Expected: 200, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
