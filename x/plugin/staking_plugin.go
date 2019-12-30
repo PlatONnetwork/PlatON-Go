@@ -790,7 +790,11 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
-	calcDelegateIncome(epoch, del, delegateRewardPerList)
+	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
+
+	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
+		return err
+	}
 
 	if typ == FreeVon { // from account free von
 		origin := state.GetBalance(delAddr)
@@ -894,7 +898,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	refundAmount := calcRealRefund(blockNumber.Uint64(), blockHash, total, amount)
 	realSub := refundAmount
 
-	calcDelegateIncome(epoch, del, delegateRewardPerList)
+	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
+
+	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
+		return nil, err
+	}
 
 	// Update total delegate
 	lazyCalcNodeTotalDelegateAmount(epoch, can.CandidateMutable)
