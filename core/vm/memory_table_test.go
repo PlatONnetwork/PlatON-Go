@@ -107,7 +107,16 @@ func TestMemoryMStore(t *testing.T) {
 	stack := newstack()
 	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
 	r := memoryMStore(stack)
-	if r.Uint64() != 9 {
-		t.Errorf("Expected: 9, got %d", r.Uint64())
+	if r.Uint64() != 40 {
+		t.Errorf("Expected: 40, got %d", r.Uint64())
+	}
+}
+
+func TestMemoryCreate(t *testing.T) {
+	stack := newstack()
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	r := memoryCreate(stack)
+	if r.Uint64() != 10 {
+		t.Errorf("Expected: 10, got %d", r.Uint64())
 	}
 }
