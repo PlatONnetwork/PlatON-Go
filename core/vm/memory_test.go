@@ -15,3 +15,31 @@
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
+
+import (
+	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+)
+
+func TestSet(t *testing.T) {
+	m := NewMemory()
+	testCases := []struct {
+		value  []byte
+		offset uint64
+		size   uint64
+		want   string
+	}{
+		{[]byte{0x00}, 0, 1, "00"},
+		{[]byte{0x01}, 0, 1, "01"},
+		{[]byte{0x00, 0x01, 0x02}, 0, 3, "000102"},
+	}
+	for _, v := range testCases {
+		m.Resize(v.size)
+		m.Set(v.offset, v.size, v.value)
+		actual := common.Bytes2Hex(m.store)
+		if actual != v.want {
+			t.Errorf("Expected: %s, got: %s", v.want, actual)
+		}
+	}
+}
