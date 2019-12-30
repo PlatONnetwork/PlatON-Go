@@ -114,6 +114,11 @@ const (
 	RestrictingPlanGas       uint64 = 18000 // Gas needed for precompiled contract: restrictingPlanContract
 	CreateRestrictingPlanGas uint64 = 8000  // Gas needed for createRestrictingPlan
 	ReleasePlanGas           uint64 = 21000 // Gas consumed every time the von of the restrictPlan is released
+
+	DelegateRewardGas         uint64 = 3000 // Gas needed for  delegate reward
+	WithdrawDelegateRewardGas uint64 = 8000 // Gas needed for withdraw  delegate reward
+	WithdrawDelegateNodeGas   uint64 = 1000 // Gas needed for withdraw  delegate reward Node Count
+	WithdrawDelegateEpochGas  uint64 = 100  // Gas needed for withdraw  delegate reward epoch Count
 )
 
 var (

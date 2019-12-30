@@ -233,6 +233,19 @@ type CandidateMutable struct {
 	RewardPer uint16
 	// Delegate reward amount percent for next settlement cycle
 	NextRewardPer uint16
+
+	// current epoch  total Delegate reward
+	CurrentEpochDelegateReward *big.Int
+}
+
+func (can *CandidateMutable) HaveDelegateInCurrentEpoch() bool {
+	if can.Released.Cmp(common.Big0) > 0 {
+		return true
+	}
+	if can.RestrictingPlan.Cmp(common.Big0) > 0 {
+		return true
+	}
+	return false
 }
 
 func (can *CandidateMutable) String() string {
@@ -257,6 +270,10 @@ func (can *CandidateMutable) CleanLowRatioStatus() {
 
 func (can *CandidateMutable) CleanShares() {
 	can.Shares = new(big.Int).SetInt64(0)
+}
+
+func (can *CandidateMutable) CleanCurrentEpochDelegateReward() {
+	can.CurrentEpochDelegateReward = new(big.Int).SetInt64(0)
 }
 
 func (can *CandidateMutable) AddShares(amount *big.Int) {
@@ -937,6 +954,11 @@ type ValidatorEx struct {
 	ValidatorTerm uint32
 	// Effective total delegate
 	DelegateTotal *hexutil.Big
+
+	DelegateRewardTotal *hexutil.Big
+
+	// current epoch  total Delegate reward
+	CurrentEpochDelegateReward *big.Int `json:"nil"`
 }
 
 func (vex *ValidatorEx) String() string {
@@ -992,6 +1014,11 @@ type Delegation struct {
 	RestrictingPlanHes *big.Int
 	// Cumulative delegate income (Waiting for withdrawal)
 	CumulativeIncome *big.Int
+}
+
+func (del *Delegation) CleanCumulativeIncome(epoch uint32) {
+	del.CumulativeIncome = new(big.Int)
+	del.DelegateEpoch = epoch
 }
 
 func (del *Delegation) String() string {
