@@ -1598,7 +1598,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	curBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch() * 3)
 	if err := sndb.NewBlock(curBlockNumber, blockHash2, blockHash3); nil != err {
-		t.Error("newBlock 2 err", err)
+		t.Error("newBlock 3 err", err)
 		return
 	}
 
@@ -1696,12 +1696,45 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
 	}
-	t.Log("Finish WithdrewDelegate ~~")
+	t.Log("Finish WithdrewDelegate ~~", del)
 	can, err = getCandidate(blockHash2, index)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
 	assert.True(t, nil != can)
 	assert.True(t, new(big.Int).Sub(delegateTotalHes, amount).Cmp(can.DelegateTotalHes) == 0)
+	assert.True(t, new(big.Int).Sub(delegateTotalHes, amount).Cmp(del.ReleasedHes) == 0)
+
+	curBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch() * 3)
+	if err := sndb.NewBlock(curBlockNumber, blockHash2, blockHash3); nil != err {
+		t.Error("newBlock 3 err", err)
+		return
+	}
+
+	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:  1,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	if err := AppendDelegateRewardPer(blockHash3, can.NodeId, can.StakingBlockNum, delegateRewardPerList[0], sndb); nil != err {
+		t.Fatal(err)
+	}
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:  2,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	if err := AppendDelegateRewardPer(blockHash3, can.NodeId, can.StakingBlockNum, delegateRewardPerList[1], sndb); nil != err {
+		t.Fatal(err)
+	}
+
+	expectedIssueIncome := new(big.Int).Mul(del.ReleasedHes, delegateRewardPerList[1].Amount)
+	issueIncome, err := StakingInstance().WithdrewDelegate(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
+		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
+		return
+	}
+
+	assert.True(t, expectedIssueIncome.Cmp(issueIncome) == 0)
 	t.Log("Get Candidate Info is:", can)
 }
 
