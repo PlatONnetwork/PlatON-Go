@@ -143,4 +143,15 @@ func TestMemoryCall(t *testing.T) {
 		t.Errorf("Expected: 16, got %d", r.Uint64())
 	}
 
+	// memoryDelegateCall verify.
+	r = memoryDelegateCall(stack)
+	if r.Uint64() != 16 {
+		t.Errorf("Expected: 16, got %d", r.Uint64())
+	}
+
+	// memoryStaticCall verify.
+	r = memoryDelegateCall(stack)
+	if r.Uint64() != 16 {
+		t.Errorf("Expected: 16, got %d", r.Uint64())
+	}
 }
