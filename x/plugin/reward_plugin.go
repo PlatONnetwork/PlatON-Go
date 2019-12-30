@@ -533,6 +533,9 @@ func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 }
 
 func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, receives []reward.DelegateRewardReceive, db snapshotdb.DB) error {
+	if len(receives) == 0 {
+		return nil
+	}
 	keys := reward.DelegateRewardPerKeys(nodeID, stakingNum, receives[0].Epoch, receives[len(receives)-1].Epoch)
 	for _, key := range keys {
 		val, err := db.Get(blockHash, key)
