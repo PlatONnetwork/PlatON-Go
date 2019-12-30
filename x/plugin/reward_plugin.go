@@ -403,8 +403,6 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 
 func (rmp *RewardMgrPlugin) IsCurrVerifier(blockHash common.Hash, head *types.Header, nodeId discover.NodeID) (bool, error) {
 	if len(rmp.CurrVerifier) == 0 {
-
-		//不能用缓存
 		verifierList, err := stk.getVerifierList(blockHash, head.Number.Uint64(), false)
 		if nil != err {
 			return false, err
