@@ -230,7 +230,7 @@ func (rmp *RewardMgrPlugin) handleDelegatePerReward(blockHash common.Hash, block
 	currentEpoch := xutil.CalculateEpoch(blockNumber)
 	for _, verifier := range list {
 		if verifier.DelegateTotal.ToInt().Cmp(common.Big0) == 0 {
-			//return DelegateReward
+			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
 			rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state)
 		} else {
 			delegateRewardPer := new(big.Int).Div(verifier.CurrentEpochDelegateReward, verifier.DelegateTotal.ToInt())
@@ -255,7 +255,7 @@ func (rmp *RewardMgrPlugin) handleDelegatePerReward(blockHash common.Hash, block
 			if err := rmp.db.Put(blockHash, reward.DelegateRewardTotalKey(verifier.NodeId, verifier.StakingBlockNum), delegateRewardTotal.Bytes()); err != nil {
 				return err
 			}
-
+			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "per", delegateRewardPer, "delegateReward", verifier.CurrentEpochDelegateReward, "total", delegateRewardTotal, "epoch", currentEpoch)
 		}
 	}
 	return nil
@@ -403,8 +403,6 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 
 func (rmp *RewardMgrPlugin) IsCurrVerifier(blockHash common.Hash, head *types.Header, nodeId discover.NodeID) (bool, error) {
 	if len(rmp.CurrVerifier) == 0 {
-
-		//不能用缓存
 		verifierList, err := stk.getVerifierList(blockHash, head.Number.Uint64(), false)
 		if nil != err {
 			return false, err
@@ -438,21 +436,19 @@ func (rmp *RewardMgrPlugin) allocatePackageBlock(blockHash common.Hash, head *ty
 			log.Error("allocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
 			return err
 		}
-		if cm.HaveDelegateInCurrentEpoch() {
+		if cm.HaveDelegateInCurrentEpoch() && cm.RewardPer > 0 {
 			delegateReward := new(big.Int).SetUint64(0)
-			if cm.RewardPer > 0 {
-				delegateReward, reward = rmp.CalDelegateRewardAndNodeReward(reward, cm.RewardPer)
+			delegateReward, reward = rmp.CalDelegateRewardAndNodeReward(reward, cm.RewardPer)
 
-				state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
-				state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
+			state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
+			state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
 
-				log.Debug("allocate delegate reward", "blockNumber", head.Number, "blockHash", blockHash.Hex(), "delegate", delegateReward)
+			log.Debug("allocate delegate reward", "blockNumber", head.Number, "blockHash", blockHash.Hex(), "delegate", delegateReward)
 
-				cm.CurrentEpochDelegateReward.Add(cm.CurrentEpochDelegateReward, delegateReward)
-				if err := rmp.stkingDB.SetCanMutableStore(blockHash, add, cm); err != nil {
-					log.Error("allocatePackageBlock SetCanMutableStore fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
-					return err
-				}
+			cm.CurrentEpochDelegateReward.Add(cm.CurrentEpochDelegateReward, delegateReward)
+			if err := rmp.stkingDB.SetCanMutableStore(blockHash, add, cm); err != nil {
+				log.Error("allocatePackageBlock SetCanMutableStore fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
+				return err
 			}
 		}
 	}

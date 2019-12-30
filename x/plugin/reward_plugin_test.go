@@ -19,7 +19,6 @@ package plugin
 import (
 	"math/big"
 	"math/rand"
-	"os"
 	"testing"
 	"time"
 
@@ -318,9 +317,10 @@ func TestIncreaseIssuance(t *testing.T) {
 }
 
 func TestSaveRewardDelegateRewardPer(t *testing.T) {
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
 	chain := mock.NewChain()
+
+	defer chain.SnapDB.Clear()
+
 	chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		return nil
 	})

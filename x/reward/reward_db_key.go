@@ -54,28 +54,40 @@ func HistoryBalancePrefix(year uint32) []byte {
 }
 
 func DelegateRewardPerKey(nodeID discover.NodeID, stakingNum, epoch uint64) []byte {
-	index := epoch / DelegateRewardPerLength
+	index := uint32(epoch / DelegateRewardPerLength)
 	add, err := xutil.NodeId2Addr(nodeID)
 	if err != nil {
 		panic(err)
 	}
-	keyAdd := append(delegateRewardPerKey, add.Bytes()...)
-	keyAdd = append(keyAdd, common.Uint64ToBytes(stakingNum)...)
-	return append(keyAdd, common.Uint64ToBytes(index)...)
+	perKeyLength := len(delegateRewardPerKey)
+	lengthUint32, lengthUint64 := 4, 8
+	keyAdd := make([]byte, perKeyLength+common.AddressLength+lengthUint64+lengthUint32)
+	n := copy(keyAdd[:perKeyLength], delegateRewardPerKey)
+	n += copy(keyAdd[n:n+common.AddressLength], add.Bytes())
+	n += copy(keyAdd[n:n+lengthUint64], common.Uint64ToBytes(stakingNum))
+	copy(keyAdd[n:n+lengthUint32], common.Uint32ToBytes(index))
+
+	return keyAdd
 }
 
 func DelegateRewardPerKeys(nodeID discover.NodeID, stakingNum, fromEpoch, toEpoch uint64) [][]byte {
-	indexFrom := fromEpoch / DelegateRewardPerLength
-	indexTo := toEpoch / DelegateRewardPerLength
+	indexFrom := uint32(fromEpoch / DelegateRewardPerLength)
+	indexTo := uint32(toEpoch / DelegateRewardPerLength)
 	add, err := xutil.NodeId2Addr(nodeID)
 	if err != nil {
 		panic(err)
 	}
-	delegateRewardPerPrefix := append(delegateRewardPerKey, add.Bytes()...)
-	delegateRewardPerPrefix = append(delegateRewardPerPrefix, common.Uint64ToBytes(stakingNum)...)
+	perKeyLength := len(delegateRewardPerKey)
+	lengthUint64 := 8
+
+	delegateRewardPerPrefix := make([]byte, perKeyLength+common.AddressLength+lengthUint64)
+	n := copy(delegateRewardPerPrefix[:perKeyLength], delegateRewardPerKey)
+	n += copy(delegateRewardPerPrefix[n:n+common.AddressLength], add.Bytes())
+	n += copy(delegateRewardPerPrefix[n:n+lengthUint64], common.Uint64ToBytes(stakingNum))
+
 	keys := make([][]byte, 0)
 	for i := indexFrom; i <= indexTo; i++ {
-		delegateRewardPerKey := append(delegateRewardPerPrefix[:], common.Uint64ToBytes(i)...)
+		delegateRewardPerKey := append(delegateRewardPerPrefix[:], common.Uint32ToBytes(i)...)
 		keys = append(keys, delegateRewardPerKey)
 	}
 	return keys
@@ -114,7 +126,6 @@ type DelegateRewardPerList struct {
 func NewDelegateRewardPerList() *DelegateRewardPerList {
 	del := new(DelegateRewardPerList)
 	del.Pers = make([]*DelegateRewardPer, 0)
-	//	del.Epochs = make([]uint64, 0)
 	return del
 }
 
