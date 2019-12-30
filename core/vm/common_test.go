@@ -100,5 +100,4 @@ func TestToWordSize(t *testing.T) {
 		resv := toWordSize(v.v)
 		assert.Equal(t, v.expect, resv)
 	}
-
 }
