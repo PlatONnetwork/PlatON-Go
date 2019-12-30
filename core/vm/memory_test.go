@@ -60,7 +60,7 @@ func TestSet32(t *testing.T) {
 	for _, v := range testCases {
 		m.Resize(32)
 		m.Set32(v.offset, v.val.Big())
-		actual := common.Bytes2Hex(m.store)
+		actual := common.Bytes2Hex(m.Data())
 		if actual != v.want.HexWithNoPrefix() {
 			t.Errorf("Expected: %s, got: %s", v.want.Hex(), actual)
 		}
@@ -78,7 +78,7 @@ func TestResize(t *testing.T) {
 	}
 	for _, v := range testCases {
 		m.Resize(uint64(v.size))
-		assert.Equal(t, int(v.size), len(m.store))
+		assert.Equal(t, int(v.size), m.Len())
 	}
 }
 
@@ -125,5 +125,6 @@ func TestGetPtr(t *testing.T) {
 		if actual != v.want {
 			t.Errorf("Expected: %s, got: %s", v.want, actual)
 		}
+		m.Print()
 	}
 }
