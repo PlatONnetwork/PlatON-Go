@@ -305,6 +305,20 @@ func TestOpNot(t *testing.T) {
 	testTwoOperandOp(t, tests, opNot)*/
 }
 
+func TestOpLt(t *testing.T) {
+	v := func(v int64) string {
+		b := new(big.Int).SetInt64(v)
+		return common.Bytes2Hex(b.Bytes())
+	}
+	tests := []twoOperandTest{
+		{v(2), v(1), v(1)},
+		{v(0), v(0), v(0)},
+		{v(1), v(2), v(0)},
+		{v(-2), v(0), v(1)},
+	}
+	testTwoOperandOp(t, tests, opLt)
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
