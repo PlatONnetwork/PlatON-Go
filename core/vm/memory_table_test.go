@@ -15,3 +15,19 @@
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
+
+import (
+	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+)
+
+func TestMemorySha3(t *testing.T) {
+	stack := newstack()
+	stack.push(byteutil.BytesToBigInt([]byte{0x01}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x02}))
+	r := memorySha3(stack)
+	if r.Uint64() != 3 {
+		t.Errorf("Expected: 3, got %d", r.Uint64())
+	}
+}
