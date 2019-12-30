@@ -86,3 +86,14 @@ func TestGetByte(t *testing.T) {
 		assert.Equal(t, v.want, r)
 	}
 }
+
+func TestCaller(t *testing.T) {
+	addr := common.BytesToAddress([]byte("aaa"))
+	contract := &Contract{
+		CallerAddress: addr,
+	}
+	cr := contract.Caller()
+	if cr != addr {
+		t.Logf("Not equal, expect: %s, actual: %s", addr, cr)
+	}
+}
