@@ -117,3 +117,14 @@ func TestUseGas(t *testing.T) {
 		t.Errorf("Expected: false, got true")
 	}
 }
+
+func TestAddress(t *testing.T) {
+	addr := common.BytesToAddress([]byte("aaa"))
+	contract := &Contract{
+		self: &MockAddressRef{},
+	}
+	cr := contract.Address()
+	if cr != addr {
+		t.Errorf("Expected: %s, got: %s", addr, cr)
+	}
+}
