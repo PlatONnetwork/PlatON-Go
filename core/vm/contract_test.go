@@ -61,3 +61,28 @@ func TestGetOp(t *testing.T) {
 		assert.Equal(t, v.want, opCode)
 	}
 }
+
+func TestGetByte(t *testing.T) {
+	code := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06}
+	testCases := []struct {
+		n    uint64
+		want byte
+	}{
+		{n: 0, want: byte(STOP)},
+		{n: 1, want: byte(ADD)},
+		{n: 2, want: byte(MUL)},
+		{n: 3, want: byte(SUB)},
+		{n: 4, want: byte(DIV)},
+		{n: 5, want: byte(SDIV)},
+		{n: 6, want: byte(MOD)},
+		{n: 100, want: byte(0x00)},
+	}
+	c := &Contract{
+		Code: code,
+	}
+	// iterate and verify.
+	for _, v := range testCases {
+		r := c.GetByte(v.n)
+		assert.Equal(t, v.want, r)
+	}
+}
