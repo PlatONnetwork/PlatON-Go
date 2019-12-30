@@ -48,8 +48,24 @@ func TestMemoryReturnDataCopy(t *testing.T) {
 	stack.push(byteutil.BytesToBigInt([]byte{0x01}))
 	stack.push(byteutil.BytesToBigInt([]byte{0x02}))
 	stack.push(byteutil.BytesToBigInt([]byte{0x03}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x05}))
 	r := memoryReturnDataCopy(stack)
-	if r.Uint64() != 4 {
-		t.Errorf("Expected: 4, got %d", r.Uint64())
+	if r.Uint64() != 8 {
+		t.Errorf("Expected: 8, got %d", r.Uint64())
+	}
+}
+
+func TestMemoryCodeCopy(t *testing.T) {
+	stack := newstack()
+	stack.push(byteutil.BytesToBigInt([]byte{0x01}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x02}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x03}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x05}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x06}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x07}))
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	r := memoryCodeCopy(stack)
+	if r.Uint64() != 14 {
+		t.Errorf("Expected: 14, got %d", r.Uint64())
 	}
 }
