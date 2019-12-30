@@ -225,3 +225,16 @@ func TestGasCreate2(t *testing.T) {
 		t.Error("not expected error")
 	}
 }
+
+func TestGasBalance(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasBalance(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
+	if gas != 400 {
+		t.Errorf("Expected: 400, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
