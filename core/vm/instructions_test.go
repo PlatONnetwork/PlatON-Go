@@ -20,6 +20,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
@@ -353,10 +355,13 @@ func TestOpSgt(t *testing.T) {
 		return common.Bytes2Hex(b.Bytes())
 	}
 	tests := []twoOperandTest{
+		{v(2), v(-1), v(0)},
 		{v(2), v(1), v(0)},
 		{v(0), v(0), v(0)},
 		{v(1), v(2), v(1)},
 		{v(-2), v(0), v(0)},
+		{common.Bytes2Hex(math.BigPow(2, 256).Bytes()), v(1), v(1)},
+		{v(1), common.Bytes2Hex(math.BigPow(2, 256).Bytes()), v(0)},
 	}
 	testTwoOperandOp(t, tests, opSgt)
 }
