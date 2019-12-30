@@ -20,6 +20,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/stretchr/testify/assert"
 )
@@ -347,6 +349,30 @@ func TestGasRevert(t *testing.T) {
 	gas, err := gasRevert(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), 1024)
 	if gas != 98 {
 		t.Errorf("Expected: 98, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+type MockAddressRef struct{}
+
+func (ref *MockAddressRef) Address() common.Address {
+	return common.BytesToAddress([]byte("aaa"))
+}
+
+func TestGasSuicide(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stateDB, _, _ := newChainState()
+
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasSuicide(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000, self: &MockAddressRef{}}, stack, NewMemory(), 1024)
+	if gas != 5000 {
+		t.Errorf("Expected: 5000, got %d", gas)
 	}
 	if err != nil {
 		t.Error("not expected error")
