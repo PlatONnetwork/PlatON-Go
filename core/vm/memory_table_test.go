@@ -84,3 +84,12 @@ func TestMemoryExtCodeCopy(t *testing.T) {
 		t.Errorf("Expected: 12, got %d", r.Uint64())
 	}
 }
+
+func TestMemoryMLoad(t *testing.T) {
+	stack := newstack()
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	r := memoryMLoad(stack)
+	if r.Uint64() != 40 {
+		t.Errorf("Expected: 40, got %d", r.Uint64())
+	}
+}
