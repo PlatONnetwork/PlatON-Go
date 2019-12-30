@@ -139,3 +139,23 @@ func TestValue(t *testing.T) {
 		t.Errorf("Expected: 100, got: %d", cr)
 	}
 }
+
+func TestSetting(t *testing.T) {
+	// test SetCallCode of method.
+	contract := &Contract{
+		value: buildBigInt(100),
+	}
+	addr := common.BytesToAddress([]byte("I'm address"))
+	code := []byte{0x00, 0x10}
+	hash := common.BytesToHash(code)
+	contract.SetCallCode(&addr, hash, code)
+
+	if *contract.CodeAddr != addr {
+		t.Errorf("Expected: %s, got %s", addr, contract.CodeAddr)
+	}
+	assert.Equal(t, code, contract.Code)
+	if contract.CodeHash != hash {
+		t.Errorf("Expected: %s, got %s", hash, contract.CodeHash)
+	}
+
+}
