@@ -2467,13 +2467,13 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 }
 
 // Calculating Total Entrusted Income
-func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.DelegateRewardPer) ([]reward.DelegateRewardReceive, error) {
+func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.DelegateRewardPer) []reward.DelegateRewardReceive {
 	if uint64(del.DelegateEpoch) == epoch {
-		return nil, nil
+		return nil
 	}
 	// Triggered again in the same cycle, no need to calculate revenue
 	if len(per) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
@@ -2485,7 +2485,7 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 			lazyCalcDelegateAmount(epoch, del)
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 type sortValidator struct {

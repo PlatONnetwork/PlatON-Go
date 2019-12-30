@@ -109,6 +109,13 @@ type DelegateRewardPerList struct {
 	Epochs []uint64
 }
 
+func NewDelegateRewardPerList() *DelegateRewardPerList {
+	del := new(DelegateRewardPerList)
+	del.Pers = make(map[uint64]*DelegateRewardPer)
+	del.Epochs = make([]uint64, 0)
+	return del
+}
+
 func (d *DelegateRewardPerList) AppendDelegateRewardPer(per *DelegateRewardPer) {
 	//index := epoch % DelegateRewardPerLength
 	d.Pers[per.Epoch] = per
@@ -132,6 +139,13 @@ func (d *DelegateRewardPerList) DecreaseTotalAmount(epoch uint64, amount *big.In
 		}
 		d.Epochs = append(d.Epochs[:delIndex], d.Epochs[delIndex+1:]...)
 	}
+}
+
+func (d *DelegateRewardPerList) ShouldDel() bool {
+	if len(d.Epochs) == 0 {
+		return true
+	}
+	return false
 }
 
 type NodeDelegateReward struct {
