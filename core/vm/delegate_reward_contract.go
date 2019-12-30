@@ -8,8 +8,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -73,8 +71,14 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	list, err := rc.stkPlugin.GetDelegatesInfo(blockHash, from)
 	if err != nil {
 		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, "withdrawDelegateReward", "",
-			TxWithdrawDelegateReward, int(staking.ErrQueryDelegateInfo.Code)), err
+			TxWithdrawDelegateReward, int(common.InternalError.Code)), err
 	}
+	if len(list) == 0 {
+		log.Debug("Call withdrawDelegateReward of DelegateRewardContract，the delegates info list is empty", "blockNumber", blockNum.Uint64(),
+			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String())
+		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code)), nil
+	}
+
 	if !rc.Contract.UseGas(params.WithdrawDelegateNodeGas * uint64(len(list))) {
 		return nil, ErrOutOfGas
 	}
@@ -88,12 +92,13 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 		} else {
 			delegateRewardPerList, err := rc.Plugin.GetDelegateRewardPerList(blockHash, stakingNode.NodeID, stakingNode.StakeBlockNumber, uint64(stakingNode.Delegation.DelegateEpoch), currentEpoch-1)
 			if err != nil {
-
+				log.Error("Failed to withdrawDelegateReward",
+					"txHash", txHash.Hex(), "blockNumber", blockNum, "err", err)
+				return nil, err
 			}
 			unCalEpoch += len(delegateRewardPerList)
 			delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, plugin.NewDelegationInfoWithRewardPerList(stakingNode, delegateRewardPerList))
 		}
-
 	}
 
 	if !rc.Contract.UseGas(params.WithdrawDelegateEpochGas * uint64(unCalEpoch)) {
@@ -106,8 +111,14 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 
 	reward, err := rc.Plugin.WithdrawDelegateReward(blockHash, blockNum.Uint64(), from, delegationInfoWithRewardPerList, state)
 	if err != nil {
-		//todo error checking
-		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code)), nil
+		if bizErr, ok := err.(*common.BizError); ok {
+			return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward,
+				bizErr.Error(), TxWithdrawDelegateReward, int(bizErr.Code)), nil
+		} else {
+			log.Error("Failed to withdraw delegateReward ", "txHash", txHash,
+				"blockNumber", blockNum, "err", err, "account", from)
+			return nil, err
+		}
 	}
 	return txResultHandlerWithRes(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code), reward), nil
 }
@@ -121,9 +132,9 @@ func (rc *DelegateRewardContract) getDelegateReward(nodeIDs []discover.NodeID) (
 
 	reward, err := rc.Plugin.GetDelegateReward(blockHash, blockNum.Uint64(), from, nodeIDs, state)
 	if err != nil {
-
+		return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", from.String()),
+			reward, common.InternalError.Wrap(err.Error())), nil
 	}
-
 	return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", from.String()),
-		reward, err), nil
+		reward, nil), nil
 }

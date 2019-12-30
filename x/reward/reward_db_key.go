@@ -60,7 +60,7 @@ func DelegateRewardPerKey(nodeID discover.NodeID, stakingNum, epoch uint64) []by
 		panic(err)
 	}
 	keyAdd := append(delegateRewardPerKey, add.Bytes()...)
-	keyAdd = append(delegateRewardPerKey, common.Uint64ToBytes(stakingNum)...)
+	keyAdd = append(keyAdd, common.Uint64ToBytes(stakingNum)...)
 	return append(keyAdd, common.Uint64ToBytes(index)...)
 }
 
@@ -71,7 +71,8 @@ func DelegateRewardPerKeys(nodeID discover.NodeID, stakingNum, fromEpoch, toEpoc
 	if err != nil {
 		panic(err)
 	}
-	delegateRewardPerPrefix := append(add[:], common.Uint64ToBytes(stakingNum)...)
+	delegateRewardPerPrefix := append(delegateRewardPerKey, add.Bytes()...)
+	delegateRewardPerPrefix = append(delegateRewardPerPrefix, common.Uint64ToBytes(stakingNum)...)
 	keys := make([][]byte, 0)
 	for i := indexFrom; i <= indexTo; i++ {
 		delegateRewardPerKey := append(delegateRewardPerPrefix[:], common.Uint64ToBytes(i)...)
@@ -86,13 +87,13 @@ func DelegateRewardTotalKey(nodeID discover.NodeID, stakingNum uint64) []byte {
 		panic(err)
 	}
 	keyAdd := append(delegateRewardTotalKey, add.Bytes()...)
-	keyAdd = append(delegateRewardTotalKey, common.Uint64ToBytes(stakingNum)...)
+	keyAdd = append(keyAdd, common.Uint64ToBytes(stakingNum)...)
 	return keyAdd
 }
 
-func NewDelegateRewardPer(epoch uint64, per, total *big.Int) *DelegateRewardPer {
+func NewDelegateRewardPer(epoch uint64, per, totalDelegateReward *big.Int) *DelegateRewardPer {
 	return &DelegateRewardPer{
-		TotalAmount: total,
+		TotalAmount: totalDelegateReward,
 		Amount:      per,
 		Epoch:       epoch,
 	}
@@ -100,38 +101,53 @@ func NewDelegateRewardPer(epoch uint64, per, total *big.Int) *DelegateRewardPer 
 
 type DelegateRewardPer struct {
 	TotalAmount *big.Int
-	Epoch       uint64 `rlp:"nil"`
+	Epoch       uint64
 	Amount      *big.Int
 }
 
 type DelegateRewardPerList struct {
-	Pers   map[uint64]*DelegateRewardPer
-	Epochs []uint64
+	Pers    []*DelegateRewardPer
+	epochs  map[uint64]int
+	changed bool
+}
+
+func NewDelegateRewardPerList() *DelegateRewardPerList {
+	del := new(DelegateRewardPerList)
+	del.Pers = make([]*DelegateRewardPer, 0)
+	//	del.Epochs = make([]uint64, 0)
+	return del
 }
 
 func (d *DelegateRewardPerList) AppendDelegateRewardPer(per *DelegateRewardPer) {
-	//index := epoch % DelegateRewardPerLength
-	d.Pers[per.Epoch] = per
-	d.Epochs = append(d.Epochs, per.Epoch)
+	d.Pers = append(d.Pers, per)
+	d.epochs = nil
 }
 
 func (d *DelegateRewardPerList) DecreaseTotalAmount(epoch uint64, amount *big.Int) {
-	per, ok := d.Pers[epoch]
-	if !ok {
-		return
-	}
-	per.TotalAmount.Sub(per.TotalAmount, amount)
-	if per.TotalAmount.Cmp(common.Big0) <= 0 {
-		delete(d.Pers, epoch)
-		delIndex := 0
-		for i, v := range d.Epochs {
-			if v == epoch {
-				delIndex = i
-				break
-			}
+	if len(d.epochs) == 0 {
+		d.epochs = make(map[uint64]int)
+		for delIndex, per := range d.Pers {
+			d.epochs[per.Epoch] = delIndex
 		}
-		d.Epochs = append(d.Epochs[:delIndex], d.Epochs[delIndex+1:]...)
 	}
+	if index, ok := d.epochs[epoch]; ok {
+		d.Pers[index].TotalAmount.Sub(d.Pers[index].TotalAmount, amount)
+		if d.Pers[index].TotalAmount.Cmp(common.Big0) <= 0 {
+			d.Pers = append(d.Pers[:index], d.Pers[index+1:]...)
+		}
+		d.changed = true
+	}
+}
+
+func (d *DelegateRewardPerList) ShouldDel() bool {
+	if len(d.Pers) == 0 {
+		return true
+	}
+	return false
+}
+
+func (d *DelegateRewardPerList) IsChange() bool {
+	return d.changed
 }
 
 type NodeDelegateReward struct {
