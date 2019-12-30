@@ -43,3 +43,24 @@ func TestSet(t *testing.T) {
 		}
 	}
 }
+
+func TestSet32(t *testing.T) {
+	m := NewMemory()
+	testCases := []struct {
+		val    common.Hash
+		offset uint64
+		want   common.Hash
+	}{
+		{common.BytesToHash([]byte{0x11}), 0, common.BytesToHash([]byte{0x11})},
+		{common.BytesToHash([]byte{0x00}), 0, common.BytesToHash([]byte{0x00})},
+		{common.BytesToHash([]byte{0x11, 0xab}), 0, common.BytesToHash([]byte{0x11, 0xab})},
+	}
+	for _, v := range testCases {
+		m.Resize(32)
+		m.Set32(v.offset, v.val.Big())
+		actual := common.Bytes2Hex(m.store)
+		if actual != v.want.HexWithNoPrefix() {
+			t.Errorf("Expected: %s, got: %s", v.want.Hex(), actual)
+		}
+	}
+}
