@@ -93,3 +93,12 @@ func TestMemoryMLoad(t *testing.T) {
 		t.Errorf("Expected: 40, got %d", r.Uint64())
 	}
 }
+
+func TestMemoryMStore8(t *testing.T) {
+	stack := newstack()
+	stack.push(byteutil.BytesToBigInt([]byte{0x08}))
+	r := memoryMStore8(stack)
+	if r.Uint64() != 9 {
+		t.Errorf("Expected: 9, got %d", r.Uint64())
+	}
+}
