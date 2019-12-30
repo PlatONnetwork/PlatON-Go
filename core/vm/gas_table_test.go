@@ -425,8 +425,26 @@ func TestGasPush(t *testing.T) {
 	stack.push(new(big.Int).SetUint64(100))
 	stack.push(new(big.Int).SetUint64(100))
 	gas, err := gasPush(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), 1024)
-	if gas != 98 {
-		t.Errorf("Expected: 98, got %d", gas)
+	if gas != 3 {
+		t.Errorf("Expected: 3, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func TestGasSwap(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := newstack()
+	stateDB, _, _ := newChainState()
+
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	stack.push(new(big.Int).SetUint64(100))
+	gas, err := gasSwap(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), 1024)
+	if gas != 3 {
+		t.Errorf("Expected: 3, got %d", gas)
 	}
 	if err != nil {
 		t.Error("not expected error")
