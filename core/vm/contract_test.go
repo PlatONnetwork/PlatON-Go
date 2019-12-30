@@ -25,6 +25,27 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
+func TestValidJumpdest(t *testing.T) {
+	code := []byte{0x00, 0x5b}
+	contract := &Contract{
+		Code:      code,
+		CodeHash:  common.BytesToHash(code),
+		jumpdests: make(map[common.Hash]bitvec),
+	}
+	r := contract.validJumpdest(new(big.Int).SetUint64(3))
+	if r {
+		t.Errorf("Expected false, got true")
+	}
+	r = contract.validJumpdest(new(big.Int).SetUint64(1))
+	if !r {
+		t.Errorf("Expected true, got false")
+	}
+	r = contract.validJumpdest(new(big.Int).SetUint64(2))
+	if r {
+		t.Errorf("Expected false, got true")
+	}
+}
+
 func TestAsDelegate(t *testing.T) {
 	contract := &Contract{
 		caller: &Contract{
