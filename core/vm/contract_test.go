@@ -158,4 +158,21 @@ func TestSetting(t *testing.T) {
 		t.Errorf("Expected: %s, got %s", hash, contract.CodeHash)
 	}
 
+	// test SetCodeOptionalHash
+	optional := codeAndHash{
+		code: code,
+		hash: hash,
+	}
+	contract.SetCodeOptionalHash(&addr, &optional)
+	if *contract.CodeAddr != addr {
+		t.Errorf("Expected: %s, got %s", addr, contract.CodeAddr)
+	}
+	assert.Equal(t, code, contract.Code)
+	if contract.CodeHash != hash {
+		t.Errorf("Expected: %s, got %s", hash, contract.CodeHash)
+	}
+
+	// test SetCallAbi.
+	contract.SetCallAbi(&addr, hash, []byte{})
+
 }
