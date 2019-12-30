@@ -1583,6 +1583,39 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	assert.True(t, can.DelegateTotalHes.Cmp(del.ReleasedHes) == 0)
 	assert.True(t, can.DelegateEpoch == del.DelegateEpoch)
 	assert.True(t, del.CumulativeIncome == nil)
+
+	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:  1,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:  2,
+		Amount: new(big.Int).SetUint64(10),
+	})
+
+	canAddr, _ := xutil.NodeId2Addr(can.NodeId)
+
+	curBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch() * 3)
+	if err := sndb.NewBlock(curBlockNumber, blockHash2, blockHash3); nil != err {
+		t.Error("newBlock 2 err", err)
+		return
+	}
+
+	expectedCumulativeIncome := new(big.Int).Mul(del.ReleasedHes, delegateRewardPerList[1].Amount)
+	delegateAmount := new(big.Int).SetUint64(1)
+	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
+		t.Fatal("Failed to Delegate:", err)
+	}
+
+	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
+	assert.True(t, del.DelegateEpoch == 3)
+	assert.True(t, del.ReleasedHes.Cmp(delegateAmount) == 0)
+	assert.True(t, can.DelegateEpoch == del.DelegateEpoch)
+	assert.True(t, can.DelegateTotal.Cmp(del.Released) == 0)
+
+	t.Log("Finish Delegate ~~, Info is:", del)
+
 	t.Log("Get Candidate Info is:", can)
 
 }
