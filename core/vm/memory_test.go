@@ -19,6 +19,8 @@ package vm
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
@@ -62,5 +64,20 @@ func TestSet32(t *testing.T) {
 		if actual != v.want.HexWithNoPrefix() {
 			t.Errorf("Expected: %s, got: %s", v.want.Hex(), actual)
 		}
+	}
+}
+
+func TestResize(t *testing.T) {
+	m := NewMemory()
+	testCases := []struct {
+		size int64
+	}{
+		{size: 10},
+		{size: 1000},
+		{size: 2000},
+	}
+	for _, v := range testCases {
+		m.Resize(uint64(v.size))
+		assert.Equal(t, int(v.size), len(m.store))
 	}
 }
