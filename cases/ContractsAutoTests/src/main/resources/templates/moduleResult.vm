@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=$encode" />
+    <title>自动化运行结果</title>
+    <style type="text/css" media="all">
+        body {
+            font:normal 12px verdana,arial,helvetica;
+            color:#000000;
+        }
+        table tr td, table tr th {
+            font-size: 12px;
+        }
+        table.details tr th{
+            font-weight: bold;
+            text-align:left;
+            background:#a6caf0;
+        }
+        table.details tr td{
+            background:#eeeee0;
+        }
+        A:link {
+            color: #0000ff;
+        }
+        A:visited {
+            COLOR:#0000ff;
+        }
+
+        p {
+            line-height:1.5em;
+            margin-top:0.5em; margin-bottom:1.0em;
+        }
+        h1 {
+            margin: 0px 0px 5px; font: 165% verdana,arial,helvetica
+        }
+        h2 {
+            margin-top: 1em; margin-bottom: 0.5em; font: bold 125% verdana,arial,helvetica
+        }
+        h3 {
+            margin-bottom: 0.5em; font: bold 115% verdana,arial,helvetica
+        }
+        h4 {
+            margin-bottom: 0.5em; font: bold 100% verdana,arial,helvetica
+        }
+        h5 {
+            margin-bottom: 0.5em; font: bold 100% verdana,arial,helvetica
+        }
+        h6 {
+            margin-bottom: 0.5em; font: bold 100% verdana,arial,helvetica
+        }
+        .Pass {
+            font-weight:bold; color:green;
+        }
+        .Error {
+            font-weight:bold; color:red;
+        }
+        .Warn {
+            font-weight:bold; color:#ffff00;
+        }
+        .Failure {
+            font-weight:bold; color:purple;
+        }
+        .Properties {
+            text-align:right;
+        }
+        .wrap{
+            table-layout:fixed;
+            overflow:hidden;
+            word-spacing:inherit;
+            word-break:break-all;
+        }
+    </style>
+</head>
+<body>
+<div id="container">
+    <h2>模块执行结果</h2>
+    <hr size="1"/>
+    <h2>概要信息</h2>
+    <table class="details" border="0" cellpadding="5" cellspacing="2" width="98%">
+        <tr valign="top">
+            <th>模块名</th>
+            <th>脚本负责人</th>
+            <th>运行用例数</th>
+            <th>成功用例数</th>
+            <th>失败用例数</th>
+            <th>成功率</th>
+        </tr>
+
+        <tr valign="top">
+            <td>$moduleInfo.moduleShowName</td>
+            <td>$!moduleInfo.moduleAuthor</td>
+            <td>$!moduleInfo.moduleCaseNum</td>
+            <td>$!moduleInfo.passCaseNum</td>
+            <td class="Error">$!moduleInfo.failCaseNum</td>
+            <td style="font-weight:bold">
+                #if($!moduleInfo.passPercent>=100)
+                    <span style="color:green">100%</span>
+                #else
+                    <span style="color:red">$!moduleInfo.passPercent</span><span style="color:red">%</span>
+                #end
+            </td>
+        </tr>
+    </table>
+    <table border="0" width="98%">
+        <tr>
+            <td style="text-align: justify;color:#996600;padding-left:5px;">
+                备注: 未运行的case会被标记为执行失败!
+            </td>
+        </tr>
+    </table>
+
+    <h2>用例信息</h2>
+    <table class="details" border="0" cellpadding="5" cellspacing="2" width="98%">
+        <colgroup>
+            <col width="10%" align="left"/>
+            <col width="40%" align="left"/>
+            <col width="15%" align="left"/>
+            <col width="15%" align="left"/>
+            <col width="10%" align="left"/>
+            <col width="10%" align="left"/>
+        </colgroup>
+        <tr valign="top">
+            <th>用例名</th>
+            <th>用例描述</th>
+            <th>开始时间</th>
+            <th>结束时间</th>
+            <th>运行耗时</th>
+            <th>执行结果</th>
+        </tr>
+        #foreach ($caseInfo in $moduleInfo.caseInfoList)
+            <tr valign="top">
+                <td>
+                    #if($caseInfo.caseResult=="PASS")
+                        <a href=测试模块_${moduleInfo.moduleName}/测试用例_${caseInfo.caseName}.html target="_self">$caseInfo.caseName</a>
+                    #else
+                        <a href=测试模块_${moduleInfo.moduleName}/测试用例_${caseInfo.caseName}.html target="_self" style="color:red">$caseInfo.caseName</a>
+                    #end
+                </td>
+                <td>$caseInfo.caseDesc</td>
+                <td>$!caseInfo.getCaseStartTimeStr()</td>
+                <td>$!caseInfo.getCaseStopTimeStr()</td>
+                <td>$!caseInfo.getCaseRunTimeStr()秒</td>
+                <td>
+                    #if( $caseInfo.caseResult=="PASS")
+                        <span class="Pass">Pass</span>
+                    #else
+                        <span class="Error">Fail</span>
+                    #end
+                </td>
+            </tr>
+        #end
+    </table>
+</div>
+</body>
+</html> 

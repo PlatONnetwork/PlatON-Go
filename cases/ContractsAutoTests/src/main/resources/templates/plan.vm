@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="$!encode"?>
+<suite name="$!suiteInfo.suiteName">
+#foreach ($!moduleInfo in $!suiteInfo.moduleInfoList)
+<module  run="$!moduleInfo.moduleRun" name="$!moduleInfo.moduleName">
+#foreach ($caseInfo in $moduleInfo.caseInfoList)
+<case  run="$!caseInfo.caseRun" name="$!caseInfo.caseName"> 
+</case>
+#end
+ </module>
+#end
+</suite>
