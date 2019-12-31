@@ -1041,6 +1041,36 @@ func TestOpGasprice(t *testing.T) {
 	}
 }
 
+func TestOpBlockhash(t *testing.T) {
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	thash := common.BytesToHash([]byte("a"))
+	env.GetHash = func(u uint64) common.Hash {
+		return thash
+	}
+	env.BlockNumber = new(big.Int).SetUint64(1)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	stack.push(new(big.Int).SetUint64(1))
+	opBlockhash(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if actual.Cmp(new(big.Int).SetUint64(0)) != 0 {
+		t.Errorf("Expected 0, got %v", actual.Int64())
+	}
+
+	stack.push(new(big.Int).SetUint64(0))
+	opBlockhash(&pc, evmInterpreter, nil, nil, stack)
+	actual = stack.peek()
+	if common.Bytes2Hex(actual.Bytes()) != "61" {
+		t.Errorf("Expected 61, got %v", common.Bytes2Hex(actual.Bytes()))
+	}
+
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
