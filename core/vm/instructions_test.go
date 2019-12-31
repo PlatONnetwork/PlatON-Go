@@ -1088,6 +1088,23 @@ func TestOpCoinbase(t *testing.T) {
 	}
 }
 
+func TestOpTimestamp(t *testing.T) {
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	env.Time = new(big.Int).SetUint64(1577793650186)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opTimestamp(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if common.Bytes2Hex(actual.Bytes()) != common.Bytes2Hex(new(big.Int).SetUint64(1577793650186).Bytes()) {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
