@@ -809,6 +809,30 @@ func TestOpReturnDataSize(t *testing.T) {
 	}
 }
 
+func TestOpCodeSize(t *testing.T) {
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	contract := &Contract{
+		self:          &MockAddressRef{},
+		CallerAddress: common.BytesToAddress([]byte("aaa")),
+		value:         new(big.Int).SetUint64(10),
+		Input:         []byte{0x01, 0x02, 0x03, 0x04},
+		Code:          []byte{0x01, 0x02, 0x03, 0x04},
+	}
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	evmInterpreter.returnData = []byte{0x01, 0x02, 0x03, 0x04}
+	opCodeSize(&pc, evmInterpreter, contract, nil, stack)
+	actual := stack.pop()
+	if actual.Int64() != 4 {
+		t.Errorf("Expected 4, got %d", actual.Int64())
+	}
+}
+
 func TestOpReturnDataCopy(t *testing.T) {
 	v := func(v int64) string {
 		b := new(big.Int).SetInt64(v)
