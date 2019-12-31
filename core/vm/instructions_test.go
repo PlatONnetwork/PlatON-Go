@@ -1134,6 +1134,30 @@ func TestOpDifficulty(t *testing.T) {
 	}
 }
 
+func TestOpGasLimit(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.GasLimit = uint64(1000000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opGasLimit(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if env.GasLimit != actual.Uint64() {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpPop(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	stack.push(new(big.Int).SetUint64(1000000))
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opPop(&pc, evmInterpreter, nil, nil, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(1000000) != actual.Uint64() {
+		t.Errorf("Expected 1000000, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
