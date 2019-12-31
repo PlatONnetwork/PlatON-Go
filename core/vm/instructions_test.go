@@ -1205,6 +1205,36 @@ func TestOpSload(t *testing.T) {
 	}
 }
 
+func TestOpSstore(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	contract := &Contract{
+		self: &MockAddressRef{},
+	}
+	stack.push(new(big.Int).SetUint64(10000000))
+	stack.push(new(big.Int).SetUint64(0))
+	opSstore(&pc, evmInterpreter, contract, nil, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(10000000) != actual.Uint64() {
+		t.Errorf("Expected 10000000, got %d", actual.Int64())
+	}
+}
+
+func TestOpJump(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	contract.Code = []byte{0x01, 0x02, 0x03, 0x04}
+	stack.push(new(big.Int).SetUint64(80))
+	opJump(&pc, evmInterpreter, contract, nil, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
