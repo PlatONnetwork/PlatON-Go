@@ -1233,6 +1233,25 @@ func TestOpJump(t *testing.T) {
 	if uint64(0) != actual.Uint64() {
 		t.Errorf("Expected 0, got %d", actual.Int64())
 	}
+
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(80))
+	opJumpi(&pc, evmInterpreter, contract, nil, stack)
+	actual = evmInterpreter.intPool.get()
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+
+	stack.push(new(big.Int).SetUint64(80))
+	stack.push(new(big.Int).SetUint64(80))
+	opJumpi(&pc, evmInterpreter, contract, nil, stack)
+	actual = evmInterpreter.intPool.get()
+	if uint64(80) != actual.Uint64() {
+		t.Errorf("Expected 80, got %d", actual.Int64())
+	}
+
+	// empty test.
+	opJumpdest(&pc, evmInterpreter, contract, nil, stack)
 }
 
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
