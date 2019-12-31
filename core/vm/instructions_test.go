@@ -1322,6 +1322,36 @@ func TestOpCreate(t *testing.T) {
 	}
 }
 
+func TestOpCreate2(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
+		return true
+	}
+	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
+	}
+
+	memory := &Memory{}
+	memory.Resize(4)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	// push ele.
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(0))
+	//
+	opCreate2(&pc, evmInterpreter, contract, memory, stack)
+	actual := stack.peek()
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
