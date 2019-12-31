@@ -1071,6 +1071,23 @@ func TestOpBlockhash(t *testing.T) {
 
 }
 
+func TestOpCoinbase(t *testing.T) {
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	env.Coinbase = common.BytesToAddress([]byte("a"))
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opCoinbase(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if common.Bytes2Hex(actual.Bytes()) != common.Bytes2Hex([]byte("a")) {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
