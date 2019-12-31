@@ -1170,7 +1170,22 @@ func TestOpMload(t *testing.T) {
 	opMload(&pc, evmInterpreter, nil, memory, stack)
 	actual := self
 	if uint64(1000) != actual.Uint64() {
-		t.Errorf("Expected 1000000, got %d", actual.Int64())
+		t.Errorf("Expected 1000, got %d", actual.Int64())
+	}
+}
+
+func TestOpMstore8(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	memory := &Memory{}
+	memory.Resize(32)
+	stack.push(new(big.Int).SetUint64(10000000))
+	stack.push(new(big.Int).SetUint64(0))
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opMstore8(&pc, evmInterpreter, nil, memory, stack)
+	actual := new(big.Int).SetBytes(memory.Data())
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 1000, got %d", actual.Int64())
 	}
 }
 
