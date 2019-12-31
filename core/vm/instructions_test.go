@@ -1024,6 +1024,23 @@ func TestOpExtCodeHash(t *testing.T) {
 	}
 }
 
+func TestOpGasprice(t *testing.T) {
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	env.GasPrice = new(big.Int).SetUint64(1000000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opGasprice(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if actual.Cmp(new(big.Int).SetInt64(1000000)) != 0 {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
