@@ -1110,6 +1110,18 @@ func TestOpTimestamp(t *testing.T) {
 	}
 }
 
+func TestOpNumber(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.BlockNumber = new(big.Int).SetUint64(1577793)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opNumber(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if common.Bytes2Hex(actual.Bytes()) != common.Bytes2Hex(new(big.Int).SetUint64(1577793).Bytes()) {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
