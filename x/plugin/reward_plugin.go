@@ -233,7 +233,7 @@ func (rmp *RewardMgrPlugin) handleDelegatePerReward(blockHash common.Hash, block
 			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
 			rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state)
 		} else {
-			delegateRewardPer := new(big.Int).Div(verifier.CurrentEpochDelegateReward, verifier.DelegateTotal.ToInt())
+			delegateRewardPer := new(big.Int).Div(verifier.CurrentEpochDelegateReward, new(big.Int).Div(verifier.DelegateTotal.ToInt(), new(big.Int).SetUint64(1e18)))
 			per := reward.NewDelegateRewardPer(currentEpoch, delegateRewardPer, verifier.CurrentEpochDelegateReward)
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
 				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
