@@ -653,6 +653,20 @@ func TestOpSha3(t *testing.T) {
 	testGlobalOperandOp(t, nil, memory, nil, tests, opSha3)
 }
 
+func TestOpAddress(t *testing.T) {
+	v := func(v int64) string {
+		b := new(big.Int).SetInt64(v)
+		return common.Bytes2Hex(b.Bytes())
+	}
+	tests := []twoOperandTest{
+		{v(0), v(0), common.Bytes2Hex([]byte("aaa"))},
+	}
+	c := &Contract{
+		self: &MockAddressRef{},
+	}
+	testGlobalOperandOp(t, nil, nil, c, tests, opAddress)
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
