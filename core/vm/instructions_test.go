@@ -576,6 +576,21 @@ func TestOpSHR(t *testing.T) {
 	testTwoOperandOp(t, tests, opSHR)
 }
 
+func TestOpSAR(t *testing.T) {
+	v := func(v int64) string {
+		b := new(big.Int).SetInt64(v)
+		return common.Bytes2Hex(b.Bytes())
+	}
+	tests := []twoOperandTest{
+		{v(2), v(2), v(0)},
+		{v(0), v(0), v(0)},
+		{v(1), v(2), v(0)},
+		{v(266), v(257), v(0)},
+		{v(-2), v(0), v(2)},
+	}
+	testTwoOperandOp(t, tests, opSAR)
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
