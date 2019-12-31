@@ -210,7 +210,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	ctx := context.Background()
 	var cancelFn context.CancelFunc
 	if evm.GetVMConfig().VmTimeoutDuration > 0 &&
-		(contractCreation || vm.IsPrecompiledContract(*(msg.To()))) {
+		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()))) {
 
 		timeout := time.Duration(evm.GetVMConfig().VmTimeoutDuration) * time.Millisecond
 		ctx, cancelFn = context.WithTimeout(ctx, timeout)
