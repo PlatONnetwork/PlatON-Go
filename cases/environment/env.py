@@ -654,12 +654,12 @@ class TestEnvironment:
 
 
 def create_env(conf_tmp=None, node_file=None, account_file=None, init_chain=True,
-               install_dependency=False, install_supervisor=False) -> TestEnvironment:
+               install_dependency=False, install_supervisor=False, can_deploy=True) -> TestEnvironment:
     if not conf_tmp:
         conf_tmp = DEFAULT_CONF_TMP_DIR
     else:
         conf_tmp = ConfTmpDir(conf_tmp)
-    cfg = TestConfig(conf_tmp=conf_tmp, install_supervisor=install_supervisor, install_dependency=install_dependency, init_chain=init_chain)
+    cfg = TestConfig(conf_tmp=conf_tmp, install_supervisor=install_supervisor, install_dependency=install_dependency, init_chain=init_chain, can_deploy=can_deploy)
     if node_file:
         cfg.node_file = node_file
     if account_file:
@@ -676,7 +676,7 @@ if __name__ == "__main__":
     # new_cfg.syncmode = "fast"
     # print(env.cfg.syncmode)
     log.info("测试部署")
-    # env.deploy_all()
+    env.deploy_all()
     # node = env.get_consensus_node_by_index(0)
     # print(node.debug.economicConfig())
     # print(type(node.debug.economicConfig()))

@@ -11,6 +11,7 @@ from client_sdk_python.pip import Pip
 from common.connect import run_ssh, connect_linux, wait_connect_web3
 from common.load_file import LoadFile
 from environment.config import TestConfig
+from environment.mock import mock_connect_linux
 from common.log import log
 
 
@@ -39,8 +40,10 @@ class Node:
         self.username = node_conf["username"]
         self.password = node_conf["password"]
         self.ssh_port = node_conf.get("sshport", 22)
-        self.ssh, self.sftp, self.t = connect_linux(self.host, self.username, self.password, self.ssh_port)
-
+        if self.cfg.can_deploy:
+            self.ssh, self.sftp, self.t = connect_linux(self.host, self.username, self.password, self.ssh_port)
+        else:
+            self.ssh, self.sftp, self.t = mock_connect_linux()
         # node identification information
         self.url = node_conf["url"]
         self.node_name = "node-" + self.p2p_port

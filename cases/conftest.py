@@ -56,7 +56,7 @@ def pytest_addoption(parser):
     parser.addoption("--initChain", action="store_true", default=True, dest="initChain", help="nodeConfig: default to init chain data")
     parser.addoption("--installDependency", action="store_true", default=False, dest="installDependency", help="installDependency: default do not install dependencies")
     parser.addoption("--installSupervisor", action="store_true", default=False, dest="installSuperVisor", help="installSupervisor: default do not install supervisor service")
-
+    parser.addoption("--cantDeploy", action="store_true", default=False, dest="cantDeploy", help="deploy switch default to can deploy")
 
 # pytest 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_4.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure"
 # --reruns 3
@@ -69,6 +69,7 @@ def global_test_env(request, worker_id):
     init_chain = request.config.getoption("--initChain")
     install_dependency = request.config.getoption("--installDependency")
     install_supervisor = request.config.getoption("--installSupervisor")
+    cant_deploy = request.config.getoption("--cantDeploy")
     # platon_url = request.config.getoption("--platonUrl")
     allure_dir = request.config.getoption("--alluredir")
     log.info(node_file)
@@ -83,7 +84,7 @@ def global_test_env(request, worker_id):
                 tmp_dir = str(tmp_dir) + worker_id
     # if platon_url:
     #     download.download_platon(platon_url)
-    env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)
+    env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor, can_deploy=not cant_deploy)
     # Must choose one, don't use both
     env.deploy_all()
     # env.prepare_all()
