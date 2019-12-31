@@ -24,7 +24,7 @@ public class StorageLocationTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testStorageLocaltionCheck",
-            author = "albedo", showName = "versioncompatible.v0_4_25.StorageLocationTest-参数变量数组类型不须显式声明")
+            author = "albedo", showName = "StorageLocationTest-参数变量数组类型不须显式声明")
     public void testStorageLocationCheck() {
         try {
             prepare();
@@ -41,7 +41,7 @@ public class StorageLocationTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testTransfer",
-            author = "albedo", showName = "versioncompatible.v0_4_25.StorageLocationTest-external函数数组类型参数不需显式声明 calldata")
+            author = "albedo", showName = "StorageLocationTest-external函数数组类型参数不需显式声明 calldata")
     public void testTransfer() {
         try {
             prepare();
