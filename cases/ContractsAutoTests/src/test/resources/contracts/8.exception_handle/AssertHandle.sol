@@ -6,15 +6,15 @@ pragma solidity ^0.5.13;
  * 2.定长bytesN数组越界访问产生异常验证
  * 3.被除数为0或取模运算产生异常验证
  * 4.对一个二进制移动一个负的值产生异常验证
- * 5.整数可以显式转换为枚举时，如果将过大值，负值转为枚举类型则抛出异常被除数为0异常验证
+ * 5.整数进行可以显式转换为枚举时，如果将过大值，负值转为枚举类型则抛出异常
  * 6.调用内部函数类型的零初始化变量验证
  * 7.用assert的参数为false产生异常验证
  * @author Albedo
- * @dev 2019/12/19
+ * @dev 2019/12/30
  **/
 
 library ArrayUtils {
-    // 编译异常：6.如果函数类型调用未初始化internal函数时，将会产生异常
+    // they will be part of the same code context
     function map(uint[] memory self, function (uint) pure returns (uint) f)
     internal
     pure
@@ -50,7 +50,7 @@ library ArrayUtils {
 
 contract AssertHandle {
 
-    using ArrayUtils for *;
+    enum ActionChoices { GoLeft, GoRight, GoStraight, SitStill }
     //1.如果越界，或负的序号值访问数组，如i >= x.length 或 i < 0时访问x[i]
     function outOfBoundsException() public {
         //编译异常：数组越界访问
@@ -80,9 +80,15 @@ contract AssertHandle {
         // uint8 uu=2;
         // uu<<-2;
     }
+
+    //5.整数进行可以显式转换为枚举时，如果将过大值，负值转为枚举类型则抛出异常
+    function intChangeException(int8 param) public returns (ActionChoices choice){
+        choice = ActionChoices(param);
+    }
+
     //7.如果调用assert的参数为false
-    function paramException() public {
-        assert(1 < 0);
+    function paramException(uint param) public {
+        assert(param < 10);
     }
 
 }
