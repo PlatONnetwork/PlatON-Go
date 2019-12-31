@@ -37,6 +37,9 @@ library SearchLibrary {
 }
 
 contract LibraryUsingFor {
+    event Result(bool result);
+
+
     //using A for B
     using BaseLibrary for BaseLibrary.Data;
     BaseLibrary.Data knownValues;
@@ -44,10 +47,9 @@ contract LibraryUsingFor {
     using SearchLibrary for *;
     uint[] data;
 
-    function register(uint value) public {
-        // 这里， BaseLib.Data 类型的所有变量都有与之相对应的成员函数。
-        // 下面的函数调用和 `BaseLib.insert(knownValues, value)` 的效果完全相同。
-        require(knownValues.insert(value));
+    function register(uint value) public returns (bool result){
+        result=knownValues.insert(value);
+        emit Result(result);
     }
 
     function replace(uint _old, uint _new) public {

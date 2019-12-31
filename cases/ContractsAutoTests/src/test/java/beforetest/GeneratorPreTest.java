@@ -25,12 +25,12 @@ import java.util.concurrent.Semaphore;
  * @create: 2019/12/18 11:27
  **/
 public class GeneratorPreTest {
-
+    @Rule
+    public DriverService driverService = new DriverService();
     @Rule
     public AssertCollector collector = new AssertCollector();
 
-    @Rule
-    public DriverService driverService = new DriverService();
+
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao", showName = "GeneratorPreTest-编译并生成包装类")

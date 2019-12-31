@@ -8,7 +8,7 @@ pragma solidity ^0.5.13;
  **/
 contract RequireMessageHandle {
     //如果调用require的参数为false
-    function paramException() public {
-        require(1<0,"整型大小比较异常，1>0");
+    function paramException(uint param) public {
+        require(param<10,"整型大小比较异常");
     }
 }

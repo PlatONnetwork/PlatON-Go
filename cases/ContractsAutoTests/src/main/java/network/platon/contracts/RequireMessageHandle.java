@@ -1,8 +1,5 @@
 package network.platon.contracts;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -14,6 +11,10 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collections;
+
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -24,7 +25,7 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class RequireMessageHandle extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060e28061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80631f4c7d9c14602d575b600080fd5b60336035565b005b600060011060ab576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040180806020018281038252601e8152602001807fe695b4e59e8be5a4a7e5b08fe6af94e8be83e5bc82e5b8b8efbc8c313e30000081525060200191505060405180910390fd5b56fea265627a7a72315820c7db8d35407ade19e79d62b0d7469500c483b2956fa095dd4995ef028a5ae50f64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610105806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063afcd320e14602d575b600080fd5b605660048036036020811015604157600080fd5b81019080803590602001909291905050506058565b005b600a811060cd576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260188152602001807fe695b4e59e8be5a4a7e5b08fe6af94e8be83e5bc82e5b8b8000000000000000081525060200191505060405180910390fd5b5056fea265627a7a723158202a789bd0220c34222f7b8ef1226005ba629e65fce3c6dee7fde4079002cd690c64736f6c634300050d0032";
 
     public static final String FUNC_PARAMEXCEPTION = "paramException";
 
@@ -46,10 +47,10 @@ public class RequireMessageHandle extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> paramException() {
+    public RemoteCall<TransactionReceipt> paramException(BigInteger param) {
         final Function function = new Function(
                 FUNC_PARAMEXCEPTION, 
-                Arrays.<Type>asList(), 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }

@@ -25,7 +25,7 @@ public class TypeCastTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testTypeCast",
-            author = "albedo", showName = "versioncompatible.v0_4_25.TypeCastTest-类型转换")
+            author = "albedo", showName = "v0_4_25.TypeCastTest-类型转换")
     public void testTypeCast() {
         try {
             prepare();
