@@ -1189,6 +1189,22 @@ func TestOpMstore8(t *testing.T) {
 	}
 }
 
+func TestOpSload(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	contract := &Contract{
+		self: &MockAddressRef{},
+	}
+	stack.push(new(big.Int).SetUint64(10000000))
+	stack.push(new(big.Int).SetUint64(0))
+	opSload(&pc, evmInterpreter, contract, nil, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 1000, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
