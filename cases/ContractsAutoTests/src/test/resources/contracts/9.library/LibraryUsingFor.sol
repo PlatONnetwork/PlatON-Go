@@ -39,7 +39,6 @@ library SearchLibrary {
 contract LibraryUsingFor {
     event Result(bool result);
 
-    event Result(bool result);
 
     //using A for B
     using BaseLibrary for BaseLibrary.Data;
