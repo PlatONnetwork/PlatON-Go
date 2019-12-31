@@ -1,8 +1,5 @@
 package network.platon.contracts;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -14,6 +11,10 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collections;
+
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -24,7 +25,7 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class RevertHandle extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610105806100206000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80631879054e1460375780632632dfbf14603f575b600080fd5b603d6047565b005b604560c0565b005b60006001111560be576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260158152602001807f636865636b20636174636820657863657074696f6e000000000000000000000081525060200191505060405180910390fd5b565b60006001111560ce57600080fd5b56fea265627a7a723158200dd7998b40fbb54f5208c0b864f7523b2190cd1dc4905da87223d9bb9f77fa9964736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610157806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c8063852da1631461003b578063f76051e714610069575b600080fd5b6100676004803603602081101561005157600080fd5b8101908080359060200190929190505050610097565b005b6100956004803603602081101561007f57600080fd5b8101908080359060200190929190505050610111565b005b600a81111561010e576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260158152602001807f636865636b20636174636820657863657074696f6e000000000000000000000081525060200191505060405180910390fd5b50565b600a81111561011f57600080fd5b5056fea265627a7a7231582097ae03aeb1e54460c864221876ee136738e99690867e972d37e4aad17bf1e24b64736f6c634300050d0032";
 
     public static final String FUNC_REVERTCHECK = "revertCheck";
 
@@ -48,18 +49,18 @@ public class RevertHandle extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> revertCheck() {
+    public RemoteCall<TransactionReceipt> revertCheck(BigInteger param) {
         final Function function = new Function(
                 FUNC_REVERTCHECK, 
-                Arrays.<Type>asList(), 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> revertReasonCheck() {
+    public RemoteCall<TransactionReceipt> revertReasonCheck(BigInteger param) {
         final Function function = new Function(
                 FUNC_REVERTREASONCHECK, 
-                Arrays.<Type>asList(), 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
