@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/cespare/xxhash"
 	"github.com/panjf2000/ants/v2"
 )
 
@@ -16,7 +15,8 @@ const (
 	invalidId uint64 = math.MaxUint64
 )
 
-var fullNodeSuffix = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+//var fullNodeSuffix = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+var fullNodeSuffix = []byte("fullnode")
 
 type Vertex struct {
 	inDegree uint32
@@ -202,7 +202,12 @@ func (td *TrieDAG) hasChildren(origin node, pid uint64, prefix []byte) (node, no
 		collapsed.Key = hexToCompact(n.Key)
 		cached.Key = common.CopyBytes(n.Key)
 
-		id := xxhash.Sum64(append(prefix, n.Key...))
+		//id := xxhash.Sum64(append(prefix, n.Key...))
+		idx := 0
+		if len(prefix) > 0 {
+			idx = int(prefix[len(prefix)-1])
+		}
+		id := (pid*100) + 1 + uint64(idx)
 		td.nodes[id] = &DAGNode{
 			collapsed: collapsed,
 			cached:    cached,
@@ -238,7 +243,8 @@ func (td *TrieDAG) hasChildren(origin node, pid uint64, prefix []byte) (node, no
 			dagNode.idx = int(prefix[len(prefix)-1])
 		}
 
-		id := xxhash.Sum64(append(prefix, fullNodeSuffix...))
+		//id := xxhash.Sum64(append(prefix, fullNodeSuffix...))
+		id := (pid*100) + 1 + uint64(dagNode.idx)
 		td.nodes[id] = dagNode
 		td.dag.addVertex(id)
 		if pid > 0 {

@@ -267,6 +267,8 @@ func (td *TrieDAGV2) replaceEdge(old, new []byte) {
 				vtx.outEdge = make([]uint64, 0)
 				vtx.outEdge = append(vtx.outEdge, npid)
 				td.nodes[id].pid = npid
+
+				//fmt.Printf("replace -> id: %d pid: %d, npid: %d\n", id, pid, npid)
 			}
 		}
 	}
@@ -400,4 +402,8 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 
 func (td *TrieDAGV2) init() {
 	td.dag.generate()
+
+	//for id, vtx := range td.dag.vtxs {
+	//	fmt.Printf("id: %d, inDegree: %d, outEdge: %v\n", id, vtx.inDegree, vtx.outEdge)
+	//}
 }

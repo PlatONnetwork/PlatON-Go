@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -168,8 +169,12 @@ func testTrieDAGRnd(t *testing.T, n int) {
 	cpyTrie := trie.DeepCopyTrie()
 
 	dag := NewTrieDAG(0, 0)
+	tm := time.Now()
 	dag.init(trie.root)
+	fmt.Printf("n: %d, init duration: %s\n", n, time.Since(tm))
+	tm = time.Now()
 	hashed, _, err := dag.hash(nil, false, nil)
+	fmt.Printf("n: %d, hash duration: %s\n", n, time.Since(tm))
 	assert.Nil(t, err)
 	h, _, e := cpyTrie.hashRoot(nil, nil)
 	assert.Nil(t, e)
@@ -183,5 +188,7 @@ func TestRnd(t *testing.T) {
 	testTrieDAGRnd(t, 1000)
 	testTrieDAGRnd(t, 10000)
 	testTrieDAGRnd(t, 100000)
+	testTrieDAGRnd(t, 400000)
+	testTrieDAGRnd(t, 500000)
 	testTrieDAGRnd(t, 1000000)
 }
