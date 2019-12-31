@@ -485,7 +485,65 @@ func TestOpAddmod(t *testing.T) {
 		}
 	}
 	poolOfIntPools.put(evmInterpreter.intPool)
+}
 
+func TestOpMulmod(t *testing.T) {
+	v := func(v int64) string {
+		b := new(big.Int).SetInt64(v)
+		return common.Bytes2Hex(b.Bytes())
+	}
+	tests := []struct {
+		x        string
+		y        string
+		z        string
+		expected string
+	}{
+		{v(2), v(2), v(2), v(0)},
+		{v(0), v(0), v(2), v(0)},
+		{v(1), v(2), v(2), v(0)},
+		{v(200), v(35), v(2), v(70)},
+		{v(-2), v(0), v(2), v(0)},
+	}
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	for i, test := range tests {
+		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
+		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
+		z := new(big.Int).SetBytes(common.Hex2Bytes(test.z))
+		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
+		stack.push(x)
+		stack.push(shift)
+		stack.push(z)
+		opMulmod(&pc, evmInterpreter, nil, nil, stack)
+		actual := stack.pop()
+		if actual.Cmp(expected) != 0 {
+			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
+		}
+		// Check pool usage
+		// 1.pool is not allowed to contain anything on the stack
+		// 2.pool is not allowed to contain the same pointers twice
+		if evmInterpreter.intPool.pool.len() > 0 {
+
+			poolvals := make(map[*big.Int]struct{})
+			poolvals[actual] = struct{}{}
+
+			for evmInterpreter.intPool.pool.len() > 0 {
+				key := evmInterpreter.intPool.get()
+				if _, exist := poolvals[key]; exist {
+					t.Errorf("Testcase %d, pool contains double-entry", i)
+				}
+				poolvals[key] = struct{}{}
+			}
+		}
+	}
+	poolOfIntPools.put(evmInterpreter.intPool)
 }
 
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
