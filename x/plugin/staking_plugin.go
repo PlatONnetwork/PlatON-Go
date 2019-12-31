@@ -93,18 +93,18 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 	// adjust rewardPer and nextRewardPer
 	blockNumber := header.Number.Uint64()
 	if xutil.IsBeginOfEpoch(blockNumber) {
-		current, err := sk.getVerifierList(header.Hash(), blockNumber, QueryStartNotIrr)
+		current, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 		if err != nil {
 			log.Error("Failed to query current round validators on stakingPlugin BeginBlock",
-				"blockNumber", blockNumber, "blockHash", header.Hash().TerminalString(), "err", err)
+				"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
 		for _, v := range current.Arr {
 			canOld, err := sk.GetCandidateInfo(blockHash, v.NodeAddress)
 			if snapshotdb.NonDbNotFoundErr(err) || canOld.IsEmpty() {
 				log.Error("Failed to get candidate info on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
-					"blockNumber", blockNumber, "blockHash", header.Hash().TerminalString(), "err", err)
-				return fmt.Errorf("Failed to get candidate info on stakingPlugin BeginBlock, nodeAddress:%s, blockNumber:%d, blockHash:%s", v.NodeAddress.String(), blockNumber, header.Hash().TerminalString())
+					"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+				return fmt.Errorf("Failed to get candidate info on stakingPlugin BeginBlock, nodeAddress:%s, blockNumber:%d, blockHash:%s", v.NodeAddress.String(), blockNumber, blockHash.TerminalString())
 			}
 			if canOld.IsInvalid() {
 				continue
@@ -115,7 +115,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 				err = sk.EditCandidate(blockHash, header.Number, v.NodeAddress, canOld)
 				if err != nil {
 					log.Error("Failed to editCandidate on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
-						"blockNumber", blockNumber, "blockHash", header.Hash().TerminalString(), "err", err)
+						"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
 			}
