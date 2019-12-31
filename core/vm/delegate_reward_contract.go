@@ -21,7 +21,6 @@ const (
 	TxWithdrawDelegateReward       = 5000
 	FuncNameWithdrawDelegateReward = "WithdrawDelegateReward"
 	QueryDelegateReward            = 5100
-	FuncNameDelegateReward         = "QueryDelegateReward"
 )
 
 type DelegateRewardContract struct {
@@ -123,18 +122,17 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	return txResultHandlerWithRes(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code), reward), nil
 }
 
-func (rc *DelegateRewardContract) getDelegateReward(nodeIDs []discover.NodeID) ([]byte, error) {
+func (rc *DelegateRewardContract) getDelegateReward(address common.Address, nodeIDs []discover.NodeID) ([]byte, error) {
 	state := rc.Evm.StateDB
-	from := rc.Contract.CallerAddress
 
 	blockNum := rc.Evm.BlockNumber
 	blockHash := rc.Evm.BlockHash
 
-	reward, err := rc.Plugin.GetDelegateReward(blockHash, blockNum.Uint64(), from, nodeIDs, state)
+	reward, err := rc.Plugin.GetDelegateReward(blockHash, blockNum.Uint64(), address, nodeIDs, state)
 	if err != nil {
-		return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", from.String()),
+		return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", address.String()),
 			reward, common.InternalError.Wrap(err.Error())), nil
 	}
-	return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", from.String()),
+	return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", address.String()),
 		reward, nil), nil
 }
