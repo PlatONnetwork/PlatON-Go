@@ -729,6 +729,23 @@ func TestOpCallDataLoad(t *testing.T) {
 	testGlobalOperandOp(t, nil, nil, c, tests, opCallDataLoad)
 }
 
+func TestOpCallDataSize(t *testing.T) {
+	v := func(v int64) string {
+		b := new(big.Int).SetInt64(v)
+		return common.Bytes2Hex(b.Bytes())
+	}
+	tests := []twoOperandTest{
+		{v(0), v(0), v(4)},
+	}
+	c := &Contract{
+		self:          &MockAddressRef{},
+		CallerAddress: common.BytesToAddress([]byte("aaa")),
+		value:         new(big.Int).SetUint64(10),
+		Input:         []byte{0x01, 0x02, 0x03, 0x04},
+	}
+	testGlobalOperandOp(t, nil, nil, c, tests, opCallDataSize)
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
