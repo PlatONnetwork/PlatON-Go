@@ -592,9 +592,9 @@ func TestOpSAR(t *testing.T) {
 }
 
 // Contains memory data.
-func testGlobalOperandOp(t *testing.T, memory *Memory, contract *Contract, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error)) {
+func testGlobalOperandOp(t *testing.T, stateDB StateDB, memory *Memory, contract *Contract, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error)) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, stateDB, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -650,7 +650,7 @@ func TestOpSha3(t *testing.T) {
 		0x01, 0x01, 0x01, 0x01,
 		0x01, 0x01, 0x01, 0x01,
 	})
-	testGlobalOperandOp(t, memory, nil, tests, opSha3)
+	testGlobalOperandOp(t, nil, memory, nil, tests, opSha3)
 }
 
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
