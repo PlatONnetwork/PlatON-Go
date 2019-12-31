@@ -1158,6 +1158,22 @@ func TestOpPop(t *testing.T) {
 	}
 }
 
+func TestOpMload(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	memory := &Memory{}
+	memory.Resize(32)
+	memory.Set32(0, new(big.Int).SetUint64(1000))
+	self := new(big.Int).SetUint64(0)
+	stack.push(self)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opMload(&pc, evmInterpreter, nil, memory, stack)
+	actual := self
+	if uint64(1000) != actual.Uint64() {
+		t.Errorf("Expected 1000000, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
