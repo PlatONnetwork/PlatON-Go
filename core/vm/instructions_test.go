@@ -1275,6 +1275,19 @@ func TestOpMsize(t *testing.T) {
 	opMsize(&pc, evmInterpreter, nil, memory, stack)
 	actual := stack.peek()
 	if uint64(4) != actual.Uint64() {
+		t.Errorf("Expected 4, got %d", actual.Int64())
+	}
+}
+
+func TestOpGas(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	contract := &Contract{}
+	contract.Gas = uint64(100)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opGas(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if uint64(100) != actual.Uint64() {
 		t.Errorf("Expected 100, got %d", actual.Int64())
 	}
 }
