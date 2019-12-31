@@ -2518,6 +2518,8 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 			totalReleased = new(big.Int).Add(del.Released, del.RestrictingPlan)
 		}
 	}
+	log.Debug("Call calcDelegateIncome end", "currEpoch", epoch, "perLen", len(per), "delegateRewardReceivesLen", len(delegateRewardReceives),
+		"totalDelegate", totalReleased, "totalHes", new(big.Int).Add(del.ReleasedHes, del.RestrictingPlanHes), "income", del.CumulativeIncome)
 	return delegateRewardReceives
 }
 

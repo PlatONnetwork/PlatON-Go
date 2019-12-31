@@ -255,7 +255,8 @@ func (rmp *RewardMgrPlugin) handleDelegatePerReward(blockHash common.Hash, block
 			if err := rmp.db.Put(blockHash, reward.DelegateRewardTotalKey(verifier.NodeId, verifier.StakingBlockNum), delegateRewardTotal.Bytes()); err != nil {
 				return err
 			}
-			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "per", delegateRewardPer, "delegateReward", verifier.CurrentEpochDelegateReward, "total", delegateRewardTotal, "epoch", currentEpoch)
+			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "blockNumber", blockNumber, "nodeId", verifier.NodeId.TerminalString(), "delegateTotal", verifier.DelegateTotal,
+				"per", delegateRewardPer, "delegateReward", verifier.CurrentEpochDelegateReward, "total", delegateRewardTotal, "currentEpoch", currentEpoch)
 		}
 	}
 	return nil
