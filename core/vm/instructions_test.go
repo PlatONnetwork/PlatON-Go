@@ -383,7 +383,7 @@ func TestOpEq(t *testing.T) {
 	testTwoOperandOp(t, tests, opEq)
 }
 
-func TestOpAnd(t *testing.T) {
+func TestOpOr(t *testing.T) {
 	v := func(v int64) string {
 		b := new(big.Int).SetInt64(v)
 		return common.Bytes2Hex(b.Bytes())
@@ -396,7 +396,7 @@ func TestOpAnd(t *testing.T) {
 		{v(-2), v(0), v(0)},
 		{v(1), common.Bytes2Hex(math.BigPow(2, 256).Bytes()), v(0)},
 	}
-	testTwoOperandOp(t, tests, opAnd)
+	testTwoOperandOp(t, tests, opOr)
 }
 
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
