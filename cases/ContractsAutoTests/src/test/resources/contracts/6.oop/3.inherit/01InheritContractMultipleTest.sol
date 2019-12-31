@@ -2,8 +2,6 @@ pragma solidity 0.5.13;
 
 
 /**
- *
- * 
  * @author qudong
  * @dev 2019/12/23
  * 
