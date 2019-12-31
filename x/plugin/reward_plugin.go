@@ -402,17 +402,37 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 }
 
 func (rmp *RewardMgrPlugin) IsCurrVerifier(blockHash common.Hash, head *types.Header, nodeId discover.NodeID) (bool, error) {
-	if len(rmp.CurrVerifier) == 0 {
-		verifierList, err := stk.getVerifierList(blockHash, head.Number.Uint64(), false)
-		if nil != err {
-			return false, err
+	if len(rmp.CurrVerifier) > 0 {
+		if _, ok := rmp.CurrVerifier[nodeId]; ok {
+			return true, nil
 		}
+		return false, nil
+	}
+	epochEnd := xutil.CalcBlocksEachEpoch() * xutil.CalculateEpoch(head.Number.Uint64())
+
+	var theEndEpochBlockHaveCommit bool
+
+	if rmp.db.GetCurrent().GetHighest(false).Num.Uint64() >= epochEnd {
+		theEndEpochBlockHaveCommit = true
+	}
+	verifierList, err := stk.getVerifierList(blockHash, head.Number.Uint64(), theEndEpochBlockHaveCommit)
+	if nil != err {
+		return false, err
+	}
+
+	if theEndEpochBlockHaveCommit {
 		for _, val := range verifierList.Arr {
 			rmp.CurrVerifier[val.NodeId] = struct{}{}
 		}
-	}
-	if _, ok := rmp.CurrVerifier[nodeId]; ok {
-		return true, nil
+		if _, ok := rmp.CurrVerifier[nodeId]; ok {
+			return true, nil
+		}
+	} else {
+		for _, val := range verifierList.Arr {
+			if val.NodeId == nodeId {
+				return true, nil
+			}
+		}
 	}
 	return false, nil
 }
