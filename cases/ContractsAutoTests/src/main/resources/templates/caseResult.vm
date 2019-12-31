@@ -1,0 +1,214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 0.0.1 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=$encode" />
+	<title>${caseInfo.caseName}执行结果</title>
+	<style type="text/css" media="all">
+		body {
+			font:normal 12px verdana,arial,helvetica;
+			color:#000000;
+		}
+		table tr td, table tr th {
+			font-size: 12px;
+		}
+		table.details tr th{
+			font-weight: bold;
+			text-align:left;
+			background:#a6caf0;
+		}
+		table.details tr td{
+			background:#eeeee0;
+		}
+		A:link {
+			color: #0000ff;
+		}
+		A:visited {
+			COLOR:#0000ff;
+		}
+
+		p {
+			line-height:1.5em;
+			margin-top:0.5em; margin-bottom:0.0.1em;
+		}
+		h1 {
+			margin: 0px 0px 5px; font: 165% verdana,arial,helvetica
+		}
+		h2 {
+			margin-top: 1em; margin-bottom: 0.5em; font: bold 125% verdana,arial,helvetica
+		}
+		h3 {
+			margin-bottom: 0.5em; font: bold 115% verdana,arial,helvetica
+		}
+		h4 {
+			margin-bottom: 0.5em; font: bold 100% verdana,arial,helvetica
+		}
+		h5 {
+			margin-bottom: 0.5em; font: bold 100% verdana,arial,helvetica
+		}
+		h6 {
+			margin-bottom: 0.5em; font: bold 100% verdana,arial,helvetica
+		}
+		.Pass {
+			font-weight:bold; color:green;
+		}
+		.Error {
+			font-weight:bold; color:red;
+		}
+		.Warn {
+			font-weight:bold; color:#ffff00;
+		}
+		.Failure {
+			font-weight:bold; color:purple;
+		}
+		.Properties {
+			text-align:right;
+		}
+		.wrap{
+			table-layout:fixed;
+			overflow:hidden;
+			word-spacing:inherit;
+			word-break:break-all;
+		}
+		<!-- json格式的显示 -->
+		.actual {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+		.result {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+		.string { color: green; }
+		.number { color: darkorange; }
+		.boolean { color: blue; }
+		.null { color: magenta; }
+		.key { color: red; }
+
+
+	</style>
+	<script type="text/javascript" src="../Link/js/jquery-1.7.1.min.js"></script>
+	<script type="text/javascript">
+		/**
+		 * 格式化json串，以json标准格式显示
+		 */
+		function syntaxHighlight(json) {
+			if (typeof json != 'string') {
+				json = JSON.stringify(json, undefined, 2);
+			}
+			//json = json.replace(/\r\n/g,'</br>');
+			json = json.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+			return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+				var cls = 'number';
+				if (/^"/.test(match)) {
+					if (/:$/.test(match)) {
+						cls = 'key';
+					} else {
+						cls = 'string';
+					}
+				} else if (/true|false/.test(match)) {
+					cls = 'boolean';
+				} else if (/null/.test(match)) {
+					cls = 'null';
+				}
+				return '<span class="' + cls + '">' + match + '</span>';
+			});
+		}
+		/**
+		 * 处理预期和实际结果中的json
+		 */
+		function jsonUtil() {
+			var actual = "";
+			$("#.details tr td:nth-child(3)").each(function () {
+				actual = $(this).text();
+				actual = $.trim(actual);//去掉空格
+				try{
+					actual = eval('(' + actual + ')');
+					$(this).children().html(syntaxHighlight(actual));
+				}catch(exception) {
+					//alert(exception);
+					$(this).children().html(actual);
+				}
+			});
+
+
+			var expect = "";
+			$("#.details tr td:nth-child(4)").each(function () {
+				expect = $(this).text();
+				expect = $.trim(expect);
+				try{
+					expect = eval('(' + expect + ')');
+					$(this).children().html(syntaxHighlight(expect));
+				}catch(exception) {
+					//alert(exception);
+					$(this).children().html(expect);
+				}
+			});
+		}
+	</script>
+</head>
+<body onload="jsonUtil()">
+<div id="container">
+	<table width="95%" cellpadding="0" cellspacing="0">
+		<tr>
+			<td align="left" valign="top"><h2>${caseInfo.caseName}-用例执行结果</h2></td>
+		</tr>
+		<tr>
+			<td style="text-align: justify;padding-left:12px;">
+				${caseInfo.caseDesc}
+			</td>
+		</tr>
+	</table>
+	<hr size="1"/>
+	<table class="details" border="0" cellpadding="5" cellspacing="2" width="98%" style=" table-layout:fixed">
+		<colgroup>
+			<col width="4%" align="center"/>
+			<col width="20%" align="left"/>
+			<col width="17%" align="left"/>
+			<col width="18%" align="left"/>
+			<col width="5%" align="left"/>
+			<col width="5%" align="left"/>
+			<col width="10%" align="center"/>
+			<col width="6%" align="center"/>
+		</colgroup>
+		<tr valign="top">
+			<th>ID</th>
+			<th>步骤描述</th>
+			<th>实际值</th>
+			<th>期望值</th>
+			<th>步骤类型</th>
+			<th>执行结果</th>
+			<th>失败原因</th>
+			<th>执行时间</th>
+		</tr>
+		#foreach ($logStep in $logStepInfoList)
+			<tr valign="top">
+				<td>$logStep.stepId</td>
+				<td class="wrap">$logStep.stepDesc</td>
+				<td>
+		            <pre class="actual">
+						$logStep.actual
+					</pre>
+				</td>
+				<td>
+	            	<pre class="expect">
+						$logStep.expect
+					</pre>
+				</td>
+				<td class="wrap">$logStep.stepType</td>
+				<td class="wrap">
+					#if($!logStep.stepResult=="PASS")
+						#if ($!logStep.pictureRelative)
+							<a href="$logStep.pictureRelative" target="_blank"><span class="Pass">Pass</span></a>
+						#else
+							<span class="Pass">Pass</span>
+						#end
+					#else
+						#if ($!logStep.pictureRelative&&$!logStep.pictureRelative!="")
+							<a href="$logStep.pictureRelative" target="_blank"><span class="Error">Fail</span></a>
+						#else
+							<span class="Error">Fail</span>
+						#end
+					#end
+				</td>
+				<td class="wrap">$!logStep.failReason</td>
+				<td>$logStep.stepTime</td>
+			</tr>
+		#end
+	</table>
+</div>
+</body>
+</html>

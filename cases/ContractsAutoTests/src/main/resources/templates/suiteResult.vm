@@ -1,0 +1,448 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=$encode"/>
+    <title>自动化测试报告</title>
+    <style type="text/css" media="all">
+        BODY {
+            Font-size: 12px;
+            FONT-FAMILY:微软雅黑, Helvetica, Arial, sans-serif;
+            PADDING: 0px;
+            MARGIN: 0px;
+        }
+
+        TABLE {
+            FONT-SIZE: 11px;
+            BORDER: 0px solid;
+        }
+
+        TABLE.sortable {
+            FONT-SIZE: 11px;
+            BORDER: 0px solid;
+        }
+
+        TH.graphHeaderAsc {
+            BACKGROUND: #eff7ff 95% 50%  no-repeat;
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+            BORDER-TOP: #dcdcdc 1px solid;
+            BORDER-RIGHT: #dcdcdc 1px solid;
+            PADDING: 4px 12px 1px 1px;
+            TEXT-ALIGN: left;
+        }
+
+        TH.graphHeaderDesc {
+            BACKGROUND: #eff7ff 95% 50% ) no-repeat;
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+            BORDER-TOP: #dcdcdc 1px solid;
+            BORDER-RIGHT: #dcdcdc 1px solid;
+            PADDING: 4px 12px 1px 1px;
+            TEXT-ALIGN: left;
+        }
+
+        TH.graphHeaderLeftAsc {
+            BACKGROUND: #eff7ff 98% 50% 	no-repeat;
+            BORDER: #dcdcdc 1px solid;
+            PADDING: 4px 12px 1px 1px;
+            TEXT-ALIGN: left;
+        }
+
+        TH.graphHeaderLeftDesc {
+            BACKGROUND: #eff7ff 98% 50% 	no-repeat;
+            BORDER: #dcdcdc 1px solid;
+            PADDING: 4px 12px 1px 1px;
+            TEXT-ALIGN: left;
+        }
+
+        TH.graphHeader {
+            BACKGROUND: #eff7ff;
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+            BORDER-TOP: #dcdcdc 1px solid;
+            BORDER-RIGHT: #dcdcdc 1px solid;
+            PADDING: 4px 12px 1px 1px;
+            TEXT-ALIGN: left;
+        }
+
+        TH.graphHeaderLeft {
+            BACKGROUND: #eff7ff;
+            BORDER: #dcdcdc 1px solid;
+            PADDING: 4px 12px 1px 1px;
+            TEXT-ALIGN: left;
+        }
+
+        TABLE.mainAnchor {
+            FONT-SIZE: 16px;
+            BORDER: 0px solid;
+            PADDING-BOTTOM: 0px;
+            BORDER-COLLAPSE: collapse;
+        }
+
+        TD.mainAnchor {
+            BORDER-BOTTOM: #000000 1px solid;
+        }
+
+        TABLE.topcontainer {
+            FONT-SIZE: 10px;
+            BORDER: #F8F8F8 1px solid;
+        }
+
+        TABLE.sum {
+            FONT-SIZE: 12px;
+            BORDER: 0px solid;
+            WIDTH: 300px;
+            PADDING-BOTTOM: 2px;
+            BORDER-COLLAPSE: collapse;
+        }
+
+        TD.sumbottom {
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+            PADDING-BOTTOM: 2px;
+        }
+
+        TD.summid {
+            PADDING-BOTTOM: 2px;
+        }
+
+        TABLE.imageholder {
+            FONT-SIZE: 9px;
+            BORDER: 0px solid;
+            VERTICAL-ALIGN: top;
+            BORDER-COLLAPSE: collapse;
+        }
+
+        .navBar {
+            Font-weight: normal;
+            Font-size: 12px;
+        }
+
+        DIV.navBarLink {
+            Font-weight: normal;
+            Font-size: 12px;
+            padding-top: 4px;
+        }
+
+        TR.graphHeader {
+            BACKGROUND: #eff7ff;
+            BORDER: 1px solid;
+        }
+
+        /* FIXME */
+        TD.sumhdr {
+            BACKGROUND: #E3E4FA;
+            BORDER-TOP : #D8D8D8 1px solid;
+            BORDER-BOTTOM: #D8D8D8 1px solid;
+            FONT-SIZE: 13px;
+            BORDER-TOP: #D8D8D8 1px solid;
+        }
+
+        TD.graphItemLeft {
+            BACKGROUND: #ffffff;
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+            BORDER-LEFT: #dcdcdc 1px solid;
+            BORDER-RIGHT: #dcdcdc 1px solid;
+            PADDING-LEFT: 15px;
+            PADDING-RIGHT: 15px;
+            FONT-WEIGHT: bold;
+            FONT-SIZE: 12px;
+        }
+
+        TD.graphItem {
+            BACKGROUND: #ffffff;
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+            BORDER-RIGHT: #dcdcdc 1px solid;
+            PADDING-LEFT: 15px;
+            PADDING-RIGHT: 15px;
+            /*FONT-WEIGHT: bold;*/
+            FONT-SIZE: 12px;
+        }
+
+        TD.graphPercent {
+            BACKGROUND: #ffffff;
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+            BORDER-RIGHT: #dcdcdc 1px solid;
+        }
+
+        TD.graphBarLeft {
+            BACKGROUND: #ffffff;
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+            FONT-WEIGHT: bold;
+        }
+
+        TD.graphBar {
+            BACKGROUND: #ffffff;
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+            BORDER-RIGHT: #dcdcdc 1px solid;
+            WIDTH: 50%;
+        }
+
+        TABLE.barGraph {
+            WIDTH: 100%;
+        }
+
+        TD.prpass {
+            FONT-SIZE: 2px;
+            BACKGROUND: #00df00;
+            BORDER-LEFT: #9c9c9c 1px solid;
+            BORDER-TOP: #9c9c9c 1px solid;
+            BORDER-BOTTOM: #9c9c9c 1px solid;
+        }
+
+        TD.prfail {
+            FONT-SIZE: 2px;
+            BACKGROUND: #df0000;
+            BORDER: #9c9c9c 1px solid;
+        }
+
+        TD.pass {
+            FONT-SIZE: 2px;
+            BACKGROUND: #00df00;
+            BORDER-TOP: #4AA02C 1px solid;
+            BORDER-BOTTOM: #347235 1px solid;
+            BORDER-RIGHT: #347235 1px solid;
+            BORDER-LEFT: #4AA02C 1px solid;
+        }
+
+        TD.fail {
+            FONT-SIZE: 2px;
+            BACKGROUND: #df0000;
+            BORDER-TOP: #7E3117 1px solid;
+            BORDER-BOTTOM: #7E2217 1px solid;
+            BORDER-RIGHT: #7E2217 1px solid;
+            BORDER-LEFT: #7E3117 1px solid;
+        }
+
+        TD.error {
+            FONT-SIZE: 2px;
+            BACKGROUND: #df0000;
+            BORDER-TOP: #7E3117 1px solid;
+            BORDER-BOTTOM: #7E2217 1px solid;
+            BORDER-RIGHT: #7E2217 1px solid;
+            BORDER-LEFT: #7E3117 1px solid;
+        }
+
+        TD.norun {
+            FONT-SIZE: 2px;
+            BACKGROUND: #C2DFFF;
+            BORDER-TOP: #9c9c9c 1px solid;
+            BORDER-BOTTOM: #717D7D 1px solid;
+            BORDER-RIGHT: #717D7D 1px solid;
+            BORDER-LEFT: #9c9c9c 1px solid;
+        }
+
+        TD.prTrend {
+            TEXT-ALIGN: right;
+            PADDING-BOTTOM: 2px;
+        }
+
+        TD.prTrendBottom {
+            TEXT-ALIGN: right;
+            PADDING-BOTTOM: 2px;
+            BORDER-BOTTOM: #dcdcdc 1px solid;
+        }
+
+        H2.title {
+            FONT-SIZE: 14px;
+        }
+
+        H3.title {
+            FONT-SIZE: 12px;
+        }
+
+        TH.bar {
+
+        }
+    </style>
+    <script type="text/javascript" src="Link/js/jquery-1.7.1.min.js"></script>
+    <script type="text/javascript" src="Link/js/highcharts.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            $('#pie').highcharts({
+
+                chart: {
+                    plotBackgroundColor: null,
+                    plotBorderWidth: null,
+                    plotShadow: false
+                },
+                colors:[
+                    'green',
+                    'red',
+                ],
+                title: {
+                    text: '通过率'
+                },
+
+
+                tooltip: {
+                    formatter: function() {
+                        return '<b>'+ this.point.name +'</b>: '+ Highcharts.numberFormat(this.percentage, 2) +'% ('+
+                                Highcharts.numberFormat(this.y, 0, ',') +' 个)';
+                    }
+                },
+                plotOptions: {
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: {
+                            enabled: true,
+                            color: '#000000',
+                            connectorColor: '#000000',
+                            format: '<b>{point.name}</b>: {point.percentage:.2f} %'
+                        },
+                        style: {
+                            color: '#333333',
+                            fontSize: '11pt',
+                            padding: '4px'
+                        }
+                    }
+                },
+                legend: {
+                    backgroundColor: '#FFFFFF',
+                    x: 0,
+                    y: -30
+                },
+                credits: {
+                    enabled: false
+                },
+                series: [{
+                    type: 'pie',
+                    name: '运行结果',
+                    data: [
+                        ['成功',   $!suiteInfo.passCaseNum],
+                        ['失败',   $!suiteInfo.failCaseNum],
+                    ]
+                }]
+            });
+        });
+
+    </script>
+</head>
+<body>
+<div id="container">
+    <table class="mainAnchor" width="100%">
+        <tbody>
+        <tr>
+            <td><center><h2>自动化测试报告 </h2></center></td>
+        </tr>
+        </tbody>
+    </table>
+    <table width="90%">
+        <tbody>
+        <tr>
+            <td>
+                <table class="topcontainer" cellspacing="4" style="width:100%">
+                    <tbody><tr>
+                        <td valign="top" style="width:50%">
+                            <table class="sum" cellspacing="4" style="width:100%">
+                                <tbody><tr><td class="sumhdr" colspan="2">报告概述</td></tr>
+                                <tr>
+                                    <td class="summid">运行项目</td>
+                                    <td class="summid">$!project</td>
+                                </tr>
+                                <tr>
+                                    <td class="summid">运行人</td>
+                                    <td class="summid">$!runner</td>
+                                </tr>
+                                <tr>
+                                    <td class="summid">通过率</td>
+                                    <td class="summid">
+                                        <b>
+                                            #if($!suiteInfo.passPercent >= 100)
+                                                <span style="color:green">100%</span>
+                                            #else
+                                                <span style="color:red">$!{suiteInfo.passPercent}%</span>
+                                            #end
+                                        </b>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="summid">模块数</td>
+                                    <td class="summid">$!suiteInfo.suiteModuleNum</td>
+                                </tr>
+                                <tr>
+                                    <td class="summid">总用例数</td>
+                                    <td class="summid">$!suiteInfo.suiteCaseNum</td>
+                                </tr>
+                                <tr>
+                                    <td class="summid">成功用例数</td>
+                                    <td class="summid">$!suiteInfo.passCaseNum</td>
+                                </tr>
+                                <tr>
+                                    <td class="summid">失败用例数</td>
+                                    <td class="summid">$!suiteInfo.failCaseNum</td>
+                                </tr>
+                                <tr>
+                                    <td class="summid">开始时间</td>
+                                    <td class="summid">$!suiteInfo.getSuiteStartTimeStr()</td>
+                                </tr>
+                                <tr>
+                                    <td class="summid">结束时间</td>
+                                    <td class="summid">$!suiteInfo.getSuiteStopTimeStr()</td>
+                                </tr>
+                                <tr>
+                                    <td class="summid">运行耗时</td>
+                                    <td class="summid">$!suiteInfo.getSuiteRunTimeStr()</td>
+                                </tr>
+                                </tbody></table>
+                        </td>
+                        <td id="pie" valign="top" style="width:50%"></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <a name="modules"></a>
+                <h3 class="title">&nbsp;模块运行结果</h3> &nbsp;该表显示了所有模块执行的总体结果信息，要查看具体信息请点击链接查看.<br/><br/>
+                <table id="module_table" class="sortable" cellspacing="0" cellpadding="2" style="width:100%">
+                    <thead>
+                    <tr>
+                        <th class="graphHeaderLeftAsc" abbr="input_text" style="text-align:center">模块名字</th>
+                        <th class="graphHeader" abbr="input_text" style="text-align:center">脚本负责人</th>
+                        <th class="graphHeader" abbr="number" style="text-align:center">用例个数</th>
+                        <th class="graphHeader" abbr="number" style="text-align:center">通过个数</th>
+                        <th class="graphHeader" abbr="number" style="text-align:center">失败个数</th>
+                        <th class="graphHeader" align="left" colspan="2" abbr="percent" style="text-align:center">通过率</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        #foreach ($moduleInfo in $suiteInfo.moduleInfoList)
+                        <tr>
+                            <td class="graphItemLeft" nowrap="">
+                                <a href=Link/测试模块_$!{moduleInfo.moduleName}.html target="_self">
+                                    #if($!moduleInfo.moduleShowName != "")
+                                        $!moduleInfo.moduleShowName
+                                    #end
+                            
+                            #if($!moduleInfo.moduleShowName == "")
+                                    $!moduleInfo.moduleName
+                                #end
+                                </a>
+                            </td>
+                            <td class="graphItem" nowrap="">$!moduleInfo.moduleAuthor</td>
+                            <td class="graphPercent" align="center">$!moduleInfo.moduleCaseNum</td>
+                            <td class="graphPercent" align="center">$!moduleInfo.passCaseNum</td>
+                            <td class="graphPercent" align="center">$!moduleInfo.failCaseNum</td>
+                            <td class="graphBarLeft" align="right">$!{moduleInfo.passPercent}%</td>
+                            <td class="graphBar">
+                                <table class="barGraph" cellspacing="0">
+                                    <tbody>
+                                    <tr class="bar">
+                                        #if($!moduleInfo.passCaseNum > 0)
+                                            <td class="prpass"><img  width=$!moduleInfo.passCaseNum height="12"/></td>
+                                        #end
+                                        #if($!moduleInfo.failCaseNum > 0)
+                                            <td class="prfail"><img  width=$!moduleInfo.failCaseNum height="12"/></td>
+                                        #end
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        #end
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
+
