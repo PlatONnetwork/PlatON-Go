@@ -746,6 +746,52 @@ func TestOpCallDataSize(t *testing.T) {
 	testGlobalOperandOp(t, nil, nil, c, tests, opCallDataSize)
 }
 
+func TestOpCallDataCopy(t *testing.T) {
+	v := func(v int64) string {
+		b := new(big.Int).SetInt64(v)
+		return common.Bytes2Hex(b.Bytes())
+	}
+	tests := []struct {
+		x        string
+		y        string
+		z        string
+		expected string
+	}{
+		{v(4), v(0), v(0), "01020304"},
+	}
+	contract := &Contract{
+		self:          &MockAddressRef{},
+		CallerAddress: common.BytesToAddress([]byte("aaa")),
+		value:         new(big.Int).SetUint64(10),
+		Input:         []byte{0x01, 0x02, 0x03, 0x04},
+	}
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	memory := NewMemory()
+	memory.Resize(4)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	for i, test := range tests {
+		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
+		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
+		z := new(big.Int).SetBytes(common.Hex2Bytes(test.z))
+		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
+		stack.push(x)
+		stack.push(shift)
+		stack.push(z)
+		opCallDataCopy(&pc, evmInterpreter, contract, memory, stack)
+		actual := common.Bytes2Hex(memory.Get(0, 4))
+		//actual := stack.pop()
+		if actual != common.Bytes2Hex(expected.Bytes()) {
+			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
+		}
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
