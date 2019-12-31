@@ -49,11 +49,12 @@ public class AbstractContractPartImp01_02Test extends ContractPrepareTest {
         //调用合约方法
         try {
             BigInteger age = fatherAbstractContract.fatherAge().send();
-            collector.logStepPass("调用合约方法完毕 successful.age:" + age.toString());
 
+            collector.logStepFail("grandpaAbstractContract Calling Method Fail.","抽象合约是无法执行方法的");
         } catch (Exception e) {
-            collector.logStepFail("grandpaAbstractContract Calling Method fail.", e.toString());
-            e.printStackTrace();
+            collector.logStepPass("调用合约方法getFatherAge()完毕,无法执行抽象合约方法," + e.getMessage());
+            collector.assertEqual(e.getMessage(),"Empty value (0x) returned from contract","checkout  execute success.");
+            //e.printStackTrace();
         }
 
 

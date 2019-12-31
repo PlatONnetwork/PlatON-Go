@@ -46,9 +46,10 @@ public class AbstractContractMultipleInhert02_02Test extends ContractPrepareTest
 
         //调用合约方法
         try {
-            String cSubName = abstractContractCSubclass.cSubName().send();
-            collector.logStepPass("调用合约方法完毕 successful.cSubName:" + cSubName);
-            collector.assertEqual(cSubName, "cSubName", "checkout  execute success.");
+            String expectValue = "cSubName";
+            String actualValue = abstractContractCSubclass.cSubName().send();
+            collector.logStepPass("调用合约方法完毕 successful.actualValue:" + actualValue);
+            collector.assertEqual(actualValue,expectValue, "checkout  execute success.");
 
         } catch (Exception e) {
             collector.logStepFail("abstractContract Calling Method fail.", e.toString());

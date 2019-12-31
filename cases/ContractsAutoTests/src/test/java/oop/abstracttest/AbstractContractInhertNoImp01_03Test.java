@@ -46,12 +46,15 @@ public class AbstractContractInhertNoImp01_03Test extends ContractPrepareTest {
 
         //调用合约方法
         try {
-            String sonName = sonAbstractContract.sonName().send();
-            collector.logStepPass("调用合约方法完毕 successful.age:" + sonName);
+            String expectResult = "sonName";
+            String actualName = sonAbstractContract.sonName().send();
+            collector.logStepFail("grandpaAbstractContract Calling Method Fail.","抽象合约是无法执行方法的");
+
 
         } catch (Exception e) {
-            collector.logStepFail("grandpaAbstractContract Calling Method fail.", e.toString());
-            e.printStackTrace();
+            collector.logStepPass("调用合约方法getFatherAge()完毕,无法执行抽象合约方法," + e.getMessage());
+            collector.assertEqual(e.getMessage(),"Empty value (0x) returned from contract","checkout  execute success.");
+            //e.printStackTrace();
         }
 
 
