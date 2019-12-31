@@ -1254,6 +1254,31 @@ func TestOpJump(t *testing.T) {
 	opJumpdest(&pc, evmInterpreter, contract, nil, stack)
 }
 
+func TestOpPc(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	pc = 100
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opPc(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if uint64(pc) != actual.Uint64() {
+		t.Errorf("Expected 100, got %d", actual.Int64())
+	}
+}
+
+func TestOpMsize(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	memory := &Memory{}
+	memory.Resize(4)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opMsize(&pc, evmInterpreter, nil, memory, stack)
+	actual := stack.peek()
+	if uint64(4) != actual.Uint64() {
+		t.Errorf("Expected 100, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
