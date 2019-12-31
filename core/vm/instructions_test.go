@@ -696,6 +696,39 @@ func TestOpCaller(t *testing.T) {
 	testGlobalOperandOp(t, nil, nil, c, tests, opCaller)
 }
 
+func TestOpCallValue(t *testing.T) {
+	v := func(v int64) string {
+		b := new(big.Int).SetInt64(v)
+		return common.Bytes2Hex(b.Bytes())
+	}
+	tests := []twoOperandTest{
+		{v(0), v(0), v(10)},
+	}
+	c := &Contract{
+		self:          &MockAddressRef{},
+		CallerAddress: common.BytesToAddress([]byte("aaa")),
+		value:         new(big.Int).SetUint64(10),
+	}
+	testGlobalOperandOp(t, nil, nil, c, tests, opCallValue)
+}
+
+func TestOpCallDataLoad(t *testing.T) {
+	v := func(v int64) string {
+		b := new(big.Int).SetInt64(v)
+		return common.Bytes2Hex(b.Bytes())
+	}
+	tests := []twoOperandTest{
+		{v(0), v(0), "0102030400000000000000000000000000000000000000000000000000000000"},
+	}
+	c := &Contract{
+		self:          &MockAddressRef{},
+		CallerAddress: common.BytesToAddress([]byte("aaa")),
+		value:         new(big.Int).SetUint64(10),
+		Input:         []byte{0x01, 0x02, 0x03, 0x04},
+	}
+	testGlobalOperandOp(t, nil, nil, c, tests, opCallDataLoad)
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
