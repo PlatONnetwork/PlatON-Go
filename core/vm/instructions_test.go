@@ -1088,13 +1088,18 @@ func TestOpCoinbase(t *testing.T) {
 	}
 }
 
-func TestOpTimestamp(t *testing.T) {
+func buildEnv(statedb StateDB) (*EVM, *Stack, uint64, *EVMInterpreter) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
+	return env, stack, pc, evmInterpreter
+}
+
+func TestOpTimestamp(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
 	env.Time = new(big.Int).SetUint64(1577793650186)
 	env.interpreter = evmInterpreter
 	evmInterpreter.intPool = poolOfIntPools.get()
