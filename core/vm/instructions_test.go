@@ -20,6 +20,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -877,6 +879,77 @@ func TestOpReturnDataCopy(t *testing.T) {
 		if actual != common.Bytes2Hex(expected.Bytes()) {
 			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
 		}
+	}
+}
+
+func createMockState() StateDB {
+	return &mock.MockStateDB{
+		Balance: map[common.Address]*big.Int{
+			common.BytesToAddress([]byte("a")): new(big.Int).SetUint64(100),
+			common.BytesToAddress([]byte("b")): new(big.Int).SetUint64(200),
+			common.BytesToAddress([]byte("c")): new(big.Int).SetUint64(300),
+			common.BytesToAddress([]byte("d")): new(big.Int).SetUint64(400),
+			common.BytesToAddress([]byte("e")): new(big.Int).SetUint64(500),
+			common.BytesToAddress([]byte("f")): new(big.Int).SetUint64(600),
+		},
+		State: map[common.Address]map[string][]byte{
+			common.BytesToAddress([]byte("a")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("b")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("c")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("d")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("e")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("f")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+		},
+	}
+}
+
+func TestOpExtCodeSize(t *testing.T) {
+	statedb := createMockState()
+	var (
+		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	contract := &Contract{
+		self:          &MockAddressRef{},
+		CallerAddress: common.BytesToAddress([]byte("aaa")),
+		value:         new(big.Int).SetUint64(10),
+		Input:         []byte{0x01, 0x02, 0x03, 0x04},
+		Code:          []byte{0x01, 0x02, 0x03, 0x04},
+	}
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	evmInterpreter.returnData = []byte{0x01, 0x02, 0x03, 0x04}
+	stack.push(new(big.Int).SetInt64(1))
+	opExtCodeSize(&pc, evmInterpreter, contract, nil, stack)
+	actual := stack.pop()
+	if actual.Int64() != 0 {
+		t.Errorf("Expected 0, got %d", actual.Int64())
 	}
 }
 
