@@ -1006,6 +1006,24 @@ func TestOpExtCodeCopy(t *testing.T) {
 	}
 }
 
+func TestOpExtCodeHash(t *testing.T) {
+	statedb := createMockState()
+	var (
+		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	stack.push(byteutil.BytesToBigInt([]byte("a")))
+	opExtCodeHash(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if actual.Cmp(new(big.Int).SetInt64(0)) != 0 {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
