@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"fmt"
-	"gopkg.in/urfave/cli.v1"
 	"os"
+
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -19,7 +20,7 @@ var (
 		Usage: "creates a memory profile at the given path",
 	}
 	TxTypeFlag = cli.Int64Flag{
-		Name: "txtype",
+		Name:  "txtype",
 		Usage: "The transaction type",
 	}
 	StatDumpFlag = cli.BoolFlag{
@@ -82,7 +83,6 @@ var (
 		Name:  "receiver",
 		Usage: "The transaction receiver (execution context)",
 	}
-
 )
 
 func init() {
@@ -106,7 +106,7 @@ func init() {
 	app.Commands = []cli.Command{
 		runCommond,
 		unittestCommand,
-		benchmarkCommand,
+		//benchmarkCommand,
 	}
 }
 

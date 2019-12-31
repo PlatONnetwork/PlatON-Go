@@ -17,10 +17,11 @@
 package core
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -204,17 +205,27 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		vmerr error
 	)
 
-	// todo: shield contract to created in temporary
-	if contractCreation {
-		return nil, params.TxGasContractCreation, false, fmt.Errorf("contract creation is not allowed")
+	// Limit the time it takes for a virtual machine to execute the smart contract,
+	// Except precompiled contracts.
+	ctx := context.Background()
+	var cancelFn context.CancelFunc
+	if evm.GetVMConfig().VmTimeoutDuration > 0 &&
+		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()))) {
+
+		timeout := time.Duration(evm.GetVMConfig().VmTimeoutDuration) * time.Millisecond
+		ctx, cancelFn = context.WithTimeout(ctx, timeout)
+	} else {
+		ctx, cancelFn = context.WithCancel(ctx)
 	}
+	defer cancelFn()
+	// set req context to vm context
+	evm.Ctx = ctx
 
 	if contractCreation {
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		//log.Debug("Nonce tracking: SetNonce", "from", msg.From(), "nonce", st.state.GetNonce(sender.Address()))
 		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 	if vmerr != nil {
@@ -222,7 +233,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
-		if vmerr == vm.ErrInsufficientBalance {
+		if vmerr == vm.ErrInsufficientBalance || vmerr == vm.ErrAbort {
 			return nil, 0, false, vmerr
 		}
 	}

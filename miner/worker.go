@@ -119,6 +119,7 @@ type worker struct {
 	EmptyBlock   string
 	config       *params.ChainConfig
 	miningConfig *core.MiningConfig
+	vmConfig     *vm.Config
 	engine       consensus.Engine
 	eth          Backend
 	chain        *core.BlockChain
@@ -178,13 +179,18 @@ type worker struct {
 	skipSealHook func(*task) bool                   // Method to decide whether skipping the sealing.
 	fullTaskHook func()                             // Method to call before pushing the full sealing task.
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
+
+	vmTimeout uint64
 }
 
-func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor uint64, isLocalBlock func(*types.Block) bool,
-	blockChainCache *core.BlockChainCache) *worker {
+func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, vmConfig *vm.Config, engine consensus.Engine,
+	eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor uint64, isLocalBlock func(*types.Block) bool,
+	blockChainCache *core.BlockChainCache, vmTimeout uint64) *worker {
+
 	worker := &worker{
 		config:       config,
 		miningConfig: miningConfig,
+		vmConfig:     vmConfig,
 		engine:       engine,
 		eth:          eth,
 		mux:          mux,
@@ -207,6 +213,7 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 		resubmitAdjustCh:   make(chan *intervalAdjust, miningConfig.ResubmitAdjustChanSize),
 		blockChainCache:    blockChainCache,
 		commitWorkEnv:      &commitWorkEnv{},
+		vmTimeout:          vmTimeout,
 	}
 	// Subscribe NewTxsEvent for tx pool
 	// worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
@@ -745,7 +752,10 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, vm.Config{})
+	vmCfg := *w.vmConfig                  // value copy
+	vmCfg.VmTimeoutDuration = w.vmTimeout // set vm execution smart contract timeout duration
+	receipt, _, err := core.ApplyTransaction(w.config, w.chain, w.current.gasPool, w.current.state,
+		w.current.header, tx, &w.current.header.GasUsed, vmCfg)
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "err", err)
 		w.current.state.RevertToSnapshot(snap)
