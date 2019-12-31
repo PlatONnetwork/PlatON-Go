@@ -1122,6 +1122,18 @@ func TestOpNumber(t *testing.T) {
 	}
 }
 
+func TestOpDifficulty(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.Difficulty = new(big.Int).SetUint64(0)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opDifficulty(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if env.Difficulty.Cmp(actual) != 0 {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
