@@ -21,6 +21,7 @@ const (
 	TxWithdrawDelegateReward       = 5000
 	FuncNameWithdrawDelegateReward = "WithdrawDelegateReward"
 	QueryDelegateReward            = 5100
+	FuncNameDelegateReward         = "QueryDelegateReward"
 )
 
 type DelegateRewardContract struct {

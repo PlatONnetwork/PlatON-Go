@@ -22,6 +22,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"math/big"
 	mrand "math/rand"
 	"testing"
@@ -423,7 +424,9 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 
 	canAddr, _ := xutil.NodeId2Addr(can.NodeId)
 
-	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, 0, amount)
+	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
+
+	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, 0, amount, delegateRewardPerList)
 }
 
 func getDelegate(blockHash common.Hash, stakingNum uint64, index int, t *testing.T) *staking.Delegation {
@@ -1570,7 +1573,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
-
+		return
 	}
 	t.Log("Finish Delegate ~~, Info is:", del)
 	can, err = getCandidate(blockHash2, index)
@@ -1580,6 +1583,39 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	assert.True(t, can.DelegateTotalHes.Cmp(del.ReleasedHes) == 0)
 	assert.True(t, can.DelegateEpoch == del.DelegateEpoch)
 	assert.True(t, del.CumulativeIncome == nil)
+
+	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:  1,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:  2,
+		Amount: new(big.Int).SetUint64(10),
+	})
+
+	canAddr, _ := xutil.NodeId2Addr(can.NodeId)
+
+	curBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch() * 3)
+	if err := sndb.NewBlock(curBlockNumber, blockHash2, blockHash3); nil != err {
+		t.Error("newBlock 3 err", err)
+		return
+	}
+
+	expectedCumulativeIncome := new(big.Int).Mul(new(big.Int).Div(del.ReleasedHes, new(big.Int).SetUint64(1e18)), delegateRewardPerList[1].Amount)
+	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(1e18))
+	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
+		t.Fatal("Failed to Delegate:", err)
+	}
+
+	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
+	assert.True(t, del.DelegateEpoch == 3)
+	assert.True(t, del.ReleasedHes.Cmp(delegateAmount) == 0)
+	assert.True(t, can.DelegateEpoch == del.DelegateEpoch)
+	assert.True(t, can.DelegateTotal.Cmp(del.Released) == 0)
+
+	t.Log("Finish Delegate ~~, Info is:", del)
+
 	t.Log("Get Candidate Info is:", can)
 
 }
@@ -1650,8 +1686,8 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	*/
 	amount := common.Big257
 	delegateTotalHes := can.DelegateTotalHes
-	err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, amount, addrArr[index+1],
-		nodeIdArr[index], blockNumber.Uint64(), del)
+	_, err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, amount, addrArr[index+1],
+		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0))
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
 		return
@@ -1660,12 +1696,50 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
 	}
-	t.Log("Finish WithdrewDelegate ~~")
+	t.Log("Finish WithdrewDelegate ~~", del)
 	can, err = getCandidate(blockHash2, index)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
 	assert.True(t, nil != can)
 	assert.True(t, new(big.Int).Sub(delegateTotalHes, amount).Cmp(can.DelegateTotalHes) == 0)
+	assert.True(t, new(big.Int).Sub(delegateTotalHes, amount).Cmp(del.ReleasedHes) == 0)
+
+	curBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch() * 3)
+	if err := sndb.NewBlock(curBlockNumber, blockHash2, blockHash3); nil != err {
+		t.Error("newBlock 3 err", err)
+		return
+	}
+
+	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:  1,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	if err := AppendDelegateRewardPer(blockHash3, can.NodeId, can.StakingBlockNum, delegateRewardPerList[0], sndb); nil != err {
+		t.Fatal(err)
+	}
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:  2,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	if err := AppendDelegateRewardPer(blockHash3, can.NodeId, can.StakingBlockNum, delegateRewardPerList[1], sndb); nil != err {
+		t.Fatal(err)
+	}
+
+	expectedIssueIncome := new(big.Int).Mul(new(big.Int).Div(del.ReleasedHes, new(big.Int).SetUint64(1e18)), delegateRewardPerList[1].Amount)
+	expectedBalance := new(big.Int).Add(state.GetBalance(addrArr[index+1]), expectedIssueIncome)
+	expectedBalance = new(big.Int).Add(expectedBalance, del.ReleasedHes)
+	issueIncome, err := StakingInstance().WithdrewDelegate(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
+		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
+		return
+	}
+
+	can, err = getCandidate(blockHash3, index)
+
+	assert.True(t, expectedIssueIncome.Cmp(issueIncome) == 0)
+	assert.True(t, expectedBalance.Cmp(state.GetBalance(addrArr[index+1])) == 0)
 	t.Log("Get Candidate Info is:", can)
 }
 
@@ -3523,15 +3597,41 @@ func Test_IteratorCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
-
-	nodeId := nodeIdArr[0]
 	del := new(staking.Delegation)
-	del.Released = common.Big0
-	del.RestrictingPlan = common.Big0
-	del.ReleasedHes = common.Big0
-	del.RestrictingPlanHes = common.Big0
+	del.Released = new(big.Int).SetInt64(0)
+	del.RestrictingPlan = new(big.Int).SetInt64(0)
+	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(1e18))
+	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
 	del.DelegateEpoch = 1
-	if err := calcDelegateIncome(1, common.ZeroHash, nodeId, 3, del); nil != err {
-		t.Fatal(err)
-	}
+	del.CumulativeIncome = new(big.Int)
+	per := make([]*reward.DelegateRewardPer, 0)
+	per = append(per, &reward.DelegateRewardPer{
+		Epoch:  1,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	per = append(per, &reward.DelegateRewardPer{
+		Epoch:  2,
+		Amount: new(big.Int).SetUint64(20),
+	})
+	calcDelegateIncome(3, del, per)
+	assert.True(t, del.CumulativeIncome.Cmp(new(big.Int).SetUint64(2000)) == 0)
+
+	del2 := new(staking.Delegation)
+	del2.Released = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(1e18))
+	del2.RestrictingPlan = new(big.Int).SetInt64(0)
+	del2.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(1e18))
+	del2.RestrictingPlanHes = new(big.Int).SetInt64(0)
+	del2.DelegateEpoch = 2
+	del2.CumulativeIncome = new(big.Int)
+	per2 := make([]*reward.DelegateRewardPer, 0)
+	per2 = append(per2, &reward.DelegateRewardPer{
+		Epoch:  2,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	per2 = append(per2, &reward.DelegateRewardPer{
+		Epoch:  3,
+		Amount: new(big.Int).SetUint64(10),
+	})
+	calcDelegateIncome(4, del2, per2)
+	assert.True(t, del2.CumulativeIncome.Cmp(new(big.Int).SetUint64(3000)) == 0)
 }
