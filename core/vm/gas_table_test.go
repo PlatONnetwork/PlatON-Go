@@ -250,14 +250,42 @@ func TestGasExtCodeCopy(t *testing.T) {
 		expected   uint64
 		isNil      bool
 	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 15, memorySize: 0, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 712, memorySize: 0, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 810, memorySize: 1024, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 801, memorySize: 1024, isNil: false},
 	}
 	for i, v := range testCases {
 		stack := mockStack(v.elements...)
 		gas, err := gasExtCodeCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
+		if gas != v.expected {
+			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
+		}
+		if v.isNil && err != nil {
+			t.Error("not expected error")
+		}
+	}
+
+}
+
+func TestGasMLoad(t *testing.T) {
+
+	gasTable := params.GasTableConstantinople
+	overUint := overUint64()
+	testCases := []struct {
+		elements   []*big.Int
+		memorySize uint64
+		expected   uint64
+		isNil      bool
+	}{
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 712, memorySize: 0, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 101, memorySize: 1024, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 801, memorySize: 1024, isNil: false},
+	}
+	for i, v := range testCases {
+		stack := mockStack(v.elements...)
+		gas, err := gasMLoad(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
 		if gas != v.expected {
 			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
 		}
@@ -272,29 +300,13 @@ func TestGasExtCodeCopy(t *testing.T) {
 	stack.push(new(big.Int).SetUint64(100))
 	stack.push(new(big.Int).SetUint64(100))
 	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasExtCodeCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
-	if gas != 810 {
-		t.Errorf("Expected: 810, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}*/
-}
-
-func TestGasMLoad(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
 	gas, err := gasMLoad(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
 	if gas != 101 {
 		t.Errorf("Expected: 101, got %d", gas)
 	}
 	if err != nil {
 		t.Error("not expected error")
-	}
+	}*/
 }
 
 func TestGasMStore8(t *testing.T) {
