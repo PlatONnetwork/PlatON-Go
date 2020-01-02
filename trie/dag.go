@@ -207,15 +207,16 @@ func (td *TrieDAG) hasChildren(origin node, pid uint64, prefix []byte) (node, no
 		if len(prefix) > 0 {
 			idx = int(prefix[len(prefix)-1])
 		}
-		id := (pid*100) + 1 + uint64(idx)
+		id := (pid * 100) + 1 + uint64(idx)
 		td.nodes[id] = &DAGNode{
 			collapsed: collapsed,
 			cached:    cached,
 			pid:       pid,
+			idx:       idx,
 		}
-		if len(prefix) > 0 {
-			td.nodes[id].idx = int(prefix[len(prefix)-1])
-		}
+		//if len(prefix) > 0 {
+		//	td.nodes[id].idx = int(prefix[len(prefix)-1])
+		//}
 
 		td.dag.addVertex(id)
 
@@ -244,7 +245,7 @@ func (td *TrieDAG) hasChildren(origin node, pid uint64, prefix []byte) (node, no
 		}
 
 		//id := xxhash.Sum64(append(prefix, fullNodeSuffix...))
-		id := (pid*100) + 1 + uint64(dagNode.idx)
+		id := (pid * 100) + 1 + uint64(dagNode.idx)
 		td.nodes[id] = dagNode
 		td.dag.addVertex(id)
 		if pid > 0 {

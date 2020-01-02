@@ -630,11 +630,11 @@ func BenchmarkParallelHash(b *testing.B) {
 	trie.ParallelHash()
 }
 
-func BenchmarkParallelHash2(b *testing.B) {
+
+func BenchmarkParallelInit(b *testing.B) {
 	// Make the random benchmark deterministic
 	random := rand.New(rand.NewSource(0))
 
-	fmt.Println(b.N)
 	// Create a realistic account trie to hash
 	addresses := make([][20]byte, b.N)
 	for i := 0; i < len(addresses); i++ {
@@ -659,9 +659,10 @@ func BenchmarkParallelHash2(b *testing.B) {
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
-	trie.ParallelHash2()
+	//trie.ParallelHash()
+	dag := NewTrieDAG(trie.cachegen, trie.cachelimit)
+	dag.init(trie.root)
 }
-
 
 func tempDB() (string, *Database) {
 	dir, err := ioutil.TempDir("", "trie-bench")
