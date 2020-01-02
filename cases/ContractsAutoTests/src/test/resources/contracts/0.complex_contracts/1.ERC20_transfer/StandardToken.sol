@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.2;
 
 /*
 You should inherit from StandardToken or, for a token like you would want to
@@ -9,7 +9,7 @@ If you deploy this, you won't have anything useful.)
 Implements ERC 20 Token standard: https://github.com/ethereum/EIPs/issues/20.
 */
 
-import "./Token.sol";
+import "Token.sol";
 
 contract StandardToken is Token {
 

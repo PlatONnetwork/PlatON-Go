@@ -11,13 +11,13 @@ import "./UserLibrary.sol";
 
 contract GetLibraryAddress{
 
-    using UserLibrary for *;
+    using userLibrary for *;
 
     address userLibAddress;
 
     function setUserLibAddress() public{
         //根据library库的名称获取地址
-        userLibAddress = address(UserLibrary);
+        userLibAddress = address(userLibrary);
     }
 
     function getUserLibAddress() view public returns(address adr){

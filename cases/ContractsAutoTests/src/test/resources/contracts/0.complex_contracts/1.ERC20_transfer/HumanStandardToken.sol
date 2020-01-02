@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.2;
 
 /*
 This Token Contract implements the standard token functionality (https://github.com/ethereum/EIPs/issues/20) as well as the following OPTIONAL extras intended for use by humans.
@@ -13,7 +13,7 @@ Machine-based, rapid creation of many tokens would not necessarily need these ex
 
 .*/
 
-import "./StandardToken.sol";
+import "StandardToken.sol";
 
 contract HumanStandardToken is StandardToken {
 

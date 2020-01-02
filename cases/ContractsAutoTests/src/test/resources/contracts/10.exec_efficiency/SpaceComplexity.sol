@@ -12,13 +12,14 @@ contract SpaceComplexity {
     string _name = "qcxiao";
 
     // 测试storage并多次修改
-    function testStorage(uint n) external {
+    function testStorage(uint n) external pure {
         for (uint i = 0; i < n; i++) {
             if (n % 2 == 0) { // 所有字符修改为大写
                 modifyOfStorage1(_name);
             } else { // 所有字符修改为小写
                 modifyOfStorage2(_name);
             }
+
         }
     }
 
@@ -46,7 +47,9 @@ contract SpaceComplexity {
     }
 
     function testBigObjectOfStorage(uint n) public {
+        for (uint i = 0; i < n; i++) {
 
+        }
     }
 
     //memory

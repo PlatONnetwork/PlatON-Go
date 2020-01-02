@@ -19,8 +19,8 @@ contract BaseInternal {
 // or not invoke an inherited contract's constructor correctly.
 contract ConstructorInternalVisibility is BaseInternal(7) {
     uint outI;
-    //constructor声明构造函数，允许internal可见性，但部署报错
-    constructor(uint _y) {outI = _y;}
+    //constructor声明构造函数，允许internal可见性
+    constructor(uint _y) internal {outI = _y;}
 
     function getOutI() public view returns (uint) {
         return outI;

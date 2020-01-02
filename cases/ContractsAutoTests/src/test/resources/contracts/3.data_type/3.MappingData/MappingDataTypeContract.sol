@@ -1,11 +1,17 @@
 pragma solidity 0.5.13;
 
+
 /**
+ *
+ * 
  * @author qudong
  * @dev 2019/12/23
  * 
  *测试映射功能点
+ *
  *映射(Mapping)简述：映射类型，一种键值对的映射关系存储结构
+ *
+ *
  *-----------------  测试点   ------------------------------
  *1、定义映射
  * mapping(keyType => keyValue) public maps;
@@ -13,10 +19,14 @@ pragma solidity 0.5.13;
  *  值类型--值类型没有任何限制，可以为任何类型包含映射类型
  *2、赋值、取值
  *   map[keyType] ← 不同数值类型;
+ *   
+ *
  */
 
 
 contract MappingContractTest {
+
+
   
   /**
    *验证：1、定义映射
@@ -35,6 +45,7 @@ contract MappingContractTest {
    }
    mapping (int => SizeEnum) map;
    uint[] uintArr;
+
 
    mapping (uint => address) public addressMap; //正确
    mapping (int => bool) public boolMap;//正确
@@ -61,14 +72,25 @@ contract MappingContractTest {
     mapping (uint => string) nameMap;
     string[] nameArr = ["Lucy","Ella","Lily"];
 
+
    function addName() public {
+         
          for (uint i = 0; i < nameArr.length; i++) {
             nameMap[i] =  nameArr[i];
          }
    }
 
-   function getName(uint index) public view returns (string memory) {
+   function getName(uint index) returns (string) {
+      
       return nameMap[index];
    }
+ 
+
+  
+
+
+
+
+
     
 }
