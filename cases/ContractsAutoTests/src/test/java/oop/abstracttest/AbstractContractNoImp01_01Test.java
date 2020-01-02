@@ -39,7 +39,7 @@ public class AbstractContractNoImp01_01Test {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "01AbstractContractExecuteTest_01.验证抽象合约(未实现任何抽象方法)是否可以编译部署执行")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "01AbstractContractExecuteTest_01.抽象合约未实现执行情况")
     public void testAbstractContract() {
         Web3j web3j = null;
         Credentials credentials = null;

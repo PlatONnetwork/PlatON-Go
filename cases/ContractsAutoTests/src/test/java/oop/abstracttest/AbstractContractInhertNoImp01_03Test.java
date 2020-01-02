@@ -23,7 +23,7 @@ public class AbstractContractInhertNoImp01_03Test extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "01AbstractContractExecuteTest_03.抽象合约被继承，但未被实现抽象方法，是否可正常执行")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "01AbstractContractExecuteTest_03.抽象合约被继承未实现执行情况")
     public void testAbstractContract() {
 
         AbstractContractSon sonAbstractContract = null;
