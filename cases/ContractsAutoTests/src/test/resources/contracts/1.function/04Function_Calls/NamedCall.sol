@@ -4,8 +4,7 @@ pragma solidity 0.5.13;
  * @author liweic
  * @dev 2019/12/26 16:10
  */
-
-contract NamedCallTest {
+contract NamedCall {
     //交换传入值的顺序并返回
     function exchange(uint key, uint value) public returns (uint, uint){ 
         return (value, key);

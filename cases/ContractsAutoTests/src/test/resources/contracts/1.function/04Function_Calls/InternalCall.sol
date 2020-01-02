@@ -5,7 +5,7 @@ pragma solidity 0.5.13;
  * @dev 2019/12/26 17:10
  */
 
-contract IntenalCallTest {
+contract IntenalCall {
     
     function getSum() public view returns(uint sum){
         //定义两个局部变量

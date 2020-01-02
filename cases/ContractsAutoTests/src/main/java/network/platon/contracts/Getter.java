@@ -1,8 +1,5 @@
 package network.platon.contracts;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -10,10 +7,15 @@ import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.RemoteCall;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tuples.generated.Tuple2;
 import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
+
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * <p>Auto generated code.
@@ -25,7 +27,7 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class Getter extends Contract {
-    private static final String BINARY = "6080604052600a60005534801561001557600080fd5b50610148806100256000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c806326121ff01461003b57806373d4a13a14610060575b600080fd5b61004361007e565b604051808381526020018281526020019250505060405180910390f35b61006861010d565b6040518082815260200191505060405180910390f35b6000806000543073ffffffffffffffffffffffffffffffffffffffff166373d4a13a6040518163ffffffff1660e01b815260040160206040518083038186803b1580156100ca57600080fd5b505afa1580156100de573d6000803e3d6000fd5b505050506040513d60208110156100f457600080fd5b8101908080519060200190929190505050915091509091565b6000548156fea265627a7a723158202bbba5c2d1b125f98b70821a796b568060661d4d209772edfe3a084131c7f33664736f6c634300050d0032";
+    private static final String BINARY = "6080604052600a60005534801561001557600080fd5b50610148806100256000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c806326121ff01461003b57806373d4a13a14610060575b600080fd5b61004361007e565b604051808381526020018281526020019250505060405180910390f35b61006861010d565b6040518082815260200191505060405180910390f35b6000806000543073ffffffffffffffffffffffffffffffffffffffff166373d4a13a6040518163ffffffff1660e01b815260040160206040518083038186803b1580156100ca57600080fd5b505afa1580156100de573d6000803e3d6000fd5b505050506040513d60208110156100f457600080fd5b8101908080519060200190929190505050915091509091565b6000548156fea265627a7a72315820f789f4cd0f66c7f72139c93d5b31ec0b6e51892ac9bf6518e0a8e5b1335c95d864736f6c634300050d0032";
 
     public static final String FUNC_DATA = "data";
 
@@ -56,12 +58,20 @@ public class Getter extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> f() {
-        final Function function = new Function(
-                FUNC_F, 
+    public RemoteCall<Tuple2<BigInteger, BigInteger>> f() {
+        final Function function = new Function(FUNC_F, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
+        return new RemoteCall<Tuple2<BigInteger, BigInteger>>(
+                new Callable<Tuple2<BigInteger, BigInteger>>() {
+                    @Override
+                    public Tuple2<BigInteger, BigInteger> call() throws Exception {
+                        List<Type> results = executeCallMultipleValueReturn(function);
+                        return new Tuple2<BigInteger, BigInteger>(
+                                (BigInteger) results.get(0).getValue(), 
+                                (BigInteger) results.get(1).getValue());
+                    }
+                });
     }
 
     public static RemoteCall<Getter> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

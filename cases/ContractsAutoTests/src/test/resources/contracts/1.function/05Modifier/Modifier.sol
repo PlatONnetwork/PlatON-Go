@@ -26,6 +26,6 @@ contract Inheritance is Modifier {
    }
 
    function getA() public view returns (uint) {
-       return a;
+      return a;
    }
 }

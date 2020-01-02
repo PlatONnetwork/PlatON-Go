@@ -37,7 +37,7 @@ public class PramaAndReturnsTest extends ContractPrepareTest {
         this.prepare();
         a = driverService.param.get("a");
         b = driverService.param.get("b");
-        c = driverService.param.get("b");
+        c = driverService.param.get("c");
     }
 
     @Test
@@ -91,7 +91,6 @@ public class PramaAndReturnsTest extends ContractPrepareTest {
 
             //多个返回值且返回类型是数组
             Tuple2 resultE = pramaAndReturns.OuputArrays().send();
-            resultE.getValue1();
             collector.logStepPass("第一个数组是: " + resultE.getValue1());
             collector.assertEqual("[10, 2, 3]", resultE.getValue1().toString());
             collector.logStepPass("第二个数组是: " + resultE.getValue2());
