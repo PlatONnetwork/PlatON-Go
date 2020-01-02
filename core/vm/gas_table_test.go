@@ -482,6 +482,31 @@ func TestGasCall(t *testing.T) {
 
 func TestGasCallCode(t *testing.T) {
 	gasTable := params.GasTableConstantinople
+	overUint := overUint64()
+	testCases := []struct {
+		elements   []*big.Int
+		memorySize uint64
+		expected   uint64
+		isNil      bool
+	}{
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 34800, memorySize: 0, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 34898, memorySize: 1024, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 34802, memorySize: 1024, isNil: false},
+	}
+	stateDB, _, _ := newChainState()
+	for i, v := range testCases {
+		stack := mockStack(v.elements...)
+		gas, err := gasCallCode(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), v.memorySize)
+		if gas != v.expected {
+			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
+		}
+		if v.isNil && err != nil {
+			t.Error("not expected error")
+		}
+	}
+
+	/*gasTable := params.GasTableConstantinople
 	stack := newstack()
 	stateDB, _, _ := newChainState()
 
@@ -495,7 +520,7 @@ func TestGasCallCode(t *testing.T) {
 	}
 	if err != nil {
 		t.Error("not expected error")
-	}
+	}*/
 }
 
 func TestGasReturn(t *testing.T) {
