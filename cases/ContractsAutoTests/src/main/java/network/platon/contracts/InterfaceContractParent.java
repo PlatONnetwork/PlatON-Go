@@ -1,5 +1,7 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -10,9 +12,6 @@ import org.web3j.protocol.core.RemoteCall;
 import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
-
-import java.math.BigInteger;
-import java.util.Arrays;
 
 /**
  * <p>Auto generated code.
@@ -48,8 +47,8 @@ public class InterfaceContractParent extends Contract {
 
     public RemoteCall<BigInteger> sumExternal(BigInteger a, BigInteger b) {
         final Function function = new Function(FUNC_SUMEXTERNAL, 
-                Arrays.<Type>asList(new Int256(a),
-                new Int256(b)),
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Int256(a), 
+                new org.web3j.abi.datatypes.generated.Int256(b)), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Int256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
