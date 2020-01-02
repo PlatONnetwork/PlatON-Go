@@ -80,7 +80,7 @@ contract MappingContractTest {
          }
    }
 
-   function getName(uint index) returns (string) {
+   function getName(uint index) public returns (string memory) {
       
       return nameMap[index];
    }
