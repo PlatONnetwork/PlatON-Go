@@ -22,11 +22,12 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"math/big"
 	mrand "math/rand"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 

@@ -113,6 +113,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 			should := lazyCalcNodeTotalDelegateAmount(xutil.CalculateEpoch(blockNumber), canOld.CandidateMutable)
 			if canOld.RewardPer != canOld.NextRewardPer || should {
 				canOld.RewardPer = canOld.NextRewardPer
+				canOld.CleanCurrentEpochDelegateReward()
 				err = sk.EditCandidate(blockHash, header.Number, v.NodeAddress, canOld)
 				if err != nil {
 					log.Error("Failed to editCandidate on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
