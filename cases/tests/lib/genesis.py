@@ -17,6 +17,7 @@ class Config:
     chainId: int
     eip155Block: int
     cbft: Cbft
+    genesisVersion: int
 
 
 @dataclass
@@ -31,7 +32,6 @@ class Staking:
     stakeThreshold: int
     operatingThreshold: int
     maxValidators: int
-    hesitateRatio: int
     unStakeFreezeDuration: int
 
 
