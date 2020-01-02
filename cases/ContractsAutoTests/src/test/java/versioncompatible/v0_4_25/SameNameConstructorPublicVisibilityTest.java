@@ -29,7 +29,7 @@ public class SameNameConstructorPublicVisibilityTest extends ContractPrepareTest
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testDiscardLiteralsAndSuffixes",
-            author = "albedo", showName = "versioncompatible.v0_4_25.SameNameConstructorPublicVisibilityTest-构造函数和可见性")
+            author = "albedo", showName = "SameNameConstructorPublicVisibilityTest-构造函数和可见性")
     public void testDiscardLiteralsAndSuffixes() {
         try {
             prepare();

@@ -78,11 +78,11 @@ public class AbstractContractNoImp01_01Test {
         try{
             String name = AbstractContractGrandpa.load(contractAddress, web3j, transactionManager, provider)
                           .name().send();
-
-            collector.logStepPass("调用合约方法完毕 name:" + name);
+            collector.logStepFail("grandpaAbstractContract Calling Method Fail.","抽象合约是无法执行方法的");
         }catch (Exception e){
-            collector.logStepFail("grandpaAbstractContract Calling Method Fail.", e.toString());
-            e.printStackTrace();
+            collector.logStepPass("调用合约方法getName()完毕,无法执行抽象合约方法," + e.getMessage());
+            collector.assertEqual(e.getMessage(),"Empty value (0x) returned from contract","checkout  execute success.");
+            //e.printStackTrace();
         }
 
 

@@ -42,10 +42,10 @@ interface tokenRecipient { function receiveApproval(address _from, uint256 _valu
 
 
 contract ERC200412Token is ERC20Interface {
-    string public name = "albedo"; // ERC20标准--代币名称
-    string public symbol = "wzx"; // ERC20标准——代币简称
+    string public name; // ERC20标准--代币名称
+    string public symbol; // ERC20标准——代币简称
     uint8 public decimals = 18;  // ERC20标准，decimals 可以有的小数点个数，最小的代币单位。18 是建议的默认值
-    uint256 public totalSupply = 100000000000000000000000; // ERC20标准 总供应量
+    uint256 public totalSupply; // ERC20标准 总供应量
 
     // 用mapping保存每个地址对应的余额 ERC20标准
     mapping(address => uint256) public balanceOf;
@@ -74,20 +74,20 @@ contract ERC200412Token is ERC20Interface {
     /**
      * 返回代币的名称
      */
-    function name() constant public returns (string name){
+    function name() constant public returns (string){
         return name;
     }
 
     /**
      * 返回代币的简称
      */
-    function symbol() constant public returns (string symbol){
+    function symbol() constant public returns (string){
         return symbol;
     }
     /**
       * 返回代币最小分割量
       */
-    function decimals() public constant returns (uint8 decimals){
+    function decimals() public constant returns (uint8){
         return decimals;
     }
 

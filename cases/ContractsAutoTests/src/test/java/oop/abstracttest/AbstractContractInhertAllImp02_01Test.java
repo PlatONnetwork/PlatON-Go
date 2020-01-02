@@ -46,8 +46,10 @@ public class AbstractContractInhertAllImp02_01Test extends ContractPrepareTest {
 
         //调用合约方法
         try {
-            String bSubName = abstractContractBSubclass.parentName().send();
-            collector.logStepPass("调用合约方法完毕 successful.bSubName:" + bSubName);
+            String expectValue = "parentName";
+            String actualValue = abstractContractBSubclass.parentName().send();
+            collector.logStepPass("调用合约方法完毕 successful.actualValue:" + actualValue);
+            collector.assertEqual(actualValue,expectValue, "checkout  execute success.");
 
         } catch (Exception e) {
             collector.logStepFail("abstractContract Calling Method fail.", e.toString());

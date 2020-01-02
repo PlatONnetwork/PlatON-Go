@@ -4,16 +4,16 @@ pragma solidity ^0.5.13;
  * 2.revert(string reason)函数————终止运行并撤销状态更改,并提供一个解释性的字符串————验证
  *
  * @author Albedo
- * @dev 2019/12/19
+ * @dev 2019/12/30
  **/
 contract RevertHandle {
     //revert()终止运行并撤销状态更改
-    function revertCheck() public {
-        if (1 > 0) {revert();}
+    function revertCheck(uint param) public {
+        if (param > 10) {revert();}
     }
 
     //revert(string reason) 终止运行并撤销状态更改,并提供一个解释性的字符串
-    function revertReasonCheck() public {
-        if (1 > 0) {revert("check catch exception");}
+    function revertReasonCheck(uint param) public {
+        if (param > 10) {revert("check catch exception");}
     }
 }
