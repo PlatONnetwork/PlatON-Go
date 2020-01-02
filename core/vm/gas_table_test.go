@@ -197,10 +197,10 @@ func TestGasSha3(t *testing.T) {
 		expected   uint64
 		isNil      bool
 	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 15, memorySize: 0, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 54, memorySize: 0, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 152, memorySize: 1024, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 134, memorySize: 1024, isNil: false},
 	}
 	for i, v := range testCases {
 		stack := mockStack(v.elements...)
@@ -212,20 +212,6 @@ func TestGasSha3(t *testing.T) {
 			t.Error("not expected error")
 		}
 	}
-
-	/*gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasSha3(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
-	if gas != 152 {
-		t.Errorf("Expected: 152, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}*/
 }
 
 func TestGasCodeCopy(t *testing.T) {
