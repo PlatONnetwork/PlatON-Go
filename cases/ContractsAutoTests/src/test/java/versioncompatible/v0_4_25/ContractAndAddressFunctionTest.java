@@ -43,14 +43,14 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(300.00), Convert.Unit.LAT, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.LAT, GAS_PRICE, GAS_LIMIT).send();
             if (StringUtils.equals(receipt.getStatus(), "0x0")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.logStepPass("transfer contract account is successfully.contractAddress:" + contractAddress + ", amount:" + balance.getResult());
 
             }
             Tuple3<String, BigInteger, BigInteger> result = contractAndAddress.addressCheck().send();
-            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(contractAddress, new BigInteger("0"), new BigInteger("0"));
+            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("999999999999999980"), new BigInteger("20"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout contract address function");
         } catch (Exception e) {
             e.printStackTrace();
