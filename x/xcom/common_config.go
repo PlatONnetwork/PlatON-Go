@@ -43,7 +43,7 @@ const (
 	Eighty                    = 80
 	Hundred                   = 100
 	TenThousand               = 10000
-	CeilBlocksReward          = 60101
+	CeilBlocksReward          = 50000
 	CeilMaxValidators         = 201
 	FloorMaxConsensusVals     = 4
 	CeilMaxConsensusVals      = 25
@@ -84,7 +84,6 @@ type stakingConfig struct {
 	StakeThreshold        *big.Int `json:"stakeThreshold"`        // The Staking minimum threshold allowed
 	OperatingThreshold    *big.Int `json:"operatingThreshold"`    // The (incr, decr) delegate or incr staking minimum threshold allowed
 	MaxValidators         uint64   `json:"maxValidators"`         // The epoch (billing cycle) validators count
-	HesitateRatio         uint64   `json:"hesitateRatio"`         // Each hesitation period is a multiple of the epoch
 	UnStakeFreezeDuration uint64   `json:"unStakeFreezeDuration"` // The freeze period of the withdrew Staking (unit is  epochs)
 }
 
@@ -180,7 +179,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
 				MaxValidators:         uint64(101),
-				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
 			},
 			Slashing: slashingConfig{
@@ -227,7 +225,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
 				MaxValidators:         uint64(25),
-				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(2),
 			},
 			Slashing: slashingConfig{
@@ -275,7 +272,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
 				MaxValidators:         uint64(25),
-				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(2),
 			},
 			Slashing: slashingConfig{
@@ -424,10 +420,6 @@ func CheckEconomicModel() error {
 		return err
 	}
 
-	if ec.Staking.HesitateRatio < 1 {
-		return errors.New("The HesitateRatio must be greater than or equal to 1")
-	}
-
 	if err := CheckUnStakeFreezeDuration(int(ec.Staking.UnStakeFreezeDuration), int(ec.Slashing.MaxEvidenceAge)); nil != err {
 		return err
 	}
@@ -512,7 +504,7 @@ func ShiftValidatorNum() uint64 {
 }
 
 func HesitateRatio() uint64 {
-	return ec.Staking.HesitateRatio
+	return 1
 }
 
 func ElectionDistance() uint64 {

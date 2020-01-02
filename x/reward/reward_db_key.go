@@ -17,21 +17,24 @@
 package reward
 
 import (
+	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 var (
-	HistoryIncreasePrefix    = []byte("RewardHistory")
-	LastYearEndBalancePrefix = []byte("RewardBalance")
-	YearStartBlockNumberKey  = []byte("YearStartBlockNumberKey")
-	YearStartTimeKey         = []byte("YearStartTimeKey")
-	IncIssuanceNumberKey     = []byte("IncIssuanceNumberKey")
-	IncIssuanceTimeKey       = []byte("IncIssuanceTimeKey")
-	RemainingRewardKey       = []byte("RemainingRewardKey")
-	NewBlockRewardKey        = []byte("NewBlockRewardKey")
-	StakingRewardKey         = []byte("StakingRewardKey")
-	ChainYearNumberKey       = []byte("ChainYearNumberKey")
-	AvgPackTimeKey           = []byte("AvgPackTimeKey")
+	HistoryIncreasePrefix         = []byte("RewardHistory")
+	LastYearEndBalancePrefix      = []byte("RewardBalance")
+	YearStartBlockNumberKey       = []byte("YearStartBlockNumberKey")
+	YearStartTimeKey              = []byte("YearStartTimeKey")
+	RemainingRewardKey            = []byte("RemainingRewardKey")
+	NewBlockRewardKey             = []byte("NewBlockRewardKey")
+	StakingRewardKey              = []byte("StakingRewardKey")
+	ChainYearNumberKey            = []byte("ChainYearNumberKey")
+	delegateRewardPerKey          = []byte("DelegateRewardPerKey")
+	currentEpochDelegateRewardKey = []byte("currentEpochDelegateRewardKey")
 )
 
 // GetHistoryIncreaseKey used for search the balance of reward pool at last year
@@ -42,4 +45,34 @@ func GetHistoryIncreaseKey(year uint32) []byte {
 //
 func HistoryBalancePrefix(year uint32) []byte {
 	return append(LastYearEndBalancePrefix, common.Uint32ToBytes(year)...)
+}
+
+func DelegateRewardPerKey(nodeID discover.NodeID, epoch uint32) []byte {
+	return nil
+}
+
+func CurrentEpochDelegateRewardKey(nodeID discover.NodeID) []byte {
+	return nil
+}
+
+type DelegateRewardPer struct {
+	Epoch     uint64 `rlp:"nil"`
+	Amount    *big.Int
+	NodeCount uint
+}
+
+type DelegateRewardPerList []DelegateRewardPer
+
+//this is use for NodeCounts--
+func (d *DelegateRewardPerList) HandleNodeCount(epoch uint) {
+
+}
+
+func (d *DelegateRewardPerList) SetDelegateRewardPer(epoch uint, amount *big.Int) {
+
+}
+
+type NodeDelegateReward struct {
+	NodeID discover.NodeID
+	Reward *big.Int
 }

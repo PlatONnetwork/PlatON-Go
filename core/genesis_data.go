@@ -284,7 +284,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 	return nil
 }
 
-func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int) error {
+func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.DB, genesisIssue *big.Int) error {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")
@@ -304,11 +304,11 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	}
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
-	// Store restricting plans for increase issue for second and third year
-	if err := genesisAllowancePlan(statedb); nil != err {
-		return err
-	}
 
+	err := plugin.RestrictingInstance().InitGenesisRestrictingPlans(statedb)
+	if err != nil {
+		return fmt.Errorf("Failed to init genesis restricting plans, err:%s", err.Error())
+	}
 	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
 	plugin.SetYearEndBalance(statedb, 0, genesisReward)
 	log.Info("Set SetYearEndBalance", "genesisReward", genesisReward)

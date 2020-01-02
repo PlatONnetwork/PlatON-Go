@@ -21,6 +21,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -37,7 +39,8 @@ import (
 )
 
 type RewardMgrPlugin struct {
-	db snapshotdb.DB
+	db     snapshotdb.DB
+	nodeID discover.NodeID
 }
 
 const (
@@ -85,26 +88,36 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		packageReward, stakingReward, err = rmp.CalcEpochReward(blockHash, head, state)
 		if nil != err {
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+			return err
 		}
 	} else {
 		packageReward, err = LoadNewBlockReward(blockHash, rmp.db)
 		if nil != err {
 			log.Error("Load NewBlockReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+			return err
 		}
 		stakingReward, err = LoadStakingReward(blockHash, rmp.db)
 		if nil != err {
 			log.Error("Load StakingReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+			return err
 		}
 	}
 
-	rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, packageReward, state)
+	if err := rmp.allocatePackageBlock(blockHash, head, packageReward, state); err != nil {
+		return err
+	}
 
 	if xutil.IsEndOfEpoch(blockNumber) {
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
 			return err
 		}
+
+		if err := rmp.runIncreaseIssuance(blockHash, head, state); nil != err {
+			return err
+		}
 		if _, _, err := rmp.CalcEpochReward(blockHash, head, state); nil != err {
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+			return err
 		}
 	}
 
@@ -114,6 +127,10 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 // Confirmed does nothing
 func (rmp *RewardMgrPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
+}
+
+func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId discover.NodeID) {
+	rmp.nodeID = nodeId
 }
 
 func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
@@ -163,22 +180,57 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	}
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)
-
 }
 
 // allocateStakingReward used for reward staking at the settle block
-func (rmp *RewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash common.Hash, reward *big.Int, state xcom.StateDB) error {
+func (rmp *RewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash common.Hash, sreward *big.Int, state xcom.StateDB) error {
 
 	log.Info("Allocate staking reward start", "blockNumber", blockNumber, "hash", blockHash,
-		"epoch", xutil.CalculateEpoch(blockNumber), "reward", reward)
+		"epoch", xutil.CalculateEpoch(blockNumber), "reward", sreward)
 
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
 		log.Error("Failed to allocateStakingReward: call GetVerifierList is failed", "blockNumber", blockNumber, "hash", blockHash, "err", err)
 		return err
 	}
-	rmp.rewardStakingByValidatorList(state, verifierList, reward)
+	rmp.rewardStakingByValidatorList(state, verifierList, sreward)
+
+	//currentEpoch := xutil.CalculateEpoch(blockNumber)
+
+	// 算P值
+
+	//for _, verifier := range verifierList {
+	//
+	//	re, err := GetCurrentEpochDelegateReward(verifier.NodeId, rmp.db, blockHash)
+	//
+	//	key := reward.DelegateRewardPerKey(verifier.NodeId, uint32(currentEpoch))
+	//	sb, err := rmp.db.Get(blockHash, key)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	var tmp reward.DelegateRewardPerList
+	//	if err := rlp.DecodeBytes(sb, &tmp); err != nil {
+	//		return err
+	//	}
+	//	tmp.SetDelegateRewardPer(currentEpoch)
+	//
+	//	if err := SetCurrentEpochDelegateReward(verifier.NodeId, rmp.db, blockHash, nil); err != nil {
+	//		return err
+	//	}
+	//}
 	return nil
+}
+
+func (rmp *RewardMgrPlugin) handleDelegatePerReward(head *types.Header, state xcom.StateDB) error {
+	return nil
+}
+
+func (rmp *RewardMgrPlugin) WithdrawDelegateReward(head *types.Header, account common.Address, state xcom.StateDB) (*big.Int, error) {
+	return nil, nil
+}
+
+func (rmp *RewardMgrPlugin) GetDelegateReward(head *types.Header, account common.Address, nodes []discover.NodeID, state xcom.StateDB) ([]reward.NodeDelegateReward, error) {
+	return nil, nil
 }
 
 func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, list staking.ValidatorExQueue, reward *big.Int) {
@@ -201,17 +253,101 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 	state.SubBalance(vm.RewardManagerPoolAddr, totalValidatorReward)
 }
 
+func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (discover.NodeID, common.Address, error) {
+	if blockHash == common.ZeroHash {
+		add, err := xutil.NodeId2Addr(rmp.nodeID)
+		return rmp.nodeID, add, err
+	}
+	sign := head.Extra[32:97]
+	sealhash := head.SealHash().Bytes()
+	pk, err := crypto.SigToPub(sealhash, sign)
+	if err != nil {
+		return discover.ZeroNodeID, common.ZeroAddr, err
+	}
+	return discover.PubkeyID(pk), crypto.PubkeyToAddress(*pk), nil
+}
+
+func (rmp *RewardMgrPlugin) allocateDelegate(blockHash common.Hash, nodeID discover.NodeID, currentTotalReward *big.Int, RewardPer uint64, state xcom.StateDB) error {
+	if RewardPer != 0 {
+		delegateReward := new(big.Int).Mul(currentTotalReward, new(big.Int).SetUint64(RewardPer))
+		delegateReward.Div(delegateReward, new(big.Int).SetUint64(10000))
+
+		state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
+		state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
+
+		currentEpochDelegateReward, err := GetCurrentEpochDelegateReward(nodeID, rmp.db, blockHash)
+		if err != nil {
+			return err
+		}
+		currentEpochDelegateReward.Add(currentEpochDelegateReward, delegateReward)
+		if err := SetCurrentEpochDelegateReward(nodeID, rmp.db, blockHash, currentEpochDelegateReward); err != nil {
+			return err
+		}
+		currentTotalReward.Sub(currentTotalReward, delegateReward)
+	}
+	return nil
+}
+
 // allocatePackageBlock used for reward new block. it returns coinbase and error
-func (rmp *RewardMgrPlugin) allocatePackageBlock(blockNumber uint64, blockHash common.Hash, coinBase common.Address, reward *big.Int, state xcom.StateDB) {
+func (rmp *RewardMgrPlugin) allocatePackageBlock(blockHash common.Hash, head *types.Header, reward *big.Int, state xcom.StateDB) error {
+	//nodeID, add, err := rmp.getBlockMinderAddress(blockHash, head)
+	//if err != nil {
+	//	log.Error("allocatePackageBlock getBlockMinderAddress fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
+	//	return err
+	//}
+	//cm, err := stk.GetCanMutable(blockHash, add)
+	//if err != nil {
+	//	log.Error("allocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
+	//	return err
+	//}
+	//if err := rmp.allocateDelegate(blockHash, nodeID, reward, uint64(cm.RewardPer), state); err != nil {
+	//	log.Error("allocatePackageBlock allocateDelegate fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
+	//	return err
+	//}
 
-	if coinBase != vm.RewardManagerPoolAddr {
+	if head.Coinbase != vm.RewardManagerPoolAddr {
 
-		log.Debug("allocate package reward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-			"coinBase", coinBase.String(), "reward", reward)
+		log.Debug("allocate package reward", "blockNumber", head.Number, "blockHash", blockHash.Hex(),
+			"coinBase", head.Coinbase.String(), "reward", reward)
 
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
-		state.AddBalance(coinBase, reward)
+		state.AddBalance(head.Coinbase, reward)
 	}
+	return nil
+}
+
+func GetCurrentEpochDelegateReward(nodeID discover.NodeID, db snapshotdb.DB, blockHash common.Hash) (*big.Int, error) {
+	key := reward.CurrentEpochDelegateRewardKey(nodeID)
+	val, err := db.Get(blockHash, key)
+	if err != nil {
+		if err == snapshotdb.ErrNotFound {
+			return new(big.Int).SetUint64(0), nil
+		}
+		return nil, err
+	}
+	return new(big.Int).SetBytes(val), nil
+}
+
+func SetCurrentEpochDelegateReward(nodeID discover.NodeID, db snapshotdb.DB, blockHash common.Hash, amount *big.Int) error {
+	key := reward.CurrentEpochDelegateRewardKey(nodeID)
+	if amount == nil {
+		if err := db.Del(blockHash, key); err != nil {
+			return err
+		}
+	} else {
+		if err := db.Put(blockHash, key, amount.Bytes()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func GetDelegateRewardPerList(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, fromEpoch, toEpoch uint32) (*reward.DelegateRewardPerList, error) {
+	return nil, nil
+}
+
+func UpdateDelegateRewardPer(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, epoch uint32, list reward.DelegateRewardPer) error {
+	return nil
 }
 
 //  Calculation percentage ,  input 100,10    cal:  100*10/100 = 10
@@ -248,6 +384,50 @@ func GetYearEndBalance(state xcom.StateDB, year uint32) *big.Int {
 	return balance.SetBytes(bBalance)
 }
 
+func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+	yes, err := xcom.IsYearEnd(blockHash, head.Number.Uint64())
+	if nil != err {
+		log.Error("Failed to execute runIncreaseIssuance function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+		return err
+	}
+	if yes {
+		yearNumber, err := LoadChainYearNumber(blockHash, rmp.db)
+		if nil != err {
+			return err
+		}
+		yearNumber++
+		if err := StorageChainYearNumber(blockHash, rmp.db, yearNumber); nil != err {
+			log.Error("Failed to execute runIncreaseIssuance function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+		incIssuanceTime, err := xcom.LoadIncIssuanceTime(blockHash, rmp.db)
+		if nil != err {
+			return err
+		}
+		rmp.increaseIssuance(yearNumber, yearNumber-1, state)
+		// After the increase issue is completed, update the number of rewards to be issued
+		if err := StorageRemainingReward(blockHash, rmp.db, GetYearEndBalance(state, yearNumber)); nil != err {
+			log.Error("Failed to execute runIncreaseIssuance function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+		if err := xcom.StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime+int64(xcom.AdditionalCycleTime()*uint64(minutes))); nil != err {
+			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+		remainReward, err := LoadRemainingReward(blockHash, rmp.db)
+		if nil != err {
+			return err
+		}
+		incIssuanceTime, err = xcom.LoadIncIssuanceTime(blockHash, rmp.db)
+		if nil != err {
+			return err
+		}
+		log.Info("Call CalcEpochReward, increaseIssuance successful", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
+			"yearNumber", yearNumber, "incIssuanceTime", incIssuanceTime, "yearEndBalance", GetYearEndBalance(state, yearNumber), "remainingReward", remainReward)
+	}
+	return nil
+}
+
 func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.Header, state xcom.StateDB) (*big.Int, *big.Int, error) {
 	remainReward, err := LoadRemainingReward(blockHash, rmp.db)
 	if nil != err {
@@ -259,7 +439,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
-	incIssuanceTime, err := LoadIncIssuanceTime(blockHash, rmp.db)
+	incIssuanceTime, err := xcom.LoadIncIssuanceTime(blockHash, rmp.db)
 	if nil != err {
 		log.Error("load incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
@@ -268,7 +448,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		yearStartBlockNumber = head.Number.Uint64()
 		yearStartTime = head.Time.Int64()
 		incIssuanceTime = yearStartTime + int64(xcom.AdditionalCycleTime()*uint64(minutes))
-		if err := StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime); nil != err {
+		if err := xcom.StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime); nil != err {
 			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return nil, nil, err
 		}
@@ -290,65 +470,49 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// which is used to calculate the average annual block production rate
 	epochBlocks := xutil.CalcBlocksEachEpoch()
 	if yearNumber > 0 {
-		if yearStartBlockNumber == 1 {
-			yearStartBlockNumber += epochBlocks - 1
-		} else {
-			yearStartBlockNumber += epochBlocks
-		}
-		yearStartTime = snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time.Int64()
-		if err := StorageYearStartTime(blockHash, rmp.db, yearStartBlockNumber, yearStartTime); nil != err {
-			log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+		incIssuanceNumber, err := xcom.LoadIncIssuanceNumber(blockHash, rmp.db)
+		if nil != err {
 			return nil, nil, err
 		}
-		log.Debug("Call CalcEpochReward, Adjust the sampling range of the block time", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
-			"epochBlocks", epochBlocks, "yearNumber", yearNumber, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime)
+		addition := true
+		if yearStartBlockNumber == 1 {
+			if head.Number.Uint64() <= incIssuanceNumber {
+				addition = false
+			}
+		}
+		if addition {
+			if yearStartBlockNumber == 1 {
+				yearStartBlockNumber += epochBlocks - 1
+			} else {
+				yearStartBlockNumber += epochBlocks
+			}
+			yearStartTime = snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time.Int64()
+			if err := StorageYearStartTime(blockHash, rmp.db, yearStartBlockNumber, yearStartTime); nil != err {
+				log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
+				return nil, nil, err
+			}
+			log.Debug("Call CalcEpochReward, Adjust the sampling range of the block time", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
+				"epochBlocks", epochBlocks, "yearNumber", yearNumber, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime)
+		}
 	}
 
+	// First calculation, calculated according to the default block interval.
+	// In each subsequent settlement cycle, an average block generation interval needs to be calculated.
 	avgPackTime := xcom.Interval() * uint64(millisecond)
 	if head.Number.Uint64() > yearStartBlockNumber {
 		diffNumber := head.Number.Uint64() - yearStartBlockNumber
 		diffTime := head.Time.Int64() - yearStartTime
-		// If it is less than or equal to the block difference,
-		// it is calculated according to the default average block production time
-		if uint64(diffTime) > diffNumber {
-			avgPackTime = uint64(diffTime) / diffNumber
-		}
+
+		avgPackTime = uint64(diffTime) / diffNumber
 		log.Debug("Call CalcEpochReward, Calculate the average block production time in the previous year", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"currBlockTime", head.Time.Int64(), "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "diffNumber", diffNumber, "diffTime", diffTime,
 			"avgPackTime", avgPackTime)
 	}
-	if err := StorageAvgPackTime(blockHash, rmp.db, avgPackTime); nil != err {
+	if err := xcom.StorageAvgPackTime(blockHash, rmp.db, avgPackTime); nil != err {
 		log.Error("Failed to execute StorageAvgPackTime function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "avgPackTime", avgPackTime, "err", err)
 		return nil, nil, err
 	}
 
-	if remainReward.Cmp(common.Big0) == 0 {
-		yearNumber++
-		if err := StorageChainYearNumber(blockHash, rmp.db, yearNumber); nil != err {
-			log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
-			return nil, nil, err
-		}
-		rmp.increaseIssuance(yearNumber, yearNumber-1, state)
-		// After the increase issue is completed, update the number of rewards to be issued
-		if err := StorageRemainingReward(blockHash, rmp.db, GetYearEndBalance(state, yearNumber)); nil != err {
-			log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
-			return nil, nil, err
-		}
-		if err := StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime+int64(xcom.AdditionalCycleTime()*uint64(minutes))); nil != err {
-			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
-			return nil, nil, err
-		}
-		remainReward, err = LoadRemainingReward(blockHash, rmp.db)
-		if nil != err {
-			return nil, nil, err
-		}
-		incIssuanceTime, err = LoadIncIssuanceTime(blockHash, rmp.db)
-		if nil != err {
-			return nil, nil, err
-		}
-		log.Info("Call CalcEpochReward, increaseIssuance successful", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
-			"yearNumber", yearNumber, "incIssuanceTime", incIssuanceTime, "yearEndBalance", GetYearEndBalance(state, yearNumber), "remainingReward", remainReward)
-	}
 	epochTotalReward := new(big.Int)
 	// If the expected increase issue time is exceeded,
 	// the increase issue time will be postponed for one settlement cycle,
@@ -372,9 +536,10 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 			"currBlockTime", head.Time.Int64(), "incIssuanceTime", incIssuanceTime, "remainTime", remainTime, "remainBlocks", remainBlocks, "epochBlocks", epochBlocks,
 			"remainEpoch", remainEpoch, "remainReward", remainReward, "epochTotalReward", epochTotalReward)
 	}
+	// If the last settlement cycle is left, record the increaseIssuance block height
 	if remainReward.Cmp(common.Big0) == 0 {
 		incIssuanceNumber := new(big.Int).Add(head.Number, new(big.Int).SetUint64(epochBlocks)).Uint64()
-		if err := StorageIncIssuanceNumber(blockHash, rmp.db, incIssuanceNumber); nil != err {
+		if err := xcom.StorageIncIssuanceNumber(blockHash, rmp.db, incIssuanceNumber); nil != err {
 			return nil, nil, err
 		}
 		log.Info("Call CalcEpochReward, IncIssuanceNumber stored successfully", "currBlockNumber", head.Number, "currBlockHash", blockHash,
@@ -444,28 +609,6 @@ func LoadYearStartTime(hash common.Hash, snapshotDB snapshotdb.DB) (yearStartBlo
 		yearStartTime = common.BytesToInt64(yearStartTimeByte)
 	}
 	return
-}
-
-func StorageIncIssuanceTime(hash common.Hash, snapshotDB snapshotdb.DB, incTime int64) error {
-	if err := snapshotDB.Put(hash, reward.IncIssuanceTimeKey, common.Int64ToBytes(incTime)); nil != err {
-		log.Error("Failed to execute StorageIncIssuanceTime function", "hash", hash.TerminalString(), "key", string(reward.IncIssuanceTimeKey),
-			"value", incTime, "err", err)
-		return err
-	}
-	return nil
-}
-
-func LoadIncIssuanceTime(hash common.Hash, snapshotDB snapshotdb.DB) (int64, error) {
-	incTimeByte, err := snapshotDB.Get(hash, reward.IncIssuanceTimeKey)
-	if nil != err {
-		if err != snapshotdb.ErrNotFound {
-			log.Error("Failed to execute LoadIncIssuanceTime function", "hash", hash.TerminalString(), "key", string(reward.IncIssuanceTimeKey), "err", err)
-			return 0, err
-		} else {
-			return 0, nil
-		}
-	}
-	return common.BytesToInt64(incTimeByte), nil
 }
 
 func StorageRemainingReward(hash common.Hash, snapshotDB snapshotdb.DB, remainReward *big.Int) error {
@@ -540,55 +683,4 @@ func LoadChainYearNumber(hash common.Hash, snapshotDB snapshotdb.DB) (uint32, er
 		return 0, err
 	}
 	return common.BytesToUint32(chainYearNumberByte), nil
-}
-
-func StorageIncIssuanceNumber(hash common.Hash, snapshotDB snapshotdb.DB, incIssuanceNumber uint64) error {
-	if err := snapshotDB.Put(hash, reward.IncIssuanceNumberKey, common.Uint64ToBytes(incIssuanceNumber)); nil != err {
-		log.Error("Failed to execute StorageIncIssuanceNumber function", "hash", hash.TerminalString(), "incIssuanceNumber", incIssuanceNumber, "err", err)
-		return err
-	}
-	return nil
-}
-
-func LoadIncIssuanceNumber(hash common.Hash, snapshotDB snapshotdb.DB) (uint64, error) {
-	incIssuanceNumberByte, err := snapshotDB.Get(hash, reward.IncIssuanceNumberKey)
-	if nil != err {
-		if err == snapshotdb.ErrNotFound {
-			return 0, nil
-		}
-		log.Error("Failed to execute LoadIncIssuanceNumber function", "hash", hash.TerminalString(), "key", string(reward.IncIssuanceNumberKey), "err", err)
-		return 0, err
-	}
-	return common.BytesToUint64(incIssuanceNumberByte), nil
-}
-
-func IsYearEnd(hash common.Hash, blockNumber uint64, db snapshotdb.DB) (bool, error) {
-	number, err := LoadIncIssuanceNumber(hash, db)
-	if nil != err {
-		return false, err
-	}
-	if number == blockNumber {
-		return true, nil
-	}
-	return false, nil
-}
-
-func StorageAvgPackTime(hash common.Hash, snapshotDB snapshotdb.DB, avgPackTime uint64) error {
-	if err := snapshotDB.Put(hash, reward.AvgPackTimeKey, common.Uint64ToBytes(avgPackTime)); nil != err {
-		log.Error("Failed to execute StorageAvgPackTime function", "hash", hash.TerminalString(), "avgPackTime", avgPackTime, "err", err)
-		return err
-	}
-	return nil
-}
-
-func LoadAvgPackTime(hash common.Hash, snapshotDB snapshotdb.DB) (uint64, error) {
-	avgPackTimeByte, err := snapshotDB.Get(hash, reward.AvgPackTimeKey)
-	if nil != err {
-		if err == snapshotdb.ErrNotFound {
-			return 0, nil
-		}
-		log.Error("Failed to execute LoadAvgPackTime function", "hash", hash.TerminalString(), "key", string(reward.AvgPackTimeKey), "err", err)
-		return 0, err
-	}
-	return common.BytesToUint64(avgPackTimeByte), nil
 }

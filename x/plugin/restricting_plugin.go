@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"sort"
 	"sync"
@@ -38,6 +39,7 @@ import (
 
 type RestrictingPlugin struct {
 	log log.Logger
+	db  snapshotdb.DB
 }
 
 var (
@@ -49,7 +51,7 @@ func RestrictingInstance() *RestrictingPlugin {
 	restrictingOnce.Do(func() {
 		restrictLog := log.Root().New("package", "RestrictingPlugin")
 		restrictLog.Info("Init Restricting plugin ...")
-		rt = &RestrictingPlugin{restrictLog}
+		rt = &RestrictingPlugin{restrictLog, snapshotdb.Instance()}
 	})
 	return rt
 }
@@ -67,6 +69,10 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 		rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "currBlock", head.Number, "expectBlock", head.Number, "expectEpoch", expect)
 		if err := rp.releaseRestricting(expect, state); err != nil {
 			return err
+		}
+		if ok, _ := xcom.IsYearEnd(blockHash, head.Number.Uint64()); ok {
+			rp.log.Info(fmt.Sprintf("release genesis restricting plan, blocknumber:%d", head.Number.Uint64()))
+			return rp.releaseGenesisRestrictingPlans(blockHash, state)
 		}
 	}
 	return nil
@@ -124,6 +130,79 @@ func (rp *RestrictingPlugin) initEpochInfo(state xcom.StateDB, epoch uint64, acc
 func (rp *RestrictingPlugin) transferAmount(state xcom.StateDB, from, to common.Address, mount *big.Int) {
 	state.SubBalance(from, mount)
 	state.AddBalance(to, mount)
+}
+
+// update genesis restricting plans
+func (rp *RestrictingPlugin) updateGenesisRestrictingPlans(plans []*big.Int, stateDB xcom.StateDB) error {
+
+	if val, err := rlp.EncodeToBytes(plans); nil != err {
+		return fmt.Errorf("Failed to Store genesisAllowancePlans Info: rlp encodeing failed")
+	} else {
+		stateDB.SetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting, val)
+	}
+	return nil
+}
+
+// init the genesis restricting plans
+func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) error {
+
+	genesisAllowancePlans := []*big.Int{
+		new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18)),
+	}
+
+	//initial release from genesis restricting plans(62215742LAT)
+	initialRelease := new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
+	statedb.SubBalance(xcom.CDFAccount(), initialRelease)
+	statedb.AddBalance(vm.RewardManagerPoolAddr, initialRelease)
+
+	//transfer 259096239LAT from CDFAccount to vm.RestrictingContractAddr
+	totalRestrictingPlan := new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18))
+	statedb.SubBalance(xcom.CDFAccount(), totalRestrictingPlan)
+	statedb.AddBalance(vm.RestrictingContractAddr, totalRestrictingPlan)
+
+	if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {
+		return err
+	}
+	return nil
+}
+
+// release genesis restricting plans
+func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Hash, statedb xcom.StateDB) error {
+
+	plansBytes := statedb.GetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting)
+	var genesisAllowancePlans []*big.Int
+	if len(plansBytes) > 0 {
+		if err := rlp.DecodeBytes(plansBytes, &genesisAllowancePlans); err != nil {
+			rp.log.Error("failed to rlp decode the genesis allowance plans", "err", err.Error())
+			return common.InternalError.Wrap(err.Error())
+		} else {
+			remains := len(genesisAllowancePlans)
+			if remains > 0 {
+				allowance := genesisAllowancePlans[0]
+				statedb.SubBalance(vm.RestrictingContractAddr, allowance)
+				statedb.AddBalance(vm.RewardManagerPoolAddr, allowance)
+				rp.log.Info("Genesis restricting plan release", "remains", remains, "allowance", allowance)
+				genesisAllowancePlans = append(genesisAllowancePlans[:0], genesisAllowancePlans[1:]...)
+				if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {
+					return err
+				}
+			} else {
+				statedb.SetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting, []byte{})
+			}
+			rp.log.Info("release genesis restricting plan", "remains:", remains, "left:", len(genesisAllowancePlans))
+		}
+	} else {
+		rp.log.Info("Genesis restricting plan had all been released")
+	}
+
+	return nil
 }
 
 // AddRestrictingRecord stores four K-V record in StateDB:
