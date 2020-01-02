@@ -180,7 +180,7 @@ func testBaseSafetyRulesPrepareBlockRules(t *testing.T, viewState *state.ViewSta
 		{newCommonError(notExistPreIndex), false, false, false, true, newPrepareBlock(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, nextIndex+1, nil, nil), nil, nil},
 		{newCommonError(diffPreIndexBlock), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, nextIndex, nil, nil), nil, nil},
 		{newCommonError(backwardPrepare), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64()+1, nextIndex, nil, new(big.Int).Sub(qcBlock.Time(), big.NewInt(1))), nil, nil},
-		{newCommonError(advancePrepare), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64()+1, nextIndex, nil, big.NewInt(common.Millis(time.Now().Add(riseTimeLimit*2)))), nil, nil},
+		{newCommonError(advancePrepare), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64()+1, nextIndex, nil, big.NewInt(common.Millis(time.Now().Add(riseTimeLimit*1000)))), nil, nil},
 		{nil, false, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), nextIndex, nil, nil), nil, nil},
 	}
 	invokePrepareBlockRules(t, rules, tests)
