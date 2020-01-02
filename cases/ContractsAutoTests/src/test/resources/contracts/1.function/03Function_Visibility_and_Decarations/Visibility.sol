@@ -31,7 +31,7 @@ contract Visibility {
 
 contract VisibilityCall {
     function readData() public payable returns(uint localA, uint localB){
-        Visibility visibility = new VisibilityTest();
+        Visibility visibility = new Visibility();
         //uint local = visibilitytest.fpri(10); // error: member "fpri" is not visible,编译报错
         localA = visibility.fe(1);
         localB = visibility.fpub(1);

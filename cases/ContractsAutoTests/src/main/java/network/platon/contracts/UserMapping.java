@@ -50,17 +50,17 @@ public class UserMapping extends Contract {
     }
 
     public RemoteCall<BigInteger> getOutUser(BigInteger _id) {
-        final Function function = new Function(FUNC_GETOUTUSER, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_id)), 
+        final Function function = new Function(FUNC_GETOUTUSER,
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_id)),
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<TransactionReceipt> setOutUser(BigInteger _age, BigInteger _id) {
         final Function function = new Function(
-                FUNC_SETOUTUSER, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_age), 
-                new org.web3j.abi.datatypes.generated.Uint256(_id)), 
+                FUNC_SETOUTUSER,
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_age),
+                        new org.web3j.abi.datatypes.generated.Uint256(_id)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
