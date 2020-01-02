@@ -70,10 +70,12 @@ type VM struct {
 	// or encountering an invalid instruction, e.g. `unreachable`.
 	RecoverPanic bool
 
-	abort bool // Flag for host functions to terminate execution
+	abort         bool // Flag for host functions to terminate execution
 	nativeBackend *nativeCompiler
 
 	hostCtx interface{}
+
+	useGas func(byte)
 }
 
 // As per the WebAssembly spec: https://github.com/WebAssembly/design/blob/27ac254c854994103c24834a994be16f74f54186/Semantics.md#linear-memory
@@ -208,12 +210,16 @@ func (vm *VM) Memory() []byte {
 	return vm.memory
 }
 
-func (vm *VM) SetHostCtx(ctx interface{})  {
+func (vm *VM) SetHostCtx(ctx interface{}) {
 	vm.hostCtx = ctx
 }
 
-func (vm *VM) HostCtx( ) interface{} {
+func (vm *VM) HostCtx() interface{} {
 	return vm.hostCtx
+}
+
+func (vm *VM) SetUseGas(useGas func(byte)) {
+	vm.useGas = useGas
 }
 
 func (vm *VM) pushBool(v bool) {
@@ -387,6 +393,9 @@ func (vm *VM) execCode(compiled compiledFunction) uint64 {
 outer:
 	for int(vm.ctx.pc) < len(vm.ctx.code) && !vm.abort {
 		op := vm.ctx.code[vm.ctx.pc]
+		if vm.useGas != nil {
+			vm.useGas(op)
+		}
 		vm.ctx.pc++
 		switch op {
 		case ops.Return:
@@ -485,7 +494,7 @@ func (vm *VM) Close() error {
 	return nil
 }
 
-func (vm *VM) Abort() bool  {
+func (vm *VM) Abort() bool {
 	return vm.abort
 }
 
