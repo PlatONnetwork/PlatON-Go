@@ -1508,6 +1508,26 @@ func TestOpStaticCall(t *testing.T) {
 	}
 }
 
+func TestOpRevert(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+
+	memory := &Memory{}
+	memory.Resize(4)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+
+	opRevert(&pc, evmInterpreter, nil, memory, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(4) != actual.Uint64() {
+		t.Errorf("Expected 4, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
