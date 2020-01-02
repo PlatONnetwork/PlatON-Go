@@ -597,7 +597,6 @@ func TestGasDelegateCall(t *testing.T) {
 }
 
 func TestGasStaticCall(t *testing.T) {
-
 	gasTable := params.GasTableConstantinople
 	overUint := overUint64()
 	testCases := []struct {
@@ -622,22 +621,6 @@ func TestGasStaticCall(t *testing.T) {
 			t.Error("not expected error")
 		}
 	}
-
-	/*gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stateDB, _, _ := newChainState()
-
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasStaticCall(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000, self: &MockAddressRef{}}, stack, NewMemory(), 1024)
-	if gas != 898 {
-		t.Errorf("Expected: 898, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}*/
 }
 
 func TestGasPush(t *testing.T) {
