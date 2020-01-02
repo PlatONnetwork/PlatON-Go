@@ -33,6 +33,8 @@ pragma solidity 0.5.13;
  *
  */
 
+import "./01InheritContractMultipleTest.sol";
+
 
  contract InheritContractParentThreeClass is InheritContractParentTwoClass {
 
