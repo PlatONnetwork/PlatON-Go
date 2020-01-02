@@ -117,26 +117,32 @@ func TestGasReturnDataCopy(t *testing.T) {
 
 func TestGasSStore(t *testing.T) {
 	gasTable := params.GasTableConstantinople
-	stack := mockStack(uint2BigInt(100), uint2BigInt(100), uint2BigInt(0), uint2BigInt(1))
+	overUint := overUint64()
 	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
 	evm := &EVM{
 		StateDB: createMockState(),
 	}
-	gas, err := gasSStore(gasTable, evm, contract, stack, NewMemory(), 1024)
-	if gas != 5000 {
-		t.Errorf("Expected: 5000, got %d", gas)
+	testCases := []struct {
+		elements   []*big.Int
+		memorySize uint64
+		expected   uint64
+		isNil      bool
+	}{
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 20000, memorySize: 0, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(0), uint2BigInt(1)}, expected: 5000, memorySize: 1024, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 20000, memorySize: 1024, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 20000, memorySize: 0xffffffffe1, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 20000, memorySize: 1024, isNil: false},
 	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-	//
-	stack = mockStack(uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100))
-	gas, err = gasSStore(gasTable, evm, contract, stack, NewMemory(), 1024)
-	if gas != 20000 {
-		t.Errorf("Expected: 20000, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
+	for i, v := range testCases {
+		stack := mockStack(v.elements...)
+		gas, err := gasSStore(gasTable, evm, contract, stack, NewMemory(), v.memorySize)
+		if gas != v.expected {
+			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
+		}
+		if v.isNil && err != nil {
+			t.Error("not expected error")
+		}
 	}
 }
 
