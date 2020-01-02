@@ -30,7 +30,7 @@ public class ContractPrepareTest {
     protected RawTransactionManager transactionManager;
     protected ContractGasProvider provider;
     protected String walletAddress;
-    protected String gasLimit = "4700000";
+    protected String gasLimit = "4712388";
     protected String gasPrice = "1000000000";
 
     /**
