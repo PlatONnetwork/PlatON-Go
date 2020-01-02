@@ -31,7 +31,7 @@
         }
 
         TH.graphHeaderDesc {
-            BACKGROUND: #eff7ff 95% 50% ) no-repeat;
+            BACKGROUND: #eff7ff 95% 50% no-repeat;
             BORDER-BOTTOM: #dcdcdc 1px solid;
             BORDER-TOP: #dcdcdc 1px solid;
             BORDER-RIGHT: #dcdcdc 1px solid;
@@ -40,14 +40,14 @@
         }
 
         TH.graphHeaderLeftAsc {
-            BACKGROUND: #eff7ff 98% 50% 	no-repeat;
+            BACKGROUND: #eff7ff 98% 50% no-repeat;
             BORDER: #dcdcdc 1px solid;
             PADDING: 4px 12px 1px 1px;
             TEXT-ALIGN: left;
         }
 
         TH.graphHeaderLeftDesc {
-            BACKGROUND: #eff7ff 98% 50% 	no-repeat;
+            BACKGROUND: #eff7ff 98% 50% no-repeat;
             BORDER: #dcdcdc 1px solid;
             PADDING: 4px 12px 1px 1px;
             TEXT-ALIGN: left;
@@ -171,7 +171,7 @@
             BACKGROUND: #ffffff;
             BORDER-BOTTOM: #dcdcdc 1px solid;
             BORDER-RIGHT: #dcdcdc 1px solid;
-            WIDTH: 50%;
+            WIDTH: 20%;
         }
 
         TABLE.barGraph {

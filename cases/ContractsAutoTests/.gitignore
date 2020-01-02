@@ -3,7 +3,7 @@
 target/
 $RECYCLE.BIN/
 velocity.log*
-*.vm
+#*.vm
 solc/*
 *.zip
 *plan.error.xml
