@@ -83,6 +83,39 @@ func TestGasReturnDataCopy(t *testing.T) {
 	}
 }
 
+func TestGasSStore(t *testing.T) {
+	gasTable := params.GasTableConstantinople
+	stack := mockStack(100, 100, 0, 1)
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	evm := &EVM{
+		StateDB: createMockState(),
+	}
+	gas, err := gasSStore(gasTable, evm, contract, stack, NewMemory(), 1024)
+	if gas != 5000 {
+		t.Errorf("Expected: 5000, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+	//
+	stack = mockStack(100, 100, 100, 100)
+	gas, err = gasSStore(gasTable, evm, contract, stack, NewMemory(), 1024)
+	if gas != 20000 {
+		t.Errorf("Expected: 20000, got %d", gas)
+	}
+	if err != nil {
+		t.Error("not expected error")
+	}
+}
+
+func mockStack(b ...uint64) *Stack {
+	stack := newstack()
+	for _, v := range b {
+		stack.push(new(big.Int).SetUint64(v))
+	}
+	return stack
+}
+
 func TestMakeGasLog(t *testing.T) {
 	gasTable := params.GasTableConstantinople
 	stack := newstack()
