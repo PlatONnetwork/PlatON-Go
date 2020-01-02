@@ -89,6 +89,11 @@ class Economic:
                 count = count + 1
         return count
 
+    def calculate_delegate_reward(self, node, block_reward, staking_reward):
+        block_number = self.get_number_blocks_in_interval(node)
+        reward = node.ppos.getCandidateInfo(node.node_id)["Ret"]["RewardPer"]
+        return int((Decimal(str(block_reward))*Decimal(str(block_number)) + Decimal(str(staking_reward)))*Decimal(str(reward))/Decimal(str(10000)))
+
     def get_current_year_reward(self, node: Node, verifier_num=None):
         """
         Get the first year of the block reward, pledge reward
