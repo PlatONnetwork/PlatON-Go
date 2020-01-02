@@ -20,6 +20,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -53,20 +55,24 @@ func TestConstGasFunc(t *testing.T) {
 
 func TestGasCallDataCopy(t *testing.T) {
 	gasTable := params.GasTableConstantinople
+	maxUint64 := new(big.Int).SetUint64(math.MaxUint64)
+	factor := new(big.Int).SetUint64(math.MaxUint8)
+	maxUint64 = maxUint64.Add(maxUint64, factor)
 	testCases := []struct {
-		elements   []uint64
+		elements   []*big.Int
 		memorySize uint64
 		expected   uint64
 		isNil      bool
 	}{
-		{elements: []uint64{100, 100, 100, 100}, expected: 113, memorySize: 1024, isNil: true},
-		{elements: []uint64{100, 100, 100, 100}, expected: 113, memorySize: 0xffffffffe1, isNil: false},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 15, memorySize: 0, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 113, memorySize: 1024, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
 	}
-	for _, v := range testCases {
+	for i, v := range testCases {
 		stack := mockStack(v.elements...)
 		gas, err := gasCallDataCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
 		if gas != v.expected {
-			t.Errorf("Expected: %d, got %d", v.expected, gas)
+			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
 		}
 		if v.isNil && err != nil {
 			t.Error("not expected error")
@@ -93,7 +99,7 @@ func TestGasReturnDataCopy(t *testing.T) {
 
 func TestGasSStore(t *testing.T) {
 	gasTable := params.GasTableConstantinople
-	stack := mockStack(100, 100, 0, 1)
+	stack := mockStack(uint2BigInt(100), uint2BigInt(100), uint2BigInt(0), uint2BigInt(1))
 	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
 	evm := &EVM{
 		StateDB: createMockState(),
@@ -106,7 +112,7 @@ func TestGasSStore(t *testing.T) {
 		t.Error("not expected error")
 	}
 	//
-	stack = mockStack(100, 100, 100, 100)
+	stack = mockStack(uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100))
 	gas, err = gasSStore(gasTable, evm, contract, stack, NewMemory(), 1024)
 	if gas != 20000 {
 		t.Errorf("Expected: 20000, got %d", gas)
@@ -116,10 +122,14 @@ func TestGasSStore(t *testing.T) {
 	}
 }
 
-func mockStack(b ...uint64) *Stack {
+func uint2BigInt(u uint64) *big.Int {
+	return new(big.Int).SetUint64(u)
+}
+
+func mockStack(b ...*big.Int) *Stack {
 	stack := newstack()
 	for _, v := range b {
-		stack.push(new(big.Int).SetUint64(v))
+		stack.push(v)
 	}
 	return stack
 }
