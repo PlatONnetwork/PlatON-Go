@@ -1440,6 +1440,74 @@ func TestOpCallCode(t *testing.T) {
 	}
 }
 
+func TestOpDelegateCall(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
+		return true
+	}
+	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
+	}
+
+	memory := &Memory{}
+	memory.Resize(8)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+
+	evmInterpreter.evm.callGasTemp = uint64(1000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	// push ele.
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
+	stack.push(new(big.Int).SetUint64(100))
+	//
+	opDelegateCall(&pc, evmInterpreter, contract, memory, stack)
+	actual := stack.peek()
+	if uint64(1) != actual.Uint64() {
+		t.Errorf("Expected 1, got %d", actual.Int64())
+	}
+}
+
+func TestOpStaticCall(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
+		return true
+	}
+	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
+	}
+
+	memory := &Memory{}
+	memory.Resize(8)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+
+	evmInterpreter.evm.callGasTemp = uint64(1000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	// push ele.
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
+	stack.push(new(big.Int).SetUint64(100))
+	//
+	opStaticCall(&pc, evmInterpreter, contract, memory, stack)
+	actual := stack.peek()
+	if uint64(1) != actual.Uint64() {
+		t.Errorf("Expected 1, got %d", actual.Int64())
+	}
+}
+
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
