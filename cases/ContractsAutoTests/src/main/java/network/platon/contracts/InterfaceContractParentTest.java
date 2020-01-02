@@ -1,5 +1,7 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -11,9 +13,6 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -24,7 +23,7 @@ import java.util.Arrays;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InterfaceContractParentTest extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060b88061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063e288b0b514602d575b600080fd5b606060048036036040811015604157600080fd5b8101908080359060200190929190803590602001909291905050506076565b6040518082815260200191505060405180910390f35b600081830190509291505056fea265627a7a7231582012d1280cfbf6a3731a435a610e5b7ef404348b98acc3b36b860ad7000df6bdd764736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060b88061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063e288b0b514602d575b600080fd5b606060048036036040811015604157600080fd5b8101908080359060200190929190803590602001909291905050506076565b6040518082815260200191505060405180910390f35b600081830190509291505056fea265627a7a72315820bdb60099dc22f9430b28ee23bc412d0e0432d67d83a9cc86a8eea4b92285a8a464736f6c634300050d0032";
 
     public static final String FUNC_SUMEXTERNAL = "sumExternal";
 
@@ -48,8 +47,8 @@ public class InterfaceContractParentTest extends Contract {
 
     public RemoteCall<BigInteger> sumExternal(BigInteger a, BigInteger b) {
         final Function function = new Function(FUNC_SUMEXTERNAL, 
-                Arrays.<Type>asList(new Int256(a),
-                new Int256(b)),
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Int256(a), 
+                new org.web3j.abi.datatypes.generated.Int256(b)), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Int256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
