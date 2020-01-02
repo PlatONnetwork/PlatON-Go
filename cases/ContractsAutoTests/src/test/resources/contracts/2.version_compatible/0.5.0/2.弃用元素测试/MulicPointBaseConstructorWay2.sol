@@ -15,7 +15,7 @@ import "./ErrorParamConstructorBase.sol";
 * (方式一参考mulicPointBaseConstructorWay1.sol)
 */
 contract MulicPointBaseConstructorWay2 is ErrorParamConstructorBase {
-    constructor(uint _y) errorParamConstructorBase(_y * _y) public {}
+    constructor(uint _y) ErrorParamConstructorBase(_y * _y) public {}
 
     function update(uint amount) public returns (address, uint){
         a += amount;

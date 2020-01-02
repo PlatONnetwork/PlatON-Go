@@ -70,7 +70,7 @@ public class DataLocationTest extends ContractPrepareTest {
 
             byte[] bytes = dataLocation.getBytes().send();
 
-            collector.assertEqual(name, bytes.toString());
+            collector.assertEqual(name, new String(bytes));
 
         } catch (Exception e) {
             e.printStackTrace();
