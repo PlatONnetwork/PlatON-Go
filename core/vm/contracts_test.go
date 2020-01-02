@@ -387,6 +387,16 @@ func benchmarkPrecompiled(addr string, test PrecompiledTest, bench *testing.B) {
 	})
 }
 
+// Tests the sample inputs from the ECRECOVER precompile.
+func TestPrecompiledEcrecover(t *testing.T) {
+	testCase := PrecompiledTest{
+		Input:    "38d18acb67d25c8bb9942764b62f18e17054f66a817bd4295423adf9ed98873e000000000000000000000000000000000000000000000000000000000000001b38d18acb67d25c8bb9942764b62f18e17054f66a817bd4295423adf9ed98873e789d1dd423d25f0772d2748d60f7e4b81bb14d086eba8e8e8efb6dcff8a4ae02",
+		Expected: "000000000000000000000000ceaccac640adf55b2028469bd36ba501f28b699d",
+		Name:     "",
+	}
+	testPrecompiled("01", testCase, t)
+}
+
 // Benchmarks the sample inputs from the ECRECOVER precompile.
 func BenchmarkPrecompiledEcrecover(bench *testing.B) {
 	t := PrecompiledTest{
