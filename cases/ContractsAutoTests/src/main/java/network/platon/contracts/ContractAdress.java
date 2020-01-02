@@ -18,7 +18,7 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class ContractAdress extends Contract {
-    private static final String BINARY = "6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052348015600f57600080fd5b5000fea165627a7a7230582081536ebe215ff398ac65007b71edc7371bc56a779dbbbbde86c3800ac3356a890029";
+    private static final String BINARY = "6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052348015600f57600080fd5b5000fea165627a7a723058207e57b8fa3bc1eefc14acf5688e60cfee47cfc32d9767386646d92aab11c15a320029";
 
     @Deprecated
     protected ContractAdress(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
