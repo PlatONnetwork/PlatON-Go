@@ -1,10 +1,6 @@
 pragma solidity 0.5.13;
 
-
-
 /**
- *
- * 
  * @author qudong
  * @dev 2019/12/23
  * 
@@ -13,11 +9,9 @@ pragma solidity 0.5.13;
  *2、浮点型
  *3、布尔型
  *4、字节数组
- *
  */
 
 contract BasicDataTypeContract {
-
 
   /**
    * 1、整型 (1个数字1个字节代表8位)
@@ -25,14 +19,11 @@ contract BasicDataTypeContract {
         2)、uint：无符号整数，默认uint256，包含位数：uint8、uint16,uint24.....uint256
    */
 
-
     //1)、验证有符号/无符号整数
     int a = -1;//正常
     int b = 1;//正常
     uint c = 2;//正常
     //uint d = -3;//异常，编译异常，无符号整数不能赋值有符号整数
-    
-
 
     //2)、验证无符号整数位数
     uint8 x1 = 1;
@@ -42,26 +33,23 @@ contract BasicDataTypeContract {
     uint16 y2 = 65535;//16位无符号整数取值范围0~65535
     //uint16 y3 = 65535;//16位数溢出，编译报错
 
-    //无符号8位整数溢出(输入最大值255+1，则溢出)
-    function intOverflow(uint8 a) public pure returns(uint8) {
-
+    //无符号8位整数溢出(输入最大值255+1，则溢出显示结果为0)
+    function addUintOverflow(uint8 a) public pure returns(uint8) {
         return a + 1;
     }
 
     //3)、验证有符号整数位数
     int8 z1 = 1;
     int8 z2 = 127 ;//8位有符号整数取值范围-128~127
-    int8 z3 = 128;//8位数有符号整数溢出，编译报错
+    //int8 z3 = 128;//8位数有符号整数溢出，编译报错
     int8 w1 = -1;
     int8 w2 = -128;
-    int8 w3 = -129;   
+    //int8 w3 = -129;//8位数有符号整数溢出，编译报错
 
-     //有符号8位整数溢出(输入最大值127+1，则溢出)
-    function intOverflow(int8 a) public pure returns(int8) {
-
+     //有符号8位整数溢出(输入最大值127+1，则溢出显示结果-128)
+    function addIntOverflow(int8 a) public pure returns(int8) {
         return a + 1;
     }
-
 
   /**
    * 2、浮点型
@@ -75,16 +63,12 @@ contract BasicDataTypeContract {
   //1、fixed 有符号固定位浮点数，关键字为 fixedMxN
   //fixed f1 = 1.0;//编译异常
 
-
-
     /**
     *3、布尔型：取值为常量值true和false
     *  
     */
     bool h = true;
     bool j = false;
-
-
 
     /**
      *4、字节数组
@@ -102,8 +86,6 @@ contract BasicDataTypeContract {
       function getBytes1Length() public view returns (uint) {
            return  b3.length;
       }
-
-      
       
       //2)、验证变长字节数组
       bytes k1 = "a";
@@ -113,8 +95,4 @@ contract BasicDataTypeContract {
       function getBytesLength() public view returns (uint) {
            return  k3.length;
       }
-
-
-    
-
 }
