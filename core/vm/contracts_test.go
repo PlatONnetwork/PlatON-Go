@@ -407,6 +407,16 @@ func BenchmarkPrecompiledEcrecover(bench *testing.B) {
 	benchmarkPrecompiled("01", t, bench)
 }
 
+// Tests the sample inputs from the SHA256 precompile.
+func TestPrecompiledSha256(t *testing.T) {
+	testCase := PrecompiledTest{
+		Input:    "38d18acb67d25c8bb9942764b62f18e17054f66a817bd4295423adf9ed98873e000000000000000000000000000000000000000000000000000000000000001b38d18acb67d25c8bb9942764b62f18e17054f66a817bd4295423adf9ed98873e789d1dd423d25f0772d2748d60f7e4b81bb14d086eba8e8e8efb6dcff8a4ae02",
+		Expected: "811c7003375852fabd0d362e40e68607a12bdabae61a7d068fe5fdd1dbbf2a5d",
+		Name:     "128",
+	}
+	testPrecompiled("02", testCase, t)
+}
+
 // Benchmarks the sample inputs from the SHA256 precompile.
 func BenchmarkPrecompiledSha256(bench *testing.B) {
 	t := PrecompiledTest{
