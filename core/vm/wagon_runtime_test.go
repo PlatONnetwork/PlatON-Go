@@ -283,9 +283,10 @@ var testCase = []*Case{
 						common.Address{1, 2, 3}: big.NewInt(2000),
 						common.Address{1, 2, 4}: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{
-						common.Address{1, 2, 3}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...)},
-						common.Address{1, 2, 4}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...)},
+					State: map[common.Address]map[string][]byte{},
+					Code: map[common.Address][]byte{
+						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 				}},
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: []byte{1}},
@@ -321,9 +322,10 @@ var testCase = []*Case{
 						common.Address{1, 2, 3}: big.NewInt(2000),
 						common.Address{1, 2, 4}: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{
-						common.Address{1, 2, 3}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...)},
-						common.Address{1, 2, 4}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...)},
+					State: map[common.Address]map[string][]byte{},
+					Code: map[common.Address][]byte{
+						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 				}},
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
@@ -362,9 +364,10 @@ var testCase = []*Case{
 						common.Address{1, 2, 3}: big.NewInt(2000),
 						common.Address{1, 2, 4}: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{
-						common.Address{1, 2, 3}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...)},
-						common.Address{1, 2, 4}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...)},
+					State: map[common.Address]map[string][]byte{},
+					Code: map[common.Address][]byte{
+						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 				}},
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
@@ -403,10 +406,12 @@ var testCase = []*Case{
 						common.Address{1, 2, 3}: big.NewInt(2000),
 						common.Address{1, 2, 4}: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{
-						common.Address{1, 2, 3}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...)},
-						common.Address{1, 2, 4}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...)},
+					State: map[common.Address]map[string][]byte{},
+					Code: map[common.Address][]byte{
+						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
+					Suicided: map[common.Address]bool{},
 				}},
 			contract: &Contract{
 				CallerAddress: common.Address{1, 2, 4},
@@ -426,6 +431,97 @@ var testCase = []*Case{
 			return flag && suicided
 		},
 	},
+
+	// MIGRATE todo
+	/*{
+		ctx: &VMContext{
+			config: Config{WasmType: Wagon},
+			evm: &EVM{
+				Context: Context{
+					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
+						return db.GetBalance(addr).Cmp(amount) >= 0
+					},
+					Transfer: func(db StateDB, sender, recipient common.Address, amount *big.Int) {
+						db.SubBalance(sender, amount)
+						db.AddBalance(recipient, amount)
+					},
+				},
+				StateDB: &mock.MockStateDB{
+					Balance: map[common.Address]*big.Int{
+						// old contract
+						common.Address{1, 2, 3}: big.NewInt(2000),
+						// EOA
+						common.Address{1, 2, 4}: big.NewInt(1000),
+					},
+					State: map[common.Address]map[string][]byte{
+						common.Address{1, 2, 3}: {
+							"A": []byte("aaa"),
+							"B": []byte("bbb"),
+							"C": []byte("ccc"),
+						},
+					},
+					Code: map[common.Address][]byte{
+						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+					},
+					CodeHash: map[common.Address][]byte{
+						common.Address{1, 2, 3}: func() []byte {
+							var h common.Hash
+							hw := sha3.NewKeccak256()
+							rlp.Encode(hw, append(WasmInterp.Bytes(), []byte{0x00, 0x01}...))
+							hw.Sum(h[:0])
+							return h[:]
+						}(),
+					},
+					Nonce:    map[common.Address]uint64{},
+					Suicided: map[common.Address]bool{},
+				}},
+			contract: &Contract{
+				CallerAddress: common.Address{1, 2, 4},
+				caller:        &AccountRef{1, 2, 3},
+				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
+			Input: common.Address{1, 2, 3}.Bytes(),
+		},
+		funcName: "platon_migrate_contract_test",
+		init: func(ctx *VMContext) {
+			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
+		},
+		check: func(ctx *VMContext, err error) bool {
+
+			newContract := common.BytesToAddress(ctx.Output)
+
+			newBalance := ctx.evm.StateDB.GetBalance(newContract)
+			oldBalance := ctx.evm.StateDB.GetBalance(common.Address{1, 2, 3})
+
+			if oldBalance.Cmp(common.Big0) != 0 {
+				return false
+			}
+			if newBalance.Cmp(big.NewInt(int64(2001))) != 0 {
+				return false
+			}
+
+			flag := 1
+			// check storage of newcontract
+			ctx.evm.StateDB.ForEachStorage(newContract, func(key, value []byte) bool {
+
+				if string(key) == "A" && bytes.Compare(value, []byte("aaa")) == 0 {
+					flag &= 1
+					return true
+				}
+				if string(key) == "B" && bytes.Compare(value, []byte("bbb")) == 0 {
+					flag &= 1
+					return true
+				}
+				if string(key) == "C" && bytes.Compare(value, []byte("ccc")) == 0 {
+					flag &= 1
+					return true
+				}
+				flag &= 0
+				return false
+			})
+
+			return flag == 1
+		},
+	},*/
 
 	// EVENT
 	{
@@ -450,9 +546,10 @@ var testCase = []*Case{
 						common.Address{1, 2, 3}: big.NewInt(2000),
 						common.Address{1, 2, 4}: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{
-						common.Address{1, 2, 3}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...)},
-						common.Address{1, 2, 4}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...)},
+					State: map[common.Address]map[string][]byte{},
+					Code: map[common.Address][]byte{
+						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 					Logs: make(map[common.Hash][]*types.Log),
 				}},
@@ -518,9 +615,10 @@ var testCase = []*Case{
 						common.Address{1, 2, 3}: big.NewInt(2000),
 						common.Address{1, 2, 4}: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{
-						common.Address{1, 2, 3}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...)},
-						common.Address{1, 2, 4}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...)},
+					State: map[common.Address]map[string][]byte{},
+					Code: map[common.Address][]byte{
+						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 					Logs: make(map[common.Hash][]*types.Log),
 				}},
@@ -586,9 +684,10 @@ var testCase = []*Case{
 						common.Address{1, 2, 3}: big.NewInt(2000),
 						common.Address{1, 2, 4}: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{
-						common.Address{1, 2, 3}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...)},
-						common.Address{1, 2, 4}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...)},
+					State: map[common.Address]map[string][]byte{},
+					Code: map[common.Address][]byte{
+						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 					Logs: make(map[common.Hash][]*types.Log),
 				}},
@@ -654,9 +753,10 @@ var testCase = []*Case{
 						common.Address{1, 2, 3}: big.NewInt(2000),
 						common.Address{1, 2, 4}: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{
-						common.Address{1, 2, 3}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...)},
-						common.Address{1, 2, 4}: {mock.MockCodeKey: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...)},
+					State: map[common.Address]map[string][]byte{},
+					Code: map[common.Address][]byte{
+						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 					Logs: make(map[common.Hash][]*types.Log),
 				}},

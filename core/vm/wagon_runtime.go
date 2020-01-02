@@ -514,6 +514,24 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// todo
+	// int32_t platon_migrate(const uint8_t* old, uint8_t* new, const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen)
+	// func $platon_migrate (param $0 i32) (param $1 i32) (param $2 i32) (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(MigrateContract),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_migrate",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// todo
 	// void platon_event(const uint8_t* args, size_t argsLen)
 	// func $platon_event (param $0 i32) (param $1 i32)
 	addFuncExport(m,
@@ -701,7 +719,7 @@ func Transfer(proc *exec.Process, dst uint32, dstLen uint32, amount uint32, len 
 func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 	keyBuf := make([]byte, keyLen)
 	proc.ReadAt(keyBuf, int64(key))
@@ -785,7 +803,7 @@ func Debug(proc *exec.Process, dst uint32, len uint32) {
 	ctx.log.Debug(string(buf))
 }
 
-func CallContract(proc *exec.Process, addrPtr uint32, args uint32, argsLen uint32, val uint32, valLen uint32) int32 {
+func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
@@ -816,7 +834,7 @@ func CallContract(proc *exec.Process, addrPtr uint32, args uint32, argsLen uint3
 	return int32(len(ctx.CallOut))
 }
 
-func DelegateCallContract(proc *exec.Process, addrPtr uint32, params uint32, paramsLen uint32) int32 {
+func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
@@ -836,7 +854,7 @@ func DelegateCallContract(proc *exec.Process, addrPtr uint32, params uint32, par
 	return int32(len(ctx.CallOut))
 }
 
-func StaticCallContract(proc *exec.Process, addrPtr uint32, params uint32, paramsLen uint32) int32 {
+func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
@@ -860,33 +878,137 @@ func DestroyContract(proc *exec.Process) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 
 	balance := ctx.evm.StateDB.GetBalance(ctx.contract.Address())
 	//fmt.Println("sender:", ctx.contract.Caller().String(), "to:", ctx.contract.Address().String(), "value:", balance)
-
-	done := ctx.evm.StateDB.Suicide(ctx.contract.Address())
-	if !done {
-		return 1
-	}
 	ctx.evm.StateDB.AddBalance(ctx.contract.Caller(), balance)
+
+	ctx.evm.StateDB.Suicide(ctx.contract.Address())
 	return 0
 }
 
-func MigrateContract() {
-
-	//if ctx.readOnly {
-	//	panic("This operation does not support read-only calls")
-	//}
-
-}
-
-func EmitEvent(proc *exec.Process, args uint32, argsLen uint32) {
+func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
+	}
+
+	// check call depth
+	if ctx.evm.depth > int(params.CallCreateDepth) {
+		panic(ErrDepth)
+	}
+
+	addr1 := make([]byte, common.AddressLength)
+	proc.ReadAt(addr1, int64(oldAddr))
+	oldContract := common.BytesToAddress(addr1)
+
+	input := make([]byte, argsLen)
+	proc.ReadAt(input, int64(args))
+
+	value := make([]byte, valLen)
+	proc.ReadAt(value, int64(val))
+	bValue := new(big.Int)
+	// 256 bits
+	bValue.SetBytes(value)
+	bValue = inner.U256(bValue)
+
+	gas := ctx.contract.Gas
+
+	sender := ctx.contract.CallerAddress
+
+	// check code of old contract
+	oldCode := ctx.evm.StateDB.GetCode(oldContract)
+	if len(oldCode) == 0 {
+		panic("old target contract is illegal, no contract code exists")
+	}
+
+	// create new contract address
+	newContract := crypto.CreateAddress(sender, ctx.evm.StateDB.GetNonce(sender))
+
+	// check balance of sender
+	if !ctx.evm.CanTransfer(ctx.evm.StateDB, sender, bValue) {
+		panic(ErrInsufficientBalance)
+	}
+	// Create a new account on the state
+	snapshot := ctx.evm.StateDB.Snapshot()
+	ctx.evm.StateDB.CreateAccount(newContract)
+	ctx.evm.StateDB.SetNonce(newContract, 1)
+
+	oldBalance := new(big.Int).Set(ctx.evm.StateDB.GetBalance(oldContract))
+
+	//fmt.Println("sender:", sender.String(),
+	//	"\noldCOntract:", oldContract.String(),
+	//	"\nnewContract:", newContract.String(),
+	//	"\ninput:", input, "\nvalue:", bValue,
+	//	"\noldBalance:", oldBalance.String())
+
+	// migrate balance from old contract to new contract
+	ctx.evm.Transfer(ctx.evm.StateDB, oldContract, newContract, oldBalance)
+	// transfer balance from sender to new contract
+	ctx.evm.Transfer(ctx.evm.StateDB, sender, newContract, bValue)
+
+	// migrate stateObject storage from old contract to new contract
+	ctx.evm.StateDB.MigrateStorage(oldContract, newContract)
+
+	// suicided the old contract
+	ctx.evm.StateDB.Suicide(oldContract)
+
+	balance := new(big.Int).Add(bValue, oldBalance)
+
+	// init new contract context
+	contract := NewContract(AccountRef(sender), AccountRef(newContract), balance, gas)
+	contract.SetCallCode(&newContract, crypto.Keccak256Hash(input), input)
+
+	// deploy new contract
+	ret, err := run(ctx.evm, contract, nil, false)
+	//var err error = nil
+
+	// check whether the max code size has been exceeded
+	maxCodeSizeExceeded := len(ret) > params.MaxCodeSize
+	// if the contract creation ran successfully and no errors were returned
+	// calculate the gas required to store the code. If the code could not
+	// be stored due to not enough gas set an error and let it be handled
+	// by the error checking condition below.
+	if err == nil && !maxCodeSizeExceeded {
+		createDataGas := uint64(len(ret)) * params.CreateDataGas
+		if contract.UseGas(createDataGas) {
+			ctx.evm.StateDB.SetCode(newContract, ret)
+		} else {
+			err = ErrCodeStoreOutOfGas
+		}
+	}
+
+	// When an error was returned by the VM or when setting the creation code
+	// above we revert to the snapshot and consume any gas remaining. Additionally
+	// when we're in homestead this also counts for code storage gas errors.
+	if maxCodeSizeExceeded || (err != nil && err != ErrCodeStoreOutOfGas) {
+		ctx.evm.StateDB.RevertToSnapshot(snapshot)
+		if err != errExecutionReverted {
+			contract.UseGas(contract.Gas)
+		}
+	}
+	// Assign err if contract code size exceeds the max while the err is still empty.
+	if maxCodeSizeExceeded && err == nil {
+		err = errMaxCodeSizeExceeded
+	}
+
+	if nil != err {
+		panic(err)
+	}
+
+	proc.WriteAt(newContract.Bytes(), int64(newAddr))
+
+	return 0
+}
+
+func EmitEvent(proc *exec.Process, args, argsLen uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+
+	if ctx.readOnly {
+		panic(errWASMWriteProtection)
 	}
 
 	topics := make([]common.Hash, 0)
@@ -900,11 +1022,11 @@ func EmitEvent(proc *exec.Process, args uint32, argsLen uint32) {
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
-func EmitEvent1(proc *exec.Process, t uint32, tLen uint32, args uint32, argsLen uint32) {
+func EmitEvent1(proc *exec.Process, t, tLen, args, argsLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 
 	topic := make([]byte, tLen)
@@ -920,11 +1042,11 @@ func EmitEvent1(proc *exec.Process, t uint32, tLen uint32, args uint32, argsLen 
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
-func EmitEvent2(proc *exec.Process, t1 uint32, t1Len uint32, t2 uint32, t2Len uint32, args uint32, argsLen uint32) {
+func EmitEvent2(proc *exec.Process, t1, t1Len, t2, t2Len, args, argsLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 
 	topic1 := make([]byte, t1Len)
@@ -947,11 +1069,11 @@ func EmitEvent2(proc *exec.Process, t1 uint32, t1Len uint32, t2 uint32, t2Len ui
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
-func EmitEvent3(proc *exec.Process, t1 uint32, t1Len uint32, t2 uint32, t2Len uint32, t3 uint32, t3Len uint32, args uint32, argsLen uint32) {
+func EmitEvent3(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, args, argsLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 
 	topic1 := make([]byte, t1Len)
