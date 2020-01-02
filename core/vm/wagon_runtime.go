@@ -701,7 +701,7 @@ func Transfer(proc *exec.Process, dst uint32, dstLen uint32, amount uint32, len 
 func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 	keyBuf := make([]byte, keyLen)
 	proc.ReadAt(keyBuf, int64(key))
@@ -860,7 +860,7 @@ func DestroyContract(proc *exec.Process) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 
 	balance := ctx.evm.StateDB.GetBalance(ctx.contract.Address())
@@ -874,19 +874,50 @@ func DestroyContract(proc *exec.Process) int32 {
 	return 0
 }
 
-func MigrateContract() {
+func MigrateContract(proc *exec.Process, oldAddr uint32, newAddr uint32) uint32 {
+	ctx := proc.HostCtx().(*VMContext)
 
-	//if ctx.readOnly {
-	//	panic("This operation does not support read-only calls")
-	//}
+	if ctx.readOnly {
+		panic(errWASMWriteProtection)
+	}
 
+	addr1 := make([]byte, common.AddressLength)
+	proc.ReadAt(addr1, int64(oldAddr))
+	oldContract := common.BytesToAddress(addr1)
+
+	addr2 := make([]byte, common.AddressLength)
+	proc.ReadAt(addr2, int64(newAddr))
+	newContract := common.BytesToAddress(addr2)
+
+	oldCode := ctx.evm.StateDB.GetCode(oldContract)
+	if len(oldCode) == 0 {
+		panic("old target contract is illegal, no contract code exists")
+	}
+
+	newCode := ctx.evm.StateDB.GetCode(newContract)
+	if len(newCode) == 0 {
+		panic("new target contract is illegal, no contract code exists")
+	}
+
+	// migrate balance
+	balance := ctx.evm.StateDB.GetBalance(oldContract)
+	ctx.evm.StateDB.AddBalance(newContract, balance)
+
+	// migrate stateObject storage k-v
+	ctx.evm.StateDB.MigrateStorage(oldContract, newContract, false)
+
+	if !ctx.evm.StateDB.Suicide(oldContract) {
+		return 1
+	}
+
+	return 0
 }
 
 func EmitEvent(proc *exec.Process, args uint32, argsLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 
 	topics := make([]common.Hash, 0)
@@ -904,7 +935,7 @@ func EmitEvent1(proc *exec.Process, t uint32, tLen uint32, args uint32, argsLen 
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 
 	topic := make([]byte, tLen)
@@ -924,7 +955,7 @@ func EmitEvent2(proc *exec.Process, t1 uint32, t1Len uint32, t2 uint32, t2Len ui
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 
 	topic1 := make([]byte, t1Len)
@@ -951,7 +982,7 @@ func EmitEvent3(proc *exec.Process, t1 uint32, t1Len uint32, t2 uint32, t2Len ui
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic("This operation does not support read-only calls")
+		panic(errWASMWriteProtection)
 	}
 
 	topic1 := make([]byte, t1Len)

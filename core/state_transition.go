@@ -230,9 +230,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	}
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
-		// The only possible consensus-error would be if there wasn't
+		// A possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
+		// And vm was aborted.
 		if vmerr == vm.ErrInsufficientBalance || vmerr == vm.ErrAbort {
 			return nil, 0, false, vmerr
 		}

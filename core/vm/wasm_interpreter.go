@@ -6,9 +6,10 @@ import (
 )
 
 var (
-	errReturnInvalidRlpFormat   = errors.New("interpreter_life: invalid rlp format.")
-	errReturnInsufficientParams = errors.New("interpreter_life: invalid input. ele must greater than 2")
-	errReturnInvalidAbi         = errors.New("interpreter_life: invalid abi, encoded fail.")
+	//errReturnInvalidRlpFormat   = errors.New("interpreter_life: invalid rlp format.")
+	//errReturnInsufficientParams = errors.New("interpreter_life: invalid input. ele must greater than 2")
+	//errReturnInvalidAbi         = errors.New("interpreter_life: invalid abi, encoded fail.")
+	errWASMWriteProtection = errors.New("WASM: write protection")
 )
 
 // WASMInterpreter represents an WASM interpreter

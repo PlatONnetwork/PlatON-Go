@@ -690,7 +690,7 @@ func (self *StateDB) TxIdx() uint32 {
 	return uint32(self.txIndex)
 }
 
-func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
+/*func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
 	so := db.getStateObject(addr)
 	if so == nil {
 		return
@@ -703,6 +703,82 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 			continue
 		}
 		cb(key, common.BytesToHash(it.Value))
+	}
+}*/
+
+func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte) bool) {
+	so := db.getStateObject(addr)
+	if so == nil {
+		return
+	}
+
+	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
+	for it.Next() {
+		key := db.trie.GetKey(it.Key)
+		//valueKey := common.BytesToHash(db.trie.GetKey(it.Value))
+
+		if valueKey, ok := so.dirtyStorage[string(key)]; ok {
+			if value, dirty := so.dirtyValueStorage[valueKey]; dirty {
+				cb(key, value)
+				continue
+			}
+		}
+
+		cb(key, db.trie.GetKey(it.Value))
+	}
+}
+
+func (db *StateDB) MigrateStorage(from, to common.Address, overwrite bool) {
+
+	storage := make(map[string][]byte, 0)
+
+	toObj := db.getStateObject(to)
+	if nil != toObj {
+		it := trie.NewIterator(toObj.getTrie(db.db).NodeIterator(nil))
+		for it.Next() {
+			key := db.trie.GetKey(it.Key)
+			keyStr := string(key)
+			if valueKey, ok := toObj.dirtyStorage[keyStr]; ok {
+				if value, dirty := toObj.dirtyValueStorage[valueKey]; dirty {
+					storage[keyStr] = value
+					continue
+				}
+			}
+
+			storage[keyStr] = db.trie.GetKey(it.Value)
+
+		}
+	}
+
+	add := func(storage map[string][]byte, key string, value []byte, overwrite bool) {
+		_, ok := storage[key]
+		if ok && overwrite {
+			storage[key] = value
+		} else if !ok {
+			storage[key] = value
+		}
+	}
+
+	fromObj := db.getStateObject(from)
+	if nil != fromObj {
+		it := trie.NewIterator(fromObj.getTrie(db.db).NodeIterator(nil))
+		for it.Next() {
+			key := db.trie.GetKey(it.Key)
+			keyStr := string(key)
+			if valueKey, ok := fromObj.dirtyStorage[keyStr]; ok {
+				if value, dirty := fromObj.dirtyValueStorage[valueKey]; dirty {
+					add(storage, keyStr, value, overwrite)
+					continue
+				}
+			}
+			add(storage, keyStr, db.trie.GetKey(it.Value), overwrite)
+
+		}
+	}
+
+	// restore k-v with toAddr
+	for key, value := range storage {
+		db.SetState(to, []byte(key), value)
 	}
 }
 
