@@ -171,7 +171,7 @@ func TestMakeGasLog(t *testing.T) {
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 2675, memorySize: 0, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 2773, memorySize: 1024, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 1997, memorySize: 1024, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), uint2BigInt(3), overUint, uint2BigInt(4)}, expected: 1997, memorySize: 1024, isNil: false},
 	}
 	gasLogFunc := makeGasLog(4)
 	for i, v := range testCases {
@@ -200,7 +200,7 @@ func TestGasSha3(t *testing.T) {
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 54, memorySize: 0, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 152, memorySize: 1024, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 134, memorySize: 1024, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), uint2BigInt(3), overUint, uint2BigInt(4)}, expected: 134, memorySize: 1024, isNil: false},
 	}
 	for i, v := range testCases {
 		stack := mockStack(v.elements...)
@@ -241,7 +241,6 @@ func TestGasCodeCopy(t *testing.T) {
 }
 
 func TestGasExtCodeCopy(t *testing.T) {
-
 	gasTable := params.GasTableConstantinople
 	overUint := overUint64()
 	testCases := []struct {
@@ -253,7 +252,7 @@ func TestGasExtCodeCopy(t *testing.T) {
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 712, memorySize: 0, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 810, memorySize: 1024, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 801, memorySize: 1024, isNil: false},
+		{elements: []*big.Int{overUint, uint2BigInt(2), uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
 	}
 	for i, v := range testCases {
 		stack := mockStack(v.elements...)
@@ -382,10 +381,10 @@ func TestGasCreate2(t *testing.T) {
 		expected   uint64
 		isNil      bool
 	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32000, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32098, memorySize: 1024, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32024, memorySize: 0, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32122, memorySize: 1024, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 32098, memorySize: 1024, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
 	}
 	for i, v := range testCases {
 		stack := mockStack(v.elements...)
@@ -456,6 +455,31 @@ func TestGasExp(t *testing.T) {
 
 func TestGasCall(t *testing.T) {
 	gasTable := params.GasTableConstantinople
+	overUint := overUint64()
+	testCases := []struct {
+		elements   []*big.Int
+		memorySize uint64
+		expected   uint64
+		isNil      bool
+	}{
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32024, memorySize: 0, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32122, memorySize: 1024, isNil: true},
+		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
+	}
+	stateDB, _, _ := newChainState()
+	for i, v := range testCases {
+		stack := mockStack(v.elements...)
+		gas, err := gasCall(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), v.memorySize)
+		if gas != v.expected {
+			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
+		}
+		if v.isNil && err != nil {
+			t.Error("not expected error")
+		}
+	}
+
+	/*gasTable := params.GasTableConstantinople
 	stack := newstack()
 	stateDB, _, _ := newChainState()
 
@@ -469,7 +493,7 @@ func TestGasCall(t *testing.T) {
 	}
 	if err != nil {
 		t.Error("not expected error")
-	}
+	}*/
 }
 
 func TestGasCallCode(t *testing.T) {
