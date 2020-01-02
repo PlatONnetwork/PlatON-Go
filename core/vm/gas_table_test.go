@@ -55,9 +55,10 @@ func TestConstGasFunc(t *testing.T) {
 
 func TestGasCallDataCopy(t *testing.T) {
 	gasTable := params.GasTableConstantinople
-	maxUint64 := new(big.Int).SetUint64(math.MaxUint64)
-	factor := new(big.Int).SetUint64(math.MaxUint8)
-	maxUint64 = maxUint64.Add(maxUint64, factor)
+	data1 := new(big.Int).SetUint64(math.MaxUint64)
+	data2 := new(big.Int).SetUint64(math.MaxUint64)
+	res := new(big.Int)
+	res.Mul(data1, data2)
 	testCases := []struct {
 		elements   []*big.Int
 		memorySize uint64
@@ -67,6 +68,7 @@ func TestGasCallDataCopy(t *testing.T) {
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 15, memorySize: 0, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 113, memorySize: 1024, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), res, uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
 	}
 	for i, v := range testCases {
 		stack := mockStack(v.elements...)
