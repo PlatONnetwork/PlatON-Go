@@ -236,27 +236,39 @@ def test_DI_015_016(client_new_node, client_consensus):
     :param client_consensus_obj:
     :return:
     """
-    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                   10 ** 18 * 10000000)
-    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                    10 ** 18 * 10000000)
-    value = client_new_node.economic.create_staking_limit * 2
-    result = client_new_node.staking.create_staking(0, address, address, amount=value)
+    client = client_new_node
+    node = client.node
+    other_node = client_consensus.node
+    economic = client.economic
+    address, _ = economic.account.generate_account(client_new_node.node.web3,
+                                                         10 ** 18 * 10000000)
+    address_delegate, _ = economic.account.generate_account(client_new_node.node.web3,
+                                                         10 ** 18 * 10000000)
+    value = economic.create_staking_limit * 2
+    result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
+    economic.wait_consensus_blocknum(other_node, number=4)
+    validator_list = get_pledge_list(other_node.ppos.getValidatorList)
+    assert node.node_id in validator_list
+    candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
+    log.info(candidate_info)
     log.info("Close one node")
-    client_new_node.node.stop()
-    node = client_consensus.node
-    log.info("The next two periods")
-    client_new_node.economic.wait_settlement_blocknum(node, number=2)
+    node.stop()
+    for i in range(4):
+        economic.wait_consensus_blocknum(other_node, number=i)
+        candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
+        log.info(candidate_info)
+        if candidate_info["Ret"]["Released"] < value:
+            break
+        log.info("Node exceptions are not penalized")
     log.info("Restart the node")
     client_new_node.node.start()
-    result = client_new_node.delegate.delegate(0, address1)
+    result = client.delegate.delegate(0, address_delegate)
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node.economic.wait_settlement_blocknum(node)
-    time.sleep(20)
-    result = client_new_node.delegate.delegate(0, address1)
+    client_new_node.economic.wait_settlement_blocknum(node,number=2)
+    result = client.delegate.delegate(0, address_delegate)
     assert_code(result, 301102)
 
 
@@ -599,45 +611,57 @@ def test_DI_034(client_new_node):
 
 @allure.title("Entrusted candidate (penalized in lockup period, penalized out completely)")
 @pytest.mark.P2
-def test_DI_035_036(client_new_node, client_consensus):
+def test_DI_035_036(clients_new_node, client_consensus):
     """
     The entrusted candidate is still penalized in the lockup period
     The entrusted candidate was penalized to withdraw completely
 
     """
-    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                   10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                            10 ** 18 * 10000000)
+    client = clients_new_node[0]
+    node = client.node
+    other_node = client_consensus.node
+    economic = client.economic
+    address, _ = economic.account.generate_account(node.web3,10 ** 18 * 10000000)
 
-    result = client_new_node.staking.create_staking(0, address, address)
+    address_delegate, _ = economic.account.generate_account(node.web3,10 ** 18 * 10000000)
+
+    value = economic.create_staking_limit * 2
+    result = client.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    result = client_new_node.delegate.delegate(0, address_delegate)
+    result = client.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
-    msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
-    staking_blocknum = msg["Ret"]["StakingBlockNum"]
+    ##The validation node becomes the out-block validation node
+    economic.wait_consensus_blocknum(other_node, number=4)
+    validator_list = get_pledge_list(other_node.ppos.getValidatorList)
+    assert node.node_id in validator_list
+    candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
+    log.info(candidate_info)
+    staking_blocknum = candidate_info["Ret"]["StakingBlockNum"]
 
     log.info("Close one node")
-    client_new_node.node.stop()
-    node = client_consensus.node
-    log.info("The next two periods")
-    client_new_node.economic.wait_settlement_blocknum(node, number=2)
+    node.stop()
+    for i in range(4):
+        economic.wait_consensus_blocknum(other_node, number=i)
+        candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
+        log.info(candidate_info)
+        if candidate_info["Ret"]["Released"] < value:
+            break
 
-    result = node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                       client_new_node.node.node_id)
+    result = other_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
+                                       node.node_id)
     log.info(result)
-    assert client_consensus.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node.node.node_id
+    assert other_node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == node.node_id
     log.info("Restart the node")
-    client_new_node.node.start()
+    node.start()
     log.info("Next settlement period")
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    economic.wait_settlement_blocknum(other_node,number=2)
 
-    result = node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                       client_new_node.node.node_id)
+    result = other_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
+                                       node.node_id)
     log.info(result)
-    assert client_new_node.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node.node.node_id
+    assert other_node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == node.node_id
 
 
 @allure.title("Query for delegate information in undo")

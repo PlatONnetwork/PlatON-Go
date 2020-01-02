@@ -11,6 +11,7 @@ from client_sdk_python.pip import Pip
 from common.connect import run_ssh, connect_linux, wait_connect_web3
 from common.load_file import LoadFile
 from environment.config import TestConfig
+from environment.mock import mock_connect_linux
 from common.log import log
 
 
@@ -39,8 +40,10 @@ class Node:
         self.username = node_conf["username"]
         self.password = node_conf["password"]
         self.ssh_port = node_conf.get("sshport", 22)
-        self.ssh, self.sftp, self.t = connect_linux(self.host, self.username, self.password, self.ssh_port)
-
+        if self.cfg.can_deploy:
+            self.ssh, self.sftp, self.t = connect_linux(self.host, self.username, self.password, self.ssh_port)
+        else:
+            self.ssh, self.sftp, self.t = mock_connect_linux()
         # node identification information
         self.url = node_conf["url"]
         self.node_name = "node-" + self.p2p_port
@@ -68,6 +71,12 @@ class Node:
         # RPC connection
         self.__is_connected = False
         self.__rpc = None
+
+        self.__is_connected_ppos = False
+        self.__ppos = None
+
+        self.__is_connected_pip = False
+        self.__pip = None
 
         self.__is_ws_connected = False
         self.__ws_rpc = None
@@ -134,7 +143,7 @@ class Node:
             if len(result) > 0:
                 log.error(failed_msg.format(self.node_mark, "init", result[0]))
                 raise Exception("Init failed:{}".format(result[0]))
-            log.info("node-{} init success".format(self.node_mark))
+            log.debug("node-{} init success".format(self.node_mark))
         self.try_do(__init)
 
     def run_ssh(self, cmd, need_password=False):
@@ -147,10 +156,15 @@ class Node:
         clear node data
         :return:
         """
+        log.debug("Clean node:{}".format(self.node_mark))
+
         def __clean():
-            self.stop()
+            is_success = self.stop()
+            if not is_success:
+                raise Exception("Stop failed")
             self.run_ssh("sudo -S -p '' rm -rf {};mkdir -p {}".format(self.remote_node_path, self.remote_node_path),
                          True)
+            self.run_ssh("ls {}".format(self.remote_node_path))
         return self.try_do_resturn(__clean)
 
     def clean_db(self):
@@ -159,7 +173,9 @@ class Node:
         :return:
         """
         def __clean_db():
-            self.stop()
+            is_success = self.stop()
+            if not is_success:
+                raise Exception("Stop failed")
             self.run_ssh("sudo -S -p '' rm -rf {}".format(self.remote_db_dir), True)
         return self.try_do_resturn(__clean_db)
 
@@ -169,7 +185,9 @@ class Node:
         :return:
         """
         def __clean_log():
-            self.stop()
+            is_success = self.stop()
+            if not is_success:
+                raise Exception("Stop failed")
             self.run_ssh("rm -rf {}".format(self.remote_log_dir))
             self.append_log_file()
         self.try_do(__clean_log)
@@ -189,6 +207,8 @@ class Node:
         close node
         :return:
         """
+        log.debug("Stop node:{}".format(self.node_mark))
+
         def __stop():
             self.__is_connected = False
             self.__is_ws_connected = False
@@ -203,8 +223,12 @@ class Node:
         :param is_init:
         :return:
         """
+        log.debug("Start node:{}".format(self.node_mark))
+
         def __start():
-            self.stop()
+            is_success = self.stop()
+            if not is_success:
+                raise Exception("Stop failed")
             if is_init:
                 self.init()
             self.append_log_file()
@@ -373,6 +397,7 @@ class Node:
                 go_fail_point = " GO_FAILPOINTS='{}' ".format(self.fail_point)
             cmd = "{} --identity platon --datadir".format(self.remote_bin_file)
             cmd = cmd + " {} --port ".format(self.remote_data_dir) + self.p2p_port
+            cmd = cmd + " --db.nogc"
             cmd = cmd + " --gcmode archive --nodekey " + self.remote_nodekey_file
             cmd = cmd + " --cbft.blskey " + self.remote_blskey_file
             cmd = cmd + " --config " + self.remote_config_file
@@ -503,11 +528,17 @@ class Node:
 
     @property
     def ppos(self) -> Ppos:
-        return Ppos(self.web3)
+        if not self.__is_connected_ppos:
+            self.__ppos = Ppos(self.web3)
+            self.__is_connected_ppos = True
+        return self.__ppos
 
     @property
     def pip(self) -> Pip:
-        return Pip(self.web3)
+        if not self.__is_connected_pip:
+            self.__pip = Pip(self.web3)
+            self.__is_connected_pip = True
+        return self.__pip
 
     @property
     def block_number(self) -> int:

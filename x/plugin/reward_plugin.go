@@ -43,10 +43,11 @@ import (
 )
 
 type RewardMgrPlugin struct {
-	db           snapshotdb.DB
-	nodeID       discover.NodeID
-	stkingDB     *staking.StakingDB
-	CurrVerifier map[discover.NodeID]struct{}
+
+	db            snapshotdb.DB
+	nodeID        discover.NodeID
+	CurrVerifier  map[discover.NodeID]struct{}
+	stakingPlugin *StakingPlugin
 }
 
 const (
@@ -67,10 +68,11 @@ var (
 func RewardMgrInstance() *RewardMgrPlugin {
 	rewardOnce.Do(func() {
 		log.Info("Init Reward plugin ...")
+		sdb := snapshotdb.Instance()
 		rm = &RewardMgrPlugin{
-			db:           snapshotdb.Instance(),
-			stkingDB:     staking.NewStakingDB(),
-			CurrVerifier: make(map[discover.NodeID]struct{}),
+			db:            sdb,
+			CurrVerifier:  make(map[discover.NodeID]struct{}),
+			stakingPlugin: StakingInstance(),
 		}
 	})
 	return rm
@@ -259,6 +261,7 @@ func (rmp *RewardMgrPlugin) handleDelegatePerReward(blockHash common.Hash, block
 			}
 			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "blockNumber", blockNumber, "nodeId", verifier.NodeId.TerminalString(), "delegateTotal", verifier.DelegateTotal.ToInt(),
 				"per", delegateRewardPer, "delegateReward", verifier.CurrentEpochDelegateReward, "delegateRewardTotal", delegateRewardTotal, "currentEpoch", currentEpoch)
+
 		}
 	}
 	return nil
@@ -405,17 +408,38 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 }
 
 func (rmp *RewardMgrPlugin) IsCurrVerifier(blockHash common.Hash, head *types.Header, nodeId discover.NodeID) (bool, error) {
-	if len(rmp.CurrVerifier) == 0 {
-		verifierList, err := stk.getVerifierList(blockHash, head.Number.Uint64(), false)
-		if nil != err {
-			return false, err
+	if len(rmp.CurrVerifier) > 0 {
+		if _, ok := rmp.CurrVerifier[nodeId]; ok {
+			log.Debug("find current verifier in cache", "num", head.Number, "nodeID", nodeId.TerminalString())
+			return true, nil
 		}
+		return false, nil
+	}
+	epochEnd := xutil.CalcBlocksEachEpoch() * (xutil.CalculateEpoch(head.Number.Uint64()) - 1)
+	var theEndEpochBlockHaveCommit bool
+
+	if rmp.db.GetCurrent().GetHighest(false).Num.Uint64() >= epochEnd {
+		theEndEpochBlockHaveCommit = true
+	}
+	verifierList, err := rmp.stakingPlugin.getVerifierList(blockHash, head.Number.Uint64(), theEndEpochBlockHaveCommit)
+	if nil != err {
+		return false, err
+	}
+
+	if theEndEpochBlockHaveCommit {
 		for _, val := range verifierList.Arr {
 			rmp.CurrVerifier[val.NodeId] = struct{}{}
 		}
-	}
-	if _, ok := rmp.CurrVerifier[nodeId]; ok {
-		return true, nil
+		log.Debug("save current verifier in cache", "num", head.Number, "nodeIDs", rmp.CurrVerifier)
+		if _, ok := rmp.CurrVerifier[nodeId]; ok {
+			return true, nil
+		}
+	} else {
+		for _, val := range verifierList.Arr {
+			if val.NodeId == nodeId {
+				return true, nil
+			}
+		}
 	}
 	return false, nil
 }
@@ -424,19 +448,19 @@ func (rmp *RewardMgrPlugin) IsCurrVerifier(blockHash common.Hash, head *types.He
 func (rmp *RewardMgrPlugin) allocatePackageBlock(blockHash common.Hash, head *types.Header, reward *big.Int, state xcom.StateDB) error {
 	nodeID, add, err := rmp.getBlockMinderAddress(blockHash, head)
 	if err != nil {
-		log.Error("allocatePackageBlock getBlockMinderAddress fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
+		log.Error("allocatePackageBlock getBlockMinderAddress fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 		return err
 	}
 
 	currVerifier, err := rmp.IsCurrVerifier(blockHash, head, nodeID)
 	if err != nil {
-		log.Error("allocatePackageBlock IsCurrVerifier fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
+		log.Error("allocatePackageBlock IsCurrVerifier fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 		return err
 	}
 	if currVerifier {
-		cm, err := stk.GetCanMutable(blockHash, add)
+		cm, err := rmp.stakingPlugin.GetCanMutable(blockHash, add)
 		if err != nil {
-			log.Error("allocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
+			log.Error("allocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 			return err
 		}
 		if cm.HaveDelegateInCurrentEpoch() && cm.RewardPer > 0 {
@@ -446,11 +470,11 @@ func (rmp *RewardMgrPlugin) allocatePackageBlock(blockHash common.Hash, head *ty
 			state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
 			state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
 
-			log.Debug("allocate delegate reward", "blockNumber", head.Number, "blockHash", blockHash.Hex(), "delegate", delegateReward)
+			log.Debug("allocate delegate reward", "blockNumber", head.Number, "blockHash", blockHash, "delegate", delegateReward)
 
 			cm.CurrentEpochDelegateReward.Add(cm.CurrentEpochDelegateReward, delegateReward)
-			if err := rmp.stkingDB.SetCanMutableStore(blockHash, add, cm); err != nil {
-				log.Error("allocatePackageBlock SetCanMutableStore fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
+			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, add, cm); err != nil {
+				log.Error("allocatePackageBlock SetCanMutableStore fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 				return err
 			}
 		}
@@ -458,7 +482,7 @@ func (rmp *RewardMgrPlugin) allocatePackageBlock(blockHash common.Hash, head *ty
 
 	if head.Coinbase != vm.RewardManagerPoolAddr {
 
-		log.Debug("allocate package reward", "blockNumber", head.Number, "blockHash", blockHash.Hex(),
+		log.Debug("allocate package reward", "blockNumber", head.Number, "blockHash", blockHash,
 			"coinBase", head.Coinbase.String(), "reward", reward)
 
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)

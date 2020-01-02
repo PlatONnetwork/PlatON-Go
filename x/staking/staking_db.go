@@ -39,6 +39,12 @@ func NewStakingDB() *StakingDB {
 	}
 }
 
+func NewStakingDBWithDB(db snapshotdb.DB) *StakingDB {
+	return &StakingDB{
+		db: db,
+	}
+}
+
 func (db *StakingDB) get(blockHash common.Hash, key []byte) ([]byte, error) {
 	return db.db.Get(blockHash, key)
 }

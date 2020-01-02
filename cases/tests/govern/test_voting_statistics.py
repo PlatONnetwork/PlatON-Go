@@ -1,4 +1,5 @@
-import pytest, allure
+import pytest
+import allure
 from common.log import log
 from common.key import mock_duplicate_sign
 import time
@@ -14,7 +15,7 @@ def submitvpandvote(clients, votingrounds=2, version=None):
     if version is None:
         version = pip.cfg.version5
     result = pip.submitVersion(pip.node.node_id, str(time.time()), version, votingrounds, pip.node.staking_address,
-                                   transaction_cfg=pip.cfg.transaction_cfg)
+                               transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit version proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote()
@@ -39,7 +40,7 @@ def createstaking(obj, platon_bin=None):
 
         address, _ = client.economic.account.generate_account(client.node.web3, 10 ** 18 * 10000000)
         result = client.staking.create_staking(0, address, address, amount=10 ** 18 * 2000000,
-                                                   transaction_cfg=client.pip.cfg.transaction_cfg)
+                                               transaction_cfg=client.pip.cfg.transaction_cfg)
         log.info('Node {} staking result : {}'.format(client.node.node_id, result))
         assert_code(result, 0)
 
@@ -47,7 +48,7 @@ def createstaking(obj, platon_bin=None):
 def submitppandvote(clients, *args):
     pip = clients[0].pip
     result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '83',
-                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                             pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -62,14 +63,14 @@ def submitppandvote(clients, *args):
 def submitcppandvote(clients, list, voting_rounds=2):
     pip = clients[0].pip
     result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '83',
-                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                             pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
     log.info('Param proposal info {}'.format(proposalinfo_param))
 
     result = pip.submitCancel(pip.node.node_id, str(time.time()), voting_rounds, proposalinfo_param.get('ProposalID'),
-                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit cancel proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
@@ -78,7 +79,7 @@ def submitcppandvote(clients, list, voting_rounds=2):
         pip = clients[index].pip
         log.info('Vote option {}'.format(list[index]))
         result = pip.vote(pip.node.node_id, proposalinfo_cancel.get('ProposalID'), list[index],
-                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Node {} vote cancel proposal result : {}'.format(pip.node.node_id, result))
         assert_code(result, 0)
 
@@ -86,14 +87,14 @@ def submitcppandvote(clients, list, voting_rounds=2):
 def submitcvpandvote(clients, *args):
     pip = clients[0].pip
     result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 3,
-                                   pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                               pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit version proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo_version = pip.get_effect_proposal_info_of_vote(pip.cfg.version_proposal)
     log.info('Version proposal info {}'.format(proposalinfo_version))
 
     result = pip.submitCancel(pip.node.node_id, str(time.time()), 1, proposalinfo_version.get('ProposalID'),
-                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit cancel proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
@@ -102,7 +103,7 @@ def submitcvpandvote(clients, *args):
         pip = clients[index].pip
         log.info('{}'.format(args[index]))
         result = pip.vote(pip.node.node_id, proposalinfo_cancel.get('ProposalID'), args[index],
-                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Node {} vote cancel proposal result : {}'.format(pip.node.node_id, result))
         assert_code(result, 0)
 
@@ -110,7 +111,7 @@ def submitcvpandvote(clients, *args):
 def submittpandvote(clients, *args):
     pip = clients[0].pip
     result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
-                                transaction_cfg=pip.cfg.transaction_cfg)
+                            transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit text proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo_text = pip.get_effect_proposal_info_of_vote(pip.cfg.text_proposal)
@@ -120,7 +121,7 @@ def submittpandvote(clients, *args):
         pip = clients[index].pip
         log.info('{}'.format(args[index]))
         result = pip.vote(pip.node.node_id, proposalinfo_text.get('ProposalID'), args[index],
-                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Node {} vote text proposal result : {}'.format(pip.node.node_id, result))
         assert_code(result, 0)
 
@@ -815,7 +816,7 @@ class TestVotingStatisticsPP:
         log.info('{}'.format(clients_consensus[:2]))
         createstaking(clients_noconsensus[:2])
         pip.economic.wait_settlement_blocknum(pip.node)
-        self.assert_accuverifiers_count(pip, proposalinfo, [6, 1, 1, 1])
+        self.assert_accuverifiers_count(pip, proposalinfo, [6, 1, 1, 0])
 
         result = proposal_vote(clients_noconsensus[0].pip, vote_option=pip.cfg.vote_option_Abstentions)
         assert_code(result, 0)
@@ -1056,6 +1057,6 @@ class TestVotingStatisticsPP:
         self.assert_proposal_result(clients_consensus[1].pip, proposalinfo, [1, 1, 1, 3])
         log.info('Stop the node {}'.format(pip.node.node_id))
         pip.node.stop()
-        wait_block_number(clients_consensus[1].node, proposalinfo.get('EndVotingBlock') +
-                          clients_consensus[1].economic.consensus_size)
+        wait_block_number(clients_consensus[1].node, proposalinfo.get('EndVotingBlock')
+                          + clients_consensus[1].economic.consensus_size)
         self.assert_proposal_result(clients_consensus[1].pip, proposalinfo, [1, 1, 1, 3])
