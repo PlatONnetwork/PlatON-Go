@@ -1,8 +1,5 @@
 package network.platon.contracts;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -13,6 +10,10 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
+
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * <p>Auto generated code.
@@ -49,7 +50,7 @@ public class InterfaceContractInheritTwo extends Contract {
     public RemoteCall<TransactionReceipt> reduce(BigInteger c, BigInteger d) {
         final Function function = new Function(
                 FUNC_REDUCE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(c), 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(c),
                 new org.web3j.abi.datatypes.generated.Uint256(d)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);

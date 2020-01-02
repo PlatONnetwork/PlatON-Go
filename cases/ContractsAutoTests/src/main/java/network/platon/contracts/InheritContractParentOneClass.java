@@ -1,7 +1,5 @@
 package network.platon.contracts;
 
-import java.math.BigInteger;
-import java.util.Arrays;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -13,6 +11,9 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -23,7 +24,7 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InheritContractParentOneClass extends Contract {
-    private static final String BINARY = "6080604052348015600f57600080fd5b5060878061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063430fe9c114602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b6000600190509056fea265627a7a72315820874e0944ac66cfdc955eb65560745a66e12e87085465119ddd5c26a6e0df5c6764736f6c634300050d0032";
+    private static final String BINARY = "6080604052348015600f57600080fd5b5060878061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063430fe9c114602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b6000600190509056fea265627a7a72315820def94ff0090b8b42942d88a7d97fe35564fb1350b10a79c7fed8172ebcb8de7f64736f6c634300050d0032";
 
     public static final String FUNC_GETDATE = "getDate";
 
@@ -46,8 +47,8 @@ public class InheritContractParentOneClass extends Contract {
     }
 
     public RemoteCall<BigInteger> getDate() {
-        final Function function = new Function(FUNC_GETDATE, 
-                Arrays.<Type>asList(), 
+        final Function function = new Function(FUNC_GETDATE,
+                Arrays.<Type>asList(),
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
