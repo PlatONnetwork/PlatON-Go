@@ -171,7 +171,7 @@ func TestMakeGasLog(t *testing.T) {
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 2675, memorySize: 0, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 2773, memorySize: 1024, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), uint2BigInt(3), overUint, uint2BigInt(4)}, expected: 1997, memorySize: 1024, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), uint2BigInt(3), overUint, uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
 	}
 	gasLogFunc := makeGasLog(4)
 	for i, v := range testCases {
@@ -188,7 +188,6 @@ func TestMakeGasLog(t *testing.T) {
 }
 
 func TestGasSha3(t *testing.T) {
-
 	gasTable := params.GasTableConstantinople
 	overUint := overUint64()
 	testCases := []struct {
@@ -200,7 +199,7 @@ func TestGasSha3(t *testing.T) {
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 54, memorySize: 0, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 152, memorySize: 1024, isNil: true},
 		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), uint2BigInt(3), overUint, uint2BigInt(4)}, expected: 134, memorySize: 1024, isNil: false},
+		{elements: []*big.Int{uint2BigInt(2), uint2BigInt(3), overUint, uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
 	}
 	for i, v := range testCases {
 		stack := mockStack(v.elements...)
