@@ -30,6 +30,8 @@ public class ContractPrepareTest {
     protected RawTransactionManager transactionManager;
     protected ContractGasProvider provider;
     protected String walletAddress;
+    protected String gasLimit = "4700000";
+    protected String gasPrice = "1000000000";
 
     /**
      * 合约部署相关准备工作
@@ -55,6 +57,6 @@ public class ContractPrepareTest {
      * 合约部署相关准备工作
      */
     protected void prepare(){
-        this.prepare("50000000000","4712388");
+        this.prepare(gasPrice,gasLimit);
     }
 }
