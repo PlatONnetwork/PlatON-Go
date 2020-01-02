@@ -19,22 +19,28 @@ package reward
 import (
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
+const DelegateRewardPerLength = 1000
+
 var (
-	HistoryIncreasePrefix         = []byte("RewardHistory")
-	LastYearEndBalancePrefix      = []byte("RewardBalance")
-	YearStartBlockNumberKey       = []byte("YearStartBlockNumberKey")
-	YearStartTimeKey              = []byte("YearStartTimeKey")
-	RemainingRewardKey            = []byte("RemainingRewardKey")
-	NewBlockRewardKey             = []byte("NewBlockRewardKey")
-	StakingRewardKey              = []byte("StakingRewardKey")
-	ChainYearNumberKey            = []byte("ChainYearNumberKey")
-	delegateRewardPerKey          = []byte("DelegateRewardPerKey")
-	currentEpochDelegateRewardKey = []byte("currentEpochDelegateRewardKey")
+	HistoryIncreasePrefix    = []byte("RewardHistory")
+	LastYearEndBalancePrefix = []byte("RewardBalance")
+	YearStartBlockNumberKey  = []byte("YearStartBlockNumberKey")
+	YearStartTimeKey         = []byte("YearStartTimeKey")
+	RemainingRewardKey       = []byte("RemainingRewardKey")
+	NewBlockRewardKey        = []byte("NewBlockRewardKey")
+	StakingRewardKey         = []byte("StakingRewardKey")
+	ChainYearNumberKey       = []byte("ChainYearNumberKey")
+	delegateRewardPerKey     = []byte("DelegateRewardPerKey")
+	delegateRewardTotalKey   = []byte("DelegateRewardTotalKey")
 )
 
 // GetHistoryIncreaseKey used for search the balance of reward pool at last year
@@ -47,32 +53,127 @@ func HistoryBalancePrefix(year uint32) []byte {
 	return append(LastYearEndBalancePrefix, common.Uint32ToBytes(year)...)
 }
 
-func DelegateRewardPerKey(nodeID discover.NodeID, epoch uint32) []byte {
-	return nil
+func DelegateRewardPerKey(nodeID discover.NodeID, stakingNum, epoch uint64) []byte {
+	index := uint32(epoch / DelegateRewardPerLength)
+	add, err := xutil.NodeId2Addr(nodeID)
+	if err != nil {
+		panic(err)
+	}
+	perKeyLength := len(delegateRewardPerKey)
+	lengthUint32, lengthUint64 := 4, 8
+	keyAdd := make([]byte, perKeyLength+common.AddressLength+lengthUint64+lengthUint32)
+	n := copy(keyAdd[:perKeyLength], delegateRewardPerKey)
+	n += copy(keyAdd[n:n+common.AddressLength], add.Bytes())
+	n += copy(keyAdd[n:n+lengthUint64], common.Uint64ToBytes(stakingNum))
+	copy(keyAdd[n:n+lengthUint32], common.Uint32ToBytes(index))
+
+	return keyAdd
 }
 
-func CurrentEpochDelegateRewardKey(nodeID discover.NodeID) []byte {
-	return nil
+func DelegateRewardPerKeys(nodeID discover.NodeID, stakingNum, fromEpoch, toEpoch uint64) [][]byte {
+	indexFrom := uint32(fromEpoch / DelegateRewardPerLength)
+	indexTo := uint32(toEpoch / DelegateRewardPerLength)
+	add, err := xutil.NodeId2Addr(nodeID)
+	if err != nil {
+		panic(err)
+	}
+	perKeyLength := len(delegateRewardPerKey)
+	lengthUint64 := 8
+
+	delegateRewardPerPrefix := make([]byte, perKeyLength+common.AddressLength+lengthUint64)
+	n := copy(delegateRewardPerPrefix[:perKeyLength], delegateRewardPerKey)
+	n += copy(delegateRewardPerPrefix[n:n+common.AddressLength], add.Bytes())
+	n += copy(delegateRewardPerPrefix[n:n+lengthUint64], common.Uint64ToBytes(stakingNum))
+
+	keys := make([][]byte, 0)
+	for i := indexFrom; i <= indexTo; i++ {
+		delegateRewardPerKey := append(delegateRewardPerPrefix[:], common.Uint32ToBytes(i)...)
+		keys = append(keys, delegateRewardPerKey)
+	}
+	return keys
+}
+
+func DelegateRewardTotalKey(nodeID discover.NodeID, stakingNum uint64) []byte {
+	add, err := xutil.NodeId2Addr(nodeID)
+	if err != nil {
+		panic(err)
+	}
+	keyAdd := append(delegateRewardTotalKey, add.Bytes()...)
+	keyAdd = append(keyAdd, common.Uint64ToBytes(stakingNum)...)
+	return keyAdd
+}
+
+func NewDelegateRewardPer(epoch uint64, per, totalDelegateReward *big.Int) *DelegateRewardPer {
+	return &DelegateRewardPer{
+		TotalAmount: totalDelegateReward,
+		Amount:      per,
+		Epoch:       epoch,
+	}
 }
 
 type DelegateRewardPer struct {
-	Epoch     uint64 `rlp:"nil"`
-	Amount    *big.Int
-	NodeCount uint
+	TotalAmount *big.Int
+	Epoch       uint64
+	Amount      *big.Int
 }
 
-type DelegateRewardPerList []DelegateRewardPer
-
-//this is use for NodeCounts--
-func (d *DelegateRewardPerList) HandleNodeCount(epoch uint) {
-
+type DelegateRewardPerList struct {
+	Pers    []*DelegateRewardPer
+	epochs  map[uint64]int
+	changed bool
 }
 
-func (d *DelegateRewardPerList) SetDelegateRewardPer(epoch uint, amount *big.Int) {
+func NewDelegateRewardPerList() *DelegateRewardPerList {
+	del := new(DelegateRewardPerList)
+	del.Pers = make([]*DelegateRewardPer, 0)
+	return del
+}
 
+func (d *DelegateRewardPerList) AppendDelegateRewardPer(per *DelegateRewardPer) {
+	d.Pers = append(d.Pers, per)
+	d.epochs = nil
+}
+
+func (d *DelegateRewardPerList) DecreaseTotalAmount(epoch uint64, amount *big.Int) {
+	if len(d.epochs) == 0 {
+		d.epochs = make(map[uint64]int)
+		for delIndex, per := range d.Pers {
+			d.epochs[per.Epoch] = delIndex
+		}
+	}
+	if index, ok := d.epochs[epoch]; ok {
+		d.Pers[index].TotalAmount.Sub(d.Pers[index].TotalAmount, amount)
+		if d.Pers[index].TotalAmount.Cmp(common.Big0) <= 0 {
+			d.Pers = append(d.Pers[:index], d.Pers[index+1:]...)
+		}
+		d.changed = true
+	}
+}
+
+func (d *DelegateRewardPerList) ShouldDel() bool {
+	if len(d.Pers) == 0 {
+		return true
+	}
+	return false
+}
+
+func (d *DelegateRewardPerList) IsChange() bool {
+	return d.changed
 }
 
 type NodeDelegateReward struct {
-	NodeID discover.NodeID
+	NodeID     discover.NodeID `json:"nodeID" rlp:"nodeID"`
+	Reward     *big.Int        `json:"reward" rlp:"reward"`
+	StakingNum uint64          `json:"stakingNum" rlp:"stakingNum"`
+}
+
+type NodeDelegateRewardPresenter struct {
+	NodeID     discover.NodeID `json:"nodeID" rlp:"nodeID"`
+	Reward     *hexutil.Big    `json:"reward" rlp:"reward"`
+	StakingNum uint64          `json:"stakingNum" rlp:"stakingNum"`
+}
+
+type DelegateRewardReceive struct {
 	Reward *big.Int
+	Epoch  uint64
 }

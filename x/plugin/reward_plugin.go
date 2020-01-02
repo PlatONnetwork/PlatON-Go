@@ -21,6 +21,10 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -39,8 +43,10 @@ import (
 )
 
 type RewardMgrPlugin struct {
-	db     snapshotdb.DB
-	nodeID discover.NodeID
+	db            snapshotdb.DB
+	nodeID        discover.NodeID
+	CurrVerifier  map[discover.NodeID]struct{}
+	stakingPlugin *StakingPlugin
 }
 
 const (
@@ -61,8 +67,11 @@ var (
 func RewardMgrInstance() *RewardMgrPlugin {
 	rewardOnce.Do(func() {
 		log.Info("Init Reward plugin ...")
+		sdb := snapshotdb.Instance()
 		rm = &RewardMgrPlugin{
-			db: snapshotdb.Instance(),
+			db:            sdb,
+			CurrVerifier:  make(map[discover.NodeID]struct{}),
+			stakingPlugin: StakingInstance(),
 		}
 	})
 	return rm
@@ -108,7 +117,12 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 	}
 
 	if xutil.IsEndOfEpoch(blockNumber) {
-		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
+		verifierList, err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state)
+		if err != nil {
+			return err
+		}
+
+		if err := rmp.handleDelegatePerReward(blockHash, blockNumber, verifierList, state); err != nil {
 			return err
 		}
 
@@ -119,6 +133,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
+		rmp.CleanCurrVerifier()
 	}
 
 	return nil
@@ -183,7 +198,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 }
 
 // allocateStakingReward used for reward staking at the settle block
-func (rmp *RewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash common.Hash, sreward *big.Int, state xcom.StateDB) error {
+func (rmp *RewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash common.Hash, sreward *big.Int, state xcom.StateDB) (staking.ValidatorExQueue, error) {
 
 	log.Info("Allocate staking reward start", "blockNumber", blockNumber, "hash", blockHash,
 		"epoch", xutil.CalculateEpoch(blockNumber), "reward", sreward)
@@ -191,66 +206,186 @@ func (rmp *RewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash 
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
 		log.Error("Failed to allocateStakingReward: call GetVerifierList is failed", "blockNumber", blockNumber, "hash", blockHash, "err", err)
-		return err
+		return nil, err
 	}
-	rmp.rewardStakingByValidatorList(state, verifierList, sreward)
+	if err := rmp.rewardStakingByValidatorList(state, verifierList, sreward); err != nil {
+		log.Error("reward staking by validator list fail", "err", err, "bn", blockNumber, "bh", blockHash)
+		return nil, err
+	}
 
-	//currentEpoch := xutil.CalculateEpoch(blockNumber)
+	return verifierList, nil
+}
 
-	// 算P值
+func (rmp *RewardMgrPlugin) CleanCurrVerifier() {
+	rmp.CurrVerifier = make(map[discover.NodeID]struct{})
+}
 
-	//for _, verifier := range verifierList {
-	//
-	//	re, err := GetCurrentEpochDelegateReward(verifier.NodeId, rmp.db, blockHash)
-	//
-	//	key := reward.DelegateRewardPerKey(verifier.NodeId, uint32(currentEpoch))
-	//	sb, err := rmp.db.Get(blockHash, key)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	var tmp reward.DelegateRewardPerList
-	//	if err := rlp.DecodeBytes(sb, &tmp); err != nil {
-	//		return err
-	//	}
-	//	tmp.SetDelegateRewardPer(currentEpoch)
-	//
-	//	if err := SetCurrentEpochDelegateReward(verifier.NodeId, rmp.db, blockHash, nil); err != nil {
-	//		return err
-	//	}
-	//}
+func (rmp *RewardMgrPlugin) ReturnDelegateReward(address common.Address, amount *big.Int, state xcom.StateDB) {
+	if amount.Cmp(common.Big0) > 0 {
+		state.SubBalance(vm.DelegateRewardPoolAddr, amount)
+		state.AddBalance(address, amount)
+	}
+}
+
+func (rmp *RewardMgrPlugin) handleDelegatePerReward(blockHash common.Hash, blockNumber uint64, list staking.ValidatorExQueue, state xcom.StateDB) error {
+	currentEpoch := xutil.CalculateEpoch(blockNumber)
+	for _, verifier := range list {
+		if verifier.DelegateTotal.ToInt().Cmp(common.Big0) == 0 {
+			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
+			rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state)
+		} else {
+			delegateRewardPer := new(big.Int).Div(verifier.CurrentEpochDelegateReward, verifier.DelegateTotal.ToInt())
+			per := reward.NewDelegateRewardPer(currentEpoch, delegateRewardPer, verifier.CurrentEpochDelegateReward)
+			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
+				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
+				return err
+			}
+
+			val, err := rmp.db.Get(blockHash, reward.DelegateRewardTotalKey(verifier.NodeId, verifier.StakingBlockNum))
+			if err != nil {
+				if err == snapshotdb.ErrNotFound {
+					if err := rmp.db.Put(blockHash, reward.DelegateRewardTotalKey(verifier.NodeId, verifier.StakingBlockNum), verifier.CurrentEpochDelegateReward.Bytes()); err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
+			}
+			delegateRewardTotal := new(big.Int).SetBytes(val)
+			delegateRewardTotal.Add(delegateRewardTotal, verifier.CurrentEpochDelegateReward)
+			if err := rmp.db.Put(blockHash, reward.DelegateRewardTotalKey(verifier.NodeId, verifier.StakingBlockNum), delegateRewardTotal.Bytes()); err != nil {
+				return err
+			}
+			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "per", delegateRewardPer, "delegateReward", verifier.CurrentEpochDelegateReward, "total", delegateRewardTotal, "epoch", currentEpoch)
+		}
+	}
 	return nil
 }
 
-func (rmp *RewardMgrPlugin) handleDelegatePerReward(head *types.Header, state xcom.StateDB) error {
-	return nil
+func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockNum uint64, account common.Address, list []*DelegationInfoWithRewardPerList, state xcom.StateDB) ([]reward.NodeDelegateReward, error) {
+	log.Debug("Call withdraw delegate reward: begin", "account", account, "list", list)
+
+	rewards := make([]reward.NodeDelegateReward, 0)
+	if len(list) == 0 {
+		return rewards, nil
+	}
+	currentEpoch := xutil.CalculateEpoch(blockNum)
+	receiveReward := new(big.Int)
+	for _, delWithPer := range list {
+		rewardsReceive := calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
+		if err := UpdateDelegateRewardPer(blockHash, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, rewardsReceive, rmp.db); err != nil {
+			log.Error("call WithdrawDelegateReward UpdateDelegateRewardPer fail", "err", err)
+			return nil, err
+		}
+
+		rewards = append(rewards, reward.NodeDelegateReward{
+			NodeID:     delWithPer.DelegationInfo.NodeID,
+			StakingNum: delWithPer.DelegationInfo.StakeBlockNumber,
+			Reward:     new(big.Int).Set(delWithPer.DelegationInfo.Delegation.CumulativeIncome),
+		})
+
+		receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
+
+		delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
+		if err := stk.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation); err != nil {
+			return nil, err
+		}
+	}
+
+	rmp.ReturnDelegateReward(account, receiveReward, state)
+	log.Debug("Call withdraw delegate reward: end", "account", account, "rewards", rewards)
+
+	return rewards, nil
 }
 
-func (rmp *RewardMgrPlugin) WithdrawDelegateReward(head *types.Header, account common.Address, state xcom.StateDB) (*big.Int, error) {
-	return nil, nil
+func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum uint64, account common.Address, nodes []discover.NodeID, state xcom.StateDB) ([]reward.NodeDelegateRewardPresenter, error) {
+	log.Debug("Call RewardMgrPlugin: query delegate reward result begin", "account", account, "nodes", nodes)
+
+	dls, err := stk.db.GetDelegatesInfo(blockHash, account)
+	if err != nil {
+		log.Error("Call GetDelegateReward GetDelegatesInfo fail", "err", err, "account", account)
+		return nil, err
+	}
+	if len(nodes) > 0 {
+		nodeMap := make(map[discover.NodeID]struct{})
+		for _, node := range nodes {
+			nodeMap[node] = struct{}{}
+		}
+
+		for i := 0; i < len(dls); {
+			if _, ok := nodeMap[dls[i].NodeID]; !ok {
+				dls = append(dls[:i], dls[i+1:]...)
+			} else {
+				i++
+			}
+		}
+	}
+
+	currentEpoch := xutil.CalculateEpoch(blockNum)
+	delegationInfoWithRewardPerList := make([]*DelegationInfoWithRewardPerList, 0)
+	for _, stakingNode := range dls {
+		if uint64(stakingNode.Delegation.DelegateEpoch) == currentEpoch-1 {
+			delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, NewDelegationInfoWithRewardPerList(stakingNode, nil))
+		} else {
+			delegateRewardPerList, err := rmp.GetDelegateRewardPerList(blockHash, stakingNode.NodeID, stakingNode.StakeBlockNumber, uint64(stakingNode.Delegation.DelegateEpoch), currentEpoch-1)
+			if err != nil {
+				log.Error("Call GetDelegateReward GetDelegateRewardPerList fail", "err", err, "account", account)
+				return nil, err
+			}
+			delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, NewDelegationInfoWithRewardPerList(stakingNode, delegateRewardPerList))
+		}
+	}
+	rewards := make([]reward.NodeDelegateRewardPresenter, 0)
+
+	for _, delWithPer := range delegationInfoWithRewardPerList {
+		calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
+
+		rewards = append(rewards, reward.NodeDelegateRewardPresenter{
+			NodeID:     delWithPer.DelegationInfo.NodeID,
+			StakingNum: delWithPer.DelegationInfo.StakeBlockNumber,
+			Reward:     (*hexutil.Big)(new(big.Int).Set(delWithPer.DelegationInfo.Delegation.CumulativeIncome)),
+		})
+
+	}
+	log.Debug("Call RewardMgrPlugin: query delegate reward result end", "account", account, "nodes", nodes, "rewards", rewards)
+
+	return rewards, nil
 }
 
-func (rmp *RewardMgrPlugin) GetDelegateReward(head *types.Header, account common.Address, nodes []discover.NodeID, state xcom.StateDB) ([]reward.NodeDelegateReward, error) {
-	return nil, nil
+func (rmp *RewardMgrPlugin) CalDelegateRewardAndNodeReward(totalReward *big.Int, per uint16) (*big.Int, *big.Int) {
+	tmp := new(big.Int).Mul(totalReward, big.NewInt(int64(per)))
+	tmp.Div(tmp, big.NewInt(10000))
+	return tmp, new(big.Int).Sub(totalReward, tmp)
 }
 
-func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, list staking.ValidatorExQueue, reward *big.Int) {
+func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, list staking.ValidatorExQueue, reward *big.Int) error {
 	validatorNum := int64(len(list))
 	everyValidatorReward := new(big.Int).Div(reward, big.NewInt(validatorNum))
 
 	log.Debug("calculate validator staking reward", "validator length", validatorNum, "everyOneReward", everyValidatorReward)
-	totalValidatorReward := new(big.Int)
+	totalValidatorReward, totalValidatorDelegateReward := new(big.Int), new(big.Int)
+
 	for _, value := range list {
+		delegateReward, stakingReward := new(big.Int), new(big.Int).Set(everyValidatorReward)
+		if value.DelegateTotal.ToInt().Cmp(common.Big0) != 0 && value.RewardPer > 0 {
+			delegateReward, stakingReward = rmp.CalDelegateRewardAndNodeReward(everyValidatorReward, value.RewardPer)
+			state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
+			totalValidatorDelegateReward.Add(totalValidatorDelegateReward, delegateReward)
+			log.Debug("allocate delegate reward of staking one-by-one", "nodeId", value.NodeId.String(), "staking reward", stakingReward, "per", value.RewardPer, "delegateReward", delegateReward)
+			//the  CurrentEpochDelegateReward will use by cal delegate reward Per
+			value.CurrentEpochDelegateReward.Add(value.CurrentEpochDelegateReward, delegateReward)
+		}
+
 		addr := value.BenefitAddress
 		if addr != vm.RewardManagerPoolAddr {
-
 			log.Debug("allocate staking reward one-by-one", "nodeId", value.NodeId.String(),
-				"benefitAddress", addr.String(), "staking reward", everyValidatorReward)
-
-			state.AddBalance(addr, everyValidatorReward)
-			totalValidatorReward.Add(totalValidatorReward, everyValidatorReward)
+				"benefitAddress", addr.String(), "staking reward", stakingReward)
+			state.AddBalance(addr, stakingReward)
+			totalValidatorReward.Add(totalValidatorReward, stakingReward)
 		}
 	}
-	state.SubBalance(vm.RewardManagerPoolAddr, totalValidatorReward)
+	state.SubBalance(vm.RewardManagerPoolAddr, new(big.Int).Add(totalValidatorDelegateReward, totalValidatorReward))
+	return nil
 }
 
 func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (discover.NodeID, common.Address, error) {
@@ -267,47 +402,82 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 	return discover.PubkeyID(pk), crypto.PubkeyToAddress(*pk), nil
 }
 
-func (rmp *RewardMgrPlugin) allocateDelegate(blockHash common.Hash, nodeID discover.NodeID, currentTotalReward *big.Int, RewardPer uint64, state xcom.StateDB) error {
-	if RewardPer != 0 {
-		delegateReward := new(big.Int).Mul(currentTotalReward, new(big.Int).SetUint64(RewardPer))
-		delegateReward.Div(delegateReward, new(big.Int).SetUint64(10000))
-
-		state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
-		state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
-
-		currentEpochDelegateReward, err := GetCurrentEpochDelegateReward(nodeID, rmp.db, blockHash)
-		if err != nil {
-			return err
+func (rmp *RewardMgrPlugin) IsCurrVerifier(blockHash common.Hash, head *types.Header, nodeId discover.NodeID) (bool, error) {
+	if len(rmp.CurrVerifier) > 0 {
+		if _, ok := rmp.CurrVerifier[nodeId]; ok {
+			log.Debug("find current verifier in cache", "num", head.Number, "nodeID", nodeId.TerminalString())
+			return true, nil
 		}
-		currentEpochDelegateReward.Add(currentEpochDelegateReward, delegateReward)
-		if err := SetCurrentEpochDelegateReward(nodeID, rmp.db, blockHash, currentEpochDelegateReward); err != nil {
-			return err
-		}
-		currentTotalReward.Sub(currentTotalReward, delegateReward)
+		return false, nil
 	}
-	return nil
+	epochEnd := xutil.CalcBlocksEachEpoch() * (xutil.CalculateEpoch(head.Number.Uint64()) - 1)
+	var theEndEpochBlockHaveCommit bool
+
+	if rmp.db.GetCurrent().GetHighest(false).Num.Uint64() >= epochEnd {
+		theEndEpochBlockHaveCommit = true
+	}
+	verifierList, err := rmp.stakingPlugin.getVerifierList(blockHash, head.Number.Uint64(), theEndEpochBlockHaveCommit)
+	if nil != err {
+		return false, err
+	}
+
+	if theEndEpochBlockHaveCommit {
+		for _, val := range verifierList.Arr {
+			rmp.CurrVerifier[val.NodeId] = struct{}{}
+		}
+		log.Debug("save current verifier in cache", "num", head.Number, "nodeIDs", rmp.CurrVerifier)
+		if _, ok := rmp.CurrVerifier[nodeId]; ok {
+			return true, nil
+		}
+	} else {
+		for _, val := range verifierList.Arr {
+			if val.NodeId == nodeId {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // allocatePackageBlock used for reward new block. it returns coinbase and error
 func (rmp *RewardMgrPlugin) allocatePackageBlock(blockHash common.Hash, head *types.Header, reward *big.Int, state xcom.StateDB) error {
-	//nodeID, add, err := rmp.getBlockMinderAddress(blockHash, head)
-	//if err != nil {
-	//	log.Error("allocatePackageBlock getBlockMinderAddress fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
-	//	return err
-	//}
-	//cm, err := stk.GetCanMutable(blockHash, add)
-	//if err != nil {
-	//	log.Error("allocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
-	//	return err
-	//}
-	//if err := rmp.allocateDelegate(blockHash, nodeID, reward, uint64(cm.RewardPer), state); err != nil {
-	//	log.Error("allocatePackageBlock allocateDelegate fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash.Hex())
-	//	return err
-	//}
+	nodeID, add, err := rmp.getBlockMinderAddress(blockHash, head)
+	if err != nil {
+		log.Error("allocatePackageBlock getBlockMinderAddress fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
+		return err
+	}
+
+	currVerifier, err := rmp.IsCurrVerifier(blockHash, head, nodeID)
+	if err != nil {
+		log.Error("allocatePackageBlock IsCurrVerifier fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
+		return err
+	}
+	if currVerifier {
+		cm, err := rmp.stakingPlugin.GetCanMutable(blockHash, add)
+		if err != nil {
+			log.Error("allocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
+			return err
+		}
+		if cm.HaveDelegateInCurrentEpoch() && cm.RewardPer > 0 {
+			delegateReward := new(big.Int).SetUint64(0)
+			delegateReward, reward = rmp.CalDelegateRewardAndNodeReward(reward, cm.RewardPer)
+
+			state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
+			state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
+
+			log.Debug("allocate delegate reward", "blockNumber", head.Number, "blockHash", blockHash, "delegate", delegateReward)
+
+			cm.CurrentEpochDelegateReward.Add(cm.CurrentEpochDelegateReward, delegateReward)
+			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, add, cm); err != nil {
+				log.Error("allocatePackageBlock SetCanMutableStore fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
+				return err
+			}
+		}
+	}
 
 	if head.Coinbase != vm.RewardManagerPoolAddr {
 
-		log.Debug("allocate package reward", "blockNumber", head.Number, "blockHash", blockHash.Hex(),
+		log.Debug("allocate package reward", "blockNumber", head.Number, "blockHash", blockHash,
 			"coinBase", head.Coinbase.String(), "reward", reward)
 
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
@@ -316,37 +486,108 @@ func (rmp *RewardMgrPlugin) allocatePackageBlock(blockHash common.Hash, head *ty
 	return nil
 }
 
-func GetCurrentEpochDelegateReward(nodeID discover.NodeID, db snapshotdb.DB, blockHash common.Hash) (*big.Int, error) {
-	key := reward.CurrentEpochDelegateRewardKey(nodeID)
-	val, err := db.Get(blockHash, key)
-	if err != nil {
-		if err == snapshotdb.ErrNotFound {
-			return new(big.Int).SetUint64(0), nil
-		}
-		return nil, err
-	}
-	return new(big.Int).SetBytes(val), nil
+type DelegationInfoWithRewardPerList struct {
+	DelegationInfo *staking.DelegationInfo
+	RewardPerList  []*reward.DelegateRewardPer
 }
 
-func SetCurrentEpochDelegateReward(nodeID discover.NodeID, db snapshotdb.DB, blockHash common.Hash, amount *big.Int) error {
-	key := reward.CurrentEpochDelegateRewardKey(nodeID)
-	if amount == nil {
-		if err := db.Del(blockHash, key); err != nil {
+func NewDelegationInfoWithRewardPerList(delegationInfo *staking.DelegationInfo, rewardPerList []*reward.DelegateRewardPer) *DelegationInfoWithRewardPerList {
+	return &DelegationInfoWithRewardPerList{delegationInfo, rewardPerList}
+}
+
+func (rmp *RewardMgrPlugin) GetDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, stakingNum, fromEpoch, toEpoch uint64) ([]*reward.DelegateRewardPer, error) {
+	return getDelegateRewardPerList(blockHash, nodeID, stakingNum, fromEpoch, toEpoch, rmp.db)
+}
+
+func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, stakingNum, fromEpoch, toEpoch uint64, db snapshotdb.DB) ([]*reward.DelegateRewardPer, error) {
+	keys := reward.DelegateRewardPerKeys(nodeID, stakingNum, fromEpoch, toEpoch)
+	pers := make([]*reward.DelegateRewardPer, 0)
+	for _, key := range keys {
+		val, err := db.Get(blockHash, key)
+		if err != nil {
+			if err == snapshotdb.ErrNotFound {
+				continue
+			}
+			return nil, err
+		}
+		list := new(reward.DelegateRewardPerList)
+		if err := rlp.DecodeBytes(val, list); err != nil {
+			return nil, err
+		}
+		for _, per := range list.Pers {
+			if per.Epoch >= fromEpoch && per.Epoch <= toEpoch {
+				if per.Amount.Cmp(common.Big0) > 0 {
+					pers = append(pers, per)
+				}
+			}
+		}
+	}
+	return pers, nil
+}
+
+func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) error {
+	key := reward.DelegateRewardPerKey(nodeID, stakingNum, per.Epoch)
+	list := reward.NewDelegateRewardPerList()
+	val, err := db.Get(blockHash, key)
+	if err != nil {
+		if err != snapshotdb.ErrNotFound {
 			return err
 		}
 	} else {
-		if err := db.Put(blockHash, key, amount.Bytes()); err != nil {
+		if err := rlp.DecodeBytes(val, list); err != nil {
 			return err
 		}
+	}
+
+	list.AppendDelegateRewardPer(per)
+	v, err := rlp.EncodeToBytes(list)
+	if err != nil {
+		return err
+	}
+	if err := db.Put(blockHash, key, v); err != nil {
+		return err
 	}
 	return nil
 }
 
-func GetDelegateRewardPerList(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, fromEpoch, toEpoch uint32) (*reward.DelegateRewardPerList, error) {
-	return nil, nil
-}
+func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, receives []reward.DelegateRewardReceive, db snapshotdb.DB) error {
+	if len(receives) == 0 {
+		return nil
+	}
+	keys := reward.DelegateRewardPerKeys(nodeID, stakingNum, receives[0].Epoch, receives[len(receives)-1].Epoch)
+	for _, key := range keys {
+		val, err := db.Get(blockHash, key)
+		if err != nil {
+			if err == snapshotdb.ErrNotFound {
+				continue
+			}
+			return err
+		}
+		list := new(reward.DelegateRewardPerList)
+		if err := rlp.DecodeBytes(val, list); err != nil {
+			return err
+		}
 
-func UpdateDelegateRewardPer(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, epoch uint32, list reward.DelegateRewardPer) error {
+		for _, receive := range receives {
+			list.DecreaseTotalAmount(receive.Epoch, receive.Reward)
+		}
+		if list.IsChange() {
+			log.Debug("updateDelegateRewardPer list is change", "del", list.ShouldDel())
+			if list.ShouldDel() {
+				if err := db.Del(blockHash, key); err != nil {
+					return err
+				}
+			} else {
+				v, err := rlp.EncodeToBytes(list)
+				if err != nil {
+					return err
+				}
+				if err := db.Put(blockHash, key, v); err != nil {
+					return err
+				}
+			}
+		}
+	}
 	return nil
 }
 

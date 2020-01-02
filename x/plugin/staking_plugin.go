@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
@@ -695,6 +697,10 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 	return nil
 }
 
+func (sk *StakingPlugin) GetDelegatesInfo(blockHash common.Hash, delAddr common.Address) ([]*staking.DelegationInfo, error) {
+	return sk.db.GetDelegatesInfo(blockHash, delAddr)
+}
+
 func (sk *StakingPlugin) GetDelegateInfo(blockHash common.Hash, delAddr common.Address,
 	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.Delegation, error) {
 	return sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
@@ -780,11 +786,11 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
-	if err := calcDelegateIncome(blockNumber.Uint64(), blockHash, can.NodeId, uint32(epoch), del); nil != err {
-		log.Error("Failed to calcDelegateIncome", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "epoch", epoch,
-			"delAddr", delAddr.Hash(), "nodeID", can.NodeId.TerminalString())
-		return err
-	}
+	//if _, err := calcDelegateIncome(blockNumber.Uint64(), blockHash, can.NodeId, uint32(epoch), del); nil != err {
+	//	log.Error("Failed to calcDelegateIncome", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "epoch", epoch,
+	//		"delAddr", delAddr.Hash(), "nodeID", can.NodeId.TerminalString())
+	//	return err
+	//}
 
 	if typ == FreeVon { // from account free von
 		origin := state.GetBalance(delAddr)
@@ -888,11 +894,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	refundAmount := calcRealRefund(blockNumber.Uint64(), blockHash, total, amount)
 	realSub := refundAmount
 
-	if err := calcDelegateIncome(blockNumber.Uint64(), blockHash, can.NodeId, uint32(epoch), del); nil != err {
-		log.Error("Failed to calcDelegateIncome", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "epoch", epoch,
-			"delAddr", delAddr.Hash(), "nodeID", can.NodeId.TerminalString())
-		return err
-	}
+	//if err := calcDelegateIncome(blockNumber.Uint64(), blockHash, can.NodeId, uint32(epoch), del); nil != err {
+	//	log.Error("Failed to calcDelegateIncome", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "epoch", epoch,
+	//		"delAddr", delAddr.Hash(), "nodeID", can.NodeId.TerminalString())
+	//	return err
+	//}
 
 	// Update total delegate
 	lazyCalcNodeTotalDelegateAmount(epoch, can.CandidateMutable)
@@ -1173,7 +1179,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			//c, err := sk.db.GetCanBaseStore(blockHash, v.NodeAddress)
 			c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
 			if nil != err {
-				log.Error("Failed to call GetVerifierList, Quey Candidate Store info is failed",
+				log.Error("Failed to call GetVerifierList, Query Candidate Store info is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(),
 					"canAddr", v.NodeAddress.Hex(), "isCommit", isCommit, "err", err.Error())
 				return nil, err
@@ -1183,30 +1189,40 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			//c, err := sk.db.GetCanBaseStoreByIrr(v.NodeAddress)
 			c, err := sk.db.GetCandidateStoreByIrr(v.NodeAddress)
 			if nil != err {
-				log.Error("Failed to call GetVerifierList, Quey Candidate Store info is failed",
+				log.Error("Failed to call GetVerifierList, Query Candidate Store info is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(),
 					"canAddr", v.NodeAddress.Hex(), "isCommit", isCommit, "err", err.Error())
 				return nil, err
 			}
 			can = c
 		}
+		var delegateRewardTotal *big.Int
+		delegateRewardTotal, err = sk.db.GetDelegateRewardTotal(blockHash, v.NodeId, v.StakingBlockNum, isCommit)
+		if err != nil {
+			log.Error("Failed to call GetVerifierList, Query DelegateRewardTotal failed",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(),
+				"canAddr", v.NodeAddress.Hex(), "isCommit", isCommit, "err", err.Error())
+			return nil, err
+		}
 
 		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
 
 		valEx := &staking.ValidatorEx{
-			NodeId:          can.NodeId,
-			BlsPubKey:       can.BlsPubKey,
-			StakingAddress:  can.StakingAddress,
-			BenefitAddress:  can.BenefitAddress,
-			RewardPer:       can.RewardPer,
-			NextRewardPer:   can.NextRewardPer,
-			StakingTxIndex:  can.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion,
-			StakingBlockNum: can.StakingBlockNum,
-			Shares:          (*hexutil.Big)(v.Shares),
-			Description:     can.Description,
-			ValidatorTerm:   v.ValidatorTerm,
-			DelegateTotal:   (*hexutil.Big)(can.DelegateTotal),
+			NodeId:                     can.NodeId,
+			BlsPubKey:                  can.BlsPubKey,
+			StakingAddress:             can.StakingAddress,
+			BenefitAddress:             can.BenefitAddress,
+			RewardPer:                  can.RewardPer,
+			NextRewardPer:              can.NextRewardPer,
+			StakingTxIndex:             can.StakingTxIndex,
+			ProgramVersion:             can.ProgramVersion,
+			StakingBlockNum:            can.StakingBlockNum,
+			Shares:                     (*hexutil.Big)(v.Shares),
+			Description:                can.Description,
+			ValidatorTerm:              v.ValidatorTerm,
+			DelegateTotal:              (*hexutil.Big)(can.DelegateTotal),
+			DelegateRewardTotal:        (*hexutil.Big)(delegateRewardTotal),
+			CurrentEpochDelegateReward: can.CurrentEpochDelegateReward,
 		}
 		queue[i] = valEx
 	}
@@ -2006,6 +2022,11 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	log.Debug("Call SlashCandidates: the status", "needInvalid", needInvalid,
 		"needRemove", needRemove, "current can.Status", can.Status, "need to superpose status", changeStatus)
 
+	if needRemove {
+		rm.ReturnDelegateReward(can.BenefitAddress, can.CurrentEpochDelegateReward, state)
+		can.CleanCurrentEpochDelegateReward()
+	}
+
 	if needInvalid && can.IsValid() {
 
 		if can.ReleasedHes.Cmp(common.Big0) > 0 {
@@ -2097,7 +2118,6 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 
 			verifier.Arr = append(verifier.Arr[:i], verifier.Arr[i+1:]...)
 			i--
-			break
 		}
 	}
 
@@ -2110,6 +2130,7 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 				"blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
+		rm.CleanCurrVerifier()
 	}
 	return nil
 }
@@ -2447,26 +2468,22 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 }
 
 // Calculating Total Entrusted Income
-func calcDelegateIncome(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, epoch uint32, del *staking.Delegation) error {
+func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.DelegateRewardPer) []reward.DelegateRewardReceive {
+	if uint64(del.DelegateEpoch) == epoch {
+		return nil
+	}
 	// Triggered again in the same cycle, no need to calculate revenue
-	if del.DelegateEpoch == epoch {
+	if len(per) == 0 {
 		return nil
 	}
-	rewardPerList, err := GetDelegateRewardPerList(blockNumber, blockHash, nodeID, del.DelegateEpoch, epoch)
-	if nil != err {
-		return err
-	}
-	if rewardPerList == nil {
-		return nil
-	}
+
 	totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
-	for i, rewardPer := range *rewardPerList {
+	for i, rewardPer := range per {
 		if totalReleased.Cmp(common.Big0) > 0 {
 			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, new(big.Int).Mul(totalReleased, rewardPer.Amount))
-			// TODO 这里需要调用rewardPerList的减值操作
 		}
 		if i == 0 {
-			lazyCalcDelegateAmount(uint64(epoch), del)
+			lazyCalcDelegateAmount(epoch, del)
 		}
 	}
 	return nil
