@@ -230,13 +230,15 @@ func (rmp *RewardMgrPlugin) handleDelegatePerReward(blockHash common.Hash, block
 	currentEpoch := xutil.CalculateEpoch(blockNumber)
 	for _, verifier := range list {
 		if verifier.DelegateTotal.ToInt().Cmp(common.Big0) == 0 {
-			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
+			log.Debug("handleDelegatePerReward return delegateReward", "blockNumber", blockNumber, "nodeId", verifier.NodeId.TerminalString(), "currentEpoch", currentEpoch,
+				"delegateReward", verifier.CurrentEpochDelegateReward, "benefitAddress", verifier.BenefitAddress)
 			rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state)
 		} else {
 			delegateRewardPer := new(big.Int).Div(verifier.CurrentEpochDelegateReward, new(big.Int).Div(verifier.DelegateTotal.ToInt(), new(big.Int).SetUint64(1e18)))
 			per := reward.NewDelegateRewardPer(currentEpoch, delegateRewardPer, verifier.CurrentEpochDelegateReward)
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
-				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
+				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+					"nodeId", verifier.NodeId.TerminalString(), "err", err)
 				return err
 			}
 
@@ -255,8 +257,8 @@ func (rmp *RewardMgrPlugin) handleDelegatePerReward(blockHash common.Hash, block
 			if err := rmp.db.Put(blockHash, reward.DelegateRewardTotalKey(verifier.NodeId, verifier.StakingBlockNum), delegateRewardTotal.Bytes()); err != nil {
 				return err
 			}
-			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "blockNumber", blockNumber, "nodeId", verifier.NodeId.TerminalString(), "delegateTotal", verifier.DelegateTotal,
-				"per", delegateRewardPer, "delegateReward", verifier.CurrentEpochDelegateReward, "total", delegateRewardTotal, "currentEpoch", currentEpoch)
+			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "blockNumber", blockNumber, "nodeId", verifier.NodeId.TerminalString(), "delegateTotal", verifier.DelegateTotal.ToInt(),
+				"per", delegateRewardPer, "delegateReward", verifier.CurrentEpochDelegateReward, "delegateRewardTotal", delegateRewardTotal, "currentEpoch", currentEpoch)
 		}
 	}
 	return nil
