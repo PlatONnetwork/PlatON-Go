@@ -1,5 +1,7 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -11,9 +13,6 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -24,7 +23,7 @@ import java.util.Arrays;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InheritContractSubclass extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060e58061001f6000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c8063430fe9c1146041578063825b71d914605d578063887c5838146079575b600080fd5b60476095565b6040518082815260200191505060405180910390f35b6063609e565b6040518082815260200191505060405180910390f35b607f60a7565b6040518082815260200191505060405180910390f35b60006002905090565b60006004905090565b6000600390509056fea265627a7a723158207335c8963cae9383ddaf98b128cc30148e6f406fc4cfdf22729a604d8df8055064736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060e58061001f6000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c8063430fe9c1146041578063825b71d914605d578063887c5838146079575b600080fd5b60476095565b6040518082815260200191505060405180910390f35b6063609e565b6040518082815260200191505060405180910390f35b607f60a7565b6040518082815260200191505060405180910390f35b60006002905090565b60006004905090565b6000600390509056fea265627a7a7231582022098d70ac4921af96d102fcd0b66d64989e92c9bff8dfdd8d7f3b72f0dd1c7c64736f6c634300050d0032";
 
     public static final String FUNC_GETDATATHREE = "getDataThree";
 
@@ -51,22 +50,22 @@ public class InheritContractSubclass extends Contract {
     }
 
     public RemoteCall<BigInteger> getDataThree() {
-        final Function function = new Function(FUNC_GETDATATHREE,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_GETDATATHREE, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<BigInteger> getDate() {
-        final Function function = new Function(FUNC_GETDATE,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_GETDATE, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<BigInteger> getSubData() {
-        final Function function = new Function(FUNC_GETSUBDATA,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_GETSUBDATA, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }

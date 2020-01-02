@@ -1,5 +1,7 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
 import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.crypto.Credentials;
@@ -8,9 +10,6 @@ import org.web3j.protocol.core.RemoteCall;
 import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
-
-import java.math.BigInteger;
-import java.util.Arrays;
 
 /**
  * <p>Auto generated code.
@@ -22,7 +21,7 @@ import java.util.Arrays;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InheritContractBase extends Contract {
-    private static final String BINARY = "608060405260008055348015601357600080fd5b506040516097380380609783398181016040526020811015603357600080fd5b81019080805190602001909291905050508060008190555050603e8060596000396000f3fe6080604052600080fdfea265627a7a72315820d9634763f8da1b742907c4504b71ab09be33c8c917eb7b43a92df1e24398ccb464736f6c634300050d0032";
+    private static final String BINARY = "608060405260008055348015601357600080fd5b506040516097380380609783398181016040526020811015603357600080fd5b81019080805190602001909291905050508060008190555050603e8060596000396000f3fe6080604052600080fdfea265627a7a72315820e850d198b19c16d9c6b1a49402a574715b9c11ddb36aa05b957eff0b8367d96564736f6c634300050d0032";
 
     @Deprecated
     protected InheritContractBase(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {

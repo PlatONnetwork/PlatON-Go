@@ -1,5 +1,7 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
@@ -11,9 +13,6 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -24,7 +23,7 @@ import java.util.Arrays;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InheritContractParentBase2 extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060b28061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063420cec3a14602d575b600080fd5b60336075565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b60003390509056fea265627a7a72315820430e77e3f6ebac42a10da87d13204667baa2eb7013c816b003b01f253d61e8f464736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060b28061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063420cec3a14602d575b600080fd5b60336075565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b60003390509056fea265627a7a72315820c5f84ce0be9771458e195ef71117702d295ce0a440e589295c90cbd5db56a5d664736f6c634300050d0032";
 
     public static final String FUNC_GETADDRESS2 = "getAddress2";
 
@@ -47,8 +46,8 @@ public class InheritContractParentBase2 extends Contract {
     }
 
     public RemoteCall<String> getAddress2() {
-        final Function function = new Function(FUNC_GETADDRESS2,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_GETADDRESS2, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }

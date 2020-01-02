@@ -1,5 +1,7 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
@@ -11,9 +13,6 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -24,7 +23,7 @@ import java.util.Arrays;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InheritContractParentMutipleTest extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b506101a6806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c8063420cec3a14610051578063853255cc1461009b5780638da5cb5b146100a557806391021984146100ef575b600080fd5b610059610139565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100a3610141565b005b6100ad610143565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100f7610169565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b600033905090565b565b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60003390509056fea265627a7a72315820c3528d62484efa52781677d77bbb57640cc2e9d76c429201e7ed3f890331417164736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b506101a6806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c8063420cec3a14610051578063853255cc1461009b5780638da5cb5b146100a557806391021984146100ef575b600080fd5b610059610139565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100a3610141565b005b6100ad610143565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100f7610169565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b600033905090565b565b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60003390509056fea265627a7a72315820b0d4373bac3ccb8b51498c039113698555f10f7948fada98a020ebec15944d9c64736f6c634300050d0032";
 
     public static final String FUNC_GETADDRESS1 = "getAddress1";
 
@@ -53,22 +52,22 @@ public class InheritContractParentMutipleTest extends Contract {
     }
 
     public RemoteCall<String> getAddress1() {
-        final Function function = new Function(FUNC_GETADDRESS1,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_GETADDRESS1, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteCall<String> getAddress2() {
-        final Function function = new Function(FUNC_GETADDRESS2,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_GETADDRESS2, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteCall<String> owner() {
-        final Function function = new Function(FUNC_OWNER,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_OWNER, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
