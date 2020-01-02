@@ -8,7 +8,7 @@ def calculate(big_int, mul):
 
 
 @pytest.fixture()
-def staking_client(client_new_node):
+def create_staking_client(client_new_node):
     amount = calculate(client_new_node.economic.create_staking_limit, 5)
     staking_amount = calculate(client_new_node.economic.create_staking_limit, 2)
     staking_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3, amount)
@@ -20,7 +20,6 @@ def staking_client(client_new_node):
     setattr(client_new_node, "amount", amount)
     setattr(client_new_node, "staking_amount", staking_amount)
     yield client_new_node
-    client_new_node.economic.env.deploy_all()
 
 
 @pytest.fixture()
@@ -71,3 +70,14 @@ def free_locked_delegate_client(client_new_node):
     setattr(client_new_node, "delegate_amount", delegate_amount)
     setattr(client_new_node, "staking_blocknum", staking_blocknum)
     yield client_new_node
+
+
+def check_receipt(node, hash, key, expected_result):
+    result = node.eth.waitForTransactionReceipt(hash)
+    if result["logs"] and key in result["logs"][0]:
+        value = result["logs"][0][key]
+        assert value == expected_result, "Value contrast error"
+    else:
+        assert result[key] == expected_result, "Value contrast error"
+
+

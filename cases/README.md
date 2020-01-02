@@ -3,26 +3,31 @@ This is an automated test project of the PaltON-Go
 
 ## Installation and operation dependencies
 Install the python 3.7 environment and configure pip, then execute the following command to install the dependency library:
-
-    pip install -r requirements.txt 
-
+```shell script
+pip install -r requirements.txt
+```
+     
 ## Run test
 
 ### Execute all test cases
+
+```shell script
 pytest test_start.py --nodeFile "deploy/4_node.yml" --accountFile "deploy/accounts.yml" --initChain
+```
 
 ### Execute at Multiple environment
-pytest "case_path" --nodeFile "node_file_1,node_file_2" --accountFile "deploy/accounts.yml" --initChain -n 2
 
-    Note: The number of node configuration files must be equal to the number of threads, and multiple node configuration files are separated by English ","
+```shell script
+pytest "case_path" --nodeFile "node_file_1,node_file_2" --accountFile "deploy/accounts.yml" --initChain -n 2
+```
+
+Note: The number of node configuration files must be equal to the number of threads, and multiple node configuration files are separated by English ","
 
 ## pytest Command line argument
 
 --nodeFile "deploy/node.yml": Specify the node configuration file
 
 --accountFile "deploy/accounts.yml": Specify the account file for testing
-
---initChain: This option appears to indicate that the chain data is to be initialized. if there is no such option, the chain data is not initialized.
 
 --installDependency：Indicates that the node needs to install the required dependencies, which is generally used during the first deployment; if it is not, it is no longer installed.
 
@@ -35,8 +40,12 @@ File storage requirements:
     Other files, put in the deploy/template template directory
 
 ### test case example:
-    @pytest.mark.P1
-    def test_case_001():
-        print("begin: test_case_001")
-        SomeTxAPI("test_case_001")
-        print("end: test_case_001")
+```python
+import pytest
+@pytest.mark.P1
+def test_case_001():
+    print("begin: test_case_001")
+    SomeTxAPI("test_case_001")
+    print("end: test_case_001")
+```
+    

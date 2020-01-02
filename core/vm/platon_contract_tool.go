@@ -57,6 +57,19 @@ func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string
 	return []byte(receipt)
 }
 
+func txResultHandlerWithRes(contractAddr common.Address, evm *EVM, title, reason string, fncode, errCode int, res interface{}) []byte {
+	event := strconv.Itoa(fncode)
+	receipt := strconv.Itoa(errCode)
+	blockNumber := evm.BlockNumber.Uint64()
+	if errCode != 0 {
+		txHash := evm.StateDB.TxHash()
+		log.Error("Failed to "+title, "txHash", txHash.Hex(),
+			"blockNumber", blockNumber, "receipt: ", receipt, "the reason", reason)
+	}
+	xcom.AddLogWithRes(evm.StateDB, blockNumber, contractAddr, event, receipt, res)
+	return []byte(receipt)
+}
+
 func callResultHandler(evm *EVM, title string, resultValue interface{}, err *common.BizError) []byte {
 	txHash := evm.StateDB.TxHash()
 	blockNumber := evm.BlockNumber.Uint64()

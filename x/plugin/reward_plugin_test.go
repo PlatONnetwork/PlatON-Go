@@ -144,11 +144,11 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 	var err error
 
 	for i := 0; i < 3200; i++ {
-		if err := chain.AddBlockWithSnapDBMiner(func(header *types.Header, sdb snapshotdb.DB) error {
+		if err := chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 			plugin := new(RewardMgrPlugin)
 			plugin.db = sdb
 			if header.Number.Uint64() == 1 {
-				packageReward, stakingReward, err = plugin.CalcEpochReward(common.ZeroHash, header, chain.StateDB)
+				packageReward, stakingReward, err = plugin.CalcEpochReward(hash, header, chain.StateDB)
 				if err != nil {
 					return err
 				}
@@ -158,7 +158,7 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 			chain.StateDB.SubBalance(vm.RewardManagerPoolAddr, packageReward)
 			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
 				chain.StateDB.SubBalance(vm.RewardManagerPoolAddr, stakingReward)
-				packageReward, stakingReward, err = plugin.CalcEpochReward(common.ZeroHash, header, chain.StateDB)
+				packageReward, stakingReward, err = plugin.CalcEpochReward(hash, header, chain.StateDB)
 				if err != nil {
 					return err
 				}
@@ -176,6 +176,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	var plugin = RewardMgrInstance()
 	StakingInstance()
+	plugin.SetCurrentNodeID(nodeIdArr[0])
 	chain := mock.NewChain()
 	packTime := int64(xcom.Interval() * uint64(millisecond))
 	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
@@ -217,7 +218,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	for i := 0; i < int(xutil.CalcBlocksEachEpoch()*5); i++ {
 		var currentHeader *types.Header
 
-		if err := chain.AddBlockWithSnapDBMiner(func(header *types.Header, sdb snapshotdb.DB) error {
+		if err := chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 			currentHeader = header
 			if currentHeader.Number.Uint64() < xutil.CalcBlocksEachEpoch() {
 				currentHeader.Time.Add(currentHeader.Time, new(big.Int).SetInt64(packTime))
@@ -313,4 +314,120 @@ func TestIncreaseIssuance(t *testing.T) {
 	thisYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(thisYear)))
 
 	assert.Equal(t, new(big.Int).Sub(thisYearIssue, lastYearIssue), new(big.Int).Div(lastYearIssue, big.NewInt(IncreaseIssue)))
+}
+
+func TestSaveRewardDelegateRewardPer(t *testing.T) {
+	chain := mock.NewChain()
+
+	defer chain.SnapDB.Clear()
+
+	chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		return nil
+	})
+	chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		return nil
+	})
+
+	type delegateInfo struct {
+		nodeID                                 discover.NodeID
+		stakingNum                             uint64
+		delegateRewardPer, totalDelegateReward *big.Int
+	}
+
+	generate := func(hash common.Hash, header *types.Header, sdb snapshotdb.DB, info delegateInfo) error {
+		currentEpoch := xutil.CalculateEpoch(header.Number.Uint64())
+		per := reward.NewDelegateRewardPer(currentEpoch, info.delegateRewardPer, info.totalDelegateReward)
+		if err := AppendDelegateRewardPer(hash, info.nodeID, info.stakingNum, per, sdb); err != nil {
+			log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
+			return err
+		}
+		return nil
+	}
+	delegateInfos := make([]delegateInfo, 0)
+	for _, nodeId := range nodeIdArr {
+		delegateInfos = append(delegateInfos, delegateInfo{
+			nodeID:              nodeId,
+			stakingNum:          100,
+			delegateRewardPer:   big.NewInt(100000000),
+			totalDelegateReward: big.NewInt(1000000000),
+		})
+	}
+	delegateInfos2 := make([]delegateInfo, 0)
+	for _, nodeId := range nodeIdArr {
+		delegateInfos2 = append(delegateInfos2, delegateInfo{
+			nodeID:              nodeId,
+			stakingNum:          200,
+			delegateRewardPer:   big.NewInt(200000000),
+			totalDelegateReward: big.NewInt(2000000000),
+		})
+	}
+	if err := chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		for _, info := range delegateInfos {
+			if err := generate(hash, header, sdb, info); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+	chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		return nil
+	})
+	if err := chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		for _, info := range delegateInfos2 {
+			if err := generate(hash, header, sdb, info); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+
+	chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		return nil
+	})
+
+	list, err := getDelegateRewardPerList(chain.CurrentHeader().Hash(), delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, 0, 2000, chain.SnapDB)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, val := range list {
+
+		if val.Epoch != xutil.CalculateEpoch(200) {
+			t.Error("epoch should be same ")
+		}
+		if val.TotalAmount.Cmp(big.NewInt(2000000000)) != 0 {
+			t.Error("total amount should be same ")
+		}
+		if val.Amount.Cmp(big.NewInt(200000000)) != 0 {
+			t.Error("reward per should be same ")
+		}
+	}
+
+	if err := chain.AddBlockWithSnapDBMiner(func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+
+		receive := make([]reward.DelegateRewardReceive, 0)
+		receive = append(receive, reward.DelegateRewardReceive{big.NewInt(2000000000), 1})
+		if err := UpdateDelegateRewardPer(hash, delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, receive, sdb); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+
+	list2, err := getDelegateRewardPerList(chain.CurrentHeader().Hash(), delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, 0, 2000, chain.SnapDB)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if len(list2) != 0 {
+		t.Error("should be empty")
+	}
 }

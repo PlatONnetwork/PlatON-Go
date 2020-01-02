@@ -40,12 +40,12 @@ func (c *Chain) SetHeaderTimeGenerate(f func(*big.Int) *big.Int) {
 	c.timeGenerate = f
 }
 
-func (c *Chain) AddBlockWithSnapDBMiner(f func(header *types.Header, sdb snapshotdb.DB) error) error {
+func (c *Chain) AddBlockWithSnapDBMiner(f func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error) error {
 	c.AddBlock()
 	if err := c.SnapDB.NewBlock(c.CurrentHeader().Number, c.CurrentHeader().ParentHash, common.ZeroHash); err != nil {
 		return err
 	}
-	if err := f(c.CurrentHeader(), c.SnapDB); err != nil {
+	if err := f(common.ZeroHash, c.CurrentHeader(), c.SnapDB); err != nil {
 		return err
 	}
 	if err := c.SnapDB.Flush(c.CurrentHeader().Hash(), c.CurrentHeader().Number); err != nil {
