@@ -53,18 +53,26 @@ func TestConstGasFunc(t *testing.T) {
 
 func TestGasCallDataCopy(t *testing.T) {
 	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasCallDataCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
-	if gas != 113 {
-		t.Errorf("Expected: 113, got %d", gas)
+	testCases := []struct {
+		elements   []uint64
+		memorySize uint64
+		expected   uint64
+		isNil      bool
+	}{
+		{elements: []uint64{100, 100, 100, 100}, expected: 113, memorySize: 1024, isNil: true},
+		{elements: []uint64{100, 100, 100, 100}, expected: 113, memorySize: 0xffffffffe1, isNil: false},
 	}
-	if err != nil {
-		t.Error("not expected error")
+	for _, v := range testCases {
+		stack := mockStack(v.elements...)
+		gas, err := gasCallDataCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
+		if gas != v.expected {
+			t.Errorf("Expected: %d, got %d", v.expected, gas)
+		}
+		if v.isNil && err != nil {
+			t.Error("not expected error")
+		}
 	}
+
 }
 
 func TestGasReturnDataCopy(t *testing.T) {
