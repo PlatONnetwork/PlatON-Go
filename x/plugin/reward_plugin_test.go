@@ -330,14 +330,14 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 	})
 
 	type delegateInfo struct {
-		nodeID                                 discover.NodeID
-		stakingNum                             uint64
-		delegateRewardPer, totalDelegateReward *big.Int
+		nodeID                                                discover.NodeID
+		stakingNum                                            uint64
+		delegateRewardPer, totalDelegateReward, totalDelegate *big.Int
 	}
 
 	generate := func(hash common.Hash, header *types.Header, sdb snapshotdb.DB, info delegateInfo) error {
 		currentEpoch := xutil.CalculateEpoch(header.Number.Uint64())
-		per := reward.NewDelegateRewardPer(currentEpoch, info.delegateRewardPer, info.totalDelegateReward)
+		per := reward.NewDelegateRewardPer(currentEpoch, info.delegateRewardPer, info.totalDelegate)
 		if err := AppendDelegateRewardPer(hash, info.nodeID, info.stakingNum, per, sdb); err != nil {
 			log.Error("call HandleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
 			return err
@@ -351,6 +351,7 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 			stakingNum:          100,
 			delegateRewardPer:   big.NewInt(100000000),
 			totalDelegateReward: big.NewInt(1000000000),
+			totalDelegate:       big.NewInt(1000000000),
 		})
 	}
 	delegateInfos2 := make([]delegateInfo, 0)
@@ -360,6 +361,7 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 			stakingNum:          200,
 			delegateRewardPer:   big.NewInt(200000000),
 			totalDelegateReward: big.NewInt(2000000000),
+			totalDelegate:       big.NewInt(2000000000),
 		})
 	}
 	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
@@ -414,7 +416,7 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 
 		receive := make([]reward.DelegateRewardReceive, 0)
 		receive = append(receive, reward.DelegateRewardReceive{big.NewInt(2000000000), 1})
-		if err := UpdateDelegateRewardPer(hash, delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, receive, sdb); err != nil {
+		if err := UpdateDelegateRewardPer(hash, delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, receive, delegateInfos2[0].totalDelegate, sdb); err != nil {
 			return err
 		}
 		return nil

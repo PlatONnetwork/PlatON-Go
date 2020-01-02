@@ -103,9 +103,9 @@ func DelegateRewardTotalKey(nodeID discover.NodeID, stakingNum uint64) []byte {
 	return keyAdd
 }
 
-func NewDelegateRewardPer(epoch uint64, per, totalDelegateReward *big.Int) *DelegateRewardPer {
+func NewDelegateRewardPer(epoch uint64, per, totalDelegate *big.Int) *DelegateRewardPer {
 	return &DelegateRewardPer{
-		TotalAmount: totalDelegateReward,
+		TotalAmount: totalDelegate,
 		Amount:      per,
 		Epoch:       epoch,
 	}
