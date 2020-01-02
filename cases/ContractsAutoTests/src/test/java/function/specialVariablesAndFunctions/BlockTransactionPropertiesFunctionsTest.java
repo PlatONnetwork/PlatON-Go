@@ -7,12 +7,11 @@ import network.platon.contracts.BlockTransactionPropertiesFunctions;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.abi.datatypes.Int;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import java.math.BigInteger;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @title 验证区块和交易函数

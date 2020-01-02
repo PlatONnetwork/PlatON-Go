@@ -1,18 +1,21 @@
 package network.platon.contracts;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.RemoteCall;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tuples.generated.Tuple2;
 import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
+
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * <p>Auto generated code.
@@ -24,11 +27,11 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class NamedCall extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610104806100206000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806394e689d9146037578063d4b7eac314605a575b600080fd5b603d60aa565b604051808381526020018281526020019250505060405180910390f35b608d60048036036040811015606e57600080fd5b81019080803590602001909291908035906020019092919050505060bf565b604051808381526020018281526020019250505060405180910390f35b60008060b76001600260bf565b915091509091565b600080828491509150925092905056fea265627a7a723158200808181a53d4798f4c75d7cbfa0fdec68f0855f93bb559df84a1aa5305517a1364736f6c634300050d0032";
-
-    public static final String FUNC_CALLTEST = "calltest";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610104806100206000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c8063d4b7eac3146037578063e9e3370e146087575b600080fd5b606a60048036036040811015604b57600080fd5b81019080803590602001909291908035906020019092919050505060aa565b604051808381526020018281526020019250505060405180910390f35b608d60ba565b604051808381526020018281526020019250505060405180910390f35b6000808284915091509250929050565b60008060c76001600260aa565b91509150909156fea265627a7a72315820489342e9779f96b195f5cce87a07e5fa5d5431d7428105dd44b12aae08e49be864736f6c634300050d0032";
 
     public static final String FUNC_EXCHANGE = "exchange";
+
+    public static final String FUNC_NAMECALL = "namecall";
 
     @Deprecated
     protected NamedCall(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
@@ -48,21 +51,37 @@ public class NamedCall extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> calltest() {
-        final Function function = new Function(
-                FUNC_CALLTEST, 
-                Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+    public RemoteCall<Tuple2<BigInteger, BigInteger>> exchange(BigInteger key, BigInteger value) {
+        final Function function = new Function(FUNC_EXCHANGE, 
+                Arrays.<Type>asList(new Uint256(key),
+                new Uint256(value)),
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
+        return new RemoteCall<Tuple2<BigInteger, BigInteger>>(
+                new Callable<Tuple2<BigInteger, BigInteger>>() {
+                    @Override
+                    public Tuple2<BigInteger, BigInteger> call() throws Exception {
+                        List<Type> results = executeCallMultipleValueReturn(function);
+                        return new Tuple2<BigInteger, BigInteger>(
+                                (BigInteger) results.get(0).getValue(), 
+                                (BigInteger) results.get(1).getValue());
+                    }
+                });
     }
 
-    public RemoteCall<TransactionReceipt> exchange(BigInteger key, BigInteger value) {
-        final Function function = new Function(
-                FUNC_EXCHANGE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(key), 
-                new org.web3j.abi.datatypes.generated.Uint256(value)), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+    public RemoteCall<Tuple2<BigInteger, BigInteger>> namecall() {
+        final Function function = new Function(FUNC_NAMECALL, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
+        return new RemoteCall<Tuple2<BigInteger, BigInteger>>(
+                new Callable<Tuple2<BigInteger, BigInteger>>() {
+                    @Override
+                    public Tuple2<BigInteger, BigInteger> call() throws Exception {
+                        List<Type> results = executeCallMultipleValueReturn(function);
+                        return new Tuple2<BigInteger, BigInteger>(
+                                (BigInteger) results.get(0).getValue(), 
+                                (BigInteger) results.get(1).getValue());
+                    }
+                });
     }
 
     public static RemoteCall<NamedCall> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
