@@ -19,20 +19,21 @@ type Chain struct {
 	//	headerm  map[common.Hash]*types.Header
 	//	blockm   map[common.Hash]*types.Block
 	//	receiptm map[common.Hash][]*types.Receipt
-	StateDB      *MockStateDB
-	SnapDB       snapshotdb.DB
-	h            []*types.Header
-	timeGenerate func(*big.Int) *big.Int
+	StateDB          *MockStateDB
+	SnapDB           snapshotdb.DB
+	h                []*types.Header
+	timeGenerate     func(*big.Int) *big.Int
+	coinBaseGenerate func() common.Address
 }
 
+//notic AddBlock will not append snapshotdb
 func (c *Chain) AddBlock() {
-	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash(), c.timeGenerate(c.CurrentHeader().Time))
+	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash(), c.timeGenerate(c.CurrentHeader().Time), c.coinBaseGenerate())
 	c.h = append(c.h, header)
 }
 
 func (c *Chain) AddBlockWithTxHash(txHash common.Hash) {
-	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash(), c.timeGenerate(c.CurrentHeader().Time))
-	c.h = append(c.h, header)
+	c.AddBlock()
 	c.StateDB.Prepare(txHash, c.CurrentHeader().Hash(), 1)
 }
 
@@ -40,16 +41,32 @@ func (c *Chain) SetHeaderTimeGenerate(f func(*big.Int) *big.Int) {
 	c.timeGenerate = f
 }
 
-func (c *Chain) AddBlockWithSnapDBMiner(f func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error) error {
-	c.AddBlock()
-	if err := c.SnapDB.NewBlock(c.CurrentHeader().Number, c.CurrentHeader().ParentHash, common.ZeroHash); err != nil {
+func (c *Chain) SetCoinbaseGenerate(f func() common.Address) {
+	c.coinBaseGenerate = f
+}
+
+func (c *Chain) AddBlockWithTxHashAndCommit(txHash common.Hash, miner bool, f func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error) error {
+	c.AddBlockWithTxHash(txHash)
+	return c.commitWithSnapshotDB(miner, f)
+}
+
+func (c *Chain) commitWithSnapshotDB(miner bool, f func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error) error {
+	var useHash common.Hash
+	if miner {
+		useHash = common.ZeroHash
+	} else {
+		useHash = c.CurrentHeader().Hash()
+	}
+	if err := c.SnapDB.NewBlock(c.CurrentHeader().Number, c.CurrentHeader().ParentHash, useHash); err != nil {
 		return err
 	}
-	if err := f(common.ZeroHash, c.CurrentHeader(), c.SnapDB); err != nil {
+	if err := f(useHash, c.CurrentHeader(), c.SnapDB); err != nil {
 		return err
 	}
-	if err := c.SnapDB.Flush(c.CurrentHeader().Hash(), c.CurrentHeader().Number); err != nil {
-		return err
+	if miner {
+		if err := c.SnapDB.Flush(c.CurrentHeader().Hash(), c.CurrentHeader().Number); err != nil {
+			return err
+		}
 	}
 	if err := c.SnapDB.Commit(c.CurrentHeader().Hash()); err != nil {
 		return err
@@ -57,18 +74,9 @@ func (c *Chain) AddBlockWithSnapDBMiner(f func(hash common.Hash, header *types.H
 	return nil
 }
 
-func (c *Chain) AddBlockWithSnapDBSync(f func(header *types.Header, sdb snapshotdb.DB) error) error {
+func (c *Chain) AddBlockWithSnapDB(miner bool, f func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error) error {
 	c.AddBlock()
-	if err := c.SnapDB.NewBlock(c.CurrentHeader().Number, c.CurrentHeader().ParentHash, c.CurrentHeader().Hash()); err != nil {
-		return err
-	}
-	if err := f(c.CurrentHeader(), c.SnapDB); err != nil {
-		return err
-	}
-	if err := c.SnapDB.Commit(c.CurrentHeader().Hash()); err != nil {
-		return err
-	}
-	return nil
+	return c.commitWithSnapshotDB(miner, f)
 }
 
 func (c *Chain) CurrentHeader() *types.Header {
@@ -107,19 +115,32 @@ func NewChain() *Chain {
 	c.timeGenerate = func(b *big.Int) *big.Int {
 		return new(big.Int).SetInt64(time.Now().UnixNano() / 1e6)
 	}
-	header := generateHeader(big.NewInt(0), common.ZeroHash, c.timeGenerate(nil))
+	c.coinBaseGenerate = func() common.Address {
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			panic(err)
+		}
+		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+		return addr
+	}
+	header := generateHeader(big.NewInt(0), common.ZeroHash, c.timeGenerate(nil), c.coinBaseGenerate())
 	block := new(types.Block).WithSeal(header)
 
 	c.Genesis = block
 	c.h = make([]*types.Header, 0)
 	c.h = append(c.h, header)
 
+	c.StateDB = NewMockStateDB()
+	c.SnapDB = snapshotdb.Instance()
+	return c
+}
+
+func NewMockStateDB() *MockStateDB {
 	db := new(MockStateDB)
 	db.State = make(map[common.Address]map[string][]byte)
 	db.Balance = make(map[common.Address]*big.Int)
-	c.StateDB = db
-	c.SnapDB = snapshotdb.Instance()
-	return c
+	db.logs = make(map[common.Hash][]*types.Log)
+	return db
 }
 
 type MockStateDB struct {
@@ -127,6 +148,7 @@ type MockStateDB struct {
 	State        map[common.Address]map[string][]byte
 	thash, bhash common.Hash
 	txIndex      int
+	logs         map[common.Hash][]*types.Log
 }
 
 func (s *MockStateDB) Prepare(thash, bhash common.Hash, ti int) {
@@ -256,9 +278,18 @@ func (s *MockStateDB) Snapshot() int {
 	return 0
 }
 
-func (s *MockStateDB) AddLog(*types.Log) {
+func (s *MockStateDB) AddLog(l *types.Log) {
+	if _, ok := s.logs[s.thash]; !ok {
+		s.logs[s.thash] = make([]*types.Log, 0)
+	}
+	s.logs[s.thash] = append(s.logs[s.thash], l)
 	return
 }
+
+func (s *MockStateDB) GetLog() []*types.Log {
+	return s.logs[s.thash]
+}
+
 func (s *MockStateDB) AddPreimage(common.Hash, []byte) {
 	return
 }
@@ -274,16 +305,11 @@ func (s *MockStateDB) TxIdx() uint32 {
 	return uint32(s.txIndex)
 }
 
-func generateHeader(num *big.Int, parentHash common.Hash, htime *big.Int) *types.Header {
-	privateKey, err := crypto.GenerateKey()
-	if nil != err {
-		panic(err)
-	}
-	addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+func generateHeader(num *big.Int, parentHash common.Hash, htime *big.Int, coninbase common.Address) *types.Header {
 	h := new(types.Header)
 	h.Number = num
 	h.ParentHash = parentHash
-	h.Coinbase = addr
+	h.Coinbase = coninbase
 	h.Time = htime
 	return h
 }

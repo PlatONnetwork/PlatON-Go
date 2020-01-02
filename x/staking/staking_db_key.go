@@ -186,9 +186,8 @@ func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNu
 //notice this assume key must right
 func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) {
 	delegateKeyPrefixLength := len(DelegateKeyPrefix)
-	delAddrLength := len(delAddr)
-	nodeIdLength := len(nodeId)
-
+	delAddrLength := len(delAddr) + delegateKeyPrefixLength
+	nodeIdLength := len(nodeId) + delAddrLength
 	delAddr = common.BytesToAddress(key[delegateKeyPrefixLength:delAddrLength])
 	nodeId = discover.MustBytesID(key[delAddrLength:nodeIdLength])
 	stakeBlockNumber = common.BytesToUint64(key[nodeIdLength:])
