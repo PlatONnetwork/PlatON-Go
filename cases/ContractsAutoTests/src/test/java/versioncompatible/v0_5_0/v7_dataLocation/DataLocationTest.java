@@ -59,7 +59,7 @@ public class DataLocationTest extends ContractPrepareTest {
             collector.assertEqual(name,tuple.getValue1().toString());
 
             //获取年龄
-            collector.assertEqual(name,tuple.getValue2().toString());
+            collector.assertEqual(age,tuple.getValue2().toString());
 
             byte[] nameByteArr = name.getBytes();
 
@@ -70,7 +70,7 @@ public class DataLocationTest extends ContractPrepareTest {
 
             byte[] bytes = dataLocation.getBytes().send();
 
-            collector.assertEqual(nameByteArr.toString(),bytes.toString());
+            collector.assertEqual(name, bytes.toString());
 
         } catch (Exception e) {
             e.printStackTrace();
