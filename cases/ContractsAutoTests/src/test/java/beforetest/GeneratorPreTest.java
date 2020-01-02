@@ -215,14 +215,14 @@ public class GeneratorPreTest extends ContractPrepareTest{
                     semaphore.release();
                 } catch (Exception e) {
                     collector.logStepFail("generator fail:" + fileName, e.toString());
+                } finally {
+                    countDownLatch.countDown();
                 }
-                countDownLatch.countDown();
             });
         }
         countDownLatch.await();
         executorService.shutdown();
     }
-
 
 }
 

@@ -30,7 +30,7 @@ public class EventCallContractTest extends ContractPrepareTest {
             TransactionReceipt receipt = eventCallContract.emitEvent().send();
             List<EventCallContract.IncrementEventResponse> emitEventData = eventCallContract.getIncrementEvents(receipt);
             String data = emitEventData.get(0).log.getData();
-            collector.assertEqual(subHexData(data), subHexData(receipt.getFrom()), "checkout new contract param");
+            collector.assertEqual(subHexData(data), subHexData(receipt.getFrom()), "checkout declare event keyword");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -50,7 +50,7 @@ public class EventCallContractTest extends ContractPrepareTest {
             List<EventCallContract.DepositEventResponse> emitEventData = eventCallContract.getDepositEvents(receipt);
             String data = emitEventData.get(0).log.getData();
             collector.assertEqual(subHexData(emitEventData.get(0).log.getTopics().get(1)), subHexData(receipt.getFrom()), "checkout new contract param");
-            collector.assertEqual(subHexData(data), subHexData("c"), "checkout new contract param");
+            collector.assertEqual(subHexData(data), subHexData("c"), "checkout indexed keyword");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -67,7 +67,7 @@ public class EventCallContractTest extends ContractPrepareTest {
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             TransactionReceipt receipt = eventCallContract.anonymousEvent().send();
-            collector.assertEqual(subHexData(receipt.getLogs().get(0).getData()), subHexData("1"), "checkout new contract param");
+            collector.assertEqual(subHexData(receipt.getLogs().get(0).getData()), subHexData("1"), "checkout anonymous keyword");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -78,12 +78,13 @@ public class EventCallContractTest extends ContractPrepareTest {
             throw new IllegalArgumentException("string is blank");
         }
         if (StringUtils.startsWith(hexStr, "0x")) {
-            hexStr = StringUtils.substringAfter(hexStr, "Ox");
+            hexStr = StringUtils.substringAfter(hexStr, "0x");
         }
         byte[] addi = hexStr.getBytes();
         for (int i = 0; i < addi.length; i++) {
             if (addi[i] != 0) {
                 hexStr = StringUtils.substring(hexStr, i - 1);
+                break;
             }
         }
         return hexStr;

@@ -1,5 +1,8 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -11,10 +14,6 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -25,7 +24,6 @@ import java.util.Collections;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InterfaceContractStruct extends Contract {
-
     private static final String BINARY = "";
 
     public static final String FUNC_GETDEFAULTBOOKID = "getDefaultBookID";
