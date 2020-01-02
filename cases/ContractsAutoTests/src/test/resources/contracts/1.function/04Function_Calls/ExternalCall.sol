@@ -15,8 +15,10 @@ contract External {
 }
 
 contract CallExternal {
+    event ExternalCValue(uint value);
     function getResult() payable public returns(uint c){
         External d = new External();
         c = d.getSum();
+        emit ExternalCValue(c);
     }
 }
