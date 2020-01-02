@@ -74,6 +74,21 @@ class Economic:
                 count = count + 1
         return count
 
+    def get_number_blocks_in_interval(self, node: Node, roundnum=1):
+        """
+        Get the number of blocks produced by the specified interval of the node
+        """
+        tmp_current_block = node.eth.blockNumber
+        last_end_block = math.ceil(tmp_current_block / self.settlement_size) * self.settlement_size
+        block_namber = self.settlement_size * roundnum
+        count = 0
+        for i in range(block_namber - 1):
+            node_id = get_pub_key(node.url, last_end_block)
+            last_end_block = last_end_block - 1
+            if node_id == node.node_id:
+                count = count + 1
+        return count
+
     def get_current_year_reward(self, node: Node, verifier_num=None):
         """
         Get the first year of the block reward, pledge reward
