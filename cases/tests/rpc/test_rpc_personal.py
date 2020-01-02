@@ -104,6 +104,7 @@ def test_personal_sign_ecRecover(global_running_env):
     assert len(sign_data) == 132
     assert Web3.toChecksumAddress(node.personal.ecRecover(test_data, sign_data)) == signer
 
+
 @allure.title("Sign transaction")
 @pytest.mark.P1
 @pytest.mark.compatibility

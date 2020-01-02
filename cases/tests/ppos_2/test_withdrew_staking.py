@@ -10,6 +10,22 @@ from common.key import generate_key
 from tests.ppos_2.conftest import calculate
 
 
+@pytest.fixture()
+def staking_client(client_new_node):
+    amount = calculate(client_new_node.economic.create_staking_limit, 5)
+    staking_amount = calculate(client_new_node.economic.create_staking_limit, 2)
+    staking_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3, amount)
+    delegate_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            client_new_node.economic.add_staking_limit * 2)
+    client_new_node.staking.create_staking(0, staking_address, staking_address, amount=staking_amount)
+    setattr(client_new_node, "staking_address", staking_address)
+    setattr(client_new_node, "delegate_address", delegate_address)
+    setattr(client_new_node, "amount", amount)
+    setattr(client_new_node, "staking_amount", staking_amount)
+    yield client_new_node
+    client_new_node.economic.env.deploy_all()
+
+
 @allure.title("The verifier applies for returning the pledge money (hesitation period)")
 @pytest.mark.P0
 @pytest.mark.compatibility
@@ -633,15 +649,7 @@ def test_RV_023(staking_client, global_test_env):
     log.info("Stop the new verifier node")
     node.stop()
     log.info("Go to the next billing cycle")
-    economic.wait_settlement_blocknum(other_node)
-    msg = get_pledge_list(other_node.ppos.getCandidateList)
-    log.info("Real-time certifier list {}".format(msg))
-    msg = get_pledge_list(other_node.ppos.getVerifierList)
-    log.info("Current billing cycle certifier {}".format(msg))
-    msg = get_pledge_list(other_node.ppos.getValidatorList)
-    log.info("Current consensus round certifier {}".format(msg))
-    log.info("Go to the next billing cycle")
-    economic.wait_settlement_blocknum(other_node, 1)
+    economic.wait_consensus_blocknum(other_node, 3)
     msg = get_pledge_list(other_node.ppos.getCandidateList)
     log.info("Real-time certifier list {}".format(msg))
     verifier_list = get_pledge_list(other_node.ppos.getVerifierList)
@@ -650,8 +658,9 @@ def test_RV_023(staking_client, global_test_env):
     balance_before = other_node.eth.getBalance(staking_address)
     log.info("Query the account balance after being punished: {}".format(balance_before))
     log.info("Go to the next billing cycle")
-    economic.wait_settlement_blocknum(other_node, 1)
-    time.sleep(10)
+    candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
+    log.info(candidate_info)
+    economic.wait_settlement_blocknum(other_node,number=2)
     balance_after = other_node.eth.getBalance(staking_address)
     log.info("The balance after the penalty is refunded to the account:{}".format(balance_after))
     assert balance_before + candidate_info["Ret"][

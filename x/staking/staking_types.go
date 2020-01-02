@@ -233,6 +233,19 @@ type CandidateMutable struct {
 	RewardPer uint16
 	// Delegate reward amount percent for next settlement cycle
 	NextRewardPer uint16
+
+	// current epoch  total Delegate reward
+	CurrentEpochDelegateReward *big.Int
+}
+
+func (can *CandidateMutable) HaveDelegateInCurrentEpoch() bool {
+	if can.Released.Cmp(common.Big0) > 0 {
+		return true
+	}
+	if can.RestrictingPlan.Cmp(common.Big0) > 0 {
+		return true
+	}
+	return false
 }
 
 func (can *CandidateMutable) String() string {
@@ -257,6 +270,10 @@ func (can *CandidateMutable) CleanLowRatioStatus() {
 
 func (can *CandidateMutable) CleanShares() {
 	can.Shares = new(big.Int).SetInt64(0)
+}
+
+func (can *CandidateMutable) CleanCurrentEpochDelegateReward() {
+	can.CurrentEpochDelegateReward = new(big.Int).SetInt64(0)
 }
 
 func (can *CandidateMutable) AddShares(amount *big.Int) {
@@ -353,30 +370,31 @@ func (can *CandidateMutable) IsInvalidWithdrew() bool {
 
 // Display amount field using 0x hex
 type CandidateHex struct {
-	NodeId             discover.NodeID
-	BlsPubKey          bls.PublicKeyHex
-	StakingAddress     common.Address
-	BenefitAddress     common.Address
-	RewardPer          uint16
-	NextRewardPer      uint16
-	StakingTxIndex     uint32
-	ProgramVersion     uint32
-	Status             CandidateStatus
-	StakingEpoch       uint32
-	StakingBlockNum    uint64
-	Shares             *hexutil.Big
-	Released           *hexutil.Big
-	ReleasedHes        *hexutil.Big
-	RestrictingPlan    *hexutil.Big
-	RestrictingPlanHes *hexutil.Big
-	DelegateEpoch      uint32
-	DelegateTotal      *hexutil.Big
-	DelegateTotalHes   *hexutil.Big
+	NodeId              discover.NodeID
+	BlsPubKey           bls.PublicKeyHex
+	StakingAddress      common.Address
+	BenefitAddress      common.Address
+	RewardPer           uint16
+	NextRewardPer       uint16
+	StakingTxIndex      uint32
+	ProgramVersion      uint32
+	Status              CandidateStatus
+	StakingEpoch        uint32
+	StakingBlockNum     uint64
+	Shares              *hexutil.Big
+	Released            *hexutil.Big
+	ReleasedHes         *hexutil.Big
+	RestrictingPlan     *hexutil.Big
+	RestrictingPlanHes  *hexutil.Big
+	DelegateEpoch       uint32
+	DelegateTotal       *hexutil.Big
+	DelegateTotalHes    *hexutil.Big
+	DelegateRewardTotal *hexutil.Big
 	Description
 }
 
 func (can *CandidateHex) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","DelegateEpoch": "%d","DelegateTotal": "%s","DelegateTotalHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","DelegateEpoch": "%d","DelegateTotal": "%s","DelegateTotalHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateRewardTotal": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -399,7 +417,8 @@ func (can *CandidateHex) String() string {
 		can.ExternalId,
 		can.NodeName,
 		can.Website,
-		can.Details)
+		can.Details,
+		can.DelegateRewardTotal)
 }
 
 func (can *CandidateHex) IsNotEmpty() bool {
@@ -937,6 +956,11 @@ type ValidatorEx struct {
 	ValidatorTerm uint32
 	// Effective total delegate
 	DelegateTotal *hexutil.Big
+
+	DelegateRewardTotal *hexutil.Big
+
+	// current epoch  total Delegate reward
+	CurrentEpochDelegateReward *big.Int `json:"nil"`
 }
 
 func (vex *ValidatorEx) String() string {
@@ -992,6 +1016,11 @@ type Delegation struct {
 	RestrictingPlanHes *big.Int
 	// Cumulative delegate income (Waiting for withdrawal)
 	CumulativeIncome *big.Int
+}
+
+func (del *Delegation) CleanCumulativeIncome(epoch uint32) {
+	del.CumulativeIncome = new(big.Int)
+	del.DelegateEpoch = epoch
 }
 
 func (del *Delegation) String() string {

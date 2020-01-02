@@ -90,6 +90,15 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(govContract, input, contract)
+			case *DelegateRewardContract:
+				delegateRewardContract := &DelegateRewardContract{
+					Plugin:    plugin.RewardMgrInstance(),
+					stkPlugin: plugin.StakingInstance(),
+					Contract:  contract,
+					Evm:       evm,
+				}
+				return RunPlatONPrecompiledContract(delegateRewardContract, input, contract)
+
 			}
 		}
 
