@@ -13,7 +13,7 @@ Machine-based, rapid creation of many tokens would not necessarily need these ex
 
 .*/
 
-import "StandardToken.sol";
+import "./StandardToken.sol";
 
 contract HumanStandardToken is StandardToken {
 
