@@ -18,13 +18,14 @@ package cbft
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -100,6 +101,7 @@ func ReachBlock(t *testing.T, nodes []*TestCBFT, reach int) {
 				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 			}
 			parent = b
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 }
