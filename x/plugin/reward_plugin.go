@@ -234,7 +234,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 	currentEpoch := xutil.CalculateEpoch(blockNumber)
 	for _, verifier := range list {
 		if verifier.DelegateTotal.ToInt().Cmp(common.Big0) == 0 {
-			log.Debug("HandleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
+			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
 			rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state)
 		} else {
 			delegateTotalLat := new(big.Int).Div(verifier.DelegateTotal.ToInt(), new(big.Int).SetUint64(params.GVon))
