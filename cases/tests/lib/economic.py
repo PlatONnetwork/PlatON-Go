@@ -79,10 +79,10 @@ class Economic:
         Get the number of blocks produced by the specified interval of the node
         """
         tmp_current_block = node.eth.blockNumber
-        last_end_block = math.ceil(tmp_current_block / self.settlement_size) * self.settlement_size
-        block_namber = self.settlement_size * roundnum
+        last_end_block = int(tmp_current_block / self.settlement_size) * self.settlement_size
+        block_number = self.settlement_size * roundnum
         count = 0
-        for i in range(block_namber - 1):
+        for i in range(block_number - 1):
             node_id = get_pub_key(node.url, last_end_block)
             last_end_block = last_end_block - 1
             if node_id == node.node_id:
@@ -92,7 +92,7 @@ class Economic:
     def calculate_delegate_reward(self, node, block_reward, staking_reward):
         block_number = self.get_number_blocks_in_interval(node)
         reward = node.ppos.getCandidateInfo(node.node_id)["Ret"]["RewardPer"]
-        return int((Decimal(str(block_reward))*Decimal(str(block_number)) + Decimal(str(staking_reward)))*Decimal(str(reward))/Decimal(str(10000)))
+        return int(Decimal(str(staking_reward))*Decimal(str(reward))/Decimal(str(10000)) + Decimal(str(int(Decimal(str(block_reward))*Decimal(str(reward))/Decimal(str(10000))))) * Decimal(str(block_number)))
 
     def get_current_year_reward(self, node: Node, verifier_num=None):
         """
