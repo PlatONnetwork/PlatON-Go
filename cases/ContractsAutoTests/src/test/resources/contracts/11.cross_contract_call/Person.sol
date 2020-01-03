@@ -1,4 +1,4 @@
-pragma solidity ^0.4.4;
+pragma solidity ^0.4.25;
 
 /**
  * 1.验证0.4.4版本下的特殊版本下的构造函数
