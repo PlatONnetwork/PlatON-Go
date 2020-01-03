@@ -42,7 +42,7 @@ public class TypeNameTest extends ContractPrepareTest {
 
             collector.logStepPass("获取到的合约名是："+contractNameStr);
 
-            collector.assertEqual("typeName",contractNameStr);
+            collector.assertEqual("TypeName",contractNameStr);
 
         } catch (Exception e) {
             e.printStackTrace();

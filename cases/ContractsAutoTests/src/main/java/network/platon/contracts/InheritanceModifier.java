@@ -1,5 +1,8 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -12,10 +15,6 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -26,7 +25,7 @@ import java.util.Collections;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InheritanceModifier extends Contract {
-    private static final String BINARY = "6080604052600a60005534801561001557600080fd5b5060d2806100246000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e2619a3146037578063d46300fd146062575b600080fd5b606060048036036020811015604b57600080fd5b8101908080359060200190929190505050607e565b005b60686094565b6040518082815260200191505060405180910390f35b80600054811060905760016000819055505b5050565b6000805490509056fea265627a7a72315820fd718e5a5bcb0375d96a6987f8c20de558317ce84003f2c8676fb7543f62899c64736f6c634300050d0032";
+    private static final String BINARY = "6080604052600a60005534801561001557600080fd5b5060d2806100246000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e2619a3146037578063d46300fd146062575b600080fd5b606060048036036020811015604b57600080fd5b8101908080359060200190929190505050607e565b005b60686094565b6040518082815260200191505060405180910390f35b80600054811060905760016000819055505b5050565b6000805490509056fea265627a7a72315820b12b51144d246abc97015dccd8aac17ece03826cc664b40581680cc4ec0bdc5664736f6c634300050d0032";
 
     public static final String FUNC_GETA = "getA";
 
@@ -60,7 +59,7 @@ public class InheritanceModifier extends Contract {
     public RemoteCall<TransactionReceipt> inheritance(BigInteger c) {
         final Function function = new Function(
                 FUNC_INHERITANCE, 
-                Arrays.<Type>asList(new Uint256(c)),
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(c)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }

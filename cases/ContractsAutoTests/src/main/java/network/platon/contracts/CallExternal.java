@@ -1,5 +1,10 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.web3j.abi.EventEncoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Event;
@@ -19,12 +24,6 @@ import org.web3j.tx.gas.GasProvider;
 import rx.Observable;
 import rx.functions.Func1;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -35,7 +34,7 @@ import java.util.List;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class CallExternal extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610221806100206000396000f3fe60806040526004361061001e5760003560e01c8063de29278914610023575b600080fd5b61002b610041565b6040518082815260200191505060405180910390f35b6000806040516100509061012d565b604051809103906000f08015801561006c573d6000803e3d6000fd5b5090508073ffffffffffffffffffffffffffffffffffffffff1663569c5f6d6040518163ffffffff1660e01b815260040160206040518083038186803b1580156100b557600080fd5b505afa1580156100c9573d6000803e3d6000fd5b505050506040513d60208110156100df57600080fd5b810190808051906020019092919050505091507f0a9f1213b326cb97c7a18f80791661027e1cf7a53125f3d6729d0ae093bd8ad2826040518082815260200191505060405180910390a15090565b60b38061013a8339019056fe6080604052348015600f57600080fd5b5060958061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063569c5f6d14602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b60008060019050600060029050808201925050509056fea265627a7a723158206cec86685ce7604bd6c4017da8f4bcd95f83d1c27f695f1877c4d73b1659892764736f6c634300050d0032a265627a7a72315820c1ec7182f032dba15f842ab572f125da3869ff52151763537ec3919c764bd07364736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610221806100206000396000f3fe60806040526004361061001e5760003560e01c8063de29278914610023575b600080fd5b61002b610041565b6040518082815260200191505060405180910390f35b6000806040516100509061012d565b604051809103906000f08015801561006c573d6000803e3d6000fd5b5090508073ffffffffffffffffffffffffffffffffffffffff1663569c5f6d6040518163ffffffff1660e01b815260040160206040518083038186803b1580156100b557600080fd5b505afa1580156100c9573d6000803e3d6000fd5b505050506040513d60208110156100df57600080fd5b810190808051906020019092919050505091507f0a9f1213b326cb97c7a18f80791661027e1cf7a53125f3d6729d0ae093bd8ad2826040518082815260200191505060405180910390a15090565b60b38061013a8339019056fe6080604052348015600f57600080fd5b5060958061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063569c5f6d14602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b60008060019050600060029050808201925050509056fea265627a7a7231582038c28f73b511a9939d0c48970e2c7cfb647939a1a5dfadb3dedc00c839f9a5a064736f6c634300050d0032a265627a7a7231582003ea573c489aef4451d8769144635eec88b32f252c1eeff0cae18c653fc7d8c864736f6c634300050d0032";
 
     public static final String FUNC_GETRESULT = "getResult";
 
@@ -62,9 +61,9 @@ public class CallExternal extends Contract {
     }
 
     public List<ExternalCValueEventResponse> getExternalCValueEvents(TransactionReceipt transactionReceipt) {
-        List<EventValuesWithLog> valueList = extractEventParametersWithLog(EXTERNALCVALUE_EVENT, transactionReceipt);
+        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(EXTERNALCVALUE_EVENT, transactionReceipt);
         ArrayList<ExternalCValueEventResponse> responses = new ArrayList<ExternalCValueEventResponse>(valueList.size());
-        for (EventValuesWithLog eventValues : valueList) {
+        for (Contract.EventValuesWithLog eventValues : valueList) {
             ExternalCValueEventResponse typedResponse = new ExternalCValueEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.value = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
@@ -77,7 +76,7 @@ public class CallExternal extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, ExternalCValueEventResponse>() {
             @Override
             public ExternalCValueEventResponse call(Log log) {
-                EventValuesWithLog eventValues = extractEventParametersWithLog(EXTERNALCVALUE_EVENT, log);
+                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(EXTERNALCVALUE_EVENT, log);
                 ExternalCValueEventResponse typedResponse = new ExternalCValueEventResponse();
                 typedResponse.log = log;
                 typedResponse.value = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
