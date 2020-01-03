@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -794,7 +796,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
-	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
+	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, new(big.Int).Add(del.Released, del.RestrictingPlan), rm.db); err != nil {
 		return err
 	}
 
@@ -902,7 +904,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
-	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
+	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, new(big.Int).Add(del.Released, del.RestrictingPlan), rm.db); err != nil {
 		return nil, err
 	}
 
@@ -2505,7 +2507,7 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 
 	delegateRewardReceives := make([]reward.DelegateRewardReceive, 0)
 	totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
-	totalReleasedLat := new(big.Int).Div(totalReleased, new(big.Int).SetUint64(1e18))
+	totalReleasedLat := new(big.Int).Div(totalReleased, new(big.Int).SetUint64(params.GVon))
 	for i, rewardPer := range per {
 		if totalReleasedLat.Cmp(common.Big0) > 0 {
 			if nil == del.CumulativeIncome {
@@ -2521,7 +2523,7 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 		if i == 0 {
 			lazyCalcDelegateAmount(epoch, del)
 			totalReleased = new(big.Int).Add(del.Released, del.RestrictingPlan)
-			totalReleasedLat = new(big.Int).Div(totalReleased, new(big.Int).SetUint64(1e18))
+			totalReleasedLat = new(big.Int).Div(totalReleased, new(big.Int).SetUint64(params.GVon))
 		}
 	}
 	log.Debug("Call calcDelegateIncome end", "currEpoch", epoch, "perLen", len(per), "delegateRewardReceivesLen", len(delegateRewardReceives),

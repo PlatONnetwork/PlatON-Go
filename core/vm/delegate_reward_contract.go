@@ -64,7 +64,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	state := rc.Evm.StateDB
 
 	log.Debug("Call withdrawDelegateReward of DelegateRewardContract", "blockNumber", blockNum.Uint64(),
-		"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from)
+		"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from, "gas", rc.Contract.Gas)
 
 	if !rc.Contract.UseGas(params.WithdrawDelegateRewardGas) {
 		return nil, ErrOutOfGas
