@@ -229,11 +229,13 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 		if v, ok := n.(valueNode); ok {
 			return !bytes.Equal(v, value.(valueNode)), value, nil
 		}
+		t.dag.delVertexAndEdgeByNode(prefix, value)
+		t.dag.addVertexAndEdge(fprefix, prefix, value)
 		return true, value, nil
 	}
 	switch n := n.(type) {
 	case *shortNode:
-		//t.dag.delVertexAndEdge(append(prefix, n.Key...))
+		t.dag.delVertexAndEdge(append(prefix, n.Key...))
 
 		matchlen := prefixLen(key, n.Key)
 		// If the whole key matches, keep this short node as is
@@ -244,7 +246,7 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 				return false, n, err
 			}
 			rn := &shortNode{n.Key, nn, t.newFlag()}
-			//t.dag.addVertexAndEdge(fprefix, prefix, rn)
+			t.dag.addVertexAndEdge(fprefix, prefix, rn)
 			return true, rn, nil
 		}
 		// Otherwise branch out at the index where they differ.
@@ -263,22 +265,20 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 		if err != nil {
 			return false, nil, err
 		}
-
-		//t.dag.replaceEdge(append(prefix, n.Key...), pprefix)
-
+		
 		// Replace this shortNode with the branch if it occurs at index 0.
 		if matchlen == 0 {
-			//t.dag.addVertexAndEdge(fprefix, prefix, branch)
+			t.dag.addVertexAndEdge(fprefix, prefix, branch)
 			return true, branch, nil
 		}
-		//t.dag.addVertexAndEdge(append(prefix, key[:matchlen]...), append(prefix, key[:matchlen]...), branch)
+		t.dag.addVertexAndEdge(append(prefix, key[:matchlen]...), append(prefix, key[:matchlen]...), branch)
 		// Otherwise, replace it with a short node leading up to the branch.
 		nn := &shortNode{key[:matchlen], branch, t.newFlag()}
-		//t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		t.dag.addVertexAndEdge(fprefix, prefix, nn)
 		return true, nn, nil
 
 	case *fullNode:
-		//t.dag.delVertexAndEdge(append(prefix, fullNodeSuffix...))
+		t.dag.delVertexAndEdge(append(prefix, fullNodeSuffix...))
 
 		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, fullNodeSuffix...), append(prefix, key[0]), key[1:], value)
 		if !dirty || err != nil {
@@ -287,13 +287,13 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 		n = n.copy()
 		n.flags = t.newFlag()
 		n.Children[key[0]] = nn
-		//t.dag.addVertexAndEdge(fprefix, prefix, n)
+		t.dag.addVertexAndEdge(fprefix, prefix, n)
 		return true, n, nil
 
 	case nil:
-		//t.dag.delVertexAndEdge(append(prefix, key...))
+		t.dag.delVertexAndEdge(append(prefix, key...))
 		nn := &shortNode{key, value, t.newFlag()}
-		//t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		t.dag.addVertexAndEdge(fprefix, prefix, nn)
 		return true, nn, nil
 
 	case hashNode:
@@ -309,7 +309,7 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 			return false, rn, err
 		}
 
-		//t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		t.dag.addVertexAndEdge(fprefix, prefix, nn)
 		return true, nn, nil
 
 	default:
@@ -567,7 +567,9 @@ func (t *Trie) parallelHashRoot2(db *Database, onleaf LeafCallback) (node, node,
 	if t.root == nil {
 		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
-	t.dag.init()
+	t.dag.cachegen = t.cachegen
+	t.dag.cachelimit = t.cachelimit
+	t.dag.init(t.root)
 	return t.dag.hash(db, true, onleaf)
 }
 

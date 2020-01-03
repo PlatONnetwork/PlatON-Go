@@ -183,6 +183,7 @@ type DAGNode2 struct {
 	cached    node
 	pid       uint64
 	idx       int
+	prefix []byte
 }
 
 // TrieDAGV2
@@ -219,6 +220,7 @@ func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
 			collapsed: collapsed,
 			cached:    cached,
 			pid:       pid,
+			prefix: common.CopyBytes(prefix),
 		}
 		if len(prefix) > 0 {
 			td.nodes[id].idx = int(prefix[len(prefix)-1])
@@ -236,6 +238,7 @@ func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
 			collapsed: collapsed,
 			cached:    cached,
 			pid:       pid,
+			prefix: common.CopyBytes(prefix),
 		}
 		if len(prefix) > 0 {
 			dagNode.idx = int(prefix[len(prefix)-1])
@@ -252,9 +255,24 @@ func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
 
 func (td *TrieDAGV2) delVertexAndEdge(key []byte) {
 	id := xxhash.Sum64(key)
+	td.delVertexAndEdgeByID(id)
+}
+
+func (td *TrieDAGV2) delVertexAndEdgeByID(id uint64) {
 	td.dag.delEdge(id)
 	td.dag.delVertex(id)
 	delete(td.nodes, id)
+}
+
+func (td *TrieDAGV2) delVertexAndEdgeByNode(prefix []byte, n node) {
+	var id uint64
+	switch nc := n.(type) {
+	case *shortNode:
+		id = xxhash.Sum64(append(prefix, nc.Key...))
+	case *fullNode:
+		id = xxhash.Sum64(append(prefix, fullNodeSuffix...))
+	}
+	td.delVertexAndEdgeByID(id)
 }
 
 func (td *TrieDAGV2) replaceEdge(old, new []byte) {
@@ -271,6 +289,33 @@ func (td *TrieDAGV2) replaceEdge(old, new []byte) {
 				//fmt.Printf("replace -> id: %d pid: %d, npid: %d\n", id, pid, npid)
 			}
 		}
+	}
+}
+
+func (td *TrieDAGV2) checkEdge() {
+	for id, vtx := range td.dag.vtxs {
+		if vtx.inDegree == 0 && len(vtx.outEdge) == 0 {
+			panic(fmt.Sprintf("prefix: %x, id: %d", td.nodes[id].prefix, id))
+		}
+		for _, pid := range vtx.outEdge {
+			if node, ok := td.nodes[pid]; !ok {
+				panic(fmt.Sprintf("not parent, id: %d, pid: %d", id, pid))
+			} else {
+				if node.pid == 0 {
+					fmt.Printf("first node: %d pid: %d\n", pid, node.pid)
+				}
+			}
+		}
+	}
+
+	el := td.dag.topLevel.Front()
+	for el != nil {
+		id := el.Value.(uint64)
+		for _, pid := range td.dag.vtxs[id].outEdge {
+			fmt.Printf("P2: %x %d -> %d\n", td.nodes[id].prefix, id, pid)
+		}
+
+		el = el.Next()
 	}
 }
 
@@ -400,8 +445,13 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 	return resHash, newRoot, nil
 }
 
-func (td *TrieDAGV2) init() {
+func (td *TrieDAGV2) init(root node) {
 	td.dag.generate()
+	//td.checkEdge()
+
+	//dag := NewTrieDAG(td.cachegen, td.cachelimit)
+	//dag.init(root)
+
 
 	//for id, vtx := range td.dag.vtxs {
 	//	fmt.Printf("id: %d, inDegree: %d, outEdge: %v\n", id, vtx.inDegree, vtx.outEdge)
