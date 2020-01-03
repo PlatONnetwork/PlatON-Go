@@ -871,7 +871,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
 	delAddr common.Address, nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer) (*big.Int, error) {
-	var issueIncome *big.Int
+	issueIncome := new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: nodeId parse addr failed",
@@ -964,8 +964,10 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		// then clean the delegate info
 		if total.Cmp(realSub) == 0 {
 			// When the entrusted information is deleted, the entrusted proceeds need to be issued automatically
-			issueIncome = del.CumulativeIncome
+			issueIncome = issueIncome.Add(issueIncome, del.CumulativeIncome)
 			rm.ReturnDelegateReward(delAddr, del.CumulativeIncome, state)
+			log.Debug("Successful ReturnDelegateReward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.TerminalString(),
+				"delAddr", delAddr.Hex(), "cumulativeIncome", issueIncome)
 			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
 				log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete detegate is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
@@ -1003,7 +1005,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: Store CandidateMutable info is failed", "blockNumber",
 				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
-				"stakingBlockNum", stakingBlockNum, "err", err)
+				"stakingBlockNum", stakingBlockNum, "candidateMutable", can.CandidateMutable, "err", err)
 			return nil, err
 		}
 
@@ -2499,6 +2501,7 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 		return nil
 	}
 	if len(per) == 0 {
+		lazyCalcDelegateAmount(epoch, del)
 		return nil
 	}
 
