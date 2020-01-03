@@ -2506,6 +2506,9 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 	}
 
 	delegateRewardReceives := make([]reward.DelegateRewardReceive, 0)
+	if per[0].Epoch > uint64(del.DelegateEpoch) {
+		lazyCalcDelegateAmount(epoch, del)
+	}
 	totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
 	totalReleasedUnit := new(big.Int).Div(totalReleased, new(big.Int).SetUint64(params.GVon))
 	for i, rewardPer := range per {
