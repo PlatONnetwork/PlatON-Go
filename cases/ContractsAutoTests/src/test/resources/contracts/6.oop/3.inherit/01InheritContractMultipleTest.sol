@@ -56,7 +56,7 @@ contract InheritContractParentTwoClass {
 
 contract InheritContractMutipleTest1 is InheritContractParentTwoClass,InheritContractParentOneClass {
 
-    function callGetDate1() public view returns (uint) {
+    function callGetDate() public view returns (uint) {
 
         return getDate();
     }
@@ -64,7 +64,7 @@ contract InheritContractMutipleTest1 is InheritContractParentTwoClass,InheritCon
 
 contract InheritContractMutipleTest2 is InheritContractParentOneClass,InheritContractParentTwoClass {
 
-    function callGetDate2() public view returns (uint) {
+    function callGetDate() public view returns (uint) {
 
         return getDate();
     }

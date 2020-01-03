@@ -23,9 +23,9 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InheritContractMutipleTest1 extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060ba8061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c8063430fe9c11460375780636f45ba21146053575b600080fd5b603d606f565b6040518082815260200191505060405180910390f35b60596078565b6040518082815260200191505060405180910390f35b60006001905090565b60006080606f565b90509056fea265627a7a7231582080530033b70b221a25c5d76c40250023e6fb971af12c2aa5181f4c6a871034ff64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060ba8061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c8063430fe9c11460375780635c8f2170146053575b600080fd5b603d606f565b6040518082815260200191505060405180910390f35b60596078565b6040518082815260200191505060405180910390f35b60006001905090565b60006080606f565b90509056fea265627a7a72315820c1f0e44482d5ddbb528d4861fe5f4f6bc2ccde9c494f1a80dcc74a3bf42ec91964736f6c634300050d0032";
 
-    public static final String FUNC_CALLGETDATE1 = "callGetDate1";
+    public static final String FUNC_CALLGETDATE = "callGetDate";
 
     public static final String FUNC_GETDATE = "getDate";
 
@@ -47,8 +47,8 @@ public class InheritContractMutipleTest1 extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<BigInteger> callGetDate1() {
-        final Function function = new Function(FUNC_CALLGETDATE1, 
+    public RemoteCall<BigInteger> callGetDate() {
+        final Function function = new Function(FUNC_CALLGETDATE, 
                 Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
