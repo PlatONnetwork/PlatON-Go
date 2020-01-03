@@ -7,6 +7,7 @@ import network.platon.contracts.DeprecatedFunctions;
 import org.junit.Test;
 import org.web3j.tuples.generated.Tuple2;
 import org.web3j.tx.exceptions.ContractCallException;
+
 /**
  * @title 0.5.0版本弃用但0.4.25版本仍生效函数测试
  * 1.callcode()（0.5.0版本已弃用，使用delegatecall()函数代替） 验证
@@ -30,7 +31,8 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
             String transactionHash = deprecatedFunctions.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("DeprecatedFunctions issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             Tuple2<Boolean, byte[]> result = deprecatedFunctions.functionCheck().send();
-            collector.assertEqual(result.getValue1(), Boolean.FALSE, "checkout deprecated function cast result");
+            collector.assertEqual(result.getValue1(), Boolean.TRUE, "checkout deprecated function cast result");
+
         } catch (Exception e) {
             e.printStackTrace();
         }

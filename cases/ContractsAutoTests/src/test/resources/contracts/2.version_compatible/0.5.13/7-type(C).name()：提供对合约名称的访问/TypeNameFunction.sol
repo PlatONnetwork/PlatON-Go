@@ -8,6 +8,6 @@ pragma solidity 0.5.13;
  */
 contract TypeNameFunction {
     function f() public pure returns (string memory) {
-        return type(typeNameFunction).name;
+        return type(TypeNameFunction).name;
     }
 }

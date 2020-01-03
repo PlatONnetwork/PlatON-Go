@@ -9,7 +9,7 @@ pragma solidity 0.5.13;
 contract Getter{
   uint public data = 10;
 
-  function f() public returns (uint, uint){
+  function f() public view returns (uint, uint){
     //分别以internal,external的方式访问
     return (data, this.data());
   }

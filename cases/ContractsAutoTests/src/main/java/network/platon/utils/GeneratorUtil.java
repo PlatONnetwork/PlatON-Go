@@ -56,9 +56,7 @@ public class GeneratorUtil {
             }
 
             String result = sb.toString();
-            if (!result.contains("Generating")){
-                throw new Exception(binPath + "generator fail.");
-            }
+            log.debug("result:{}", result);
         } catch (Exception e) {
             log.error("contract generator error:{}", e.getMessage());
             throw new Exception(e);

@@ -9,8 +9,6 @@ pragma solidity 0.5.13;
  *
  *继承(is)简述：合约支持多重继承，即当一个合约从多个合约继承时，
  *在区块链上只有一个合约被创建，所有基类合约的代码被复制到创建合约中。
- *
- *
  *-----------------  测试点   ------------------------------
  *1、多重继承情况
  *2、多重继承(合约存在父子关系)
@@ -20,14 +18,11 @@ pragma solidity 0.5.13;
  
 
 
-
-
-
 /**
  *4、合约函数重载(Overload)：合约可以有多个同名函数，可以有不同输入参数。
  *   重载解析和参数匹配
- *
- *
+ *------------------------------------------------
+ *   验证结果：
  **/
 
 contract InheritContractOverload {
@@ -43,12 +38,10 @@ contract InheritContractOverload {
     }
 
     function getData1() public view returns(uint) {
-          
           return sum(1,2);
     }
 
      function getData2() public view returns(uint) {
-          
           return sum(1,2,3);
     }
 

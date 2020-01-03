@@ -61,7 +61,7 @@ public class SuicideAndSelfdestructTest extends ContractPrepareTest {
             if(e.getMessage().startsWith("Empty")){
                 collector.logStepPass("自杀后查询链上的count值为 Empty");
             }
-            e.printStackTrace();
+            collector.assertContains(e.toString(), "ContractCallException");
         }
     }
 

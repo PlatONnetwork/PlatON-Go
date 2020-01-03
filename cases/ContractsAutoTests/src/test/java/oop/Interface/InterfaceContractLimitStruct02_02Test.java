@@ -3,7 +3,6 @@ package oop.Interface;
 import beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.InterfaceContractEnumTest;
 import network.platon.contracts.InterfaceContractStructTest;
 import org.junit.Before;
 import org.junit.Test;

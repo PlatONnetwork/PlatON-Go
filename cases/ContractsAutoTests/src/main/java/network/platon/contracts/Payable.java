@@ -6,6 +6,7 @@ import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.RemoteCall;
@@ -24,13 +25,11 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class Payable extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610291806100206000396000f3fe6080604052600436106100345760003560e01c80632e1a7d4d1461003957806370a0823114610074578063d0e30db0146100d9575b600080fd5b34801561004557600080fd5b506100726004803603602081101561005c57600080fd5b81019080803590602001909291905050506100e3565b005b34801561008057600080fd5b506100c36004803603602081101561009757600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506101c6565b6040518082815260200191505060405180910390f35b6100e161020e565b005b6000816000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054031161013057600080fd5b3373ffffffffffffffffffffffffffffffffffffffff166108fc829081150290604051600060405180830381858888f19350505050158015610176573d6000803e3d6000fd5b50806000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000206000828254039250508190555050565b60008060008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020549050919050565b346000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000206000828254019250508190555056fea265627a7a723158209491d21f7de3a6c27a0dd1aa3ffe84d493f9d685b838164bc66a050f40c6134c64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610177806100206000396000f3fe6080604052600436106100295760003560e01c80631a6952301461002e578063c84aae1714610072575b600080fd5b6100706004803603602081101561004457600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506100d7565b005b34801561007e57600080fd5b506100c16004803603602081101561009557600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610121565b6040518082815260200191505060405180910390f35b8073ffffffffffffffffffffffffffffffffffffffff166108fc349081150290604051600060405180830381858888f1935050505015801561011d573d6000803e3d6000fd5b5050565b60008173ffffffffffffffffffffffffffffffffffffffff1631905091905056fea265627a7a723158202a55bbb4042a1df2bc9855316f97d6b231a26e8d923f2cfb9cacfcaafdc6c05a64736f6c634300050d0032";
 
-    public static final String FUNC_BALANCEOF = "balanceOf";
+    public static final String FUNC_GETBALANCES = "getBalances";
 
-    public static final String FUNC_DEPOSIT = "deposit";
-
-    public static final String FUNC_WITHDRAW = "withdraw";
+    public static final String FUNC_TRANSFER = "transfer";
 
     @Deprecated
     protected Payable(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
@@ -50,28 +49,19 @@ public class Payable extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> balanceOf(String _user) {
-        final Function function = new Function(
-                FUNC_BALANCEOF, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_user)), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+    public RemoteCall<BigInteger> getBalances(String addr) {
+        final Function function = new Function(FUNC_GETBALANCES, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(addr)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> deposit(BigInteger weiValue) {
+    public RemoteCall<TransactionReceipt> transfer(String addr, BigInteger weiValue) {
         final Function function = new Function(
-                FUNC_DEPOSIT, 
-                Arrays.<Type>asList(), 
+                FUNC_TRANSFER, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(addr)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function, weiValue);
-    }
-
-    public RemoteCall<TransactionReceipt> withdraw(BigInteger _amount) {
-        final Function function = new Function(
-                FUNC_WITHDRAW, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_amount)), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
     }
 
     public static RemoteCall<Payable> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

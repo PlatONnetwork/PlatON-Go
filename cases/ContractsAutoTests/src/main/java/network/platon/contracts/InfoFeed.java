@@ -24,7 +24,7 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InfoFeed extends Contract {
-    private static final String BINARY = "6080604052348015600f57600080fd5b50609b8061001e6000396000f3fe60806040526004361060265760003560e01c8063370158ea14602b5780634d431097146047575b600080fd5b6031605b565b6040518082815260200191505060405180910390f35b348015605257600080fd5b5060596064565b005b6000602a905090565b56fea265627a7a72315820cbd2b14c9aa5642f69f1d77873065de8c094e0850300124092a7a0de5024099964736f6c634300050d0032";
+    private static final String BINARY = "6080604052348015600f57600080fd5b50600080fdfe";
 
     public static final String FUNC_INFO = "info";
 
@@ -48,6 +48,24 @@ public class InfoFeed extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public static RemoteCall<InfoFeed> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        return deployRemoteCall(InfoFeed.class, web3j, credentials, contractGasProvider, BINARY, "");
+    }
+
+    public static RemoteCall<InfoFeed> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        return deployRemoteCall(InfoFeed.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    }
+
+    @Deprecated
+    public static RemoteCall<InfoFeed> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
+        return deployRemoteCall(InfoFeed.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    }
+
+    @Deprecated
+    public static RemoteCall<InfoFeed> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+        return deployRemoteCall(InfoFeed.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
+    }
+
     public RemoteCall<TransactionReceipt> info(BigInteger weiValue) {
         final Function function = new Function(
                 FUNC_INFO, 
@@ -62,24 +80,6 @@ public class InfoFeed extends Contract {
                 Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
-    }
-
-    public static RemoteCall<InfoFeed> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(InfoFeed.class, web3j, credentials, contractGasProvider, BINARY, "");
-    }
-
-    @Deprecated
-    public static RemoteCall<InfoFeed> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(InfoFeed.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
-    }
-
-    public static RemoteCall<InfoFeed> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(InfoFeed.class, web3j, transactionManager, contractGasProvider, BINARY, "");
-    }
-
-    @Deprecated
-    public static RemoteCall<InfoFeed> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(InfoFeed.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
     }
 
     @Deprecated

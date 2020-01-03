@@ -1,5 +1,8 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collections;
 import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
@@ -13,10 +16,6 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -27,7 +26,7 @@ import java.util.Collections;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class ConstructorInternalDeclaractionSub extends Contract {
-    private static final String BINARY = "6080604052600a60005534801561001557600080fd5b506040516020806101f08339810180604052602081101561003557600080fd5b8101908080519060200190929190505050808060008190555050506101918061005f6000396000f3fe608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806306661abd1461005c57806382ab890a14610087578063a87d942c14610109575b600080fd5b34801561006857600080fd5b50610071610134565b6040518082815260200191505060405180910390f35b34801561009357600080fd5b506100c0600480360360208110156100aa57600080fd5b810190808035906020019092919050505061013a565b604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390f35b34801561011557600080fd5b5061011e61015c565b6040518082815260200191505060405180910390f35b60005481565b6000808260008082825401925050819055503360005481915091509150915091565b6000805490509056fea165627a7a72305820c81b321f2c5dee7997195ac5766489e3f4cee2871fbe1b84ba56456a2f7989030029";
+    private static final String BINARY = "6080604052600a60005534801561001557600080fd5b506040516020806101f08339810180604052602081101561003557600080fd5b8101908080519060200190929190505050808060008190555050506101918061005f6000396000f3fe608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806306661abd1461005c57806382ab890a14610087578063a87d942c14610109575b600080fd5b34801561006857600080fd5b50610071610134565b6040518082815260200191505060405180910390f35b34801561009357600080fd5b506100c0600480360360208110156100aa57600080fd5b810190808035906020019092919050505061013a565b604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390f35b34801561011557600080fd5b5061011e61015c565b6040518082815260200191505060405180910390f35b60005481565b6000808260008082825401925050819055503360005481915091509150915091565b6000805490509056fea165627a7a72305820e64561f82966428b455d927a06de9e8646a8fca184e19aa7660b801848b391ee0029";
 
     public static final String FUNC_COUNT = "count";
 
@@ -54,8 +53,8 @@ public class ConstructorInternalDeclaractionSub extends Contract {
     }
 
     public RemoteCall<BigInteger> count() {
-        final Function function = new Function(FUNC_COUNT,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_COUNT, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
@@ -63,14 +62,14 @@ public class ConstructorInternalDeclaractionSub extends Contract {
     public RemoteCall<TransactionReceipt> update(BigInteger amount) {
         final Function function = new Function(
                 FUNC_UPDATE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(amount)),
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(amount)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<BigInteger> getCount() {
-        final Function function = new Function(FUNC_GETCOUNT,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_GETCOUNT, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }

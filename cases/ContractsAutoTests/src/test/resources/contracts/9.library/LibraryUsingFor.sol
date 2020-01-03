@@ -1,9 +1,7 @@
 pragma solidity ^0.5.13;
 /**
- * 引用using for 方式验证
- * 解释：
- * （1）指令using A for B 可用于附加库函数（从库 A）到任何类型（B）。 这些函数将接收到调用它们的对象作为它们的第一个参数。
- * （2）using A for * 的效果是，库 A 中的函数被附加在任意的类型上。
+ * 引用using for方式验证
+ * 解释：指令using A for B 可用于附加库函数（从库 A）到任何类型（B）。 这些函数将接收到调用它们的对象作为它们的第一个参数。
  * @author Albedo
  * @dev 2019/12/25
  **/
@@ -23,19 +21,6 @@ library BaseLibrary {
     }
 }
 
-
-library SearchLibrary {
-    function indexOf(uint[] storage self, uint value)
-    public
-    view
-    returns (uint)
-    {
-        for (uint i = 0; i < self.length; i++)
-            if (self[i] == value) return i;
-        return uint(- 1);
-    }
-}
-
 contract LibraryUsingFor {
     event Result(bool result);
 
@@ -43,21 +28,10 @@ contract LibraryUsingFor {
     //using A for B
     using BaseLibrary for BaseLibrary.Data;
     BaseLibrary.Data knownValues;
-    //using A for *
-    using SearchLibrary for *;
-    uint[] data;
 
     function register(uint value) public returns (bool result){
         result=knownValues.insert(value);
         emit Result(result);
     }
 
-    function replace(uint _old, uint _new) public {
-        // 执行库函数调用
-        uint index = data.indexOf(_old);
-        if (index == uint(- 1))
-            data.push(_new);
-        else
-            data[index] = _new;
-    }
 }
