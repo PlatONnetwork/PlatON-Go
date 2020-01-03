@@ -26,7 +26,7 @@ public class ReferenceDataTypeStructContract02_Test extends ContractPrepareTest 
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "02ReferenceDataTypeStructContract.结构体定义、赋值及取值")
-    public void testReferenceDataTypeArrayTest() {
+    public void testReferenceDataTypeStructTest() {
 
         ReferenceDataTypeStructContract referenceDataTypeStructContract = null;
         try {
