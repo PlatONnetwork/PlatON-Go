@@ -11,7 +11,7 @@ pragma solidity 0.5.13;
 import "./CreationCodeType.sol";
 
 contract CreationCode {
-  bytes public constant creationCodeInfo = type(creationCodeType).creationCode;
+  bytes public constant creationCodeInfo = type(CreationCodeType).creationCode;
   
   function getContractName() public view returns(bytes memory contractName){
       return creationCodeInfo;
