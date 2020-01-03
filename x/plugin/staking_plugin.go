@@ -2507,15 +2507,15 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 
 	delegateRewardReceives := make([]reward.DelegateRewardReceive, 0)
 	totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
-	totalReleasedLat := new(big.Int).Div(totalReleased, new(big.Int).SetUint64(params.GVon))
+	totalReleasedUnit := new(big.Int).Div(totalReleased, new(big.Int).SetUint64(params.GVon))
 	for i, rewardPer := range per {
-		if totalReleasedLat.Cmp(common.Big0) > 0 {
+		if totalReleasedUnit.Cmp(common.Big0) > 0 {
 			if nil == del.CumulativeIncome {
 				del.CumulativeIncome = new(big.Int)
 			}
 			delegateRewardReceive := reward.DelegateRewardReceive{
 				Epoch:  rewardPer.Epoch,
-				Reward: new(big.Int).Mul(totalReleasedLat, rewardPer.Amount),
+				Reward: new(big.Int).Mul(totalReleasedUnit, rewardPer.Amount),
 			}
 			delegateRewardReceives = append(delegateRewardReceives, delegateRewardReceive)
 			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, delegateRewardReceive.Reward)
@@ -2523,7 +2523,7 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 		if i == 0 {
 			lazyCalcDelegateAmount(epoch, del)
 			totalReleased = new(big.Int).Add(del.Released, del.RestrictingPlan)
-			totalReleasedLat = new(big.Int).Div(totalReleased, new(big.Int).SetUint64(params.GVon))
+			totalReleasedUnit = new(big.Int).Div(totalReleased, new(big.Int).SetUint64(params.GVon))
 		}
 	}
 	log.Debug("Call calcDelegateIncome end", "currEpoch", epoch, "perLen", len(per), "delegateRewardReceivesLen", len(delegateRewardReceives),
