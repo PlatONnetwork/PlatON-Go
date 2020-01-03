@@ -104,7 +104,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
     private TransactionReceipt deployContract() throws Exception {
         prepare();
         BigInteger constructorValue = new BigInteger("10000000000");
-        SameNameConstructorDefaultVisibility visibility = SameNameConstructorDefaultVisibility.deploy(web3j, transactionManager, provider).send();
+        visibility = SameNameConstructorDefaultVisibility.deploy(web3j, transactionManager, provider).send();
         String contractAddress = visibility.getContractAddress();
         String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
         collector.logStepPass("SameNameConstructorDefaultVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
