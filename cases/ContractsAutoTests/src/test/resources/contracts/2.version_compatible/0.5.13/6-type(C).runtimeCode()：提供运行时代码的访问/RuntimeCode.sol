@@ -13,7 +13,7 @@ import "./RuntimeCodeType.sol";
  
 contract RuntimeCode {
   
-  bytes public constant runtimeCodeInfo = type(runtimeCodeType).runtimeCode;
+  bytes public constant runtimeCodeInfo = type(RuntimeCodeType).runtimeCode;
   
   function getContractName() public view returns(bytes memory contractName){
       return runtimeCodeInfo;

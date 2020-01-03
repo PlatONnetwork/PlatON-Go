@@ -9,21 +9,28 @@ pragma solidity ^0.5.13;
  **/
 
 library BaseStaticLibrary {
-    //
-    function compare(uint self, uint value) public returns (bool)
+    // 我们定义了一个新的结构体数据类型，用于在调用合约中保存数据。
+    struct Data {mapping(uint => bool) flags;}
+
+    // 注意第一个参数是“storage reference”类型，因此在调用中参数传递的只是它的存储地址而不是内容。
+    // 这是库函数的一个特性。如果该函数可以被视为对象的方法，则习惯称第一个参数为 `self` 。
+    function insert(Data storage self, uint value) public returns (bool)
     {
-        if (self<value)
+        if (self.flags[value])
             return false;
+        // 已经存在
+        self.flags[value] = true;
         return true;
     }
 }
 
 contract LibraryStaticUsing {
-    event Result(bool result);
+    BaseStaticLibrary.Data knownValues;
 
     //库引用类静态方式验证。
-    function register(uint value) public returns (bool result) {
-        result = BaseStaticLibrary.compare(123, value);
-        emit Result(result);
+    function register(uint value) public {
+        // 不需要库的特定实例就可以调用库函数，
+        // 因为当前合约就是“instance”。
+        require(BaseStaticLibrary.insert(knownValues, value));
     }
 }

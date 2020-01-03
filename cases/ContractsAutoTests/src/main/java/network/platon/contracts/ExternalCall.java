@@ -1,7 +1,5 @@
 package network.platon.contracts;
 
-import java.math.BigInteger;
-import java.util.Arrays;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -13,6 +11,9 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -23,7 +24,7 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class ExternalCall extends Contract {
-    private static final String BINARY = "6080604052348015600f57600080fd5b5060958061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063569c5f6d14602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b60008060019050600060029050808201925050509056fea265627a7a7231582064d2143f98ea7086d36612c2fc7b6ec1b1f06206cdf3a4d56ab48184465d5b8c64736f6c634300050d0032";
+    private static final String BINARY = "6080604052348015600f57600080fd5b5060958061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063569c5f6d14602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b60008060019050600060029050808201925050509056fea265627a7a7231582014127c9f90861113f174eee0b73796a2a5c70fd5fc41fb63686a0a8481ddb2d464736f6c634300050d0032";
 
     public static final String FUNC_GETSUM = "getSum";
 

@@ -46,11 +46,11 @@ contract BasicDataTypeContract2 {
     }
 
     //转账send，向当前合约发送货币
-    function goSend() public payable returns(address payable addr, uint amount, bool success) {
+    function goSend(address payable addr) public payable returns(uint amount, bool success) {
         //msg.sender 全局变量，调用合约的发起方
         //msg.value 全局变量，调用合约的发起方转发的货币量，以wei为单位。
         //send() 执行的结果
-        return (msg.sender, msg.value, addr.send(msg.value));
+        return (msg.value, addr.send(msg.value));
     }
 
     /**
@@ -72,7 +72,7 @@ contract BasicDataTypeContract2 {
 
         uint128 o = 2.5 + 0.5;
         uint v = 2e10;
-        uint l = 3e15;       
+        uint l = 3e15;
         return (o,v,l);
     }
 
@@ -130,15 +130,15 @@ contract BasicDataTypeContract2 {
          bytes1 b = hex"c8";//十进制数字200 <====> 十六进制c8 <===> 二进制11001000
          return  b;
     }
-    
+
     function getHexLitera2() public view  returns(bytes2){
 
          bytes2 b = hex"01f4"; //十进制数字256 <===> 十六进制1f4 <===> 二进制111110100
          return  b;
     }
-    
+
     function getHexLitera3() public view returns (bytes2, bytes1, bytes1){
-         
+
         bytes2 b = hex"01f4";//十进制数字256 <===> 十六进制1f4 <===> 二进制111110100
         return (b, b[0], b[1]);
     }
@@ -154,11 +154,11 @@ contract BasicDataTypeContract2 {
      */
 
     enum Season{Spring, Summer, Autumn, Winter}
-    
+
     function getSeason1() public view returns(Season){
         return printSeason(Season.Summer);
     }
-    
+
     function getSeason2() public view returns(Season){
         //Season s = Season(5);//越界
         Season s = Season(3);
@@ -172,5 +172,5 @@ contract BasicDataTypeContract2 {
 
     function printSeason(Season s) public view returns(Season) {
         return s;
-    }   
+    }
 }

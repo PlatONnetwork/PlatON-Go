@@ -83,7 +83,7 @@ contract AssertHandle {
 
     //5.整数进行可以显式转换为枚举时，如果将过大值，负值转为枚举类型则抛出异常
     function intChangeException(int8 param) public returns (ActionChoices choice){
-        choice = ActionChoices(param);
+       choice = ActionChoices(param);
     }
 
     //7.如果调用assert的参数为false

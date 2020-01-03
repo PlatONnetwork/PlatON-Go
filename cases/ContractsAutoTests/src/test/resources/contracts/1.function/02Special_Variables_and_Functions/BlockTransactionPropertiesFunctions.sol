@@ -7,8 +7,8 @@ pragma solidity 0.5.13;
 
 contract BlockTransactionPropertiesFunctions {
     
-    function getBlockhash(uint blockNumber) public returns (bytes32) {
-        // 获取当前调用发起人的地址
+    function getBlockhash(uint blockNumber) public view returns (bytes32) {
+        // 获取指定区块的区块哈希
         return blockhash(blockNumber);
     }
 
@@ -23,12 +23,12 @@ contract BlockTransactionPropertiesFunctions {
     }
 
     function getGaslimit() public view returns(uint) {
-        // 获取交易的gas价格
+        // 获取当前区块 gas 限额
         return block.gaslimit;
     }
 
     function getBlockNumber() public view returns(uint) {
-        // 获取当前区块的块号
+        // 获取当前区块的块高
         return block.number;
     }
 
@@ -38,15 +38,14 @@ contract BlockTransactionPropertiesFunctions {
     }
 
     function getData() public view returns(bytes memory) {
-        // 获取当前调用发起人的地址
+        // 获取完整的 calldata
         return msg.data;
     }
-    
-    //目前remix上无法编译，待验证
-    // function getGasleft() public view returns(uint) {
-    //     // 获取当前还剩的gas
-    //     return msg.gasleft();
-    // }
+
+     function getGasleft() public view returns(uint) {
+         // 获取当前还剩的gas
+         return gasleft();
+     }
 
     function getSender() public view returns(address) {
         // 获取当前调用发起人的地址
@@ -74,7 +73,7 @@ contract BlockTransactionPropertiesFunctions {
     }
 
     function getOrigin() public view returns(address) {
-        // 获取交易的gas价格
+        // 获取交易发起者（完全的调用链）
         return tx.origin;
     }
 }

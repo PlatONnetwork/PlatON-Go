@@ -6,19 +6,13 @@ pragma solidity 0.5.13;
  */
 
 contract Payable {
-    mapping (address => uint) balances;
-        
-    function balanceOf(address _user) public returns (uint) { 
-        return balances[_user]; 
+
+    //获取地址的余额
+    function getBalances(address addr) view public returns (uint){
+        return addr.balance;
     }
-    
-    function deposit() public payable { 
-        balances[msg.sender] += msg.value; 
-    }
-    
-    function withdraw(uint _amount) public {
-        require(balances[msg.sender] - _amount > 0);  // 确保账户有足够的余额可以提取
-        msg.sender.transfer(_amount);
-        balances[msg.sender] -= _amount;
+
+    function transfer(address payable addr) public payable{
+        addr.transfer(msg.value);
     }
 }

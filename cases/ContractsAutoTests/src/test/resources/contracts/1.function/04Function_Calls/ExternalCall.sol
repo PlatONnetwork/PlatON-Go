@@ -5,19 +5,20 @@ pragma solidity 0.5.13;
  * @dev 2019/12/27 10:10
  */
 
-contract ExternalCall {
-    
+contract External {
     function getSum() external view returns(uint sum){
         //定义两个局部变量
-       uint a = 1;
-       uint b = 2;
-       sum = a + b;
+        uint a = 1;
+        uint b = 2;
+        sum = a + b;
     }
 }
 
-contract Call {
-    function getResult() public returns(uint c){
-        ExternalCall d = new ExternalCall();
+contract CallExternal {
+    event ExternalCValue(uint value);
+    function getResult() payable public returns(uint c){
+        External d = new External();
         c = d.getSum();
+        emit ExternalCValue(c);
     }
 }

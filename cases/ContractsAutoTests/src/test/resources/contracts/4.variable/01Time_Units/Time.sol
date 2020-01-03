@@ -18,8 +18,8 @@ contract Time {
     // 定义全局变量
     uint time;
 
-    //返回当前时间的Unix时间戳和当前块的Unix时间戳差值,结果为0
-    function testimeDiff() public returns (uint256){
+    //返回当前时间的Unix时间戳和当前块的Unix时间戳差值(本质是一个方法),结果为0
+    function testimeDiff() view public returns (uint256){
         return block.timestamp - now;
     }
     

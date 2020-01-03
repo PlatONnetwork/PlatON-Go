@@ -7,7 +7,7 @@ pragma solidity 0.5.13;
  * @dev 2019/12/23 13:57
  */
 contract TypeName {
-  string public constant name = type(typeName).name;
+  string public constant name = type(TypeName).name;
   
   function getContractName() public returns(string memory contractName){
       return name;

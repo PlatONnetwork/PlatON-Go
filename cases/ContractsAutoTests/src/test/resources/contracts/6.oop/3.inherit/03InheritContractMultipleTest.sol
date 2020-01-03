@@ -5,7 +5,7 @@ import "./01InheritContractMultipleTest.sol";
 /**
  * @author qudong
  * @dev 2019/12/23
- * 
+ *
  *测试合约继承功能点
  *
  *继承(is)简述：合约支持多重继承，即当一个合约从多个合约继承时，
@@ -16,7 +16,7 @@ import "./01InheritContractMultipleTest.sol";
  *3、继承支持传参
  *4、合约函数重载(Overload)
  */
- 
+
 
 /**
  *
@@ -33,7 +33,7 @@ import "./01InheritContractMultipleTest.sol";
 }
 
 contract InheritContractSubclass is InheritContractParentTwoClass,InheritContractParentThreeClass {
-  
+
         function getSubData() public view returns (uint) {
                 return 4;
         }

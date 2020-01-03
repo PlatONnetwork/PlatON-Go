@@ -23,7 +23,7 @@ public class AbstractContractMultipleInhert02_02Test extends ContractPrepareTest
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "02AbstractContractExecuteTest_02.普通合约继承多个抽象合约，是否可正常执行")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "02AbstractContractExecuteTest_02.合约多继承执行情况")
     public void testAbstractContract() {
 
         AbstractContractCSubclass abstractContractCSubclass= null;

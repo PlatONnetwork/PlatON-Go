@@ -39,7 +39,7 @@ contract MathAndCryptographicFunctions {
     //R = "0x55b60cadd4b4a3ea4fc368ef338f97e12e7328dd6e9e969a3fd8e5c10be855fe"
     //S = "0x2b42cee2585a16ea537efcb88009c1aeac693c28b59aa6bbff0baf22730338f6"
     //address: "0x8a9B36694F1eeeb500c84A19bB34137B05162EC5"
-    function callEcrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public returns (address) {
+    function callEcrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public pure returns (address) {
         address x = ecrecover(hash, v, r, s);
         return x;
     }
