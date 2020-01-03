@@ -44,20 +44,29 @@ func TestTrieDAG2(t *testing.T) {
 	//h0 := tr.ParallelHash2()
 	h1 := checkr.Hash()
 	assert.Equal(t, h, h1)
+
+	tr.dag.clear()
+	deleteString(tr, "dog")
+	h = tr.ParallelHash2()
+
+	deleteString(tr0, "dog")
+	hh = tr0.Hash()
+
+	assert.Equal(t, h, hh)
 }
 
 func TestRnd2(t *testing.T) {
-	//testTrieDAGRnd2(t, 1)
-	//testTrieDAGRnd2(t, 10)
-	//testTrieDAGRnd2(t, 100)
-	//testTrieDAGRnd2(t, 248) // special point, error
-	//testTrieDAGRnd2(t, 500)
-	//testTrieDAGRnd2(t, 1000)
-	//testTrieDAGRnd2(t, 2045) // special point, error
-	//testTrieDAGRnd2(t, 10000)
+	testTrieDAGRnd2(t, 1)
+	testTrieDAGRnd2(t, 10)
+	testTrieDAGRnd2(t, 100)
+	testTrieDAGRnd2(t, 248) // special point, error
+	testTrieDAGRnd2(t, 500)
+	testTrieDAGRnd2(t, 1000)
+	testTrieDAGRnd2(t, 2045) // special point, error
+	testTrieDAGRnd2(t, 10000)
 	//testTrieDAGRnd2(t, 513294) //513295
-	//testTrieDAGRnd2(t, 1000000)
-	testTrieDAGRnd2(t, 5000000)
+	testTrieDAGRnd2(t, 1000000)
+	//testTrieDAGRnd2(t, 5000000)
 }
 
 func testTrieDAGRnd2(t *testing.T, n int) {

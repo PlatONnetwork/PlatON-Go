@@ -163,10 +163,12 @@ func testTrieDAGRnd(t *testing.T, n int) {
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
+	cpyTrie := newEmpty()
 	for i := 0; i < len(addresses); i++ {
 		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+		cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 	}
-	cpyTrie := trie.DeepCopyTrie()
+
 
 	dag := NewTrieDAG(0, 0)
 	tm := time.Now()
@@ -176,7 +178,9 @@ func testTrieDAGRnd(t *testing.T, n int) {
 	hashed, _, err := dag.hash(nil, false, nil)
 	fmt.Printf("n: %d, hash duration: %s\n", n, time.Since(tm))
 	assert.Nil(t, err)
+	tm = time.Now()
 	h, _, e := cpyTrie.hashRoot(nil, nil)
+	fmt.Printf("n: %d, serial hash duration: %s\n", n, time.Since(tm))
 	assert.Nil(t, e)
 	assert.Equal(t, hashed, h)
 }
@@ -188,7 +192,7 @@ func TestRnd(t *testing.T) {
 	testTrieDAGRnd(t, 1000)
 	testTrieDAGRnd(t, 10000)
 	testTrieDAGRnd(t, 100000)
-	testTrieDAGRnd(t, 400000)
-	testTrieDAGRnd(t, 500000)
 	testTrieDAGRnd(t, 1000000)
+	testTrieDAGRnd(t, 5000000)
+	testTrieDAGRnd(t, 10000000)
 }
