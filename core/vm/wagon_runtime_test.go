@@ -3,6 +3,7 @@ package vm
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -819,6 +820,16 @@ type Case struct {
 }
 
 func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case) {
+	if c.ctx.contract == nil {
+		c.ctx.contract = &Contract{
+			Gas: math.MaxUint64,
+		}
+	} else {
+		if c.ctx.contract.Gas == 0 {
+			c.ctx.contract.Gas = math.MaxUint64
+		}
+	}
+
 	if c.init != nil {
 		c.init(c.ctx)
 	}
@@ -834,5 +845,6 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case) {
 	index := int64(entry.Index)
 	vm.RecoverPanic = true
 	_, err = vm.ExecCode(index)
+	assert.Nil(t, err)
 	assert.True(t, c.check(c.ctx, err), "test failed "+c.funcName)
 }
