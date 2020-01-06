@@ -404,19 +404,19 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 		if val.Epoch != xutil.CalculateEpoch(200) {
 			t.Error("epoch should be same ")
 		}
-		if val.TotalAmount.Cmp(big.NewInt(2000000000)) != 0 {
+		if val.DelegateAmount.Cmp(big.NewInt(2000000000)) != 0 {
 			t.Error("total amount should be same ")
 		}
-		if val.Amount.Cmp(big.NewInt(200000000)) != 0 {
+		if val.Per.Cmp(big.NewInt(200000000)) != 0 {
 			t.Error("reward per should be same ")
 		}
 	}
 
 	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 
-		receive := make([]reward.DelegateRewardReceive, 0)
-		receive = append(receive, reward.DelegateRewardReceive{big.NewInt(2000000000), 1})
-		if err := UpdateDelegateRewardPer(hash, delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, receive, delegateInfos2[0].totalDelegate, sdb); err != nil {
+		receive := make([]reward.DelegateRewardReceipt, 0)
+		receive = append(receive, reward.DelegateRewardReceipt{big.NewInt(2000000000), 1})
+		if err := UpdateDelegateRewardPer(hash, delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, receive, sdb); err != nil {
 			return err
 		}
 		return nil

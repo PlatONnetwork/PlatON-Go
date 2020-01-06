@@ -17,6 +17,7 @@
 package reward
 
 import (
+	"encoding/json"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -105,16 +106,18 @@ func DelegateRewardTotalKey(nodeID discover.NodeID, stakingNum uint64) []byte {
 
 func NewDelegateRewardPer(epoch uint64, per, totalDelegate *big.Int) *DelegateRewardPer {
 	return &DelegateRewardPer{
-		TotalAmount: totalDelegate,
-		Amount:      per,
-		Epoch:       epoch,
+		DelegateAmount: totalDelegate,
+		Per:            per,
+		Epoch:          epoch,
 	}
 }
 
 type DelegateRewardPer struct {
-	TotalAmount *big.Int
-	Epoch       uint64
-	Amount      *big.Int
+	//this is the node total effective delegate  amount at this epoch
+	DelegateAmount *big.Int
+	Epoch          uint64
+	//this is the node total delegate reward per amount at this epoch
+	Per *big.Int
 }
 
 type DelegateRewardPerList struct {
@@ -128,19 +131,32 @@ func NewDelegateRewardPerList() *DelegateRewardPerList {
 	return del
 }
 
+func (d DelegateRewardPerList) String() string {
+	v, err := json.Marshal(d)
+	if err != nil {
+		panic(err)
+	}
+	return string(v)
+}
+
 func (d *DelegateRewardPerList) AppendDelegateRewardPer(per *DelegateRewardPer) {
 	d.Pers = append(d.Pers, per)
 }
 
-func (d *DelegateRewardPerList) DecreaseTotalAmount(epoch uint64, amount *big.Int) {
-	for index, v := range d.Pers {
-		if v.Epoch == epoch {
-			v.TotalAmount.Sub(v.TotalAmount, amount)
-			if v.TotalAmount.Cmp(common.Big0) <= 0 {
-				d.Pers = append(d.Pers[:index], d.Pers[index+1:]...)
+func (d *DelegateRewardPerList) DecreaseTotalAmount(receipt []DelegateRewardReceipt) {
+	var indexOfList int
+	for indexOfReceipt := 0; indexOfReceipt < len(receipt); indexOfReceipt++ {
+		for indexOfList < len(d.Pers) {
+			if receipt[indexOfReceipt].Epoch == d.Pers[indexOfList].Epoch {
+				d.Pers[indexOfList].DelegateAmount.Sub(d.Pers[indexOfList].DelegateAmount, receipt[indexOfReceipt].Delegate)
+				if d.Pers[indexOfList].DelegateAmount.Cmp(common.Big0) <= 0 {
+					d.Pers = append(d.Pers[:indexOfList], d.Pers[indexOfList+1:]...)
+				}
+				d.changed = true
+				break
+			} else {
+				indexOfList++
 			}
-			d.changed = true
-			break
 		}
 	}
 }
@@ -158,17 +174,18 @@ func (d *DelegateRewardPerList) IsChange() bool {
 
 type NodeDelegateReward struct {
 	NodeID     discover.NodeID `json:"nodeID"`
-	Reward     *big.Int        `json:"reward"`
+	Reward     *big.Int        `json:"reward" rlp:"nil"`
 	StakingNum uint64          `json:"stakingNum"`
 }
 
 type NodeDelegateRewardPresenter struct {
-	NodeID     discover.NodeID `json:"nodeID" rlp:"nodeID"`
-	Reward     *hexutil.Big    `json:"reward" rlp:"reward"`
+	NodeID     discover.NodeID `json:"nodeID" `
+	Reward     *hexutil.Big    `json:"reward" `
 	StakingNum uint64          `json:"stakingNum" rlp:"stakingNum"`
 }
 
-type DelegateRewardReceive struct {
-	Reward *big.Int
-	Epoch  uint64
+type DelegateRewardReceipt struct {
+	//this is the account  total effective delegate amount with the node  on this epoch
+	Delegate *big.Int
+	Epoch    uint64
 }

@@ -281,7 +281,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 	for _, delWithPer := range list {
 		rewardsReceive := calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
 		log.Debug("WithdrawDelegateReward rewardsReceive", "rewardsReceive", rewardsReceive)
-		if err := UpdateDelegateRewardPer(blockHash, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, rewardsReceive, new(big.Int).Add(delWithPer.DelegationInfo.Delegation.RestrictingPlan, delWithPer.DelegationInfo.Delegation.Released), rmp.db); err != nil {
+		if err := UpdateDelegateRewardPer(blockHash, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, rewardsReceive, rmp.db); err != nil {
 			log.Error("call WithdrawDelegateReward UpdateDelegateRewardPer fail", "err", err)
 			return nil, err
 		}
@@ -532,7 +532,7 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, sta
 		}
 		for _, per := range list.Pers {
 			if per.Epoch >= fromEpoch && per.Epoch <= toEpoch {
-				if per.Amount.Cmp(common.Big0) > 0 {
+				if per.Per.Cmp(common.Big0) > 0 {
 					pers = append(pers, per)
 				}
 			}
@@ -566,7 +566,7 @@ func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 	return nil
 }
 
-func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, receives []reward.DelegateRewardReceive, delegata *big.Int, db snapshotdb.DB) error {
+func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, receives []reward.DelegateRewardReceipt, db snapshotdb.DB) error {
 	if len(receives) == 0 {
 		return nil
 	}
@@ -584,9 +584,7 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 			return err
 		}
 
-		for _, receive := range receives {
-			list.DecreaseTotalAmount(receive.Epoch, delegata)
-		}
+		list.DecreaseTotalAmount(receives)
 		if list.IsChange() {
 			log.Debug("updateDelegateRewardPer list is change", "del", list.ShouldDel())
 			if list.ShouldDel() {
