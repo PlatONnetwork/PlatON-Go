@@ -1212,8 +1212,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.DBCacheEpoch = b
 		}
 	}
-	log.Debug("SetDBCache 111", "DBDisabledCache", cfg.DBDisabledCache, "DBCacheEpoch", cfg.DBCacheEpoch)
-	xcom.SetDBCache(cfg.DBDisabledCache, cfg.DBCacheEpoch)
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {

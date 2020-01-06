@@ -366,7 +366,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		} else {
 			return nil
 		}
-		noCache := block.NumberU64() - xcom.GetDBCacheBlock()
+		noCache := block.NumberU64() - xcom.GetDBCacheEpoch()*xutil.CalcBlocksEachEpoch()
 		log.Debug("election begin check data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
 		if xcom.GetDBDisabledCache() && noCache > 0{
 			removeNum := strconv.FormatUint(noCache+xcom.ElectionDistance(), 10)

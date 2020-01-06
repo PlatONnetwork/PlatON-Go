@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
 	"sync"
 
@@ -485,8 +484,8 @@ func GetDBDisabledCache() bool{
 }
 
 //return block of db cache
-func GetDBCacheBlock() uint64{
-	return  uint64(ec.Common.DBCacheEpoch)*xutil.CalcBlocksEachEpoch()
+func GetDBCacheEpoch() uint64{
+	return  uint64(ec.Common.DBCacheEpoch)
 }
 
 func Interval() uint64 {
