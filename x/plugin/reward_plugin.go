@@ -234,8 +234,10 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 	currentEpoch := xutil.CalculateEpoch(blockNumber)
 	for _, verifier := range list {
 		if verifier.DelegateTotal.ToInt().Cmp(common.Big0) == 0 {
-			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
-			rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state)
+			if verifier.CurrentEpochDelegateReward.Cmp(common.Big0) > 0 {
+				log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
+				rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state)
+			}
 		} else {
 			delegateTotalLat := new(big.Int).Div(verifier.DelegateTotal.ToInt(), new(big.Int).SetUint64(params.GVon))
 			delegateRewardPer := new(big.Int).Div(verifier.CurrentEpochDelegateReward, delegateTotalLat)
@@ -301,13 +303,13 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 	}
 
 	rmp.ReturnDelegateReward(account, receiveReward, state)
-	log.Debug("Call withdraw delegate reward: end", "account", account, "rewards", rewards, "blockNum", blockNum, "blockHash", blockHash)
+	log.Debug("Call withdraw delegate reward: end", "account", account, "rewards", rewards, "blockNum", blockNum, "blockHash", blockHash, "receiveReward", receiveReward)
 
 	return rewards, nil
 }
 
 func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum uint64, account common.Address, nodes []discover.NodeID, state xcom.StateDB) ([]reward.NodeDelegateRewardPresenter, error) {
-	log.Debug("Call RewardMgrPlugin: query delegate reward result begin", "account", account, "nodes", nodes)
+	log.Debug("Call RewardMgrPlugin: query delegate reward result begin", "account", account, "nodes", nodes, "num", blockNum)
 
 	dls, err := rmp.stakingPlugin.db.GetDelegatesInfo(blockHash, account)
 	if err != nil {
@@ -563,6 +565,7 @@ func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 	if err := db.Put(blockHash, key, v); err != nil {
 		return err
 	}
+	log.Debug("append delegate rewardPer", "nodeID", nodeID.TerminalString(), "stkNum", stakingNum, "per", per)
 	return nil
 }
 
@@ -586,7 +589,7 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 
 		list.DecreaseTotalAmount(receives)
 		if list.IsChange() {
-			log.Debug("updateDelegateRewardPer list is change", "del", list.ShouldDel())
+			log.Debug("update delegate reward per list", "nodeID", nodeID.TerminalString(), "stkNum", stakingNum, "list", list)
 			if list.ShouldDel() {
 				if err := db.Del(blockHash, key); err != nil {
 					return err
