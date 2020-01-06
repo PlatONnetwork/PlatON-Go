@@ -631,10 +631,14 @@ func (t *Trie) parallelHashRoot2(db *Database, onleaf LeafCallback) (node, node,
 	if t.root == nil {
 		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
-	t.dag.cachegen = t.cachegen
-	t.dag.cachelimit = t.cachelimit
-	t.dag.init(t.root)
-	return t.dag.hash(db, true, onleaf)
+	if len(t.dag.nodes) > 0 {
+		t.dag.cachegen = t.cachegen
+		t.dag.cachelimit = t.cachelimit
+		t.dag.init(t.root)
+		return t.dag.hash(db, true, onleaf)
+	} else {
+		return t.hashRoot(db, onleaf)
+	}
 }
 
 func (t *Trie) DeepCopyTrie() *Trie {

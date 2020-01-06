@@ -23,14 +23,18 @@ func TestTrieDAG2(t *testing.T) {
 	updateString(tr, "dog", "puppy")
 	updateString(tr, "dogglesworth", "cat")
 
-	//h, _ := tr.ParallelCommit(nil)
 	h := tr.ParallelHash2()
+	h2, _ := tr.ParallelCommit2(nil)
+	assert.Equal(t, h, h2)
+
+	fmt.Printf("%x\n", h)
 
 	tr0 := newEmpty()
 	updateString(tr0, "doe", "reindeer")
 	updateString(tr0, "dog", "puppy")
 	updateString(tr0, "dogglesworth", "cat")
 	hh := tr0.Hash()
+	fmt.Printf("%x\n", hh)
 
 	assert.Equal(t, h, hh)
 

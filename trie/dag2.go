@@ -255,6 +255,16 @@ func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
 		if pid > 0 {
 			td.dag.addEdge(id, pid)
 		}
+
+		for i := 0; i < 16; i++ {
+			if nc.Children[i] != nil {
+				cn := nc.Children[i]
+				_, dirty := cn.cache()
+				if !dirty {
+					td.addVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, byte(i)), cn)
+				}
+			}
+		}
 	}
 }
 
