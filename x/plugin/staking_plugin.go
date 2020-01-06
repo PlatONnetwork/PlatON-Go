@@ -347,6 +347,15 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		} else {
 			return nil
 		}
+		noCache := block.NumberU64() - xcom.GetDBCacheBlock()
+		log.Debug("election begin check data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
+		if xcom.GetDBDisabledCache() && noCache > 0{
+			removeNum := strconv.FormatUint(noCache+xcom.ElectionDistance(), 10)
+			err := STAKING_DB.HistoryDB.Delete([]byte(ValidatorName + removeNum))
+			if nil != err {
+				log.Error("remove old data err","err data", err.Error())
+			}
+		}
 	}
 
 	if xutil.IsEndOfEpoch(block.NumberU64()) {
@@ -446,6 +455,20 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		}
 		STAKING_DB.HistoryDB.Put([]byte(RewardName+numStr), dataReward)
 		xcom.PrintObject("wow,insert rewardName history :", dataReward)
+
+		noCache := block.NumberU64() - xcom.GetDBCacheBlock()
+		log.Debug("begin check epoch data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
+		if xcom.GetDBDisabledCache() && noCache > 0{
+			removeNum := strconv.FormatUint(noCache, 10)
+			err := STAKING_DB.HistoryDB.Delete([]byte(VerifierName + removeNum))
+			if nil != err {
+				log.Error("remove old data err","err data", err.Error())
+			}
+			err = STAKING_DB.HistoryDB.Delete([]byte(RewardName + removeNum))
+			if nil != err {
+				log.Error("remove old data err","err data", err.Error())
+			}
+		}
 	}
 
 	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
