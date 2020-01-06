@@ -61,14 +61,14 @@ contract ReferenceDataTypeStructContract {
    */
 
    //赋值方式一： 按入参顺序赋值
-   function initDataStruct1() public view returns (uint,address,uint,bool) {
+   function initDataStructA() public view returns (uint,address,uint,bool) {
 
       Person memory  person = Person(2,msg.sender,25,true);
       return (person.id,person.addr,person.age,person.isVIP);
    }
 
   //赋值方式二： 按命名参数赋值
-   function initDataStruct2() public view returns (uint,address,uint,bool) {
+   function initDataStructB() public view returns (uint,address,uint,bool) {
 
       Person memory  person = Person({id:2,addr:msg.sender,age:25,isVIP:true});
       return (person.id,person.addr,person.age,person.isVIP);
@@ -76,7 +76,7 @@ contract ReferenceDataTypeStructContract {
 
   //赋值方式三：结构体中映射的初始化
 
- function initDataStruct3() public view returns (uint,address,uint,bool) {
+ function initDataStructC() public view returns (uint,address,uint,bool) {
 
       Person memory p1;//分配映射空间
       Person memory  person = Person({id:2,addr:msg.sender,age:25,isVIP:true});

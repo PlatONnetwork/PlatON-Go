@@ -28,7 +28,7 @@ pragma solidity 0.5.13;
  *   2)、字节操作：大类型<-->小类型
  */
 
-contract TypeConversionContractTest {
+contract TypeConversionContract {
 
    /**
     *1、基本类型隐式转换

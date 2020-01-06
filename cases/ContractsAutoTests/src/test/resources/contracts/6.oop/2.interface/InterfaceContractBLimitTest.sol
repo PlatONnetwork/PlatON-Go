@@ -27,7 +27,6 @@ interface InterfaceContractEnum {
    function getDefaultChoice() external returns (uint);
 }
 
-
 contract  InterfaceContractEnumTest is InterfaceContractEnum {
 
     FreshJuiceSize choice;
@@ -47,7 +46,6 @@ contract  InterfaceContractEnumTest is InterfaceContractEnum {
    }
 }
 
-
 interface InterfaceContractStruct {
 
    /**
@@ -60,7 +58,6 @@ interface InterfaceContractStruct {
         string title;
         string describe;
    }
-
    function getDefaultBookID() external returns (int);
 }
 

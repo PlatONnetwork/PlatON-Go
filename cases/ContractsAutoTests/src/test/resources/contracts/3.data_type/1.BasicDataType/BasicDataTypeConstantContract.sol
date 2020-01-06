@@ -15,7 +15,7 @@ pragma solidity 0.5.13;
  *7、枚举类型
  */
 
-contract BasicDataTypeContract2 {
+contract BasicDataTypeConstantContract {
 
     /**
      *1、地址类型(Address)
@@ -98,20 +98,20 @@ contract BasicDataTypeContract2 {
     */
 
    //1)、赋值
-     string str1 = 'hello';
-     string str2 = "world";
+     string strA = 'hello';
+     string strB = "world";
 
-    function getStr1() public view returns (string memory) {
-        return str1;
+    function getStrA() public view returns (string memory) {
+        return strA;
     }
 
     //2)、转换(字符串是特殊的动态字节数组),字符串不能直接的获取长度和内容，可以通过转换字节数组进行获取
-    function getStr1Length() public view returns (uint) {
-        return bytes(str1).length;
+    function getStrALength() public view returns (uint) {
+        return bytes(strA).length;
     }
 
-    function setStr1() public view  returns (string memory) {
-        bytes memory b = bytes(str1);
+    function setStrA() public view  returns (string memory) {
+        bytes memory b = bytes(strA);
         b[0] = 'a';
         return string(b);
     }
@@ -125,19 +125,19 @@ contract BasicDataTypeContract2 {
      *
      */
 
-    function getHexLiteral() public view  returns(bytes1){
+    function getHexLiteraA() public view  returns(bytes1){
 
          bytes1 b = hex"c8";//十进制数字200 <====> 十六进制c8 <===> 二进制11001000
          return  b;
     }
 
-    function getHexLitera2() public view  returns(bytes2){
+    function getHexLiteraB() public view  returns(bytes2){
 
          bytes2 b = hex"01f4"; //十进制数字256 <===> 十六进制1f4 <===> 二进制111110100
          return  b;
     }
 
-    function getHexLitera3() public view returns (bytes2, bytes1, bytes1){
+    function getHexLiteraC() public view returns (bytes2, bytes1, bytes1){
 
         bytes2 b = hex"01f4";//十进制数字256 <===> 十六进制1f4 <===> 二进制111110100
         return (b, b[0], b[1]);
@@ -155,11 +155,11 @@ contract BasicDataTypeContract2 {
 
     enum Season{Spring, Summer, Autumn, Winter}
 
-    function getSeason1() public view returns(Season){
+    function getSeasonA() public view returns(Season){
         return printSeason(Season.Summer);
     }
 
-    function getSeason2() public view returns(Season){
+    function getSeasonB() public view returns(Season){
         //Season s = Season(5);//越界
         Season s = Season(3);
         return s;

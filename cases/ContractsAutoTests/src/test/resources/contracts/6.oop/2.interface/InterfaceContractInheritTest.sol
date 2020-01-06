@@ -1,12 +1,8 @@
 pragma solidity 0.5.13;
 
-
 /**
- *
- * 
  * @author qudong
  * @dev 2019/12/23
- * 
  *测试合约接口功能点
  *接口(interface)简述：接口类似于抽象合约，但是其不能实现任何函数。
  *-----------------  测试点   ------------------------------
@@ -23,25 +19,20 @@ interface InterfaceContractInheritTwo {
       function reduce(uint c, uint d) external returns (uint);
 }
 
-
-
 /**
  *验证：1)、普通合约是否可以继承多个接口
  *-----------------------------------
  *验证结果：普通合约可以继承多个接口
  */
-
 contract InterfaceContractInheritMultipleTest is InterfaceContractInheritOne,
                                                    InterfaceContractInheritTwo {
 
     function sum(uint a, uint b) external returns (uint) {
-
          uint sumInt = a + b;
          return sumInt;
     }
 
     function reduce(uint c, uint d) external returns (uint) {
-
          uint reduceInt = c - d;
          return reduceInt;
     }
