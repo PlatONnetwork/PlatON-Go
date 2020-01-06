@@ -991,13 +991,13 @@ def test_EI_BC_031(client_new_node):
     assert_code(result, 301205)
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client)
-    assert last_delegate_epoch == 3, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
+    assert last_delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
     assert delegate_total == 0, "The total number of effective commissioned nodes: {}".format(delegate_total)
     assert delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(delegate_total_hes)
-    assert delegate_reward_total == 0, "Total delegated rewards currently issued by the candidate: {}".format(
+    assert delegate_reward_total == commission_award, "Total delegated rewards currently issued by the candidate: {}".format(
         delegate_reward_total)
     result = client.ppos.getDelegateReward(address)
-    assert result['Ret'][0]['reward'] == commission_award, "ErrMsg: Dividends currently available {}".format(
+    assert result['Ret'][0]['reward'] == 0, "ErrMsg: Dividends currently available {}".format(
         result['Ret'][0]['reward'])
 
 
@@ -1040,7 +1040,7 @@ def test_EI_BC_061(client_new_node):
     assert cumulative_income == 0, "ErrMsg: Last time cumulative income {}".format(cumulative_income)
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client)
-    assert last_delegate_epoch == 2, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
+    assert last_delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
     assert delegate_total == delegate_amount, "The total number of effective commissioned nodes: {}".format(delegate_total)
     assert delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
@@ -1057,7 +1057,7 @@ def test_EI_BC_061(client_new_node):
     assert cumulative_income == 0, "ErrMsg: Last time cumulative income {}".format(cumulative_income)
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client)
-    assert last_delegate_epoch == 3, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
+    assert last_delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
     assert delegate_total == delegate_amount, "The total number of effective commissioned nodes: {}".format(delegate_total)
     assert delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
