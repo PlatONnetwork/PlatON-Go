@@ -6,17 +6,8 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.LibraryUsingFor;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
-import org.web3j.crypto.RawTransaction;
-import org.web3j.crypto.TransactionEncoder;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.PlatonGetTransactionCount;
-import org.web3j.protocol.core.methods.response.PlatonSendTransaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.protocol.exceptions.TransactionException;
-import org.web3j.tx.response.PollingTransactionReceiptProcessor;
-import org.web3j.utils.Numeric;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 
@@ -43,6 +34,7 @@ public class LibraryUsingForTest extends ContractPrepareTest {
             String data = eventData.get(0).log.getData();
             collector.assertEqual(subHexData(data), subHexData("1"), "checkout using A for B");
         } catch (Exception e) {
+            collector.logStepFail("LibraryUsingForTest testRegister method failure:",e.getMessage());
             e.printStackTrace();
         }
     }

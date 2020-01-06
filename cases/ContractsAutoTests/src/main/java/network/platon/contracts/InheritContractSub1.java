@@ -23,9 +23,9 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InheritContractSub1 extends Contract {
-    private static final String BINARY = "60806040526000805560028060008190555050608780601f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80633bc5de3014602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b6000805490509056fea265627a7a72315820d2040a5431321480f4901ee7f30ea68222f313cbb1d70b67abba93af0921baea64736f6c634300050d0032";
+    private static final String BINARY = "60806040526000805560028060008190555050608780601f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80639944cc7114602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b6000805490509056fea265627a7a72315820929aae4b1c768baea107e317a3b915e85d1c6d85f29e52505260403f797dd13564736f6c634300050d0032";
 
-    public static final String FUNC_GETDATA = "getData";
+    public static final String FUNC_GETDATA1 = "getData1";
 
     @Deprecated
     protected InheritContractSub1(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
@@ -45,8 +45,8 @@ public class InheritContractSub1 extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<BigInteger> getData() {
-        final Function function = new Function(FUNC_GETDATA, 
+    public RemoteCall<BigInteger> getData1() {
+        final Function function = new Function(FUNC_GETDATA1, 
                 Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);

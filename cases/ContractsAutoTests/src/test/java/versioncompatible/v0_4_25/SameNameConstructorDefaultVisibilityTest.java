@@ -32,6 +32,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
             TransactionReceipt sameNameConstructorTx = deployContract();
             collector.logStepPass("SameNameConstructorDefaultVisibility issued successfully sameNameConstructorTx contractAddress:" + sameNameConstructorTx.getContractAddress() + ", hash:" + sameNameConstructorTx.getTransactionHash());
         } catch (Exception e) {
+            collector.logStepFail("SameNameConstructorDefaultVisibilityTest testDoWhileCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -45,6 +46,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
             BigInteger result = visibility.defaultVisibility(new BigInteger("12")).send();
             collector.assertEqual(result, new BigInteger("12"), "checkout visibility assignment result");
         } catch (Exception e) {
+            collector.logStepFail("SameNameConstructorDefaultVisibilityTest testDefaultVisibility failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -58,6 +60,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
             BigInteger result = visibility.publicVisibility(new BigInteger("12")).send();
             collector.assertEqual(result, new BigInteger("12"), "checkout visibility assignment result");
         } catch (Exception e) {
+            collector.logStepFail("SameNameConstructorDefaultVisibilityTest testPublicVisibility failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -71,6 +74,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
             BigInteger result = visibility.externalVisibility(new BigInteger("12")).send();
             collector.assertEqual(result, new BigInteger("12"), "checkout visibility assignment result");
         } catch (Exception e) {
+            collector.logStepFail("SameNameConstructorDefaultVisibilityTest testExternalVisibility failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -84,6 +88,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
             BigInteger result = visibility.privateVisibilityCheck(new BigInteger("12")).send();
             collector.assertEqual(result, new BigInteger("12"), "checkout visibility assignment result");
         } catch (Exception e) {
+            collector.logStepFail("SameNameConstructorDefaultVisibilityTest testPrivateVisibilityCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -97,6 +102,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
             BigInteger result = visibility.internalVisibilityCheck(new BigInteger("12")).send();
             collector.assertEqual(result, new BigInteger("12"), "checkout visibility assignment result");
         } catch (Exception e) {
+            collector.logStepFail("SameNameConstructorDefaultVisibilityTest testInternalVisibilityCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -104,7 +110,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
     private TransactionReceipt deployContract() throws Exception {
         prepare();
         BigInteger constructorValue = new BigInteger("10000000000");
-        SameNameConstructorDefaultVisibility visibility = SameNameConstructorDefaultVisibility.deploy(web3j, transactionManager, provider).send();
+        visibility = SameNameConstructorDefaultVisibility.deploy(web3j, transactionManager, provider).send();
         String contractAddress = visibility.getContractAddress();
         String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
         collector.logStepPass("SameNameConstructorDefaultVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

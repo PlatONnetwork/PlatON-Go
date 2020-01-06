@@ -5,8 +5,6 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.SameNameConstructorPublicVisibility;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.Tuple;
 import org.web3j.tuples.generated.Tuple6;
 
 import java.math.BigInteger;
@@ -24,7 +22,6 @@ import java.math.BigInteger;
  * @create: 2019/12/28
  */
 public class SameNameConstructorPublicVisibilityTest extends ContractPrepareTest {
-    SameNameConstructorPublicVisibility visibility;
 
 
     @Test
@@ -44,6 +41,7 @@ public class SameNameConstructorPublicVisibilityTest extends ContractPrepareTest
                             new BigInteger("255"), new BigInteger("255"), new BigInteger("255000000000000000000"));
             collector.assertEqual(result, expect, "checkout visibility assignment result");
         } catch (Exception e) {
+            collector.logStepFail("SameNameConstructorPublicVisibilityTest testDiscardLiteralsAndSuffixes failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

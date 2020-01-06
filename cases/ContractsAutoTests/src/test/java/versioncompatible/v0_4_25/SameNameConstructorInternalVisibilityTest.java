@@ -41,6 +41,7 @@ public class SameNameConstructorInternalVisibilityTest extends ContractPrepareTe
             Tuple3<BigInteger,BigInteger,BigInteger> expect=new Tuple3(new BigInteger("1"),new BigInteger("0"),new BigInteger("1"));
             collector.assertEqual(result, expect, "checkout visibility assignment result");
         } catch (Exception e) {
+            collector.logStepFail("SameNameConstructorInternalVisibility testDiscardVariable failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
