@@ -32,7 +32,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             byte[] data = one.get(0).array;
             String str=DataChangeUtil.bytesToHex(data);
             String except=one.get(0).log.getTopics().get(1);
-            collector.assertEqual("0x"+str, except, "checkout one dimensional array type declare event");
+            collector.assertEqual("0x"+str, except, "checkout one dimensional array index event");
         } catch (Exception e) {
             collector.logStepFail("EventIndexedContractTest testOneDimensionalArray failure,exception msg:" , e.getMessage());
             e.printStackTrace();
@@ -76,7 +76,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             byte[] s=str.get(0).str;
             String strIndexed=DataChangeUtil.bytesToHex(s);
             String except=str.get(0).log.getTopics().get(1);
-            collector.assertEqual("0x"+strIndexed, except, "checkout one dimensional array type declare event");
+            collector.assertEqual("0x"+strIndexed, except, "checkout string indexed event");
         } catch (Exception e) {
             collector.logStepFail("EventIndexedContractTest testStr failure,exception msg:" , e.getMessage());
             e.printStackTrace();
@@ -101,9 +101,9 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String exceptStr=str.get(0).log.getTopics().get(3);
             String exceptArray=str.get(0).log.getTopics().get(1);
             String exceptId=str.get(0).log.getTopics().get(2);
-            collector.assertEqual("0x"+strIndex, exceptStr, "checkout one dimensional array type declare event");
-            collector.assertEqual("0x"+arrayIndex, exceptArray, "checkout one dimensional array type declare event");
-            collector.assertEqual(DataChangeUtil.subHexData(idIndex), DataChangeUtil.subHexData(exceptId), "checkout one dimensional array type declare event");
+            collector.assertEqual("0x"+strIndex, exceptStr, "checkout complex indexes event");
+            collector.assertEqual("0x"+arrayIndex, exceptArray, "checkout complex indexes event");
+            collector.assertEqual(DataChangeUtil.subHexData(idIndex), DataChangeUtil.subHexData(exceptId), "checkout complex indexes event");
         } catch (Exception e) {
             collector.logStepFail("EventIndexedContractTest testComplex failure,exception msg:" , e.getMessage());
             e.printStackTrace();
@@ -125,10 +125,10 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String u2Topic=receipt.getLogs().get(0).getTopics().get(1);
             String u3Topic=receipt.getLogs().get(0).getTopics().get(2);
             String u4Topic=receipt.getLogs().get(0).getTopics().get(3);
-            collector.assertEqual(DataChangeUtil.subHexData(u1Topic), DataChangeUtil.subHexData("1"), "checkout one dimensional array type declare event");
-            collector.assertEqual(DataChangeUtil.subHexData(u2Topic), DataChangeUtil.subHexData("2"), "checkout one dimensional array type declare event");
-            collector.assertEqual(DataChangeUtil.subHexData(u3Topic), DataChangeUtil.subHexData("3"), "checkout one dimensional array type declare event");
-            collector.assertEqual(DataChangeUtil.subHexData(u4Topic), DataChangeUtil.subHexData("4"), "checkout one dimensional array type declare event");
+            collector.assertEqual(DataChangeUtil.subHexData(u1Topic), DataChangeUtil.subHexData("1"), "checkout anonymous index num event");
+            collector.assertEqual(DataChangeUtil.subHexData(u2Topic), DataChangeUtil.subHexData("2"), "checkout anonymous index num event");
+            collector.assertEqual(DataChangeUtil.subHexData(u3Topic), DataChangeUtil.subHexData("3"), "checkout anonymous index num event");
+            collector.assertEqual(DataChangeUtil.subHexData(u4Topic), DataChangeUtil.subHexData("4"), "checkout anonymous index num event");
         } catch (Exception e) {
             collector.logStepFail("EventIndexedContractTest testAnonymousIndexed failure,exception msg:" , e.getMessage());
             e.printStackTrace();
