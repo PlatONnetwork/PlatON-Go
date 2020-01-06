@@ -542,6 +542,11 @@ type Validator struct {
 	NodeId          discover.NodeID
 	BlsPubKey       bls.PublicKeyHex
 	Shares          *big.Int
+}
+
+type ValidatorSave struct {
+	ValidatorTerm   uint32 // Validator's term in the consensus round
+	NodeId          discover.NodeID
 	DelegateRewardTotal *hexutil.Big
 }
 
@@ -558,6 +563,8 @@ func (val *Validator) String() string {
 }
 
 type ValidatorQueue []*Validator
+
+type ValidatorQueueSave []*ValidatorSave
 
 func (queue ValidatorQueue) IsNotEmpty() bool {
 	return !queue.IsEmpty()
@@ -920,6 +927,16 @@ type ValidatorArray struct {
 	End uint64
 	// the round validators or epoch validators
 	Arr ValidatorQueue
+}
+
+// some consensus round validators or current epoch validators
+type ValidatorArraySave struct {
+	// the round start blockNumber or epoch start blockNumber
+	Start uint64
+	// the round end blockNumber or epoch blockNumber
+	End uint64
+	// the round validators or epoch validators
+	Arr ValidatorQueueSave
 }
 
 func (v ValidatorArray) String() string {

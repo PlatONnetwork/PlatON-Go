@@ -191,7 +191,18 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			return err
 		}
 
-		data, err := rlp.EncodeToBytes(current)
+		currentValidatorArray := &staking.ValidatorArraySave{
+			Start: current.Start,
+			End: current.End,
+		}
+		vQSave := make(staking.ValidatorQueueSave, len(current.Arr))
+		for k, v := range current.Arr {
+			vQSave[k] = &staking.ValidatorSave{
+				ValidatorTerm   : v.ValidatorTerm,
+				NodeId          : v.NodeId,
+			}
+		}
+		data, err := rlp.EncodeToBytes(currentValidatorArray)
 		if nil != err {
 			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Election block", "err", err)
 			return err
@@ -298,23 +309,31 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		var isCurr, isNext bool
 
 		currMap := make(map[discover.NodeID]struct{})
-		flag := true
-		for _, v := range current.Arr {
+		currentValidatorArray := &staking.ValidatorArraySave{
+			Start: current.Start,
+			End: current.End,
+		}
+		vQSave := make(staking.ValidatorQueueSave, len(current.Arr))
+		for k, v := range current.Arr {
 			currMap[v.NodeId] = struct{}{}
 			if nodeId == v.NodeId {
 				isCurr = true
 			}
+			vQSave[k] = &staking.ValidatorSave{
+				ValidatorTerm   : v.ValidatorTerm,
+				NodeId          : v.NodeId,
+			}
 			for _,cv := range currentCandidate{
-				if cv.NodeId == v.NodeId && flag{
-					v.DelegateRewardTotal = cv.DelegateRewardTotal
-					flag = false
+				if cv.NodeId == v.NodeId {
+					vQSave[k].DelegateRewardTotal = cv.DelegateRewardTotal
 					break;
 				}
 			}
 
 		}
 
-		data, err := rlp.EncodeToBytes(current)
+
+		data, err := rlp.EncodeToBytes(currentValidatorArray)
 		if nil != err {
 			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Election block", "err", err)
 			return err
@@ -1737,7 +1756,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 	if nil != err {
 		return nil, err
 	}
-	var validatorArr staking.ValidatorArray
+	var validatorArr staking.ValidatorArraySave
 	err = rlp.DecodeBytes(data, &validatorArr)
 	if nil != err {
 		return nil, err

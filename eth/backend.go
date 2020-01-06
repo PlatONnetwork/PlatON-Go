@@ -198,6 +198,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
 		}
 	)
+	log.Debug("SetDBCache 111", "DBDisabledCache", config.DBDisabledCache, "DBCacheEpoch", config.DBCacheEpoch)
+	xcom.SetDBCache(config.DBDisabledCache, config.DBCacheEpoch)
 	cacheConfig.DBDisabledGC.Set(config.DBDisabledGC)
 
 	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, eth.chainConfig, eth.engine, vmConfig, eth.shouldPreserve)
