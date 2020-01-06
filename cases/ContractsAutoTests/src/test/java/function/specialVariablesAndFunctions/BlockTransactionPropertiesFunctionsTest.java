@@ -58,8 +58,6 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             Boolean bndf = list.contains(blocknumdiff);
             collector.assertEqual(true, bndf);
 
-//            collector.assertEqual(PlatONBlocknumber ,resultA);
-
             //验证blockhash(blockNumber)函数(获取区块Hash)
             String blocknumberNow = web3j.platonBlockNumber().send().getBlockNumber().toString();
             int number = Integer.valueOf(blocknumberNow).intValue()-100;
