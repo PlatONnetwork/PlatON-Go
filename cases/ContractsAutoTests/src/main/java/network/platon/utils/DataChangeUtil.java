@@ -1,6 +1,7 @@
 package network.platon.utils;
 
-import org.web3j.abi.datatypes.generated.Bytes32;
+
+import org.apache.commons.lang.StringUtils;
 
 import java.math.BigInteger;
 
@@ -77,7 +78,22 @@ public class DataChangeUtil {
         return sb.toString();
     }
 
-
+    public  static String subHexData(String hexStr) {
+        if (StringUtils.isBlank(hexStr)) {
+            throw new IllegalArgumentException("string is blank");
+        }
+        if (StringUtils.startsWith(hexStr, "0x")) {
+            hexStr = StringUtils.substringAfter(hexStr, "0x");
+        }
+        byte[] addi = hexStr.getBytes();
+        for (int i = 0; i < addi.length; i++) {
+            if (addi[i] != 0) {
+                hexStr = StringUtils.substring(hexStr, i - 1);
+                break;
+            }
+        }
+        return hexStr;
+    }
 
     public static byte[] stringToBytes32(String string) {
         byte[] byteValue = string.getBytes();

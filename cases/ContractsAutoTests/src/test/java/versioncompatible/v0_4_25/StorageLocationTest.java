@@ -2,7 +2,6 @@ package versioncompatible.v0_4_25;
 
 import beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
-import com.google.gson.JsonObject;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.StorageLocation;
@@ -35,6 +34,7 @@ public class StorageLocationTest extends ContractPrepareTest {
             byte[] result = storageLocation.storageLocaltionCheck(test).send();
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(test), "checkout array storage location result");
         } catch (Exception e) {
+            collector.logStepFail("StorageLocationTest testStorageLocationCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -52,6 +52,7 @@ public class StorageLocationTest extends ContractPrepareTest {
             byte[] result = storageLocation.transfer(test).send();
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(test), "checkout external declare function array location result");
         } catch (Exception e) {
+            collector.logStepFail("StorageLocationTest testTransfer failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

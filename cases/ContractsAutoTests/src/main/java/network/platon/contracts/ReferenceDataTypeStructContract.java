@@ -1,5 +1,9 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Bool;
@@ -14,11 +18,6 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.Callable;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -29,7 +28,7 @@ import java.util.concurrent.Callable;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class ReferenceDataTypeStructContract extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5061033d806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c8063826377d2146100465780639cdc1854146100a9578063a68bc6fe1461010c575b600080fd5b61004e61016f565b604051808581526020018473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018381526020018215151515815260200194505050505060405180910390f35b6100b16101de565b604051808581526020018473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018381526020018215151515815260200194505050505060405180910390f35b610114610259565b604051808581526020018473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018381526020018215151515815260200194505050505060405180910390f35b60008060008061017d6102c8565b6040518060800160405280600281526020013373ffffffffffffffffffffffffffffffffffffffff16815260200160198152602001600115158152509050806000015181602001518260400151836060015194509450945094505090919293565b6000806000806101ec6102c8565b6101f46102c8565b6040518060800160405280600281526020013373ffffffffffffffffffffffffffffffffffffffff1681526020016019815260200160011515815250905080915081600001518260200151836040015184606001519550955095509550505090919293565b6000806000806102676102c8565b6040518060800160405280600281526020013373ffffffffffffffffffffffffffffffffffffffff16815260200160198152602001600115158152509050806000015181602001518260400151836060015194509450945094505090919293565b604051806080016040528060008152602001600073ffffffffffffffffffffffffffffffffffffffff16815260200160008152602001600015158152509056fea265627a7a723158200a2bf4e7c321ef01cf356e3aed1208fdff405874a7545fcaf67c6efb034efb3c64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5061033d806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c8063826377d2146100465780639cdc1854146100a9578063a68bc6fe1461010c575b600080fd5b61004e61016f565b604051808581526020018473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018381526020018215151515815260200194505050505060405180910390f35b6100b16101de565b604051808581526020018473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018381526020018215151515815260200194505050505060405180910390f35b610114610259565b604051808581526020018473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018381526020018215151515815260200194505050505060405180910390f35b60008060008061017d6102c8565b6040518060800160405280600281526020013373ffffffffffffffffffffffffffffffffffffffff16815260200160198152602001600115158152509050806000015181602001518260400151836060015194509450945094505090919293565b6000806000806101ec6102c8565b6101f46102c8565b6040518060800160405280600281526020013373ffffffffffffffffffffffffffffffffffffffff1681526020016019815260200160011515815250905080915081600001518260200151836040015184606001519550955095509550505090919293565b6000806000806102676102c8565b6040518060800160405280600281526020013373ffffffffffffffffffffffffffffffffffffffff16815260200160198152602001600115158152509050806000015181602001518260400151836060015194509450945094505090919293565b604051806080016040528060008152602001600073ffffffffffffffffffffffffffffffffffffffff16815260200160008152602001600015158152509056fea265627a7a7231582093065ee88c9eec0ccf32759882a3e01029e769148a3822335af5056846148e1264736f6c634300050d0032";
 
     public static final String FUNC_INITDATASTRUCT1 = "initDataStruct1";
 
@@ -56,8 +55,8 @@ public class ReferenceDataTypeStructContract extends Contract {
     }
 
     public RemoteCall<Tuple4<BigInteger, String, BigInteger, Boolean>> initDataStruct1() {
-        final Function function = new Function(FUNC_INITDATASTRUCT1,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_INITDATASTRUCT1, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Address>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}));
         return new RemoteCall<Tuple4<BigInteger, String, BigInteger, Boolean>>(
                 new Callable<Tuple4<BigInteger, String, BigInteger, Boolean>>() {
@@ -74,8 +73,8 @@ public class ReferenceDataTypeStructContract extends Contract {
     }
 
     public RemoteCall<Tuple4<BigInteger, String, BigInteger, Boolean>> initDataStruct2() {
-        final Function function = new Function(FUNC_INITDATASTRUCT2,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_INITDATASTRUCT2, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Address>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}));
         return new RemoteCall<Tuple4<BigInteger, String, BigInteger, Boolean>>(
                 new Callable<Tuple4<BigInteger, String, BigInteger, Boolean>>() {
@@ -92,8 +91,8 @@ public class ReferenceDataTypeStructContract extends Contract {
     }
 
     public RemoteCall<Tuple4<BigInteger, String, BigInteger, Boolean>> initDataStruct3() {
-        final Function function = new Function(FUNC_INITDATASTRUCT3,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_INITDATASTRUCT3, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Address>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}));
         return new RemoteCall<Tuple4<BigInteger, String, BigInteger, Boolean>>(
                 new Callable<Tuple4<BigInteger, String, BigInteger, Boolean>>() {

@@ -48,6 +48,7 @@ public class AssertHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout integer less then enums:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("AssertHandleTest testIntChangeException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -70,6 +71,7 @@ public class AssertHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout assert throw exception:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("AssertHandleTest testParamException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
