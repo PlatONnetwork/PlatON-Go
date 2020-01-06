@@ -1,10 +1,8 @@
 pragma solidity 0.5.13;
 
-
 /**
  * @author qudong
  * @dev 2019/12/23
- * 
  *测试合约继承功能点
  *继承(is)简述：合约支持多重继承，即当一个合约从多个合约继承时，
  *在区块链上只有一个合约被创建，所有基类合约的代码被复制到创建合约中。
@@ -18,13 +16,10 @@ pragma solidity 0.5.13;
 
 /**
  *1、多重继承:合约可以继承多个合约，也可以被多个合约继承
- *
  *验证： 1)、多重合约继承重名问题，继承顺序很重要，是否遵循最远继承原则
  * ---------------------------------------------------------------
  *验证结果：多重合约继承，如果父类合约有同名函数，则遵循最远继承原则。
- *
  */
-
 contract InheritContractParentOneClass {
 
     function getDate() public view returns (uint) {
@@ -39,19 +34,16 @@ contract InheritContractParentTwoClass {
     }
 }
 
+contract InheritContractAMutipleClass is InheritContractParentTwoClass,InheritContractParentOneClass {
 
-contract InheritContractMutipleTest1 is InheritContractParentTwoClass,InheritContractParentOneClass {
-
-    function callGetDate1() public view returns (uint) {
-
+    function callGetDateA() public view returns (uint) {
         return getDate();
     }
 }
 
-contract InheritContractMutipleTest2 is InheritContractParentOneClass,InheritContractParentTwoClass {
+contract InheritContractBMutipleClass is InheritContractParentOneClass,InheritContractParentTwoClass {
 
-    function callGetDate2() public view returns (uint) {
-
+    function callGetDateB() public view returns (uint) {
         return getDate();
     }
 }

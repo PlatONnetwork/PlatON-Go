@@ -1,6 +1,5 @@
 pragma solidity 0.5.13;
 
-
 /**
  * @author qudong
  * @dev 2019/12/23
@@ -13,7 +12,6 @@ pragma solidity 0.5.13;
  *2)、 不能声明状态变量
  *3)、 接口的函数只能声明外部类型(external)
  */
-
 
 interface InterfaceContractParent  {
 
