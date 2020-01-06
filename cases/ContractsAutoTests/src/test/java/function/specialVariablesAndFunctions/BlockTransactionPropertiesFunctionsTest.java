@@ -1,6 +1,7 @@
 package function.specialVariablesAndFunctions;
 
 import beforetest.ContractPrepareTest;
+import jnr.ffi.annotations.In;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.BlockTransactionPropertiesFunctions;
@@ -10,6 +11,8 @@ import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
+import java.util.List;
+import java.util.ArrayList;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -43,9 +46,19 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             BigInteger PlatONBlocknumber = web3j.platonBlockNumber().send().getBlockNumber();
             collector.logStepPass("web3j拿到的区块高度：" + PlatONBlocknumber);
 
-            BigInteger resultA = blockTransactionPropertiesFunctions.getBlockNumber().send();
-            collector.logStepPass("block.number函数返回值：" + resultA);
-            collector.assertEqual(PlatONBlocknumber ,resultA);
+            BigInteger blocknumber = blockTransactionPropertiesFunctions.getBlockNumber().send();
+            collector.logStepPass("block.number函数返回值：" + blocknumber);
+            int a = Integer.valueOf(blocknumber.toString());
+            int b = Integer.valueOf(PlatONBlocknumber.toString());
+            int blocknumdiff = a - b;
+            List<Integer> list = new ArrayList<Integer>();
+            list.add(new Integer(0));
+            list.add(new Integer(1));
+            list.add(new Integer(2));
+            Boolean bndf = list.contains(blocknumdiff);
+            collector.assertEqual(true, bndf);
+
+//            collector.assertEqual(PlatONBlocknumber ,resultA);
 
             //验证blockhash(blockNumber)函数(获取区块Hash)
             String blocknumberNow = web3j.platonBlockNumber().send().getBlockNumber().toString();
