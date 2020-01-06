@@ -20,6 +20,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -877,6 +881,650 @@ func TestOpReturnDataCopy(t *testing.T) {
 		if actual != common.Bytes2Hex(expected.Bytes()) {
 			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
 		}
+	}
+}
+
+func createMockState() StateDB {
+	return &mock.MockStateDB{
+		Balance: map[common.Address]*big.Int{
+			common.BytesToAddress([]byte("a")): new(big.Int).SetUint64(100),
+			common.BytesToAddress([]byte("b")): new(big.Int).SetUint64(200),
+			common.BytesToAddress([]byte("c")): new(big.Int).SetUint64(300),
+			common.BytesToAddress([]byte("d")): new(big.Int).SetUint64(400),
+			common.BytesToAddress([]byte("e")): new(big.Int).SetUint64(500),
+			common.BytesToAddress([]byte("f")): new(big.Int).SetUint64(600),
+		},
+		State: map[common.Address]map[string][]byte{
+			common.BytesToAddress([]byte("a")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("b")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("c")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("d")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("e")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+			common.BytesToAddress([]byte("f")): map[string][]byte{
+				"1": []byte{0x01, 0x02, 0x03},
+				"2": []byte{0x01, 0x02, 0x03},
+				"3": []byte{0x01, 0x02, 0x03},
+			},
+		},
+	}
+}
+
+func TestOpExtCodeSize(t *testing.T) {
+	statedb := createMockState()
+	var (
+		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	contract := &Contract{
+		self:          &MockAddressRef{},
+		CallerAddress: common.BytesToAddress([]byte("aaa")),
+		value:         new(big.Int).SetUint64(10),
+		Input:         []byte{0x01, 0x02, 0x03, 0x04},
+		Code:          []byte{0x01, 0x02, 0x03, 0x04},
+	}
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	evmInterpreter.returnData = []byte{0x01, 0x02, 0x03, 0x04}
+	stack.push(new(big.Int).SetInt64(1))
+	opExtCodeSize(&pc, evmInterpreter, contract, nil, stack)
+	actual := stack.pop()
+	if actual.Int64() != 0 {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpCodeCopy(t *testing.T) {
+	statedb := createMockState()
+	var (
+		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		memory         = NewMemory()
+	)
+	contract := &Contract{
+		Code: []byte{0x01, 0x02, 0x03, 0x04},
+	}
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	stack.push(new(big.Int).SetInt64(4))
+	stack.push(new(big.Int).SetInt64(0))
+	stack.push(new(big.Int).SetInt64(0))
+	memory.Resize(4)
+	opCodeCopy(&pc, evmInterpreter, contract, memory, stack)
+	actual := memory.Get(0, 4)
+	if common.Bytes2Hex(actual) != "01020304" {
+		t.Errorf("Expected 0, got %v", common.Bytes2Hex(actual))
+	}
+}
+
+func TestOpExtCodeCopy(t *testing.T) {
+	statedb := createMockState()
+	var (
+		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		memory         = NewMemory()
+	)
+	contract := &Contract{
+		Code: []byte{0x01, 0x02, 0x03, 0x04},
+	}
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	stack.push(new(big.Int).SetInt64(4))
+	stack.push(new(big.Int).SetInt64(0))
+	stack.push(new(big.Int).SetInt64(0))
+	stack.push(byteutil.BytesToBigInt([]byte("a")))
+	memory.Resize(4)
+	opExtCodeCopy(&pc, evmInterpreter, contract, memory, stack)
+	actual := memory.Get(0, 4)
+	if common.Bytes2Hex(actual) != "00000000" {
+		t.Errorf("Expected 0, got %v", common.Bytes2Hex(actual))
+	}
+}
+
+func TestOpExtCodeHash(t *testing.T) {
+	statedb := createMockState()
+	var (
+		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	stack.push(byteutil.BytesToBigInt([]byte("a")))
+	opExtCodeHash(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if actual.Cmp(new(big.Int).SetInt64(0)) != 0 {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpGasprice(t *testing.T) {
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	env.GasPrice = new(big.Int).SetUint64(1000000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opGasprice(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if actual.Cmp(new(big.Int).SetInt64(1000000)) != 0 {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpBlockhash(t *testing.T) {
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	thash := common.BytesToHash([]byte("a"))
+	env.GetHash = func(u uint64) common.Hash {
+		return thash
+	}
+	env.BlockNumber = new(big.Int).SetUint64(1)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	stack.push(new(big.Int).SetUint64(1))
+	opBlockhash(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if actual.Cmp(new(big.Int).SetUint64(0)) != 0 {
+		t.Errorf("Expected 0, got %v", actual.Int64())
+	}
+
+	stack.push(new(big.Int).SetUint64(0))
+	opBlockhash(&pc, evmInterpreter, nil, nil, stack)
+	actual = stack.peek()
+	if common.Bytes2Hex(actual.Bytes()) != "61" {
+		t.Errorf("Expected 61, got %v", common.Bytes2Hex(actual.Bytes()))
+	}
+
+}
+
+func TestOpCoinbase(t *testing.T) {
+	var (
+		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	env.Coinbase = common.BytesToAddress([]byte("a"))
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opCoinbase(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if common.Bytes2Hex(actual.Bytes()) != common.Bytes2Hex([]byte("a")) {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func buildEnv(statedb StateDB) (*EVM, *Stack, uint64, *EVMInterpreter) {
+	var (
+		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		stack          = newstack()
+		pc             = uint64(0)
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	return env, stack, pc, evmInterpreter
+}
+
+func TestOpTimestamp(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.Time = new(big.Int).SetUint64(1577793650186)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opTimestamp(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if common.Bytes2Hex(actual.Bytes()) != common.Bytes2Hex(new(big.Int).SetUint64(1577793650186).Bytes()) {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpNumber(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.BlockNumber = new(big.Int).SetUint64(1577793)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opNumber(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if common.Bytes2Hex(actual.Bytes()) != common.Bytes2Hex(new(big.Int).SetUint64(1577793).Bytes()) {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpDifficulty(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.Difficulty = new(big.Int).SetUint64(0)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opDifficulty(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if env.Difficulty.Cmp(actual) != 0 {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpGasLimit(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.GasLimit = uint64(1000000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opGasLimit(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if env.GasLimit != actual.Uint64() {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpPop(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	stack.push(new(big.Int).SetUint64(1000000))
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opPop(&pc, evmInterpreter, nil, nil, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(1000000) != actual.Uint64() {
+		t.Errorf("Expected 1000000, got %d", actual.Int64())
+	}
+}
+
+func TestOpMload(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	memory := &Memory{}
+	memory.Resize(32)
+	memory.Set32(0, new(big.Int).SetUint64(1000))
+	self := new(big.Int).SetUint64(0)
+	stack.push(self)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opMload(&pc, evmInterpreter, nil, memory, stack)
+	actual := self
+	if uint64(1000) != actual.Uint64() {
+		t.Errorf("Expected 1000, got %d", actual.Int64())
+	}
+}
+
+func TestOpMstore8(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	memory := &Memory{}
+	memory.Resize(32)
+	stack.push(new(big.Int).SetUint64(10000000))
+	stack.push(new(big.Int).SetUint64(0))
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opMstore8(&pc, evmInterpreter, nil, memory, stack)
+	actual := new(big.Int).SetBytes(memory.Data())
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 1000, got %d", actual.Int64())
+	}
+}
+
+func TestOpSload(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	contract := &Contract{
+		self: &MockAddressRef{},
+	}
+	stack.push(new(big.Int).SetUint64(10000000))
+	stack.push(new(big.Int).SetUint64(0))
+	opSload(&pc, evmInterpreter, contract, nil, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 1000, got %d", actual.Int64())
+	}
+}
+
+func TestOpSstore(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	contract := &Contract{
+		self: &MockAddressRef{},
+	}
+	stack.push(new(big.Int).SetUint64(10000000))
+	stack.push(new(big.Int).SetUint64(0))
+	opSstore(&pc, evmInterpreter, contract, nil, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(10000000) != actual.Uint64() {
+		t.Errorf("Expected 10000000, got %d", actual.Int64())
+	}
+}
+
+func TestOpJump(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	contract.Code = []byte{0x01, 0x02, 0x03, 0x04}
+	stack.push(new(big.Int).SetUint64(80))
+	opJump(&pc, evmInterpreter, contract, nil, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(80))
+	opJumpi(&pc, evmInterpreter, contract, nil, stack)
+	actual = evmInterpreter.intPool.get()
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+
+	stack.push(new(big.Int).SetUint64(80))
+	stack.push(new(big.Int).SetUint64(80))
+	opJumpi(&pc, evmInterpreter, contract, nil, stack)
+	actual = evmInterpreter.intPool.get()
+	if uint64(80) != actual.Uint64() {
+		t.Errorf("Expected 80, got %d", actual.Int64())
+	}
+
+	// empty test.
+	opJumpdest(&pc, evmInterpreter, contract, nil, stack)
+}
+
+func TestOpPc(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	pc = 100
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opPc(&pc, evmInterpreter, nil, nil, stack)
+	actual := stack.peek()
+	if uint64(pc) != actual.Uint64() {
+		t.Errorf("Expected 100, got %d", actual.Int64())
+	}
+}
+
+func TestOpMsize(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	memory := &Memory{}
+	memory.Resize(4)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opMsize(&pc, evmInterpreter, nil, memory, stack)
+	actual := stack.peek()
+	if uint64(4) != actual.Uint64() {
+		t.Errorf("Expected 4, got %d", actual.Int64())
+	}
+}
+
+func TestOpGas(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	contract := &Contract{}
+	contract.Gas = uint64(100)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	opGas(&pc, evmInterpreter, contract, nil, stack)
+	actual := stack.peek()
+	if uint64(100) != actual.Uint64() {
+		t.Errorf("Expected 100, got %d", actual.Int64())
+	}
+}
+
+func TestOpCreate(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
+		return true
+	}
+	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
+
+	}
+
+	memory := &Memory{}
+	memory.Resize(4)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	// push ele.
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(0))
+	//
+	opCreate(&pc, evmInterpreter, contract, memory, stack)
+	actual := stack.peek()
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpCreate2(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
+		return true
+	}
+	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
+	}
+
+	memory := &Memory{}
+	memory.Resize(4)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	// push ele.
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(0))
+	//
+	opCreate2(&pc, evmInterpreter, contract, memory, stack)
+	actual := stack.peek()
+	if uint64(0) != actual.Uint64() {
+		t.Errorf("Expected 0, got %d", actual.Int64())
+	}
+}
+
+func TestOpReturn(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+
+	memory := &Memory{}
+	memory.Resize(4)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+
+	opReturn(&pc, evmInterpreter, nil, memory, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(4) != actual.Uint64() {
+		t.Errorf("Expected 4, got %d", actual.Int64())
+	}
+}
+
+func TestOpCall(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
+		return true
+	}
+	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
+	}
+
+	memory := &Memory{}
+	memory.Resize(8)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+
+	evmInterpreter.evm.callGasTemp = uint64(1000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	// push ele.
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
+	stack.push(new(big.Int).SetUint64(100))
+	//
+	opCall(&pc, evmInterpreter, contract, memory, stack)
+	actual := stack.peek()
+	if uint64(1) != actual.Uint64() {
+		t.Errorf("Expected 1, got %d", actual.Int64())
+	}
+}
+
+func TestOpCallCode(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
+		return true
+	}
+	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
+	}
+
+	memory := &Memory{}
+	memory.Resize(8)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+
+	evmInterpreter.evm.callGasTemp = uint64(1000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	// push ele.
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
+	stack.push(new(big.Int).SetUint64(100))
+	//
+	opCallCode(&pc, evmInterpreter, contract, memory, stack)
+	actual := stack.peek()
+	if uint64(1) != actual.Uint64() {
+		t.Errorf("Expected 1, got %d", actual.Int64())
+	}
+}
+
+func TestOpDelegateCall(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
+		return true
+	}
+	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
+	}
+
+	memory := &Memory{}
+	memory.Resize(8)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+
+	evmInterpreter.evm.callGasTemp = uint64(1000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	// push ele.
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
+	stack.push(new(big.Int).SetUint64(100))
+	//
+	opDelegateCall(&pc, evmInterpreter, contract, memory, stack)
+	actual := stack.peek()
+	if uint64(1) != actual.Uint64() {
+		t.Errorf("Expected 1, got %d", actual.Int64())
+	}
+}
+
+func TestOpStaticCall(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
+	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
+		return true
+	}
+	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
+	}
+
+	memory := &Memory{}
+	memory.Resize(8)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+
+	evmInterpreter.evm.callGasTemp = uint64(1000)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+	// push ele.
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetUint64(0))
+	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
+	stack.push(new(big.Int).SetUint64(100))
+	//
+	opStaticCall(&pc, evmInterpreter, contract, memory, stack)
+	actual := stack.peek()
+	if uint64(1) != actual.Uint64() {
+		t.Errorf("Expected 1, got %d", actual.Int64())
+	}
+}
+
+func TestOpRevert(t *testing.T) {
+	env, stack, pc, evmInterpreter := buildEnv(nil)
+	env.interpreter = evmInterpreter
+	evmInterpreter.intPool = poolOfIntPools.get()
+
+	memory := &Memory{}
+	memory.Resize(4)
+	memory.Set(0, 4, []byte{
+		0x01, 0x02, 0x03, 0x04,
+	})
+	stack.push(new(big.Int).SetUint64(4))
+	stack.push(new(big.Int).SetUint64(0))
+
+	opRevert(&pc, evmInterpreter, nil, memory, stack)
+	actual := evmInterpreter.intPool.get()
+	if uint64(4) != actual.Uint64() {
+		t.Errorf("Expected 4, got %d", actual.Int64())
 	}
 }
 
