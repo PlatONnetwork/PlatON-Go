@@ -32,6 +32,7 @@ public class ConstructorInternalVisibilityTest extends ContractPrepareTest {
             BigInteger outI = visibility.getOutI().send();
             collector.assertEqual(outI, constructorValue, "checkout constructor initial param");
         } catch (Exception e) {
+            collector.logStepFail("ConstructorInternalVisibilityTest testGetOutI failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

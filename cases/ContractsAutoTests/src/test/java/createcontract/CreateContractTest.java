@@ -30,6 +30,7 @@ public class CreateContractTest extends ContractPrepareTest {
             Tuple2<BigInteger, BigInteger> expect = new Tuple2<>(new BigInteger("1000"),new BigInteger("0"));
             collector.assertEqual(result, expect, "checkout new contract param");
         } catch (Exception e) {
+            collector.logStepFail("CreateContractTest testNewContract failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

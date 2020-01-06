@@ -7,7 +7,6 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.TypeCast;
 import org.junit.Test;
 import org.web3j.tuples.generated.Tuple3;
-import org.web3j.tuples.generated.Tuple6;
 
 import java.math.BigInteger;
 /**
@@ -38,6 +37,7 @@ public class TypeCastTest extends ContractPrepareTest {
                     new Tuple3(new BigInteger("18"), new byte[]{0,0,4,-46}, new byte[]{0,0,18,52});
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expect), "checkout type cast result");
         } catch (Exception e) {
+            collector.logStepFail("TypeCastTest testTypeCast failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

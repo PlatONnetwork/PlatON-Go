@@ -135,6 +135,7 @@ public class ERC200412TokenTest extends ContractPrepareTest {
 
 
             } catch (Exception e) {
+                collector.logStepFail("erc20Test failure,exception msg:" , e.getMessage());
                 e.printStackTrace();
             }
         }

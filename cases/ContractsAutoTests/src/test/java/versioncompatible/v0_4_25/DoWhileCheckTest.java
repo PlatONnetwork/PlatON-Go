@@ -7,7 +7,6 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.DoWhileCheck;
 import org.junit.Test;
 import org.web3j.tuples.generated.Tuple2;
-import org.web3j.tuples.generated.Tuple3;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
 
@@ -37,6 +36,7 @@ public class DoWhileCheckTest extends ContractPrepareTest {
             Tuple2<BigInteger, BigInteger> expect =new Tuple2(new BigInteger("21"),new BigInteger("14")) ;
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expect), "checkout continue bug and scope is not clear");
         } catch (Exception e) {
+            collector.logStepFail("DoWhileCheckTest testDoWhileCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

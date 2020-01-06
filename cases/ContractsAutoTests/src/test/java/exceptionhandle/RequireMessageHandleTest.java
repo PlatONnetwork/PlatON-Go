@@ -35,6 +35,7 @@ public class RequireMessageHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout require throw exception:"+e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("RequireMessageHandleTest testParamException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
