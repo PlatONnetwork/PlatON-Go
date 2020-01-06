@@ -148,7 +148,6 @@ func (d *DAG2) consume(id uint64) uint64 {
 	for _, k := range d.vtxs[id].outEdge {
 		vtx := d.vtxs[k]
 		degree = atomic.AddUint32(&vtx.inDegree, ^uint32(0))
-		//fmt.Printf("id: %d k: %d degree: %d consumed: %d total: %d\n", id, k, degree, atomic.LoadUint32(&d.totalConsumed), d.totalVertexs)
 		if degree == 0 {
 			producedNum += 1
 			if producedNum == 1 {
@@ -166,8 +165,6 @@ func (d *DAG2) consume(id uint64) uint64 {
 		d.cv.Broadcast()
 		d.cv.L.Unlock()
 	}
-
-	//fmt.Printf("id: %d nextId: %d consumed: %d total: %d\n", id, nextID, atomic.LoadUint32(&d.totalConsumed), d.totalVertexs)
 	return nextID
 }
 
@@ -178,12 +175,20 @@ func (d *DAG2) clear() {
 	d.totalVertexs = 0
 }
 
+func (d *DAG2) reset() {
+	for _, v := range d.vtxs {
+		v.inDegree = 0
+	}
+	d.topLevel = list.New()
+	d.totalConsumed = 0
+}
+
 type DAGNode2 struct {
 	collapsed node
 	cached    node
 	pid       uint64
 	idx       int
-	prefix []byte
+	prefix    []byte
 }
 
 // TrieDAGV2
@@ -220,7 +225,7 @@ func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
 			collapsed: collapsed,
 			cached:    cached,
 			pid:       pid,
-			prefix: common.CopyBytes(prefix),
+			prefix:    common.CopyBytes(prefix),
 		}
 		if len(prefix) > 0 {
 			td.nodes[id].idx = int(prefix[len(prefix)-1])
@@ -238,7 +243,7 @@ func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
 			collapsed: collapsed,
 			cached:    cached,
 			pid:       pid,
-			prefix: common.CopyBytes(prefix),
+			prefix:    common.CopyBytes(prefix),
 		}
 		if len(prefix) > 0 {
 			dagNode.idx = int(prefix[len(prefix)-1])
@@ -259,7 +264,7 @@ func (td *TrieDAGV2) delVertexAndEdge(key []byte) {
 }
 
 func (td *TrieDAGV2) delVertexAndEdgeByID(id uint64) {
-	td.dag.delEdge(id)
+	//td.dag.delEdge(id)
 	td.dag.delVertex(id)
 	delete(td.nodes, id)
 }
@@ -285,8 +290,6 @@ func (td *TrieDAGV2) replaceEdge(old, new []byte) {
 				vtx.outEdge = make([]uint64, 0)
 				vtx.outEdge = append(vtx.outEdge, npid)
 				td.nodes[id].pid = npid
-
-				//fmt.Printf("replace -> id: %d pid: %d, npid: %d\n", id, pid, npid)
 			}
 		}
 	}
@@ -317,6 +320,10 @@ func (td *TrieDAGV2) checkEdge() {
 
 		el = el.Next()
 	}
+}
+
+func (td *TrieDAGV2) reset() {
+	td.dag.reset()
 }
 
 func (td *TrieDAGV2) clear() {
@@ -442,6 +449,7 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 	if e.Load() != nil && e.Load().(error) != nil {
 		return hashNode{}, nil, e.Load().(error)
 	}
+	td.reset()
 	return resHash, newRoot, nil
 }
 
@@ -451,7 +459,6 @@ func (td *TrieDAGV2) init(root node) {
 
 	//dag := NewTrieDAG(td.cachegen, td.cachelimit)
 	//dag.init(root)
-
 
 	//for id, vtx := range td.dag.vtxs {
 	//	fmt.Printf("id: %d, inDegree: %d, outEdge: %v\n", id, vtx.inDegree, vtx.outEdge)

@@ -634,8 +634,6 @@ func BenchmarkParallelHash2(b *testing.B) {
 	// Make the random benchmark deterministic
 	random := rand.New(rand.NewSource(0))
 
-	//fmt.Printf("n: %d\n", b.N)
-
 	// Create a realistic account trie to hash
 	addresses := make([][20]byte, b.N)
 	for i := 0; i < len(addresses); i++ {
