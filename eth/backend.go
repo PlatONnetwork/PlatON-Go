@@ -130,6 +130,17 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
+	hDB, error := CreateDB(ctx, config, "historydata")
+	if error != nil {
+		return nil, error
+	}
+	xplugin.STAKING_DB = &xplugin.StakingDB{
+		HistoryDB:  hDB,
+	}
+
+	// set snapshotdb path
+	//snapshotdb.SetDBPath(ctx)
+
 	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
 
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
