@@ -20,6 +20,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -57,7 +58,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 type LesServer interface {
