@@ -474,9 +474,8 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 
 			state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
 			state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
-
 			cm.CurrentEpochDelegateReward.Add(cm.CurrentEpochDelegateReward, delegateReward)
-			log.Debug("allocate package reward, delegate reward", "blockNumber", head.Number, "blockHash", blockHash, "delegate", delegateReward, "CurrentEpochDelegateReward", cm.CurrentEpochDelegateReward)
+			log.Debug("allocate package reward, delegate reward", "blockNumber", head.Number, "blockHash", blockHash, "delegate", delegateReward, "delegateReward", cm.CurrentEpochDelegateReward)
 
 			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, add, cm); err != nil {
 				log.Error("AllocatePackageBlock SetCanMutableStore fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
