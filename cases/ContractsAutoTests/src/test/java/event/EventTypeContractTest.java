@@ -78,7 +78,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
             TransactionReceipt receipt = eventCallContract.testStr().send();
             List<EventTypeContract.StringEventEventResponse> str = eventCallContract.getStringEventEvents(receipt);
             String s = str.get(0).str;
-            collector.assertEqual(s, "1234567890097865432112345678900987654321123456789009764354666663242444444444475831546856", "checkout one dimensional array type declare event");
+            collector.assertEqual(s, "1234567890097865432112345678900987654321123456789009764354666663242444444444475831546856", "checkout string type declare event");
         } catch (Exception e) {
             collector.logStepFail("EventTypeContractTest testStr failure,exception msg:" , e.getMessage());
             e.printStackTrace();
