@@ -475,7 +475,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		STAKING_DB.HistoryDB.Put([]byte(RewardName+numStr), dataReward)
 		xcom.PrintObject("wow,insert rewardName history :", dataReward)
 
-		noCache := block.NumberU64() - xcom.GetDBCacheBlock()
+		noCache := block.NumberU64() - xcom.GetDBCacheEpoch()*xutil.CalcBlocksEachEpoch()
 		log.Debug("begin check epoch data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
 		if xcom.GetDBDisabledCache() && noCache > 0{
 			removeNum := strconv.FormatUint(noCache, 10)
