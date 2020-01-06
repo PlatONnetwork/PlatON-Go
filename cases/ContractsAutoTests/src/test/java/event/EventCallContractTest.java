@@ -3,11 +3,14 @@ package event;
 import beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
+import network.platon.contracts.AbiEncoder;
 import network.platon.contracts.EventCallContract;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -67,7 +70,31 @@ public class EventCallContractTest extends ContractPrepareTest {
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             TransactionReceipt receipt = eventCallContract.anonymousEvent().send();
-            collector.assertEqual(subHexData(receipt.getLogs().get(0).getData()), subHexData("1"), "checkout anonymous keyword");
+            List<EventCallContract.AnonymousEventResponse> data=eventCallContract.getAnonymousEvents(receipt);
+            collector.assertEqual(data.get(0)._id, new BigInteger("1") ,"checkout anonymous keyword");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "anonymousEvent",
+            author = "albedo", showName = "event.EventCallContractTest-anonymous关键字定义匿名事件")
+    public void testAbiEncoderEvent() {
+        try {
+            prepare();
+            AbiEncoder abiEncoder = AbiEncoder.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = abiEncoder.getContractAddress();
+            String transactionHash = abiEncoder.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            TransactionReceipt receipt = abiEncoder.test().send();
+            List<AbiEncoder.EEventResponse> emitEventData = abiEncoder.getEEvents(receipt);
+            List<BigInteger> data = emitEventData.get(0).multi;
+            List<BigInteger> except=new ArrayList<>(5);
+            for (int i = 0; i < 5; i++) {
+                except.add(new BigInteger(Integer.toString(i)));
+            }
+            collector.assertEqual(data, except, "checkout declare event keyword");
         } catch (Exception e) {
             e.printStackTrace();
         }
