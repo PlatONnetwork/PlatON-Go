@@ -82,7 +82,7 @@ class Economic:
         last_end_block = int(tmp_current_block / self.settlement_size) * self.settlement_size
         block_number = self.settlement_size * roundnum
         count = 0
-        for i in range(block_number - 1):
+        for i in range(block_number):
             node_id = get_pub_key(node.url, last_end_block)
             last_end_block = last_end_block - 1
             if node_id == node.node_id:
