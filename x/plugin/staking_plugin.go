@@ -298,14 +298,17 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		var isCurr, isNext bool
 
 		currMap := make(map[discover.NodeID]struct{})
+		flag := true
 		for _, v := range current.Arr {
 			currMap[v.NodeId] = struct{}{}
 			if nodeId == v.NodeId {
 				isCurr = true
 			}
 			for _,cv := range currentCandidate{
-				if cv.NodeId == v.NodeId{
+				if cv.NodeId == v.NodeId && flag{
 					v.DelegateRewardTotal = cv.DelegateRewardTotal
+					flag = false
+					break;
 				}
 			}
 
