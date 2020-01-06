@@ -16,12 +16,42 @@ contract DoWhileError {
     /**
     * 结构体变量返回的是指针类型变量，可以未分配的情况下返回，导致未定义的异常
     */
-    //    function f() internal view returns (S storage c) {
-    //        do {
-    //            break;
-    //            c = s;
-    //        } while(false);
-    //    }
+    /*function f() internal view returns (S storage c) {
+        do {
+            break;
+            c = s;
+        } while(false);
+    }*/
+
+
+    /**
+     * 结构体变量返回的是指针类型变量，可以未分配的情况下返回，导致未定义的异常
+     */
+    /*function g() internal view returns (S storage c) {
+        do {
+            if (s.f) {
+                continue;
+                c = s;
+            }
+            else {
+            }
+        } while(false);
+    }*/
+
+    /**
+     * 结构体变量返回的是指针类型变量，可以未分配的情况下返回，导致未定义的异常
+     */
+    /*function i() internal view returns (S storage c) {
+        do {
+            if (s.f) {
+                continue;
+            }
+            else {
+                c = s;
+            }
+        } while(false);
+    }*/
+
 
     /**
      * 正确
