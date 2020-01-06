@@ -343,6 +343,17 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		log.Debug("wow,insert validator history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", ValidatorName+numStr)
 		xcom.PrintObject("wow,insert validator history :", current)
 
+		noCache := block.NumberU64() - xcom.GetDBCacheEpoch()*xutil.CalcBlocksEachEpoch()
+		log.Debug("election begin check data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
+		if xcom.GetDBDisabledCache() && noCache > 0{
+			removeNum := strconv.FormatUint(noCache+xcom.ElectionDistance(), 10)
+			err := STAKING_DB.HistoryDB.Delete([]byte(ValidatorName + removeNum))
+			log.Debug("delete Validator suc","removeNum",removeNum)
+			if nil != err {
+				log.Error("remove old data err","err data", err.Error())
+			}
+		}
+
 		for _, v := range next.Arr {
 			if _, ok := currMap[v.NodeId]; !ok {
 				diff = append(diff, v)
@@ -366,15 +377,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		} else {
 			return nil
 		}
-		noCache := block.NumberU64() - xcom.GetDBCacheEpoch()*xutil.CalcBlocksEachEpoch()
-		log.Debug("election begin check data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
-		if xcom.GetDBDisabledCache() && noCache > 0{
-			removeNum := strconv.FormatUint(noCache+xcom.ElectionDistance(), 10)
-			err := STAKING_DB.HistoryDB.Delete([]byte(ValidatorName + removeNum))
-			if nil != err {
-				log.Error("remove old data err","err data", err.Error())
-			}
-		}
+
 	}
 
 	if xutil.IsEndOfEpoch(block.NumberU64()) {
@@ -480,6 +483,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		if xcom.GetDBDisabledCache() && noCache > 0{
 			removeNum := strconv.FormatUint(noCache, 10)
 			err := STAKING_DB.HistoryDB.Delete([]byte(VerifierName + removeNum))
+			log.Debug("delete Verifier suc","removeNum",removeNum)
 			if nil != err {
 				log.Error("remove old data err","err data", err.Error())
 			}
