@@ -8,6 +8,7 @@ import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
+import java.math.BigInteger;
 import java.util.List;
 
 /**
@@ -67,7 +68,8 @@ public class EventCallContractTest extends ContractPrepareTest {
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             TransactionReceipt receipt = eventCallContract.anonymousEvent().send();
-            collector.assertEqual(subHexData(receipt.getLogs().get(0).getData()), subHexData("1"), "checkout anonymous keyword");
+            List<EventCallContract.AnonymousEventResponse> data=eventCallContract.getAnonymousEvents(receipt);
+            collector.assertEqual(data.get(0)._id, new BigInteger("1") ,"checkout anonymous keyword");
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -4,21 +4,10 @@ import beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.LibraryUsingForAll;
-import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
-import org.web3j.crypto.RawTransaction;
-import org.web3j.crypto.TransactionEncoder;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.PlatonGetTransactionCount;
-import org.web3j.protocol.core.methods.response.PlatonSendTransaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.protocol.exceptions.TransactionException;
-import org.web3j.tx.response.PollingTransactionReceiptProcessor;
-import org.web3j.utils.Numeric;
 
-import java.io.IOException;
 import java.math.BigInteger;
-import java.util.List;
 
 /**
  * @title 引用using for方式验证
@@ -42,6 +31,7 @@ public class LibraryUsingForAllTest extends ContractPrepareTest {
             collector.assertEqual(receipt.getStatus(),"0x1" , "checkout using a for * success");
     } catch (Exception e) {
         e.printStackTrace();
+        collector.logStepFail("LibraryUsingForAll testReplace method failure:",e.getMessage());
     }
     }
 }
