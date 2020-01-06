@@ -202,6 +202,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 				NodeId          : v.NodeId,
 			}
 		}
+		currentValidatorArray.Arr = vQSave
 		data, err := rlp.EncodeToBytes(currentValidatorArray)
 		if nil != err {
 			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Election block", "err", err)
@@ -331,8 +332,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			}
 
 		}
-
-
+		currentValidatorArray.Arr = vQSave
 		data, err := rlp.EncodeToBytes(currentValidatorArray)
 		if nil != err {
 			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Election block", "err", err)
