@@ -123,6 +123,13 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte, re
 		readOnly: readOnly,
 	}
 	vm.SetHostCtx(ctx)
+	vm.SetUseGas(func(b byte) {
+		if gas, ok := wasmGasCostTable[b]; ok {
+			if !ctx.contract.UseGas(gas) {
+				panic(ErrOutOfGas)
+			}
+		}
+	})
 	engine.vm = vm
 	return nil
 }
