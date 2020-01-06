@@ -542,6 +542,7 @@ type Validator struct {
 	NodeId          discover.NodeID
 	BlsPubKey       bls.PublicKeyHex
 	Shares          *big.Int
+	DelegateRewardTotal *hexutil.Big
 }
 
 func (val *Validator) String() string {

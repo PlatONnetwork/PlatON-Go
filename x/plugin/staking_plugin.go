@@ -287,6 +287,13 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			return err
 		}
 
+		currentCandidate, error := sk.GetCandidateList(block.Hash(), block.NumberU64())
+		if nil != error {
+			log.Error("Failed to Query Current Round candidate on stakingPlugin Confirmed When Settletmetn block",
+				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
+			return err
+		}
+
 		diff := make(staking.ValidatorQueue, 0)
 		var isCurr, isNext bool
 
@@ -296,6 +303,12 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			if nodeId == v.NodeId {
 				isCurr = true
 			}
+			for _,cv := range currentCandidate{
+				if cv.NodeId == v.NodeId{
+					v.DelegateRewardTotal = cv.DelegateRewardTotal
+				}
+			}
+
 		}
 
 		data, err := rlp.EncodeToBytes(current)
@@ -1724,6 +1737,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
 			ValidatorTerm: v.ValidatorTerm,
+			DelegateRewardTotal: v.DelegateRewardTotal,
 		}
 		if queryNumber == 0 {
 			for _, vc := range candidateHexQueue{
