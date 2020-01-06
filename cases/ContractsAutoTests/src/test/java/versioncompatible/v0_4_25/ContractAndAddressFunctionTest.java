@@ -54,6 +54,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("999999999999999980"), new BigInteger("20"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout contract address function");
         } catch (Exception e) {
+            collector.logStepFail("ContractAndAddressFunctionTest testAddressCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

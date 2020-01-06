@@ -44,6 +44,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             BigInteger constantCheck = visibility.constantCheck().send();
             collector.assertEqual(constantCheck, constructorValue, "checkout allows constant to be used as a modifier for state variability");
         } catch (Exception e) {
+            collector.logStepFail("ConstructorPublicVisibilityTest testConstantCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -62,6 +63,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.assertEqual(result, new BigInteger("35"), "checkout allows you to define function types with named return values");
         } catch (Exception e) {
+            collector.logStepFail("ConstructorPublicVisibilityTest testNamedReturn failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -81,6 +83,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.assertEqual(result, checkResult, "checkout discard syntax validation ");
         } catch (Exception e) {
+            collector.logStepFail("ConstructorPublicVisibilityTest testGrammarCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -99,6 +102,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.assertEqual(result, constructorValue.add(new BigInteger("123")), "checkout allows unimplemented functions are validated with a modifier");
         } catch (Exception e) {
+            collector.logStepFail("ConstructorPublicVisibilityTest testAbstractFunction failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -117,6 +121,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.assertEqual(result, new BigInteger("0"), "checkout msg.value is allowed to be used in non-payable functions and in the modifier for this function");
         } catch (Exception e) {
+            collector.logStepFail("ConstructorPublicVisibilityTest testShow failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

@@ -5,6 +5,7 @@ pragma solidity ^0.5.13;
  * （1）一维数组索引
  * （2）二维数组但一维确定长度 索引
  * （3）字符串索引
+ * （4）枚举索引
  * （4）复杂索引
  * （5）匿名事件索引认证
  * @author Albedo
@@ -30,10 +31,18 @@ contract EventIndexedContract {
     function testStr() public{
         emit StringEvent(str);
     }
-    event ComplexIndexedEvent(uint[] indexed array,uint indexed id,string indexed str);
+    enum ActionChoices { GoLeft, GoRight, GoStraight, SitStill }
+    event EnumEvent(ActionChoices indexed choices);
+
+    //测试枚举类型索引
+    function testEnum() public{
+        emit EnumEvent(ActionChoices.GoLeft);
+    }
+
+    event ComplexIndexedEvent(uint[] indexed array,ActionChoices indexed choice,string indexed str);
     //复杂类型索引
     function testComplex() public{
-        emit ComplexIndexedEvent(uintArray,12,str);
+        emit ComplexIndexedEvent(uintArray,ActionChoices.GoLeft,str);
     }
 
     event AnonymousIndexedNum(uint indexed u1,uint indexed u2,uint indexed u3,uint indexed u4) anonymous;

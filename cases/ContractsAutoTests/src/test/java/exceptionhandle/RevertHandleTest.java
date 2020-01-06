@@ -37,6 +37,7 @@ public class RevertHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout revert throw exception:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("RevertHandleTest testRevertCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -59,6 +60,7 @@ public class RevertHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout revert throw exception:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("RevertHandleTest testParamException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

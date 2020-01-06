@@ -28,4 +28,13 @@ contract EventTypeContract {
     function testStr() public{
         emit StringEvent(str);
     }
+
+    enum ActionChoices { GoLeft, GoRight, GoStraight, SitStill }
+    event EnumEvent(ActionChoices choices);
+
+    //测试枚举类型声明事件
+    function testEnum() public{
+        emit EnumEvent(ActionChoices.GoLeft);
+    }
+
 }

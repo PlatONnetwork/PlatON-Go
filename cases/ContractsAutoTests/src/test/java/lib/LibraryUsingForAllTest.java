@@ -30,8 +30,8 @@ public class LibraryUsingForAllTest extends ContractPrepareTest {
             TransactionReceipt receipt = using.replace(new BigInteger("12"),new BigInteger("14")).send();
             collector.assertEqual(receipt.getStatus(),"0x1" , "checkout using a for * success");
     } catch (Exception e) {
-        e.printStackTrace();
-        collector.logStepFail("LibraryUsingForAll testReplace method failure:",e.getMessage());
+            collector.logStepFail("LibraryUsingForAll testReplace method failure:",e.getMessage());
+            e.printStackTrace();
     }
     }
 }

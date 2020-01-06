@@ -41,6 +41,7 @@ public class SameNameConstructorPublicVisibilityTest extends ContractPrepareTest
                             new BigInteger("255"), new BigInteger("255"), new BigInteger("255000000000000000000"));
             collector.assertEqual(result, expect, "checkout visibility assignment result");
         } catch (Exception e) {
+            collector.logStepFail("SameNameConstructorPublicVisibilityTest testDiscardLiteralsAndSuffixes failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

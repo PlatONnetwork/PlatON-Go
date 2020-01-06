@@ -21,7 +21,6 @@ contract ReferenceDataTypeArrayContract {
 
    /**
     *验证：1)、数组的声明及初始化及取值(定长数组、可变数组)
-    *
     */
 
     //声明定长数组
