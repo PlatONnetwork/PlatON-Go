@@ -102,7 +102,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 			return err
 		}
 		for _, v := range current.Arr {
-			canOld, err := sk.GetCandidateInfo(blockHash, v.NodeAddress)
+			canOld, err := sk.GetCanMutable(blockHash, v.NodeAddress)
 			if snapshotdb.NonDbNotFoundErr(err) || canOld.IsEmpty() {
 				log.Error("Failed to get candidate info on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
 					"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
@@ -112,7 +112,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 				continue
 			}
 			var changed bool
-			changed = lazyCalcNodeTotalDelegateAmount(xutil.CalculateEpoch(blockNumber), canOld.CandidateMutable)
+			changed = lazyCalcNodeTotalDelegateAmount(xutil.CalculateEpoch(blockNumber), canOld)
 			if canOld.RewardPer != canOld.NextRewardPer {
 				canOld.RewardPer = canOld.NextRewardPer
 				changed = true
@@ -122,7 +122,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 				changed = true
 			}
 			if changed {
-				if err = sk.EditCandidate(blockHash, header.Number, v.NodeAddress, canOld); err != nil {
+				if err = sk.db.SetCanMutableStore(blockHash, v.NodeAddress, canOld); err != nil {
 					log.Error("Failed to editCandidate on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
 						"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 					return err
