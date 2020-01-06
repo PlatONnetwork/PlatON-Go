@@ -84,5 +84,23 @@ public class EventTypeContractTest extends ContractPrepareTest {
             e.printStackTrace();
         }
     }
-
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testEnum",
+            author = "albedo", showName = "event.EventTypeContractTest-枚举")
+    public void testEnum() {
+        try {
+            prepare();
+            EventTypeContract eventCallContract = EventTypeContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = eventCallContract.getContractAddress();
+            String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("EventTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            TransactionReceipt receipt = eventCallContract.testEnum().send();
+            List<EventTypeContract.EnumEventEventResponse> str = eventCallContract.getEnumEventEvents(receipt);
+            BigInteger s = str.get(0).choices;
+            collector.assertEqual(s, new BigInteger("0"), "checkout string type declare event");
+        } catch (Exception e) {
+            collector.logStepFail("EventTypeContractTest testStr failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }

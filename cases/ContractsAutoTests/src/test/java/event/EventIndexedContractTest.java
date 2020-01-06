@@ -8,6 +8,7 @@ import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
+import java.math.BigInteger;
 import java.util.List;
 
 /**
@@ -82,6 +83,26 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             e.printStackTrace();
         }
     }
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testEnum",
+            author = "albedo", showName = "event.EventIndexedContractTest-枚举类型索引")
+    public void testEnum() {
+        try {
+            prepare();
+            EventIndexedContract eventCallContract = EventIndexedContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = eventCallContract.getContractAddress();
+            String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            TransactionReceipt receipt = eventCallContract.testEnum().send();
+            List<EventIndexedContract.EnumEventEventResponse> str=eventCallContract.getEnumEventEvents(receipt);
+            BigInteger s=str.get(0).choices;
+            String except=str.get(0).log.getTopics().get(1);
+            collector.assertEqual(DataChangeUtil.subHexData(s.toString()), DataChangeUtil.subHexData(except), "checkout string indexed event");
+        } catch (Exception e) {
+            collector.logStepFail("EventIndexedContractTest testStr failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testComplex",
@@ -97,13 +118,13 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             List<EventIndexedContract.ComplexIndexedEventEventResponse> str=eventCallContract.getComplexIndexedEventEvents(receipt);
             String strIndex=DataChangeUtil.bytesToHex(str.get(0).str);
             String arrayIndex=DataChangeUtil.bytesToHex(str.get(0).array);
-            String idIndex=DataChangeUtil.bytesToHex(str.get(0).id.toByteArray());
+            String choiceIndex=DataChangeUtil.bytesToHex(str.get(0).choice.toByteArray());
             String exceptStr=str.get(0).log.getTopics().get(3);
             String exceptArray=str.get(0).log.getTopics().get(1);
             String exceptId=str.get(0).log.getTopics().get(2);
             collector.assertEqual("0x"+strIndex, exceptStr, "checkout complex indexes event");
             collector.assertEqual("0x"+arrayIndex, exceptArray, "checkout complex indexes event");
-            collector.assertEqual(DataChangeUtil.subHexData(idIndex), DataChangeUtil.subHexData(exceptId), "checkout complex indexes event");
+            collector.assertEqual(DataChangeUtil.subHexData(choiceIndex), DataChangeUtil.subHexData(exceptId), "checkout complex indexes event");
         } catch (Exception e) {
             collector.logStepFail("EventIndexedContractTest testComplex failure,exception msg:" , e.getMessage());
             e.printStackTrace();
