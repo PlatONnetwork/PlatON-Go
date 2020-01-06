@@ -2518,10 +2518,10 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 			}
 			delegateRewardReceive := reward.DelegateRewardReceive{
 				Epoch:  rewardPer.Epoch,
-				Reward: new(big.Int).Mul(totalReleasedUnit, rewardPer.Amount),
+				Reward: new(big.Int).Set(totalReleased),
 			}
 			delegateRewardReceives = append(delegateRewardReceives, delegateRewardReceive)
-			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, delegateRewardReceive.Reward)
+			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, new(big.Int).Mul(totalReleasedUnit, rewardPer.Amount))
 		}
 		if i == 0 {
 			lazyCalcDelegateAmount(epoch, del)
