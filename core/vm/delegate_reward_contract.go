@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -62,7 +64,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	state := rc.Evm.StateDB
 
 	log.Debug("Call withdrawDelegateReward of DelegateRewardContract", "blockNumber", blockNum.Uint64(),
-		"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String())
+		"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from, "gas", rc.Contract.Gas)
 
 	if !rc.Contract.UseGas(params.WithdrawDelegateRewardGas) {
 		return nil, ErrOutOfGas
@@ -76,7 +78,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	if len(list) == 0 {
 		log.Debug("Call withdrawDelegateReward of DelegateRewardContract，the delegates info list is empty", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String())
-		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code)), nil
+		return txResultHandlerWithRes(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code), make([]reward.NodeDelegateReward, 0)), nil
 	}
 
 	if !rc.Contract.UseGas(params.WithdrawDelegateNodeGas * uint64(len(list))) {

@@ -239,10 +239,7 @@ type CandidateMutable struct {
 }
 
 func (can *CandidateMutable) HaveDelegateInCurrentEpoch() bool {
-	if can.Released.Cmp(common.Big0) > 0 {
-		return true
-	}
-	if can.RestrictingPlan.Cmp(common.Big0) > 0 {
+	if can.DelegateTotal.Cmp(common.Big0) > 0 {
 		return true
 	}
 	return false
