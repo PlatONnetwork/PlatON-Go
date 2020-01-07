@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import json
+import json, rlp
 import time
 import random
 import string
@@ -147,7 +147,7 @@ def get_no_pledge_node_list(node_list: List[Node]) -> List[Node]:
     return no_pledge_node_list
 
 
-def get_pledge_list(func) -> list:
+def get_pledge_list(func, nodeid=None) -> list:
     """
     View the list of specified node IDs
     :param func: Query method, 1. List of current pledge nodes 2,
@@ -158,10 +158,16 @@ def get_pledge_list(func) -> list:
     if validator_info == "Getting verifierList is failed:The validator is not exist":
         time.sleep(10)
         validator_info = func().get('Ret')
-    validator_list = []
-    for info in validator_info:
-        validator_list.append(info.get('NodeId'))
-    return validator_list
+    if not nodeid:
+        validator_list = []
+        for info in validator_info:
+            validator_list.append(info.get('NodeId'))
+        return validator_list
+    else:
+        for info in validator_info:
+            if nodeid == info.get('NodeId'):
+                return info.get('RewardPer'), info.get('NextRewardPer')
+        raise Exception('Nodeid {} not in the list'.format(nodeid))
 
 
 def check_node_in_list(nodeid, func) -> bool:
@@ -375,3 +381,11 @@ def get_the_dynamic_parameter_gas_fee(data):
     non_zero_number = byte_group_length - zero_number
     dynamic_gas = non_zero_number * 68 + zero_number * 4
     return dynamic_gas
+
+
+def get_getDelegateReward_gas_fee(client, staking_num, uncalcwheels, gasprice=None):
+    data = rlp.encode([rlp.encode(int(5000))])
+    if gasprice is None:
+        gasprice = client.node.eth.gasPrice
+    gas = get_the_dynamic_parameter_gas_fee(data) + 8000 + 3000 + 21000 + staking_num * 1000 + uncalcwheels * 100
+    return gas * gasprice

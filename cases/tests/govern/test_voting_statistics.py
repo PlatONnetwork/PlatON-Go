@@ -27,7 +27,7 @@ def submitvpandvote(clients, votingrounds=2, version=None):
         assert_code(result, 0)
 
 
-def createstaking(obj, platon_bin=None):
+def createstaking(obj, platon_bin=None, reward_per=0):
     if isinstance(obj, Client):
         objs = []
         objs.append(obj)
@@ -40,7 +40,7 @@ def createstaking(obj, platon_bin=None):
 
         address, _ = client.economic.account.generate_account(client.node.web3, 10 ** 18 * 10000000)
         result = client.staking.create_staking(0, address, address, amount=10 ** 18 * 2000000,
-                                               transaction_cfg=client.pip.cfg.transaction_cfg)
+                                               transaction_cfg=client.pip.cfg.transaction_cfg, reward_per=reward_per)
         log.info('Node {} staking result : {}'.format(client.node.node_id, result))
         assert_code(result, 0)
 
