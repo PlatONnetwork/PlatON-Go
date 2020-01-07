@@ -67,7 +67,7 @@ class Economic:
         current_block = node.eth.blockNumber
         block_namber = self.consensus_size * roundnum
         count = 0
-        for i in range(block_namber - 1):
+        for i in range(block_namber):
             node_id = get_pub_key(node.url, current_block)
             current_block = current_block - 1
             if node_id == node.node_id:
