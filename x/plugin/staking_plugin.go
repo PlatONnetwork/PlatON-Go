@@ -345,7 +345,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 
 		noCache := block.NumberU64() - xcom.GetDBCacheEpoch()*xutil.CalcBlocksEachEpoch()
 		log.Debug("election begin check data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
-		if xcom.GetDBDisabledCache() && noCache > 0{
+		if xcom.GetDBDisabledCache() && noCache > uint64(0){
 			removeNum := strconv.FormatUint(noCache+xcom.ElectionDistance(), 10)
 			err := STAKING_DB.HistoryDB.Delete([]byte(ValidatorName + removeNum))
 			log.Debug("delete Validator suc","removeNum",removeNum)
@@ -480,7 +480,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 
 		noCache := block.NumberU64() - xcom.GetDBCacheEpoch()*xutil.CalcBlocksEachEpoch()
 		log.Debug("begin check epoch data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
-		if xcom.GetDBDisabledCache() && noCache > 0{
+		if xcom.GetDBDisabledCache() && noCache > uint64(0){
 			removeNum := strconv.FormatUint(noCache, 10)
 			err := STAKING_DB.HistoryDB.Delete([]byte(VerifierName + removeNum))
 			log.Debug("delete Verifier suc","removeNum",removeNum)
