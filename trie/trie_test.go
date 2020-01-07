@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -30,6 +29,8 @@ import (
 	"testing"
 	"testing/quick"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -469,6 +470,65 @@ func runRandTest(rt randTest) bool {
 	}
 	return true
 }
+
+func runRandParallelTest(rt randTest) bool {
+	triedb := NewDatabase(ethdb.NewMemDatabase())
+
+	tr, _ := New(common.Hash{}, triedb)
+	values := make(map[string]string) // tracks content of the trie
+
+	for i, step := range rt {
+		switch step.op {
+		case opUpdate:
+			tr.Update(step.key, step.value)
+			values[string(step.key)] = string(step.value)
+		case opDelete:
+			tr.Delete(step.key)
+			delete(values, string(step.key))
+		case opGet:
+			v := tr.Get(step.key)
+			want := values[string(step.key)]
+			if string(v) != want {
+				rt[i].err = fmt.Errorf("mismatch for key 0x%x, got 0x%x want 0x%x", step.key, v, want)
+			}
+		case opCommit:
+			_, rt[i].err = tr.ParallelCommit2(nil)
+		case opHash:
+			tr.ParallelHash2()
+		case opReset:
+			hash, err := tr.ParallelCommit2(nil)
+			if err != nil {
+				rt[i].err = err
+				return false
+			}
+			newtr, err := New(hash, triedb)
+			if err != nil {
+				rt[i].err = err
+				return false
+			}
+			tr = newtr
+		case opItercheckhash:
+			checktr, _ := New(common.Hash{}, triedb)
+			it := NewIterator(tr.NodeIterator(nil))
+			for it.Next() {
+				checktr.Update(it.Key, it.Value)
+			}
+			if tr.ParallelHash2() != checktr.Hash() {
+				fmt.Printf("phash: %x, chash: %x\n", tr.ParallelHash2(), checktr.Hash())
+				rt[i].err = fmt.Errorf("hash mismatch in opItercheckhash")
+			}
+		case opCheckCacheInvariant:
+			rt[i].err = checkCacheInvariant(tr.root, nil, tr.cachegen, false, 0)
+		}
+		// Abort the test on error.
+		if rt[i].err != nil {
+			fmt.Printf("i: %d, err: %v, i-1_op: %d, i_op: %d\n", i, rt[i].err, rt[i-1].op, rt[i].op)
+			return false
+		}
+	}
+	return true
+}
+
 func TestNewFlag(t *testing.T) {
 	trie := &Trie{}
 	trie.newFlag()
@@ -511,6 +571,15 @@ func checkCacheInvariant(n, parent node, parentCachegen uint16, parentDirty bool
 
 func TestRandom(t *testing.T) {
 	if err := quick.Check(runRandTest, nil); err != nil {
+		if cerr, ok := err.(*quick.CheckError); ok {
+			t.Fatalf("random test iteration %d failed: %s", cerr.Count, spew.Sdump(cerr.In))
+		}
+		t.Fatal(err)
+	}
+}
+
+func TestRandomParalle(t *testing.T) {
+	if err := quick.Check(runRandParallelTest, nil); err != nil {
 		if cerr, ok := err.(*quick.CheckError); ok {
 			t.Fatalf("random test iteration %d failed: %s", cerr.Count, spew.Sdump(cerr.In))
 		}

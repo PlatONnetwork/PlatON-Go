@@ -67,6 +67,7 @@ func TestRnd2(t *testing.T) {
 	testTrieDAGRnd2(t, 1000)
 	testTrieDAGRnd2(t, 2045) // special point, error
 	testTrieDAGRnd2(t, 10000)
+	testTrieDAGRnd2(t, 100000)
 	//testTrieDAGRnd2(t, 513294) //513295
 	testTrieDAGRnd2(t, 1000000)
 	//testTrieDAGRnd2(t, 5000000)
@@ -96,35 +97,76 @@ func testTrieDAGRnd2(t *testing.T, n int) {
 	fmt.Println("gen accounts end")
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
-	//cpyTrie := newEmpty()
+	cpyTrie := newEmpty()
 	for i := 0; i < len(addresses); i++ {
 		if i == 247 {
 			trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
-			//cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+			cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 			continue
 		}
 		if i == 2044 {
 			trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
-			//cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+			cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 			continue
 		}
 		if i == 200000 {
 			trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
-			//cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+			cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 			continue
 		}
 		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
-		//cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+		cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 	}
 
 	tm := time.Now()
 	trie.dag.init(trie.root)
-	_, _, err := trie.dag.hash(nil, false, nil)
+	hashed, _, err := trie.dag.hash(nil, false, nil)
 	fmt.Printf("n: %d, parallel hash duration: %s\n", n, time.Since(tm))
 	assert.Nil(t, err)
 	tm = time.Now()
-	//h, _, e := cpyTrie.hashRoot(nil, nil)
-	//fmt.Printf("n: %d, serial hash duration: %s\n", n, time.Since(tm))
-	//assert.Nil(t, e)
-	//assert.Equal(t, hashed, h)
+	h, _, e := cpyTrie.hashRoot(nil, nil)
+	fmt.Printf("n: %d, serial hash duration: %s\n", n, time.Since(tm))
+	assert.Nil(t, e)
+	assert.Equal(t, hashed, h)
+}
+
+func TestDAGCommit(t *testing.T) {
+	triedb := NewDatabase(ethdb.NewMemDatabase())
+	tr, _ := New(common.Hash{}, triedb)
+
+	tr.Update([]byte("adabce"), []byte("12312312"))
+	tr.Update([]byte("bcdade"), []byte("12312321"))
+	tr.Update([]byte("quedad"), []byte("asfasf"))
+	tr.Update([]byte("asdfasbvf"), []byte("asfasbe"))
+	tr.Update([]byte("asdfsafasfds"), []byte("fasgdsafa"))
+	tr.Delete([]byte("quedad"))
+	h := tr.ParallelHash2()
+
+	tr0 := newEmpty()
+	tr0.Update([]byte("adabce"), []byte("12312312"))
+	tr0.Update([]byte("bcdade"), []byte("12312321"))
+	tr0.Update([]byte("quedad"), []byte("asfasf"))
+	tr0.Update([]byte("asdfasbvf"), []byte("asfasbe"))
+	tr0.Update([]byte("asdfsafasfds"), []byte("fasgdsafa"))
+	tr0.Delete([]byte("quedad"))
+	h0 := tr0.Hash()
+
+	assert.Equal(t, h, h0)
+	fmt.Printf("h: %x\n", h)
+	fmt.Printf("h0: %x\n", h0)
+
+	tr = newEmpty()
+	tr.Update([]byte("abc"), []byte("1111"))
+	tr.ParallelHash2()
+	tr.Update([]byte("12312"), []byte("12312312"))
+	tr.Delete([]byte("abc"))
+	tr.ParallelHash2()
+	tr.Update([]byte("12312"), []byte("12312312"))
+	h = tr.ParallelHash2()
+
+	tr0 = newEmpty()
+	tr0.Update([]byte("12312"), []byte("12312312"))
+	h0 = tr0.ParallelHash2()
+
+	assert.Equal(t, h, h0)
 }

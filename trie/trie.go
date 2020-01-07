@@ -222,6 +222,7 @@ func (t *Trie) TryUpdate(key, value []byte) error {
 			return err
 		}
 		if t.dag != nil {
+			t.dag.delVertexAndEdgeByNode(nil, t.root)
 			t.dag.addVertexAndEdge(nil, nil, n)
 		}
 		t.root = n
@@ -357,6 +358,7 @@ func (t *Trie) TryDelete(key []byte) error {
 	if err != nil {
 		return err
 	}
+	t.dag.delVertexAndEdgeByNode(nil, t.root)
 	t.dag.addVertexAndEdge(nil, nil, n)
 	t.root = n
 	return nil
@@ -396,6 +398,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			// other nodes.
 			if t.dag != nil {
 				t.dag.delVertexAndEdgeByNode(append(prefix, concat(n.Key, child.Key...)...), child.Val)
+				t.dag.delVertexAndEdgeByNode(append(prefix, n.Key...), child)
 				t.dag.addVertexAndEdge(append(prefix, concat(n.Key, child.Key...)...), append(prefix, concat(n.Key, child.Key...)...), child.Val)
 			}
 			return true, &shortNode{concat(n.Key, child.Key...), child.Val, t.newFlag()}, nil
@@ -462,6 +465,10 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			}
 			// Otherwise, n is replaced by a one-nibble short node
 			// containing the child.
+			if t.dag != nil {
+				t.dag.delVertexAndEdgeByNode(append(prefix, byte(pos)), n.Children[pos])
+				t.dag.addVertexAndEdge(append(prefix, byte(pos)), append(prefix, byte(pos)), n.Children[pos])
+			}
 			return true, &shortNode{[]byte{byte(pos)}, n.Children[pos], t.newFlag()}, nil
 		}
 		// n still contains at least two values and cannot be reduced.
@@ -656,6 +663,7 @@ func (t *Trie) DeepCopyTrie() *Trie {
 		originalRoot: t.originalRoot,
 		cachegen:     t.cachegen,
 		cachelimit:   t.cachelimit,
+		dag: newTrieDAGV2(),
 	}
 }
 
