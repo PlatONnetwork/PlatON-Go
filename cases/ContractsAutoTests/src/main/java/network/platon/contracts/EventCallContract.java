@@ -1,16 +1,8 @@
 package network.platon.contracts;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import org.web3j.abi.EventEncoder;
 import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Address;
-import org.web3j.abi.datatypes.Event;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.*;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
@@ -25,6 +17,12 @@ import org.web3j.tx.gas.GasProvider;
 import rx.Observable;
 import rx.functions.Func1;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -35,7 +33,7 @@ import rx.functions.Func1;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class EventCallContract extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b506101be806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80637b0cb839146100465780639d6d4cde14610064578063b7301a1f14610082575b600080fd5b61004e6100a0565b6040518082815260200191505060405180910390f35b61006c61010e565b6040518082815260200191505060405180910390f35b61008a61012f565b6040518082815260200191505060405180910390f35b60007ffc3a67c9f0b5967ae4041ed898b05ec1fa49d2a3c22336247201d71be6f9712033604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390a160018101905090565b6000600181019050806040518082815260200191505060405180910390a090565b60003373ffffffffffffffffffffffffffffffffffffffff167fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c600c6040518082815260200191505060405180910390a26001810190509056fea265627a7a723158200445586017de2092e63b81e16afb3b947b906c3821290fba101faeb99fc8c74164736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610316806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c806336aacafa146100515780637b0cb8391461005b5780639d6d4cde14610079578063b7301a1f14610097575b600080fd5b6100596100b5565b005b6100636101f8565b6040518082815260200191505060405180910390f35b610081610266565b6040518082815260200191505060405180910390f35b61009f610287565b6040518082815260200191505060405180910390f35b7f9f252e5d94c6346e0073dfdaa81c6bba97bc07b05f8378efc62d77d157e1b0116000604051808215151515815260200191505060405180910390a17f9f252e5d94c6346e0073dfdaa81c6bba97bc07b05f8378efc62d77d157e1b0116001604051808215151515815260200191505060405180910390a17ffc3a67c9f0b5967ae4041ed898b05ec1fa49d2a3c22336247201d71be6f9712033604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390a1600c6040518082815260200191505060405180910390a03373ffffffffffffffffffffffffffffffffffffffff167fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c600c6040518082815260200191505060405180910390a2565b60007ffc3a67c9f0b5967ae4041ed898b05ec1fa49d2a3c22336247201d71be6f9712033604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390a160018101905090565b6000600181019050806040518082815260200191505060405180910390a090565b60003373ffffffffffffffffffffffffffffffffffffffff167fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c600c6040518082815260200191505060405180910390a26001810190509056fea265627a7a72315820b4783d18b79d8a37b9ff236102cc8b05cb46bea1a7d84b8fb9dfbdf72026a95464736f6c634300050d0032";
 
     public static final String FUNC_ANONYMOUSEVENT = "anonymousEvent";
 
@@ -43,8 +41,14 @@ public class EventCallContract extends Contract {
 
     public static final String FUNC_INDEXEDEVENT = "indexedEvent";
 
+    public static final String FUNC_TESTBOOL = "testBool";
+
     public static final Event ANONYMOUS_EVENT = new Event("Anonymous", 
             Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+    ;
+
+    public static final Event BOOLEVENT_EVENT = new Event("BoolEvent", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
     ;
 
     public static final Event DEPOSIT_EVENT = new Event("Deposit", 
@@ -102,6 +106,37 @@ public class EventCallContract extends Contract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(ANONYMOUS_EVENT));
         return anonymousEventObservable(filter);
+    }
+
+    public List<BoolEventEventResponse> getBoolEventEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(BOOLEVENT_EVENT, transactionReceipt);
+        ArrayList<BoolEventEventResponse> responses = new ArrayList<BoolEventEventResponse>(valueList.size());
+        for (Contract.EventValuesWithLog eventValues : valueList) {
+            BoolEventEventResponse typedResponse = new BoolEventEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.result = (Boolean) eventValues.getNonIndexedValues().get(0).getValue();
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Observable<BoolEventEventResponse> boolEventEventObservable(PlatonFilter filter) {
+        return web3j.platonLogObservable(filter).map(new Func1<Log, BoolEventEventResponse>() {
+            @Override
+            public BoolEventEventResponse call(Log log) {
+                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(BOOLEVENT_EVENT, log);
+                BoolEventEventResponse typedResponse = new BoolEventEventResponse();
+                typedResponse.log = log;
+                typedResponse.result = (Boolean) eventValues.getNonIndexedValues().get(0).getValue();
+                return typedResponse;
+            }
+        });
+    }
+
+    public Observable<BoolEventEventResponse> boolEventEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(EventEncoder.encode(BOOLEVENT_EVENT));
+        return boolEventEventObservable(filter);
     }
 
     public List<DepositEventResponse> getDepositEvents(TransactionReceipt transactionReceipt) {
@@ -192,6 +227,14 @@ public class EventCallContract extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
+    public RemoteCall<TransactionReceipt> testBool() {
+        final Function function = new Function(
+                FUNC_TESTBOOL, 
+                Arrays.<Type>asList(), 
+                Collections.<TypeReference<?>>emptyList());
+        return executeRemoteCallTransaction(function);
+    }
+
     public static RemoteCall<EventCallContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         return deployRemoteCall(EventCallContract.class, web3j, credentials, contractGasProvider, BINARY, "");
     }
@@ -232,6 +275,12 @@ public class EventCallContract extends Contract {
         public Log log;
 
         public BigInteger _id;
+    }
+
+    public static class BoolEventEventResponse {
+        public Log log;
+
+        public Boolean result;
     }
 
     public static class DepositEventResponse {

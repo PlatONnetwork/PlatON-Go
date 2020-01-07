@@ -12,6 +12,11 @@ pragma solidity ^0.5.13;
  * @dev 2020/01/06
  **/
 contract EventIndexedContract {
+    //int索引验证
+    event MinusEvent(int indexed minus);
+    function testMinus(int value) public{
+        emit MinusEvent(value);
+    }
     uint[] uintArray = [0,1,2,3,4];
     //一维数组索引测试
     event OneDimensionalArrayEvent(uint[] indexed array);

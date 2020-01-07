@@ -16,8 +16,7 @@ import java.math.BigInteger;
  * @author: qudong
  * @create: 2019/12/25 15:09
  **/
-public class InheritContractOverload05_Test extends ContractPrepareTest {
-
+public class InheritContractOverloadTest extends ContractPrepareTest {
 
     @Before
     public void before() {
@@ -25,7 +24,7 @@ public class InheritContractOverload05_Test extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "03InheritContractMultipleTest.多重继承(遵循先父到子的继承顺序)")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InheritContract.多重继承函数重载")
     public void testInheritContractMutipleTest1() {
 
         InheritContractOverload inheritContractOverload = null;
@@ -46,7 +45,7 @@ public class InheritContractOverload05_Test extends ContractPrepareTest {
         //1、执行getData1()
         try {
             BigInteger expectResult = new BigInteger("3");
-            BigInteger actualBigInteger = inheritContractOverload.getData1().send();
+            BigInteger actualBigInteger = inheritContractOverload.getDataA().send();
             collector.logStepPass("调用合约getData1()方法完毕 successful actualValue:" + actualBigInteger);
             collector.assertEqual(actualBigInteger,expectResult, "checkout  execute success.");
         } catch (Exception e) {
@@ -57,7 +56,7 @@ public class InheritContractOverload05_Test extends ContractPrepareTest {
         //2、执行getData2()
         try {
             BigInteger expectResult = new BigInteger("6");
-            BigInteger actualBigInteger = inheritContractOverload.getData2().send();
+            BigInteger actualBigInteger = inheritContractOverload.getDataB().send();
             collector.logStepPass("调用合约getData2()方法完毕 successful actualValue:" + actualBigInteger);
             collector.assertEqual(actualBigInteger,expectResult, "checkout  execute success.");
         } catch (Exception e) {

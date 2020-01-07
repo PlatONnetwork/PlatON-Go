@@ -16,7 +16,7 @@ import java.math.BigInteger;
  * @author: qudong
  * @create: 2019/12/25 15:09
  **/
-public class MappingDataTypeContract01_Test extends ContractPrepareTest {
+public class MappingDataTypeContractTest extends ContractPrepareTest {
 
     @Before
     public void before() {

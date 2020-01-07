@@ -41,4 +41,14 @@ contract EventCallContract {
         emit Anonymous(count);
     }
     //外部：JavaScript API配合来回调--定义事件及触发事件——使用 Web3 监听事件
+
+    event BoolEvent(bool result);
+    //函数多事件监听验证
+    function testBool() public{
+        emit BoolEvent(false);
+        emit BoolEvent(true);
+        emit Increment(msg.sender);
+        emit Anonymous(12);
+        emit Deposit(msg.sender, 12);
+    }
 }

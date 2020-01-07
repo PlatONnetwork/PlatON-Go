@@ -3,19 +3,18 @@ package oop.abstracttest;
 import beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.AbstractContractCSubclass;
+import network.platon.contracts.AbstractContractBSubclass;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 /**
- * @title 测试：普通合约是否可以继承多个抽象合约,且实现抽象方法，是否可以正常编译部署执行
+ * @title 测试：抽象合约被继承，且实现抽象方法，是否可正常执行
  * @description:
  * @author: qudong
  * @create: 2019/12/25 15:09
  **/
-public class AbstractContractMultipleInhert02_02Test extends ContractPrepareTest {
-
+public class AbstractContractBInhertAllImpTest extends ContractPrepareTest {
 
     @Before
     public void before() {
@@ -23,15 +22,15 @@ public class AbstractContractMultipleInhert02_02Test extends ContractPrepareTest
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "02AbstractContractExecuteTest_02.合约多继承执行情况")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约被继承且实现执行情况")
     public void testAbstractContract() {
 
-        AbstractContractCSubclass abstractContractCSubclass= null;
+        AbstractContractBSubclass abstractContractBSubclass= null;
         try {
             //合约部署
-            abstractContractCSubclass = AbstractContractCSubclass.deploy(web3j, transactionManager, provider).send();
-            String contractAddress = abstractContractCSubclass.getContractAddress();
-            TransactionReceipt tx = abstractContractCSubclass.getTransactionReceipt().get();
+            abstractContractBSubclass = AbstractContractBSubclass.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = abstractContractBSubclass.getContractAddress();
+            TransactionReceipt tx = abstractContractBSubclass.getTransactionReceipt().get();
 
             collector.logStepPass("AbstractContract issued successfully.contractAddress:" + contractAddress
                                   + ", hash:" + tx.getTransactionHash());
@@ -46,8 +45,8 @@ public class AbstractContractMultipleInhert02_02Test extends ContractPrepareTest
 
         //调用合约方法
         try {
-            String expectValue = "cSubName";
-            String actualValue = abstractContractCSubclass.cSubName().send();
+            String expectValue = "parentName";
+            String actualValue = abstractContractBSubclass.parentName().send();
             collector.logStepPass("调用合约方法完毕 successful.actualValue:" + actualValue);
             collector.assertEqual(actualValue,expectValue, "checkout  execute success.");
 
