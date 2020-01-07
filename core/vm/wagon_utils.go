@@ -52,8 +52,8 @@ func decodeFuncAndParams(input []byte) (string, []byte, error) {
 	switch {
 	case err != nil:
 		return "", nil, err
-	case len(funcName) != 1:
-		return "", nil, fmt.Errorf("funcName type error")
+		//case len(funcName) != 1:
+		//	return "", nil, fmt.Errorf("funcName type error")
 	}
 	return string(funcName), params, nil
 
