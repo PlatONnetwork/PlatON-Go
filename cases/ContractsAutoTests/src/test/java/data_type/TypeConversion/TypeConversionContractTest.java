@@ -11,7 +11,6 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tuples.generated.Tuple2;
 
 import java.math.BigInteger;
-
 /**
  * @title 测试：基本类型之间的转换（隐式/显示）
  * @description:
