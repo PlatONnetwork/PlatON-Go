@@ -486,6 +486,7 @@ func (queue CandidateQueue) String() string {
 }
 
 type CandidateHexQueue []*CandidateHex
+type CandidateVersionQueue []*CandidateVersion
 
 func (queue CandidateHexQueue) IsNotEmpty() bool {
 	return !queue.IsEmpty()
@@ -543,6 +544,12 @@ type Validator struct {
 	Shares          *big.Int
 }
 
+type ValidatorSave struct {
+	ValidatorTerm   uint32 // Validator's term in the consensus round
+	NodeId          discover.NodeID
+	DelegateRewardTotal *hexutil.Big
+}
+
 func (val *Validator) String() string {
 	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","ProgramVersion": %d,"Shares": %d,"StakingBlockNum": %d,"StakingTxIndex": %d,"ValidatorTerm": %d}`,
 		val.NodeId.String(),
@@ -556,6 +563,8 @@ func (val *Validator) String() string {
 }
 
 type ValidatorQueue []*Validator
+
+type ValidatorQueueSave []*ValidatorSave
 
 func (queue ValidatorQueue) IsNotEmpty() bool {
 	return !queue.IsEmpty()
@@ -920,6 +929,16 @@ type ValidatorArray struct {
 	Arr ValidatorQueue
 }
 
+// some consensus round validators or current epoch validators
+type ValidatorArraySave struct {
+	// the round start blockNumber or epoch start blockNumber
+	Start uint64
+	// the round end blockNumber or epoch blockNumber
+	End uint64
+	// the round validators or epoch validators
+	Arr ValidatorQueueSave
+}
+
 func (v ValidatorArray) String() string {
 	return fmt.Sprintf(`{"Start": %d, "End": %d, "Arr": %s}`, v.Start, v.End, v.Arr.String())
 }
@@ -1202,4 +1221,29 @@ func (queue SlashQueue) String() string {
 		arr[i] = s.String()
 	}
 	return "[" + strings.Join(arr, ",") + "]"
+}
+
+type CandidateVersion struct {
+	NodeId             discover.NodeID
+	ProgramVersion     uint32
+}
+
+type Reward struct {
+	PackageReward     *big.Int
+	StakingReward     *big.Int
+	YearNum     uint32
+	YearStartNum     uint64
+	YearEndNum     uint64
+	RemainEpoch     uint32
+	AvgPackTime      uint64
+}
+
+type RewardReturn struct {
+	PackageReward     *hexutil.Big
+	StakingReward     *hexutil.Big
+	YearNum     uint32
+	YearStartNum     uint64
+	YearEndNum     uint64
+	RemainEpoch     uint32
+	AvgPackTime      uint64
 }

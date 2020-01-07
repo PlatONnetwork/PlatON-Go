@@ -785,6 +785,10 @@ func (db *StakingDB) GetRoundAddrBoundary(blockHash common.Hash) (uint64, error)
 	return common.BytesToUint64(round), nil
 }
 
+func (db *StakingDB) GetDB() snapshotdb.DB {
+	return db.db;
+}
+
 func (db *StakingDB) GetDelegateRewardTotal(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, isCommit bool) (*big.Int, error) {
 	var re []byte
 	var err error
