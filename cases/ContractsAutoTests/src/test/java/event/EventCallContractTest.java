@@ -121,7 +121,7 @@ public class EventCallContractTest extends ContractPrepareTest {
             TransactionReceipt receipt = eventCallContract.testMultiAnonymous().send();
             collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(0).getData()),DataChangeUtil.subHexData("c"), "checkout multi anonymous event");
             collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(1).getData()),DataChangeUtil.subHexData("d"), "checkout multi anonymous event");
-            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(2).getData()),DataChangeUtil.subHexData("3"), "checkout multi anonymous event");
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(2).getData()),DataChangeUtil.subHexData("e"), "checkout multi anonymous event");
         } catch (Exception e) {
             collector.logStepFail("EventCallContractTest testMultiAnonymousEvents failure,exception msg:", e.getMessage());
             e.printStackTrace();
