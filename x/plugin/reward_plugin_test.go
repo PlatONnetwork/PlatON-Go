@@ -471,8 +471,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 		stakingPlugin: &StakingPlugin{
 			db: staking.NewStakingDBWithDB(chain.SnapDB),
 		},
-		CurrVerifier: make(map[discover.NodeID]struct{}),
-		nodeID:       can.NodeId,
+		nodeID: can.NodeId,
 	}
 
 	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
@@ -514,7 +513,6 @@ func TestAllocatePackageBlock(t *testing.T) {
 				if err := rm.HandleDelegatePerReward(hash, header.Number.Uint64(), verifierList, chain.StateDB); err != nil {
 					return err
 				}
-				rm.CleanCurrVerifier()
 			}
 			return nil
 		}); err != nil {
@@ -647,8 +645,7 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 		stakingPlugin: &StakingPlugin{
 			db: staking.NewStakingDBWithDB(chain.SnapDB),
 		},
-		CurrVerifier: make(map[discover.NodeID]struct{}),
-		nodeID:       can.NodeId,
+		nodeID: can.NodeId,
 	}
 
 	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
@@ -677,7 +674,6 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 				if err := rm.HandleDelegatePerReward(hash, header.Number.Uint64(), verifierList, chain.StateDB); err != nil {
 					return err
 				}
-				rm.CleanCurrVerifier()
 
 				if err := stkDB.SetEpochValList(hash, index[xutil.CalculateEpoch(header.Number.Uint64())].Start, index[xutil.CalculateEpoch(header.Number.Uint64())].End, queue); err != nil {
 					return err

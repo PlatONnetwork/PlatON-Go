@@ -2163,7 +2163,6 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 				"blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
-		rm.CleanCurrVerifier()
 	}
 	return nil
 }
