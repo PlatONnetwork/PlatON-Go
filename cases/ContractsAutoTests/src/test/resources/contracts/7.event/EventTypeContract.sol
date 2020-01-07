@@ -9,6 +9,7 @@ pragma solidity ^0.5.13;
  * @dev 2020/01/06
  **/
 contract EventTypeContract {
+
     uint[] uintArray = [0,1,2,3,4];
     event OneDimensionalArrayEvent(uint[] array);
     //测试一维数组类型声明事件
