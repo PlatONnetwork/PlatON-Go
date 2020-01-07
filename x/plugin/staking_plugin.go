@@ -102,7 +102,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 			return err
 		}
 		for _, v := range current.Arr {
-			canOld, err := sk.GetCandidateInfo(blockHash, v.NodeAddress)
+			canOld, err := sk.GetCanMutable(blockHash, v.NodeAddress)
 			if snapshotdb.NonDbNotFoundErr(err) || canOld.IsEmpty() {
 				log.Error("Failed to get candidate info on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
 					"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
@@ -111,18 +111,24 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 			if canOld.IsInvalid() {
 				continue
 			}
-
-			should := lazyCalcNodeTotalDelegateAmount(xutil.CalculateEpoch(blockNumber), canOld.CandidateMutable)
-			if canOld.RewardPer != canOld.NextRewardPer || should {
+			var changed bool
+			changed = lazyCalcNodeTotalDelegateAmount(xutil.CalculateEpoch(blockNumber), canOld)
+			if canOld.RewardPer != canOld.NextRewardPer {
 				canOld.RewardPer = canOld.NextRewardPer
+				changed = true
+			}
+			if canOld.CurrentEpochDelegateReward.Cmp(common.Big0) > 0 {
 				canOld.CleanCurrentEpochDelegateReward()
-				err = sk.EditCandidate(blockHash, header.Number, v.NodeAddress, canOld)
-				if err != nil {
+				changed = true
+			}
+			if changed {
+				if err = sk.db.SetCanMutableStore(blockHash, v.NodeAddress, canOld); err != nil {
 					log.Error("Failed to editCandidate on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
 						"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
 			}
+
 		}
 	}
 	return nil
@@ -796,7 +802,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
-	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, new(big.Int).Add(del.Released, del.RestrictingPlan), rm.db); err != nil {
+	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
 		return err
 	}
 
@@ -904,7 +910,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
-	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, new(big.Int).Add(del.Released, del.RestrictingPlan), rm.db); err != nil {
+	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
 		return nil, err
 	}
 
@@ -2157,7 +2163,6 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 				"blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
-		rm.CleanCurrVerifier()
 	}
 	return nil
 }
@@ -2495,7 +2500,7 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 }
 
 // Calculating Total Entrusted Income
-func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.DelegateRewardPer) []reward.DelegateRewardReceive {
+func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.DelegateRewardPer) []reward.DelegateRewardReceipt {
 	// Triggered again in the same cycle, no need to calculate revenue
 	if uint64(del.DelegateEpoch) == epoch {
 		return nil
@@ -2505,7 +2510,7 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 		return nil
 	}
 
-	delegateRewardReceives := make([]reward.DelegateRewardReceive, 0)
+	delegateRewardReceives := make([]reward.DelegateRewardReceipt, 0)
 	if per[0].Epoch > uint64(del.DelegateEpoch) {
 		lazyCalcDelegateAmount(epoch, del)
 	}
@@ -2516,12 +2521,12 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 			if nil == del.CumulativeIncome {
 				del.CumulativeIncome = new(big.Int)
 			}
-			delegateRewardReceive := reward.DelegateRewardReceive{
-				Epoch:  rewardPer.Epoch,
-				Reward: new(big.Int).Mul(totalReleasedUnit, rewardPer.Amount),
+			delegateRewardReceive := reward.DelegateRewardReceipt{
+				Epoch:    rewardPer.Epoch,
+				Delegate: new(big.Int).Set(totalReleased),
 			}
 			delegateRewardReceives = append(delegateRewardReceives, delegateRewardReceive)
-			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, delegateRewardReceive.Reward)
+			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, new(big.Int).Mul(totalReleasedUnit, rewardPer.Per))
 		}
 		if i == 0 {
 			lazyCalcDelegateAmount(epoch, del)
