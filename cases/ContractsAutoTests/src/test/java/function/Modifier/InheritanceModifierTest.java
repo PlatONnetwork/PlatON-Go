@@ -20,10 +20,12 @@ import java.math.BigInteger;
  */
 
 public class InheritanceModifierTest extends ContractPrepareTest {
+    private String modifiertest;
 
     @Before
     public void before() {
         this.prepare();
+        modifiertest = driverService.param.get("modifiertest");
     }
 
     @Test
@@ -40,7 +42,7 @@ public class InheritanceModifierTest extends ContractPrepareTest {
             //验证单修饰器函数调用
             BigInteger result = inheritanceModifier.getA().send();
             collector.logStepPass("InheritanceModifier函数返回值：" + result);
-            collector.assertEqual(new BigInteger("10"),result);
+            collector.assertEqual(modifiertest ,result.toString());
 
 
         } catch (Exception e) {

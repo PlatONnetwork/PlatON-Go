@@ -5,10 +5,12 @@ pragma solidity ^0.5.13;
  * （1）一维数组
  * （2）二维数组但是二维确定长度
  * （3）字符串类型
+ * （3）枚举类型
  * @author Albedo
  * @dev 2020/01/06
  **/
 contract EventTypeContract {
+
     uint[] uintArray = [0,1,2,3,4];
     event OneDimensionalArrayEvent(uint[] array);
     //测试一维数组类型声明事件

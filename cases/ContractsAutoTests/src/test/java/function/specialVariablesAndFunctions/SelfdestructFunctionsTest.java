@@ -57,6 +57,7 @@ public class SelfdestructFunctionsTest extends ContractPrepareTest {
             if(e.getMessage().startsWith("Empty")){
                 collector.logStepPass("调用自杀函数后链上的count值为:Empty");
             }
+            collector.assertContains(e.toString(), "ContractCallException");
             e.printStackTrace();
         }
     }
