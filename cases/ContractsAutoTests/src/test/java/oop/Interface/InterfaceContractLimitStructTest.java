@@ -16,8 +16,7 @@ import java.math.BigInteger;
  * @author: qudong
  * @create: 2019/12/25 15:09
  **/
-public class InterfaceContractLimitStruct02_02Test extends ContractPrepareTest {
-
+public class InterfaceContractLimitStructTest extends ContractPrepareTest {
 
     @Before
     public void before() {
@@ -25,7 +24,7 @@ public class InterfaceContractLimitStruct02_02Test extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "02InterfaceContractLimitTest.在5.0以后版本，接口可以声明结构体")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InterfaceContractLimitStruct.验证接口定义结构体")
     public void testInterfaceContractLimitEnum() {
 
         InterfaceContractStructTest interfaceContractStructTest= null;

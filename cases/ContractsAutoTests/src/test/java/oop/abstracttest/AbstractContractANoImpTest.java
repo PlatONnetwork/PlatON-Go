@@ -23,7 +23,7 @@ import java.math.BigInteger;
  * @author: qudong
  * @create: 2019/12/25 15:09
  **/
-public class AbstractContractNoImp01_01Test {
+public class AbstractContractANoImpTest {
     @Rule
     public AssertCollector collector = new AssertCollector();
 
@@ -39,7 +39,7 @@ public class AbstractContractNoImp01_01Test {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "01AbstractContractExecuteTest_01.抽象合约未实现执行情况")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约未实现执行情况")
     public void testAbstractContract() {
         Web3j web3j = null;
         Credentials credentials = null;

@@ -16,8 +16,7 @@ import java.math.BigInteger;
  * @author: qudong
  * @create: 2019/12/25 15:09
  **/
-public class InheritContractMutiple03_Test extends ContractPrepareTest {
-
+public class InheritContractBMutipleTest extends ContractPrepareTest {
 
     @Before
     public void before() {
@@ -25,7 +24,7 @@ public class InheritContractMutiple03_Test extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "03InheritContractMultipleTest.多重继承(遵循先父到子的继承顺序)")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InheritContract.多重继承(遵循先父到子的继承顺序)")
     public void testInheritContractMutipleTest1() {
 
         InheritContractSubclass inheritContractSubclass = null;

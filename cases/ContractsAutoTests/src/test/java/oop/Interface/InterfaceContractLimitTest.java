@@ -16,7 +16,7 @@ import java.math.BigInteger;
  * @author: qudong
  * @create: 2019/12/25 15:09
  **/
-public class InterfaceContractLimit01_Test extends ContractPrepareTest {
+public class InterfaceContractLimitTest extends ContractPrepareTest {
 
     private String param1,param2,sumParam;
 
@@ -29,7 +29,7 @@ public class InterfaceContractLimit01_Test extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "01InterfaceContractLimitTest.在5.0以后版本，接口的函数只能声明外部类型(external)，是否可正常执行")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InterfaceContractLimit.验证接口的函数只能声明外部类型")
     public void testInterfaceContractLimit() {
 
         InterfaceContractParentTest interfaceContractParentTest= null;
