@@ -272,7 +272,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
 				MaxValidators:         uint64(101),
-				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
 			},
 			Slashing: slashingConfig{
@@ -318,7 +317,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
 				MaxValidators:         uint64(101),
-				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
 			},
 			Slashing: slashingConfig{
@@ -364,7 +362,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
 				MaxValidators:         uint64(101),
-				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
 			},
 			Slashing: slashingConfig{
