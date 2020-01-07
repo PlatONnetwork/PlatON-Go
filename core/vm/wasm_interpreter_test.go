@@ -113,7 +113,9 @@ func (stateDB) Snapshot() int        { return 0 }
 
 func (stateDB) AddPreimage(common.Hash, []byte) {}
 
-func (stateDB) ForEachStorage(common.Address, func(common.Hash, common.Hash) bool) {}
+func (stateDB) ForEachStorage(common.Address, func([]byte, []byte) bool) {}
+
+func (stateDB) MigrateStorage(from, to common.Address) {}
 
 func (stateDB) AddLog(*types.Log) {
 	fmt.Println("add log")

@@ -241,6 +241,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			pc++
 		}
 	}
+	if atomic.LoadInt32(&in.evm.abort) == 1 {
+		return nil, ErrAbort
+	}
 	return nil, nil
 }
 

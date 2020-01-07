@@ -670,14 +670,14 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		checkeq("GetCodeHash", state.GetCodeHash(addr), checkstate.GetCodeHash(addr))
 		checkeq("GetCodeSize", state.GetCodeSize(addr), checkstate.GetCodeSize(addr))
 		// Check storage.
-		//if obj := state.getStateObject(addr); obj != nil {
-		//	state.ForEachStorage(addr, func(key, value common.Hash) bool {
-		//		return checkeq("GetState("+key.Hex()+")", checkstate.GetState(addr, key), value)
-		//	})
-		//	checkstate.ForEachStorage(addr, func(key, value common.Hash) bool {
-		//		return checkeq("GetState("+key.Hex()+")", checkstate.GetState(addr, key), value)
-		//	})
-		//}
+		if obj := state.getStateObject(addr); obj != nil {
+			state.ForEachStorage(addr, func(key, value []byte) bool {
+				return checkeq("GetState("+string(key)+")", checkstate.GetState(addr, key), value)
+			})
+			checkstate.ForEachStorage(addr, func(key, value []byte) bool {
+				return checkeq("GetState("+string(key)+")", checkstate.GetState(addr, key), value)
+			})
+		}
 		if err != nil {
 			return err
 		}

@@ -1,11 +1,13 @@
 package vm
 
 const (
-	IndirectCallGas = uint64(1)
-	Sha3DataGas     = uint64(1)
-	StoreLenGas     = uint64(1)
-	StoreGas        = uint64(1)
-	ExternalDataGas = uint64(1)
+	IndirectCallGas    = uint64(1)
+	Sha3DataGas        = uint64(1)
+	StoreLenGas        = uint64(1)
+	StoreGas           = uint64(1)
+	ExternalDataGas    = uint64(1)
+	CallContractGas    = uint64(700)
+	MigrateContractGas = uint64(68000)
 )
 
 var wasmGasCostTable = map[byte]uint64{

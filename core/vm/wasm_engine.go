@@ -240,6 +240,8 @@ func (engine *wagonEngine) makeModuleWithCall() (*exec.CompiledModule, int64, er
 	return mod, index, nil
 }
 
+// assemblyDeployCode parses out the contract code and call data during wasm deployment.
+// The composition of `code` is `magicNum|rlp[contractCode, rlp(init,args1, args2, ...)]`
 func assemblyDeployCode(code []byte) (contractCode []byte, calldata []byte, err error) {
 	if len(code) == 0 {
 		return nil, nil, errors.New("No contract code to be parsed")
