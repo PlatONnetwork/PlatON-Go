@@ -34,11 +34,11 @@ void platon_panic();
 void platon_debug(uint8_t *dst, size_t len);
 
 
-int32_t platon_call(const uint8_t *to, const uint8_t *args, size_t argsLen, const uint8_t *amount, size_t amountLen);
-int32_t platon_delegatecall(const uint8_t* to, const uint8_t* args, size_t argsLen);
-int32_t platon_staticcall(const uint8_t* to, const uint8_t* args, size_t argsLen);
+int32_t platon_call(const uint8_t *to, const uint8_t *args, size_t argsLen, const uint8_t *amount, size_t amountLen, const uint8_t* callCost, size_t callCostLen);
+int32_t platon_delegatecall(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
+int32_t platon_staticcall(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
 int32_t platon_destroy();
-int32_t platon_migrate(const uint8_t* oldAddr, uint8_t *newAddr, const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen);
+int32_t platon_migrate(const uint8_t* oldAddr, uint8_t *newAddr, const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
 void platon_event(const uint8_t* args, size_t argsLen);
 void platon_event1(const uint8_t* topic, size_t topicLen, const uint8_t* args, size_t argsLen);
 void platon_event2(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* args, size_t argsLen);
@@ -196,8 +196,10 @@ void platon_call_contract_test() {
   // size_t addrLen = platon_get_input_length();
   platon_get_input(addr);
   uint8_t data = 2;
-  uint8_t value = 1;
-  platon_call(addr, &data, 1, &value, 1);
+  uint8_t value = 2;
+  uint8_t gas = 1;
+
+  platon_call(addr, &data, 1, &value, 1, &gas, 1);
   platon_return(&value, 1);
 }
 
@@ -206,7 +208,8 @@ void platon_delegatecall_contract_test () {
     uint8_t addr[20];
     platon_get_input(addr);
     uint8_t data = 2;
-    platon_delegatecall(addr, &data, 1);
+    uint8_t gas = 1;
+    platon_delegatecall(addr, &data, 1, &gas, 1);
     platon_return(&data, 1);
 }
 
@@ -216,7 +219,8 @@ void platon_staticcall_contract_test () {
     uint8_t addr[20];
     platon_get_input(addr);
     uint8_t data = 2;
-    platon_staticcall(addr, &data, 1);
+    uint8_t gas = 1;
+    platon_staticcall(addr, &data, 1, &gas, 1);
     platon_return(&data, 1);
 }
 
@@ -234,9 +238,9 @@ void platon_migrate_contract_test () {
     uint8_t newAddr[20];
 
     uint8_t data = 2;
-    uint8_t value = 1;
-
-    platon_migrate(oldAddr, newAddr, &data, 1, &value, 1);
+    uint8_t value = 2;
+    uint8_t gas = 1;
+    platon_migrate(oldAddr, newAddr, &data, 1, &value, 1, &gas, 1);
     platon_return(newAddr, 20);
 }
 

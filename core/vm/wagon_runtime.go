@@ -2,8 +2,9 @@ package vm
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	inner "github.com/PlatONnetwork/PlatON-Go/common/math"
+	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -444,11 +445,11 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// todo
-	// int32_t platon_call(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* amount, size_t amountLen)
-	// func $platon_call  (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t platon_call(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* amount, size_t amountLen, const uint8_t* callCost, size_t callCostLen)
+	// func $platon_call  (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
@@ -462,11 +463,11 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// todo
-	// int32_t platon_delegatecall(const uint8_t* to, const uint8_t* args, size_t argsLen)
-	// func $platon_delegatecall (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t platon_delegatecall(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen)
+	// func $platon_delegatecall (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
@@ -480,11 +481,11 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// todo
-	// int32_t platon_staticcall(const uint8_t* to, const uint8_t* args, size_t argsLen)
-	// func $platon_staticcall (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t platon_staticcall(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen)
+	// func $platon_staticcall (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
@@ -515,11 +516,11 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// todo
-	// int32_t platon_migrate(const uint8_t* old, uint8_t* new, const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen)
-	// func $platon_migrate (param $0 i32) (param $1 i32) (param $2 i32) (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t platon_migrate(const uint8_t* old, uint8_t* new, const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen)
+	// func $platon_migrate (param $0 i32) (param $1 i32) (param $2 i32) (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
@@ -719,18 +720,37 @@ func Transfer(proc *exec.Process, dst uint32, dstLen uint32, amount uint32, len 
 	bValue := new(big.Int)
 	// 256 bits
 	bValue.SetBytes(value)
-	bValue = inner.U256(bValue)
+	bValue = imath.U256(bValue)
 	addr := common.BytesToAddress(address)
 
-	gas := ctx.evm.callGasTemp
-	if bValue.Sign() != 0 {
-		gas += params.CallStipend
+	transfersValue := bValue.Sign() != 0
+	gas := CallContractGas
+	if transfersValue {
+		gas += params.CallValueTransferGas
 	}
+	gasTemp, err := callGasWasm(ctx.contract.Gas, params.TxGas, big.NewInt(int64(params.TxGas)))
+	if nil != err {
+		panic(err)
+	}
+	ctx.evm.callGasTemp = gasTemp
+	gas, overflow := imath.SafeAdd(gas, ctx.evm.callGasTemp)
+	if overflow {
+		panic(errGasUintOverflow)
+	}
+	checkGas(ctx, gas)
+
+	gas = ctx.evm.callGasTemp
+	if transfersValue {
+		if gas, overflow = imath.SafeAdd(gas, params.CallStipend); overflow {
+			panic(errGasUintOverflow)
+		}
+	}
+
 	_, returnGas, err := ctx.evm.Call(ctx.contract, addr, nil, gas, bValue)
 	if err != nil {
 		return 1
 	}
-	checkGas(ctx, returnGas)
+	ctx.contract.Gas = returnGas
 	return 0
 }
 
@@ -831,7 +851,7 @@ func Debug(proc *exec.Process, dst uint32, len uint32) {
 	ctx.log.Debug(string(buf))
 }
 
-func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen uint32) int32 {
+func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
@@ -846,23 +866,55 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen uint32
 	bValue := new(big.Int)
 	// 256 bits
 	bValue.SetBytes(value)
-	bValue = inner.U256(bValue)
+	bValue = imath.U256(bValue)
 
-	gas := ctx.evm.callGasTemp
+	cost := make([]byte, callCostLen)
+	proc.ReadAt(cost, int64(callCost))
+	bCost := new(big.Int)
+	// 256 bits
+	bCost.SetBytes(cost)
+	bCost = imath.U256(bCost)
+
+	gas := CallContractGas
+	transfersValue := bValue.Sign() != 0
+	if transfersValue && ctx.evm.StateDB.Empty(addr) {
+		gas += params.CallNewAccountGas
+	}
+
+	if transfersValue {
+		gas += params.CallValueTransferGas
+	}
+
+	gasTemp, err := callGasWasm(ctx.contract.Gas, gas, bCost)
+	if nil != err {
+		panic(err)
+	}
+	ctx.evm.callGasTemp = gasTemp
+	gas, overflow := imath.SafeAdd(gas, ctx.evm.callGasTemp)
+	if overflow {
+		panic(errGasUintOverflow)
+	}
+	checkGas(ctx, gas)
+
+	gas = ctx.evm.callGasTemp
 	if bValue.Sign() != 0 {
-		gas += params.CallStipend
+		if gas, overflow = imath.SafeAdd(gas, params.CallStipend); overflow {
+			panic(errGasUintOverflow)
+		}
 	}
 
-	ret, _, err := ctx.evm.Call(ctx.contract, addr, input, gas, bValue)
+	ret, returnGas, err := ctx.evm.Call(ctx.contract, addr, input, gas, bValue)
 	if err != nil {
-		return 0
+		panic(err)
 	}
+
+	ctx.contract.Gas += returnGas
 
 	ctx.CallOut = ret
 	return int32(len(ctx.CallOut))
 }
 
-func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen uint32) int32 {
+func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
@@ -872,17 +924,39 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen uint32)
 	input := make([]byte, paramsLen)
 	proc.ReadAt(input, int64(params))
 
-	//fmt.Println("Addr:", addr.String(), "Data:", input)
-	ret, _, err := ctx.evm.DelegateCall(ctx.contract, addr, input, ctx.evm.callGasTemp)
-	if err != nil {
-		return 0
+	cost := make([]byte, callCostLen)
+	proc.ReadAt(cost, int64(callCost))
+	bCost := new(big.Int)
+	// 256 bits
+	bCost.SetBytes(cost)
+	bCost = imath.U256(bCost)
+
+	gasTemp, err := callGasWasm(ctx.contract.Gas, CallContractGas, bCost)
+	if nil != err {
+		panic(err)
 	}
+	ctx.evm.callGasTemp = gasTemp
+	gas, overflow := imath.SafeAdd(CallContractGas, ctx.evm.callGasTemp)
+	if overflow {
+		panic(errGasUintOverflow)
+	}
+	checkGas(ctx, gas)
+
+	gas = ctx.evm.callGasTemp
+
+	//fmt.Println("Addr:", addr.String(), "Data:", input)
+	ret, returnGas, err := ctx.evm.DelegateCall(ctx.contract, addr, input, gas)
+	if err != nil {
+		panic(err)
+	}
+
+	ctx.contract.Gas += returnGas
 
 	ctx.CallOut = ret
 	return int32(len(ctx.CallOut))
 }
 
-func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen uint32) int32 {
+func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
@@ -892,11 +966,33 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen uint32) i
 	input := make([]byte, paramsLen)
 	proc.ReadAt(input, int64(params))
 
-	//fmt.Println("Addr:", addr.String(), "Data:", input)
-	ret, _, err := ctx.evm.StaticCall(ctx.contract, addr, input, ctx.evm.callGasTemp)
-	if err != nil {
-		return 0
+	cost := make([]byte, callCostLen)
+	proc.ReadAt(cost, int64(callCost))
+	bCost := new(big.Int)
+	// 256 bits
+	bCost.SetBytes(cost)
+	bCost = imath.U256(bCost)
+
+	gasTemp, err := callGasWasm(ctx.contract.Gas, CallContractGas, bCost)
+	if nil != err {
+		panic(err)
 	}
+
+	ctx.evm.callGasTemp = gasTemp
+	gas, overflow := imath.SafeAdd(CallContractGas, ctx.evm.callGasTemp)
+	if overflow {
+		panic(errGasUintOverflow)
+	}
+	checkGas(ctx, gas)
+
+	gas = ctx.evm.callGasTemp
+	//fmt.Println("Addr:", addr.String(), "Data:", input)
+	ret, returnGas, err := ctx.evm.StaticCall(ctx.contract, addr, input, gas)
+	if err != nil {
+		panic(err)
+	}
+
+	ctx.contract.Gas += returnGas
 
 	ctx.CallOut = ret
 	return int32(len(ctx.CallOut))
@@ -909,15 +1005,30 @@ func DestroyContract(proc *exec.Process) int32 {
 		panic(errWASMWriteProtection)
 	}
 
-	balance := ctx.evm.StateDB.GetBalance(ctx.contract.Address())
-	//fmt.Println("sender:", ctx.contract.Caller().String(), "to:", ctx.contract.Address().String(), "value:", balance)
-	ctx.evm.StateDB.AddBalance(ctx.contract.Caller(), balance)
+	caller := ctx.contract.Caller()
+	contractAddr := ctx.contract.Address()
 
-	ctx.evm.StateDB.Suicide(ctx.contract.Address())
+	gas := params.SelfdestructGas
+	if ctx.evm.StateDB.Empty(caller) && ctx.evm.StateDB.GetBalance(contractAddr).Sign() != 0 {
+		gas += params.CreateBySelfdestructGas
+	}
+
+	if !ctx.evm.StateDB.HasSuicided(ctx.contract.Address()) {
+		ctx.evm.StateDB.AddRefund(params.SuicideRefundGas)
+	}
+
+	checkGas(ctx, gas)
+
+	balance := ctx.evm.StateDB.GetBalance(contractAddr)
+	//fmt.Println("sender:", ctx.contract.Caller().String(), "to:", ctx.contract.Address().String(), "value:", balance)
+	ctx.evm.StateDB.AddBalance(caller, balance)
+
+	ctx.evm.StateDB.Suicide(contractAddr)
+
 	return 0
 }
 
-func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLen uint32) int32 {
+func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
@@ -941,9 +1052,31 @@ func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, v
 	bValue := new(big.Int)
 	// 256 bits
 	bValue.SetBytes(value)
-	bValue = inner.U256(bValue)
+	bValue = imath.U256(bValue)
 
-	gas := ctx.contract.Gas
+	cost := make([]byte, callCostLen)
+	proc.ReadAt(cost, int64(callCost))
+	bCost := new(big.Int)
+	// 256 bits
+	bCost.SetBytes(cost)
+	bCost = imath.U256(bCost)
+
+	gas := MigrateContractGas
+	if bValue.Sign() != 0 {
+		gas += params.CallNewAccountGas
+	}
+	gasTemp, err := callGasWasm(ctx.contract.Gas, gas, bCost)
+	if nil != err {
+		panic(err)
+	}
+
+	ctx.evm.callGasTemp = gasTemp
+	gas, overflow := imath.SafeAdd(gas, ctx.evm.callGasTemp)
+	if overflow {
+		panic(errGasUintOverflow)
+	}
+	checkGas(ctx, gas)
+	gas = ctx.evm.callGasTemp
 
 	sender := ctx.contract.CallerAddress
 
@@ -966,12 +1099,6 @@ func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, v
 	ctx.evm.StateDB.SetNonce(newContract, 1)
 
 	oldBalance := new(big.Int).Set(ctx.evm.StateDB.GetBalance(oldContract))
-
-	//fmt.Println("sender:", sender.String(),
-	//	"\noldCOntract:", oldContract.String(),
-	//	"\nnewContract:", newContract.String(),
-	//	"\ninput:", input, "\nvalue:", bValue,
-	//	"\noldBalance:", oldBalance.String())
 
 	// migrate balance from old contract to new contract
 	ctx.evm.Transfer(ctx.evm.StateDB, oldContract, newContract, oldBalance)
@@ -1018,6 +1145,7 @@ func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, v
 			contract.UseGas(contract.Gas)
 		}
 	}
+
 	// Assign err if contract code size exceeds the max while the err is still empty.
 	if maxCodeSizeExceeded && err == nil {
 		err = errMaxCodeSizeExceeded
@@ -1026,6 +1154,8 @@ func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, v
 	if nil != err {
 		panic(err)
 	}
+
+	ctx.contract.Gas = contract.Gas
 
 	proc.WriteAt(newContract.Bytes(), int64(newAddr))
 
@@ -1038,6 +1168,12 @@ func EmitEvent(proc *exec.Process, args, argsLen uint32) {
 	if ctx.readOnly {
 		panic(errWASMWriteProtection)
 	}
+
+	gas, err := logGas(0, uint64(argsLen))
+	if nil != err {
+		panic(err)
+	}
+	checkGas(ctx, gas)
 
 	topics := make([]common.Hash, 0)
 
@@ -1056,6 +1192,12 @@ func EmitEvent1(proc *exec.Process, t, tLen, args, argsLen uint32) {
 	if ctx.readOnly {
 		panic(errWASMWriteProtection)
 	}
+
+	gas, err := logGas(1, uint64(argsLen))
+	if nil != err {
+		panic(err)
+	}
+	checkGas(ctx, gas)
 
 	topic := make([]byte, tLen)
 	proc.ReadAt(topic, int64(t))
@@ -1076,6 +1218,12 @@ func EmitEvent2(proc *exec.Process, t1, t1Len, t2, t2Len, args, argsLen uint32) 
 	if ctx.readOnly {
 		panic(errWASMWriteProtection)
 	}
+
+	gas, err := logGas(2, uint64(argsLen))
+	if nil != err {
+		panic(err)
+	}
+	checkGas(ctx, gas)
 
 	topic1 := make([]byte, t1Len)
 	proc.ReadAt(topic1, int64(t1))
@@ -1103,6 +1251,12 @@ func EmitEvent3(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, args, argsL
 	if ctx.readOnly {
 		panic(errWASMWriteProtection)
 	}
+
+	gas, err := logGas(3, uint64(argsLen))
+	if nil != err {
+		panic(err)
+	}
+	checkGas(ctx, gas)
 
 	topic1 := make([]byte, t1Len)
 	proc.ReadAt(topic1, int64(t1))
@@ -1135,4 +1289,21 @@ func addLog(state StateDB, address common.Address, topics []common.Hash, data []
 		BlockNumber: bn,
 	}
 	state.AddLog(log)
+}
+
+func logGas(topicNum, dataSize uint64) (uint64, error) {
+	gas := params.LogGas
+	var overflow bool
+	if gas, overflow = imath.SafeAdd(gas, topicNum*params.LogTopicGas); overflow {
+		return 0, errGasUintOverflow
+	}
+
+	var logSizeGas uint64
+	if logSizeGas, overflow = imath.SafeMul(dataSize, params.LogDataGas); overflow {
+		return 0, errGasUintOverflow
+	}
+	if gas, overflow = imath.SafeAdd(gas, logSizeGas); overflow {
+		return 0, errGasUintOverflow
+	}
+	return gas, nil
 }
