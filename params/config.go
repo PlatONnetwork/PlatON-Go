@@ -37,36 +37,7 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 }
 
 var (
-	initialMainNetConsensusNodes = []initNode{
-		{
-			"enode://a84f5047c13a01b01b1f5c8be63c360d1d9d49d4d0f0c55deacade344bd3f1d12033b1334d8e42646f7eaf4a46ab325e6e02d020f4ac157ac71a4d202cd5ccea@13.69.9.245:16789", //TEST-SEA
-			"6af3f69120080ea55fc803fbe5fc659a2274d413b8c6162fbd8ab6b1bb88de7e01c395977a3a64f91f04132104041c0035b13fa36251672e10820c043d2fdd09798120527682df31f57a4cd57030ecb084f84fa1c5b78d1272c162b001d20280",
-		},
-		{
-			"enode://01fd4af4c8cdf5d7b934c0ad955d0b7b44114555457f49032d2eccf838abe18eff5a336be7d0fd93cb50359192d1a4c063eaad4b395f6c5b6b6dc3fda64ccfbb@207.46.233.122:16789", //TEST-SG
-			"ac7f88010a1838b23c60c075d83f1cbf412e833187dd838d18c560e4e6f1cd17672695f31262578b580501804177e70c9c0fff88f7dcd257848f7af8e9a39921db378547e6f8e7111d1de2651261ce03d2a4a1821e7774bae25acd28d5f09a0b",
-		},
-		{
-			"enode://a2b436b09818b678c38983c51e80de7e564a42c5f875ad0a7e6dddddbd6b3b0396ba02fa1f19542765b03c74ffb33774f67fb13615e59bb31c451a44e9678117@52.142.166.24:16789", //TEST-NA
-			"4e76bff3d7487cc8ee2f47ba09c997df386d3a06e9771067023ecb1f7dbcc8123ff59af9b6fd7814cc793e4e11d4420890532ae6d63fddb5a0e56b019567a5f6181d4ad14bc3e5771a285738c8def864526246cccb7fa6ee3cbdef3083e08009",
-		},
-		{
-			"enode://f32160f10265d2273e4a625c9795564689ac80aa40a75f7f2e93aa31f214a0459a47c6813079355504928f1f521f86a70f1a31d4db607ee128df72825f967dd8@52.143.129.153:16789", //TEST-US
-			"b96ddc93537ef7ec25626d272be4f2ba445fdedb5b40fbf4b8ea519c9144df309e862e8e64f6871cdbfb6cb1b8583d1960f4781358999b283c66b096fc16b596c81392f912a9905f0b6df3eb7cdf7a044eba2ef3efd046cd039b7bc85553130b",
-		},
-		{
-			"enode://4f4946d376233ed5a0440c0a68fbf9a0dd926e276a7c88715e889ce2029f1f8c25d5a7abb9dfcb155cf0a73888e2e2b79e07ac10f3c4a810ec57201f2fbd2389@52.63.239.155:16789", //TEST-US
-			"81e4458fe917b277378b6de409244973c9d1a27d8bc0b18e7230edee30dc69e4575d2d732fa662cc43021ce8f3c20901be367e7b3596405d28181beea68be83d3a4e9a627b9ffb6cbd098859e62ac3fc778a2cd4b3e70d1eafb9edef06dc1d09",
-		},
-		{
-			"enode://53c2582db1d5397dab9c079e9d03a3fd81b5332eda145f3c10e62df365f3fea828a880f8d39803e6555f9df84453cbf27d2bf80b27c09727f0909044da5d560c@35.182.73.204:16789", //TEST-US
-			"455582d7d02884c3aa9a8d8b3173b88a76248853cc4ee1e973b3bd0a192f28834d8121f99cdba1dcee06e8437b9fc60b6d88f5e5c662d2dd24be4469be209c20a07f0b9cb210ff5a8b99d8a2b4a90d7d3ed8b60c73b8727e109be2f803abe811",
-		},
-		{
-			"enode://61241ed97c11ffb8843b6f62263b63eb2d47b73e1ccc7ca474fd3e8f212c56d3e1687f4fe380ce122a478773ba70b5f893ee4baece836513d3b68a88a2977631@3.122.68.59:16789", //TEST-US
-			"0c722bbee6314348218648cb63244364c490ca8e04e8cfbc6f38d2ec90a8b33be65c987692e84aae5fe47926f4e0a00c7e08f3a1ccc36e5576b684b7fda2b34646723ffdd8a841d4ad9e8c1b228073fba4ddf6e03620ecdd8f6c07b158103289",
-		},
-	}
+	initialMainNetConsensusNodes = []initNode{}
 
 	initialTestnetConsensusNodes = []initNode{
 		{
@@ -99,9 +70,75 @@ var (
 		},
 	}
 
+	initialRallyNetConsensusNodes = []initNode{
+		{
+			"enode://8eb53f40f5444fc620a603d08f5b33ffe518edb7ff71537bd6ddc92f971a6ac11c9c1f5315eb50df837b3a420681b7553d34f12fce224e00a4757b6e1e59260e@13.69.9.245:16789",
+			"de70742cdee73b4ca931c85a02ed876e6396faa553655ca5a72125ef54af008aefa62e9dc705a82710790ff5f2a5a500e965e8dc70a2e46b5454f9adc7314d3597b0dc9560c7841202c938a725cb21e1a837b4b0a3a934569351576bf2f58c0b",
+		},
+		{
+			"enode://8c3b29b053b0b1d0c940b1d97dad7e41aa069cd19072aa96ca65ddd75cda8ab7f252a4f527f48dcc9809bbfab4866eb49bba9aa3d47ae70eda25ae0b022494f0@207.46.233.122:16789",
+			"7bd67034a569a4b945b91b653c8c62563c78a9fbacc2aea3265762c74c7dd6099c40d0c2bb5c6b61c3feec6f8ca01a0971ce15cb06a99ffca918d0abc1a1fa64ba954dd7da4a9f2e3033d3397a10db0f75eb440f5b2afa2d16d547655e020284",
+		},
+		{
+			"enode://1184b02c88ca5100dde8cb208781f30ee5743e6049271f3678d7b7ee927f8604bf9b1906ebbb5538fdbad9fcf7a07f519ec06923a7c5c3d28b82193a8e05e9e8@52.142.166.24:16789",
+			"b49f00ac24357921f3eb1fc62daffb34c5200de13e385bfff18f42b91655cc1533b393dea381a6701154e764bf3487119df64f3a0c7d0f6c7543ef8246e28f1fec076fdb9fde748e9a3748eb2cd46d234a5c93fcc5b5ef8c8bb3a05b4d1f2c17",
+		},
+		{
+			"enode://638c147e82f34b38b17dfee8d7fdf3a4b0cbeeafff0261850bd7ffbdd49cd309710d1220855ff7a5c47837f0bb43b21ef0784fd532f43b5675ea553a4aeb696a@52.143.129.153:16789",
+			"55b1468d1c5b46aee64795d04681bbe0d95fb52f616105341e6fb5572ae6530cfc0635ce9c1e2d39f323e7bd0721b609f8f5df8ddd2ba04a0d6e154460b44be83e426d2e546d865930eabc3240ee880c71b3df4db566e58b3fff18dc7ccc9614",
+		},
+		{
+			"enode://9eb996af791008f5302eb9aa96db400dd17e3dfdd81f6ef3e2a9477c43ab736a767e371bbed0aa56a17e443850ea4854436678903214f4d4e1c3baecfffca416@52.63.239.155:16789",
+			"acd829b1b645893741776cba1debad8023f166037a593e2fabaae7665b422074d6cf06e048258f0bfaad97c1702f361463b8aece65d43d3b945f92c5ce649eb019c087e634d4cc328c5269350620850298b467befabd9d4e219bc95a6b74c397",
+		},
+		{
+			"enode://33d96f68153ca98ae3ac88f61f9295263962418b48c1dc5d71928d15edf6dbeeefdf2d05c3502ccbb62f1101098ae14fe79e4271c316a535b215f93658a3732f@35.182.73.204:16789",
+			"6ec2b2d5ace2c6c858fbcfd228a9cad5a1cdd34be42b7c5deec5aff462308a9acd90b51a987be164ccf5fd78950b49058a370d89b1b6a6011419b2518f061bc491499692e9d627d32a0e026df8cfa73ddbc6dc508275999ec2f3b1b41ce51e97",
+		},
+		{
+			"enode://d24bdf6948435427c2844aa0ac94e2691d52f6d82be7ba8bca657955eb386db633043ccec0cbe4fb98b65d0b4a6266d67195d1506900f3c92e98bb1a3de75039@3.122.68.59:16789",
+			"4d8fd606967215b6f5e44e94a7336d9c1cada0d8b84c06e4316b63b42fc0dd0bac48d014f8c02484600d178f5394d219d9c108166ee7011b2d3549f3571207bec5a55fa23911b9778630e3ada7a6b3ae932e3dda5be904202d5fe4c36f57b307",
+		},
+	}
+
+	initialUatNetConsensusNodes = []initNode{
+		{
+			"enode://ef4f6f74b0883637c54c257c530e22dae0e55902be086b2e059651b145a2afb549dd71dc59c1c302c32d9c41464aa5bdbd24c77d3c42fed679cf514a66b197f6@23.102.22.162:16789",
+			"8b4d0c3b58aedce24ef254ea778247466f8269637bf70d16f811bfdc5274cafd8a28b716ab0bc433b94b4b34fe2fe50f9ce71b4b10f96a7d71ee0d4bb41c1de4d8aaa32004578344dfdc45c45d9956d47a5c7ffd21afe3cf76074d432082ab81",
+		},
+		{
+			"enode://1084a3e3f76a8d15a811d5e3c564125e43d96a2bdc44f4f773f9eb2ac5c13d63ddc2c03ccb8743335575c6d6b5adb62345abe259b9be8298657cd5ce7fdad2fa@54.251.161.158:16789",
+			"9df5ceceef3b2c3f601cd84911c92544b8dbbabd31f007324512ee7c88b6dff651f6a2263f50d9beda4335e23c06ac160dec487031e0a3c257f4215fd25336dbcbc40ecb884366bbe65c050343265a82a8e2f2494aa0c906f82d00fda7591e96",
+		},
+		{
+			"enode://e64ff3d35bbcb37a991b16b7c120459ef9cf3c96ff5ab3e5124fc75d60f0ce7c280683377e46fed0a5c39913dfae8a2c398434dba9c364907406fbc0afb13e6f@149.129.136.253:16789",
+			"5bf31a518acbf66513c8a5df86f78f2142d1cb9a26fbd10864637e851f1e6bf05848a604f0464ff809f98701e2381e0b99b1e654eb8b68da8fede0a2380571caced833da5f3fb21e56537c34353af89d899717ff7763e0fd93f2ac1a7c37e88d",
+		},
+
+		{
+			"enode://db3b21aeed13527ad2a510762c85c98bd77f4a10d6c3396db333c0fd69063f198f91d5ed2b19f1d1eb05d3f4184a25689106b6f94b583d9e5d07909768cdefdb@149.129.136.60:16789",
+			"12ab9ae8a51746ea7329cc4c0c31eb73ee9b00ca35efcf34762baa3e6b108a95936affaabb198a4db33f56dd037f28028e6466dcfb8569a76e32a119426ea048d4c0310ce1b0d2268c750fc907a268efdf313af5de4c741b2453617fcddf0383",
+		},
+
+		{
+			"enode://fd22593e5a72d906dcf2df85aec9dc58b7101468493c547d238d17ad20cf1c28308b15b2521bca03f28af4706a0800f9edac5d4ab4fc89e5f109997ae294ef84@149.129.147.224:16789",
+			"2f7cde8789ca182c15dd26a7a2fde303c16c9824072b5a20519cb650ad15756289c28c9239eed8f8cec1ab1f8646f20b981dcfd0d9bb9c80979f7c56c6b1d4ed5c94b88bb232ca3c92f69963c17768499a10023add6bab0ed084954bc9886a10",
+		},
+		{
+			"enode://8b01ba20ab81e9753ecae32b0b6d35104957b91ab748fde20627b41361811a9c34e2cdca658fb1602871acdbf091dc8c00a97b87b5b2c33790bd8c57949a7675@149.129.132.215:16789",
+			"2dcb3f2059802a10d9d9f918fa20d89ef3a2bbf80a356583e1159de3fcf103b6a2e878aff77519c2eb2c63a2ae0084106797cd267a5d8865e5f76d7e27854255cf04139c7e7d472a441f3f7835a54db633ba3a9299947488b438455cb2c2d603",
+		},
+		{
+			"enode://defa79441cc774ec65c2eb78776cd8e12496d85fad00d9ef61a5454a0b62c5220d8b276f74ac81c8c19a61c6130b2c2a3bcb343a0426e830b2fc29a6cb083431@149.129.176.49:16789",
+			"1cf7d7e829f66e826277814f44112019bb107509a26da1e0ae05fa2c6d4e251c01d1b861981382926d6dbe93ffcb7a078c5183553b79137bdb497076baaf01fea8867888860b1e4b6c4e9dcd6a44a321650329f953e69330b8f42886a09b650d",
+		},
+	}
+
+	initialDemoNetConsensusNodes = []initNode{}
+
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(97),
+		ChainID:     big.NewInt(100),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
@@ -125,11 +162,56 @@ var (
 
 	// TestnetChainConfig contains the chain parameters to run a node on the test network.
 	TestnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(103),
+		ChainID:     big.NewInt(101),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        20000,
+		},
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
+	}
+
+	// RallynetChainConfig is the chain parameters to run a node on the Rally network.
+	RallynetChainConfig = &ChainConfig{
+		ChainID:     big.NewInt(95),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(1),
+		Cbft: &CbftConfig{
+			InitialNodes:  ConvertNodeUrl(initialRallyNetConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        20000,
+		},
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
+	}
+
+	// UatnetChainConfig is the chain parameters to run a node on the Uat network.
+	UatnetChainConfig = &ChainConfig{
+		ChainID:     big.NewInt(299),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(1),
+		Cbft: &CbftConfig{
+			InitialNodes:  ConvertNodeUrl(initialUatNetConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        20000,
+		},
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
+	}
+
+	// DemonetChainConfig is the chain parameters to run a node on the demo network.
+	DemonetChainConfig = &ChainConfig{
+		ChainID:     big.NewInt(399),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(1),
+		Cbft: &CbftConfig{
+			InitialNodes:  ConvertNodeUrl(initialDemoNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
 			Period:        20000,
