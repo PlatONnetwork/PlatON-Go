@@ -275,27 +275,28 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 	receiveReward := new(big.Int)
 	for _, delWithPer := range list {
 		rewardsReceive := calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
-		log.Debug("WithdrawDelegateReward rewardsReceive", "rewardsReceive", rewardsReceive)
-		if err := UpdateDelegateRewardPer(blockHash, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, rewardsReceive, rmp.db); err != nil {
-			log.Error("call WithdrawDelegateReward UpdateDelegateRewardPer fail", "err", err)
-			return nil, err
-		}
-
 		rewards = append(rewards, reward.NodeDelegateReward{
 			NodeID:     delWithPer.DelegationInfo.NodeID,
 			StakingNum: delWithPer.DelegationInfo.StakeBlockNumber,
 			Reward:     new(big.Int).Set(delWithPer.DelegationInfo.Delegation.CumulativeIncome),
 		})
+		if len(rewardsReceive) != 0 {
+			if err := UpdateDelegateRewardPer(blockHash, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, rewardsReceive, rmp.db); err != nil {
+				log.Error("call WithdrawDelegateReward UpdateDelegateRewardPer fail", "err", err)
+				return nil, err
+			}
+			receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
 
-		receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
-
-		delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
-		if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation); err != nil {
-			return nil, err
+			delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
+			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation); err != nil {
+				return nil, err
+			}
 		}
+		log.Debug("WithdrawDelegateReward rewardsReceive", "rewardsReceive", rewardsReceive)
 	}
-
-	rmp.ReturnDelegateReward(account, receiveReward, state)
+	if receiveReward.Cmp(common.Big0) > 0 {
+		rmp.ReturnDelegateReward(account, receiveReward, state)
+	}
 	log.Debug("Call withdraw delegate reward: end", "account", account, "rewards", rewards, "blockNum", blockNum, "blockHash", blockHash, "receiveReward", receiveReward)
 
 	return rewards, nil
