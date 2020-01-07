@@ -48,7 +48,6 @@ import (
 type RewardMgrPlugin struct {
 	db            snapshotdb.DB
 	nodeID        discover.NodeID
-	CurrVerifier  map[discover.NodeID]struct{}
 	stakingPlugin *StakingPlugin
 }
 
@@ -73,7 +72,6 @@ func RewardMgrInstance() *RewardMgrPlugin {
 		sdb := snapshotdb.Instance()
 		rm = &RewardMgrPlugin{
 			db:            sdb,
-			CurrVerifier:  make(map[discover.NodeID]struct{}),
 			stakingPlugin: StakingInstance(),
 		}
 	})
@@ -136,7 +134,6 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
-		rmp.CleanCurrVerifier()
 	}
 
 	return nil
@@ -217,10 +214,6 @@ func (rmp *RewardMgrPlugin) AllocateStakingReward(blockNumber uint64, blockHash 
 	}
 
 	return verifierList, nil
-}
-
-func (rmp *RewardMgrPlugin) CleanCurrVerifier() {
-	rmp.CurrVerifier = make(map[discover.NodeID]struct{})
 }
 
 func (rmp *RewardMgrPlugin) ReturnDelegateReward(address common.Address, amount *big.Int, state xcom.StateDB) {
@@ -413,37 +406,13 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 }
 
 func (rmp *RewardMgrPlugin) IsCurrVerifier(blockHash common.Hash, head *types.Header, nodeId discover.NodeID) (bool, error) {
-	if len(rmp.CurrVerifier) > 0 {
-		if _, ok := rmp.CurrVerifier[nodeId]; ok {
-			log.Debug("find current verifier in cache", "num", head.Number, "nodeID", nodeId.TerminalString())
-			return true, nil
-		}
-		return false, nil
-	}
-	epochEnd := xutil.CalcBlocksEachEpoch() * (xutil.CalculateEpoch(head.Number.Uint64()) - 1)
-	var theEndEpochBlockHaveCommit bool
-
-	if rmp.db.GetCurrent().GetHighest(false).Num.Uint64() >= epochEnd {
-		theEndEpochBlockHaveCommit = true
-	}
-	verifierList, err := rmp.stakingPlugin.getVerifierList(blockHash, head.Number.Uint64(), theEndEpochBlockHaveCommit)
+	verifierList, err := rmp.stakingPlugin.getVerifierList(blockHash, head.Number.Uint64(), false)
 	if nil != err {
 		return false, err
 	}
-
-	if theEndEpochBlockHaveCommit {
-		for _, val := range verifierList.Arr {
-			rmp.CurrVerifier[val.NodeId] = struct{}{}
-		}
-		log.Debug("save current verifier in cache", "num", head.Number, "nodeIDs", rmp.CurrVerifier)
-		if _, ok := rmp.CurrVerifier[nodeId]; ok {
+	for _, verifier := range verifierList.Arr {
+		if verifier.NodeId == nodeId {
 			return true, nil
-		}
-	} else {
-		for _, val := range verifierList.Arr {
-			if val.NodeId == nodeId {
-				return true, nil
-			}
 		}
 	}
 	return false, nil

@@ -146,7 +146,6 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 				if err := contact.Plugin.HandleDelegatePerReward(hash, header.Number.Uint64(), verifierList, chain.StateDB); err != nil {
 					return err
 				}
-				contact.Plugin.CleanCurrVerifier()
 
 				if err := stkDB.SetEpochValList(hash, index[xutil.CalculateEpoch(header.Number.Uint64())].Start, index[xutil.CalculateEpoch(header.Number.Uint64())].End, queue); err != nil {
 					return err
