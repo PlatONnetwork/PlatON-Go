@@ -259,19 +259,12 @@ func assemblyDeployCode(code []byte) (contractCode []byte, calldata []byte, err 
 		return nil, nil, errors.New("No contract code to be parsed")
 	}
 
-	// decoding the contract code
-	if err = rlp.DecodeBytes(data[0], &contractCode); nil != err {
-		return
-	}
+	contractCode = data[0]
+	calldata = data[1]
 	codeMagic := BytesToInterpType(contractCode[:InterpTypeLen])
 	// check magic on contract code
 	if prefixMagic != codeMagic {
 		return nil, nil, errors.New("No contract code to be parsed")
-	}
-
-	calldata, err = rlp.EncodeToBytes(data[1:])
-	if nil != err {
-		return
 	}
 	return
 }
