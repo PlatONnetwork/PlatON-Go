@@ -1,6 +1,7 @@
 package event;
 
 import beforetest.ContractPrepareTest;
+import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.EventIndexedContract;
@@ -18,6 +19,31 @@ import java.util.List;
  * @create: 2020/01/06
  */
 public class EventIndexedContractTest extends ContractPrepareTest {
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testIntIndex",
+            author = "albedo", showName = "event.EventIndexedContractTest-有符号整型索引")
+    public void testIntIndex() {
+        try {
+            prepare();
+            EventIndexedContract eventCallContract = EventIndexedContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = eventCallContract.getContractAddress();
+            String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            TransactionReceipt receipt = eventCallContract.testMinus(new BigInteger("-12")).send();
+            List<EventIndexedContract.MinusEventEventResponse> str=eventCallContract.getMinusEventEvents(receipt);
+            BigInteger s=str.get(0).minus;
+            collector.assertEqual(s, new BigInteger("-12"), "checkout string indexed event");
+
+            receipt = eventCallContract.testMinus(new BigInteger("12")).send();
+            str=eventCallContract.getMinusEventEvents(receipt);
+            s=str.get(0).minus;
+            collector.assertEqual(s, new BigInteger("12"), "checkout string indexed event");
+        } catch (Exception e) {
+            collector.logStepFail("EventIndexedContractTest testStr failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
+        }
+    }
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testOneDimensionalArray",
             author = "albedo", showName = "event.EventIndexedContractTest-一维数组索引")
@@ -142,14 +168,15 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             TransactionReceipt receipt = eventCallContract.testAnonymousIndexed().send();
+            System.out.println(JSONObject.toJSONString(receipt.getLogs().get(0).getTopics()));
             String u1Topic=receipt.getLogs().get(0).getTopics().get(0);
             String u2Topic=receipt.getLogs().get(0).getTopics().get(1);
             String u3Topic=receipt.getLogs().get(0).getTopics().get(2);
             String u4Topic=receipt.getLogs().get(0).getTopics().get(3);
-            collector.assertEqual(DataChangeUtil.subHexData(u1Topic), DataChangeUtil.subHexData("1"), "checkout anonymous index num event");
-            collector.assertEqual(DataChangeUtil.subHexData(u2Topic), DataChangeUtil.subHexData("2"), "checkout anonymous index num event");
-            collector.assertEqual(DataChangeUtil.subHexData(u3Topic), DataChangeUtil.subHexData("3"), "checkout anonymous index num event");
-            collector.assertEqual(DataChangeUtil.subHexData(u4Topic), DataChangeUtil.subHexData("4"), "checkout anonymous index num event");
+            collector.assertEqual(DataChangeUtil.subHexData(u1Topic), DataChangeUtil.subHexData("1"), "checkout anonymous index.0 event");
+            collector.assertEqual(DataChangeUtil.subHexData(u2Topic), DataChangeUtil.subHexData("2"), "checkout anonymous index.1 event");
+            collector.assertEqual(DataChangeUtil.subHexData(u3Topic), DataChangeUtil.subHexData("3"), "checkout anonymous index.2 event");
+            collector.assertEqual(DataChangeUtil.subHexData(u4Topic), DataChangeUtil.subHexData("4"), "checkout anonymous index.3 event");
         } catch (Exception e) {
             collector.logStepFail("EventIndexedContractTest testAnonymousIndexed failure,exception msg:" , e.getMessage());
             e.printStackTrace();
