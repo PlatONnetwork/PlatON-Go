@@ -3,7 +3,7 @@ package data_type.TypeConversion;
 import beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.TypeConversionContractTest;
+import network.platon.contracts.TypeConversionContract;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,7 +18,7 @@ import java.math.BigInteger;
  * @author: qudong
  * @create: 2019/12/25 15:09
  **/
-public class TypeConversionContract01_Test extends ContractPrepareTest {
+public class TypeConversionContractTest extends ContractPrepareTest {
 
     @Before
     public void before() {
@@ -29,10 +29,10 @@ public class TypeConversionContract01_Test extends ContractPrepareTest {
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "TypeConversionContract.基本类型之间的转换（隐式/显示）")
     public void testTypeConversionContract() {
 
-        TypeConversionContractTest typeConversionContractTest = null;
+        TypeConversionContract typeConversionContractTest = null;
         try {
             //合约部署
-            typeConversionContractTest = TypeConversionContractTest.deploy(web3j, transactionManager, provider).send();
+            typeConversionContractTest = TypeConversionContract.deploy(web3j, transactionManager, provider).send();
             String contractAddress = typeConversionContractTest.getContractAddress();
             TransactionReceipt tx =  typeConversionContractTest.getTransactionReceipt().get();
             collector.logStepPass("TypeConversionContractTest issued successfully.contractAddress:" + contractAddress
