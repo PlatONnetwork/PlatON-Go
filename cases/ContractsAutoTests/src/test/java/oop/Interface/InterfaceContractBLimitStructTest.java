@@ -16,7 +16,7 @@ import java.math.BigInteger;
  * @author: qudong
  * @create: 2019/12/25 15:09
  **/
-public class InterfaceContractLimitStructTest extends ContractPrepareTest {
+public class InterfaceContractBLimitStructTest extends ContractPrepareTest {
 
     @Before
     public void before() {

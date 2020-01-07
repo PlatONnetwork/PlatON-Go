@@ -16,14 +16,13 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
  **/
 public class AbstractContractAInhertNoImpTest extends ContractPrepareTest {
 
-
     @Before
     public void before() {
        this.prepare();
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContractExecute.抽象合约被继承未实现执行情况")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约被继承未实现执行情况")
     public void testAbstractContract() {
 
         AbstractContractSon sonAbstractContract = null;
@@ -32,15 +31,11 @@ public class AbstractContractAInhertNoImpTest extends ContractPrepareTest {
             sonAbstractContract = AbstractContractSon.deploy(web3j, transactionManager, provider).send();
             String contractAddress = sonAbstractContract.getContractAddress();
             TransactionReceipt tx = sonAbstractContract.getTransactionReceipt().get();
-
-            collector.logStepPass("AbstractContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
-
-            //collector.assertEqual(tokenName, token.name().send(), "checkout tokenName");
+            collector.logStepPass("abstractContract issued successfully.contractAddress:" + contractAddress
+                                           + ", hash:" + tx.getTransactionHash());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
-
         } catch (Exception e) {
-            collector.logStepFail("grandpaAbstractContract deploy fail.", e.toString());
+            collector.logStepFail("abstractContract deploy fail.", e.toString());
             e.printStackTrace();
         }
 
@@ -48,17 +43,11 @@ public class AbstractContractAInhertNoImpTest extends ContractPrepareTest {
         try {
             String expectResult = "sonName";
             String actualName = sonAbstractContract.sonName().send();
-            collector.logStepFail("grandpaAbstractContract Calling Method Fail.","抽象合约是无法执行方法的");
-
-
+            collector.logStepFail("abstractContract Calling Method Fail.","抽象合约被继承未实现方法无法执行");
         } catch (Exception e) {
-            collector.logStepPass("调用合约方法getFatherAge()完毕,无法执行抽象合约方法," + e.getMessage());
+            collector.logStepPass("执行【抽象合约被继承未实现方法，调用函数sonName()】,抽象合约部分实现是无法执行方法");
             collector.assertEqual(e.getMessage(),"Empty value (0x) returned from contract","checkout  execute success.");
             //e.printStackTrace();
         }
-
-
-
     }
-
 }

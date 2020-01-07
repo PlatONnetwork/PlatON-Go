@@ -9,7 +9,6 @@ import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
-
 /**
  * @title 1、抽象合约实现部分方法，验证是否可编译、部署、执行
  * @description:
@@ -17,7 +16,6 @@ import java.math.BigInteger;
  * @create: 2019/12/25 15:09
  **/
 public class AbstractContractAPartImpTest extends ContractPrepareTest {
-
 
     @Before
     public void before() {
@@ -34,31 +32,22 @@ public class AbstractContractAPartImpTest extends ContractPrepareTest {
             fatherAbstractContract = AbstractContractFather.deploy(web3j, transactionManager, provider).send();
             String contractAddress = fatherAbstractContract.getContractAddress();
             TransactionReceipt tx = fatherAbstractContract.getTransactionReceipt().get();
-
-            collector.logStepPass("AbstractContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
-
-            //collector.assertEqual(tokenName, token.name().send(), "checkout tokenName");
+            collector.logStepPass("abstractContract issued successfully.contractAddress:" + contractAddress
+                                           + ", hash:" + tx.getTransactionHash());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
-
         } catch (Exception e) {
-            collector.logStepFail("grandpaAbstractContract deploy fail.", e.toString());
+            collector.logStepFail("abstractContract deploy fail.", e.toString());
             e.printStackTrace();
         }
 
         //调用合约方法
         try {
             BigInteger age = fatherAbstractContract.fatherAge().send();
-
-            collector.logStepFail("grandpaAbstractContract Calling Method Fail.","抽象合约是无法执行方法的");
+            collector.logStepFail("abstractContract Calling Method Fail.","抽象合约部分实现是无法执行方法");
         } catch (Exception e) {
-            collector.logStepPass("调用合约方法getFatherAge()完毕,无法执行抽象合约方法," + e.getMessage());
+            collector.logStepPass("执行【抽象合约部分实现调用函数fatherAge()】,抽象合约部分实现是无法执行方法");
             collector.assertEqual(e.getMessage(),"Empty value (0x) returned from contract","checkout  execute success.");
             //e.printStackTrace();
         }
-
-
-
     }
-
 }
