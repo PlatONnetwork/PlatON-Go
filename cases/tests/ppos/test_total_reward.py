@@ -1062,9 +1062,46 @@ def test_DG_TR_029(clients_noconsensus, reset_environment):
     assert candidate_info_2["Ret"]["DelegateRewardTotal"] == reward_total_2 + reward_total_2_2
 
 
-def test_DG_TR_030():
+@pytest.mark.skip("Test case process is random and needs to be executed multiple times manually")
+def test_DG_TR_030(clients_noconsensus, reset_environment):
     """
     当前共识轮共识节点不在结算周期列表中，验证节点收益
     :return:
     """
-    pass
+    client = clients_noconsensus[0]
+    client_2 = clients_noconsensus[1]
+    reward = 1000
+    node = client.node
+    economic = client.economic
+    amount = calculate(client.economic.create_staking_limit, 5)
+    staking_amount = calculate(client.economic.create_staking_limit, 1)
+    staking_address, _ = client.economic.account.generate_account(node.web3, amount)
+    delegate_address, _ = client.economic.account.generate_account(node.web3, economic.add_staking_limit * 5)
+    ben_address, _ = client.economic.account.generate_account(node.web3, 0)
+    result = client.staking.create_staking(0, ben_address, staking_address, amount=staking_amount, reward_per=reward)
+    assert_code(result, 0)
+
+    economic.wait_settlement_blocknum(node)
+    start_balance = get_ben_balance(node, economic, ben_address)
+    create_staking(client_2, reward)
+    block_reward, staking_reward = economic.get_current_year_reward(node)
+
+    economic.wait_settlement_blocknum(node)
+    verfiers = get_pledge_list(node.ppos.getValidatorList)
+    if node.node_id not in verfiers:
+        assert False, "Node 1 did not participate in the first consensus round"
+
+    block_num = economic.get_number_blocks_in_interval(node)
+    end_balance = get_ben_balance(node, economic, ben_address)
+    total_reward, delegate_reward = calculate_reward(block_reward, staking_reward, block_num, reward)
+    candidate_info = node.ppos.getCandidateInfo(node.node_id)
+    assert_reward_total(candidate_info, delegate_reward)
+    assert end_balance - start_balance == total_reward - delegate_reward
+    block_reward, staking_reward = economic.get_current_year_reward(node)
+
+    economic.wait_settlement_blocknum(node)
+    candidate_info = node.ppos.getCandidateInfo(node.node_id)
+    assert_reward_total(candidate_info, delegate_reward)
+    block_num = economic.get_number_blocks_in_interval(node)
+    end_balance_two = get_ben_balance(node, economic, ben_address)
+    assert end_balance_two - end_balance == calculate(block_reward, block_num)
