@@ -28,7 +28,7 @@ public class ForErrorTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "hudenian", showName = "ForErrorTest-for控制结构测试")
-    public void ifStruct() {
+    public void forStruct() {
         try {
 
             ForError forError = ForError.deploy(web3j, transactionManager, provider).send();
@@ -39,10 +39,10 @@ public class ForErrorTest extends ContractPrepareTest {
             collector.logStepPass("ForErrorTest for控制结构返回的结构体如果是指针需要提前初始化");
 
             //1.for控制结构验证
-           /* Boolean forFlg = forError.getForControlRes().send();
+            Boolean forFlg = forError.getForControlRes().send();
 
             collector.logStepPass( "ForErrorTest->getForControlRes 测试获取链上的结果是:" + forFlg);
-            collector.assertEqual(false,forFlg);*/
+            collector.assertEqual(false,forFlg);
 
             //2.for控制结构验证
             Boolean forFlg1 = forError.getForControlRes1().send();

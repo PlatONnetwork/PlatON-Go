@@ -24,7 +24,7 @@ contract ForError {
 
 
     function forControlFirst() internal view returns (S storage c) {
-        for(c = s;;) {
+        for(c = s;c.f==true;) {
         }
     }
 
