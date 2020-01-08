@@ -261,11 +261,11 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int32_t platon_transfer(const uint8_t* to, size_t toLen, uint8_t *amount, size_t len)
+	// int32_t platon_transfer(const uint8_t to[20], uint8_t *amount, size_t len)
 	// func $platon_transfer  (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
@@ -718,9 +718,9 @@ func CallerNonce(proc *exec.Process) uint64 {
 	return ctx.evm.StateDB.GetNonce(addr)
 }
 
-func Transfer(proc *exec.Process, dst uint32, dstLen uint32, amount uint32, len uint32) int32 {
+func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
-	address := make([]byte, dstLen)
+	address := make([]byte, common.AddressLength)
 
 	proc.ReadAt(address, int64(dst))
 
