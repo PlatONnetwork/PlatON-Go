@@ -5,7 +5,8 @@ pragma solidity ^0.5.13;
  * （2）indexed关键字定义事件索引验证
  * （3）emit关键字触发事件验证
  * （4）anonymous关键字定义匿名事件验证
- * （5）JavaScript API配合回调（使用 Web3 监听事件）事件验证
+ * （5）函数内多事件监听验证
+ * （6）函数内多匿名事件监听验证
  * @author Albedo
  * @dev 2019/12/19
  **/
@@ -22,6 +23,7 @@ contract EventCallContract {
 
     //匿名事件
     event Anonymous(uint256 _id) anonymous;
+    event Anonymous2(uint256 _id) anonymous;
     //一般事件触发
     function emitEvent() public returns (uint256 count){
         //emit 事件触发
@@ -50,5 +52,12 @@ contract EventCallContract {
         emit Increment(msg.sender);
         emit Anonymous(12);
         emit Deposit(msg.sender, 12);
+    }
+
+    //函数多匿名事件监听验证
+    function testMultiAnonymous() public{
+        emit Anonymous(12);
+        emit Anonymous2(13);
+        emit Anonymous(14);
     }
 }

@@ -35,11 +35,11 @@ public class TypeConversionContractTest extends ContractPrepareTest {
             typeConversionContractTest = TypeConversionContract.deploy(web3j, transactionManager, provider).send();
             String contractAddress = typeConversionContractTest.getContractAddress();
             TransactionReceipt tx =  typeConversionContractTest.getTransactionReceipt().get();
-            collector.logStepPass("TypeConversionContractTest issued successfully.contractAddress:" + contractAddress
+            collector.logStepPass("typeConversion issued successfully.contractAddress:" + contractAddress
                                     + ", hash:" + tx.getTransactionHash());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
-            collector.logStepFail("TypeConversionContractTest deploy fail.", e.toString());
+            collector.logStepFail("typeConversion deploy fail.", e.toString());
             e.printStackTrace();
         }
 
@@ -49,10 +49,10 @@ public class TypeConversionContractTest extends ContractPrepareTest {
             BigInteger expectValue = new BigInteger("102");
             //赋值执行sum()
             BigInteger actualValue = typeConversionContractTest.sum().send();
-            collector.logStepPass("TypeConversionContractTest 运算符操作隐式转换执行sum() successfully.actualValue:" + actualValue);
+            collector.logStepPass("typeConversion 执行【运算符操作隐式转换】 successfully.actualValue:" + actualValue);
             collector.assertEqual(actualValue,expectValue, "checkout execute success.");
         } catch (Exception e) {
-            collector.logStepFail("TypeConversionContractTest Calling Method fail.", e.toString());
+            collector.logStepFail("typeConversion Calling Method fail.", e.toString());
             e.printStackTrace();
         }
 
@@ -61,10 +61,10 @@ public class TypeConversionContractTest extends ContractPrepareTest {
             BigInteger expectValue = new BigInteger("10");
             //赋值执行conversion()
             BigInteger actualValue = typeConversionContractTest.conversion().send();
-            collector.logStepPass("TypeConversionContractTest 赋值操作隐式转换执行conversion() successfully.actualValue:" + actualValue);
+            collector.logStepPass("typeConversion 执行【赋值操作隐式转换】successfully.actualValue:" + actualValue);
             collector.assertEqual(actualValue,expectValue, "checkout execute success.");
         } catch (Exception e) {
-            collector.logStepFail("TypeConversionContractTest Calling Method fail.", e.toString());
+            collector.logStepFail("typeConversion Calling Method fail.", e.toString());
             e.printStackTrace();
         }
 
@@ -73,10 +73,10 @@ public class TypeConversionContractTest extends ContractPrepareTest {
             BigInteger expectValue = new BigInteger("1");
             //执行displayConversion()
             BigInteger actualValue = typeConversionContractTest.displayConversion().send();
-            collector.logStepPass("TypeConversionContractTest 无符合与有符号转换执行displayConversion() successfully.actualValue:" + actualValue);
+            collector.logStepPass("typeConversion 执行【无符合与有符号显示转换】successfully.actualValue:" + actualValue);
             collector.assertEqual(actualValue,expectValue, "checkout execute success.");
         } catch (Exception e) {
-            collector.logStepFail("TypeConversionContractTest Calling Method fail.", e.toString());
+            collector.logStepFail("typeConversion Calling Method fail.", e.toString());
             e.printStackTrace();
         }
 
@@ -89,12 +89,12 @@ public class TypeConversionContractTest extends ContractPrepareTest {
             BigInteger actualValue1 = tuple2.getValue1();
             String actualValue2 = "0x" + DataChangeUtil.bytesToHex(tuple2.getValue2());
 
-            collector.logStepPass("TypeConversionContractTest 转换成更小的类型执行displayConversion1() successfully.actualValue1:" + actualValue1 +
+            collector.logStepPass("typeConversion 执行【大整型类型显示转换小类型】successfully.actualValue1:" + actualValue1 +
                                   ",actualValue2:" + actualValue2);
             collector.assertEqual(actualValue1,expectValue1, "checkout execute success.");
             collector.assertEqual(actualValue2,expectValue2, "checkout execute success.");
         } catch (Exception e) {
-            collector.logStepFail("TypeConversionContractTest Calling Method fail.", e.toString());
+            collector.logStepFail("typeConversion Calling Method fail.", e.toString());
             e.printStackTrace();
         }
 
@@ -105,10 +105,10 @@ public class TypeConversionContractTest extends ContractPrepareTest {
             Tuple2<BigInteger, byte[]> tuple2 = typeConversionContractTest.displayConversion2().send();
             BigInteger actualValue1 = tuple2.getValue1();
 
-            collector.logStepPass("TypeConversionContractTest 转换成更大的类型执行displayConversion2() successfully.actualValue1:" + actualValue1);
+            collector.logStepPass("typeConversion 执行【小整型类型显示转换成大类型】 successfully.actualValue1:" + actualValue1);
             collector.assertEqual(actualValue1,expectValue1, "checkout execute success.");
         } catch (Exception e) {
-            collector.logStepFail("TypeConversionContractTest Calling Method fail.", e.toString());
+            collector.logStepFail("typeConversion Calling Method fail.", e.toString());
             e.printStackTrace();
         }
 
@@ -119,10 +119,10 @@ public class TypeConversionContractTest extends ContractPrepareTest {
             byte[] byteValue = typeConversionContractTest.displayConversion3().send();
             String actualValue = "0x" + DataChangeUtil.bytesToHex(byteValue);
 
-            collector.logStepPass("TypeConversionContractTest 转换到更小的字节类型执行displayConversion3() successfully.actualValue:" + actualValue);
+            collector.logStepPass("typeConversion 执行【大字节类型显示转换成小类型】successfully.actualValue:" + actualValue);
             collector.assertEqual(actualValue,expectValue, "checkout execute success.");
         } catch (Exception e) {
-            collector.logStepFail("TypeConversionContractTest Calling Method fail.", e.toString());
+            collector.logStepFail("typeConversion Calling Method fail.", e.toString());
             e.printStackTrace();
         }
 
@@ -133,17 +133,12 @@ public class TypeConversionContractTest extends ContractPrepareTest {
             byte[] byteValue = typeConversionContractTest.displayConversion4().send();
             String actualValue = "0x" + DataChangeUtil.bytesToHex(byteValue);
 
-            collector.logStepPass("TypeConversionContractTest 转换为更大的字节类型执行displayConversion4() successfully.actualValue:" + actualValue);
+            collector.logStepPass("typeConversion 执行【小字节类型显示转换成大类型】 successfully.actualValue:" + actualValue);
             collector.assertEqual(actualValue,expectValue, "checkout execute success.");
         } catch (Exception e) {
-            collector.logStepFail("TypeConversionContractTest Calling Method fail.", e.toString());
+            collector.logStepFail("typeConversion Calling Method fail.", e.toString());
             e.printStackTrace();
         }
-
-
-
-
-
     }
 
 }

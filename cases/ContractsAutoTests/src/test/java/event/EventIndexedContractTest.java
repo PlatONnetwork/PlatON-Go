@@ -16,7 +16,7 @@ import java.util.List;
  * @title 事件索引测试
  * @description:
  * @author: albedo
- * @create: 2020/01/06
+ * @create: 2020/01/07
  */
 public class EventIndexedContractTest extends ContractPrepareTest {
 

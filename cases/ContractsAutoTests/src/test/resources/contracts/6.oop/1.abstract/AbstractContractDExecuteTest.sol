@@ -1,6 +1,6 @@
 pragma solidity 0.5.13;
-import "./BaseAbstract.sol";
-import "./BaseAbstractParent.sol";
+
+import "./BaseAbstractParentInterface.sol";
 
 /**
  * @author qudong
@@ -16,20 +16,26 @@ import "./BaseAbstractParent.sol";
  */
 
 /**
- * 1、抽象合约是否可以继承抽象合约
+ * 1）、抽象合约是否可以继承接口(反之接口是否可以继承抽象合约)
  * ----------------------------------
- * 验证结果： 抽象合约是可以继承抽象合约
+ * 验证结果：抽象合约是可以继承接口（但是反过来接口是不可以继承抽象合约）
  */
- contract AbstractContractFSubclass is AbstractContractDSubclass {
+ contract AbstractContractGSubclass is AbstractContractESubclass {
+     int public age = 0;
 
-     function parentName() public view returns (string memory v){
-           return myName;
+     function setInterAge(int v) public{
+         age = v;
      }
 
-     function dSubClassName() public view returns (string memory dSubName){
-
+     function aInterAge() external view returns (int){
+         return age;
      }
  }
+
+//2）、接口是不可以继承抽象合约（编译报错）
+/* interface AbstractContractBInterface is AbstractContractParentClass{
+      function bInterAge() external returns (int  age);
+ }*/
 
 
 

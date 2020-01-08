@@ -30,7 +30,6 @@ public class EventCallContractTest extends ContractPrepareTest {
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             TransactionReceipt receipt = eventCallContract.emitEvent().send();
-            System.out.println(JSONObject.toJSONString(receipt.getLogs()));
             List<EventCallContract.IncrementEventResponse> emitEventData = eventCallContract.getIncrementEvents(receipt);
             String data = emitEventData.get(0).log.getData();
             collector.assertEqual(DataChangeUtil.subHexData(data), DataChangeUtil.subHexData(receipt.getFrom()), "checkout declare event keyword");
@@ -101,11 +100,30 @@ public class EventCallContractTest extends ContractPrepareTest {
             collector.assertEqual(dList.get(0)._from ,receipt.getFrom(), "checkout address type event");
             collector.assertEqual(dList.get(0)._value ,new BigInteger("12"), "checkout uint event");
 
-            List<EventCallContract.AnonymousEventResponse> aList = eventCallContract.getAnonymousEvents(receipt);
-            collector.assertEqual(aList.get(0)._id ,new BigInteger("12"), "checkout address type event");
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(3).getData()),DataChangeUtil.subHexData("c"), "checkout address type event");
 
         } catch (Exception e) {
             collector.logStepFail("EventCallContractTest testAnonymousEvent failure,exception msg:", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testMultiAnonymousEvents",
+            author = "albedo", showName = "event.EventCallContractTest-函数多匿名事件监听")
+    public void testMultiAnonymousEvents() {
+        try {
+            prepare();
+            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = eventCallContract.getContractAddress();
+            String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            TransactionReceipt receipt = eventCallContract.testMultiAnonymous().send();
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(0).getData()),DataChangeUtil.subHexData("c"), "checkout multi anonymous event");
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(1).getData()),DataChangeUtil.subHexData("d"), "checkout multi anonymous event");
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(2).getData()),DataChangeUtil.subHexData("e"), "checkout multi anonymous event");
+        } catch (Exception e) {
+            collector.logStepFail("EventCallContractTest testMultiAnonymousEvents failure,exception msg:", e.getMessage());
             e.printStackTrace();
         }
     }
