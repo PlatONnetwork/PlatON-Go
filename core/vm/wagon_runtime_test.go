@@ -71,18 +71,15 @@ var testCase = []*Case{
 			return bytes.Equal(res[:], ctx.Output)
 		},
 	},
-	//{
-	//	ctx: &VMContext{
-	//		evm: &EVM{Context: Context{
-	//			GasLimit: 99,
-	//		}}},
-	//	funcName: "platon_gas_test",
-	//	check: func(ctx *VMContext, err error) bool {
-	//		var res [8]byte
-	//		binary.LittleEndian.PutUint64(res[:], ctx.evm.GasLimit)
-	//		return bytes.Equal(res[:], ctx.Output)
-	//	},
-	//},
+	{
+		ctx: &VMContext{
+			contract: &Contract{Gas: 99}},
+		funcName: "platon_gas_test",
+		check: func(ctx *VMContext, err error) bool {
+			gas := binary.LittleEndian.Uint64(ctx.Output)
+			return gas >= ctx.contract.Gas
+		},
+	},
 	{
 		ctx: &VMContext{
 			evm: &EVM{Context: Context{
