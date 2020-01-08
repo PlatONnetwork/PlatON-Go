@@ -89,18 +89,14 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	unCalEpoch := 0
 	delegationInfoWithRewardPerList := make([]*plugin.DelegationInfoWithRewardPerList, 0)
 	for _, stakingNode := range list {
-		if uint64(stakingNode.Delegation.DelegateEpoch) == currentEpoch-1 {
-			delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, plugin.NewDelegationInfoWithRewardPerList(stakingNode, nil))
-		} else {
-			delegateRewardPerList, err := rc.Plugin.GetDelegateRewardPerList(blockHash, stakingNode.NodeID, stakingNode.StakeBlockNumber, uint64(stakingNode.Delegation.DelegateEpoch), currentEpoch-1)
-			if err != nil {
-				log.Error("Failed to withdrawDelegateReward",
-					"txHash", txHash.Hex(), "blockNumber", blockNum, "err", err)
-				return nil, err
-			}
-			unCalEpoch += len(delegateRewardPerList)
-			delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, plugin.NewDelegationInfoWithRewardPerList(stakingNode, delegateRewardPerList))
+		delegateRewardPerList, err := rc.Plugin.GetDelegateRewardPerList(blockHash, stakingNode.NodeID, stakingNode.StakeBlockNumber, uint64(stakingNode.Delegation.DelegateEpoch), currentEpoch-1)
+		if err != nil {
+			log.Error("Failed to withdrawDelegateReward",
+				"txHash", txHash.Hex(), "blockNumber", blockNum, "err", err)
+			return nil, err
 		}
+		unCalEpoch += len(delegateRewardPerList)
+		delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, plugin.NewDelegationInfoWithRewardPerList(stakingNode, delegateRewardPerList))
 	}
 
 	if !rc.Contract.UseGas(params.WithdrawDelegateEpochGas * uint64(unCalEpoch)) {
