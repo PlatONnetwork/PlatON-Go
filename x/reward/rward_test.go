@@ -11,35 +11,31 @@ func TestDecreaseDelegateReward(t *testing.T) {
 
 	receives = []DelegateRewardReceipt{
 
-		DelegateRewardReceipt{big.NewInt(300), 1},
 		{big.NewInt(200), 2},
-		{big.NewInt(300), 3},
+		{big.NewInt(550), 3},
+		{big.NewInt(400), 4},
+		{big.NewInt(400), 5},
+		{big.NewInt(800), 6},
+
+		{big.NewInt(600), 7},
 	}
 
 	list.Pers = []*DelegateRewardPer{
 		&DelegateRewardPer{big.NewInt(300), 1, nil},
 		&DelegateRewardPer{big.NewInt(500), 2, nil},
 		&DelegateRewardPer{big.NewInt(550), 3, nil},
+		&DelegateRewardPer{big.NewInt(800), 4, nil},
 		&DelegateRewardPer{big.NewInt(550), 5, nil},
 	}
-	list.DecreaseTotalAmount(receives)
-	if len(list.Pers) != 3 {
-		t.Error("list must decrease")
+	index := list.DecreaseTotalAmount(receives)
+	if index != 4 {
+		t.Errorf("receives index is wrong,%v", index)
 	}
-	if list.Pers[0].DelegateAmount.Cmp(big.NewInt(300)) != 0 {
-		t.Error("epoch 2 must same")
-	}
-	if list.Pers[0].Epoch != 2 {
-		t.Error("epoch must 2")
-	}
-	if list.Pers[1].DelegateAmount.Cmp(big.NewInt(250)) != 0 {
-		t.Error("epoch 3 must same")
-	}
-	if list.Pers[2].DelegateAmount.Cmp(big.NewInt(550)) != 0 {
-		t.Error("epoch 5 must same")
-	}
-	if list.changed != true {
-		t.Error("must changed")
+	if list.Pers[1].DelegateAmount.Cmp(big.NewInt(300)) != 0 {
+		t.Errorf("first DelegateAmount  is wrong,%v", list.Pers[1].DelegateAmount)
 	}
 
+	if list.Pers[len(list.Pers)-1].DelegateAmount.Cmp(big.NewInt(150)) != 0 {
+		t.Errorf("latest DelegateAmount  is wrong,%v", list.Pers[1].DelegateAmount)
+	}
 }

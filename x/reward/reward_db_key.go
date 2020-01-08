@@ -143,22 +143,25 @@ func (d *DelegateRewardPerList) AppendDelegateRewardPer(per *DelegateRewardPer) 
 	d.Pers = append(d.Pers, per)
 }
 
-func (d *DelegateRewardPerList) DecreaseTotalAmount(receipt []DelegateRewardReceipt) {
-	var indexOfList int
-	for indexOfReceipt := 0; indexOfReceipt < len(receipt); indexOfReceipt++ {
-		for indexOfList < len(d.Pers) {
-			if receipt[indexOfReceipt].Epoch == d.Pers[indexOfList].Epoch {
-				d.Pers[indexOfList].DelegateAmount.Sub(d.Pers[indexOfList].DelegateAmount, receipt[indexOfReceipt].Delegate)
-				if d.Pers[indexOfList].DelegateAmount.Cmp(common.Big0) <= 0 {
-					d.Pers = append(d.Pers[:indexOfList], d.Pers[indexOfList+1:]...)
-				}
-				d.changed = true
-				break
+func (d *DelegateRewardPerList) DecreaseTotalAmount(receipt []DelegateRewardReceipt) int {
+	var indexOfReceipt int
+	for indexOfList := 0; indexOfList < len(d.Pers) && indexOfReceipt < len(receipt); {
+		if d.Pers[indexOfList].Epoch < receipt[indexOfReceipt].Epoch {
+			indexOfList++
+		} else if d.Pers[indexOfList].Epoch > receipt[indexOfReceipt].Epoch {
+			indexOfReceipt++
+		} else {
+			d.Pers[indexOfList].DelegateAmount.Sub(d.Pers[indexOfList].DelegateAmount, receipt[indexOfReceipt].Delegate)
+			if d.Pers[indexOfList].DelegateAmount.Cmp(common.Big0) <= 0 {
+				d.Pers = append(d.Pers[:indexOfList], d.Pers[indexOfList+1:]...)
 			} else {
 				indexOfList++
 			}
+			indexOfReceipt++
+			d.changed = true
 		}
 	}
+	return indexOfReceipt
 }
 
 func (d *DelegateRewardPerList) ShouldDel() bool {
