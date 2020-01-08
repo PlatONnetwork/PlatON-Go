@@ -568,6 +568,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	canMu.Released = big.NewInt(10000)
 	canMu.RewardPer = rewardPer
 	canMu.DelegateTotal = delegateTotal
+	canMu.CurrentEpochDelegateReward = delegateTotal
 
 	var canBase staking.CandidateBase
 	privateKey, err := crypto.GenerateKey()
