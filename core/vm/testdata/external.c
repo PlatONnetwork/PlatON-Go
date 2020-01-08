@@ -8,9 +8,10 @@ void platon_return(const uint8_t *value, size_t len);
 void platon_block_hash(int64_t num,  uint8_t hash[32]);
 uint64_t platon_block_number();
 uint64_t platon_gas_limit();
+uint64_t platon_gas();
 int64_t platon_timestamp();
 void platon_coinbase(uint8_t hash[20]);
-uint8_t platon_balance(const uint8_t addr[32], uint8_t balance[32]);
+uint8_t platon_balance(const uint8_t  addr[32], uint8_t balance[32]);
 void platon_origin(uint8_t hash[20]);
 void platon_caller(uint8_t hash[20]);
 int32_t platon_transfer(const uint8_t to[20], uint8_t *amount, size_t len);
@@ -69,6 +70,12 @@ void platon_block_number_test() {
 WASM_EXPORT
 void platon_gas_limit_test() {
   uint64_t num = platon_gas_limit();
+  platon_return((uint8_t*)&num, sizeof(num));
+}
+
+WASM_EXPORT
+void platon_gas_test() {
+  uint64_t num = platon_gas();
   platon_return((uint8_t*)&num, sizeof(num));
 }
 
@@ -186,7 +193,7 @@ void platon_transfer_test() {
   size_t len = platon_get_input_length();
   platon_get_input(data);
   uint8_t value = 1;
-  platon_transfer(data, len, &value, 1);
+  platon_transfer(data, &value, 1);
   platon_return(&value, 1);
 }
 

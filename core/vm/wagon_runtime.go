@@ -114,6 +114,21 @@ func NewHostModule() *wasm.Module {
 			Kind:     wasm.ExternalFunction,
 		},
 	)
+	// uint64_t platon_gas()
+	// func $platon_gas (result i64)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Gas),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_gas",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
 
 	// int64_t timestamp()
 	// func $timestamp (result i64)
@@ -642,6 +657,12 @@ func GasLimit(proc *exec.Process) uint64 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
 	return ctx.evm.GasLimit
+}
+
+func Gas(proc *exec.Process) uint64 {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, IndirectCallGas)
+	return ctx.contract.Gas
 }
 
 func Timestamp(proc *exec.Process) int64 {

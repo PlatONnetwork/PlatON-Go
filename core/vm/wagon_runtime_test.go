@@ -71,6 +71,18 @@ var testCase = []*Case{
 			return bytes.Equal(res[:], ctx.Output)
 		},
 	},
+	//{
+	//	ctx: &VMContext{
+	//		evm: &EVM{Context: Context{
+	//			GasLimit: 99,
+	//		}}},
+	//	funcName: "platon_gas_test",
+	//	check: func(ctx *VMContext, err error) bool {
+	//		var res [8]byte
+	//		binary.LittleEndian.PutUint64(res[:], ctx.evm.GasLimit)
+	//		return bytes.Equal(res[:], ctx.Output)
+	//	},
+	//},
 	{
 		ctx: &VMContext{
 			evm: &EVM{Context: Context{
@@ -823,7 +835,7 @@ type Case struct {
 }
 
 func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
-	t.Log("I am ", i)
+	//t.Log("I am ", i)
 	if c.ctx.contract == nil {
 		c.ctx.contract = &Contract{
 			Gas: math.MaxUint64,
