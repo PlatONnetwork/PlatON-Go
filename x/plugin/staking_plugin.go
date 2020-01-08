@@ -215,7 +215,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			return err
 		}
 		STAKING_DB.HistoryDB.Put([]byte(ValidatorName+"0"), data)
-		xcom.PrintObject("wow,insert validator  0:", current)
+		xcom.PrintObject("wow,insert validator  0:", currentValidatorArray)
 
 		currentVerifier, error := sk.getVerifierList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 		if nil != error {
@@ -223,13 +223,25 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
 			return err
 		}
-		dataVerifier, err := rlp.EncodeToBytes(currentVerifier)
+		currentVerifierArray := &staking.ValidatorArraySave{
+			Start: currentVerifier.Start,
+			End: currentVerifier.End,
+		}
+		verQSave := make(staking.ValidatorQueueSave, len(currentVerifier.Arr))
+		for k, v := range current.Arr {
+			vQSave[k] = &staking.ValidatorSave{
+				ValidatorTerm   : v.ValidatorTerm,
+				NodeId          : v.NodeId,
+			}
+		}
+		currentVerifierArray.Arr = verQSave
+		dataVerifier, err := rlp.EncodeToBytes(currentVerifierArray)
 		if nil != err {
 			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
 		STAKING_DB.HistoryDB.Put([]byte(VerifierName+"0"), dataVerifier)
-		xcom.PrintObject("wow,insert verifier  0:", currentVerifier)
+		xcom.PrintObject("wow,insert verifier  0:", currentVerifierArray)
 
 		currentCandidate, error := sk.GetCandidateList(block.Hash(), block.NumberU64())
 		if nil != error {
@@ -332,7 +344,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			}
 			for _,cv := range currentCandidate{
 				if cv.NodeId == v.NodeId {
-					vQSave[k].DelegateRewardTotal = cv.DelegateRewardTotal
+					vQSave[k].DelegateRewardTotal = cv.DelegateRewardTotal.ToInt()
 					break;
 				}
 			}
@@ -347,7 +359,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		numStr = strconv.FormatUint(block.NumberU64()+xcom.ElectionDistance(), 10)
 		STAKING_DB.HistoryDB.Put([]byte(ValidatorName+numStr), data)
 		log.Debug("wow,insert validator history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", ValidatorName+numStr)
-		xcom.PrintObject("wow,insert validator history :", current)
+		xcom.PrintObject("wow,insert validator history :", currentValidatorArray)
 
 		noCache := block.NumberU64() - xcom.GetDBCacheEpoch()*xutil.CalcBlocksEachEpoch()
 		log.Debug("election begin check data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
@@ -393,14 +405,38 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
 			return err
 		}
-		data, err := rlp.EncodeToBytes(current)
+		currentCandidate, error := sk.GetCandidateList(block.Hash(), block.NumberU64())
+		if nil != error {
+			log.Error("Failed to Query Current Round candidate on stakingPlugin Confirmed When Settletmetn block",
+				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
+			return err
+		}
+		currentValidatorArray := &staking.ValidatorArraySave{
+			Start: current.Start,
+			End: current.End,
+		}
+		vQSave := make(staking.ValidatorQueueSave, len(current.Arr))
+		for k, v := range current.Arr {
+			vQSave[k] = &staking.ValidatorSave{
+				ValidatorTerm   : v.ValidatorTerm,
+				NodeId          : v.NodeId,
+			}
+			for _,cv := range currentCandidate{
+				if cv.NodeId == v.NodeId {
+					vQSave[k].DelegateRewardTotal = cv.DelegateRewardTotal.ToInt()
+					break;
+				}
+			}
+		}
+		currentValidatorArray.Arr = vQSave
+		data, err := rlp.EncodeToBytes(currentValidatorArray)
 		if nil != err {
 			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
 		STAKING_DB.HistoryDB.Put([]byte(VerifierName+numStr), data)
 		log.Debug("wow,insert verifier history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", VerifierName+numStr)
-		xcom.PrintObject("wow,insert verifier history :", current)
+		xcom.PrintObject("wow,insert verifier history :", currentValidatorArray)
 
 		//set reward history
 		packageReward, err := LoadNewBlockReward(block.Hash(), sk.db.GetDB())
@@ -1539,7 +1575,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 	if nil != err {
 		return nil, err
 	}
-	var verifierList staking.ValidatorArray
+	var verifierList staking.ValidatorArraySave
 	err = rlp.DecodeBytes(data, &verifierList)
 	if nil != err {
 		return nil, err
@@ -1567,6 +1603,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
 			ValidatorTerm: v.ValidatorTerm,
+			DelegateRewardTotal: (*hexutil.Big)(v.DelegateRewardTotal),
 		}
 		if queryNumber == 0 {
 			for _, vc := range candidateHexQueue{
@@ -1792,7 +1829,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
 			ValidatorTerm: v.ValidatorTerm,
-			DelegateRewardTotal: v.DelegateRewardTotal,
+			DelegateRewardTotal: (*hexutil.Big)(v.DelegateRewardTotal),
 		}
 		if queryNumber == 0 {
 			for _, vc := range candidateHexQueue{
