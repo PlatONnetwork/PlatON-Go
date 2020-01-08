@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -238,7 +239,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 			per := reward.NewDelegateRewardPer(currentEpoch, delegateRewardPer, verifier.DelegateTotal.ToInt())
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
 				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-					"nodeId", verifier.NodeId.TerminalString(), "err", err)
+					"nodeId", verifier.NodeId.TerminalString(), "err", err, "per", delegateRewardPer)
 				return err
 			}
 			val, err := rmp.db.Get(blockHash, reward.DelegateRewardTotalKey(verifier.NodeId, verifier.StakingBlockNum))
@@ -503,9 +504,7 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, sta
 		}
 		for _, per := range list.Pers {
 			if per.Epoch >= fromEpoch && per.Epoch <= toEpoch {
-				if per.Per.Cmp(common.Big0) > 0 {
-					pers = append(pers, per)
-				}
+				pers = append(pers, per)
 			}
 		}
 	}
@@ -513,6 +512,9 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, sta
 }
 
 func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) error {
+	if per.Per.Cmp(common.Big0) <= 0 {
+		return errors.New("per must great than zero")
+	}
 	key := reward.DelegateRewardPerKey(nodeID, stakingNum, per.Epoch)
 	list := reward.NewDelegateRewardPerList()
 	val, err := db.Get(blockHash, key)
@@ -543,6 +545,7 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 		return nil
 	}
 	keys := reward.DelegateRewardPerKeys(nodeID, stakingNum, receives[0].Epoch, receives[len(receives)-1].Epoch)
+	var reIndex int
 	for _, key := range keys {
 		val, err := db.Get(blockHash, key)
 		if err != nil {
@@ -555,8 +558,11 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 		if err := rlp.DecodeBytes(val, list); err != nil {
 			return err
 		}
-
-		list.DecreaseTotalAmount(receives)
+		if len(receives)-reIndex < reward.DelegateRewardPerLength {
+			reIndex += list.DecreaseTotalAmount(receives[reIndex:])
+		} else {
+			reIndex += list.DecreaseTotalAmount(receives[reIndex : reIndex+reward.DelegateRewardPerLength])
+		}
 		if list.IsChange() {
 			log.Debug("update delegate reward per list", "nodeID", nodeID.TerminalString(), "stkNum", stakingNum, "list", list)
 			if list.ShouldDel() {
