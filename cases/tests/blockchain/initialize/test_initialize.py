@@ -48,7 +48,7 @@ def test_CH_IN_015(global_test_env):
         assert info['staking']['stakeThreshold'] == genesis.economicModel.staking.stakeThreshold
         assert info['staking']['operatingThreshold'] == genesis.economicModel.staking.operatingThreshold
         assert info['staking']['maxValidators'] == genesis.economicModel.staking.maxValidators
-        assert info['staking']['hesitateRatio'] == genesis.economicModel.staking.hesitateRatio
+        # assert info['staking']['hesitateRatio'] == genesis.economicModel.staking.hesitateRatio
         assert info['staking']['unStakeFreezeDuration'] == genesis.economicModel.staking.unStakeFreezeDuration
 
         assert info['slashing']['slashFractionDuplicateSign'] == genesis.economicModel.slashing.slashFractionDuplicateSign
