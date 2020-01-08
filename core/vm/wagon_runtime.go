@@ -27,7 +27,16 @@ type VMContext struct {
 	Output   []byte
 	readOnly bool // Whether to throw on stateful modifications
 	Revert   bool
-	log      *WasmLogger
+	Log      *WasmLogger
+}
+
+func NewVMContext(evm *EVM, contract *Contract, config Config, db StateDB) *VMContext {
+	return &VMContext{
+		evm:      evm,
+		contract: contract,
+		config:   config,
+		db:       db,
+	}
 }
 
 func addFuncExport(m *wasm.Module, sig wasm.FunctionSig, function wasm.Function, export wasm.ExportEntry) {
@@ -848,7 +857,7 @@ func Debug(proc *exec.Process, dst uint32, len uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	buf := make([]byte, len)
 	proc.ReadAt(buf, int64(dst))
-	ctx.log.Debug(string(buf))
+	ctx.Log.Debug(string(buf))
 }
 
 func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
