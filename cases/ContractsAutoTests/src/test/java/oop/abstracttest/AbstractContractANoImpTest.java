@@ -24,6 +24,7 @@ import java.math.BigInteger;
  * @create: 2019/12/25 15:09
  **/
 public class AbstractContractANoImpTest {
+
     @Rule
     public AssertCollector collector = new AssertCollector();
 
@@ -51,8 +52,6 @@ public class AbstractContractANoImpTest {
             collector.logStepFail("The node is unable to connect", e.toString());
             e.printStackTrace();
         }
-
-
         ContractGasProvider provider = new ContractGasProvider(new BigInteger("50000000000"), new BigInteger("3000000"));
         RawTransactionManager transactionManager = new RawTransactionManager(web3j, credentials, chainId);
 
@@ -63,32 +62,22 @@ public class AbstractContractANoImpTest {
             contractAddress = grandpaAbstractContract.getContractAddress();
             TransactionReceipt tx = grandpaAbstractContract.getTransactionReceipt().get();
 
-            collector.logStepPass("AbstractContract issued successfully.contractAddress:" + contractAddress
-                                 + ", hash:" + tx.getTransactionHash());
-
-            //collector.assertEqual(tokenName, token.name().send(), "checkout tokenName");
+            collector.logStepPass("abstractContract issued successfully.contractAddress:" + contractAddress
+                                    + ", hash:" + tx.getTransactionHash());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
-
         } catch (Exception e) {
-            collector.logStepFail("grandpaAbstractContract deploy fail.", e.toString());
+            collector.logStepFail("abstractContract deploy fail.", e.toString());
             e.printStackTrace();
         }
 
         //2、调用合约方法
         try{
-            String name = AbstractContractGrandpa.load(contractAddress, web3j, transactionManager, provider)
-                          .name().send();
-            collector.logStepFail("grandpaAbstractContract Calling Method Fail.","抽象合约是无法执行方法的");
+            String name = AbstractContractGrandpa.load(contractAddress, web3j, transactionManager, provider).name().send();
+            collector.logStepFail("abstractContract Calling Method Fail.","抽象合约是无法执行方法的");
         }catch (Exception e){
-            collector.logStepPass("调用合约方法getName()完毕,无法执行抽象合约方法," + e.getMessage());
+            collector.logStepPass("执行【抽象合约调用函数getName()】,结果无法执行抽象合约方法");
             collector.assertEqual(e.getMessage(),"Empty value (0x) returned from contract","checkout  execute success.");
             //e.printStackTrace();
         }
-
-
-
-
-
     }
-
 }

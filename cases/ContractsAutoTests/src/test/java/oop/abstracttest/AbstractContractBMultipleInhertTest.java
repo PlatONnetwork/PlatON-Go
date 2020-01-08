@@ -16,13 +16,17 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
  **/
 public class AbstractContractBMultipleInhertTest extends ContractPrepareTest {
 
+   private String name,resultName;
+
     @Before
     public void before() {
        this.prepare();
+        name = driverService.param.get("name");
+        resultName = driverService.param.get("resultName");
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.合约多继承执行情况")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.合约多继承且实现执行情况")
     public void testAbstractContract() {
 
         AbstractContractCSubclass abstractContractCSubclass= null;
@@ -31,13 +35,9 @@ public class AbstractContractBMultipleInhertTest extends ContractPrepareTest {
             abstractContractCSubclass = AbstractContractCSubclass.deploy(web3j, transactionManager, provider).send();
             String contractAddress = abstractContractCSubclass.getContractAddress();
             TransactionReceipt tx = abstractContractCSubclass.getTransactionReceipt().get();
-
-            collector.logStepPass("AbstractContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
-
-            //collector.assertEqual(tokenName, token.name().send(), "checkout tokenName");
+            collector.logStepPass("abstractContract issued successfully.contractAddress:" + contractAddress
+                                           + ", hash:" + tx.getTransactionHash());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
-
         } catch (Exception e) {
             collector.logStepFail("abstractContract deploy fail.", e.toString());
             e.printStackTrace();
@@ -45,18 +45,16 @@ public class AbstractContractBMultipleInhertTest extends ContractPrepareTest {
 
         //调用合约方法
         try {
-            String expectValue = "cSubName";
-            String actualValue = abstractContractCSubclass.cSubName().send();
-            collector.logStepPass("调用合约方法完毕 successful.actualValue:" + actualValue);
-            collector.assertEqual(actualValue,expectValue, "checkout  execute success.");
-
+            //设置用户名称setASubName()
+            TransactionReceipt transactionReceipt =  abstractContractCSubclass.setASubName(name).send();
+            collector.logStepPass("执行【设置用户名称合约方法setASubName()】,生成hash：" + transactionReceipt.getTransactionHash());
+            //获取用户名称aSubName()
+            String actualValue = abstractContractCSubclass.aSubName().send();
+            collector.logStepPass("执行【获取用户名称 aSubName()】 successful.actualValue:" + actualValue);
+            collector.assertEqual(actualValue,resultName, "checkout  execute success.");
         } catch (Exception e) {
             collector.logStepFail("abstractContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
-
-
-
     }
-
 }

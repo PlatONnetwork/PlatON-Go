@@ -20,12 +20,10 @@ contract ReferenceDataTypeStructContract {
    *2)、赋值及取值
    */
 
-
   /**
    *验证：1)、定义不同子元素数据（包含基本类型、包含引用数据类型）
    *---------------------------------------------------------
-   * 验证结果：结构体可以包含基本数据类型，引用数据类型，包含结构体（不可以包含自身结构体，否则会编译不过）
-   *
+   * 验证结果：结构体可以包含基本数据类型，引用数据类型，包含结构体（不可以包含自身结构体，否则会编译不过
    */
 
   //定义结构体包含基本数据类型
@@ -35,7 +33,6 @@ contract ReferenceDataTypeStructContract {
         uint age;
         bool isVIP;
     }
-
 
     //定义结构体包含引用数据类型
     struct Group {
@@ -62,22 +59,18 @@ contract ReferenceDataTypeStructContract {
 
    //赋值方式一： 按入参顺序赋值
    function initDataStructA() public view returns (uint,address,uint,bool) {
-
       Person memory  person = Person(2,msg.sender,25,true);
       return (person.id,person.addr,person.age,person.isVIP);
    }
 
   //赋值方式二： 按命名参数赋值
    function initDataStructB() public view returns (uint,address,uint,bool) {
-
       Person memory  person = Person({id:2,addr:msg.sender,age:25,isVIP:true});
       return (person.id,person.addr,person.age,person.isVIP);
    }
 
   //赋值方式三：结构体中映射的初始化
-
  function initDataStructC() public view returns (uint,address,uint,bool) {
-
       Person memory p1;//分配映射空间
       Person memory  person = Person({id:2,addr:msg.sender,age:25,isVIP:true});
       p1 = person;
