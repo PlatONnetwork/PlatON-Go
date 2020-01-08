@@ -73,6 +73,15 @@ var testCase = []*Case{
 	},
 	{
 		ctx: &VMContext{
+			contract: &Contract{Gas: 99}},
+		funcName: "platon_gas_test",
+		check: func(ctx *VMContext, err error) bool {
+			gas := binary.LittleEndian.Uint64(ctx.Output)
+			return gas >= ctx.contract.Gas
+		},
+	},
+	{
+		ctx: &VMContext{
 			evm: &EVM{Context: Context{
 				Time: big.NewInt(93),
 			}}},
@@ -823,7 +832,7 @@ type Case struct {
 }
 
 func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
-	t.Log("I am ", i)
+	//t.Log("I am ", i)
 	if c.ctx.contract == nil {
 		c.ctx.contract = &Contract{
 			Gas: math.MaxUint64,
