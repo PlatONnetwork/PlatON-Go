@@ -704,6 +704,7 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 
 func TestDelegateRewardPerUpdateAndAppend(t *testing.T) {
 	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
 	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		list := reward.NewDelegateRewardPerList()
 		perLength := reward.DelegateRewardPerLength*2 + 800
