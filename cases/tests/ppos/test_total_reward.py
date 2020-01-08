@@ -458,7 +458,7 @@ def test_DG_TR_013(client_new_node, reset_environment):
 
 def test_DG_TR_013_2(client_new_node, reset_environment):
     """
-    在领取分红后调整分红比例，验证分红池和节点收益
+    在赎回全部委托后调整分红比例，验证分红池和节点收益
     :param client_new_node:
     :return:
     """
