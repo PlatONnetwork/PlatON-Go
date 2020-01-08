@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"container/list"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -58,6 +59,19 @@ func TestTrieDAG2(t *testing.T) {
 	assert.Equal(t, h, hh)
 }
 
+func TestList(t *testing.T) {
+	l := list.New()
+	l.PushFront(1)
+	l.PushFront(2)
+	l.PushFront(3)
+
+	e := l.Back()
+	l.Remove(e)
+	e = l.Back()
+	l.Remove(e)
+	assert.NotNil(t, e)
+}
+
 func TestRnd2(t *testing.T) {
 	testTrieDAGRnd2(t, 1)
 	testTrieDAGRnd2(t, 10)
@@ -68,8 +82,8 @@ func TestRnd2(t *testing.T) {
 	testTrieDAGRnd2(t, 2045) // special point, error
 	testTrieDAGRnd2(t, 10000)
 	testTrieDAGRnd2(t, 100000)
-	//testTrieDAGRnd2(t, 513294) //513295
-	testTrieDAGRnd2(t, 1000000)
+	testTrieDAGRnd2(t, 513294) //513295
+	//testTrieDAGRnd2(t, 1000000)
 	//testTrieDAGRnd2(t, 5000000)
 }
 
@@ -169,4 +183,30 @@ func TestDAGCommit(t *testing.T) {
 	h0 = tr0.ParallelHash2()
 
 	assert.Equal(t, h, h0)
+}
+
+func TestDAGFull(t *testing.T) {
+	tr := newEmpty()
+	tr0 := newEmpty()
+
+	tr.Update([]byte("abc"), []byte("abc"))
+	tr0.Update([]byte("abc"), []byte("abc"))
+	assert.True(t, len(tr.dag.nodes) == 1)
+	tr.Update([]byte("abc"), []byte("abc1"))
+	tr0.Update([]byte("abc"), []byte("abc1"))
+	assert.True(t, len(tr.dag.nodes) == 1)
+
+	tr.Update([]byte("abcd"), []byte("abcd"))
+	tr0.Update([]byte("abcd"), []byte("abcd"))
+	assert.True(t, len(tr.dag.nodes) == 3)
+
+	tr.Update([]byte("123"), []byte("123"))
+	tr0.Update([]byte("123"), []byte("123"))
+	assert.True(t, len(tr.dag.nodes) == 5)
+
+	tr.Update([]byte("de"), []byte("ae"))
+	tr0.Update([]byte("de"), []byte("ae"))
+	assert.True(t, len(tr.dag.nodes) == 7)
+
+	assert.True(t, tr.ParallelHash2() == tr0.Hash())
 }

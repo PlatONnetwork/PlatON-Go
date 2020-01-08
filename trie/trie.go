@@ -236,6 +236,7 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 			return !bytes.Equal(v, value.(valueNode)), value, nil
 		}
 		if t.dag != nil {
+			//fmt.Printf("239: del vtx -> prefix: %x\n", prefix)
 			t.dag.delVertexAndEdgeByNode(prefix, value)
 			t.dag.addVertexAndEdge(fprefix, prefix, value)
 		}
@@ -243,10 +244,6 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 	}
 	switch n := n.(type) {
 	case *shortNode:
-		if t.dag != nil {
-			t.dag.delVertexAndEdge(append(prefix, n.Key...))
-		}
-
 		matchlen := prefixLen(key, n.Key)
 		// If the whole key matches, keep this short node as is
 		// and only update the value.
@@ -257,6 +254,8 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 			}
 			rn := &shortNode{n.Key, nn, t.newFlag()}
 			if t.dag != nil {
+				//fmt.Printf("257: del vtx -> prefix: %x\n", append(prefix, n.Key...))
+				t.dag.delVertexAndEdge(append(prefix, n.Key...))
 				t.dag.addVertexAndEdge(fprefix, prefix, rn)
 			}
 			return true, rn, nil
@@ -268,6 +267,10 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 			pprefix = append(pprefix, key[:matchlen]...)
 		}
 		pprefix = append(pprefix, fullNodeSuffix...)
+		if t.dag != nil {
+			//fmt.Printf("281: del vtx -> prefix: %x\n", append(prefix, n.Key...))
+			t.dag.delVertexAndEdge(append(prefix, n.Key...))
+		}
 		var err error
 		_, branch.Children[n.Key[matchlen]], err = t.insert(nil, pprefix, append(prefix, n.Key[:matchlen+1]...), n.Key[matchlen+1:], n.Val)
 		if err != nil {
@@ -296,13 +299,13 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 		return true, nn, nil
 
 	case *fullNode:
-		if t.dag != nil {
-			t.dag.delVertexAndEdge(append(prefix, fullNodeSuffix...))
-		}
-
 		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, fullNodeSuffix...), append(prefix, key[0]), key[1:], value)
 		if !dirty || err != nil {
 			return false, n, err
+		}
+		if t.dag != nil {
+			//fmt.Printf("302: del vtx -> prefix: %x\n", append(prefix, fullNodeSuffix...))
+			t.dag.delVertexAndEdge(append(prefix, fullNodeSuffix...))
 		}
 		n = n.copy()
 		n.flags = t.newFlag()
@@ -314,6 +317,7 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 
 	case nil:
 		if t.dag != nil {
+			//fmt.Printf("320: del vtx -> prefix: %x\n", append(prefix, key...))
 			t.dag.delVertexAndEdge(append(prefix, key...))
 		}
 		nn := &shortNode{key, value, t.newFlag()}
@@ -376,6 +380,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 		}
 		if matchlen == len(key) {
 			if t.dag != nil {
+				//fmt.Printf("382: del vtx -> prefix: %x\n", append(prefix, key...))
 				t.dag.delVertexAndEdge(append(prefix, key...))
 			}
 			return true, nil, nil // remove n entirely for whole matches
@@ -397,13 +402,16 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			// avoid modifying n.Key since it might be shared with
 			// other nodes.
 			if t.dag != nil {
+				//fmt.Printf("405: del vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
 				t.dag.delVertexAndEdgeByNode(append(prefix, concat(n.Key, child.Key...)...), child.Val)
+				//fmt.Printf("407: del vtx -> prefix: %x\n", append(prefix, n.Key...))
 				t.dag.delVertexAndEdgeByNode(append(prefix, n.Key...), child)
 				t.dag.addVertexAndEdge(append(prefix, concat(n.Key, child.Key...)...), append(prefix, concat(n.Key, child.Key...)...), child.Val)
 			}
 			return true, &shortNode{concat(n.Key, child.Key...), child.Val, t.newFlag()}, nil
 		default:
 			if t.dag != nil {
+				//fmt.Printf("414: dev vtx -> prefix: %x\n", append(prefix, n.Key...))
 				t.dag.delVertexAndEdgeByNode(append(prefix, n.Key...), child)
 				t.dag.addVertexAndEdge(append(prefix, n.Key...), append(prefix, n.Key...), child)
 			}
@@ -441,6 +449,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 		}
 		if pos >= 0 {
 			if t.dag != nil {
+				//fmt.Printf("452: del vtx -> prefix: %x\n", append(prefix, fullNodeSuffix...))
 				t.dag.delVertexAndEdge(append(prefix, fullNodeSuffix...))
 			}
 			if pos != 16 {
@@ -457,6 +466,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 				if cnode, ok := cnode.(*shortNode); ok {
 					k := append([]byte{byte(pos)}, cnode.Key...)
 					if t.dag != nil {
+						//fmt.Printf("469: del vtx -> prefix: %x\n", append(prefix, byte(pos)))
 						t.dag.delVertexAndEdgeByNode(append(prefix, byte(pos)), cnode)
 						t.dag.addVertexAndEdge(append(prefix, k...), append(prefix, k...), cnode.Val)
 					}
@@ -466,6 +476,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			// Otherwise, n is replaced by a one-nibble short node
 			// containing the child.
 			if t.dag != nil {
+				//fmt.Printf("479: del vtx -> prefix: %x\n", append(prefix, byte(pos)))
 				t.dag.delVertexAndEdgeByNode(append(prefix, byte(pos)), n.Children[pos])
 				t.dag.addVertexAndEdge(append(prefix, byte(pos)), append(prefix, byte(pos)), n.Children[pos])
 			}
@@ -555,9 +566,13 @@ func (t *Trie) ParallelHash() common.Hash {
 }
 
 func (t *Trie) ParallelHash2() common.Hash {
+	tm := time.Now()
 	hash, cached, err := t.parallelHashRoot2(nil, nil)
 	if err == nil {
 		t.root = cached
+	}
+	if time.Since(tm) >= 10*time.Millisecond {
+		log.Error("Trie Parallel Hash", "duration", time.Since(tm))
 	}
 	return common.BytesToHash(hash.(hashNode))
 }
@@ -604,9 +619,13 @@ func (t *Trie) ParallelCommit2(onleaf LeafCallback) (root common.Hash, err error
 		panic("commit called on trie with nil database")
 	}
 
+	tm := time.Now()
 	hash, cached, err := t.parallelHashRoot2(t.db, onleaf)
 	if err != nil {
 		return common.Hash{}, err
+	}
+	if time.Since(tm) >= 10*time.Millisecond {
+		log.Error("Trie Parallel Commit", "duration", time.Since(tm))
 	}
 	t.root = cached
 	t.cachegen++
@@ -663,7 +682,7 @@ func (t *Trie) DeepCopyTrie() *Trie {
 		originalRoot: t.originalRoot,
 		cachegen:     t.cachegen,
 		cachelimit:   t.cachelimit,
-		dag: newTrieDAGV2(),
+		dag:          newTrieDAGV2(),
 	}
 }
 

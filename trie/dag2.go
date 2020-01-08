@@ -194,6 +194,7 @@ type DAGNode2 struct {
 // TrieDAGV2
 type TrieDAGV2 struct {
 	nodes map[uint64]*DAGNode2
+	lock  sync.Mutex
 
 	dag *DAG2
 
@@ -209,6 +210,12 @@ func newTrieDAGV2() *TrieDAGV2 {
 }
 
 func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
+	td.lock.Lock()
+	defer td.lock.Unlock()
+	td.internalAddVertexAndEdge(pprefix, prefix, n, true)
+}
+
+func (td *TrieDAGV2) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recursive bool) {
 	var pid uint64
 	if len(pprefix) > 0 {
 		pid = xxhash.Sum64(pprefix)
@@ -235,6 +242,8 @@ func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
 		if pid > 0 {
 			td.dag.addEdge(id, pid)
 		}
+		//fmt.Printf("add short -> pprefix: %x, prefix: %x\n", pprefix, append(prefix, nc.Key...))
+		//fmt.Printf("add short -> id: %d, pid: %d\n", id, pid)
 
 	case *fullNode:
 		collapsed, cached := nc.copy(), nc.copy()
@@ -255,13 +264,17 @@ func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
 		if pid > 0 {
 			td.dag.addEdge(id, pid)
 		}
+		//fmt.Printf("add full -> pprefix: %x, prefix: %x\n", pprefix, append(prefix, fullNodeSuffix...))
+		//fmt.Printf("add full -> id: %d, pid: %d\n", id, pid)
 
-		for i := 0; i < 16; i++ {
-			if nc.Children[i] != nil {
-				cn := nc.Children[i]
-				_, dirty := cn.cache()
-				if !dirty {
-					td.addVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, byte(i)), cn)
+		if recursive {
+			for i := 0; i < 16; i++ {
+				if nc.Children[i] != nil {
+					cn := nc.Children[i]
+					_, dirty := cn.cache()
+					if !dirty {
+						td.internalAddVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, byte(i)), cn, false)
+					}
 				}
 			}
 		}
@@ -274,9 +287,12 @@ func (td *TrieDAGV2) delVertexAndEdge(key []byte) {
 }
 
 func (td *TrieDAGV2) delVertexAndEdgeByID(id uint64) {
+	td.lock.Lock()
+	defer td.lock.Unlock()
 	//td.dag.delEdge(id)
 	td.dag.delVertex(id)
 	delete(td.nodes, id)
+	//fmt.Printf("del: %d\n", id)
 }
 
 func (td *TrieDAGV2) delVertexAndEdgeByNode(prefix []byte, n node) {
@@ -333,15 +349,23 @@ func (td *TrieDAGV2) checkEdge() {
 }
 
 func (td *TrieDAGV2) reset() {
+	td.lock.Lock()
+	defer td.lock.Unlock()
 	td.dag.reset()
 }
 
 func (td *TrieDAGV2) clear() {
+	td.lock.Lock()
+	defer td.lock.Unlock()
+
 	td.dag.clear()
 	td.nodes = make(map[uint64]*DAGNode2)
 }
 
 func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, node, error) {
+	td.lock.Lock()
+	defer td.lock.Unlock()
+
 	var wg sync.WaitGroup
 	var errDone common.AtomicBool
 	var e atomic.Value // error
@@ -408,11 +432,13 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 					ptype.Children[n.idx] = hashed
 				}
 
-				switch nc := p.cached.(type) {
-				case *shortNode:
-					nc.Val = cached
-				case *fullNode:
-					nc.Children[n.idx] = cached
+				if _, ok := cached.(hashNode); ok {
+					switch nc := p.cached.(type) {
+					case *shortNode:
+						nc.Val = cached
+					case *fullNode:
+						nc.Children[n.idx] = cached
+					}
 				}
 			}
 
@@ -459,11 +485,14 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 	if e.Load() != nil && e.Load().(error) != nil {
 		return hashNode{}, nil, e.Load().(error)
 	}
-	td.reset()
+	td.dag.reset()
 	return resHash, newRoot, nil
 }
 
 func (td *TrieDAGV2) init(root node) {
+	td.lock.Lock()
+	defer td.lock.Unlock()
+
 	td.dag.generate()
 	//td.checkEdge()
 

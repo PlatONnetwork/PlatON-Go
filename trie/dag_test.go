@@ -169,7 +169,6 @@ func testTrieDAGRnd(t *testing.T, n int) {
 		cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 	}
 
-
 	dag := NewTrieDAG(0, 0)
 	tm := time.Now()
 	dag.init(trie.root)
@@ -192,7 +191,7 @@ func TestRnd(t *testing.T) {
 	testTrieDAGRnd(t, 1000)
 	testTrieDAGRnd(t, 10000)
 	testTrieDAGRnd(t, 100000)
-	testTrieDAGRnd(t, 1000000)
-	testTrieDAGRnd(t, 5000000)
-	testTrieDAGRnd(t, 10000000)
+	//testTrieDAGRnd(t, 1000000)
+	//testTrieDAGRnd(t, 5000000)
+	//testTrieDAGRnd(t, 10000000)
 }
