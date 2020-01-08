@@ -4,7 +4,7 @@ import beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.LibraryUsingFor;
-import org.apache.commons.lang.StringUtils;
+import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
@@ -32,27 +32,12 @@ public class LibraryUsingForTest extends ContractPrepareTest {
             TransactionReceipt receipt = using.register(new BigInteger("12")).send();
             List<LibraryUsingFor.ResultEventResponse> eventData = using.getResultEvents(receipt);
             String data = eventData.get(0).log.getData();
-            collector.assertEqual(subHexData(data), subHexData("1"), "checkout using A for B");
+            collector.assertEqual(DataChangeUtil.subHexData(data), DataChangeUtil.subHexData("1"), "checkout using A for B");
         } catch (Exception e) {
             collector.logStepFail("LibraryUsingForTest testRegister method failure:",e.getMessage());
             e.printStackTrace();
         }
     }
-    private String subHexData(String hexStr) {
-        if (StringUtils.isBlank(hexStr)) {
-            throw new IllegalArgumentException("string is blank");
-        }
-        if (StringUtils.startsWith(hexStr, "0x")) {
-            hexStr = StringUtils.substringAfter(hexStr, "0x");
-        }
-        byte[] addi = hexStr.getBytes();
-        for (int i = 0; i < addi.length; i++) {
-            if (addi[i] != 0) {
-                hexStr = StringUtils.substring(hexStr, i - 1);
-                break;
-            }
-        }
-        return hexStr;
-    }
+
 
 }
