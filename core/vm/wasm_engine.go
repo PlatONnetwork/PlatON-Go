@@ -119,12 +119,12 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte, re
 		config:   engine.Config(),
 		db:       engine.StateDB(),
 		Input:    input, //set input bytes
-		log:      NewWasmLogger(engine.config, log.WasmRoot()),
+		Log:      NewWasmLogger(engine.config, log.WasmRoot()),
 		readOnly: readOnly,
 	}
 	vm.SetHostCtx(ctx)
 	vm.SetUseGas(func(b byte) {
-		if gas, ok := wasmGasCostTable[b]; ok {
+		if gas, ok := WasmGasCostTable[b]; ok {
 			if !ctx.contract.UseGas(gas) {
 				panic(ErrOutOfGas)
 			}
