@@ -904,7 +904,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
-	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
+	if err := UpdateDelegateRewardPer(blockHash, nodeId, stakingBlockNum, rewardsReceive, rm.db); err != nil {
 		return nil, err
 	}
 
@@ -984,35 +984,37 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		}
 	}
 
-	if can.IsNotEmpty() && stakingBlockNum == can.StakingBlockNum && can.IsValid() {
-		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete candidate old power is failed", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
-				"stakingBlockNum", stakingBlockNum, "err", err)
-			return nil, err
-		}
+	if can.IsNotEmpty() && stakingBlockNum == can.StakingBlockNum {
+		if can.IsValid() {
+			if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete candidate old power is failed", "blockNumber",
+					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
+					"stakingBlockNum", stakingBlockNum, "err", err)
+				return nil, err
+			}
 
-		// change candidate shares
-		if can.Shares.Cmp(realSub) > 0 {
-			can.SubShares(realSub)
-		} else {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: the candidate shares is no enough", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNum",
-				stakingBlockNum, "can shares", can.Shares, "real withdrew delegate amount", realSub)
-			panic("the candidate shares is no enough")
+			// change candidate shares
+			if can.Shares.Cmp(realSub) > 0 {
+				can.SubShares(realSub)
+			} else {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: the candidate shares is no enough", "blockNumber",
+					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNum",
+					stakingBlockNum, "can shares", can.Shares, "real withdrew delegate amount", realSub)
+				panic("the candidate shares is no enough")
+			}
+
+			if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: Store candidate old power is failed", "blockNumber",
+					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
+					"stakingBlockNum", stakingBlockNum, "err", err)
+				return nil, err
+			}
 		}
 
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: Store CandidateMutable info is failed", "blockNumber",
 				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
 				"stakingBlockNum", stakingBlockNum, "candidateMutable", can.CandidateMutable, "err", err)
-			return nil, err
-		}
-
-		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: Store candidate old power is failed", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
-				"stakingBlockNum", stakingBlockNum, "err", err)
 			return nil, err
 		}
 	}
@@ -2424,6 +2426,9 @@ func buildCbftValidators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Va
 }
 
 func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
+	if can.IsEmpty() {
+		return
+	}
 
 	changeAmountEpoch := can.StakingEpoch
 
@@ -2452,6 +2457,9 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
 
 // The total delegate amount of the compute node
 func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable) bool {
+	if can.IsEmpty() {
+		return false
+	}
 	changeAmountEpoch := can.DelegateEpoch
 	sub := epoch - uint64(changeAmountEpoch)
 	log.Debug("lazyCalcNodeTotalDelegateAmount before", "current epoch", epoch, "canMutable", can)
@@ -2469,6 +2477,9 @@ func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable
 }
 
 func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
+	if del.IsEmpty() {
+		return
+	}
 
 	// When the first time, there was no previous changeAmountEpoch
 	if del.DelegateEpoch == 0 {
@@ -2501,6 +2512,9 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 
 // Calculating Total Entrusted Income
 func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.DelegateRewardPer) []reward.DelegateRewardReceipt {
+	if del.IsEmpty() {
+		return nil
+	}
 	// Triggered again in the same cycle, no need to calculate revenue
 	if uint64(del.DelegateEpoch) == epoch {
 		return nil
