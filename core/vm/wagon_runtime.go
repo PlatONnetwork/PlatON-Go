@@ -130,7 +130,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int64_t timestamp()
+	// int64_t platon_timestamp()
 	// func $timestamp (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -146,7 +146,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_coinbase(uint8_t hash[20])
+	// void platon_coinbase(uint8_t addr[20])
 	// func $platon_coinbase (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -162,7 +162,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_balance(uint8_t addr[32], uin8_t balance[32])
+	// void platon_balance(uint8_t addr[20], uin8_t balance[32])
 	// func $platon_balance (param $0 i32) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -179,7 +179,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_origin(uint8_t hash[20])
+	// void platon_origin(uint8_t addr[20])
 	// func $platon_origin (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -195,7 +195,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_caller(uint8_t hash[20])
+	// void platon_caller(uint8_t addr[20])
 	// func $platon_caller (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -211,7 +211,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_call_value(uint8_t val[32])
+	// uint8_t platon_call_value(uint8_t val[32]);
 	// func $platon_call_value (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -228,7 +228,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_address(uint8_t hash[20])
+	// void platon_address(uint8_t addr[20])
 	// func $platon_address  (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -276,8 +276,8 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int32_t platon_transfer(const uint8_t to[20], uint8_t *amount, size_t len)
-	// func $platon_transfer  (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i64)
+	// int32_t platon_transfer(const uint8_t to[20], const uint8_t *amount, size_t len)
+	// func $platon_transfer  (param $1 i32) (param $2 i32) (param $3 i32) (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -452,7 +452,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_debug(uint8_t *dst, size_t len)
+	// void platon_debug(const uint8_t *dst, size_t len)
 	// func $platon_debug (param i32 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -468,8 +468,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// todo
-	// int32_t platon_call(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* amount, size_t amountLen, const uint8_t* callCost, size_t callCostLen)
+	// int32_t platon_call(const uint8_t to[20], const uint8_t *args, size_t argsLen, const uint8_t *value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
 	// func $platon_call  (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -486,9 +485,8 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// todo
-	// int32_t platon_delegatecall(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen)
-	// func $platon_delegatecall (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t platon_delegate_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
+	// func $platon_delegate_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -499,14 +497,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_delegatecall",
+			FieldStr: "platon_delegate_call",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// todo
-	// int32_t platon_staticcall(const uint8_t* to, const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen)
-	// func $platon_staticcall (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t platon_static_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
+	// func $platon_static_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -517,7 +514,7 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_staticcall",
+			FieldStr: "platon_static_call",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
@@ -539,12 +536,11 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// todo
-	// int32_t platon_migrate(const uint8_t* old, uint8_t* new, const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen)
+	// int32_t platon_migrate(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
 	// func $platon_migrate (param $0 i32) (param $1 i32) (param $2 i32) (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
@@ -557,7 +553,6 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// todo
 	// void platon_event(const uint8_t* args, size_t argsLen)
 	// func $platon_event (param $0 i32) (param $1 i32)
 	addFuncExport(m,
@@ -574,7 +569,6 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// todo
 	// void platon_event1(const uint8_t* topic, size_t topicLen, const uint8_t* args, size_t argsLen)
 	// func $platon_event1 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
 	addFuncExport(m,
@@ -591,7 +585,6 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// todo
 	// void platon_event2(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* args, size_t argsLen)
 	// func $platon_event2 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
 	addFuncExport(m,
@@ -608,7 +601,6 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// todo
 	// void platon_event3(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* topic3, size_t topic3Len, uint8_t* args, size_t argsLen)
 	// func $platon_event3 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
 	addFuncExport(m,
@@ -778,7 +770,7 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 
 	_, returnGas, err := ctx.evm.Call(ctx.contract, addr, nil, gas, bValue)
 	if err != nil {
-		return 1
+		panic(err)
 	}
 	ctx.contract.Gas = returnGas
 	return 0
@@ -1058,7 +1050,7 @@ func DestroyContract(proc *exec.Process) int32 {
 	return 0
 }
 
-func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
+func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
@@ -1070,9 +1062,7 @@ func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, v
 		panic(ErrDepth)
 	}
 
-	addr1 := make([]byte, common.AddressLength)
-	proc.ReadAt(addr1, int64(oldAddr))
-	oldContract := common.BytesToAddress(addr1)
+	oldContract := ctx.contract.caller.Address()
 
 	input := make([]byte, argsLen)
 	proc.ReadAt(input, int64(args))
@@ -1116,13 +1106,23 @@ func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, v
 		panic("old target contract is illegal, no contract code exists")
 	}
 
-	// create new contract address
-	newContract := crypto.CreateAddress(sender, ctx.evm.StateDB.GetNonce(sender))
-
 	// check balance of sender
 	if !ctx.evm.CanTransfer(ctx.evm.StateDB, sender, bValue) {
 		panic(ErrInsufficientBalance)
 	}
+
+	senderNonce := ctx.evm.StateDB.GetNonce(sender)
+
+	// create new contract address
+	newContract := crypto.CreateAddress(sender, senderNonce)
+	ctx.evm.StateDB.SetNonce(sender, senderNonce+1)
+
+	// Ensure there's no existing contract already at the designated address
+	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
+	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
+		panic(ErrContractAddressCollision)
+	}
+
 	// Create a new account on the state
 	snapshot := ctx.evm.StateDB.Snapshot()
 	ctx.evm.StateDB.CreateAccount(newContract)
@@ -1149,7 +1149,6 @@ func MigrateContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, v
 
 	// deploy new contract
 	ret, err := run(ctx.evm, contract, nil, false)
-	//var err error = nil
 
 	// check whether the max code size has been exceeded
 	maxCodeSizeExceeded := len(ret) > params.MaxCodeSize

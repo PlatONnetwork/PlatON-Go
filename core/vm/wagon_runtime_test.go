@@ -344,7 +344,7 @@ var testCase = []*Case{
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input:    common.Address{1, 2, 4}.Bytes(), // todo need to add delegatecall input
 		},
-		funcName: "platon_delegatecall_contract_test",
+		funcName: "platon_delegate_call_contract_test",
 		init: func(ctx *VMContext) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
@@ -386,7 +386,7 @@ var testCase = []*Case{
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input:    common.Address{1, 2, 4}.Bytes(), // todo need to add staticcall input
 		},
-		funcName: "platon_staticcall_contract_test",
+		funcName: "platon_static_call_contract_test",
 		init: func(ctx *VMContext) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
@@ -858,6 +858,14 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 	index := int64(entry.Index)
 	vm.RecoverPanic = true
 	_, err = vm.ExecCode(index)
-	//assert.Nil(t, err)
-	assert.True(t, c.check(c.ctx, err), "test failed "+c.funcName, "err", err)
+
+	/*if c.funcName != "platon_panic_test" {
+		if !assert.Nil(t, err) {
+			t.Log("funcName:", c.funcName)
+		}
+	} else {
+		assert.NotNil(t, err)
+	}*/
+
+	assert.True(t, c.check(c.ctx, err), "test failed "+c.funcName)
 }

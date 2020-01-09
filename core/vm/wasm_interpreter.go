@@ -61,7 +61,8 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		return nil, err
 	}
 
-	if ret, err := engine.Run(input, readOnly); err != nil {
+	ret, err = engine.Run(input, readOnly)
+	if err != nil {
 		return ret, err
 	}
 
