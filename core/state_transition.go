@@ -180,6 +180,7 @@ func (st *StateTransition) preCheck() error {
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
+
 	// init initialGas value = txMsg.gas
 	if err = st.preCheck(); err != nil {
 		return
@@ -229,7 +230,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 	if vmerr != nil {
-		log.Debug("VM returned with error", "err", vmerr)
+		log.Error("VM returned with error", "err", vmerr)
 		// A possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
