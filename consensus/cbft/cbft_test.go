@@ -20,10 +20,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 

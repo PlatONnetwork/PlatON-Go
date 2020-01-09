@@ -41,7 +41,6 @@ var (
 	StakingRewardKey         = []byte("StakingRewardKey")
 	ChainYearNumberKey       = []byte("ChainYearNumberKey")
 	delegateRewardPerKey     = []byte("DelegateRewardPerKey")
-	delegateRewardTotalKey   = []byte("DelegateRewardTotalKey")
 )
 
 // GetHistoryIncreaseKey used for search the balance of reward pool at last year
@@ -92,16 +91,6 @@ func DelegateRewardPerKeys(nodeID discover.NodeID, stakingNum, fromEpoch, toEpoc
 		keys = append(keys, delegateRewardPerKey)
 	}
 	return keys
-}
-
-func DelegateRewardTotalKey(nodeID discover.NodeID, stakingNum uint64) []byte {
-	add, err := xutil.NodeId2Addr(nodeID)
-	if err != nil {
-		panic(err)
-	}
-	keyAdd := append(delegateRewardTotalKey, add.Bytes()...)
-	keyAdd = append(keyAdd, common.Uint64ToBytes(stakingNum)...)
-	return keyAdd
 }
 
 func NewDelegateRewardPer(epoch uint64, per, totalDelegate *big.Int) *DelegateRewardPer {
