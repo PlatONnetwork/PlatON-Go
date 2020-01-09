@@ -909,7 +909,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	}
 
 	// Update total delegate
-	lazyCalcNodeTotalDelegateAmount(epoch, can.CandidateMutable)
+	if can.IsNotEmpty() {
+		lazyCalcNodeTotalDelegateAmount(epoch, can.CandidateMutable)
+	}
 
 	del.DelegateEpoch = uint32(epoch)
 
