@@ -158,6 +158,9 @@ def get_pledge_list(func, nodeid=None) -> list:
     if validator_info == "Getting verifierList is failed:The validator is not exist":
         time.sleep(10)
         validator_info = func().get('Ret')
+    if validator_info == "Getting candidateList is failed:CandidateList info is not found":
+        time.sleep(10)
+        validator_info == func().get('Ret')
     if not nodeid:
         validator_list = []
         for info in validator_info:
