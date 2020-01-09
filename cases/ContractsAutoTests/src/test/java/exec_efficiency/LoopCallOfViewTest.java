@@ -10,7 +10,12 @@ import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
-
+/**
+ * @title LoopCallOfViewTest
+ * @description 循环Call调用
+ * @author qcxiao
+ * @updateTime 2020/1/9 20:19
+ */
 public class LoopCallOfViewTest extends ContractPrepareTest {
 
     private BigInteger numberOfCalls;
