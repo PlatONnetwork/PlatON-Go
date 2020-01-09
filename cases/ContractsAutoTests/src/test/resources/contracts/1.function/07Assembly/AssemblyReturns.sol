@@ -1,4 +1,9 @@
 pragma solidity 0.5.13;
+/**
+ 1.验证内联汇编关键字assembly,汇编赋值指令:=
+ * @author liweic
+ * @dev 2020/01/07 14:30
+ */
 
 contract AssemblyReturns {
     uint constant a = 2;
