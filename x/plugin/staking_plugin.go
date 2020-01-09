@@ -254,12 +254,6 @@ func (sk *StakingPlugin) GetCandidateCompactInfo(blockHash common.Hash, blockNum
 	epoch := xutil.CalculateEpoch(blockNumber)
 	lazyCalcStakeAmount(epoch, can.CandidateMutable)
 	canHex := buildCanHex(can)
-
-	delegateRewardTotal, err := sk.db.GetDelegateRewardTotal(blockHash, can.NodeId, can.StakingBlockNum, false)
-	if nil != err {
-		return nil, err
-	}
-	canHex.DelegateRewardTotal = (*hexutil.Big)(delegateRewardTotal)
 	return canHex, nil
 }
 
@@ -1175,6 +1169,34 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	return nil
 }
 
+func (sk *StakingPlugin) GetVerifierCandidateInfo(blockHash common.Hash, blockNumber uint64) ([]*staking.Candidate, error) {
+	verifierList, err := sk.getVerifierList(blockHash, blockNumber, false)
+	if nil != err {
+		return nil, err
+	}
+
+	if blockNumber < verifierList.Start || blockNumber > verifierList.End {
+		log.Error("Failed to GetVerifierList", "start", verifierList.Start,
+			"end", verifierList.End, "currentNumer", blockNumber)
+		return nil, staking.ErrBlockNumberDisordered
+	}
+
+	queue := make([]*staking.Candidate, len(verifierList.Arr))
+
+	for i, v := range verifierList.Arr {
+		//var can *staking.CandidateBase
+		c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
+		if nil != err {
+			log.Error("Failed to call GetVerifierList, Query Candidate Store info is failed",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(),
+				"canAddr", v.NodeAddress.Hex(), "err", err.Error())
+			return nil, err
+		}
+		queue[i] = c
+	}
+	return queue, nil
+}
+
 func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
 	verifierList, err := sk.getVerifierList(blockHash, blockNumber, isCommit)
 	if nil != err {
@@ -1215,33 +1237,24 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			}
 			can = c
 		}
-		var delegateRewardTotal *big.Int
-		delegateRewardTotal, err = sk.db.GetDelegateRewardTotal(blockHash, v.NodeId, v.StakingBlockNum, isCommit)
-		if err != nil {
-			log.Error("Failed to call GetVerifierList, Query DelegateRewardTotal failed",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(),
-				"canAddr", v.NodeAddress.Hex(), "isCommit", isCommit, "err", err.Error())
-			return nil, err
-		}
 
 		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
 
 		valEx := &staking.ValidatorEx{
-			NodeId:                     can.NodeId,
-			BlsPubKey:                  can.BlsPubKey,
-			StakingAddress:             can.StakingAddress,
-			BenefitAddress:             can.BenefitAddress,
-			RewardPer:                  can.RewardPer,
-			NextRewardPer:              can.NextRewardPer,
-			StakingTxIndex:             can.StakingTxIndex,
-			ProgramVersion:             can.ProgramVersion,
-			StakingBlockNum:            can.StakingBlockNum,
-			Shares:                     (*hexutil.Big)(v.Shares),
-			Description:                can.Description,
-			ValidatorTerm:              v.ValidatorTerm,
-			DelegateTotal:              (*hexutil.Big)(can.DelegateTotal),
-			DelegateRewardTotal:        (*hexutil.Big)(delegateRewardTotal),
-			CurrentEpochDelegateReward: can.CurrentEpochDelegateReward,
+			NodeId:              can.NodeId,
+			BlsPubKey:           can.BlsPubKey,
+			StakingAddress:      can.StakingAddress,
+			BenefitAddress:      can.BenefitAddress,
+			RewardPer:           can.RewardPer,
+			NextRewardPer:       can.NextRewardPer,
+			StakingTxIndex:      can.StakingTxIndex,
+			ProgramVersion:      can.ProgramVersion,
+			StakingBlockNum:     can.StakingBlockNum,
+			Shares:              (*hexutil.Big)(v.Shares),
+			Description:         can.Description,
+			ValidatorTerm:       v.ValidatorTerm,
+			DelegateTotal:       (*hexutil.Big)(can.DelegateTotal),
+			DelegateRewardTotal: (*hexutil.Big)(can.DelegateRewardTotal),
 		}
 		queue[i] = valEx
 	}
@@ -1384,14 +1397,6 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			can = c
 		}
 
-		delegateRewardTotal, err := sk.db.GetDelegateRewardTotal(blockHash, v.NodeId, v.StakingBlockNum, isCommit)
-		if err != nil {
-			log.Error("Failed to call GetVerifierList, Query DelegateRewardTotal failed",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(),
-				"canAddr", v.NodeAddress.Hex(), "isCommit", isCommit, "err", err.Error())
-			return nil, err
-		}
-
 		valEx := &staking.ValidatorEx{
 			NodeId:              can.NodeId,
 			BlsPubKey:           can.BlsPubKey,
@@ -1406,7 +1411,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			Description:         can.Description,
 			ValidatorTerm:       v.ValidatorTerm,
 			DelegateTotal:       (*hexutil.Big)(can.DelegateTotal),
-			DelegateRewardTotal: (*hexutil.Big)(delegateRewardTotal),
+			DelegateRewardTotal: (*hexutil.Big)(can.DelegateRewardTotal),
 		}
 		queue[i] = valEx
 	}
@@ -1529,11 +1534,6 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, blockNumber uin
 
 		lazyCalcStakeAmount(epoch, can.CandidateMutable)
 		canHex := buildCanHex(can)
-		delegateRewardTotal, err := sk.db.GetDelegateRewardTotal(blockHash, can.NodeId, can.StakingBlockNum, false)
-		if nil != err {
-			return nil, err
-		}
-		canHex.DelegateRewardTotal = (*hexutil.Big)(delegateRewardTotal)
 		queue = append(queue, canHex)
 	}
 
@@ -3327,26 +3327,27 @@ func calcRealRefund(blockNumber uint64, blockHash common.Hash, realtotal, amount
 
 func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 	return &staking.CandidateHex{
-		NodeId:             can.NodeId,
-		BlsPubKey:          can.BlsPubKey,
-		StakingAddress:     can.StakingAddress,
-		BenefitAddress:     can.BenefitAddress,
-		RewardPer:          can.RewardPer,
-		NextRewardPer:      can.NextRewardPer,
-		StakingTxIndex:     can.StakingTxIndex,
-		ProgramVersion:     can.ProgramVersion,
-		Status:             can.Status,
-		StakingEpoch:       can.StakingEpoch,
-		StakingBlockNum:    can.StakingBlockNum,
-		Shares:             (*hexutil.Big)(can.Shares),
-		Released:           (*hexutil.Big)(can.Released),
-		ReleasedHes:        (*hexutil.Big)(can.ReleasedHes),
-		RestrictingPlan:    (*hexutil.Big)(can.RestrictingPlan),
-		RestrictingPlanHes: (*hexutil.Big)(can.RestrictingPlanHes),
-		DelegateEpoch:      can.DelegateEpoch,
-		DelegateTotal:      (*hexutil.Big)(can.DelegateTotal),
-		DelegateTotalHes:   (*hexutil.Big)(can.DelegateTotalHes),
-		Description:        can.Description,
+		NodeId:              can.NodeId,
+		BlsPubKey:           can.BlsPubKey,
+		StakingAddress:      can.StakingAddress,
+		BenefitAddress:      can.BenefitAddress,
+		RewardPer:           can.RewardPer,
+		NextRewardPer:       can.NextRewardPer,
+		StakingTxIndex:      can.StakingTxIndex,
+		ProgramVersion:      can.ProgramVersion,
+		Status:              can.Status,
+		StakingEpoch:        can.StakingEpoch,
+		StakingBlockNum:     can.StakingBlockNum,
+		Shares:              (*hexutil.Big)(can.Shares),
+		Released:            (*hexutil.Big)(can.Released),
+		ReleasedHes:         (*hexutil.Big)(can.ReleasedHes),
+		RestrictingPlan:     (*hexutil.Big)(can.RestrictingPlan),
+		RestrictingPlanHes:  (*hexutil.Big)(can.RestrictingPlanHes),
+		DelegateEpoch:       can.DelegateEpoch,
+		DelegateTotal:       (*hexutil.Big)(can.DelegateTotal),
+		DelegateTotalHes:    (*hexutil.Big)(can.DelegateTotalHes),
+		Description:         can.Description,
+		DelegateRewardTotal: (*hexutil.Big)(can.DelegateRewardTotal),
 	}
 }
 
