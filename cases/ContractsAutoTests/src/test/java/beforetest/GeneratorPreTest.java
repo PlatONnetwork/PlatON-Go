@@ -26,16 +26,15 @@ import java.util.concurrent.Semaphore;
  * @author: qcxiao
  * @create: 2019/12/18 11:27
  **/
-public class GeneratorPreTest extends ContractPrepareTest{
+public class GeneratorPreTest extends ContractPrepareTest {
 
     private String contractAndLibrarys;
 
     @Before
     public void before() {
         this.prepare();
-        contractAndLibrarys = driverService.param.get("contractAndLibrarys")==null?"":driverService.param.get("contractAndLibrarys").toString();
+        contractAndLibrarys = driverService.param.get("contractAndLibrarys") == null ? "" : driverService.param.get("contractAndLibrarys").toString();
     }
-
 
 
     @Test
@@ -51,11 +50,11 @@ public class GeneratorPreTest extends ContractPrepareTest{
 
             //2.将含有library库的合约中的引用替换为library库对对合约地址
             String[] contractAndLibrarysArr = contractAndLibrarys.split(";");
-            if(contractAndLibrarysArr.length>0){
-                for(int i=0;i<contractAndLibrarysArr.length;i++){
-                    System.out.println("contractAndLibrarysArr[i] is:"+contractAndLibrarysArr[i]);
+            if (contractAndLibrarysArr.length > 0) {
+                for (int i = 0; i < contractAndLibrarysArr.length; i++) {
+                    System.out.println("contractAndLibrarysArr[i] is:" + contractAndLibrarysArr[i]);
                     String[] singleContractLib = contractAndLibrarysArr[i].split("&");
-                    deployLibrary(singleContractLib[0],singleContractLib[1]);
+                    deployLibrary(singleContractLib[0], singleContractLib[1]);
                 }
             }
 
@@ -83,7 +82,7 @@ public class GeneratorPreTest extends ContractPrepareTest{
         String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "build").toUri().getPath());
         File[] list = new File(buildPath).listFiles();
         for (File file : list) {
-            file.deleteOnExit();
+            file.delete();
         }
         // 获取所有sol源文件
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
@@ -116,32 +115,36 @@ public class GeneratorPreTest extends ContractPrepareTest{
     }
 
 
-    public void deployLibrary(String contractName,String librarys) {
+    public void deployLibrary(String contractName, String librarys) {
         String libraryAddressNoPre = "";
         //key值为library库名称，value为library库对应的地址
-        Map<String,String> libraryAddressNoPreMap = new HashMap<String,String>();
+        Map<String, String> libraryAddressNoPreMap = new HashMap<String, String>();
 
         //key值为library库名称，value为library库对应的引用地址
-        Map<String,String> libraryReplaceMap = new HashMap<String,String>();
+        Map<String, String> libraryReplaceMap = new HashMap<String, String>();
         String lineTxt = null;
 
         BufferedReader bufferedReader = null;
         try {
-            String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts","build").toUri().getPath());
+            String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "build").toUri().getPath());
 
             String[] libraryArr = librarys.split("\\|\\|");
 
-            for(int i=0;i<libraryArr.length;i++){
-                String libraryFile = resourcePath+libraryArr[i];
-                bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(libraryFile)),"UTF-8"));
-                while((lineTxt = bufferedReader.readLine()) != null){
+            for (int i = 0; i < libraryArr.length; i++) {
+                String libraryFile = resourcePath + libraryArr[i];
+                File file = new File(libraryFile);
+                if (!file.exists()) {
+                    continue;
+                }
+                bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+                while ((lineTxt = bufferedReader.readLine()) != null) {
                     BaseLibrary baseLibrary = new BaseLibrary(credentials, web3j, chainId);
                     TransactionReceipt receipt = baseLibrary.deploy(BaseLibrary.GAS_PRICE, BaseLibrary.GAS_LIMIT, lineTxt);
                     collector.logStepPass("status >>>> " + receipt.getStatus());
-                    libraryAddressNoPre =receipt.getContractAddress();
+                    libraryAddressNoPre = receipt.getContractAddress();
                     collector.logStepPass("contract address >>>> " + libraryAddressNoPre);
-                    if(libraryAddressNoPre.startsWith("0x")){
-                        libraryAddressNoPreMap.put(libraryArr[i].split("\\.")[0],libraryAddressNoPre.substring(2));//key值去掉.bin后缀
+                    if (libraryAddressNoPre.startsWith("0x")) {
+                        libraryAddressNoPreMap.put(libraryArr[i].split("\\.")[0], libraryAddressNoPre.substring(2));//key值去掉.bin后缀
                         break;
                     }
                 }
@@ -149,42 +152,46 @@ public class GeneratorPreTest extends ContractPrepareTest{
 
             //将合约中对应的library库地址进行替换
             String binData = "";
-            String replaceStr="";
+            String replaceStr = "";
             String sha3Str = "";
-            String contractNameFile = resourcePath+contractName;
-            bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(contractNameFile)),"UTF-8"));
-            while((lineTxt = bufferedReader.readLine()) != null){
-                if(lineTxt.startsWith("60")){
+            String contractNameFile = resourcePath + contractName;
+            File file = new File(contractNameFile);
+            if (!file.exists()) {
+                return;
+            }
+            bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+            while ((lineTxt = bufferedReader.readLine()) != null) {
+                if (lineTxt.startsWith("60")) {
                     binData = lineTxt;
                     continue;
-                }else if(lineTxt.startsWith("//")){
+                } else if (lineTxt.startsWith("//")) {
                     String[] arr = lineTxt.substring(2).trim().split("->");
-                    replaceStr = "__"+arr[0].trim()+"__"; //bin文件中需要替换的字符串
+                    replaceStr = "__" + arr[0].trim() + "__"; //bin文件中需要替换的字符串
                     //replaceStr生成规则
 //                    sha3Str = Hash.sha3String(arr[1].trim()).substring(2,36);
                     String[] keyArr = arr[1].split("\\:");
-                    libraryReplaceMap.put(keyArr[keyArr.length-1],replaceStr);
+                    libraryReplaceMap.put(keyArr[keyArr.length - 1], replaceStr);
                 }
             }
             bufferedReader.close();
 
             //替换合约bin中的library库引用修改为对应的真实library合约地址
             Iterator<String> it = libraryReplaceMap.keySet().iterator();
-            collector.logStepPass("contract oldBinData >>> "+binData);
-            while (it.hasNext()){
+            collector.logStepPass("contract oldBinData >>> " + binData);
+            while (it.hasNext()) {
                 String libraryKey = it.next();
-                binData = binData.replace(libraryReplaceMap.get(libraryKey),libraryAddressNoPreMap.get(libraryKey));
+                binData = binData.replace(libraryReplaceMap.get(libraryKey), libraryAddressNoPreMap.get(libraryKey));
             }
 
-            collector.logStepPass("contract newBinData >>> "+binData);
+            collector.logStepPass("contract newBinData >>> " + binData);
 
             //将替换好的地址的合约重新写入合约的bin文件中
             FileWriter fw = new FileWriter(contractNameFile);
             fw.write(binData);
             fw.close();
 
-        } catch (Exception e){
-            collector.logStepFail(e.getMessage(),e.toString());
+        } catch (Exception e) {
+            collector.logStepFail(e.getMessage(), e.toString());
             e.printStackTrace();
         }
     }
