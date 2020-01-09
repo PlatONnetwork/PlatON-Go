@@ -81,6 +81,10 @@ public class GeneratorPreTest extends ContractPrepareTest{
     public void compile() throws InterruptedException {
         String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts").toUri().getPath());
         String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "build").toUri().getPath());
+        File[] list = new File(buildPath).listFiles();
+        for (File file : list) {
+            file.deleteOnExit();
+        }
         // 获取所有sol源文件
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
         int size = files.size();

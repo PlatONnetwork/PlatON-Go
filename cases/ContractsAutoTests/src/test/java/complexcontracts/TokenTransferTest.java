@@ -24,11 +24,12 @@ import java.math.BigInteger;
  * @create: 2019/12/16 13:39
  **/
 public class TokenTransferTest {
-    @Rule
-    public AssertCollector collector = new AssertCollector();
 
     @Rule
     public DriverService driverService = new DriverService();
+
+    @Rule
+    public AssertCollector collector = new AssertCollector();
 
     // 底层链ID
     private long chainId;
@@ -36,12 +37,12 @@ public class TokenTransferTest {
     private String transferAmount;
     // 发行代币的总额
     private String ownerAmount;
-    // 发行代币的地址
-    private final static String transferFrom = "0x03f0e0a226f081a5daecfda222cafc959ed7b800";
     // 接收代币的地址
     private final static String transferTo = "0x8d2b8b62d2ff5e7d17f91cf821cafee8e1fe4584";
     // 代币名称
     private String tokenName;
+    // 发行代币的地址
+    private String transferFrom;
 
 
     @Before
@@ -50,6 +51,7 @@ public class TokenTransferTest {
         ownerAmount = driverService.param.get("ownerAmount");
         transferAmount = driverService.param.get("transferAmount");
         tokenName = driverService.param.get("tokenName");
+        transferFrom = driverService.param.get("address");
     }
 
     @Test
@@ -94,9 +96,9 @@ public class TokenTransferTest {
                 // 累计转移的数量
                 BigInteger amount = new BigInteger(transferAmount).multiply(BigInteger.valueOf(i));
                 // 判断代币接收地址的余额是否正确
-                collector.assertEqual(amount, toBalance, "checkout every time transferTo balance.");
+                collector.assertEqual(toBalance, amount, "checkout every time transferTo balance.");
                 // 判断代币转出地址余额是否正确
-                collector.assertEqual((new BigInteger(ownerAmount)).subtract(amount), fromBalance, "checkout every time transferFrom balance.");
+                collector.assertEqual(fromBalance, (new BigInteger(ownerAmount)).subtract(amount), "checkout every time transferFrom balance.");
             }
         } catch (Exception e) {
             e.printStackTrace();
