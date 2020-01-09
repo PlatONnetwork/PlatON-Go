@@ -94,6 +94,15 @@ class Economic:
         reward = node.ppos.getCandidateInfo(node.node_id)["Ret"]["RewardPer"]
         return int(Decimal(str(staking_reward))*Decimal(str(reward))/Decimal(str(10000)) + Decimal(str(int(Decimal(str(block_reward))*Decimal(str(reward))/Decimal(str(10000))))) * Decimal(str(block_number)))
 
+    def delegate_cumulative_income(self, node, block_reward, staking_reward, delegate_total_amount, delegate_amount):
+        entrusted_income = self.calculate_delegate_reward(node, block_reward, staking_reward)
+        print("entrusted_income: ", entrusted_income)
+        unit_commission_award = math.floor(Decimal(str(entrusted_income)) / int((Decimal(str(delegate_total_amount)) / (10 ** 9))))
+        print("unit_commission_award: ", unit_commission_award)
+        current_commission_award = int((Decimal(str(delegate_amount)) / (10 ** 9)) * Decimal(str(unit_commission_award)))
+        print("current_commission_award: ", current_commission_award)
+        return current_commission_award
+
     def get_current_year_reward(self, node: Node, verifier_num=None):
         """
         Get the first year of the block reward, pledge reward
