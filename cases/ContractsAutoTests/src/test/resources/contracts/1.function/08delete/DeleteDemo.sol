@@ -92,5 +92,4 @@ contract DeleteDemo{
         delete a;
         return (a.length);
     }
-
 }
