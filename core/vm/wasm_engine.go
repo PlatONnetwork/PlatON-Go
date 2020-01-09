@@ -75,7 +75,6 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 		if err := validateFunc(calldata, deploy); nil != err {
 			return nil, err
 		}
-
 		engine.Contract().Code = contractCode
 		input = calldata
 	} else { // call contract
@@ -88,7 +87,6 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 	if nil != moduleErr {
 		return nil, moduleErr
 	}
-
 	if err := engine.prepare(module, input, readOnly); nil != err {
 		return nil, err
 	}
@@ -104,6 +102,7 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 	if deploy {
 		return engine.Contract().Code, err
 	}
+
 	return ret, err
 }
 
@@ -212,7 +211,7 @@ func (engine *wagonEngine) makeModuleWithDeploy() (*exec.CompiledModule, int64, 
 
 	cache.Module = module
 	lru.WasmCache().Add(*(engine.Contract().CodeAddr), cache)
-	return module, 0, nil
+	return module, index, nil
 }
 
 func (engine *wagonEngine) makeModuleWithCall() (*exec.CompiledModule, int64, error) {

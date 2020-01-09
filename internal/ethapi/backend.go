@@ -19,11 +19,11 @@ package ethapi
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -70,6 +70,8 @@ type Backend interface {
 
 	ChainConfig() *params.ChainConfig
 	CurrentBlock() *types.Block
+
+	WasmType() string
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {
