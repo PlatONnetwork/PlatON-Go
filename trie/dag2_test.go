@@ -149,8 +149,15 @@ func TestDAGCommit(t *testing.T) {
 	tr, _ := New(common.Hash{}, triedb)
 
 	tr.Update([]byte("adabce"), []byte("12312312"))
+
+	tr.ParallelHash2()
+	tr.ParallelCommit2(nil)
+
 	tr.Update([]byte("bcdade"), []byte("12312321"))
 	tr.Update([]byte("quedad"), []byte("asfasf"))
+	tr.ParallelCommit2(nil)
+	tr.ParallelCommit2(nil)
+	tr.ParallelCommit2(nil)
 	tr.Update([]byte("asdfasbvf"), []byte("asfasbe"))
 	tr.Update([]byte("asdfsafasfds"), []byte("fasgdsafa"))
 	tr.Delete([]byte("quedad"))
@@ -172,9 +179,11 @@ func TestDAGCommit(t *testing.T) {
 	tr = newEmpty()
 	tr.Update([]byte("abc"), []byte("1111"))
 	tr.ParallelHash2()
+	tr.ParallelCommit2(nil)
 	tr.Update([]byte("12312"), []byte("12312312"))
 	tr.Delete([]byte("abc"))
 	tr.ParallelHash2()
+	tr.ParallelCommit2(nil)
 	tr.Update([]byte("12312"), []byte("12312312"))
 	h = tr.ParallelHash2()
 
@@ -189,24 +198,27 @@ func TestDAGFull(t *testing.T) {
 	tr := newEmpty()
 	tr0 := newEmpty()
 
-	tr.Update([]byte("abc"), []byte("abc"))
-	tr0.Update([]byte("abc"), []byte("abc"))
+	tr.Update([]byte("abc"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("abc"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
 	assert.True(t, len(tr.dag.nodes) == 1)
-	tr.Update([]byte("abc"), []byte("abc1"))
-	tr0.Update([]byte("abc"), []byte("abc1"))
+	tr.Update([]byte("abc"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("abc"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
 	assert.True(t, len(tr.dag.nodes) == 1)
 
-	tr.Update([]byte("abcd"), []byte("abcd"))
-	tr0.Update([]byte("abcd"), []byte("abcd"))
+	tr.Update([]byte("abcd"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("abcd"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
 	assert.True(t, len(tr.dag.nodes) == 3)
 
-	tr.Update([]byte("123"), []byte("123"))
-	tr0.Update([]byte("123"), []byte("123"))
+	tr.Update([]byte("123"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("123"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
 	assert.True(t, len(tr.dag.nodes) == 5)
 
-	tr.Update([]byte("de"), []byte("ae"))
-	tr0.Update([]byte("de"), []byte("ae"))
+	tr.Update([]byte("de"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("de"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
 	assert.True(t, len(tr.dag.nodes) == 7)
 
 	assert.True(t, tr.ParallelHash2() == tr0.Hash())
+	tr.ParallelCommit2(nil)
+
+	tr0.Commit(nil)
 }

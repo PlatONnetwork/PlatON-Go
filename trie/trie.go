@@ -393,6 +393,10 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 		if !dirty || err != nil {
 			return false, n, err
 		}
+		if t.dag != nil {
+			//fmt.Printf("397: del vtx -> prefix: %x\n", append(prefix, n.Key...))
+			t.dag.delVertexAndEdge(append(prefix, n.Key...))
+		}
 		switch child := child.(type) {
 		case *shortNode:
 			// Deleting from the subtrie reduced it to another
@@ -404,8 +408,9 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			if t.dag != nil {
 				//fmt.Printf("405: del vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
 				t.dag.delVertexAndEdgeByNode(append(prefix, concat(n.Key, child.Key...)...), child.Val)
-				//fmt.Printf("407: del vtx -> prefix: %x\n", append(prefix, n.Key...))
+				//fmt.Printf("407: del vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
 				t.dag.delVertexAndEdgeByNode(append(prefix, n.Key...), child)
+				//fmt.Printf("409: add vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
 				t.dag.addVertexAndEdge(append(prefix, concat(n.Key, child.Key...)...), append(prefix, concat(n.Key, child.Key...)...), child.Val)
 			}
 			return true, &shortNode{concat(n.Key, child.Key...), child.Val, t.newFlag()}, nil
@@ -413,6 +418,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			if t.dag != nil {
 				//fmt.Printf("414: dev vtx -> prefix: %x\n", append(prefix, n.Key...))
 				t.dag.delVertexAndEdgeByNode(append(prefix, n.Key...), child)
+				//fmt.Printf("417: add vtx -> prefix: %x\n", append(prefix, n.Key...))
 				t.dag.addVertexAndEdge(append(prefix, n.Key...), append(prefix, n.Key...), child)
 			}
 			return true, &shortNode{n.Key, child, t.newFlag()}, nil
@@ -468,6 +474,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 					if t.dag != nil {
 						//fmt.Printf("469: del vtx -> prefix: %x\n", append(prefix, byte(pos)))
 						t.dag.delVertexAndEdgeByNode(append(prefix, byte(pos)), cnode)
+						//fmt.Printf("473: add vtx -> prefix: %x\n", append(prefix, k...))
 						t.dag.addVertexAndEdge(append(prefix, k...), append(prefix, k...), cnode.Val)
 					}
 					return true, &shortNode{k, cnode.Val, t.newFlag()}, nil
@@ -478,12 +485,14 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			if t.dag != nil {
 				//fmt.Printf("479: del vtx -> prefix: %x\n", append(prefix, byte(pos)))
 				t.dag.delVertexAndEdgeByNode(append(prefix, byte(pos)), n.Children[pos])
+				//fmt.Printf("484: add vtx -> prefix: %x\n", append(prefix, byte(pos)))
 				t.dag.addVertexAndEdge(append(prefix, byte(pos)), append(prefix, byte(pos)), n.Children[pos])
 			}
 			return true, &shortNode{[]byte{byte(pos)}, n.Children[pos], t.newFlag()}, nil
 		}
 		// n still contains at least two values and cannot be reduced.
 		if t.dag != nil {
+			//fmt.Printf("491: add vtx -> prefix: %x\n", append(prefix, key[0]))
 			t.dag.addVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, key[0]), nn)
 		}
 		return true, n, nil
@@ -682,7 +691,7 @@ func (t *Trie) DeepCopyTrie() *Trie {
 		originalRoot: t.originalRoot,
 		cachegen:     t.cachegen,
 		cachelimit:   t.cachelimit,
-		dag:          newTrieDAGV2(),
+		dag:          t.dag,
 	}
 }
 

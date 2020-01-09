@@ -247,6 +247,7 @@ func (td *TrieDAGV2) internalAddVertexAndEdge(pprefix, prefix []byte, n node, re
 
 	case *fullNode:
 		collapsed, cached := nc.copy(), nc.copy()
+		cached.Children[16] = nc.Children[16]
 
 		dagNode := &DAGNode2{
 			collapsed: collapsed,
@@ -387,7 +388,7 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 				return hash, c, true
 			}
 		}
-		return n, n, false
+		return n, c, false
 	}
 
 	process := func() {

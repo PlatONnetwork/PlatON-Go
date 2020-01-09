@@ -476,26 +476,37 @@ func runRandParallelTest(rt randTest) bool {
 
 	tr, _ := New(common.Hash{}, triedb)
 	values := make(map[string]string) // tracks content of the trie
+	tmpVals := make(map[string][]byte)
 
 	for i, step := range rt {
 		switch step.op {
 		case opUpdate:
+			fmt.Printf("%d: opUpdate, len: %d\n", i, len(values))
 			tr.Update(step.key, step.value)
 			values[string(step.key)] = string(step.value)
+			tmpVals[string(step.key)] = step.value
 		case opDelete:
+			fmt.Printf("%d: opDelete, len: %d\n", i, len(values))
 			tr.Delete(step.key)
+			fmt.Printf("del -> %x\n", step.key)
 			delete(values, string(step.key))
+			delete(tmpVals, string(step.key))
 		case opGet:
+			fmt.Printf("%d: opGet, len: %d\n", i, len(values))
 			v := tr.Get(step.key)
 			want := values[string(step.key)]
 			if string(v) != want {
 				rt[i].err = fmt.Errorf("mismatch for key 0x%x, got 0x%x want 0x%x", step.key, v, want)
+				tr.Get(step.key)
 			}
 		case opCommit:
+			fmt.Printf("%d: opGet, len: %d\n", i, len(values))
 			_, rt[i].err = tr.ParallelCommit2(nil)
 		case opHash:
+			fmt.Printf("%d: opHash, len: %d\n", i, len(values))
 			tr.ParallelHash2()
 		case opReset:
+			fmt.Printf("%d: opReset, len: %d\n", i, len(values))
 			hash, err := tr.ParallelCommit2(nil)
 			if err != nil {
 				rt[i].err = err
@@ -508,6 +519,7 @@ func runRandParallelTest(rt randTest) bool {
 			}
 			tr = newtr
 		case opItercheckhash:
+			fmt.Printf("%d: opItercheckhash, len: %d\n", i, len(values))
 			checktr, _ := New(common.Hash{}, triedb)
 			it := NewIterator(tr.NodeIterator(nil))
 			for it.Next() {
@@ -516,8 +528,15 @@ func runRandParallelTest(rt randTest) bool {
 			if tr.ParallelHash2() != checktr.Hash() {
 				fmt.Printf("phash: %x, chash: %x\n", tr.ParallelHash2(), checktr.Hash())
 				rt[i].err = fmt.Errorf("hash mismatch in opItercheckhash")
+
+				nt, _ := New(common.Hash{}, triedb)
+				it := NewIterator(tr.NodeIterator(nil))
+				for it.Next() {
+					nt.Update(it.Key, it.Value)
+				}
 			}
 		case opCheckCacheInvariant:
+			fmt.Printf("%d: opCheckCacheInvariant, len: %d\n", i, len(values))
 			rt[i].err = checkCacheInvariant(tr.root, nil, tr.cachegen, false, 0)
 		}
 		// Abort the test on error.
@@ -660,6 +679,7 @@ func BenchmarkHash(b *testing.B) {
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
+	trie.dag = nil
 	for i := 0; i < len(addresses); i++ {
 		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 	}
@@ -691,6 +711,7 @@ func BenchmarkParallelHash(b *testing.B) {
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
+	trie.dag = nil
 	for i := 0; i < len(addresses); i++ {
 		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 	}
