@@ -1,5 +1,8 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
@@ -12,10 +15,6 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.GasProvider;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -26,7 +25,7 @@ import java.util.Collections;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class RequireContract extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060de8061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806314fef936146037578063de29278914606c575b600080fd5b606a60048036036040811015604b57600080fd5b8101908080359060200190929190803590602001909291905050506088565b005b607260a0565b6040518082815260200191505060405180910390f35b808211609357600080fd5b8082036000819055505050565b6000805490509056fea265627a7a723158207d573779fe947781dc14e865d642677382d4ef4fb69795e429669fce7c987d9664736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060de8061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806314fef936146037578063de29278914606c575b600080fd5b606a60048036036040811015604b57600080fd5b8101908080359060200190929190803590602001909291905050506088565b005b607260a0565b6040518082815260200191505060405180910390f35b808211609357600080fd5b8082036000819055505050565b6000805490509056fea265627a7a72315820747ce8f5ca571953d8a0e144af2fd2a83a335172a109784f212b46245ab2159564736f6c634300050d0032";
 
     public static final String FUNC_GETRESULT = "getResult";
 
@@ -51,8 +50,8 @@ public class RequireContract extends Contract {
     }
 
     public RemoteCall<BigInteger> getResult() {
-        final Function function = new Function(FUNC_GETRESULT,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_GETRESULT, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
@@ -60,8 +59,8 @@ public class RequireContract extends Contract {
     public RemoteCall<TransactionReceipt> toSenderAmount(BigInteger frist, BigInteger second) {
         final Function function = new Function(
                 FUNC_TOSENDERAMOUNT, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(frist),
-                new org.web3j.abi.datatypes.generated.Uint256(second)),
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(frist), 
+                new org.web3j.abi.datatypes.generated.Uint256(second)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
