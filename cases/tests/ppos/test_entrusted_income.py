@@ -927,14 +927,20 @@ def test_EI_BC_022_026(clients_new_node, delegate_type, reset_environment):
     first_blocknum = result['Ret']['StakingBlockNum']
     result = second_client.ppos.getCandidateInfo(second_node.node_id)
     second_blocknum = result['Ret']['StakingBlockNum']
+    first_delegate_balance = first_node.eth.getBalance(address)
+    log.info("Entrusted account balance：{}".format(first_delegate_balance))
     first_commission_award = first_economic.calculate_delegate_reward(first_node, block_reward, staking_reward)
+    first_current_commission_award = first_economic.delegate_cumulative_income(first_node, block_reward, staking_reward, delegate_amount, delegate_amount)
     second_commission_award = second_economic.calculate_delegate_reward(second_node, block_reward, staking_reward)
+    second_current_commission_award = first_economic.delegate_cumulative_income(first_node, block_reward, staking_reward, delegate_amount, delegate_amount)
+    first_delegate_balance = first_node.eth.getBalance(address)
+    log.info("Entrusted account balance：{}".format(first_delegate_balance))
     result = first_client.delegate.withdrew_delegate(first_blocknum, address, amount=delegate_amount)
-    delegate_balance = first_node.eth.getBalance(address)
-    log.info("Entrusted account balance：{}".format(delegate_balance))
     assert_code(result, 0)
     result = first_client.delegate.withdrew_delegate(second_blocknum, address, node_id=second_node.node_id, amount=delegate_amount)
     assert_code(result, 0)
+    second_delegate_balance = first_node.eth.getBalance(address)
+    log.info("Entrusted account balance：{}".format(second_delegate_balance))
     result = first_client.ppos.getDelegateInfo(first_blocknum, address, first_node.node_id)
     assert_code(result, 301205)
     result = second_client.ppos.getDelegateInfo(first_blocknum, address, second_node.node_id)
@@ -961,6 +967,7 @@ def test_EI_BC_022_026(clients_new_node, delegate_type, reset_environment):
     result = first_client.ppos.getDelegateReward(address, node_ids=[second_node.node_id])
     log.info("Dividend reward information currently available：{}".format(result))
     assert_code(result, 2)
+    assert first_delegate_balance + first_current_commission_award + second_current_commission_award - second_delegate_balance < first_node.web3.toWei(1, 'ether'), "ErrMsg: 账户余额 {}".format(second_delegate_balance)
 
 
 @pytest.mark.P1
@@ -1031,22 +1038,28 @@ def test_EI_BC_028_030(client_new_node, delegate_type):
     block_reward, staking_reward = economic.get_current_year_reward(node)
     economic.wait_settlement_blocknum(node)
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
+    first_delegate_balance = node.eth.getBalance(address)
+    log.info("Entrusted account balance： {}".format(first_delegate_balance))
     commission_award = economic.calculate_delegate_reward(node, block_reward, staking_reward)
+    current_commission_award = economic.calculate_delegate_reward(node, block_reward, staking_reward, delegate_amount, delegate_amount)
     result = client.delegate.withdrew_delegate(blocknum, address, amount=delegate_amount)
     assert_code(result, 0)
     result = client.ppos.getDelegateInfo(blocknum, address, node.node_id)
     assert_code(result, 301205)
-    first_last_delegate_epoch, first_delegate_total, first_delegate_total_hes, first_delegate_reward_total = get_delegate_relevant_amount_and_epoch(
-        client)
-    assert first_last_delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(first_last_delegate_epoch)
-    assert first_delegate_total == 0, "The total number of effective commissioned nodes: {}".format(
-        first_delegate_total)
-    assert first_delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(
-        first_delegate_total_hes)
-    assert first_delegate_reward_total == commission_award, "Total delegated rewards currently issued by the candidate: {}".format(
-        first_delegate_reward_total)
+    last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
+        client, node.node_id)
+    assert last_delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
+    assert delegate_total == 0, "The total number of effective commissioned nodes: {}".format(
+        delegate_total)
+    assert delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(
+        delegate_total_hes)
+    assert delegate_reward_total == commission_award, "Total delegated rewards currently issued by the candidate: {}".format(
+        delegate_reward_total)
     result = client.ppos.getDelegateReward(address)
     assert_code(result, 2)
+    second_delegate_balance = node.eth.getBalance(address)
+    log.info("Entrusted account balance： {}".format(second_delegate_balance))
+    assert first_delegate_balance + current_commission_award < second_delegate_balance, "ErrMsg:账户余额 {}".format(second_delegate_balance)
 
 
 @pytest.mark.P1
