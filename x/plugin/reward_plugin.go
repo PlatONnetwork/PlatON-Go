@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -238,7 +239,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 			per := reward.NewDelegateRewardPer(currentEpoch, delegateRewardPer, verifier.DelegateTotal.ToInt())
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
 				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-					"nodeId", verifier.NodeId.TerminalString(), "err", err)
+					"nodeId", verifier.NodeId.TerminalString(), "err", err, "per", delegateRewardPer)
 				return err
 			}
 			val, err := rmp.db.Get(blockHash, reward.DelegateRewardTotalKey(verifier.NodeId, verifier.StakingBlockNum))
@@ -275,27 +276,29 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 	receiveReward := new(big.Int)
 	for _, delWithPer := range list {
 		rewardsReceive := calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
-		log.Debug("WithdrawDelegateReward rewardsReceive", "rewardsReceive", rewardsReceive)
-		if err := UpdateDelegateRewardPer(blockHash, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, rewardsReceive, rmp.db); err != nil {
-			log.Error("call WithdrawDelegateReward UpdateDelegateRewardPer fail", "err", err)
-			return nil, err
-		}
-
 		rewards = append(rewards, reward.NodeDelegateReward{
 			NodeID:     delWithPer.DelegationInfo.NodeID,
 			StakingNum: delWithPer.DelegationInfo.StakeBlockNumber,
 			Reward:     new(big.Int).Set(delWithPer.DelegationInfo.Delegation.CumulativeIncome),
 		})
-
-		receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
-
-		delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
+		if len(rewardsReceive) != 0 {
+			if err := UpdateDelegateRewardPer(blockHash, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, rewardsReceive, rmp.db); err != nil {
+				log.Error("call WithdrawDelegateReward UpdateDelegateRewardPer fail", "err", err)
+				return nil, err
+			}
+		}
+		if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
+			receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
+			delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
+		}
 		if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation); err != nil {
 			return nil, err
 		}
+		log.Debug("WithdrawDelegateReward rewardsReceive", "rewardsReceive", rewardsReceive, "blockNum", blockNum)
 	}
-
-	rmp.ReturnDelegateReward(account, receiveReward, state)
+	if receiveReward.Cmp(common.Big0) > 0 {
+		rmp.ReturnDelegateReward(account, receiveReward, state)
+	}
 	log.Debug("Call withdraw delegate reward: end", "account", account, "rewards", rewards, "blockNum", blockNum, "blockHash", blockHash, "receiveReward", receiveReward)
 
 	return rewards, nil
@@ -327,16 +330,12 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 	currentEpoch := xutil.CalculateEpoch(blockNum)
 	delegationInfoWithRewardPerList := make([]*DelegationInfoWithRewardPerList, 0)
 	for _, stakingNode := range dls {
-		if uint64(stakingNode.Delegation.DelegateEpoch) == currentEpoch-1 {
-			delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, NewDelegationInfoWithRewardPerList(stakingNode, nil))
-		} else {
-			delegateRewardPerList, err := rmp.GetDelegateRewardPerList(blockHash, stakingNode.NodeID, stakingNode.StakeBlockNumber, uint64(stakingNode.Delegation.DelegateEpoch), currentEpoch-1)
-			if err != nil {
-				log.Error("Call GetDelegateReward GetDelegateRewardPerList fail", "err", err, "account", account)
-				return nil, err
-			}
-			delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, NewDelegationInfoWithRewardPerList(stakingNode, delegateRewardPerList))
+		delegateRewardPerList, err := rmp.GetDelegateRewardPerList(blockHash, stakingNode.NodeID, stakingNode.StakeBlockNumber, uint64(stakingNode.Delegation.DelegateEpoch), currentEpoch-1)
+		if err != nil {
+			log.Error("Call GetDelegateReward GetDelegateRewardPerList fail", "err", err, "account", account)
+			return nil, err
 		}
+		delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, NewDelegationInfoWithRewardPerList(stakingNode, delegateRewardPerList))
 	}
 	rewards := make([]reward.NodeDelegateRewardPresenter, 0)
 
@@ -350,7 +349,7 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 		})
 
 	}
-	log.Debug("Call RewardMgrPlugin: query delegate reward result end", "account", account, "nodes", nodes, "rewards", rewards, "perList", delegationInfoWithRewardPerList)
+	log.Debug("Call RewardMgrPlugin: query delegate reward result end", "num", blockNum, "account", account, "nodes", nodes, "rewards", rewards, "perList", delegationInfoWithRewardPerList)
 
 	return rewards, nil
 }
@@ -502,9 +501,7 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, sta
 		}
 		for _, per := range list.Pers {
 			if per.Epoch >= fromEpoch && per.Epoch <= toEpoch {
-				if per.Per.Cmp(common.Big0) > 0 {
-					pers = append(pers, per)
-				}
+				pers = append(pers, per)
 			}
 		}
 	}
@@ -512,6 +509,9 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, sta
 }
 
 func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) error {
+	if per.Per.Cmp(common.Big0) <= 0 {
+		return errors.New("per must great than zero")
+	}
 	key := reward.DelegateRewardPerKey(nodeID, stakingNum, per.Epoch)
 	list := reward.NewDelegateRewardPerList()
 	val, err := db.Get(blockHash, key)
@@ -542,6 +542,7 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 		return nil
 	}
 	keys := reward.DelegateRewardPerKeys(nodeID, stakingNum, receives[0].Epoch, receives[len(receives)-1].Epoch)
+	var reIndex int
 	for _, key := range keys {
 		val, err := db.Get(blockHash, key)
 		if err != nil {
@@ -554,8 +555,11 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 		if err := rlp.DecodeBytes(val, list); err != nil {
 			return err
 		}
-
-		list.DecreaseTotalAmount(receives)
+		if len(receives)-reIndex < reward.DelegateRewardPerLength {
+			reIndex += list.DecreaseTotalAmount(receives[reIndex:])
+		} else {
+			reIndex += list.DecreaseTotalAmount(receives[reIndex : reIndex+reward.DelegateRewardPerLength])
+		}
 		if list.IsChange() {
 			log.Debug("update delegate reward per list", "nodeID", nodeID.TerminalString(), "stkNum", stakingNum, "list", list)
 			if list.ShouldDel() {

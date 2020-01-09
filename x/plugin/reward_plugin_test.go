@@ -17,6 +17,7 @@
 package plugin
 
 import (
+	"fmt"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -567,6 +568,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	canMu.Released = big.NewInt(10000)
 	canMu.RewardPer = rewardPer
 	canMu.DelegateTotal = delegateTotal
+	canMu.CurrentEpochDelegateReward = delegateTotal
 
 	var canBase staking.CandidateBase
 	privateKey, err := crypto.GenerateKey()
@@ -697,5 +699,55 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 		chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr), "can address", chain.StateDB.GetBalance(can.BenefitAddress), "reward_pool",
 		chain.StateDB.GetBalance(vm.RewardManagerPoolAddr))
 	log.Debug("get", "re", re, "in", re[0].Reward.ToInt())
+
+}
+
+func TestDelegateRewardPerUpdateAndAppend(t *testing.T) {
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		list := reward.NewDelegateRewardPerList()
+		perLength := reward.DelegateRewardPerLength*2 + 800
+		for i := 0; i < perLength; i++ {
+			per := reward.NewDelegateRewardPer(uint64(i), big.NewInt(10), big.NewInt(300))
+			list.Pers = append(list.Pers, per)
+			if err := AppendDelegateRewardPer(common.ZeroHash, nodeID, 100, per, chain.SnapDB); err != nil {
+				return err
+			}
+		}
+
+		receiptLength := 1700
+		tmp := make([]reward.DelegateRewardReceipt, 1700)
+		receiptIndex := 800
+		for i := 0; i < 1700; i++ {
+			tmp[i] = reward.DelegateRewardReceipt{Epoch: uint64(receiptIndex + i), Delegate: big.NewInt(300)}
+		}
+
+		if err := UpdateDelegateRewardPer(common.ZeroHash, nodeID, 100, tmp, chain.SnapDB); err != nil {
+			return err
+		}
+
+		per, err := getDelegateRewardPerList(common.ZeroHash, nodeID, 100, 0, 2800, chain.SnapDB)
+		if err != nil {
+			return err
+		}
+		if len(per) != perLength-receiptLength {
+			return fmt.Errorf("per length is wrong,length :%v", len(per))
+		}
+		if per[len(per)-1].Epoch != uint64(perLength-1) {
+			return fmt.Errorf("Epoch is wrong :%v", per[len(per)-1].Epoch)
+		}
+		if per[len(per)-1].DelegateAmount.Cmp(big.NewInt(300)) != 0 {
+			return fmt.Errorf("DelegateAmount is wrong :%v", per[len(per)-1].DelegateAmount)
+		}
+		if per[len(per)-1].Per.Cmp(big.NewInt(10)) != 0 {
+			return fmt.Errorf("per  is wrong :%v", per[len(per)-1].Per)
+		}
+
+		return nil
+	}); err != nil {
+		t.Error(err)
+		return
+	}
 
 }
