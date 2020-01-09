@@ -299,7 +299,7 @@ contract NewSecPledgeApplyManager{
         return secPledgeApplyMap[_id].tradeOperator.name;
     }
 
-    //查询操作用户
+    //查询证券信息用户
     function select_pledgeSecurity_bytId(string memory _id) public constant returns(string memory) {
         return pledgeSecurityArrMap[_id][0].secName;
     }
