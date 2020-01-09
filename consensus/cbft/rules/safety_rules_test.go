@@ -62,7 +62,7 @@ func NewBlock(parent common.Hash, number uint64, blockTime *big.Int) *types.Bloc
 	header := &types.Header{
 		Number:     big.NewInt(int64(number)),
 		ParentHash: parent,
-		Time:       big.NewInt(time.Now().UnixNano()),
+		Time:       big.NewInt(time.Now().UnixNano() / 1e6),
 		Coinbase:   common.BytesToAddress(utils.Rand32Bytes(32)),
 	}
 	if blockTime != nil {
@@ -180,7 +180,7 @@ func testBaseSafetyRulesPrepareBlockRules(t *testing.T, viewState *state.ViewSta
 		{newCommonError(notExistPreIndex), false, false, false, true, newPrepareBlock(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, nextIndex+1, nil, nil), nil, nil},
 		{newCommonError(diffPreIndexBlock), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, nextIndex, nil, nil), nil, nil},
 		{newCommonError(backwardPrepare), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64()+1, nextIndex, nil, new(big.Int).Sub(qcBlock.Time(), big.NewInt(1))), nil, nil},
-		{newCommonError(advancePrepare), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64()+1, nextIndex, nil, big.NewInt(common.Millis(time.Now().Add(riseTimeLimit*1000)))), nil, nil},
+		{newCommonError(advancePrepare), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64()+1, nextIndex, nil, big.NewInt(common.Millis(time.Now().Add(riseTimeLimit*10000)))), nil, nil},
 		{nil, false, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), nextIndex, nil, nil), nil, nil},
 	}
 	invokePrepareBlockRules(t, rules, tests)

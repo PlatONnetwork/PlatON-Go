@@ -454,7 +454,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  params.GenesisGasLimit,
-		Timestamp: 1546300800000,
+		Timestamp: 0,
 		Alloc: map[common.Address]GenesisAccount{
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
 			generalAddr:              {Balance: generalBalance},
