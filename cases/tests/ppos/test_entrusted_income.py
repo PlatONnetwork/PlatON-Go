@@ -2529,14 +2529,14 @@ def test_EI_BC_073(client_new_node, reset_environment):
     economic.wait_settlement_blocknum(node)
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
     commission_award_total = economic.calculate_delegate_reward(node, block_reward, staking_reward)
-    current_commission_award = economic.delegate_cumulative_income(node, block_reward, staking_reward, delegate_amount, delegate_amount)
+    third_current_commission_award = economic.delegate_cumulative_income(node, block_reward, staking_reward, delegate_amount, delegate_amount)
     result = client.ppos.getCandidateInfo(node.node_id)
     blocknum = result['Ret']['StakingBlockNum']
     result = client.delegate.withdrew_delegate(blocknum, address)
     assert_code(result, 0)
     delegate_epoch, cumulative_income = get_dividend_information(client, node.node_id, address)
     assert delegate_epoch == 3, "ErrMsg: Last time delegate epoch {}".format(delegate_epoch)
-    assert cumulative_income == current_commission_award, "ErrMsg: Last time cumulative income {}".format(cumulative_income)
+    assert cumulative_income == third_current_commission_award, "ErrMsg: Last time cumulative income {}".format(cumulative_income)
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
     assert last_delegate_epoch == 2, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
@@ -2552,7 +2552,8 @@ def test_EI_BC_073(client_new_node, reset_environment):
     economic.wait_settlement_blocknum(node)
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
     commission_award_total = economic.calculate_delegate_reward(node, block_reward, staking_reward)
-    current_commission_award = economic.delegate_cumulative_income(node, block_reward, staking_reward, delegate_amount, delegate_amount)
+    current_delegate_amount = von_amount(delegate_amount, 2) - economic.delegate_limit
+    current_commission_award = economic.delegate_cumulative_income(node, block_reward, staking_reward, current_delegate_amount, current_delegate_amount)
     result = client.delegate.withdraw_delegate_reward(address)
     assert_code(result, 0)
     second_balance = node.eth.getBalance(address)
@@ -2568,12 +2569,12 @@ def test_EI_BC_073(client_new_node, reset_environment):
         delegate_total)
     assert delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
-    assert delegate_reward_total == commission_award_total, "Total delegated rewards currently issued by the candidate: {}".format(
+    assert delegate_reward_total == von_amount(commission_award_total, 2), "Total delegated rewards currently issued by the candidate: {}".format(
         delegate_reward_total)
     result = client.ppos.getDelegateReward(address)
     assert result['Ret'][0]['reward'] == 0, "ErrMsg: Dividends currently available {}".format(
         result['Ret'][0]['reward'])
-    assert first_balance + cumulative_income + current_commission_award - gas == second_balance
+    assert first_balance + third_current_commission_award + current_commission_award - gas == second_balance
 
 
 @pytest.mark.P1
@@ -2613,7 +2614,7 @@ def test_EI_BC_075(clients_new_node, reset_environment):
     first_award_total = first_economic.calculate_delegate_reward(first_node, block_reward, staking_reward)
     first_current_commission_award = first_economic.delegate_cumulative_income(first_node, block_reward, staking_reward,delegate_amount, delegate_amount)
     second_award_total = second_economic.calculate_delegate_reward(second_node, block_reward, staking_reward)
-    second_current_commission_award = first_economic.delegate_cumulative_income(first_node, block_reward, staking_reward,delegate_amount, delegate_amount)
+    second_current_commission_award = first_economic.delegate_cumulative_income(second_node, block_reward, staking_reward,delegate_amount, delegate_amount)
     result = first_client.delegate.withdrew_delegate(blocknum, address, amount=delegate_amount, node_id=first_node.node_id)
     assert_code(result, 0)
     second_balance = first_node.eth.getBalance(address)
