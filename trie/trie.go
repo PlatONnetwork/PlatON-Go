@@ -667,11 +667,13 @@ func (t *Trie) parallelHashRoot2(db *Database, onleaf LeafCallback) (node, node,
 		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
 	if len(t.dag.nodes) > 0 {
+		log.Error("Paralle hash root", "dag", fmt.Sprintf("%p", t.dag), "dag.size", len(t.dag.nodes))
 		t.dag.cachegen = t.cachegen
 		t.dag.cachelimit = t.cachelimit
-		t.dag.init(t.root)
+		//t.dag.init(t.root)
 		return t.dag.hash(db, true, onleaf)
 	} else {
+		log.Error("Serial hash root")
 		return t.hashRoot(db, onleaf)
 	}
 }
@@ -691,7 +693,7 @@ func (t *Trie) DeepCopyTrie() *Trie {
 		originalRoot: t.originalRoot,
 		cachegen:     t.cachegen,
 		cachelimit:   t.cachelimit,
-		dag:          t.dag,
+		dag:          t.dag.Copy(),
 	}
 }
 

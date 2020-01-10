@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/cespare/xxhash"
 	"github.com/panjf2000/ants/v2"
 )
@@ -37,6 +38,16 @@ func NewDAG2() *DAG2 {
 	dag.cv = sync.NewCond(&dag.lock)
 
 	return dag
+}
+
+func (d *DAG2) Copy() *DAG2 {
+	nd := NewDAG2()
+
+	for id, vtx := range d.vtxs {
+		nd.vtxs[id] = vtx
+	}
+	nd.totalVertexs = d.totalVertexs
+	return nd
 }
 
 func (d *DAG2) addVertex(id uint64) {
@@ -137,7 +148,7 @@ func (d *DAG2) waitPop() uint64 {
 }
 
 func (d *DAG2) hasFinished() bool {
-	return d.totalConsumed >= d.totalVertexs
+	return atomic.LoadUint32(&d.totalConsumed) >= d.totalVertexs
 }
 
 func (d *DAG2) consume(id uint64) uint64 {
@@ -153,9 +164,10 @@ func (d *DAG2) consume(id uint64) uint64 {
 			if producedNum == 1 {
 				nextID = k
 			} else {
-				d.lock.Lock()
+				d.cv.L.Lock()
 				d.topLevel.PushBack(k)
-				d.lock.Unlock()
+				d.cv.Signal()
+				d.cv.L.Unlock()
 			}
 		}
 	}
@@ -164,6 +176,7 @@ func (d *DAG2) consume(id uint64) uint64 {
 		d.cv.L.Lock()
 		d.cv.Broadcast()
 		d.cv.L.Unlock()
+		log.Error("Consume done", "consumed", d.totalConsumed, "vtxs", d.totalVertexs)
 	}
 	return nextID
 }
@@ -207,6 +220,16 @@ func newTrieDAGV2() *TrieDAGV2 {
 		nodes: make(map[uint64]*DAGNode2),
 		dag:   NewDAG2(),
 	}
+}
+
+func (td *TrieDAGV2) Copy() *TrieDAGV2 {
+	ntd := newTrieDAGV2()
+	ntd.dag = td.dag.Copy()
+
+	for id, n := range td.nodes {
+		ntd.nodes[id] = n
+	}
+	return ntd
 }
 
 func (td *TrieDAGV2) addVertexAndEdge(pprefix, prefix []byte, n node) {
@@ -367,6 +390,8 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 	td.lock.Lock()
 	defer td.lock.Unlock()
 
+	td.dag.generate()
+
 	var wg sync.WaitGroup
 	var errDone common.AtomicBool
 	var e atomic.Value // error
@@ -474,6 +499,7 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 		}
 		returnHasherToPool(hasher)
 		wg.Done()
+		log.Error("Work done", "me", fmt.Sprintf("%p", td), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs)
 	}
 
 	for i := 0; i < numCPU; i++ {
@@ -482,11 +508,11 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 	}
 
 	wg.Wait()
+	td.dag.reset()
 
 	if e.Load() != nil && e.Load().(error) != nil {
 		return hashNode{}, nil, e.Load().(error)
 	}
-	td.dag.reset()
 	return resHash, newRoot, nil
 }
 

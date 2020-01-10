@@ -133,7 +133,6 @@ func testTrieDAGRnd2(t *testing.T, n int) {
 	}
 
 	tm := time.Now()
-	trie.dag.init(trie.root)
 	hashed, _, err := trie.dag.hash(nil, false, nil)
 	fmt.Printf("n: %d, parallel hash duration: %s\n", n, time.Since(tm))
 	assert.Nil(t, err)
