@@ -1492,7 +1492,7 @@ def test_EI_BC_045(client_new_node, reset_environment):
 
 
 @pytest.mark.P1
-def test_EI_BC_046(client_new_node):
+def test_EI_BC_046(client_new_node, reset_environment):
     """
     节点退出中赎回部分委托，验证待领取的委托收益
     :param client_new_node:
@@ -1524,7 +1524,7 @@ def test_EI_BC_046(client_new_node):
         cumulative_income)
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(client, node.node_id)
     assert last_delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
-    assert delegate_total == delegate_amount, "The total number of effective commissioned nodes: {}".format(
+    assert delegate_total == delegate_amount - economic.delegate_limit, "The total number of effective commissioned nodes: {}".format(
         delegate_total)
     assert delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
@@ -1546,7 +1546,7 @@ def test_EI_BC_046(client_new_node):
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
     assert last_delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
-    assert delegate_total == delegate_amount, "The total number of effective commissioned nodes: {}".format(
+    assert delegate_total == delegate_amount - economic.delegate_limit - economic.delegate_limit, "The total number of effective commissioned nodes: {}".format(
         delegate_total)
     assert delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(delegate_total_hes)
     assert delegate_reward_total == delegate_reward, "Total delegated rewards currently issued by the candidate: {}".format(
@@ -1556,7 +1556,7 @@ def test_EI_BC_046(client_new_node):
 
 
 @pytest.mark.P1
-def test_EI_BC_047(client_new_node):
+def test_EI_BC_047(client_new_node, reset_environment):
     """
     节点退出中赎回全部委托，验证待领取的委托收益
     :param client_new_node:
@@ -1587,7 +1587,7 @@ def test_EI_BC_047(client_new_node):
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
     assert last_delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
-    assert delegate_total == delegate_amount, "The total number of effective commissioned nodes: {}".format(
+    assert delegate_total == 0, "The total number of effective commissioned nodes: {}".format(
         delegate_total)
     assert delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
@@ -1601,17 +1601,17 @@ def test_EI_BC_047(client_new_node):
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
     assert last_delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
-    assert delegate_total == delegate_amount, "The total number of effective commissioned nodes: {}".format(
+    assert delegate_total == 0, "The total number of effective commissioned nodes: {}".format(
         delegate_total)
     assert delegate_total_hes == 0, "The total number of inactive nodes commissioned: {}".format(delegate_total_hes)
     assert delegate_reward_total == 0, "Total delegated rewards currently issued by the candidate: {}".format(
         delegate_reward_total)
-    result = client.ppos.getDelegateReward(address)
-    assert result['Ret'][0]['reward'] == 0, "ErrMsg:Can receive entrusted dividends {}".format(result['Ret'][0]['reward'])
+    # result = client.ppos.getDelegateReward(address)
+    # assert result['Ret'][0]['reward'] == 0, "ErrMsg:Can receive entrusted dividends {}".format(result['Ret'][0]['reward'])
 
 
 @pytest.mark.P1
-def test_EI_BC_048(client_new_node):
+def test_EI_BC_048(client_new_node, reset_environment):
     """
     节点已退出质押赎回部分委托，验证待领取的委托收益
     :param client_new_node:
@@ -1646,8 +1646,14 @@ def test_EI_BC_048(client_new_node):
     assert_code(result, 0)
     first_commission_balance = node.eth.getBalance(address)
     log.info("Account balance before receiving dividends： {}".format(first_commission_balance))
-    delegate_epoch, cumulative_income = get_dividend_information(client, node.node_id, address)
-    assert delegate_epoch == 5, "ErrMsg: Last time first delegate epoch {}".format(delegate_epoch)
+
+    result = client.ppos.getDelegateInfo(blocknum, address, node.node_id)
+    log.info("Commission information：{}".format(result))
+    info = result['Ret']
+    delegate_epoch = info['DelegateEpoch']
+    cumulative_income = info['CumulativeIncome']
+
+    assert delegate_epoch == 6, "ErrMsg: Last time first delegate epoch {}".format(delegate_epoch)
     assert cumulative_income == current_commission_award, "ErrMsg: Last time first cumulative income {}".format(
         cumulative_income)
     result = client.ppos.getCandidateInfo(node.node_id)
@@ -1658,7 +1664,7 @@ def test_EI_BC_048(client_new_node):
 
 
 @pytest.mark.P1
-def test_EI_BC_049(client_new_node):
+def test_EI_BC_049(client_new_node, reset_environment):
     """
     节点已退出质押赎回全部委托，验证待领取的委托收益
     :param client_new_node:
@@ -1688,26 +1694,26 @@ def test_EI_BC_049(client_new_node):
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
     current_commission_award = economic.delegate_cumulative_income(node, block_reward, staking_reward, delegate_amount, delegate_amount)
 
+    first_commission_balance = node.eth.getBalance(address)
+    log.info("Account balance before receiving dividends： {}".format(first_commission_balance))
+
     economic.wait_settlement_blocknum(node, 2)
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
     result = client.delegate.withdrew_delegate(blocknum, address, amount=delegate_amount)
     assert_code(result, 0)
-    first_commission_balance = node.eth.getBalance(address)
-    log.info("Account balance before receiving dividends： {}".format(first_commission_balance))
-    result = client.ppos.getDelegateInfo(blocknum, address)
+    result = client.ppos.getDelegateInfo(blocknum, address, node.node_id)
     assert_code(result, 301205)
     result = client.ppos.getCandidateInfo(node.node_id)
     assert_code(result, 301204)
     result = client.ppos.getDelegateReward(address)
     assert_code(result, 2)
-    gas = get_getDelegateReward_gas_fee(client, blocknum, 1)
     second_commission_balance = node.eth.getBalance(address)
     log.info("Account balance before receiving dividends： {}".format(second_commission_balance))
-    assert second_commission_balance == first_commission_balance - gas + current_commission_award, "ErrMsg: Account Balance {}".format(second_commission_balance)
+    assert (first_commission_balance + current_commission_award) - second_commission_balance < node.web3.toWei(1, 'ether'), "ErrMsg: Account Balance {}".format(second_commission_balance)
 
 
 @pytest.mark.P1
-def test_EI_BC_050(client_new_node):
+def test_EI_BC_050(client_new_node, reset_environment):
     """
     节点被惩罚赎回委托，验证待领取的委托收益
     :param client_new_node:
@@ -2224,7 +2230,7 @@ def test_EI_BC_067_068(clients_new_node, delegate_type, reset_environment):
 
 
 @pytest.mark.P1
-def test_EI_BC_069(client_new_node):
+def test_EI_BC_069(client_new_node, reset_environment):
     """
     节点退出中领取分红，验证待领取的委托收益
     :param client_new_node:
@@ -2285,7 +2291,7 @@ def test_EI_BC_069(client_new_node):
 
 
 @pytest.mark.P2
-def test_EI_BC_070(client_new_node):
+def test_EI_BC_070(client_new_node, reset_environment):
     """
     节点已退出质押领取分红，验证待领取的委托收益
     :param client_new_node:
@@ -2383,7 +2389,7 @@ def test_EI_BC_071(client_new_node, reset_environment):
             result = client.delegate.withdraw_delegate_reward(address)
             assert_code(result, 0)
             delegate_epoch, cumulative_income = get_dividend_information(client, node.node_id, address)
-            assert delegate_epoch == 2, "ErrMsg: Last time first delegate epoch {}".format(delegate_epoch)
+            assert delegate_epoch == 1, "ErrMsg: Last time first delegate epoch {}".format(delegate_epoch)
             assert cumulative_income == 0, "ErrMsg: Last time first cumulative income {}".format(cumulative_income)
             last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
                 client, node.node_id)
@@ -2403,7 +2409,7 @@ def test_EI_BC_071(client_new_node, reset_environment):
             result = client.delegate.withdraw_delegate_reward(address)
             assert_code(result, 0)
             delegate_epoch, cumulative_income = get_dividend_information(client, node.node_id, address)
-            assert delegate_epoch == 3, "ErrMsg: Last time first delegate epoch {}".format(delegate_epoch)
+            assert delegate_epoch == 1, "ErrMsg: Last time first delegate epoch {}".format(delegate_epoch)
             assert cumulative_income == 0, "ErrMsg: Last time first cumulative income {}".format(cumulative_income)
             last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
                 client, node.node_id)
@@ -2440,9 +2446,9 @@ def test_EI_BC_072(client_new_node, reset_environment):
     result = client.delegate.delegate(0, address, amount=delegate_amount)
     assert_code(result, 0)
     log.info("Commissioned successfully, commissioned amount：{}".format(economic.delegate_limit))
+
     economic.wait_settlement_blocknum(node)
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
-
     result = client.delegate.delegate(0, address, amount=delegate_amount)
     assert_code(result, 0)
     delegate_epoch, cumulative_income = get_dividend_information(client, node.node_id, address)
@@ -2451,8 +2457,8 @@ def test_EI_BC_072(client_new_node, reset_environment):
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
     assert last_delegate_epoch == 2, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
-    assert delegate_total == 0, "The total number of effective commissioned nodes: {}".format(delegate_total)
-    assert delegate_total_hes == von_amount(delegate_amount, 2), "The total number of inactive nodes commissioned: {}".format(
+    assert delegate_total == delegate_amount, "The total number of effective commissioned nodes: {}".format(delegate_total)
+    assert delegate_total_hes == delegate_amount, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
     assert delegate_reward_total == 0, "Total delegated rewards currently issued by the candidate: {}".format(
         delegate_reward_total)
@@ -2466,8 +2472,8 @@ def test_EI_BC_072(client_new_node, reset_environment):
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
     assert last_delegate_epoch == 2, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
-    assert delegate_total == 0, "The total number of effective commissioned nodes: {}".format(delegate_total)
-    assert delegate_total_hes == von_amount(delegate_amount, 2) - economic.delegate_limit, "The total number of inactive nodes commissioned: {}".format(
+    assert delegate_total == delegate_amount, "The total number of effective commissioned nodes: {}".format(delegate_total)
+    assert delegate_total_hes == delegate_amount - economic.delegate_limit, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
     assert delegate_reward_total == 0, "Total delegated rewards currently issued by the candidate: {}".format(
         delegate_reward_total)
@@ -2479,7 +2485,7 @@ def test_EI_BC_072(client_new_node, reset_environment):
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
     assert last_delegate_epoch == 2, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
-    assert delegate_total == 0, "The total number of effective commissioned nodes: {}".format(delegate_total)
+    assert delegate_total == delegate_amount, "The total number of effective commissioned nodes: {}".format(delegate_total)
     assert delegate_total_hes == delegate_amount - economic.delegate_limit, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
     assert delegate_reward_total == 0, "Total delegated rewards currently issued by the candidate: {}".format(
