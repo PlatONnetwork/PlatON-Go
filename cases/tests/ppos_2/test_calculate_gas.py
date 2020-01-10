@@ -147,7 +147,7 @@ def test_edit_candidate_gas(client_new_node):
     benifit_address_ = benifit_address[2:]
     data = rlp.encode(
         [rlp.encode(int(1001)), rlp.encode(bytes.fromhex(benifit_address_)), rlp.encode(bytes.fromhex(node.node_id)),
-         rlp.encode("external_id"), rlp.encode("node_name"), rlp.encode("website"), rlp.encode("details")])
+         rlp.encode("external_id"), rlp.encode("node_name"), rlp.encode("website"), rlp.encode("details"), rlp.encode(0)])
     gas = get_the_dynamic_parameter_gas_fee(data) + 21000 + 6000 + 12000
     log.info(gas)
 
