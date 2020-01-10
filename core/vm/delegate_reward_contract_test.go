@@ -247,29 +247,13 @@ func TestWithdrawDelegateRewardWithEmptyReward(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	var code string
-	rewards := make([]reward.NodeDelegateReward, 0)
-
-	if err := rlp.DecodeBytes(m[0], &code); err != nil {
-		t.Error(err)
-		return
-	}
-	if err := rlp.DecodeBytes(m[1], &rewards); err != nil {
-		t.Error(err)
-		return
-	}
 	if contact.Contract.Gas != initGas-params.WithdrawDelegateRewardGas {
 		t.Error("empty gas use must WithdrawDelegateRewardGas")
 		return
 	}
 
-	if code != "0" {
+	if string(m[0]) != "305001" {
 		t.Error("code must same")
 		return
 	}
-	if len(rewards) != 0 {
-		t.Error("rewards must be zero")
-		return
-	}
-
 }

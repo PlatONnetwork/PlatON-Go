@@ -84,7 +84,7 @@ func runGeth(t *testing.T, args ...string) *testgeth {
 			}
 		}()
 	}
-
+	args = append([]string{"--nodekeyhex", "8b1f0b30e288fd324a8b5e6640edaab4aeec9bb61cfe9e8f0eea5e2c4068cee6"}, args...)
 	// Boot "platon". This actually runs the test binary but the TestMain
 	// function will prevent any tests from running.
 	tt.Run("platon-test", args...)
