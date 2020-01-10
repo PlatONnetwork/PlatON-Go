@@ -7,6 +7,7 @@ from typing import List
 import time, math
 from tests.govern.test_voting_statistics import createstaking
 from copy import copy
+from conf import settings as conf
 
 def get_new_value(value):
     if value == 10000:
@@ -20,9 +21,11 @@ def staking_and_delegate(clients, address, amount=10**18 * 1000):
         clients = clients[0]
     result = clients.delegate.delegate(0, address, amount=amount)
     assert_code(result, 0)
+    result = clients.ppos.getCandidateInfo(clients.node.node_id)
+    assert result.get('Ret').get('DelegateRewardTotal') == 0
 
 class TestCreateStaking:
-    def assert_rewardsper(self, client, nextrewardsper):
+    def assert_rewardsper_staking(self, client, nextrewardsper):
         assert_code(client.staking.get_rewardper(client.node), nextrewardsper)
         assert_code(client.staking.get_rewardper(client.node, isnext=True), nextrewardsper)
         value, nextvalue = get_pledge_list(client.ppos.getCandidateList, client.node.node_id)
@@ -44,7 +47,7 @@ class TestCreateStaking:
                                         reward_per=1)
         log.info('Repeat create staking result : {}'.format(result))
         assert_code(result, 301101)
-        self.assert_rewardsper(client_new_node, 0, 1155)
+        self.assert_rewardsper_staking(client_new_node, 1155)
 
 
     def test_IV_043(self, client_new_node):
@@ -58,7 +61,7 @@ class TestCreateStaking:
                                         amount=2 * staking.economic.genesis.economicModel.staking.stakeThreshold,
                                         reward_per=1155)
         assert_code(result, 0)
-        self.assert_rewardsper(client_new_node, 0, 1155)
+        self.assert_rewardsper_staking(client_new_node, 1155)
 
     def test_IV_036(self, client_new_node):
         staking = client_new_node.staking
@@ -68,7 +71,7 @@ class TestCreateStaking:
                                         amount=2 * staking.economic.genesis.economicModel.staking.stakeThreshold,
                                         reward_per=0)
         assert_code(result, 0)
-        self.assert_rewardsper(client_new_node, 0, 0)
+        self.assert_rewardsper_staking(client_new_node, 0)
 
     def test_IV_038_IV_039_IV_044_IV_040(self, client_new_node):
         staking = client_new_node.staking
@@ -102,7 +105,7 @@ class TestCreateStaking:
                                         amount=2 * staking.economic.genesis.economicModel.staking.stakeThreshold,
                                         reward_per=10000)
         assert_code(result, 0)
-        self.assert_rewardsper(client_new_node, 0, 10000)
+        self.assert_rewardsper_staking(client_new_node, 10000)
 
     def test_IV_034(self, new_genesis_env, client_verifier):
         client = client_verifier
@@ -114,11 +117,11 @@ class TestCreateStaking:
         address, _ = client.economic.account.generate_account(client.node.web3, 10**18 * 10000000)
         result = client.staking.create_staking(0, address, address, reward_per=value)
         assert_code(result, 0)
-        self.assert_rewardsper(client, 0, value)
+        self.assert_rewardsper_staking(client, value)
 
     def test_IV_035(self, new_genesis_env, clients_consensus):
         new_genesis_env.deploy_all()
-        client = clients_consensus[-1]
+        client = clients_consensus[0]
         value = client.staking.get_rewardper(client.node)
         value = get_new_value(value)
         wait_block_number(client.node, 50)
@@ -130,10 +133,12 @@ class TestCreateStaking:
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         client.economic.wait_settlement_blocknum(client.node, 2)
+        candidate_info = clients_consensus[1].ppos.getCandidateInfo(clients_consensus[1].node.node_id)
+        log.info(candidate_info)
         address, _ = client.economic.account.generate_account(client.node.web3, 10**18 * 10000000)
-        result = client.staking.create_staking(0, address, address, reward_per=value)
+        result = clients_consensus[1].staking.create_staking(0, address, address, reward_per=value)
         assert_code(result, 0)
-        self.assert_rewardsper(client, 0, value)
+        self.assert_rewardsper_staking(client, value)
 
 class TestEditCandidate:
     def assert_rewardsper(self, client, rewardsper, nextrewardsper):
@@ -382,8 +387,8 @@ class TestgetDelegateReward:
         report_information = mock_duplicate_sign(1, client.node.nodekey,
                                                  client.node.blsprikey, client.node.block_number - 10)
         log.info("Report information: {}".format(report_information))
-        address, _ = client_verifier.economic.account.generate_account(client_verifier.node.web3, 10 ** 18 * 1000)
-        result = client_verifier.duplicatesign.reportDuplicateSign(1, report_information, address)
+        address1, _ = client_verifier.economic.account.generate_account(client_verifier.node.web3, 10 ** 18 * 1000)
+        result = client_verifier.duplicatesign.reportDuplicateSign(1, report_information, address1)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         verifier_list = get_pledge_list(client_verifier.ppos.getVerifierList)
@@ -391,9 +396,20 @@ class TestgetDelegateReward:
         rewardinfo = client.ppos.getDelegateReward(address)
         assert reward == rewardinfo.get('Ret')[0].get('reward')
         client.economic.wait_settlement_blocknum(client.node, client.economic.genesis.economicModel.staking.unStakeFreezeDuration)
-        client.staking.withdrew_staking(client.node.staking_address)
+
         rewardinfo = client.ppos.getDelegateReward(address)
         assert reward == rewardinfo.get('Ret')[0].get('reward')
+        before_balance = client.node.eth.getBalance(address)
+        log.info('Before withdraw address {} balance {}'.format(address, before_balance))
+        reward = client.delegate.get_delegate_reward_by_nodeid(address)
+        log.info('Address {} reward {}'.format(address, reward))
+        gas = get_getDelegateReward_gas_fee(client, 1, 1)
+        result = client.delegate.withdraw_delegate_reward(address)
+        assert_code(result, 0)
+        after_balance = client.node.eth.getBalance(address)
+        log.info('After withdraw address {} balance {}'.format(address, after_balance))
+        assert before_balance + reward - gas == after_balance
+
 
     def test_IN_GR_013(self, client_new_node):
         client = client_new_node
@@ -1166,7 +1182,7 @@ class TestNet:
         if net == 'main':
             new_cfg.append_cmd = "--main"
         elif net == 'testnet':
-            new_cfg.append_cmd = "--main"
+            new_cfg.append_cmd = "--testnet"
         elif net == 'rallynet':
             new_cfg.append_cmd = "--rallynet"
         elif net == 'uatnet':
@@ -1188,6 +1204,12 @@ class TestNet:
             log.info(test_node.admin.nodeInfo)
         except Exception as e:
             e == "20 seconds"
+        log_file = "/home/platon/trantor_test/node-{}/log/platon.log".format(test_node.p2p_port)
+        test_node.sftp.get(log_file, conf.LOG_FILE)
+        with open(conf.LOG_FILE, 'r') as f:
+            info = f.readlines()
+            log.info(info[-1])
+            assert info[-1].strip() == "Fatal: Error starting protocol stack: EconomicModel config is nil"
 
     def test_DD_NE_002(self, global_test_env):
         test_node = self.deploy_me(global_test_env, 'testnet')
@@ -1200,8 +1222,23 @@ class TestNet:
         assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 95
         assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 3000
 
+    def test_DD_NE_004(self, global_test_env):
+        test_node = self.deploy_me(global_test_env, 'uatnet')
+        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 299
+        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 4000
 
-
+    def test_DD_NE_005(self, global_test_env):
+        test_node = self.deploy_me(global_test_env, 'demonet')
+        try:
+            log.info(test_node.admin.nodeInfo)
+        except Exception as e:
+            e == "20 seconds"
+        log_file = "/home/platon/trantor_test/node-{}/log/platon.log".format(test_node.p2p_port)
+        test_node.sftp.get(log_file, conf.LOG_FILE)
+        with open(conf.LOG_FILE, 'r') as f:
+            info = f.readlines()
+            log.info(info[-1])
+            assert info[-1].strip() == "Fatal: Error starting protocol stack: EconomicModel config is nil"
 
 
 
