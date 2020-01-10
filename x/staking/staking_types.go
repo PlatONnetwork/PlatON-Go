@@ -548,6 +548,7 @@ type ValidatorSave struct {
 	ValidatorTerm   uint32 // Validator's term in the consensus round
 	NodeId          discover.NodeID
 	DelegateRewardTotal *big.Int
+	DelegateTotal     *big.Int
 }
 
 func (val *Validator) String() string {

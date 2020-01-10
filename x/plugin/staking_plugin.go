@@ -1362,6 +1362,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 			NodeId: v.NodeId,
 			ValidatorTerm: v.ValidatorTerm,
 			DelegateRewardTotal: (*hexutil.Big)(v.DelegateRewardTotal),
+			DelegateTotal:  (*hexutil.Big)(v.DelegateTotal),
 		}
 		if queryNumber == 0 {
 			for _, vc := range candidateHexQueue{
@@ -3810,6 +3811,7 @@ func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 		for _,cv := range currentCandidate{
 			if cv.NodeId == v.NodeId {
 				vQSave[k].DelegateRewardTotal = cv.DelegateRewardTotal.ToInt()
+				vQSave[k].DelegateTotal = cv.DelegateTotal.ToInt()
 				break;
 			}
 		}
