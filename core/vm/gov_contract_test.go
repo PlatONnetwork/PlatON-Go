@@ -1547,10 +1547,10 @@ func Test_ResetVoteOption(t *testing.T) {
 
 func logResult(t *testing.T, resultValue interface{}) {
 	if IsBlank(resultValue) {
-		resultBytes := xcom.NewFailedResult(common.NotFound)
+		resultBytes := xcom.NewResult(common.NotFound, nil)
 		t.Log("result  json：", string(resultBytes))
 	} else {
-		resultBytes := xcom.NewOkResult(resultValue)
+		resultBytes := xcom.NewResult(nil, resultValue)
 		t.Log("result  json：", string(resultBytes))
 	}
 
@@ -1594,7 +1594,7 @@ func Test_Json_Marshal_nil(t *testing.T) {
 	var str string
 	str = "20"
 	//jsonByte, _ := json.Marshal(str)
-	resultBytes := xcom.NewOkResult(str)
+	resultBytes := xcom.NewResult(nil, str)
 	t.Log("result string", string(resultBytes))
 
 }
