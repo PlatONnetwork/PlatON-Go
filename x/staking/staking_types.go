@@ -236,10 +236,28 @@ type CandidateMutable struct {
 
 	// current epoch  total Delegate reward
 	CurrentEpochDelegateReward *big.Int
+
+	// total  Delegate reward have give
+	DelegateRewardTotal *big.Int
 }
 
-func (can *CandidateMutable) HaveDelegateInCurrentEpoch() bool {
-	if can.DelegateTotal.Cmp(common.Big0) > 0 {
+func (can *CandidateMutable) PrepareNextEpoch() bool {
+	var changed bool
+	if can.CurrentEpochDelegateReward.Cmp(common.Big0) > 0 {
+		can.DelegateRewardTotal.Add(can.DelegateRewardTotal, can.CurrentEpochDelegateReward)
+		//clean  CurrentEpochDelegateReward
+		can.CleanCurrentEpochDelegateReward()
+		changed = true
+	}
+	if can.NextRewardPer != can.RewardPer {
+		can.RewardPer = can.NextRewardPer
+		changed = true
+	}
+	return changed
+}
+
+func (can *CandidateMutable) ShouldGiveDelegateReward() bool {
+	if can.DelegateTotal.Cmp(common.Big0) > 0 && can.RewardPer > 0 {
 		return true
 	}
 	return false
@@ -955,9 +973,6 @@ type ValidatorEx struct {
 	DelegateTotal *hexutil.Big
 
 	DelegateRewardTotal *hexutil.Big
-
-	// current epoch  total Delegate reward
-	CurrentEpochDelegateReward *big.Int `json:"nil"`
 }
 
 func (vex *ValidatorEx) String() string {

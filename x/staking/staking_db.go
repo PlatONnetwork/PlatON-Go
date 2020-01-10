@@ -18,9 +18,6 @@ package staking
 
 import (
 	"fmt"
-	"math/big"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -783,23 +780,4 @@ func (db *StakingDB) GetRoundAddrBoundary(blockHash common.Hash) (uint64, error)
 		return 0, err
 	}
 	return common.BytesToUint64(round), nil
-}
-
-func (db *StakingDB) GetDelegateRewardTotal(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, isCommit bool) (*big.Int, error) {
-	var re []byte
-	var err error
-	if isCommit {
-		re, err = db.getFromCommitted(reward.DelegateRewardTotalKey(nodeID, stakingNum))
-	} else {
-		re, err = db.get(blockHash, reward.DelegateRewardTotalKey(nodeID, stakingNum))
-
-	}
-	if err != nil {
-		if err == snapshotdb.ErrNotFound {
-			return big.NewInt(0), nil
-		}
-		return nil, err
-	}
-	return new(big.Int).SetBytes(re), nil
-
 }

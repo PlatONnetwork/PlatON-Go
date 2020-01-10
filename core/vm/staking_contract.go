@@ -18,8 +18,9 @@ package vm
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -252,13 +253,14 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	canMutable := &staking.CandidateMutable{
-		Shares:             amount,
-		Released:           new(big.Int).SetInt64(0),
-		ReleasedHes:        new(big.Int).SetInt64(0),
-		RestrictingPlan:    new(big.Int).SetInt64(0),
-		RestrictingPlanHes: new(big.Int).SetInt64(0),
-		RewardPer:          rewardPer,
-		NextRewardPer:      rewardPer,
+		Shares:              amount,
+		Released:            new(big.Int).SetInt64(0),
+		ReleasedHes:         new(big.Int).SetInt64(0),
+		RestrictingPlan:     new(big.Int).SetInt64(0),
+		RestrictingPlanHes:  new(big.Int).SetInt64(0),
+		RewardPer:           rewardPer,
+		NextRewardPer:       rewardPer,
+		DelegateRewardTotal: new(big.Int).SetInt64(0),
 	}
 
 	can := &staking.Candidate{}
