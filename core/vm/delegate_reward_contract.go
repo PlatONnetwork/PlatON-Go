@@ -127,11 +127,15 @@ func (rc *DelegateRewardContract) getDelegateReward(address common.Address, node
 	blockNum := rc.Evm.BlockNumber
 	blockHash := rc.Evm.BlockHash
 
-	reward, err := rc.Plugin.GetDelegateReward(blockHash, blockNum.Uint64(), address, nodeIDs, state)
+	res, err := rc.Plugin.GetDelegateReward(blockHash, blockNum.Uint64(), address, nodeIDs, state)
 	if err != nil {
+		if err == reward.ErrDelegationNotFound {
+			return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", address.String()),
+				res, reward.ErrDelegationNotFound), nil
+		}
 		return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", address.String()),
-			reward, common.InternalError.Wrap(err.Error())), nil
+			res, common.InternalError.Wrap(err.Error())), nil
 	}
 	return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", address.String()),
-		reward, nil), nil
+		res, nil), nil
 }

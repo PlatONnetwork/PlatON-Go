@@ -87,14 +87,13 @@ type Result struct {
 	Ret  interface{}
 }
 
-func NewOkResult(data interface{}) []byte {
-	res := &Result{common.NoErr.Code, data}
-	bs, _ := json.Marshal(res)
-	return bs
-}
-
-func NewFailedResult(err *common.BizError) []byte {
-	res := &Result{err.Code, err.Msg}
+func NewResult(err *common.BizError, data interface{}) []byte {
+	var res *Result
+	if err != nil && err != common.NoErr {
+		res = &Result{err.Code, err.Msg}
+	} else {
+		res = &Result{common.NoErr.Code, data}
+	}
 	bs, _ := json.Marshal(res)
 	return bs
 }
