@@ -51,7 +51,7 @@ func TestWasmInterpreter(t *testing.T) {
 
 	wasmInterpreter := NewWASMInterpreter(evm, cfg)
 
-	code, _ := ioutil.ReadFile("..\\..\\life\\contract\\hello.wasm")
+	code, _ := ioutil.ReadFile("..\\..\\life\\contract\\contract1.wasm")
 
 	contract := &Contract{
 		CallerAddress: common.BigToAddress(big.NewInt(88888)),

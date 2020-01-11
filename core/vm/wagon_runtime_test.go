@@ -2,10 +2,13 @@ package vm
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"io/ioutil"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
@@ -17,6 +20,12 @@ import (
 
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	addr1 = common.Address{1, 2, 3}
+	addr2 = common.Address{1, 2, 4}
+	addr3 = common.Address{1, 2, 6}
 )
 
 var testCase = []*Case{
@@ -95,7 +104,7 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			evm: &EVM{Context: Context{
-				Coinbase: common.Address{1, 2, 3},
+				Coinbase: addr1,
 			}}},
 		funcName: "platon_coinbase_test",
 		check: func(ctx *VMContext, err error) bool {
@@ -105,7 +114,7 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			evm: &EVM{Context: Context{
-				Coinbase: common.Address{1, 2, 3},
+				Coinbase: addr1,
 			},
 				StateDB: &mock.MockStateDB{Balance: map[common.Address]*big.Int{
 					common.Address{1}: big.NewInt(99),
@@ -118,7 +127,7 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			evm: &EVM{Context: Context{
-				Coinbase: common.Address{1, 2, 3},
+				Coinbase: addr1,
 			},
 				StateDB: &mock.MockStateDB{Balance: map[common.Address]*big.Int{
 					common.Address{1}: big.NewInt(99),
@@ -131,11 +140,11 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			evm: &EVM{Context: Context{
-				Origin: common.Address{1, 2, 3},
+				Origin: addr1,
 			}}},
 		funcName: "platon_origin_test",
 		check: func(ctx *VMContext, err error) bool {
-			addr := common.Address{1, 2, 3}
+			addr := addr1
 			return bytes.Equal(addr[:], ctx.Output)
 		},
 	},
@@ -144,7 +153,7 @@ var testCase = []*Case{
 			contract: &Contract{caller: AccountRef{1, 2, 3}}},
 		funcName: "platon_caller_test",
 		check: func(ctx *VMContext, err error) bool {
-			addr := common.Address{1, 2, 3}
+			addr := addr1
 			return bytes.Equal(addr[:], ctx.Output)
 		},
 	},
@@ -161,7 +170,7 @@ var testCase = []*Case{
 			contract: &Contract{self: &AccountRef{1, 2, 3}}},
 		funcName: "platon_address_test",
 		check: func(ctx *VMContext, err error) bool {
-			addr := common.Address{1, 2, 3}
+			addr := addr1
 			return bytes.Equal(addr[:], ctx.Output)
 		},
 	},
@@ -200,7 +209,7 @@ var testCase = []*Case{
 		},
 		funcName: "platon_set_state_test",
 		check: func(ctx *VMContext, err error) bool {
-			value := ctx.evm.StateDB.GetState(common.Address{1, 2, 3}, []byte("key"))
+			value := ctx.evm.StateDB.GetState(addr1, []byte("key"))
 			return bytes.Equal(value[:], ctx.Input)
 		},
 	},
@@ -213,7 +222,7 @@ var testCase = []*Case{
 			contract: &Contract{self: &AccountRef{1, 2, 3}},
 			Input:    []byte{1, 2, 3},
 		},
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.StateDB.SetState(ctx.contract.Address(), []byte("key"), ctx.Input)
 		},
 		funcName: "platon_get_state_test",
@@ -258,27 +267,27 @@ var testCase = []*Case{
 				},
 				StateDB: &mock.MockStateDB{
 					Balance: map[common.Address]*big.Int{
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
 					},
 					State: make(map[common.Address]map[string][]byte),
 				}},
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: []byte{1}},
-			Input:    common.Address{1, 2, 4}.Bytes(),
+			Input:    addr2.Bytes(),
 		},
 		funcName: "platon_transfer_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
 		check: func(ctx *VMContext, err error) bool {
 			value := new(big.Int).SetBytes(ctx.Output)
 			value = value.Add(value, big.NewInt(1000))
-			return ctx.evm.StateDB.GetBalance(common.Address{1, 2, 4}).Cmp(value) == 0
+			return ctx.evm.StateDB.GetBalance(addr2).Cmp(value) == 0
 		},
 	},
 
 	// CALL
-	/*{
+	{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
 			evm: &EVM{
@@ -290,31 +299,32 @@ var testCase = []*Case{
 						db.SubBalance(sender, amount)
 						db.AddBalance(recipient, amount)
 					},
+					Ctx: context.TODO(),
 				},
 				StateDB: &mock.MockStateDB{
 					Balance: map[common.Address]*big.Int{
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{},
-					Code: map[common.Address][]byte{
-						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
-					},
+					State:    map[common.Address]map[string][]byte{},
+					Code:     map[common.Address][]byte{},
+					CodeHash: map[common.Address][]byte{},
 				}},
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: []byte{1}},
-			Input:    common.Address{1, 2, 4}.Bytes(),
+			Input:    callContractInput(),
 		},
 		funcName: "platon_call_contract_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
+			deployContract(ctx, addr1, addr2, readContractCode())
 		},
 		check: func(ctx *VMContext, err error) bool {
 			value := new(big.Int).SetBytes(ctx.Output)
-			value = value.Add(value, big.NewInt(1000))
-			return ctx.evm.StateDB.GetBalance(common.Address{1, 2, 4}).Cmp(value) == 0
+			value = value.Add(value, big.NewInt(1002))
+			valueFlag := ctx.evm.StateDB.GetBalance(addr2).Cmp(value) == 0
+			return valueFlag && checkContractRet(ctx.CallOut)
 		},
-	},*/
+	},
 
 	// DELEGATECALL
 	{
@@ -329,37 +339,37 @@ var testCase = []*Case{
 						db.SubBalance(sender, amount)
 						db.AddBalance(recipient, amount)
 					},
+					Ctx: context.TODO(),
 				},
 				StateDB: &mock.MockStateDB{
 					Balance: map[common.Address]*big.Int{
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000), // from
+						addr2: big.NewInt(1000), // to
 					},
-					State: map[common.Address]map[string][]byte{},
-					Code: map[common.Address][]byte{
-						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
-					},
+					State:    map[common.Address]map[string][]byte{},
+					Code:     map[common.Address][]byte{},
+					CodeHash: map[common.Address][]byte{},
 				}},
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
-			Input:    common.Address{1, 2, 4}.Bytes(), // todo need to add delegatecall input
+			Input:    callContractInput(),
 		},
 		funcName: "platon_delegate_call_contract_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
+			deployContract(ctx, addr1, addr2, readContractCode())
 		},
 		check: func(ctx *VMContext, err error) bool {
-			value := new(big.Int) /*.SetBytes(ctx.Output)*/
+			value := new(big.Int)
 			value = value.Add(value, big.NewInt(1000))
 
-			flag := ctx.evm.StateDB.GetBalance(common.Address{1, 2, 4}).Cmp(value) == 0
+			flag := ctx.evm.StateDB.GetBalance(addr2).Cmp(value) == 0
 
-			return flag
+			return flag && checkContractRet(ctx.CallOut)
 		},
 	},
 
 	// STATICCALL
-	{
+	/*{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
 			evm: &EVM{
@@ -371,34 +381,32 @@ var testCase = []*Case{
 						db.SubBalance(sender, amount)
 						db.AddBalance(recipient, amount)
 					},
+					Ctx: context.TODO(),
 				},
 				StateDB: &mock.MockStateDB{
 					Balance: map[common.Address]*big.Int{
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
 					},
-					State: map[common.Address]map[string][]byte{},
-					Code: map[common.Address][]byte{
-						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
-					},
+					State:    map[common.Address]map[string][]byte{},
+					Code:     map[common.Address][]byte{},
+					CodeHash: map[common.Address][]byte{},
 				}},
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
-			Input:    common.Address{1, 2, 4}.Bytes(), // todo need to add staticcall input
+			Input:    queryContractInput(),
 		},
 		funcName: "platon_static_call_contract_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
+			deployContract(ctx, readContractCode())
 		},
 		check: func(ctx *VMContext, err error) bool {
-			value := new(big.Int) /*.SetBytes(ctx.Output)*/
+			value := new(big.Int)
 			value = value.Add(value, big.NewInt(1000))
-
-			flag := ctx.evm.StateDB.GetBalance(common.Address{1, 2, 4}).Cmp(value) == 0
-
-			return flag
+			valueFlag := ctx.evm.StateDB.GetBalance(addr2).Cmp(value) == 0
+			return valueFlag && checkContractRet(ctx.CallOut)
 		},
-	},
+	},*/
 
 	// DESTROY
 	{
@@ -416,28 +424,28 @@ var testCase = []*Case{
 				},
 				StateDB: &mock.MockStateDB{
 					Balance: map[common.Address]*big.Int{
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
 					},
 					State: map[common.Address]map[string][]byte{},
 					Code: map[common.Address][]byte{
-						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
+						addr1: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						addr2: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 					Suicided: map[common.Address]bool{},
 				}},
 			contract: &Contract{
-				CallerAddress: common.Address{1, 2, 4},
+				CallerAddress: addr2,
 				caller:        &AccountRef{1, 2, 4},
 				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 		},
 		funcName: "platon_destroy_contract_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
 		check: func(ctx *VMContext, err error) bool {
-			sender := common.Address{1, 2, 4}
-			to := common.Address{1, 2, 3}
+			sender := addr2
+			to := addr1
 
 			flag := ctx.evm.StateDB.GetBalance(sender).Cmp(big.NewInt(3000)) == 0
 			suicided := ctx.evm.StateDB.HasSuicided(to)
@@ -445,8 +453,8 @@ var testCase = []*Case{
 		},
 	},
 
-	// MIGRATE todo
-	/*{
+	// MIGRATE
+	{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
 			evm: &EVM{
@@ -458,83 +466,103 @@ var testCase = []*Case{
 						db.SubBalance(sender, amount)
 						db.AddBalance(recipient, amount)
 					},
+					Ctx: context.TODO(),
 				},
 				StateDB: &mock.MockStateDB{
 					Balance: map[common.Address]*big.Int{
-						// old contract
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						// EOA
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
 					},
 					State: map[common.Address]map[string][]byte{
-						common.Address{1, 2, 3}: {
+						addr2: {
 							"A": []byte("aaa"),
 							"B": []byte("bbb"),
 							"C": []byte("ccc"),
 						},
 					},
-					Code: map[common.Address][]byte{
-						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-					},
-					CodeHash: map[common.Address][]byte{
-						common.Address{1, 2, 3}: func() []byte {
-							var h common.Hash
-							hw := sha3.NewKeccak256()
-							rlp.Encode(hw, append(WasmInterp.Bytes(), []byte{0x00, 0x01}...))
-							hw.Sum(h[:0])
-							return h[:]
-						}(),
-					},
+					Code:     map[common.Address][]byte{},
+					CodeHash: map[common.Address][]byte{},
 					Nonce:    map[common.Address]uint64{},
 					Suicided: map[common.Address]bool{},
 				}},
 			contract: &Contract{
-				CallerAddress: common.Address{1, 2, 4},
-				caller:        &AccountRef{1, 2, 3},
-				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
-			Input: common.Address{1, 2, 3}.Bytes(),
+				CallerAddress: addr2,
+				caller:        &AccountRef{1, 2, 4},
+				self:          &AccountRef{1, 2, 4}, Gas: 1000000, Code: WasmInterp.Bytes()},
+			Input: func() []byte {
+
+				code := readContractCode()
+				params := struct {
+					FuncName string
+				}{
+					FuncName: "init",
+				}
+				input, err := rlp.EncodeToBytes(params)
+				if nil != err {
+					panic(err)
+				}
+				arr := [][]byte{code, input}
+				barr, err := rlp.EncodeToBytes(arr)
+				if nil != err {
+					panic(err)
+				}
+				interp := []byte{0x00, 0x61, 0x73, 0x6d}
+				return append(interp, barr...)
+			}(),
 		},
 		funcName: "platon_migrate_contract_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
+			deployContract(ctx, addr1, addr2, readContractCode())
 		},
 		check: func(ctx *VMContext, err error) bool {
 
 			newContract := common.BytesToAddress(ctx.Output)
-
+			//fmt.Println("new ContractAddr", newContract.String())
 			newBalance := ctx.evm.StateDB.GetBalance(newContract)
-			oldBalance := ctx.evm.StateDB.GetBalance(common.Address{1, 2, 3})
+			oldBalance := ctx.evm.StateDB.GetBalance(addr2)
 
 			if oldBalance.Cmp(common.Big0) != 0 {
 				return false
 			}
-			if newBalance.Cmp(big.NewInt(int64(2001))) != 0 {
+			if newBalance.Cmp(big.NewInt(int64(1002))) != 0 {
 				return false
 			}
 
-			flag := 1
+			count := 0
+			storage := make(map[string][]byte)
 			// check storage of newcontract
 			ctx.evm.StateDB.ForEachStorage(newContract, func(key, value []byte) bool {
-
-				if string(key) == "A" && bytes.Compare(value, []byte("aaa")) == 0 {
-					flag &= 1
-					return true
-				}
-				if string(key) == "B" && bytes.Compare(value, []byte("bbb")) == 0 {
-					flag &= 1
-					return true
-				}
-				if string(key) == "C" && bytes.Compare(value, []byte("ccc")) == 0 {
-					flag &= 1
-					return true
-				}
-				flag &= 0
+				//fmt.Println("key:", string(key), "value:", string(value))
+				storage[string(key)] = []byte("aaa")
+				count++
 				return false
 			})
 
-			return flag == 1
+			if len(storage) != 3 && count != 4 {
+				return false
+			}
+
+			for _, key := range []string{} {
+
+				value, ok := storage[key]
+				if !ok {
+					return false
+				}
+
+				if key == "A" && bytes.Compare(value, []byte("aaa")) != 0 {
+					return false
+				}
+				if key == "B" && bytes.Compare(value, []byte("bbb")) != 0 {
+					return false
+				}
+				if key == "C" && bytes.Compare(value, []byte("ccc")) != 0 {
+					return false
+				}
+			}
+			return true
 		},
-	},*/
+	},
 
 	// EVENT
 	{
@@ -556,24 +584,24 @@ var testCase = []*Case{
 					TxIndex: 1,
 					Bhash:   common.Hash{2, 2, 2, 2},
 					Balance: map[common.Address]*big.Int{
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
 					},
 					State: map[common.Address]map[string][]byte{},
 					Code: map[common.Address][]byte{
-						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
+						addr1: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						addr2: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 					Logs: make(map[common.Hash][]*types.Log),
 				}},
 			contract: &Contract{
-				CallerAddress: common.Address{1, 2, 4},
+				CallerAddress: addr2,
 				caller:        &AccountRef{1, 2, 4},
 				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input: []byte("I am wagon"),
 		},
 		funcName: "platon_event_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
 		check: func(ctx *VMContext, err error) bool {
@@ -625,24 +653,24 @@ var testCase = []*Case{
 					TxIndex: 1,
 					Bhash:   common.Hash{2, 2, 2, 2},
 					Balance: map[common.Address]*big.Int{
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
 					},
 					State: map[common.Address]map[string][]byte{},
 					Code: map[common.Address][]byte{
-						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
+						addr1: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						addr2: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 					Logs: make(map[common.Hash][]*types.Log),
 				}},
 			contract: &Contract{
-				CallerAddress: common.Address{1, 2, 4},
+				CallerAddress: addr2,
 				caller:        &AccountRef{1, 2, 4},
 				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input: []byte("I am wagon"),
 		},
 		funcName: "platon_event1_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
 		check: func(ctx *VMContext, err error) bool {
@@ -694,24 +722,24 @@ var testCase = []*Case{
 					TxIndex: 1,
 					Bhash:   common.Hash{2, 2, 2, 2},
 					Balance: map[common.Address]*big.Int{
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
 					},
 					State: map[common.Address]map[string][]byte{},
 					Code: map[common.Address][]byte{
-						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
+						addr1: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						addr2: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 					Logs: make(map[common.Hash][]*types.Log),
 				}},
 			contract: &Contract{
-				CallerAddress: common.Address{1, 2, 4},
+				CallerAddress: addr2,
 				caller:        &AccountRef{1, 2, 4},
 				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input: []byte("I am wagon"),
 		},
 		funcName: "platon_event2_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
 		check: func(ctx *VMContext, err error) bool {
@@ -763,24 +791,24 @@ var testCase = []*Case{
 					TxIndex: 1,
 					Bhash:   common.Hash{2, 2, 2, 2},
 					Balance: map[common.Address]*big.Int{
-						common.Address{1, 2, 3}: big.NewInt(2000),
-						common.Address{1, 2, 4}: big.NewInt(1000),
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
 					},
 					State: map[common.Address]map[string][]byte{},
 					Code: map[common.Address][]byte{
-						common.Address{1, 2, 3}: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						common.Address{1, 2, 4}: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
+						addr1: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						addr2: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
 					},
 					Logs: make(map[common.Hash][]*types.Log),
 				}},
 			contract: &Contract{
-				CallerAddress: common.Address{1, 2, 4},
+				CallerAddress: addr2,
 				caller:        &AccountRef{1, 2, 4},
 				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input: []byte("I am wagon"),
 		},
 		funcName: "platon_event3_test",
-		init: func(ctx *VMContext) {
+		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
 		check: func(ctx *VMContext, err error) bool {
@@ -811,6 +839,75 @@ var testCase = []*Case{
 			return true
 		},
 	},
+
+	// EVENT4
+	{
+		ctx: &VMContext{
+			config: Config{WasmType: Wagon},
+			evm: &EVM{
+				Context: Context{
+					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
+						return db.GetBalance(addr).Cmp(amount) >= 0
+					},
+					Transfer: func(db StateDB, sender, recipient common.Address, amount *big.Int) {
+						db.SubBalance(sender, amount)
+						db.AddBalance(recipient, amount)
+					},
+					BlockNumber: big.NewInt(13),
+				},
+				StateDB: &mock.MockStateDB{
+					Thash:   common.Hash{1, 1, 1, 1},
+					TxIndex: 1,
+					Bhash:   common.Hash{2, 2, 2, 2},
+					Balance: map[common.Address]*big.Int{
+						addr1: big.NewInt(2000),
+						addr2: big.NewInt(1000),
+					},
+					State: map[common.Address]map[string][]byte{},
+					Code: map[common.Address][]byte{
+						addr1: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
+						addr2: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
+					},
+					Logs: make(map[common.Hash][]*types.Log),
+				}},
+			contract: &Contract{
+				CallerAddress: addr2,
+				caller:        &AccountRef{1, 2, 4},
+				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
+			Input: []byte("I am wagon"),
+		},
+		funcName: "platon_event4_test",
+		init: func(ctx *VMContext, t *testing.T) {
+			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
+		},
+		check: func(ctx *VMContext, err error) bool {
+			logs := ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1})
+			if len(logs) != 1 {
+				return false
+			}
+			log := logs[0]
+			if log.BlockNumber != big.NewInt(13).Uint64() {
+				return false
+			}
+			if log.TxIndex != 1 {
+				return false
+			}
+			if log.TxHash != (common.Hash{1, 1, 1, 1}) {
+				return false
+			}
+			if log.BlockHash != (common.Hash{2, 2, 2, 2}) {
+				return false
+			}
+
+			if len(log.Topics) != 4 {
+				return false
+			}
+			if bytes.Compare(log.Data, []byte("I am wagon")) != 0 {
+				return false
+			}
+			return true
+		},
+	},
 }
 
 func TestExternalFunction(t *testing.T) {
@@ -826,13 +923,13 @@ func TestExternalFunction(t *testing.T) {
 
 type Case struct {
 	ctx      *VMContext
-	init     func(*VMContext)
+	init     func(*VMContext, *testing.T)
 	funcName string
 	check    func(*VMContext, error) bool
 }
 
 func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
-	//t.Log("I am ", i)
+
 	if c.ctx.contract == nil {
 		c.ctx.contract = &Contract{
 			Gas: math.MaxUint64,
@@ -844,7 +941,7 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 	}
 
 	if c.init != nil {
-		c.init(c.ctx)
+		c.init(c.ctx, t)
 	}
 	vm, err := exec.NewVMWithCompiled(module, 1024*1024)
 	assert.Nil(t, err)
@@ -859,13 +956,132 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 	vm.RecoverPanic = true
 	_, err = vm.ExecCode(index)
 
-	/*if c.funcName != "platon_panic_test" {
+	if c.funcName != "platon_panic_test" {
 		if !assert.Nil(t, err) {
 			t.Log("funcName:", c.funcName)
 		}
 	} else {
 		assert.NotNil(t, err)
-	}*/
+	}
 
 	assert.True(t, c.check(c.ctx, err), "test failed "+c.funcName)
+}
+
+func readContractCode() []byte {
+	buf, err := ioutil.ReadFile("./testdata/contract1.wasm")
+	if nil != err {
+		panic(err)
+	}
+	return buf
+}
+
+func deployContract(ctx *VMContext, addr1, addr2 common.Address, code []byte) {
+	params := struct {
+		FuncName string
+	}{
+		FuncName: "init",
+	}
+	input, err := rlp.EncodeToBytes(params)
+	if nil != err {
+		panic(err)
+	}
+	var (
+		sender  = AccountRef(addr1)
+		receive = AccountRef(addr2)
+	)
+
+	arr := [][]byte{code, input}
+	barr, err := rlp.EncodeToBytes(arr)
+	if nil != err {
+		panic(err)
+	}
+	interp := []byte{0x00, 0x61, 0x73, 0x6d}
+	code = append(interp, barr...)
+
+	contract := NewContract(sender, receive, common.Big0, 1000000)
+	contract.SetCallCode(&addr2, ctx.evm.StateDB.GetCodeHash(addr2), code)
+
+	ret, err := run(ctx.evm, contract, nil, false)
+	if nil != err {
+		panic(err)
+	}
+	ctx.evm.StateDB.SetCode(addr2, ret)
+}
+
+func callContractInput() []byte {
+	type M struct {
+		Head string
+	}
+
+	type Message struct {
+		M
+		Body string
+		End  string
+	}
+
+	params := struct {
+		FuncName string
+		Msg      Message
+	}{
+		FuncName: "add_message",
+		Msg: Message{
+			M: M{
+				Head: "Gavin",
+			},
+			Body: "I am gavin",
+			End:  "finished",
+		},
+	}
+
+	bparams, err := rlp.EncodeToBytes(params)
+	if nil != err {
+		panic(err)
+	}
+
+	return bparams
+}
+
+func queryContractInput() []byte {
+	params := struct {
+		FuncName string
+		Name     string
+	}{
+		FuncName: "get_message",
+		Name:     "Gavin",
+	}
+	bparams, err := rlp.EncodeToBytes(params)
+	if nil != err {
+		panic(err)
+	}
+
+	return bparams
+}
+
+func checkContractRet(ret []byte) bool {
+	if len(ret) == 0 {
+		return false
+	}
+	type M struct {
+		Head string
+	}
+
+	type Message struct {
+		M
+		Body string
+		End  string
+	}
+	var arr []Message
+	er := rlp.DecodeBytes(ret, &arr)
+	if nil != er {
+		return false
+	}
+
+	if len(arr) != 1 {
+		return false
+	}
+
+	if arr[0].Head != "Gavin" || arr[0].Body != "I am gavin" || arr[0].End != "finished" {
+		return false
+	}
+	return true
 }

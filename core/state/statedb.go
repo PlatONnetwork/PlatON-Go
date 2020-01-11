@@ -715,8 +715,6 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte
 	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
 	for it.Next() {
 		key := db.trie.GetKey(it.Key)
-		//valueKey := common.BytesToHash(db.trie.GetKey(it.Value))
-
 		if valueKey, ok := so.dirtyStorage[string(key)]; ok {
 			if value, dirty := so.dirtyValueStorage[valueKey]; dirty {
 				cb(key, value)

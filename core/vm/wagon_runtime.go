@@ -519,7 +519,6 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// todo
 	// int32_t platon_destroy()
 	// func $platon_destroy (result i32)
 	addFuncExport(m,
@@ -605,7 +604,8 @@ func NewHostModule() *wasm.Module {
 	// func $platon_event3 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+				wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 		},
 		wasm.Function{
 			Host: reflect.ValueOf(EmitEvent3),
@@ -613,6 +613,24 @@ func NewHostModule() *wasm.Module {
 		},
 		wasm.ExportEntry{
 			FieldStr: "platon_event3",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// void platon_event4(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* topic3, size_t topic3Len, const uint8_t* topic4, size_t topic4Len, uint8_t* args, size_t argsLen)
+	// func $platon_event4 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+				wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+				wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(EmitEvent4),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_event4",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
@@ -925,6 +943,7 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 		}
 	}
 
+	//fmt.Println("Addr:", addr.String(), "Data:", input)
 	ret, returnGas, err := ctx.evm.Call(ctx.contract, addr, input, gas, bValue)
 	if err != nil {
 		panic(err)
@@ -966,7 +985,7 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 
 	gas = ctx.evm.callGasTemp
 
-	//fmt.Println("Addr:", addr.String(), "Data:", input)
+	//fmt.Println("delegateCall,Addr:", addr.String(), "Data:", input)
 	ret, returnGas, err := ctx.evm.DelegateCall(ctx.contract, addr, input, gas)
 	if err != nil {
 		panic(err)
@@ -1008,7 +1027,7 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	checkGas(ctx, gas)
 
 	gas = ctx.evm.callGasTemp
-	//fmt.Println("Addr:", addr.String(), "Data:", input)
+	//fmt.Println("staticCall, Addr:", addr.String(), "Data:", input)
 	ret, returnGas, err := ctx.evm.StaticCall(ctx.contract, addr, input, gas)
 	if err != nil {
 		panic(err)
@@ -1099,7 +1118,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	gas = ctx.evm.callGasTemp
 
 	sender := ctx.contract.CallerAddress
-
+	//fmt.Println("oldContract:", oldContract.String())
 	// check code of old contract
 	oldCode := ctx.evm.StateDB.GetCode(oldContract)
 	if len(oldCode) == 0 {
@@ -1211,7 +1230,6 @@ func EmitEvent(proc *exec.Process, args, argsLen uint32) {
 
 	bn := ctx.evm.BlockNumber.Uint64()
 
-	//fmt.Println("input:", string(input), "blockNUm:", bn)
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
@@ -1237,7 +1255,6 @@ func EmitEvent1(proc *exec.Process, t, tLen, args, argsLen uint32) {
 
 	bn := ctx.evm.BlockNumber.Uint64()
 
-	//fmt.Println("topic:", string(topic), "input:", string(input), "blockNUm:", bn)
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
@@ -1270,7 +1287,6 @@ func EmitEvent2(proc *exec.Process, t1, t1Len, t2, t2Len, args, argsLen uint32) 
 
 	bn := ctx.evm.BlockNumber.Uint64()
 
-	//fmt.Println("topic1:", string(topic1), "topic2:", string(topic2), "input:", string(input), "blockNUm:", bn)
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
@@ -1306,7 +1322,46 @@ func EmitEvent3(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, args, argsL
 
 	bn := ctx.evm.BlockNumber.Uint64()
 
-	//fmt.Println("topic1:", string(topic1), "topic2:", string(topic2), "topic3:", string(topic3), "input:", string(input), "blockNUm:", bn)
+	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+}
+
+func EmitEvent4(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, t4, t4Len, args, argsLen uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+
+	if ctx.readOnly {
+		panic(errWASMWriteProtection)
+	}
+
+	gas, err := logGas(3, uint64(argsLen))
+	if nil != err {
+		panic(err)
+	}
+	checkGas(ctx, gas)
+
+	topic1 := make([]byte, t1Len)
+	proc.ReadAt(topic1, int64(t1))
+
+	topic2 := make([]byte, t2Len)
+	proc.ReadAt(topic2, int64(t2))
+
+	topic3 := make([]byte, t3Len)
+	proc.ReadAt(topic3, int64(t3))
+
+	topic4 := make([]byte, t4Len)
+	proc.ReadAt(topic4, int64(t4))
+
+	arr := [][]byte{topic1, topic2, topic3, topic4}
+
+	topics := make([]common.Hash, len(arr))
+	for i, t := range arr {
+		topics[i] = common.BytesToHash(crypto.Keccak256(t))
+	}
+
+	input := make([]byte, argsLen)
+	proc.ReadAt(input, int64(args))
+
+	bn := ctx.evm.BlockNumber.Uint64()
+
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
