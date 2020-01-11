@@ -44,6 +44,7 @@ void platon_event(const uint8_t* args, size_t argsLen);
 void platon_event1(const uint8_t* topic, size_t topicLen, const uint8_t* args, size_t argsLen);
 void platon_event2(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* args, size_t argsLen);
 void platon_event3(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* topic3, size_t topic3Len, uint8_t* args, size_t argsLen);
+void platon_event4(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* topic3, size_t topic3Len, const uint8_t* topic4, size_t topic4Len, uint8_t* args, size_t argsLen);
 
 
 
@@ -199,36 +200,34 @@ void platon_transfer_test() {
 
 WASM_EXPORT
 void platon_call_contract_test() {
-  uint8_t addr[20];
-  // size_t addrLen = platon_get_input_length();
-  platon_get_input(addr);
-  uint8_t data = 2;
+  uint8_t addr[20] = {1, 2, 4}; // don't change it
+  uint8_t data[1024];
+  size_t datalen = platon_get_input_length();
+  platon_get_input(data);
+  uint8_t gas = 100000;
   uint8_t value = 2;
-  uint8_t gas = 1;
-
-  platon_call(addr, &data, 1, &value, 1, &gas, 1);
-  platon_return(&value, 1);
+  platon_call(addr, &data, datalen, &value, 1, &gas, 5);
 }
 
 WASM_EXPORT
 void platon_delegate_call_contract_test () {
-    uint8_t addr[20];
-    platon_get_input(addr);
-    uint8_t data = 2;
-    uint8_t gas = 1;
-    platon_delegate_call(addr, &data, 1, &gas, 1);
-    platon_return(&data, 1);
-}
+    uint8_t addr[20] = {1, 2, 4}; // don't change it
+    uint8_t data[1024];
+    size_t datalen = platon_get_input_length();
+    platon_get_input(data);
+    uint8_t gas = 100000;
+    platon_delegate_call(addr, &data, datalen, &gas, 5);
 
+}
 
 WASM_EXPORT
 void platon_static_call_contract_test () {
-    uint8_t addr[20];
-    platon_get_input(addr);
-    uint8_t data = 2;
-    uint8_t gas = 1;
-    platon_static_call(addr, &data, 1, &gas, 1);
-    platon_return(&data, 1);
+   uint8_t addr[20] = {1, 2, 4}; // don't change it
+   uint8_t data[1024];
+   size_t datalen = platon_get_input_length();
+   platon_get_input(data);
+   uint8_t gas = 100000;
+   platon_static_call(addr, &data, datalen, &gas, 5);
 }
 
 WASM_EXPORT
@@ -238,13 +237,13 @@ void platon_destroy_contract_test () {
 
 WASM_EXPORT
 void platon_migrate_contract_test () {
-
     uint8_t newAddr[20];
-
-    uint8_t data = 2;
+    uint8_t data[1024];
+    size_t datalen = platon_get_input_length();
+    platon_get_input(data);
+    uint8_t gas = 100000;
     uint8_t value = 2;
-    uint8_t gas = 1;
-    platon_migrate(newAddr, &data, 1, &value, 1, &gas, 1);
+    platon_migrate(newAddr, &data, datalen, &value, 1, &gas, 5);
     platon_return(newAddr, 20);
 }
 
@@ -302,4 +301,27 @@ void platon_event3_test () {
     size_t topic3Len = sizeof(topic3);
 
     platon_event3(topic1, topic1Len, topic2, topic2Len, topic3, topic3Len, data, len);
+}
+
+
+WASM_EXPORT
+void platon_event4_test () {
+
+    uint8_t data[1024];
+    size_t len = platon_get_input_length();
+    platon_get_input(data);
+
+    uint8_t *topic1 = (uint8_t*)"t1";
+    size_t topic1Len = sizeof(topic1);
+
+    uint8_t *topic2 = (uint8_t*)"t2";
+    size_t topic2Len = sizeof(topic2);
+
+    uint8_t *topic3 = (uint8_t*)"t3";
+    size_t topic3Len = sizeof(topic3);
+
+    uint8_t *topic4 = (uint8_t*)"t4";
+    size_t topic4Len = sizeof(topic4);
+
+    platon_event4(topic1, topic1Len, topic2, topic2Len, topic3, topic3Len, topic4, topic4Len, data, len);
 }

@@ -67,7 +67,7 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 
 	if len(input) == 0 { // deploy contract
 		deploy = true
-		contractCode, calldata, err := assemblyDeployCode(engine.Contract().Code)
+		contractCode, calldata, err := disassemblyDeployCode(engine.Contract().Code)
 		if nil != err {
 			return nil, err
 		}
@@ -102,7 +102,6 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 	if deploy {
 		return engine.Contract().Code, err
 	}
-
 	return ret, err
 }
 
@@ -239,9 +238,9 @@ func (engine *wagonEngine) makeModuleWithCall() (*exec.CompiledModule, int64, er
 	return mod, index, nil
 }
 
-// assemblyDeployCode parses out the contract code and call data during wasm deployment.
-// The composition of `code` is `magicNum|rlp[contractCode, rlp(init,args1, args2, ...)]`
-func assemblyDeployCode(code []byte) (contractCode []byte, calldata []byte, err error) {
+// disassemblyDeployCode parses out the contract code and call data during wasm deployment.
+// The composition of `code` is `magicNum|rlp([contractCode, rlp(init,args1, args2, ...)])`
+func disassemblyDeployCode(code []byte) (contractCode []byte, calldata []byte, err error) {
 	if len(code) == 0 {
 		return nil, nil, errors.New("No contract code to be parsed")
 	}
