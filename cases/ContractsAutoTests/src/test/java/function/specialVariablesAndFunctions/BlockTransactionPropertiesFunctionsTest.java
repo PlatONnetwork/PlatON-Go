@@ -26,7 +26,7 @@ import java.util.Date;
 public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest {
 
     private String coinbase;
-    private String gaslimit;
+//    private String gaslimit;
     private String msgdata;
     private String gasleft;
     private String msgsig;
@@ -36,7 +36,7 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
     public void before() {
         this.prepare();
         coinbase = driverService.param.get("coinbase");
-        gaslimit = driverService.param.get("gaslimit");
+//        gaslimit = driverService.param.get("gaslimit");
         msgdata = driverService.param.get("msgdata");
         gasleft = driverService.param.get("gasleft");
         msgsig = driverService.param.get("msgsig");
@@ -93,7 +93,8 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证block.gaslimit(获取当前区块的gas限额)
             BigInteger resultE = blockTransactionPropertiesFunctions.getGaslimit().send();
             collector.logStepPass("block.gaslimit函数返回值：" + resultE);
-            collector.assertEqual(gaslimit ,resultE.toString());
+            boolean gas = "0".toString().equals(resultE);
+            collector.assertEqual(false ,gas);
 
             //验证block.timestamp(获取当前区块的UNIX时间戳)
             BigInteger resultF = blockTransactionPropertiesFunctions.getBlockTimestamp().send();
@@ -117,7 +118,6 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证msg.sender(获取消息发送者（当前调用))
             String resultI = blockTransactionPropertiesFunctions.getSender().send();
             collector.logStepPass("msg.sender函数返回值：" + resultI);
-//            String sendaddress = "0x" + walletAddress.toLowerCase();
             collector.assertEqual(walletAddress.toLowerCase() ,resultI);
 
             //验证msg.sig(calldata 的前 4 字节(也就是函数标识符))
@@ -149,7 +149,6 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证tx.origin(交易发起者(完全的调用链))
             String resultM = blockTransactionPropertiesFunctions.getOrigin().send();
             collector.logStepPass("tx.origin函数返回值：" + resultM);
-//            String txaddress = "0x" + walletAddress.toLowerCase();
             collector.assertEqual(walletAddress.toLowerCase() ,resultM);
 
         } catch (Exception e) {
