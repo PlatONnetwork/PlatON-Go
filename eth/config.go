@@ -59,6 +59,8 @@ var DefaultConfig = Config{
 	DBGCTimeout:   time.Minute,
 	DBGCMpt:       true,
 	DBGCBlock:     10,
+	VMWasmType:        "wagon",
+	VmTimeoutDuration: 2,
 	MinerGasPrice: big.NewInt(params.GVon),
 	MinerRecommit: 3 * time.Second,
 
@@ -122,6 +124,10 @@ type Config struct {
 	DBGCTimeout        time.Duration
 	DBGCMpt            bool
 	DBGCBlock          int
+
+	// VM options
+	VMWasmType        string
+	VmTimeoutDuration uint64
 
 	// Mining-related options
 	MinerExtraData []byte `toml:",omitempty"`
