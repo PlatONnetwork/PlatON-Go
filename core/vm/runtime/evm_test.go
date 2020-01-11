@@ -1,14 +1,17 @@
 package runtime
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"math/big"
-	"testing"
 )
+
 type account struct{}
+
 func (account) SubBalance(amount *big.Int)                          {}
 func (account) AddBalance(amount *big.Int)                          {}
 func (account) SetAddress(common.Address)                           {}
@@ -35,8 +38,8 @@ func TestEVMCallError(t *testing.T) {
 		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	}
 	var (
-		vmenv   = NewEnv(cfg)
-		sender  = vm.AccountRef(cfg.Origin)
+		vmenv  = NewEnv(cfg)
+		sender = vm.AccountRef(cfg.Origin)
 	)
 	vmenv.Call(
 		sender,
@@ -270,12 +273,12 @@ func TestOthers(t *testing.T) {
 		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	}
 	var (
-		vmenv   = NewEnv(cfg)
+		vmenv = NewEnv(cfg)
 	)
 
 	vmenv.Interpreter()
 	vmenv.GetStateDB()
 	vmenv.GetEvm()
-	vmenv.GetConfig()
+	vmenv.GetVMConfig()
 	vmenv.Cancel()
 }
