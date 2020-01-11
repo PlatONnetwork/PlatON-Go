@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.16;
 /**
  * 1. 0.4.25版本验证使用constructor关键字定义构造函数，使用internal声明可见性
  * 2. 0.4.25版本验证子合约直接声明父合约构造函数，但是构造函数参数与父合约不一致

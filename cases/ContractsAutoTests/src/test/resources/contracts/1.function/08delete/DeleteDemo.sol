@@ -1,4 +1,4 @@
-pragma solidity 0.5.13;
+pragma solidity 0.5.4;
 /**
  * 验证delete关键字，验证各种类型的delete,包括bool,uint,address,bytes,string,enum,变长数组
  * 验证删除struct, struct中的映射不会被删除其他的会被删除

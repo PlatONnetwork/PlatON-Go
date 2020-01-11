@@ -117,8 +117,8 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证msg.sender(获取消息发送者（当前调用))
             String resultI = blockTransactionPropertiesFunctions.getSender().send();
             collector.logStepPass("msg.sender函数返回值：" + resultI);
-            String sendaddress = "0x" + walletAddress.toLowerCase();
-            collector.assertEqual(sendaddress ,resultI);
+//            String sendaddress = "0x" + walletAddress.toLowerCase();
+            collector.assertEqual(walletAddress.toLowerCase() ,resultI);
 
             //验证msg.sig(calldata 的前 4 字节(也就是函数标识符))
             byte[] resultJ = blockTransactionPropertiesFunctions.getSig().send();
@@ -149,8 +149,8 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证tx.origin(交易发起者(完全的调用链))
             String resultM = blockTransactionPropertiesFunctions.getOrigin().send();
             collector.logStepPass("tx.origin函数返回值：" + resultM);
-            String txaddress = "0x" + walletAddress.toLowerCase();
-            collector.assertEqual(txaddress ,resultM);
+//            String txaddress = "0x" + walletAddress.toLowerCase();
+            collector.assertEqual(walletAddress.toLowerCase() ,resultM);
 
         } catch (Exception e) {
             e.printStackTrace();

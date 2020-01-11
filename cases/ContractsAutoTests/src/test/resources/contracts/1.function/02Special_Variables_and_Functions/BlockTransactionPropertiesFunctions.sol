@@ -1,4 +1,4 @@
-pragma solidity 0.5.13;
+pragma solidity 0.5.9;
 /**
  * 验证区块和交易属性的内置函数
  * @author liweic

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.14;
 
 /**
  * 1. 0.4.25版本do...while循环里的continue跳转到循环体内，可能会产生死循环验证

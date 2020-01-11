@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.17;
 
 /**
  * 1. constructor声明构造函数，public可见性验证；

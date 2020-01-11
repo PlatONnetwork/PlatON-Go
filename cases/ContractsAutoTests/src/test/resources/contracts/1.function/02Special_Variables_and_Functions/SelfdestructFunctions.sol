@@ -1,4 +1,4 @@
-pragma solidity 0.5.13;
+pragma solidity 0.5.7;
 /**
  * 验证构造函数constructor
  * 验证销毁函数selfdestruct,0.5.x之后弃用suicide

@@ -19,43 +19,19 @@ contract PlatONToken {
     // 定义全局变量
     uint public balance;
 
-    function Pglat() public view public returns(uint balance){
-        balance = 1 lat;  //1000000000000000000000000000
-    }
-
-    function Pmlat() public view public returns(uint balance){
-        balance = 1 mlat; //1000000000000000000000000
-    }
-
-    function Pklat() public view public returns(uint balance){
-        balance = 1 klat;  //1000000000000000000000
-    }
-
-    function Plat() public view public returns(uint balance){
+    function Plat() public returns(uint balance){
         balance = 1 lat; //1000000000000000000
     }
 
-    function Pfinney() public view public returns(uint balance){
+    function Pfinney() public returns(uint balance){
         balance = 1 finney; //1000000000000000
     }
 
-    function Pszabo() public view public returns(uint balance){
+    function Pszabo() public returns(uint balance){
         balance = 1 szabo; //1000000000000
     }
 
-    function Pgvon() public view public returns(uint balance){
-        balance = 1 gvon; //1000000000
-    }
-
-    function Pmvon() public view public returns(uint balance){
-        balance = 1 mvon; //1000000
-    }
-
-    function Pkvon() public view public returns(uint balance){
-        balance = 1 kvon; //1000
-    }
-
-    function Pvon() public view public returns(uint balance){
+    function Pvon() public returns(uint balance){
         balance = 1 ; //1
     }
 
