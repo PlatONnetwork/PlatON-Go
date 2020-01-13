@@ -81,8 +81,10 @@ public class GeneratorPreTest extends ContractPrepareTest {
         String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts").toUri().getPath());
         String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "build").toUri().getPath());
         File[] list = new File(buildPath).listFiles();
-        for (File file : list) {
-            file.delete();
+        if (null != list) {
+            for (File file : list) {
+                file.delete();
+            }
         }
         // 获取所有sol源文件
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);

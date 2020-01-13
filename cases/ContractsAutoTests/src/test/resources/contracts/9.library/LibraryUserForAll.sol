@@ -7,7 +7,8 @@ pragma solidity ^0.5.13;
  **/
 library SearchLibrary {
     function indexOf(uint[] storage self, uint value)
-    internal
+    public
+    view
     returns (uint)
     {
         for (uint i = 0; i < self.length; i++)
