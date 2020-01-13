@@ -73,6 +73,7 @@ public class DataLocationTest extends ContractPrepareTest {
             collector.assertEqual(name, new String(bytes));
 
         } catch (Exception e) {
+            collector.logStepFail("DataLocationTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

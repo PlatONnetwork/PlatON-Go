@@ -58,6 +58,7 @@ public class FunctionDeclaractionTest extends ContractPrepareTest {
 
             collector.assertEqual(String.valueOf(Integer.valueOf(initValue)+Integer.valueOf(addValue)),afterValue);
         } catch (Exception e) {
+            collector.logStepFail("FunctionDeclaractionTest update_public process fail.", e.toString());
             e.printStackTrace();
         }
     }
@@ -89,6 +90,7 @@ public class FunctionDeclaractionTest extends ContractPrepareTest {
 
             collector.assertEqual(String.valueOf(Integer.valueOf(initValue)+Integer.valueOf(addValue)),afterValue);
         } catch (Exception e) {
+            collector.logStepFail("FunctionDeclaractionTest update_external process fail.", e.toString());
             e.printStackTrace();
         }
     }

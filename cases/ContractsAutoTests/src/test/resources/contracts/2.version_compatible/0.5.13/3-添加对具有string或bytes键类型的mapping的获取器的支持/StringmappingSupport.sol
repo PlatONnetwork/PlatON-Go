@@ -9,37 +9,35 @@ pragma solidity ^0.5.13;
 
 contract StringmappingSupport {
 
-    
+
     mapping(string =>string) amap;
     mapping(bytes9 => string) bmap;
-    
+
     /**
      * 支持string为key的mapping数据存储
      */
     function setStringmapValue(string memory _key,string memory _value) public{
-         amap[_key] = _value;
+        amap[_key] = _value;
     }
-    
+
     /**
      * 支持string为key的mapping数据获取
      */
-    function getStringmapValue(string memory _key) public returns(string memory){
+    function getStringmapValue(string memory _key) public view returns(string memory){
         return amap[_key];
     }
-    
+
     /**
      * 支持byte为key的mapping数据存储
      */
-    function setByte32mapValue() public{
-         bytes9 names = 0x6c697975656368756e;
-        bmap[names] = "hudenian";
+    function setByte32mapValue(bytes9 _key,string memory _value) public{
+        bmap[_key] = _value;
     }
-    
+
     /**
      * 支持byte为key的mapping数据获取
      */
-    function getByte32mapValue() public returns( string memory){
-         bytes9 names = 0x6c697975656368756e;
-        return bmap[names];
+    function getByte32mapValue(bytes9 _key) public view returns( string memory){
+        return bmap[_key];
     }
 }

@@ -62,6 +62,7 @@ public class ErrorParamConstructorDeprecatedElementTest extends ContractPrepareT
 
             collector.assertEqual(String.valueOf(Integer.valueOf(initValue)+Integer.valueOf(addValue)),bValue);
         } catch (Exception e) {
+            collector.logStepFail("ErrorParamConstructorDeprecatedElementTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

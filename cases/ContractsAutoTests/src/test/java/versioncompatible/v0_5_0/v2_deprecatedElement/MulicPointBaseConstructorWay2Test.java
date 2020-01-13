@@ -58,6 +58,7 @@ public class MulicPointBaseConstructorWay2Test extends ContractPrepareTest {
 
             collector.assertEqual(String.valueOf(Integer.valueOf(initValue)*Integer.valueOf(initValue)+Integer.valueOf(addValue)),afterValue);
         } catch (Exception e) {
+            collector.logStepFail("MulicPointBaseConstructorWay2Test process fail.", e.toString());
             e.printStackTrace();
         }
     }

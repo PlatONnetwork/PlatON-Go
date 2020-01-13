@@ -66,6 +66,7 @@ public class DoWhileLogicAnd99StyleTest extends ContractPrepareTest {
             collector.assertEqual(forsum(Integer.valueOf(forStart)), chainForValue);
 
         } catch (Exception e) {
+            collector.logStepFail("DoWhileLogicAnd99StyleTest doWhileAndFor process fail.", e.toString());
             e.printStackTrace();
         }
     }

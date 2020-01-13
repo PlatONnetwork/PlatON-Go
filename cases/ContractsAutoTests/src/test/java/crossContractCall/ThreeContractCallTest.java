@@ -81,6 +81,7 @@ public class ThreeContractCallTest extends ContractPrepareTest {
             collector.assertEqual("0",callerThreeX);
 
         } catch (Exception e) {
+            collector.logStepFail("ThreeContractCallTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

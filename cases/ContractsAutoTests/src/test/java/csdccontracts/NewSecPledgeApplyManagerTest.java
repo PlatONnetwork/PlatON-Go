@@ -80,6 +80,7 @@ public class NewSecPledgeApplyManagerTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("NewSecPledgeApplyManagerTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

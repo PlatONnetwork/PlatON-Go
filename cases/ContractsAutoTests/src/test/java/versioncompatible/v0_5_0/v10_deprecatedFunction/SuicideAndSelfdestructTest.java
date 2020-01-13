@@ -60,8 +60,9 @@ public class SuicideAndSelfdestructTest extends ContractPrepareTest {
         } catch (Exception e) {
             if(e.getMessage().startsWith("Empty")){
                 collector.logStepPass("自杀后查询链上的count值为 Empty");
+            }else {
+                collector.logStepFail("SuicideAndSelfdestructTest keccake256 process fail.", e.toString());
             }
-            collector.assertContains(e.toString(), "ContractCallException");
         }
     }
 

@@ -71,6 +71,7 @@ public class WithBackCallerTest extends ContractPrepareTest {
             collector.assertEqual(callerStringResult,"hello"+helloValue);
 
         } catch (Exception e) {
+            collector.logStepFail("WithBackCallerTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

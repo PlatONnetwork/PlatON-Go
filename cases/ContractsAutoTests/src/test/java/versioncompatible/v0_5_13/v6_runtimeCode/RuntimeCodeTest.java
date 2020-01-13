@@ -45,6 +45,7 @@ public class RuntimeCodeTest extends ContractPrepareTest {
             collector.logStepPass("RuntimeCodeByteArrType的16进制字节码是："+hexRuntimeCodeByteArrType);
 
         } catch (Exception e) {
+            collector.logStepFail("RuntimeCodeTest  process fail.", e.toString());
             e.printStackTrace();
         }
     }

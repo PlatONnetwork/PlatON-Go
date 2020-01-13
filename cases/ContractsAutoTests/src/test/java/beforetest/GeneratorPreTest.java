@@ -141,6 +141,11 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     BaseLibrary baseLibrary = new BaseLibrary(credentials, web3j, chainId);
                     TransactionReceipt receipt = baseLibrary.deploy(BaseLibrary.GAS_PRICE, BaseLibrary.GAS_LIMIT, lineTxt);
                     collector.logStepPass("status >>>> " + receipt.getStatus());
+                    if(receipt.getStatus().toString().equals("0x1")){
+                        collector.logStepPass(libraryArr[i]+ receipt.getStatus()+"部署成功");
+                    }else{
+                        collector.logStepPass(libraryArr[i]+ receipt.getStatus()+"部署失败");
+                    }
                     libraryAddressNoPre = receipt.getContractAddress();
                     collector.logStepPass("contract address >>>> " + libraryAddressNoPre);
                     if (libraryAddressNoPre.startsWith("0x")) {
