@@ -53,6 +53,7 @@ public class ContractArrayTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("ContractArrayContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

@@ -54,6 +54,7 @@ public class ConstantViewPureTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("ConstantViewPureContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

@@ -43,6 +43,7 @@ public class FunctionParamTest extends ContractPrepareTest {
             collector.assertEqual("7",t.toString());
 
         } catch (Exception e) {
+            collector.logStepFail("FunctionParamContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

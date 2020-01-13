@@ -48,6 +48,7 @@ public class ModifiersTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("ModifiersContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

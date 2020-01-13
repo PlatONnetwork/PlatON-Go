@@ -152,6 +152,7 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             collector.assertEqual(walletAddress.toLowerCase() ,resultM);
 
         } catch (Exception e) {
+            collector.logStepFail("BlockTransactionPropertiesFunctionsContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

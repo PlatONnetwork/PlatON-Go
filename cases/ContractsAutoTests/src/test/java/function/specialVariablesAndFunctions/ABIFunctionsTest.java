@@ -60,6 +60,7 @@ public class ABIFunctionsTest extends ContractPrepareTest {
             collector.assertEqual(encodePacked ,hexValue3);
 
         } catch (Exception e) {
+            collector.logStepFail("ABIFuctionsContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

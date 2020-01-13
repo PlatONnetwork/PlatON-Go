@@ -101,6 +101,7 @@ public class DeleteDemoTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("DeleteDemoContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

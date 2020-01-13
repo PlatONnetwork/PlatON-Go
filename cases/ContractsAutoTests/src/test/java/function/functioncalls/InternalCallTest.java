@@ -43,6 +43,7 @@ public class InternalCallTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("InterCallContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

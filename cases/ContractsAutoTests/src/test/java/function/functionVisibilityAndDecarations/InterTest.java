@@ -42,6 +42,7 @@ public class InterTest extends ContractPrepareTest {
             collector.assertEqual(new BigInteger("3"),interdata);
 
         } catch (Exception e) {
+            collector.logStepFail("InterContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

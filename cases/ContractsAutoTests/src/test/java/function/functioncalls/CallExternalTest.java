@@ -48,6 +48,7 @@ public class CallExternalTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("CallExternalContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

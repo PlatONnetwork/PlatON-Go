@@ -47,6 +47,7 @@ public class SumAssemblyTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("SumAssemblyContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

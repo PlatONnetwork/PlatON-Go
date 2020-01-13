@@ -94,6 +94,7 @@ public class MathAndCryptographicFunctionsTest extends ContractPrepareTest {
             collector.assertEqual(ecrecover ,resultF.toLowerCase());
 
         } catch (Exception e) {
+            collector.logStepFail("MathAndCryptographicfunctionsContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

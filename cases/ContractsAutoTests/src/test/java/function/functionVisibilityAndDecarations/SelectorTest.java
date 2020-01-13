@@ -43,6 +43,7 @@ public class SelectorTest extends ContractPrepareTest {
             collector.assertEqual("b8c9d365",f);
 
         } catch (Exception e) {
+            collector.logStepFail("SelectorContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

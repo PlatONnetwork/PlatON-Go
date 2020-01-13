@@ -46,6 +46,7 @@ public class InheritanceModifierTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("InheritanceModifierContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

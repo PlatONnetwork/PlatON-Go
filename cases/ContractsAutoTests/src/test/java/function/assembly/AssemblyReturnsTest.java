@@ -66,6 +66,7 @@ public class AssemblyReturnsTest extends ContractPrepareTest {
             collector.assertEqual("0x1212121212121212121212121212121212121212" ,result.getValue5().toString());
 
         } catch (Exception e) {
+            collector.logStepFail("AssemblyReturnsContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

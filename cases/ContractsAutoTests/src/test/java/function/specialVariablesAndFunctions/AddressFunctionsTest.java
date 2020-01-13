@@ -74,6 +74,7 @@ public class AddressFunctionsTest extends ContractPrepareTest {
             collector.assertEqual(1,sendcount);
 
         } catch (Exception e) {
+            collector.logStepFail("AddressFunctionsContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }
