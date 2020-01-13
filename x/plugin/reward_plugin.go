@@ -333,6 +333,9 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 				i++
 			}
 		}
+		if len(dls) == 0 {
+			return nil, reward.ErrDelegationNotFound
+		}
 	}
 
 	currentEpoch := xutil.CalculateEpoch(blockNum)
