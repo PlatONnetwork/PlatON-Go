@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -552,7 +553,23 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_event(const uint8_t* args, size_t argsLen)
+	// void platon_event(const uint8_t* indexes, size_t indexesLen, const uint8_t* args, size_t argsLen)
+	// func $platon_event (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(EmitEvent),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_event",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	/*// void platon_event(const uint8_t* args, size_t argsLen)
 	// func $platon_event (param $0 i32) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -633,7 +650,7 @@ func NewHostModule() *wasm.Module {
 			FieldStr: "platon_event4",
 			Kind:     wasm.ExternalFunction,
 		},
-	)
+	)*/
 
 	return m
 }
@@ -1210,160 +1227,217 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	return 0
 }
 
-func EmitEvent(proc *exec.Process, args, argsLen uint32) {
+func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
 		panic(errWASMWriteProtection)
 	}
-
-	gas, err := logGas(0, uint64(argsLen))
-	if nil != err {
-		panic(err)
-	}
-	checkGas(ctx, gas)
 
 	topics := make([]common.Hash, 0)
 
+	if indexesLen != 0 {
+
+		indexes := make([]byte, indexesLen)
+		proc.ReadAt(indexes, int64(indexesPtr))
+
+		kind, content, _, err := rlp.Split(indexes)
+
+		switch {
+		case err != nil:
+			panic(err)
+		case kind != rlp.List:
+			panic(fmt.Errorf("failed to parse topics"))
+		}
+
+		decodeTopics := func(b []byte) ([]byte, []byte, error) {
+			_, member, rest, err := rlp.Split(b)
+			switch {
+			case err != nil:
+				return nil, nil, err
+			}
+			return member, rest, nil
+		}
+
+		for len(content) > 0 {
+			mem, tail, err := decodeTopics(content)
+			if nil != err {
+				panic(err)
+			}
+
+			topics = append(topics, common.BytesToHash(crypto.Keccak256(mem)))
+			content = tail
+		}
+	}
+
 	input := make([]byte, argsLen)
 	proc.ReadAt(input, int64(args))
 
-	bn := ctx.evm.BlockNumber.Uint64()
-
-	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
-}
-
-func EmitEvent1(proc *exec.Process, t, tLen, args, argsLen uint32) {
-	ctx := proc.HostCtx().(*VMContext)
-
-	if ctx.readOnly {
-		panic(errWASMWriteProtection)
-	}
-
-	gas, err := logGas(1, uint64(argsLen))
+	gas, err := logGas(uint64(len(topics)), uint64(argsLen))
 	if nil != err {
 		panic(err)
 	}
 	checkGas(ctx, gas)
 
-	topic := make([]byte, tLen)
-	proc.ReadAt(topic, int64(t))
-	topics := []common.Hash{common.BytesToHash(crypto.Keccak256(topic))}
-
-	input := make([]byte, argsLen)
-	proc.ReadAt(input, int64(args))
-
 	bn := ctx.evm.BlockNumber.Uint64()
 
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
 
-func EmitEvent2(proc *exec.Process, t1, t1Len, t2, t2Len, args, argsLen uint32) {
-	ctx := proc.HostCtx().(*VMContext)
-
-	if ctx.readOnly {
-		panic(errWASMWriteProtection)
-	}
-
-	gas, err := logGas(2, uint64(argsLen))
-	if nil != err {
-		panic(err)
-	}
-	checkGas(ctx, gas)
-
-	topic1 := make([]byte, t1Len)
-	proc.ReadAt(topic1, int64(t1))
-	topic2 := make([]byte, t2Len)
-	proc.ReadAt(topic2, int64(t2))
-
-	arr := [][]byte{topic1, topic2}
-	topics := make([]common.Hash, len(arr))
-	for i, t := range arr {
-		topics[i] = common.BytesToHash(crypto.Keccak256(t))
-	}
-
-	input := make([]byte, argsLen)
-	proc.ReadAt(input, int64(args))
-
-	bn := ctx.evm.BlockNumber.Uint64()
-
-	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
-}
-
-func EmitEvent3(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, args, argsLen uint32) {
-	ctx := proc.HostCtx().(*VMContext)
-
-	if ctx.readOnly {
-		panic(errWASMWriteProtection)
-	}
-
-	gas, err := logGas(3, uint64(argsLen))
-	if nil != err {
-		panic(err)
-	}
-	checkGas(ctx, gas)
-
-	topic1 := make([]byte, t1Len)
-	proc.ReadAt(topic1, int64(t1))
-	topic2 := make([]byte, t2Len)
-	proc.ReadAt(topic2, int64(t2))
-
-	topic3 := make([]byte, t3Len)
-	proc.ReadAt(topic3, int64(t3))
-
-	arr := [][]byte{topic1, topic2, topic3}
-	topics := make([]common.Hash, len(arr))
-	for i, t := range arr {
-		topics[i] = common.BytesToHash(crypto.Keccak256(t))
-	}
-
-	input := make([]byte, argsLen)
-	proc.ReadAt(input, int64(args))
-
-	bn := ctx.evm.BlockNumber.Uint64()
-
-	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
-}
-
-func EmitEvent4(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, t4, t4Len, args, argsLen uint32) {
-	ctx := proc.HostCtx().(*VMContext)
-
-	if ctx.readOnly {
-		panic(errWASMWriteProtection)
-	}
-
-	gas, err := logGas(3, uint64(argsLen))
-	if nil != err {
-		panic(err)
-	}
-	checkGas(ctx, gas)
-
-	topic1 := make([]byte, t1Len)
-	proc.ReadAt(topic1, int64(t1))
-
-	topic2 := make([]byte, t2Len)
-	proc.ReadAt(topic2, int64(t2))
-
-	topic3 := make([]byte, t3Len)
-	proc.ReadAt(topic3, int64(t3))
-
-	topic4 := make([]byte, t4Len)
-	proc.ReadAt(topic4, int64(t4))
-
-	arr := [][]byte{topic1, topic2, topic3, topic4}
-
-	topics := make([]common.Hash, len(arr))
-	for i, t := range arr {
-		topics[i] = common.BytesToHash(crypto.Keccak256(t))
-	}
-
-	input := make([]byte, argsLen)
-	proc.ReadAt(input, int64(args))
-
-	bn := ctx.evm.BlockNumber.Uint64()
-
-	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
-}
+//func EmitEvent(proc *exec.Process, args, argsLen uint32) {
+//	ctx := proc.HostCtx().(*VMContext)
+//
+//	if ctx.readOnly {
+//		panic(errWASMWriteProtection)
+//	}
+//
+//	gas, err := logGas(0, uint64(argsLen))
+//	if nil != err {
+//		panic(err)
+//	}
+//	checkGas(ctx, gas)
+//
+//	topics := make([]common.Hash, 0)
+//
+//	input := make([]byte, argsLen)
+//	proc.ReadAt(input, int64(args))
+//
+//	bn := ctx.evm.BlockNumber.Uint64()
+//
+//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+//}
+//
+//func EmitEvent1(proc *exec.Process, t, tLen, args, argsLen uint32) {
+//	ctx := proc.HostCtx().(*VMContext)
+//
+//	if ctx.readOnly {
+//		panic(errWASMWriteProtection)
+//	}
+//
+//	gas, err := logGas(1, uint64(argsLen))
+//	if nil != err {
+//		panic(err)
+//	}
+//	checkGas(ctx, gas)
+//
+//	topic := make([]byte, tLen)
+//	proc.ReadAt(topic, int64(t))
+//	topics := []common.Hash{common.BytesToHash(crypto.Keccak256(topic))}
+//
+//	input := make([]byte, argsLen)
+//	proc.ReadAt(input, int64(args))
+//
+//	bn := ctx.evm.BlockNumber.Uint64()
+//
+//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+//}
+//
+//func EmitEvent2(proc *exec.Process, t1, t1Len, t2, t2Len, args, argsLen uint32) {
+//	ctx := proc.HostCtx().(*VMContext)
+//
+//	if ctx.readOnly {
+//		panic(errWASMWriteProtection)
+//	}
+//
+//	gas, err := logGas(2, uint64(argsLen))
+//	if nil != err {
+//		panic(err)
+//	}
+//	checkGas(ctx, gas)
+//
+//	topic1 := make([]byte, t1Len)
+//	proc.ReadAt(topic1, int64(t1))
+//	topic2 := make([]byte, t2Len)
+//	proc.ReadAt(topic2, int64(t2))
+//
+//	arr := [][]byte{topic1, topic2}
+//	topics := make([]common.Hash, len(arr))
+//	for i, t := range arr {
+//		topics[i] = common.BytesToHash(crypto.Keccak256(t))
+//	}
+//
+//	input := make([]byte, argsLen)
+//	proc.ReadAt(input, int64(args))
+//
+//	bn := ctx.evm.BlockNumber.Uint64()
+//
+//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+//}
+//
+//func EmitEvent3(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, args, argsLen uint32) {
+//	ctx := proc.HostCtx().(*VMContext)
+//
+//	if ctx.readOnly {
+//		panic(errWASMWriteProtection)
+//	}
+//
+//	gas, err := logGas(3, uint64(argsLen))
+//	if nil != err {
+//		panic(err)
+//	}
+//	checkGas(ctx, gas)
+//
+//	topic1 := make([]byte, t1Len)
+//	proc.ReadAt(topic1, int64(t1))
+//	topic2 := make([]byte, t2Len)
+//	proc.ReadAt(topic2, int64(t2))
+//
+//	topic3 := make([]byte, t3Len)
+//	proc.ReadAt(topic3, int64(t3))
+//
+//	arr := [][]byte{topic1, topic2, topic3}
+//	topics := make([]common.Hash, len(arr))
+//	for i, t := range arr {
+//		topics[i] = common.BytesToHash(crypto.Keccak256(t))
+//	}
+//
+//	input := make([]byte, argsLen)
+//	proc.ReadAt(input, int64(args))
+//
+//	bn := ctx.evm.BlockNumber.Uint64()
+//
+//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+//}
+//
+//func EmitEvent4(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, t4, t4Len, args, argsLen uint32) {
+//	ctx := proc.HostCtx().(*VMContext)
+//
+//	if ctx.readOnly {
+//		panic(errWASMWriteProtection)
+//	}
+//
+//	gas, err := logGas(3, uint64(argsLen))
+//	if nil != err {
+//		panic(err)
+//	}
+//	checkGas(ctx, gas)
+//
+//	topic1 := make([]byte, t1Len)
+//	proc.ReadAt(topic1, int64(t1))
+//
+//	topic2 := make([]byte, t2Len)
+//	proc.ReadAt(topic2, int64(t2))
+//
+//	topic3 := make([]byte, t3Len)
+//	proc.ReadAt(topic3, int64(t3))
+//
+//	topic4 := make([]byte, t4Len)
+//	proc.ReadAt(topic4, int64(t4))
+//
+//	arr := [][]byte{topic1, topic2, topic3, topic4}
+//
+//	topics := make([]common.Hash, len(arr))
+//	for i, t := range arr {
+//		topics[i] = common.BytesToHash(crypto.Keccak256(t))
+//	}
+//
+//	input := make([]byte, argsLen)
+//	proc.ReadAt(input, int64(args))
+//
+//	bn := ctx.evm.BlockNumber.Uint64()
+//
+//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+//}
 
 func addLog(state StateDB, address common.Address, topics []common.Hash, data []byte, bn uint64) {
 	log := &types.Log{

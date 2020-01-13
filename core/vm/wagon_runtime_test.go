@@ -8,9 +8,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
@@ -564,7 +564,7 @@ var testCase = []*Case{
 		},
 	},
 
-	// EVENT
+	// EVENT, empty topic
 	{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
@@ -600,7 +600,7 @@ var testCase = []*Case{
 				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input: []byte("I am wagon"),
 		},
-		funcName: "platon_event_test",
+		funcName: "platon_event0_test",
 		init: func(ctx *VMContext, t *testing.T) {
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
@@ -633,145 +633,7 @@ var testCase = []*Case{
 		},
 	},
 
-	// EVENT1
-	{
-		ctx: &VMContext{
-			config: Config{WasmType: Wagon},
-			evm: &EVM{
-				Context: Context{
-					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
-						return db.GetBalance(addr).Cmp(amount) >= 0
-					},
-					Transfer: func(db StateDB, sender, recipient common.Address, amount *big.Int) {
-						db.SubBalance(sender, amount)
-						db.AddBalance(recipient, amount)
-					},
-					BlockNumber: big.NewInt(13),
-				},
-				StateDB: &mock.MockStateDB{
-					Thash:   common.Hash{1, 1, 1, 1},
-					TxIndex: 1,
-					Bhash:   common.Hash{2, 2, 2, 2},
-					Balance: map[common.Address]*big.Int{
-						addr1: big.NewInt(2000),
-						addr2: big.NewInt(1000),
-					},
-					State: map[common.Address]map[string][]byte{},
-					Code: map[common.Address][]byte{
-						addr1: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						addr2: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
-					},
-					Logs: make(map[common.Hash][]*types.Log),
-				}},
-			contract: &Contract{
-				CallerAddress: addr2,
-				caller:        &AccountRef{1, 2, 4},
-				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
-			Input: []byte("I am wagon"),
-		},
-		funcName: "platon_event1_test",
-		init: func(ctx *VMContext, t *testing.T) {
-			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
-		},
-		check: func(ctx *VMContext, err error) bool {
-			logs := ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1})
-			if len(logs) != 1 {
-				return false
-			}
-			log := logs[0]
-			if log.BlockNumber != big.NewInt(13).Uint64() {
-				return false
-			}
-			if log.TxIndex != 1 {
-				return false
-			}
-			if log.TxHash != (common.Hash{1, 1, 1, 1}) {
-				return false
-			}
-			if log.BlockHash != (common.Hash{2, 2, 2, 2}) {
-				return false
-			}
-
-			if len(log.Topics) != 1 {
-				return false
-			}
-			if bytes.Compare(log.Data, []byte("I am wagon")) != 0 {
-				return false
-			}
-			return true
-		},
-	},
-
-	// EVENT2
-	{
-		ctx: &VMContext{
-			config: Config{WasmType: Wagon},
-			evm: &EVM{
-				Context: Context{
-					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
-						return db.GetBalance(addr).Cmp(amount) >= 0
-					},
-					Transfer: func(db StateDB, sender, recipient common.Address, amount *big.Int) {
-						db.SubBalance(sender, amount)
-						db.AddBalance(recipient, amount)
-					},
-					BlockNumber: big.NewInt(13),
-				},
-				StateDB: &mock.MockStateDB{
-					Thash:   common.Hash{1, 1, 1, 1},
-					TxIndex: 1,
-					Bhash:   common.Hash{2, 2, 2, 2},
-					Balance: map[common.Address]*big.Int{
-						addr1: big.NewInt(2000),
-						addr2: big.NewInt(1000),
-					},
-					State: map[common.Address]map[string][]byte{},
-					Code: map[common.Address][]byte{
-						addr1: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						addr2: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
-					},
-					Logs: make(map[common.Hash][]*types.Log),
-				}},
-			contract: &Contract{
-				CallerAddress: addr2,
-				caller:        &AccountRef{1, 2, 4},
-				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
-			Input: []byte("I am wagon"),
-		},
-		funcName: "platon_event2_test",
-		init: func(ctx *VMContext, t *testing.T) {
-			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
-		},
-		check: func(ctx *VMContext, err error) bool {
-			logs := ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1})
-			if len(logs) != 1 {
-				return false
-			}
-			log := logs[0]
-			if log.BlockNumber != big.NewInt(13).Uint64() {
-				return false
-			}
-			if log.TxIndex != 1 {
-				return false
-			}
-			if log.TxHash != (common.Hash{1, 1, 1, 1}) {
-				return false
-			}
-			if log.BlockHash != (common.Hash{2, 2, 2, 2}) {
-				return false
-			}
-
-			if len(log.Topics) != 2 {
-				return false
-			}
-			if bytes.Compare(log.Data, []byte("I am wagon")) != 0 {
-				return false
-			}
-			return true
-		},
-	},
-
-	// EVENT3
+	// EVENT3, had tree topics
 	{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
@@ -830,76 +692,7 @@ var testCase = []*Case{
 				return false
 			}
 
-			if len(log.Topics) != 3 {
-				return false
-			}
-			if bytes.Compare(log.Data, []byte("I am wagon")) != 0 {
-				return false
-			}
-			return true
-		},
-	},
-
-	// EVENT4
-	{
-		ctx: &VMContext{
-			config: Config{WasmType: Wagon},
-			evm: &EVM{
-				Context: Context{
-					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
-						return db.GetBalance(addr).Cmp(amount) >= 0
-					},
-					Transfer: func(db StateDB, sender, recipient common.Address, amount *big.Int) {
-						db.SubBalance(sender, amount)
-						db.AddBalance(recipient, amount)
-					},
-					BlockNumber: big.NewInt(13),
-				},
-				StateDB: &mock.MockStateDB{
-					Thash:   common.Hash{1, 1, 1, 1},
-					TxIndex: 1,
-					Bhash:   common.Hash{2, 2, 2, 2},
-					Balance: map[common.Address]*big.Int{
-						addr1: big.NewInt(2000),
-						addr2: big.NewInt(1000),
-					},
-					State: map[common.Address]map[string][]byte{},
-					Code: map[common.Address][]byte{
-						addr1: append(WasmInterp.Bytes(), []byte{0x00, 0x01}...),
-						addr2: append(WasmInterp.Bytes(), []byte{0x00, 0x02}...),
-					},
-					Logs: make(map[common.Hash][]*types.Log),
-				}},
-			contract: &Contract{
-				CallerAddress: addr2,
-				caller:        &AccountRef{1, 2, 4},
-				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
-			Input: []byte("I am wagon"),
-		},
-		funcName: "platon_event4_test",
-		init: func(ctx *VMContext, t *testing.T) {
-			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
-		},
-		check: func(ctx *VMContext, err error) bool {
-			logs := ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1})
-			if len(logs) != 1 {
-				return false
-			}
-			log := logs[0]
-			if log.BlockNumber != big.NewInt(13).Uint64() {
-				return false
-			}
-			if log.TxIndex != 1 {
-				return false
-			}
-			if log.TxHash != (common.Hash{1, 1, 1, 1}) {
-				return false
-			}
-			if log.BlockHash != (common.Hash{2, 2, 2, 2}) {
-				return false
-			}
-
-			if len(log.Topics) != 4 {
+			if len(log.Topics) == 0 {
 				return false
 			}
 			if bytes.Compare(log.Data, []byte("I am wagon")) != 0 {
