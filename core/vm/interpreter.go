@@ -17,12 +17,13 @@
 package vm
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"hash"
 	"sync/atomic"
 
-        "github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
@@ -264,6 +265,10 @@ func (in *EVMInterpreter) CanRun(code []byte) bool {
 	if len(code) != 0 {
 		magicNum := BytesToInterpType(code[:InterpTypeLen])
 		if magicNum == EvmInterpOld || magicNum == EvmInterpNew {
+			return true
+		}
+		// the prefix of evm library is 60.
+		if bytes.Equal(code[:1], EvmLibraryInterp) {
 			return true
 		}
 	}
