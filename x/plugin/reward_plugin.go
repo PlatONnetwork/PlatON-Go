@@ -49,6 +49,7 @@ import (
 type RewardMgrPlugin struct {
 	db            snapshotdb.DB
 	nodeID        discover.NodeID
+	nodeADD       common.Address
 	stakingPlugin *StakingPlugin
 }
 
@@ -147,6 +148,11 @@ func (rmp *RewardMgrPlugin) Confirmed(nodeId discover.NodeID, block *types.Block
 
 func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId discover.NodeID) {
 	rmp.nodeID = nodeId
+	add, err := xutil.NodeId2Addr(rmp.nodeID)
+	if err != nil {
+		panic(err)
+	}
+	rmp.nodeADD = add
 }
 
 func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
@@ -251,7 +257,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 					"blockNumber", blockNumber, "blockHash", blockHash, "nodeID", verifier.NodeId.String(), "err", err)
 				return err
 			}
-			if err := stk.db.SetCanMutableStore(blockHash, canAddr, verifier.CandidateMutable); err != nil {
+			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, canAddr, verifier.CandidateMutable); err != nil {
 				log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: setCanMutableStore  failed",
 					"blockNumber", blockNumber, "blockHash", blockHash, "err", err, "mutable", verifier.CandidateMutable)
 				return err
@@ -310,6 +316,9 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 	if err != nil {
 		log.Error("Call GetDelegateReward GetDelegatesInfo fail", "err", err, "account", account)
 		return nil, err
+	}
+	if len(dls) == 0 {
+		return nil, reward.ErrDelegationNotFound
 	}
 	if len(nodes) > 0 {
 		nodeMap := make(map[discover.NodeID]struct{})
@@ -370,13 +379,11 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 		delegateReward, stakingReward := new(big.Int), new(big.Int).Set(everyValidatorReward)
 		if value.ShouldGiveDelegateReward() {
 			delegateReward, stakingReward = rmp.CalDelegateRewardAndNodeReward(everyValidatorReward, value.RewardPer)
-			state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
 			totalValidatorDelegateReward.Add(totalValidatorDelegateReward, delegateReward)
 			log.Debug("allocate delegate reward of staking one-by-one", "nodeId", value.NodeId.TerminalString(), "staking reward", stakingReward, "per", value.RewardPer, "delegateReward", delegateReward)
 			//the  CurrentEpochDelegateReward will use by cal delegate reward Per
 			value.CurrentEpochDelegateReward.Add(value.CurrentEpochDelegateReward, delegateReward)
 		}
-
 		if value.BenefitAddress != vm.RewardManagerPoolAddr {
 			log.Debug("allocate staking reward one-by-one", "nodeId", value.NodeId.String(),
 				"benefitAddress", value.BenefitAddress.String(), "staking reward", stakingReward)
@@ -384,14 +391,14 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 			totalValidatorReward.Add(totalValidatorReward, stakingReward)
 		}
 	}
+	state.AddBalance(vm.DelegateRewardPoolAddr, totalValidatorDelegateReward)
 	state.SubBalance(vm.RewardManagerPoolAddr, new(big.Int).Add(totalValidatorDelegateReward, totalValidatorReward))
 	return nil
 }
 
 func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (discover.NodeID, common.Address, error) {
 	if blockHash == common.ZeroHash {
-		add, err := xutil.NodeId2Addr(rmp.nodeID)
-		return rmp.nodeID, add, err
+		return rmp.nodeID, rmp.nodeADD, nil
 	}
 	sign := head.Extra[32:97]
 	sealhash := head.SealHash().Bytes()
@@ -418,7 +425,7 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 	if currVerifier {
 		cm, err := rmp.stakingPlugin.GetCanMutable(blockHash, add)
 		if err != nil {
-			log.Error("AllocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
+			log.Error("AllocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash, "add", add)
 			return err
 		}
 		if cm.ShouldGiveDelegateReward() {
@@ -428,7 +435,7 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 			state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
 			state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
 			cm.CurrentEpochDelegateReward.Add(cm.CurrentEpochDelegateReward, delegateReward)
-			log.Debug("allocate package reward, delegate reward", "blockNumber", head.Number, "blockHash", blockHash, "delegate", delegateReward, "delegateReward", cm.CurrentEpochDelegateReward)
+			log.Debug("allocate package reward, delegate reward", "blockNumber", head.Number, "blockHash", blockHash, "delegateReward", delegateReward, "epochDelegateReward", cm.CurrentEpochDelegateReward)
 
 			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, add, cm); err != nil {
 				log.Error("AllocatePackageBlock SetCanMutableStore fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)

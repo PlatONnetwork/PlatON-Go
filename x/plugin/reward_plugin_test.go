@@ -180,6 +180,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	StakingInstance()
 	plugin.SetCurrentNodeID(nodeIdArr[0])
 	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
 	packTime := int64(xcom.Interval() * uint64(millisecond))
 	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
 		tmp := new(big.Int).Set(b)
@@ -448,7 +449,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 
 	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
 	index, queue, can, delegate := generateStk(1000, big.NewInt(params.LAT*3), 10)
-	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		if err := stkDB.SetEpochValIndex(hash, index); err != nil {
 			return err
 		}
@@ -465,15 +466,17 @@ func TestAllocatePackageBlock(t *testing.T) {
 			return err
 		}
 		return nil
-	})
-
+	}); err != nil {
+		t.Error(err)
+		return
+	}
 	rm := &RewardMgrPlugin{
 		db: chain.SnapDB,
 		stakingPlugin: &StakingPlugin{
 			db: staking.NewStakingDBWithDB(chain.SnapDB),
 		},
-		nodeID: can.NodeId,
 	}
+	rm.SetCurrentNodeID(can.NodeId)
 
 	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
 	chain.StateDB.AddBalance(vm.RewardManagerPoolAddr, big.NewInt(100000000000000))
@@ -641,14 +644,13 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 		}
 		return nil
 	})
-
 	rm := &RewardMgrPlugin{
 		db: chain.SnapDB,
 		stakingPlugin: &StakingPlugin{
 			db: staking.NewStakingDBWithDB(chain.SnapDB),
 		},
-		nodeID: can.NodeId,
 	}
+	rm.SetCurrentNodeID(can.NodeId)
 
 	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
 	chain.StateDB.AddBalance(vm.RewardManagerPoolAddr, big.NewInt(100000000000000))

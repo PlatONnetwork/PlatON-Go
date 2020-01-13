@@ -78,7 +78,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	if len(list) == 0 {
 		log.Debug("Call withdrawDelegateReward of DelegateRewardContract，the delegates info list is empty", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String())
-		return txResultHandlerWithRes(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code), make([]reward.NodeDelegateReward, 0)), nil
+		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, reward.ErrDelegationNotFound.Msg, TxWithdrawDelegateReward, int(reward.ErrDelegationNotFound.Code)), nil
 	}
 
 	if !rc.Contract.UseGas(params.WithdrawDelegateNodeGas * uint64(len(list))) {
@@ -127,11 +127,15 @@ func (rc *DelegateRewardContract) getDelegateReward(address common.Address, node
 	blockNum := rc.Evm.BlockNumber
 	blockHash := rc.Evm.BlockHash
 
-	reward, err := rc.Plugin.GetDelegateReward(blockHash, blockNum.Uint64(), address, nodeIDs, state)
+	res, err := rc.Plugin.GetDelegateReward(blockHash, blockNum.Uint64(), address, nodeIDs, state)
 	if err != nil {
+		if err == reward.ErrDelegationNotFound {
+			return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", address.String()),
+				res, reward.ErrDelegationNotFound), nil
+		}
 		return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", address.String()),
-			reward, common.InternalError.Wrap(err.Error())), nil
+			res, common.InternalError.Wrap(err.Error())), nil
 	}
 	return callResultHandler(rc.Evm, fmt.Sprintf("getDelegateReward, account: %s", address.String()),
-		reward, nil), nil
+		res, nil), nil
 }

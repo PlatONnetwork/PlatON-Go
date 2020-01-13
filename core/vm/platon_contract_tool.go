@@ -32,14 +32,14 @@ func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byt
 	_, fn, params, err := plugin.VerifyTxData(input, command)
 	if nil != err {
 		log.Error("Failed to verify contract tx before exec", "err", err)
-		return xcom.NewFailedResult(common.InvalidParameter), err
+		return xcom.NewResult(common.InvalidParameter, nil), err
 	}
 
 	// execute contracts method
 	result := reflect.ValueOf(fn).Call(params)
 	if err, ok := result[1].Interface().(error); ok {
 		log.Error("Failed to execute contract tx", "err", err)
-		return xcom.NewFailedResult(common.InternalError), err
+		return xcom.NewResult(common.InternalError, nil), err
 	}
 	return result[0].Bytes(), nil
 }
@@ -77,16 +77,16 @@ func callResultHandler(evm *EVM, title string, resultValue interface{}, err *com
 	if nil != err {
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
 			"blockNumber", blockNumber, "the reason", err.Error())
-		return xcom.NewFailedResult(err)
+		return xcom.NewResult(err, nil)
 	}
 
 	if IsBlank(resultValue) {
-		return xcom.NewFailedResult(common.NotFound)
+		return xcom.NewResult(common.NotFound, nil)
 	}
 
 	log.Debug("Call "+title+" finished", "blockNumber", blockNumber,
 		"txHash", txHash, "result", resultValue)
-	return xcom.NewOkResult(resultValue)
+	return xcom.NewResult(nil, resultValue)
 }
 
 func IsBlank(i interface{}) bool {

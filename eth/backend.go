@@ -273,7 +273,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
-			reactor.SetPrivateKey(config.CbftConfig.NodePriKey)
+			reactor.SetPrivateKey(ctx.NodePriKey())
 			handlePlugin(reactor)
 			agency = reactor
 
