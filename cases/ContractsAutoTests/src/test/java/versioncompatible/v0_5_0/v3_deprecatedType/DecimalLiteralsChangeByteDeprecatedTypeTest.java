@@ -56,6 +56,7 @@ public class DecimalLiteralsChangeByteDeprecatedTypeTest extends ContractPrepare
 
             collector.assertEqual("0000000a",afterValue);
         } catch (Exception e) {
+            collector.logStepFail("changeByteDeprecatedType process fail.", e.toString());
             e.printStackTrace();
         }
     }

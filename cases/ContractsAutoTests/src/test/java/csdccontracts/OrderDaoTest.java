@@ -23,10 +23,8 @@ import java.util.Date;
  */
 public class OrderDaoTest extends ContractPrepareTest {
 
-//    //需要进行double的值
-//    private String doubleValue = "10";
-//
-//    //模拟简单的业务数据
+
+    //模拟简单的业务数据
     private String secApply = "2-businessNo1-bizId1-4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-33-34-35-36-37-38-39-40";
 
     private String bizId = "2";
@@ -64,6 +62,7 @@ public class OrderDaoTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("OrderDaoTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

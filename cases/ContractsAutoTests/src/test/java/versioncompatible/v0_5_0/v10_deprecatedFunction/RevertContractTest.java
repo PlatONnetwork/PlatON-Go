@@ -57,6 +57,7 @@ public class RevertContractTest extends ContractPrepareTest {
             if(Integer.valueOf(first).intValue()-Integer.valueOf(second).intValue()<0){
                 collector.logStepPass("require processed");
             }else{
+                collector.logStepFail("RevertContractTest revertTest process fail.", e.toString());
                 e.printStackTrace();
             }
         }

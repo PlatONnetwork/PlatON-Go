@@ -44,10 +44,11 @@ public class OverloadTest extends ContractPrepareTest {
             collector.logStepPass( "currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
             String chainRe = overload.getRe().send().toString();
-            //FIXME 待验证
+
             collector.assertEqual(expectValue,chainRe);
 
         } catch (Exception e) {
+            collector.logStepFail("OverloadTest  process fail.", e.toString());
             e.printStackTrace();
         }
     }

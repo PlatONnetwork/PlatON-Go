@@ -68,6 +68,7 @@ public class Caller0425Test extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("Caller0425Test caller0425CallTest  process fail.", e.toString());
             e.printStackTrace();
         }
     }
@@ -113,6 +114,7 @@ public class Caller0425Test extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("Caller0425Test caller0425CallCodeTest  process fail.", e.toString());
             e.printStackTrace();
         }
     }
@@ -158,6 +160,7 @@ public class Caller0425Test extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("Caller0425Test caller0425DelegateCallTest  process fail.", e.toString());
             e.printStackTrace();
         }
     }

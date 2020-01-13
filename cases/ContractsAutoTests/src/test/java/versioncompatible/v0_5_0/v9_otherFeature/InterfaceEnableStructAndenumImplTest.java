@@ -44,6 +44,7 @@ public class InterfaceEnableStructAndenumImplTest extends ContractPrepareTest {
             collector.assertEqual("1",gender.toString());
 
         } catch (Exception e) {
+            collector.logStepFail("InterfaceEnableStructAndenumImplTest callEnum process fail.", e.toString());
             e.printStackTrace();
         }
     }

@@ -62,6 +62,7 @@ public class ConstructorPublicDeclaractionTest extends ContractPrepareTest {
 
             collector.assertEqual(String.valueOf(Integer.valueOf(initValue)+Integer.valueOf(addValue)),afterValue);
         } catch (Exception e) {
+            collector.logStepFail("ConstructorPublicDeclaractionTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

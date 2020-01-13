@@ -51,6 +51,7 @@ public class HexLiteralsChangeByteTest extends ContractPrepareTest {
 
             collector.assertEqual("f1",afterValue);
         } catch (Exception e) {
+            collector.logStepFail("HexLiteralsChangeByteTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

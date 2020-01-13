@@ -125,6 +125,7 @@ public class ControlTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("ControlTest controlStructCheck process fail.", e.toString());
             e.printStackTrace();
         }
     }

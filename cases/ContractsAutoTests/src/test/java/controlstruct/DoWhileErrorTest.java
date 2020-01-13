@@ -47,6 +47,7 @@ public class DoWhileErrorTest extends ContractPrepareTest {
             collector.assertEqual(false,doWhileFlg);
 
         } catch (Exception e) {
+            collector.logStepFail("DoWhileErrorTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

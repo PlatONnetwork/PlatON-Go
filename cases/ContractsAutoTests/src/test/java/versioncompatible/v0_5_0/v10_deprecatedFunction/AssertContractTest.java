@@ -57,6 +57,7 @@ public class AssertContractTest extends ContractPrepareTest {
             if(Integer.valueOf(first).intValue()-Integer.valueOf(second).intValue()<0){
                 collector.logStepPass("assert processed");
             }else{
+                collector.logStepFail("AssertContractTest assertTest process fail.", e.toString());
                 e.printStackTrace();
             }
         }

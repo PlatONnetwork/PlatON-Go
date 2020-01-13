@@ -63,6 +63,7 @@ public class DisallowYearsTest extends ContractPrepareTest {
             collector.assertEqual("255000000000000000000",hexComValue);
 
         } catch (Exception e) {
+            collector.logStepFail("DisallowYearsTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

@@ -18,12 +18,6 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
  */
 public class msgSenderBelongToPayableTest extends ContractPrepareTest {
 
-//    private String id = "1";
-//
-//    private String name = "hudenian";
-//
-//    private String age = "30";
-
     @Before
     public void before() {
         this.prepare();
@@ -50,6 +44,7 @@ public class msgSenderBelongToPayableTest extends ContractPrepareTest {
             String msgSenderAddr = msgSenderBelongToPayable.getMsgSenderAddr().send();
 
         } catch (Exception e) {
+            collector.logStepFail("msgSenderBelongToPayableTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

@@ -102,6 +102,19 @@ public class DataChangeUtil {
         return byteValueLen32;
     }
 
+    /**
+     *
+     * @param string 需要转换成byte数组的字符串
+     * @param n byten
+     * @return
+     */
+    public static byte[] stringToBytesN(String string,int n) {
+        byte[] byteValue = string.getBytes();
+        byte[] byteValueLen = new byte[n];
+        System.arraycopy(byteValue, 0, byteValueLen, 0, byteValue.length);
+        return byteValueLen;
+    }
+
 
     public static void main(String[] args) {
 //        String hexvalue = "aaaa";
