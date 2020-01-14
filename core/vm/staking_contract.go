@@ -629,20 +629,14 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	}
 	var delegateRewardPerList []*reward.DelegateRewardPer
 	if del.DelegateEpoch > 0 {
-		unCalEpoch := 0
 		delegateRewardPerList, err = plugin.RewardMgrInstance().GetDelegateRewardPerList(blockHash, canBase.NodeId, canBase.StakingBlockNum, uint64(del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
 		if snapshotdb.NonDbNotFoundErr(err) {
 			log.Error("Failed to delegate by GetDelegateRewardPerList", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			return nil, err
 		}
-		unCalEpoch = len(delegateRewardPerList)
-		if unCalEpoch > 0 {
-			if del.Released.Cmp(common.Big0) == 0 && del.RestrictingPlan.Cmp(common.Big0) == 0 {
-				unCalEpoch -= 1
-			}
-			if !stkc.Contract.UseGas(params.WithdrawDelegateEpochGas * uint64(unCalEpoch)) {
-				return nil, ErrOutOfGas
-			}
+		result, err := stkc.calcRewardPerUseGas(delegateRewardPerList, del)
+		if nil != err {
+			return result, err
 		}
 	}
 
@@ -726,20 +720,15 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		}
 	}
 
-	unCalEpoch := 0
 	delegateRewardPerList, err := plugin.RewardMgrInstance().GetDelegateRewardPerList(blockHash, nodeId, stakingBlockNum, uint64(del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to delegate by GetDelegateRewardPerList", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
-	unCalEpoch = len(delegateRewardPerList)
-	if unCalEpoch > 0 {
-		if del.Released.Cmp(common.Big0) == 0 && del.RestrictingPlan.Cmp(common.Big0) == 0 {
-			unCalEpoch -= 1
-		}
-		if !stkc.Contract.UseGas(params.WithdrawDelegateEpochGas * uint64(unCalEpoch)) {
-			return nil, ErrOutOfGas
-		}
+
+	result, err := stkc.calcRewardPerUseGas(delegateRewardPerList, del)
+	if nil != err {
+		return result, err
 	}
 
 	if txHash == common.ZeroHash {
@@ -768,6 +757,21 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 
 	return txResultHandlerWithRes(vm.StakingContractAddr, stkc.Evm, "",
 		"", TxWithdrewDelegate, int(common.NoErr.Code), issueIncome), nil
+}
+
+func (stkc *StakingContract) calcRewardPerUseGas(delegateRewardPerList []*reward.DelegateRewardPer, del *staking.Delegation) ([]byte, error) {
+	unCalcEpoch := len(delegateRewardPerList)
+	if unCalcEpoch > 0 {
+		if delegateRewardPerList[0].Epoch == uint64(del.DelegateEpoch) {
+			if del.Released.Cmp(common.Big0) == 0 && del.RestrictingPlan.Cmp(common.Big0) == 0 {
+				unCalcEpoch -= 1
+			}
+		}
+		if !stkc.Contract.UseGas(params.WithdrawDelegateEpochGas * uint64(unCalcEpoch)) {
+			return nil, ErrOutOfGas
+		}
+	}
+	return nil, nil
 }
 
 func (stkc *StakingContract) getVerifierList() ([]byte, error) {
