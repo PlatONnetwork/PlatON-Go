@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.19;
 
 /**
  * 1. 0.4.25版本同名函数构造函数定义，声明internal可见性验证；

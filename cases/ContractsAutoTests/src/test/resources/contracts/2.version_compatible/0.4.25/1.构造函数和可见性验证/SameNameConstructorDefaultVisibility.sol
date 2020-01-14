@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.18;
 
 /**
  * 1.0.4.25版本验证同名函数构造函数定义，可见性未声明（默认public可见性）验证；

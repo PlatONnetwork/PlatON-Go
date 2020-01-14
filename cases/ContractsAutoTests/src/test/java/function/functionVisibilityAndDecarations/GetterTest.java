@@ -52,6 +52,7 @@ public class GetterTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("GetterContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

@@ -97,6 +97,7 @@ public class PramaAndReturnsTest extends ContractPrepareTest {
             collector.assertEqual("[10, 2, 3]", resultE.getValue2().toString());
 
         } catch (Exception e) {
+            collector.logStepFail("ParamAndReturnsContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

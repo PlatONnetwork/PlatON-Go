@@ -1,4 +1,4 @@
-pragma solidity 0.5.13;
+pragma solidity 0.5.10;
 /**
  * 验证address的查余额方法banlance和转账方法send,transfer
  * 验证合约关键字this

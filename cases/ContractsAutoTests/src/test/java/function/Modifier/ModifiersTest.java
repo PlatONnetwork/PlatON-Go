@@ -20,9 +20,12 @@ import java.math.BigInteger;
 
 public class ModifiersTest extends ContractPrepareTest {
 
+    private String modifierstest;
+
     @Before
     public void before() {
         this.prepare();
+        modifierstest = driverService.param.get("modifierstest");
     }
 
     @Test
@@ -41,10 +44,11 @@ public class ModifiersTest extends ContractPrepareTest {
 
             BigInteger a = modifiers.test2().send();
             collector.logStepPass("modifiers函数返回值：" + a);
-            collector.assertEqual(new BigInteger("11"),a);
+            collector.assertEqual(modifierstest ,a.toString());
 
 
         } catch (Exception e) {
+            collector.logStepFail("ModifiersContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

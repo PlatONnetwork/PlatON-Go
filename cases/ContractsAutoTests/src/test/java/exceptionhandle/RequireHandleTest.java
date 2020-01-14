@@ -40,6 +40,7 @@ public class RequireHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout assert throw exception:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail(" RequireHandleTest testFunctionCallException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -60,6 +61,7 @@ public class RequireHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout assert throw exception:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("RequireHandleTest testNewContractException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -80,6 +82,7 @@ public class RequireHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout assert throw exception:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("RequireHandleTest testOutFunctionCallException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -100,6 +103,7 @@ public class RequireHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout assert throw exception:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("RequireHandleTest testNonPayableReceiveEthException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -120,6 +124,7 @@ public class RequireHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout assert throw exception:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("RequireHandleTest testPublicGetterReceiveEthException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -140,6 +145,7 @@ public class RequireHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout assert throw exception:" + e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("RequireHandleTest testTransferCallException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -162,6 +168,7 @@ public class RequireHandleTest extends ContractPrepareTest {
                 collector.logStepPass("checkout require throw exception:"+e.getMessage());
             }
         } catch (Exception e) {
+            collector.logStepFail("RequireHandleTest testParamException failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

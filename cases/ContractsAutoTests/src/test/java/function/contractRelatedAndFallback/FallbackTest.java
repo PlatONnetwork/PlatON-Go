@@ -46,6 +46,7 @@ public class FallbackTest extends ContractPrepareTest {
             collector.assertEqual(new BigInteger("100"),falla);
 
         } catch (Exception e) {
+            collector.logStepFail("FallbackContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

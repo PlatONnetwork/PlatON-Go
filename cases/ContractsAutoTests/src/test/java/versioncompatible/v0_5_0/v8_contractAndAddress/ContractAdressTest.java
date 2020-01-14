@@ -48,6 +48,7 @@ public class ContractAdressTest extends ContractPrepareTest {
             collector.assertEqual(payableAddress,payableToAddress);
 
         } catch (Exception e) {
+            collector.logStepFail("ContractAdressTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

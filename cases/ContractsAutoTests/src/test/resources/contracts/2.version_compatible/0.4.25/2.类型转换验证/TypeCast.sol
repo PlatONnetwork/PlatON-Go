@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.21;
 
 /**
  * 0.4.25版本支持类型转换（0.5.x版本已弃用）验证

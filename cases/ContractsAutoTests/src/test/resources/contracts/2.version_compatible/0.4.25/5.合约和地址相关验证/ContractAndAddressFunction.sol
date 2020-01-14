@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.24;
 
 /**
  * 0.4.25版本合约和地址成员变量/函数验证

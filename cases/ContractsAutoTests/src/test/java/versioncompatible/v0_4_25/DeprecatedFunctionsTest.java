@@ -34,6 +34,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
             collector.assertEqual(result.getValue1(), Boolean.TRUE, "checkout deprecated function cast result");
 
         } catch (Exception e) {
+            collector.logStepFail("DeprecatedFunctionsTest testFunctionCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -56,6 +57,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
             Boolean result = deprecatedFunctions.throwCheck(true).send();
             collector.assertEqual(result, Boolean.TRUE, "checkout deprecated function result");
         } catch (Exception e) {
+            collector.logStepFail("DeprecatedFunctionsTest testThrowCheck failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -77,6 +79,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
                 collector.logStepPass("checkout suicide function success ");
             }
         } catch (Exception e) {
+            collector.logStepFail("DeprecatedFunctionsTest testSuicide failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

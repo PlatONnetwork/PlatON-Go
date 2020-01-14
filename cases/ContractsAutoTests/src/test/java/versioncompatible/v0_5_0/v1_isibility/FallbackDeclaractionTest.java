@@ -54,6 +54,7 @@ public class FallbackDeclaractionTest extends ContractPrepareTest {
 
             collector.assertEqual("111",afterValue);
         } catch (Exception e) {
+            collector.logStepFail("FallbackDeclaractionTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

@@ -28,7 +28,7 @@ public class VisibilityTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "liweic", showName = "function.VisibilityTest-函数可见性测试")
-    public void getter() {
+    public void Visibility() {
         try {
             Visibility visibility = Visibility.deploy(web3j, transactionManager, provider).send();
 
@@ -48,6 +48,7 @@ public class VisibilityTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("VisibilityContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

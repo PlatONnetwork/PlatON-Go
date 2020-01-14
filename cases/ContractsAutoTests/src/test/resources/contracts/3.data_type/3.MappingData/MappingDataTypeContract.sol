@@ -16,7 +16,7 @@ pragma solidity 0.5.13;
  */
 
 
-contract MappingContractTest {
+contract MappingDataTypeContract {
 
   /**
    *验证：1、定义映射

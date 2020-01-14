@@ -1,13 +1,15 @@
 package event;
 
 import beforetest.ContractPrepareTest;
+import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.EventCallContract;
-import org.apache.commons.lang.StringUtils;
+import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
+import java.math.BigInteger;
 import java.util.List;
 
 /**
@@ -30,8 +32,9 @@ public class EventCallContractTest extends ContractPrepareTest {
             TransactionReceipt receipt = eventCallContract.emitEvent().send();
             List<EventCallContract.IncrementEventResponse> emitEventData = eventCallContract.getIncrementEvents(receipt);
             String data = emitEventData.get(0).log.getData();
-            collector.assertEqual(subHexData(data), subHexData(receipt.getFrom()), "checkout declare event keyword");
+            collector.assertEqual(DataChangeUtil.subHexData(data), DataChangeUtil.subHexData(receipt.getFrom()), "checkout declare event keyword");
         } catch (Exception e) {
+            collector.logStepFail("EventCallContractTest testEmitEvent failure,exception msg:", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -49,9 +52,10 @@ public class EventCallContractTest extends ContractPrepareTest {
             TransactionReceipt receipt = eventCallContract.indexedEvent().send();
             List<EventCallContract.DepositEventResponse> emitEventData = eventCallContract.getDepositEvents(receipt);
             String data = emitEventData.get(0).log.getData();
-            collector.assertEqual(subHexData(emitEventData.get(0).log.getTopics().get(1)), subHexData(receipt.getFrom()), "checkout new contract param");
-            collector.assertEqual(subHexData(data), subHexData("c"), "checkout indexed keyword");
+            collector.assertEqual(DataChangeUtil.subHexData(emitEventData.get(0).log.getTopics().get(1)), DataChangeUtil.subHexData(receipt.getFrom()), "checkout new contract param");
+            collector.assertEqual(DataChangeUtil.subHexData(data), DataChangeUtil.subHexData("c"), "checkout indexed keyword");
         } catch (Exception e) {
+            collector.logStepFail("EventCallContractTest testIndexedEvent failure,exception msg:", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -67,26 +71,60 @@ public class EventCallContractTest extends ContractPrepareTest {
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             TransactionReceipt receipt = eventCallContract.anonymousEvent().send();
-            collector.assertEqual(subHexData(receipt.getLogs().get(0).getData()), subHexData("1"), "checkout anonymous keyword");
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(0).getData()), DataChangeUtil.subHexData("1"), "checkout anonymous keyword");
         } catch (Exception e) {
+            collector.logStepFail("EventCallContractTest testAnonymousEvent failure,exception msg:", e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private String subHexData(String hexStr) {
-        if (StringUtils.isBlank(hexStr)) {
-            throw new IllegalArgumentException("string is blank");
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testEmitEvents",
+            author = "albedo", showName = "event.EventCallContractTest-函数多事件监听")
+    public void testEmitEvents() {
+        try {
+            prepare();
+            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = eventCallContract.getContractAddress();
+            String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            TransactionReceipt receipt = eventCallContract.testBool().send();
+            System.out.println(JSONObject.toJSONString(receipt.getLogs()));
+            List<EventCallContract.BoolEventEventResponse> bList = eventCallContract.getBoolEventEvents(receipt);
+            collector.assertEqual(bList.get(0).result ,Boolean.FALSE, "checkout multi bool type event");
+            collector.assertEqual(bList.get(1).result ,Boolean.TRUE, "checkout multi bool type event");
+            List<EventCallContract.IncrementEventResponse> iList = eventCallContract.getIncrementEvents(receipt);
+            collector.assertEqual(iList.get(0).who ,receipt.getFrom(), "checkout address type event");
+
+            List<EventCallContract.DepositEventResponse> dList = eventCallContract.getDepositEvents(receipt);
+            collector.assertEqual(dList.get(0)._from ,receipt.getFrom(), "checkout address type event");
+            collector.assertEqual(dList.get(0)._value ,new BigInteger("12"), "checkout uint event");
+
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(3).getData()),DataChangeUtil.subHexData("c"), "checkout address type event");
+
+        } catch (Exception e) {
+            collector.logStepFail("EventCallContractTest testAnonymousEvent failure,exception msg:", e.getMessage());
+            e.printStackTrace();
         }
-        if (StringUtils.startsWith(hexStr, "0x")) {
-            hexStr = StringUtils.substringAfter(hexStr, "0x");
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testMultiAnonymousEvents",
+            author = "albedo", showName = "event.EventCallContractTest-函数多匿名事件监听")
+    public void testMultiAnonymousEvents() {
+        try {
+            prepare();
+            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = eventCallContract.getContractAddress();
+            String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            TransactionReceipt receipt = eventCallContract.testMultiAnonymous().send();
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(0).getData()),DataChangeUtil.subHexData("c"), "checkout multi anonymous event");
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(1).getData()),DataChangeUtil.subHexData("d"), "checkout multi anonymous event");
+            collector.assertEqual(DataChangeUtil.subHexData(receipt.getLogs().get(2).getData()),DataChangeUtil.subHexData("e"), "checkout multi anonymous event");
+        } catch (Exception e) {
+            collector.logStepFail("EventCallContractTest testMultiAnonymousEvents failure,exception msg:", e.getMessage());
+            e.printStackTrace();
         }
-        byte[] addi = hexStr.getBytes();
-        for (int i = 0; i < addi.length; i++) {
-            if (addi[i] != 0) {
-                hexStr = StringUtils.substring(hexStr, i - 1);
-                break;
-            }
-        }
-        return hexStr;
     }
 }

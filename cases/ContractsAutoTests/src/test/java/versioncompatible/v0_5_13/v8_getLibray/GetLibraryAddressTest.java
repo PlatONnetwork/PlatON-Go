@@ -53,6 +53,7 @@ public class GetLibraryAddressTest extends ContractPrepareTest {
             collector.logStepPass("获取到的library库的地址是："+userLibAddress);
 
         } catch (Exception e) {
+            collector.logStepFail("getLibraryAddress  process fail.", e.toString());
             e.printStackTrace();
         }
     }

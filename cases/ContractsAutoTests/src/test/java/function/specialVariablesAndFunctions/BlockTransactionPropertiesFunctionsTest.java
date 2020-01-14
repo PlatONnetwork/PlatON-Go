@@ -1,6 +1,7 @@
 package function.specialVariablesAndFunctions;
 
 import beforetest.ContractPrepareTest;
+import jnr.ffi.annotations.In;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.BlockTransactionPropertiesFunctions;
@@ -10,6 +11,8 @@ import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
+import java.util.List;
+import java.util.ArrayList;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -22,10 +25,22 @@ import java.util.Date;
 
 public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest {
 
+    private String coinbase;
+//    private String gaslimit;
+    private String msgdata;
+    private String gasleft;
+    private String msgsig;
+    private String gasprice;
+
     @Before
     public void before() {
-
         this.prepare();
+        coinbase = driverService.param.get("coinbase");
+//        gaslimit = driverService.param.get("gaslimit");
+        msgdata = driverService.param.get("msgdata");
+        gasleft = driverService.param.get("gasleft");
+        msgsig = driverService.param.get("msgsig");
+        gasprice = driverService.param.get("gasprice");
     }
 
     @Test
@@ -43,9 +58,17 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             BigInteger PlatONBlocknumber = web3j.platonBlockNumber().send().getBlockNumber();
             collector.logStepPass("web3j拿到的区块高度：" + PlatONBlocknumber);
 
-            BigInteger resultA = blockTransactionPropertiesFunctions.getBlockNumber().send();
-            collector.logStepPass("block.number函数返回值：" + resultA);
-            //collector.assertEqual(PlatONBlocknumber ,resultA);
+            BigInteger blocknumber = blockTransactionPropertiesFunctions.getBlockNumber().send();
+            collector.logStepPass("block.number函数返回值：" + blocknumber);
+            int a = Integer.valueOf(blocknumber.toString());
+            int b = Integer.valueOf(PlatONBlocknumber.toString());
+            int blocknumdiff = a - b;
+            List<Integer> list = new ArrayList<Integer>();
+            list.add(new Integer(0));
+            list.add(new Integer(1));
+            list.add(new Integer(2));
+            Boolean bndf = list.contains(blocknumdiff);
+            collector.assertEqual(true, bndf);
 
             //验证blockhash(blockNumber)函数(获取区块Hash)
             String blocknumberNow = web3j.platonBlockNumber().send().getBlockNumber().toString();
@@ -60,7 +83,7 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证block.coinbase函数(获取矿工地址)
             String resultC = blockTransactionPropertiesFunctions.getBlockCoinbase().send();
             collector.logStepPass("block.coinbase函数返回值：" + resultC);
-            collector.assertEqual("0x1000000000000000000000000000000000000003" ,resultC);
+            collector.assertEqual(coinbase ,resultC);
 
             //验证block.difficulty(获取当前块的难度)
             BigInteger resultD = blockTransactionPropertiesFunctions.getBlockDifficulty().send();
@@ -70,7 +93,8 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证block.gaslimit(获取当前区块的gas限额)
             BigInteger resultE = blockTransactionPropertiesFunctions.getGaslimit().send();
             collector.logStepPass("block.gaslimit函数返回值：" + resultE);
-            collector.assertEqual("4712388" ,resultE.toString());
+            boolean gas = "0".toString().equals(resultE);
+            collector.assertEqual(false ,gas);
 
             //验证block.timestamp(获取当前区块的UNIX时间戳)
             BigInteger resultF = blockTransactionPropertiesFunctions.getBlockTimestamp().send();
@@ -84,7 +108,7 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             byte[] resultG = blockTransactionPropertiesFunctions.getData().send();
             String hexvalue2 = DataChangeUtil.bytesToHex(resultG);
             collector.logStepPass("msg.data函数返回值：" + hexvalue2);
-            collector.assertEqual("3bc5de30" ,hexvalue2);
+            collector.assertEqual(msgdata ,hexvalue2);
 
             //验证gasleft()(剩余的gas)
             BigInteger resultH = blockTransactionPropertiesFunctions.getGasleft().send();
@@ -94,13 +118,13 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证msg.sender(获取消息发送者（当前调用))
             String resultI = blockTransactionPropertiesFunctions.getSender().send();
             collector.logStepPass("msg.sender函数返回值：" + resultI);
-            collector.assertEqual("0x03f0e0a226f081a5daecfda222cafc959ed7b800" ,resultI);
+            collector.assertEqual(walletAddress.toLowerCase() ,resultI);
 
             //验证msg.sig(calldata 的前 4 字节(也就是函数标识符))
             byte[] resultJ = blockTransactionPropertiesFunctions.getSig().send();
             String hexvalue3 = DataChangeUtil.bytesToHex(resultJ);
             collector.logStepPass("msg.sig函数返回值：" + hexvalue3);
-            collector.assertEqual("d12d9102" ,hexvalue3);
+            collector.assertEqual(msgsig ,hexvalue3);
 
             //验证msg.value(随消息发送的以太币的数量)
             TransactionReceipt transactionReceipt = blockTransactionPropertiesFunctions.getValue(new BigInteger("2")).send();
@@ -120,14 +144,15 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证tx.gasprice(交易的 gas 价格)
             BigInteger resultL = blockTransactionPropertiesFunctions.getGasprice().send();
             collector.logStepPass("tx.gasprice函数返回值：" + resultL);
-            collector.assertEqual("1000000000" ,resultL.toString());
+            collector.assertEqual(gasprice ,resultL.toString());
 
             //验证tx.origin(交易发起者(完全的调用链))
             String resultM = blockTransactionPropertiesFunctions.getOrigin().send();
             collector.logStepPass("tx.origin函数返回值：" + resultM);
-            collector.assertEqual("0x03f0e0a226f081a5daecfda222cafc959ed7b800" ,resultM);
+            collector.assertEqual(walletAddress.toLowerCase() ,resultM);
 
         } catch (Exception e) {
+            collector.logStepFail("BlockTransactionPropertiesFunctionsContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

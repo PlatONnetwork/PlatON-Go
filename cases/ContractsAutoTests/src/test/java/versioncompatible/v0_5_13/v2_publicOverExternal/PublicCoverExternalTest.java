@@ -43,6 +43,7 @@ public class PublicCoverExternalTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("PublicCoverExternalTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

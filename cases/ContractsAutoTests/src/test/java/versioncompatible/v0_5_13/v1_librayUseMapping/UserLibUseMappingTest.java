@@ -57,6 +57,7 @@ public class UserLibUseMappingTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("UserLibUseMappingTest testLibMappingParam process fail.", e.toString());
             e.printStackTrace();
         }
     }

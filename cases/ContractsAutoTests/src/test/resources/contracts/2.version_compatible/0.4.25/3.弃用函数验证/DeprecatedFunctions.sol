@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.22;
 
 /**
  * 验证0.5.0版本弃用但0.4.25版本仍生效函数

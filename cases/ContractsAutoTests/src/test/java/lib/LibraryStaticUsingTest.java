@@ -4,19 +4,10 @@ import beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.LibraryStaticUsing;
-import org.apache.commons.lang.StringUtils;
+import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
-import org.web3j.crypto.RawTransaction;
-import org.web3j.crypto.TransactionEncoder;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.PlatonGetTransactionCount;
-import org.web3j.protocol.core.methods.response.PlatonSendTransaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.protocol.exceptions.TransactionException;
-import org.web3j.tx.response.PollingTransactionReceiptProcessor;
-import org.web3j.utils.Numeric;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 
@@ -41,28 +32,12 @@ public class LibraryStaticUsingTest extends ContractPrepareTest {
             TransactionReceipt receipt = using.register(new BigInteger("12")).send();
             List<LibraryStaticUsing.ResultEventResponse> eventData = using.getResultEvents(receipt);
             String data = eventData.get(0).log.getData();
-            collector.assertEqual(subHexData(data), subHexData("1"), "checkout static method using library function");
+            collector.assertEqual(DataChangeUtil.subHexData(data), DataChangeUtil.subHexData("1"), "checkout static method using library function");
         } catch (Exception e) {
+            collector.logStepFail("LibraryStaticUsingTest testEmitEvent failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
 
-
-    private String subHexData(String hexStr) {
-        if (StringUtils.isBlank(hexStr)) {
-            throw new IllegalArgumentException("string is blank");
-        }
-        if (StringUtils.startsWith(hexStr, "0x")) {
-            hexStr = StringUtils.substringAfter(hexStr, "0x");
-        }
-        byte[] addi = hexStr.getBytes();
-        for (int i = 0; i < addi.length; i++) {
-            if (addi[i] != 0) {
-                hexStr = StringUtils.substring(hexStr, i - 1);
-                break;
-            }
-        }
-        return hexStr;
-    }
 
 }

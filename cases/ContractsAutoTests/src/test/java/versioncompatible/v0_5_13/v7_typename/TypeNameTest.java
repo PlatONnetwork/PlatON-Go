@@ -45,6 +45,7 @@ public class TypeNameTest extends ContractPrepareTest {
             collector.assertEqual("TypeName",contractNameStr);
 
         } catch (Exception e) {
+            collector.logStepFail("TypeNameTest  process fail.", e.toString());
             e.printStackTrace();
         }
     }

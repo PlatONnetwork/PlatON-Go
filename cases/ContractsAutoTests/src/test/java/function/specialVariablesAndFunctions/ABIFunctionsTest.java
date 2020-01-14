@@ -18,9 +18,16 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 public class ABIFunctionsTest extends ContractPrepareTest {
 
+    private String encodeWithSignature;
+    private String encode;
+    private String encodePacked;
+
     @Before
     public void before() {
         this.prepare();
+        encodeWithSignature = driverService.param.get("encodeWithSignature");
+        encode = driverService.param.get("encode");
+        encodePacked = driverService.param.get("encodePacked");
     }
 
     @Test
@@ -38,21 +45,22 @@ public class ABIFunctionsTest extends ContractPrepareTest {
             byte[] resultA = abiFunctions.getEncodeWithSignature().send();
             String hexValue = DataChangeUtil.bytesToHex(resultA);
             collector.logStepPass("getEncodeWithSignature函数返回值：" + hexValue);
-            collector.assertEqual("60fe47b10000000000000000000000000000000000000000000000000000000000000001",hexValue);
+            collector.assertEqual(encodeWithSignature ,hexValue);
 
             //验证abi.encode函数
             byte[] resultB = abiFunctions.getEncode().send();
             String hexValue2 = DataChangeUtil.bytesToHex(resultB);
             collector.logStepPass("getEncode函数返回值：" + hexValue2);
-            collector.assertEqual("0000000000000000000000000000000000000000000000000000000000000001",hexValue2);
+            collector.assertEqual(encode ,hexValue2);
 
             //验证abi.encodePacked函数
             byte[] resultC = abiFunctions.getEncodePacked().send();
             String hexValue3 = DataChangeUtil.bytesToHex(resultC);
             collector.logStepPass("getEncodePacked函数返回值：" + hexValue3);
-            collector.assertEqual("31",hexValue3);
+            collector.assertEqual(encodePacked ,hexValue3);
 
         } catch (Exception e) {
+            collector.logStepFail("ABIFuctionsContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

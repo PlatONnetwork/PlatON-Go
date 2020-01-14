@@ -64,6 +64,7 @@ public class DelegatecallCallerTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("DelegatecallCallerTest process fail.", e.toString());
             e.printStackTrace();
         }
     }

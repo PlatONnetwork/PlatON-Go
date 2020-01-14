@@ -56,6 +56,7 @@ public class Sha3AndKeccake256Test extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("Sha3AndKeccake256Test keccake256 process fail.", e.toString());
             e.printStackTrace();
         }
     }

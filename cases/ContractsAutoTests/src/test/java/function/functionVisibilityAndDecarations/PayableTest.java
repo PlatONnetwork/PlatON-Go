@@ -49,6 +49,7 @@ public class PayableTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("PayableContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

@@ -1,4 +1,4 @@
-pragma solidity 0.5.13;
+pragma solidity 0.5.5;
 /**
  1.验证合约关键字this,表示当前合约，可以显示的转换为Address
  2.验证Fallback函数,调用了未命名的函数等方式

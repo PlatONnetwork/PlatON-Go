@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.20;
 /**
  * 1. 0.4.25版本同名函数构造函数定义，声明public可见性验证（0.5.x版本弃用同名函数定义构造函数）；
  * 2. 0.4.25版本fallback函数可见性非强制声明（默认public可见性）验证

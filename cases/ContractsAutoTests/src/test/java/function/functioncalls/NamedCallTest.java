@@ -50,6 +50,7 @@ public class NamedCallTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("NamedCallContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }

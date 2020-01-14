@@ -1,4 +1,4 @@
-pragma solidity 0.5.13;
+pragma solidity 0.5.8;
 /**
  * 验证数学和加密函数,sha3在0.5.0版本之后被剔除,用keccak256取代
  * 计算(x + y) % k

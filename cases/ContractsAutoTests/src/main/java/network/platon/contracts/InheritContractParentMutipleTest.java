@@ -23,11 +23,11 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Generated with web3j version 0.7.5.0.
  */
 public class InheritContractParentMutipleTest extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b506101a6806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c8063420cec3a14610051578063853255cc1461009b5780638da5cb5b146100a557806391021984146100ef575b600080fd5b610059610139565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100a3610141565b005b6100ad610143565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100f7610169565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b600033905090565b565b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60003390509056fea265627a7a723158206f0e13e9ab1a2e5fe0991bad275271a055e4e3919842a2e5e66c7c707a618e1864736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b506101a6806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c80631416d347146100515780636c3364ea1461009b578063853255cc146100e55780638da5cb5b146100ef575b600080fd5b610059610139565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100a3610141565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100ed610149565b005b6100f761014b565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b600033905090565b600033905090565b565b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff168156fea265627a7a723158205a4a0d78ee8812044cbad8ebcf8e089912cd56c9953ee2f8af060a2b14d69fa664736f6c634300050d0032";
 
-    public static final String FUNC_GETADDRESS1 = "getAddress1";
+    public static final String FUNC_GETADDRESSA = "getAddressA";
 
-    public static final String FUNC_GETADDRESS2 = "getAddress2";
+    public static final String FUNC_GETADDRESSB = "getAddressB";
 
     public static final String FUNC_OWNER = "owner";
 
@@ -51,15 +51,15 @@ public class InheritContractParentMutipleTest extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> getAddress1() {
-        final Function function = new Function(FUNC_GETADDRESS1, 
+    public RemoteCall<String> getAddressA() {
+        final Function function = new Function(FUNC_GETADDRESSA, 
                 Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
-    public RemoteCall<String> getAddress2() {
-        final Function function = new Function(FUNC_GETADDRESS2, 
+    public RemoteCall<String> getAddressB() {
+        final Function function = new Function(FUNC_GETADDRESSB, 
                 Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);

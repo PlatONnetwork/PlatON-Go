@@ -1,4 +1,4 @@
-pragma solidity 0.5.13;
+pragma solidity 0.5.6;
 /**
  * 1.验证函数修饰器的关键词modifier
  * 2.验证多个修饰器的用法
