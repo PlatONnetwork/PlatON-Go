@@ -11,8 +11,6 @@ var (
 	WasmInterp   = BytesToInterpType([]byte{0x00, 0x61, 0x73, 0x6d}) // 0061736d  Matches wasm
 )
 
-var EvmLibraryInterp = []byte{0x60}
-
 func (t InterpType) String() string {
 
 	switch t {

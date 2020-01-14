@@ -17,7 +17,6 @@
 package vm
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"hash"
@@ -267,8 +266,8 @@ func (in *EVMInterpreter) CanRun(code []byte) bool {
 		if magicNum == EvmInterpOld || magicNum == EvmInterpNew {
 			return true
 		}
-		// the prefix of evm library is 60.
-		if bytes.Equal(code[:1], EvmLibraryInterp) {
+		// default interpreter is evm.
+		if magicNum != EvmInterpOld && magicNum != EvmInterpNew && magicNum != WasmInterp {
 			return true
 		}
 	}
