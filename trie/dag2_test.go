@@ -25,6 +25,9 @@ func TestTrieDAG2(t *testing.T) {
 	updateString(tr, "dogglesworth", "cat")
 
 	h := tr.ParallelHash2()
+
+	ntr := tr.DeepCopyTrie()
+
 	h2, _ := tr.ParallelCommit2(nil)
 	assert.Equal(t, h, h2)
 
@@ -38,6 +41,8 @@ func TestTrieDAG2(t *testing.T) {
 	fmt.Printf("%x\n", hh)
 
 	assert.Equal(t, h, hh)
+	nh := ntr.ParallelHash2()
+	assert.Equal(t, hh, nh)
 
 	checkr, _ := New(common.Hash{}, triedb)
 
@@ -57,6 +62,11 @@ func TestTrieDAG2(t *testing.T) {
 	hh = tr0.Hash()
 
 	assert.Equal(t, h, hh)
+
+	deleteString(ntr, "dog")
+	updateString(ntr, "dob", "dddd")
+	updateString(tr0, "dob", "dddd")
+	assert.Equal(t, ntr.ParallelHash2(), tr0.ParallelHash2())
 }
 
 func TestList(t *testing.T) {

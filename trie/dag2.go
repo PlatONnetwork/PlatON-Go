@@ -11,6 +11,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/cespare/xxhash"
 	"github.com/panjf2000/ants/v2"
+	"github.com/petermattis/goid"
 )
 
 type Vertex2 struct {
@@ -40,11 +41,15 @@ func NewDAG2() *DAG2 {
 	return dag
 }
 
-func (d *DAG2) Copy() *DAG2 {
+func (d *DAG2) DeepCopy() *DAG2 {
 	nd := NewDAG2()
 
 	for id, vtx := range d.vtxs {
-		nd.vtxs[id] = vtx
+		nvtx := &Vertex2{
+			inDegree: 0,
+		}
+		copy(nvtx.outEdge, vtx.outEdge)
+		nd.vtxs[id] = nvtx
 	}
 	nd.totalVertexs = d.totalVertexs
 	return nd
@@ -126,6 +131,16 @@ func (d *DAG2) generate() {
 	}
 }
 
+func (d *DAG2) degreeGt() int {
+	c := 0
+	for _, v := range d.vtxs {
+		if v.inDegree > 0 {
+			c++
+		}
+	}
+	return c
+}
+
 func (d *DAG2) waitPop() uint64 {
 	if d.hasFinished() {
 		return invalidId
@@ -134,6 +149,7 @@ func (d *DAG2) waitPop() uint64 {
 	d.cv.L.Lock()
 	defer d.cv.L.Unlock()
 	for d.topLevel.Len() == 0 && !d.hasFinished() {
+		log.Error("Wait Pop", "dag", fmt.Sprintf("%p", d), "topLevel", d.topLevel.Len(), "consumed", d.totalConsumed, "vtxs", d.totalVertexs, "degreeGt", d.degreeGt(), "cv", d.cv)
 		d.cv.Wait()
 	}
 
@@ -201,7 +217,28 @@ type DAGNode2 struct {
 	cached    node
 	pid       uint64
 	idx       int
-	prefix    []byte
+}
+
+func (n *DAGNode2) Copy() *DAGNode2 {
+	nn := &DAGNode2{
+		pid: n.pid,
+		idx: n.idx,
+	}
+
+	switch n := n.collapsed.(type) {
+	case *shortNode:
+		nn.collapsed = n.copy()
+	case *fullNode:
+		nn.collapsed = n.copy()
+	}
+
+	switch n := n.cached.(type) {
+	case *shortNode:
+		nn.cached = n.copy()
+	case *fullNode:
+		nn.cached = n.copy()
+	}
+	return nn
 }
 
 // TrieDAGV2
@@ -222,12 +259,16 @@ func newTrieDAGV2() *TrieDAGV2 {
 	}
 }
 
-func (td *TrieDAGV2) Copy() *TrieDAGV2 {
+func (td *TrieDAGV2) DeepCopy() *TrieDAGV2 {
 	ntd := newTrieDAGV2()
-	ntd.dag = td.dag.Copy()
+	ntd.dag = td.dag.DeepCopy()
 
 	for id, n := range td.nodes {
-		ntd.nodes[id] = n
+		if _, dirty := n.cached.cache(); !dirty {
+			ntd.dag.delVertex(id)
+		} else {
+			ntd.nodes[id] = n.Copy()
+		}
 	}
 	return ntd
 }
@@ -255,7 +296,6 @@ func (td *TrieDAGV2) internalAddVertexAndEdge(pprefix, prefix []byte, n node, re
 			collapsed: collapsed,
 			cached:    cached,
 			pid:       pid,
-			prefix:    common.CopyBytes(prefix),
 		}
 		if len(prefix) > 0 {
 			td.nodes[id].idx = int(prefix[len(prefix)-1])
@@ -276,7 +316,6 @@ func (td *TrieDAGV2) internalAddVertexAndEdge(pprefix, prefix []byte, n node, re
 			collapsed: collapsed,
 			cached:    cached,
 			pid:       pid,
-			prefix:    common.CopyBytes(prefix),
 		}
 		if len(prefix) > 0 {
 			dagNode.idx = int(prefix[len(prefix)-1])
@@ -295,10 +334,10 @@ func (td *TrieDAGV2) internalAddVertexAndEdge(pprefix, prefix []byte, n node, re
 			for i := 0; i < 16; i++ {
 				if nc.Children[i] != nil {
 					cn := nc.Children[i]
-					_, dirty := cn.cache()
-					if !dirty {
-						td.internalAddVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, byte(i)), cn, false)
-					}
+					//_, dirty := cn.cache()
+					//if !dirty {
+					td.internalAddVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, byte(i)), cn, false)
+					//}
 				}
 			}
 		}
@@ -345,33 +384,6 @@ func (td *TrieDAGV2) replaceEdge(old, new []byte) {
 	}
 }
 
-func (td *TrieDAGV2) checkEdge() {
-	for id, vtx := range td.dag.vtxs {
-		if vtx.inDegree == 0 && len(vtx.outEdge) == 0 {
-			panic(fmt.Sprintf("prefix: %x, id: %d", td.nodes[id].prefix, id))
-		}
-		for _, pid := range vtx.outEdge {
-			if node, ok := td.nodes[pid]; !ok {
-				panic(fmt.Sprintf("not parent, id: %d, pid: %d", id, pid))
-			} else {
-				if node.pid == 0 {
-					fmt.Printf("first node: %d pid: %d\n", pid, node.pid)
-				}
-			}
-		}
-	}
-
-	el := td.dag.topLevel.Front()
-	for el != nil {
-		id := el.Value.(uint64)
-		for _, pid := range td.dag.vtxs[id].outEdge {
-			fmt.Printf("P2: %x %d -> %d\n", td.nodes[id].prefix, id, pid)
-		}
-
-		el = el.Next()
-	}
-}
-
 func (td *TrieDAGV2) reset() {
 	td.lock.Lock()
 	defer td.lock.Unlock()
@@ -400,12 +412,12 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 	numCPU := runtime.NumCPU()
 
 	cachedHash := func(n, c node) (node, node, bool) {
-		if hash, dirty := n.cache(); len(hash) != 0 {
+		if hash, dirty := c.cache(); len(hash) != 0 {
 			if db == nil {
 				return hash, c, true
 			}
 
-			if n.canUnload(td.cachegen, td.cachelimit) {
+			if c.canUnload(td.cachegen, td.cachelimit) {
 				cacheUnloadCounter.Inc(1)
 				return hash, hash, true
 			}
@@ -417,6 +429,7 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 	}
 
 	process := func() {
+		log.Debug("Do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
 		hasher := newHasher(td.cachegen, td.cachelimit, onleaf)
 
 		id := td.dag.waitPop()
@@ -499,11 +512,11 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 		}
 		returnHasherToPool(hasher)
 		wg.Done()
-		log.Error("Work done", "me", fmt.Sprintf("%p", td), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs)
+		log.Error("Work done", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs)
 	}
 
+	wg.Add(numCPU)
 	for i := 0; i < numCPU; i++ {
-		wg.Add(1)
 		_ = ants.Submit(process)
 	}
 
@@ -519,14 +532,5 @@ func (td *TrieDAGV2) hash(db *Database, force bool, onleaf LeafCallback) (node, 
 func (td *TrieDAGV2) init(root node) {
 	td.lock.Lock()
 	defer td.lock.Unlock()
-
 	td.dag.generate()
-	//td.checkEdge()
-
-	//dag := NewTrieDAG(td.cachegen, td.cachelimit)
-	//dag.init(root)
-
-	//for id, vtx := range td.dag.vtxs {
-	//	fmt.Printf("id: %d, inDegree: %d, outEdge: %v\n", id, vtx.inDegree, vtx.outEdge)
-	//}
 }

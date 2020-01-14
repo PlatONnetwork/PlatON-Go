@@ -693,7 +693,8 @@ func (t *Trie) DeepCopyTrie() *Trie {
 		originalRoot: t.originalRoot,
 		cachegen:     t.cachegen,
 		cachelimit:   t.cachelimit,
-		dag:          t.dag.Copy(),
+		//dag:          t.dag.DeepCopy(),
+		dag: newTrieDAGV2(),
 	}
 }
 
