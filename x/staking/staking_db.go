@@ -781,3 +781,8 @@ func (db *StakingDB) GetRoundAddrBoundary(blockHash common.Hash) (uint64, error)
 	}
 	return common.BytesToUint64(round), nil
 }
+
+func (db *StakingDB) GetDB() snapshotdb.DB {
+	return db.db;
+}
+
