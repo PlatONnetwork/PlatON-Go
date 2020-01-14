@@ -89,19 +89,29 @@ class Economic:
                 count = count + 1
         return count
 
-    def calculate_delegate_reward(self, node, block_reward, staking_reward):
+    def calculate_delegate_reward(self, node, block_reward, staking_reward, reward=None):
         block_number = self.get_number_blocks_in_interval(node)
-        reward = node.ppos.getCandidateInfo(node.node_id)["Ret"]["RewardPer"]
+        if reward is None:
+            reward = node.ppos.getCandidateInfo(node.node_id)["Ret"]["RewardPer"]
+        print('reward: ', reward)
         return int(Decimal(str(staking_reward))*Decimal(str(reward))/Decimal(str(10000)) + Decimal(str(int(Decimal(str(block_reward))*Decimal(str(reward))/Decimal(str(10000))))) * Decimal(str(block_number)))
 
-    def delegate_cumulative_income(self, node, block_reward, staking_reward, delegate_total_amount, delegate_amount):
-        entrusted_income = self.calculate_delegate_reward(node, block_reward, staking_reward)
+    def delegate_cumulative_income(self, node, block_reward, staking_reward, delegate_total_amount, delegate_amount, reward=None):
+        entrusted_income = self.calculate_delegate_reward(node, block_reward, staking_reward, reward)
         print("entrusted_income: ", entrusted_income)
         unit_commission_award = math.floor(Decimal(str(entrusted_income)) / int((Decimal(str(delegate_total_amount)) / (10 ** 9))))
         print("unit_commission_award: ", unit_commission_award)
         current_commission_award = int((Decimal(str(delegate_amount)) / (10 ** 9)) * Decimal(str(unit_commission_award)))
         print("current_commission_award: ", current_commission_award)
         return current_commission_award
+
+    def delegate_dividend_income(self, delegate_reward_total, delegate_total_amount, delegate_amount):
+        unit_commission_award = math.floor(Decimal(str(delegate_reward_total)) / int((Decimal(str(delegate_total_amount)) / (10 ** 9))))
+        print("unit_commission_award: ", unit_commission_award)
+        current_commission_award = int((Decimal(str(delegate_amount)) / (10 ** 9)) * Decimal(str(unit_commission_award)))
+        print("current_commission_award: ", current_commission_award)
+        return current_commission_award
+
 
     def get_current_year_reward(self, node: Node, verifier_num=None):
         """
