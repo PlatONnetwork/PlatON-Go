@@ -17,13 +17,14 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -256,39 +257,35 @@ func WriteLogs(writer io.Writer, logs []*types.Log) {
 	}
 }
 
-
 type WasmLogger struct {
 	log.Logger
-	root log.Logger
-	buf *bytes.Buffer
+	root   log.Logger
+	buf    *bytes.Buffer
 	logger log.Logger
 }
 
 func NewWasmLogger(cfg Config, root log.Logger) *WasmLogger {
 	l := &WasmLogger{
-		root:root,
-		logger:root.New(),
+		root:   root,
+		logger: root.New(),
 	}
 
 	l.buf = new(bytes.Buffer)
 
 	level := log.LvlInfo
 
-	if cfg.Debug || log.GetWasmLogLevel() >= log.LvlDebug{
+	if cfg.Debug || log.GetWasmLogLevel() >= log.LvlDebug {
 		level = log.LvlDebug
 	}
-
 
 	l.logger.SetHandler(log.LvlFilterHandler(level, log.StreamHandler(l.buf, log.FormatFunc(func(r *log.Record) []byte {
 		return []byte(r.Msg)
 	}))))
 
-
 	return l
 }
 
-
-func (wl *WasmLogger) Flush()  {
+func (wl *WasmLogger) Flush() {
 	if wl.buf.Len() != 0 {
 		wl.root.Debug(wl.buf.String())
 	}
@@ -307,7 +304,6 @@ func (wl *WasmLogger) GetHandler() log.Handler {
 // SetHandler updates the logger to write records to the specified handler.
 func (wl *WasmLogger) SetHandler(h log.Handler) {
 }
-
 
 // Log a message at the given level with context key/value pairs
 func (wl *WasmLogger) Trace(msg string, ctx ...interface{}) {
@@ -328,7 +324,3 @@ func (wl *WasmLogger) Error(msg string, ctx ...interface{}) {
 func (wl *WasmLogger) Crit(msg string, ctx ...interface{}) {
 	wl.logger.Crit(msg, ctx...)
 }
-
-
-
-

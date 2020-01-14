@@ -56,7 +56,7 @@ var DefaultConfig = Config{
 	DBGCMpt:           true,
 	DBGCBlock:         10,
 	VMWasmType:        "wagon",
-	VmTimeoutDuration: 2,
+	VmTimeoutDuration: 0, // default 0 ms for vm exec timeout
 	MinerGasPrice:     big.NewInt(params.GVon),
 	MinerRecommit:     3 * time.Second,
 

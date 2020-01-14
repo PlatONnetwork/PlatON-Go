@@ -63,27 +63,27 @@ func (engine *wagonEngine) Contract() *Contract {
 
 func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 
-	var deploy bool
-
-	if len(input) == 0 { // deploy contract
-		deploy = true
+	if engine.Contract().DeployContract { // deploy contract
 		contractCode, calldata, err := disassemblyDeployCode(engine.Contract().Code)
 		if nil != err {
 			return nil, err
 		}
 
-		if err := validateFunc(calldata, deploy); nil != err {
+		if err := validateFunc(calldata, engine.Contract().DeployContract); nil != err {
 			return nil, err
 		}
 		engine.Contract().Code = contractCode
 		input = calldata
 	} else { // call contract
-		if err := validateFunc(input, deploy); nil != err {
+		if len(input) == 0 { // When calling, do nothing without input
+			return nil, nil
+		}
+		if err := validateFunc(input, engine.Contract().DeployContract); nil != err {
 			return nil, err
 		}
 	}
 
-	module, entryIndex, moduleErr := engine.MakeModule(deploy)
+	module, entryIndex, moduleErr := engine.MakeModule(engine.Contract().DeployContract)
 	if nil != moduleErr {
 		return nil, moduleErr
 	}
@@ -99,9 +99,10 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 
 	//exec vm
 	ret, err := engine.exec(entryIndex)
-	if deploy {
+	if engine.Contract().DeployContract {
 		return engine.Contract().Code, err
 	}
+
 	return ret, err
 }
 
@@ -216,7 +217,7 @@ func (engine *wagonEngine) makeModuleWithDeploy() (*exec.CompiledModule, int64, 
 func (engine *wagonEngine) makeModuleWithCall() (*exec.CompiledModule, int64, error) {
 
 	// load module
-	cache, ok := lru.WasmCache().Get(engine.Contract().Address())
+	cache, ok := lru.WasmCache().Get(*(engine.Contract().CodeAddr))
 	if !ok || (ok && nil == cache.Module) {
 		cache = &lru.WasmModule{}
 
@@ -226,7 +227,7 @@ func (engine *wagonEngine) makeModuleWithCall() (*exec.CompiledModule, int64, er
 		}
 
 		cache.Module = module
-		lru.WasmCache().Add(engine.Contract().Address(), cache)
+		lru.WasmCache().Add(*(engine.Contract().CodeAddr), cache)
 	}
 
 	mod := cache.Module

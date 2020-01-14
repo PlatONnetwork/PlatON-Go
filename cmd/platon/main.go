@@ -238,10 +238,9 @@ func init() {
 		}
 
 		//init wasm logfile
-
-		//if err := debug.SetupWasmLog(ctx); err != nil {
-		//	return err
-		//}
+		if err := debug.SetupWasmLog(ctx); err != nil {
+			return err
+		}
 
 		// Cap the cache allowance and tune the garbage collector
 		var mem gosigar.Mem

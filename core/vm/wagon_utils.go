@@ -40,20 +40,14 @@ func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {
 }
 
 func decodeFuncAndParams(input []byte) (string, []byte, error) {
-	kind, content, _, err := rlp.Split(input)
-	switch {
-	case err != nil:
-		return "", nil, err
-	case kind != rlp.List:
-		return "", nil, fmt.Errorf("input type error")
+	content, _, err := rlp.SplitList(input)
+	if nil != err {
+		return "", nil, fmt.Errorf("failed to decode input funcName and params: %v", err)
 	}
 
-	_, funcName, params, err := rlp.Split(content)
-	switch {
-	case err != nil:
-		return "", nil, err
-		//case len(funcName) != 1:
-		//	return "", nil, fmt.Errorf("funcName type error")
+	funcName, params, err := rlp.SplitString(content)
+	if nil != err {
+		return "", nil, fmt.Errorf("failed to decode input funcName and params: %v", err)
 	}
 	return string(funcName), params, nil
 

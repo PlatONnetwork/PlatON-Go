@@ -65,7 +65,8 @@ type Contract struct {
 
 	Args []byte
 
-	DelegateCall bool
+	DelegateCall   bool
+	DeployContract bool
 }
 
 // NewContract returns a new contract environment for the execution of EVM.
