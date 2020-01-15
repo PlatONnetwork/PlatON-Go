@@ -3023,8 +3023,7 @@ func (sk *StakingPlugin) setRoundValListByIndex(blockNumber uint64, blockHash co
 
 	if !hasIndex {
 		log.Error("Not Found current validatorList index", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "input Start", valArr.Start, "input End", valArr.End)
-		xcom.PrintObjForErr("The history round indexs arr is", queue)
+			"blockHash", blockHash.Hex(), "input Start", valArr.Start, "input End", valArr.End, "queue", queue)
 		return staking.ErrValidatorNoExist
 	}
 

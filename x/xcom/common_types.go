@@ -19,6 +19,7 @@ package xcom
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -100,31 +101,29 @@ func NewResult(err *common.BizError, data interface{}) []byte {
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
-	buf := new(bytes.Buffer)
-	if err := rlp.Encode(buf, [][]byte{[]byte(data)}); nil != err {
-		log.Error("Cannot RlpEncode the log data", "data", data, "err", err)
-		panic("Cannot RlpEncode the log data")
-	}
-
-	state.AddLog(&types.Log{
-		Address:     contractAddr,
-		Topics:      nil, //[]common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
-		Data:        buf.Bytes(),
-		BlockNumber: blockNumber,
-	})
+	AddLogWithRes(state, blockNumber, contractAddr, event, data, nil)
 }
 
 // addLog let the result add to event.
 func AddLogWithRes(state StateDB, blockNumber uint64, contractAddr common.Address, event, code string, res interface{}) {
 	buf := new(bytes.Buffer)
-	resByte, err := rlp.EncodeToBytes(res)
-	if err != nil {
-		log.Error("Cannot RlpEncode the log res", "res", res, "err", err, "event", event)
-		panic("Cannot RlpEncode the log data")
-	}
-	if err := rlp.Encode(buf, [][]byte{[]byte(code), resByte}); nil != err {
-		log.Error("Cannot RlpEncode the log data", "data", code, "err", err, "event", event)
-		panic("Cannot RlpEncode the log data")
+	if res == nil {
+		fmt.Print("aaaaaaaa")
+		if err := rlp.Encode(buf, [][]byte{[]byte(code)}); nil != err {
+			log.Error("Cannot RlpEncode the log data", "data", code, "err", err)
+			panic("Cannot RlpEncode the log data")
+		}
+	} else {
+		resByte, err := rlp.EncodeToBytes(res)
+		if err != nil {
+			log.Error("Cannot RlpEncode the log res", "res", res, "err", err, "event", event)
+			panic("Cannot RlpEncode the log data")
+		}
+		if err := rlp.Encode(buf, [][]byte{[]byte(code), resByte}); nil != err {
+			log.Error("Cannot RlpEncode the log data", "data", code, "err", err, "event", event)
+			panic("Cannot RlpEncode the log data")
+		}
+
 	}
 
 	state.AddLog(&types.Log{
@@ -133,14 +132,4 @@ func AddLogWithRes(state StateDB, blockNumber uint64, contractAddr common.Addres
 		Data:        buf.Bytes(),
 		BlockNumber: blockNumber,
 	})
-}
-
-func PrintObject(s string, obj interface{}) {
-	objs, _ := json.Marshal(obj)
-	log.Debug(s + " == " + string(objs))
-}
-
-func PrintObjForErr(s string, obj interface{}) {
-	objs, _ := json.Marshal(obj)
-	log.Error(s + " == " + string(objs))
 }

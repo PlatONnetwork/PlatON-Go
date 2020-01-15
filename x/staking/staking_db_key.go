@@ -17,14 +17,12 @@
 package staking
 
 import (
-	"crypto/ecdsa"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
@@ -65,40 +63,12 @@ var (
 )
 
 // CanBase ...
-func CanBaseKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
 
-	if pk, err := nodeId.Pubkey(); nil != err {
-		return nil, err
-	} else {
-		addr := crypto.PubkeyToAddress(*pk)
-		return append(CanBaseKeyPrefix, addr.Bytes()...), nil
-	}
-}
-func CanBaseKeyByPubKey(p ecdsa.PublicKey) []byte {
-	addr := crypto.PubkeyToAddress(p)
-	return append(CanBaseKeyPrefix, addr.Bytes()...)
-}
 func CanBaseKeyByAddr(addr common.Address) []byte {
 	return append(CanBaseKeyPrefix, addr.Bytes()...)
 }
 func CanBaseKeyBySuffix(addr []byte) []byte {
 	return append(CanBaseKeyPrefix, addr...)
-}
-
-// CanMutable ...
-func CanMutableKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
-
-	if pk, err := nodeId.Pubkey(); nil != err {
-		return nil, err
-	} else {
-		addr := crypto.PubkeyToAddress(*pk)
-		return append(CanMutableKeyPrefix, addr.Bytes()...), nil
-	}
-}
-
-func CanMutableKeyByPubKey(p ecdsa.PublicKey) []byte {
-	addr := crypto.PubkeyToAddress(p)
-	return append(CanMutableKeyPrefix, addr.Bytes()...)
 }
 
 func CanMutableKeyByAddr(addr common.Address) []byte {
