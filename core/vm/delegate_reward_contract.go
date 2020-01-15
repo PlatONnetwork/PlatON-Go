@@ -95,6 +95,12 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 				"txHash", txHash.Hex(), "blockNumber", blockNum, "err", err)
 			return nil, err
 		}
+		if len(delegateRewardPerList) > 0 {
+			// the  begin of  delegation  have not reward
+			if stakingNode.Delegation.Released.Cmp(common.Big0) == 0 && stakingNode.Delegation.RestrictingPlan.Cmp(common.Big0) == 0 && uint64(stakingNode.Delegation.DelegateEpoch) == delegateRewardPerList[0].Epoch {
+				delegateRewardPerList = delegateRewardPerList[1:]
+			}
+		}
 		unCalEpoch += len(delegateRewardPerList)
 		delegationInfoWithRewardPerList = append(delegationInfoWithRewardPerList, plugin.NewDelegationInfoWithRewardPerList(stakingNode, delegateRewardPerList))
 	}
