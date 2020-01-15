@@ -793,7 +793,7 @@ func deployContract(ctx *VMContext, addr1, addr2 common.Address, code []byte) {
 
 	contract := NewContract(sender, receive, common.Big0, 1000000)
 	contract.SetCallCode(&addr2, ctx.evm.StateDB.GetCodeHash(addr2), code)
-
+	contract.DeployContract = true
 	ret, err := run(ctx.evm, contract, nil, false)
 	if nil != err {
 		panic(err)
