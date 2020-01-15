@@ -10,11 +10,10 @@ func MustRlpEncode(val interface{}) []byte {
 	return bytes
 }
 
-
+/*
 func MustRlpDecode(bytes []byte, val interface{}) {
 	err := rlp.DecodeBytes(bytes, val)
 	if err != nil {
 		panic(err)
 	}
-}
-
+}*/
