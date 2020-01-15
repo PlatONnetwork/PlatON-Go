@@ -30,7 +30,7 @@ contract DisallowYears {
          * 2-不允许小数点后不跟数字的数值写法
          */
         //uint  value=255. ether; //error,编译出错
-        etherValue=255.0 ether;//right
+        etherValue=255.0 lat;//right
 
         /**
          * 3-十六进制数字不允许带“0X”前缀，只能用“0x”
@@ -42,7 +42,7 @@ contract DisallowYears {
         * 4-不允许将十六进制数与单位组合
         */
         // uint value=0xff ether; //error,编译出错
-        hexComValue=0xff*1 ether;//right
+        hexComValue=0xff*1 lat;//right
     }
 
     //查询time1的值
