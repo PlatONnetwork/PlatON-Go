@@ -61,6 +61,11 @@ func Test_CleanSnapshotDB(t *testing.T) {
 	sndb.Clear()
 }
 
+func PrintObject(s string, obj interface{}) {
+	objs, _ := json.Marshal(obj)
+	log.Debug(s + " == " + string(objs))
+}
+
 func watching(eventMux *event.TypeMux, t *testing.T) {
 	events := eventMux.Subscribe(cbfttypes.AddValidatorEvent{})
 	defer events.Unsubscribe()
@@ -291,7 +296,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		return nil, err
 	}
 
-	xcom.PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
+	PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
 	if nil != err {
 		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
@@ -662,7 +667,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return
 	}
 
-	xcom.PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
+	PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
@@ -979,7 +984,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		return
 	}
 
-	xcom.PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
+	PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
