@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	math2 "math"
@@ -1359,7 +1360,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 	if nil != err {
 		return nil, err
 	}
-	xcom.PrintObject("wow,GetHistoryVerifierList", verifierList)
+	pposm.PrintObject("wow,GetHistoryVerifierList", verifierList)
 
 	queue := make(staking.ValidatorExQueue, len(verifierList.Arr))
 
@@ -1375,7 +1376,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 		if nil != err {
 			return nil, err
 		}
-		xcom.PrintObject("wow,GetHistoryVerifierList candidateHexQueue", candidateHexQueue)
+		pposm.PrintObject("wow,GetHistoryVerifierList candidateHexQueue", candidateHexQueue)
 	}
 	for i, v := range verifierList.Arr {
 
@@ -1384,6 +1385,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 			ValidatorTerm: v.ValidatorTerm,
 			DelegateRewardTotal: (*hexutil.Big)(v.DelegateRewardTotal),
 			DelegateTotal:  (*hexutil.Big)(v.DelegateTotal),
+			StakingBlockNum: v.StakingBlockNum,
 		}
 		if queryNumber == 0 {
 			for _, vc := range candidateHexQueue{
@@ -1580,7 +1582,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 	if nil != err {
 		return nil, err
 	}
-	xcom.PrintObject("wow,GetHistoryValidatorList", validatorArr)
+	pposm.PrintObject("wow,GetHistoryValidatorList", validatorArr)
 	queue := make(staking.ValidatorExQueue, len(validatorArr.Arr))
 	var candidateHexQueue staking.CandidateHexQueue
 
@@ -1594,7 +1596,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 		if nil != err {
 			return nil, err
 		}
-		xcom.PrintObject("wow,GetHistoryValidatorList candidateHexQueue", candidateHexQueue)
+		pposm.PrintObject("wow,GetHistoryValidatorList candidateHexQueue", candidateHexQueue)
 	}
 	for i, v := range validatorArr.Arr {
 
@@ -1654,7 +1656,7 @@ func (sk *StakingPlugin) GetHistoryReward(blockHash common.Hash, blockNumber uin
 		AvgPackTime:reward.AvgPackTime,
 	}
 	log.Debug("wow,GetHistoryReward rewardReturn:", "PackageReward",  rewardReturn.PackageReward, "StakingReward",  rewardReturn.StakingReward)
-	xcom.PrintObject("wow,GetHistoryReward", rewardReturn)
+	pposm.PrintObject("wow,GetHistoryReward", rewardReturn)
 
 	return rewardReturn, nil
 }
@@ -3763,7 +3765,7 @@ func (sk *StakingPlugin) SetReward(block *types.Block, numStr string)  error{
 		return err
 	}
 	STAKING_DB.HistoryDB.Put([]byte(RewardName+numStr), dataReward)
-	xcom.PrintObject("wow,insert rewardName history :", dataReward)
+	pposm.PrintObject("wow,insert rewardName history :", dataReward)
 	return  nil
 }
 
@@ -3800,7 +3802,7 @@ func (sk *StakingPlugin) SetValidator(block *types.Block, numStr string,nodeId d
 
 	STAKING_DB.HistoryDB.Put([]byte(ValidatorName+numStr), data)
 	log.Debug("wow,insert validator history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", ValidatorName+numStr)
-	xcom.PrintObject("wow,insert validator history :", currentValidatorArray)
+	pposm.PrintObject("wow,insert validator history :", currentValidatorArray)
 	return  isCurr, currMap, nil
 }
 
@@ -3827,6 +3829,7 @@ func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 		vQSave[k] = &staking.ValidatorSave{
 			ValidatorTerm   : v.ValidatorTerm,
 			NodeId          : v.NodeId,
+			StakingBlockNum : v.StakingBlockNum,
 		}
 		var isCurrent = false
 		for _,cv := range currentCandidate{
@@ -3846,7 +3849,7 @@ func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 			if err != nil || can == nil{
 				log.Error("Failed to Query Current Round candidate info on stakingPlugin Confirmed When Settletmetn block",
 					"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
-				xcom.PrintObject("Failed get can :", can)
+				pposm.PrintObject("Failed get can :", can)
 			} else {
 				vQSave[k].DelegateRewardTotal = can.DelegateRewardTotal
 				vQSave[k].DelegateTotal = can.DelegateTotal
@@ -3862,7 +3865,7 @@ func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 	}
 	STAKING_DB.HistoryDB.Put([]byte(VerifierName+numStr), data)
 	log.Debug("wow,insert verifier history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", VerifierName+numStr)
-	xcom.PrintObject("wow,insert verifier history :", currentValidatorArray)
+	pposm.PrintObject("wow,insert verifier history :", currentValidatorArray)
 
 	if numStr == "0"{
 		dataCandidate, err := rlp.EncodeToBytes(currentCandidate)
@@ -3871,7 +3874,7 @@ func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 			return err
 		}
 		STAKING_DB.HistoryDB.Put([]byte(InitNodeName+"0"), dataCandidate)
-		xcom.PrintObject("wow,insert candidate  0:", currentCandidate)
+		pposm.PrintObject("wow,insert candidate  0:", currentCandidate)
 	}
 	return nil
 }

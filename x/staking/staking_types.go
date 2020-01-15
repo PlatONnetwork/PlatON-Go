@@ -567,6 +567,7 @@ type ValidatorSave struct {
 	NodeId          discover.NodeID
 	DelegateRewardTotal *big.Int
 	DelegateTotal     *big.Int
+	StakingBlockNum uint64
 }
 
 func (val *Validator) String() string {
