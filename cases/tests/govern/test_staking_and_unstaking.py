@@ -1,7 +1,8 @@
 from tests.lib.utils import upload_platon, assert_code, get_pledge_list, wait_block_number
 from common.log import log
 from tests.lib.client import Client, get_client_by_nodeid, get_clients_by_nodeid, StakingConfig
-import pytest, allure
+import pytest
+import allure
 import time
 import math
 from tests.govern.conftest import version_proposal_vote, proposal_vote
@@ -13,15 +14,15 @@ from tests.govern.test_voting_statistics import submitcvpandvote, submitcppandvo
 
 def create_lockup_plan(client):
     address, _ = client.pip.economic.account.generate_account(client.node.web3,
-                                                                  3*client.economic.genesis.economicModel.staking.stakeThreshold)
-    plan = [{'Epoch': 20, 'Amount': 2*client.economic.genesis.economicModel.staking.stakeThreshold}]
+                                                              3 * client.economic.genesis.economicModel.staking.stakeThreshold)
+    plan = [{'Epoch': 20, 'Amount': 2 * client.economic.genesis.economicModel.staking.stakeThreshold}]
     result = client.restricting.createRestrictingPlan(address, plan, address,
-                                                          transaction_cfg=client.pip.cfg.transaction_cfg)
+                                                      transaction_cfg=client.pip.cfg.transaction_cfg)
     log.info('CreateRestrictingPlan result : {}'.format(result))
     assert_code(result, 0)
     result = client.staking.create_staking(1, address, address,
-                                               amount=int(1.8*client.economic.genesis.economicModel.staking.stakeThreshold),
-                                               transaction_cfg=client.pip.cfg.transaction_cfg)
+                                           amount=int(1.8 * client.economic.genesis.economicModel.staking.stakeThreshold),
+                                           transaction_cfg=client.pip.cfg.transaction_cfg)
     log.info('Create staking result : {}'.format(result))
     assert_code(result, 0)
     client.economic.wait_settlement_blocknum(client.node)
@@ -46,14 +47,14 @@ def replace_platon_and_staking(pip, platon_bin):
     all_clients = []
     for node in all_nodes:
         all_clients.append(Client(pip.economic.env, node, StakingConfig("externalId", "nodeName", "website",
-                                                                                    "details")))
+                                                                        "details")))
     client = get_client_by_nodeid(pip.node.node_id, all_clients)
     upload_platon(pip.node, platon_bin)
     log.info('Replace the platon of the node {}'.format(pip.node.node_id))
     pip.node.restart()
     log.info('Restart the node {}'.format(pip.node.node_id))
     address, _ = pip.economic.account.generate_account(pip.node.web3,
-                                                           10*pip.economic.genesis.economicModel.staking.stakeThreshold)
+                                                       10 * pip.economic.genesis.economicModel.staking.stakeThreshold)
     result = client.staking.create_staking(0, address, address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Node {} staking result {}'.format(pip.node.node_id, result))
     return result
@@ -119,8 +120,8 @@ class TestPreactiveProposalStaking:
         client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
         pips = [client.pip for client in client_verifiers]
         result = pips[0].submitVersion(pips[0].node.node_id, str(time.time()),
-                                               pips[0].cfg.version5, 2, pips[0].node.staking_address,
-                                               transaction_cfg=pips[0].cfg.transaction_cfg)
+                                       pips[0].cfg.version5, 2, pips[0].node.staking_address,
+                                       transaction_cfg=pips[0].cfg.transaction_cfg)
         log.info('submit version proposal, result : {}'.format(result))
         proposalinfo = pips[0].get_effect_proposal_info_of_vote()
         log.info('Version proposalinfo: {}'.format(proposalinfo))
@@ -186,8 +187,8 @@ class TestUpgradedProposalStaking:
         client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
         pips = [client.pip for client in client_verifiers]
         result = pips[0].submitVersion(pips[0].node.node_id, str(time.time()),
-                                               pips[0].cfg.version5, 2, pips[0].node.staking_address,
-                                               transaction_cfg=pips[0].cfg.transaction_cfg)
+                                       pips[0].cfg.version5, 2, pips[0].node.staking_address,
+                                       transaction_cfg=pips[0].cfg.transaction_cfg)
         log.info('submit version proposal, result : {}'.format(result))
         proposalinfo = pips[0].get_effect_proposal_info_of_vote()
         log.info('Version proposalinfo: {}'.format(proposalinfo))
@@ -310,17 +311,17 @@ class TestUnstaking:
         pip_three = clients_verifier[2].pip
         address = pip_one.node.staking_address
         result = pip_one.submitVersion(pip_one.node.node_id, str(time.time()), pip_one.cfg.version5, 17, address,
-                                           transaction_cfg=pip_one.cfg.transaction_cfg)
+                                       transaction_cfg=pip_one.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         proposalinfo_version = pip_one.get_effect_proposal_info_of_vote(pip_one.cfg.version_proposal)
         log.info('Version proposal information : {}'.format(proposalinfo_version))
 
         result = pip_one.submitCancel(pip_one.node.node_id, str(time.time()), 13, proposalinfo_version.get('ProposalID'),
-                                          address, transaction_cfg=pip_one.cfg.transaction_cfg)
+                                      address, transaction_cfg=pip_one.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
         result_text = pip_one.submitText(pip_one.node.node_id, str(time.time()), address,
-                                             transaction_cfg=pip_one.cfg.transaction_cfg)
+                                         transaction_cfg=pip_one.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result_text))
         result = proposal_vote(pip_one, proposaltype=pip_one.cfg.cancel_proposal)
         assert_code(result, 0)
@@ -404,18 +405,18 @@ class TestUnstaking:
         assert_code(result, 0)
         pip_test.economic.wait_settlement_blocknum(pip_test.node)
         result = pip_test.submitVersion(pip_test.node.node_id, str(time.time()), pip_test.cfg.version5,
-                                            4, pip_test.node.staking_address, transaction_cfg=pip_test.cfg.transaction_cfg)
+                                        4, pip_test.node.staking_address, transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         result = pip_test.submitText(pip_test.node.node_id, str(time.time()), pip_test.node.staking_address,
-                                         transaction_cfg=pip_test.cfg.transaction_cfg)
+                                     transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result))
         assert_code(result, 0)
 
         proposalinfo_version = pip_test.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo_version))
         result = pip_test.submitCancel(pip_test.node.node_id, str(time.time()), 2, proposalinfo_version.get('ProposalID'),
-                                           pip_test.node.staking_address, transaction_cfg=pip_test.cfg.transaction_cfg)
+                                       pip_test.node.staking_address, transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Submit cancel result : {}'.format(result))
         assert_code(result, 0)
         result = version_proposal_vote(pip_test)
@@ -438,12 +439,12 @@ class TestUnstaking:
         balance_before = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size - 1, balance_before))
         balance_before_lockup = pip_test.node.eth.getBalance(pip_test.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 4 * pip_test.economic.settlement_size - 1)
+                                                             4 * pip_test.economic.settlement_size - 1)
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_test.economic.settlement_size - 1,
                                                                                balance_before_lockup))
         balance_after = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size)
         balance_after_lockup = pip_test.node.eth.getBalance(pip_test.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                4 * pip_test.economic.settlement_size)
+                                                            4 * pip_test.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size, balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_test.economic.settlement_size,
                                                                                balance_after_lockup))
@@ -464,27 +465,27 @@ class TestUnstaking:
             address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 20000000)
             plan = [{'Epoch': 20, 'Amount': 10**18 * 2000000}]
             result = client.restricting.createRestrictingPlan(address, plan, address,
-                                                                  transaction_cfg=pip.cfg.transaction_cfg)
+                                                              transaction_cfg=pip.cfg.transaction_cfg)
             log.info('CreateRestrictingPlan result : {}'.format(result))
             assert_code(result, 0)
             result = client.staking.create_staking(1, address, address, amount=10**18 * 1800000,
-                                                       transaction_cfg=pip.cfg.transaction_cfg)
+                                                   transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Create staking result : {}'.format(result))
             assert_code(result, 0)
         pip.economic.wait_settlement_blocknum(pip.node)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
-                                     '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
+                                 '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
         result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
-                                    transaction_cfg=pip.cfg.transaction_cfg)
+                                transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result))
         assert_code(result, 0)
 
         proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Get param proposal information : {}'.format(proposalinfo_param))
         result = pip.submitCancel(pip.node.node_id, str(time.time()), 14, proposalinfo_param.get('ProposalID'),
-                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel result : {}'.format(result))
         assert_code(result, 0)
         result = proposal_vote(clients_noconsensus[0].pip, proposaltype=pip.cfg.param_proposal)
@@ -515,11 +516,11 @@ class TestUnstaking:
         assert_code(result, 0)
         wait_block_number(pip.node, 4 * pip.economic.settlement_size)
         balance_before_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                            4 * pip.economic.settlement_size - 1)
+                                                        4 * pip.economic.settlement_size - 1)
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip.economic.settlement_size - 1,
                                                                                balance_before_lockup))
         balance_after_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                           4 * pip.economic.settlement_size)
+                                                       4 * pip.economic.settlement_size)
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip.economic.settlement_size,
                                                                                balance_after_lockup))
         assert balance_after_lockup == balance_before_lockup
@@ -527,13 +528,13 @@ class TestUnstaking:
         wait_block_number(pip.node, 5 * pip.economic.settlement_size)
         balance_before = pip.node.eth.getBalance(address2, 5 * pip.economic.settlement_size - 1)
         balance_before_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                            5 * pip.economic.settlement_size - 1)
+                                                        5 * pip.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(5 * pip.economic.settlement_size - 1, balance_before))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(5 * pip.economic.settlement_size - 1,
                                                                                balance_before_lockup))
         balance_after = pip.node.eth.getBalance(address2, 5 * pip.economic.settlement_size)
         balance_after_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                           5 * pip.economic.settlement_size)
+                                                       5 * pip.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(5 * pip.economic.settlement_size, balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(5 * pip.economic.settlement_size,
                                                                                balance_after_lockup))
@@ -543,13 +544,13 @@ class TestUnstaking:
         wait_block_number(pip.node, 6 * pip.economic.settlement_size)
         balance_before = pip.node.eth.getBalance(address0, 6 * pip.economic.settlement_size - 1)
         balance_before_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                            6 * pip.economic.settlement_size - 1)
+                                                        6 * pip.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(6 * pip.economic.settlement_size - 1, balance_before))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(6 * pip.economic.settlement_size - 1,
                                                                                balance_before_lockup))
         balance_after = pip.node.eth.getBalance(address0, 6 * pip.economic.settlement_size)
         balance_after_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                           6 * pip.economic.settlement_size)
+                                                       6 * pip.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(6 * pip.economic.settlement_size, balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(6 * pip.economic.settlement_size, balance_after_lockup))
 
@@ -559,14 +560,14 @@ class TestUnstaking:
         wait_block_number(pip.node, 7 * pip.economic.settlement_size)
         balance_before = pip.node.eth.getBalance(address1, 7 * pip.economic.settlement_size - 1)
         balance_before_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                            7 * pip.economic.settlement_size - 1)
+                                                        7 * pip.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(7 * pip.economic.settlement_size - 1,
                                                                      balance_before))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(7 * pip.economic.settlement_size - 1,
                                                                                balance_before_lockup))
         balance_after = pip.node.eth.getBalance(address1, 7 * pip.economic.settlement_size)
         balance_after_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                           7 * pip.economic.settlement_size)
+                                                       7 * pip.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(7 * pip.economic.settlement_size, balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(7 * pip.economic.settlement_size,
                                                                                balance_after_lockup))
@@ -591,7 +592,7 @@ class TestSlashing:
         pip_test = clients_consensus[1].pip
         address = pip.node.staking_address
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 1,
-                                       address, transaction_cfg=pip.cfg.transaction_cfg)
+                                   address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_version = pip.get_effect_proposal_info_of_vote()
@@ -631,18 +632,18 @@ class TestSlashing:
         pip_test = clients_consensus[1].pip
         address = pip.node.staking_address
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
-                                     '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
+                                 '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
         result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
-                                    transaction_cfg=pip.cfg.transaction_cfg)
+                                transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result))
         assert_code(result, 0)
 
         proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Get param proposal information : {}'.format(proposalinfo_param))
         result = pip.submitCancel(pip.node.node_id, str(time.time()), 14, proposalinfo_param.get('ProposalID'),
-                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel result : {}'.format(result))
         assert_code(result, 0)
         result = proposal_vote(pip, proposaltype=pip.cfg.param_proposal)
@@ -694,11 +695,11 @@ class TestSlashing:
         pip_test = clients_consensus[1].pip
         address = pip.node.staking_address
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 13, address,
-                                       transaction_cfg=pip.cfg.transaction_cfg)
+                                   transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
-                                    transaction_cfg=pip.cfg.transaction_cfg)
+                                transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result))
         assert_code(result, 0)
 
@@ -750,7 +751,7 @@ class TestSlashing:
         address = pip.node.staking_address
 
         result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
-                                    transaction_cfg=pip.cfg.transaction_cfg)
+                                transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result))
         assert_code(result, 0)
 
@@ -796,14 +797,14 @@ class TestSlashing:
         pip_test = clients_consensus[1].pip
         address = pip.node.staking_address
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
-                                     '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
+                                 '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
 
         proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Get param proposal information : {}'.format(proposalinfo_param))
         result = pip.submitCancel(pip.node.node_id, str(time.time()), 14, proposalinfo_param.get('ProposalID'),
-                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel result : {}'.format(result))
         assert_code(result, 0)
         result = proposal_vote(pip, proposaltype=pip.cfg.cancel_proposal)
@@ -923,12 +924,12 @@ class TestSlashing:
         create_lockup_plan(clients_noconsensus[0])
         address = pip.node.staking_address
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '1116',
-                                     address, transaction_cfg=pip.cfg.transaction_cfg)
+                                 address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Get param proposal information : {}'.format(proposalinfo_param))
         result = pip.submitCancel(pip.node.node_id, str(time.time()), 13, proposalinfo_param.get('ProposalID'),
-                                      address, transaction_cfg=pip.cfg.transaction_cfg)
+                                  address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         result = proposal_vote(pip, proposaltype=pip.cfg.cancel_proposal)
         assert_code(result, 0)
@@ -966,18 +967,18 @@ class TestSlashing:
         wait_block_number(pip.node, value * pip.economic.settlement_size)
         balance_before = pip.node.eth.getBalance(address, value * pip.economic.settlement_size - 1)
         balance_before_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                            value * pip.economic.settlement_size - 1)
+                                                        value * pip.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(value * pip.economic.settlement_size - 1,
                                                                      balance_before))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(value * pip.economic.settlement_size - 1,
-                                                                          balance_before_lockup))
+                                                                               balance_before_lockup))
         balance_after = pip.node.eth.getBalance(address, value * pip.economic.settlement_size)
         balance_after_lockup = pip.node.eth.getBalance(pip.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                           value * pip.economic.settlement_size)
+                                                       value * pip.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(value * pip.economic.settlement_size,
                                                                      balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(value * pip.economic.settlement_size,
-                                                                          balance_after_lockup))
+                                                                               balance_after_lockup))
         assert balance_after == balance_before
         if tag:
             assert balance_after_lockup - balance_before_lockup == shares

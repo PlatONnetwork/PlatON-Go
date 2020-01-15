@@ -34,3 +34,4 @@ bug_log
 tmp_log
 ./deploy/global/
 ./tests/ppos_2/report
+*/tool

@@ -17,8 +17,19 @@
 package reward
 
 import (
+	"encoding/json"
+	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
+
+const DelegateRewardPerLength = 1000
 
 var (
 	HistoryIncreasePrefix    = []byte("RewardHistory")
@@ -29,6 +40,7 @@ var (
 	NewBlockRewardKey        = []byte("NewBlockRewardKey")
 	StakingRewardKey         = []byte("StakingRewardKey")
 	ChainYearNumberKey       = []byte("ChainYearNumberKey")
+	delegateRewardPerKey     = []byte("DelegateRewardPerKey")
 )
 
 // GetHistoryIncreaseKey used for search the balance of reward pool at last year
@@ -39,4 +51,133 @@ func GetHistoryIncreaseKey(year uint32) []byte {
 //
 func HistoryBalancePrefix(year uint32) []byte {
 	return append(LastYearEndBalancePrefix, common.Uint32ToBytes(year)...)
+}
+
+func DelegateRewardPerKey(nodeID discover.NodeID, stakingNum, epoch uint64) []byte {
+	index := uint32(epoch / DelegateRewardPerLength)
+	add, err := xutil.NodeId2Addr(nodeID)
+	if err != nil {
+		panic(err)
+	}
+	perKeyLength := len(delegateRewardPerKey)
+	lengthUint32, lengthUint64 := 4, 8
+	keyAdd := make([]byte, perKeyLength+common.AddressLength+lengthUint64+lengthUint32)
+	n := copy(keyAdd[:perKeyLength], delegateRewardPerKey)
+	n += copy(keyAdd[n:n+common.AddressLength], add.Bytes())
+	n += copy(keyAdd[n:n+lengthUint64], common.Uint64ToBytes(stakingNum))
+	copy(keyAdd[n:n+lengthUint32], common.Uint32ToBytes(index))
+
+	return keyAdd
+}
+
+func DelegateRewardPerKeys(nodeID discover.NodeID, stakingNum, fromEpoch, toEpoch uint64) [][]byte {
+	indexFrom := uint32(fromEpoch / DelegateRewardPerLength)
+	indexTo := uint32(toEpoch / DelegateRewardPerLength)
+	add, err := xutil.NodeId2Addr(nodeID)
+	if err != nil {
+		panic(err)
+	}
+	perKeyLength := len(delegateRewardPerKey)
+	lengthUint64 := 8
+
+	delegateRewardPerPrefix := make([]byte, perKeyLength+common.AddressLength+lengthUint64)
+	n := copy(delegateRewardPerPrefix[:perKeyLength], delegateRewardPerKey)
+	n += copy(delegateRewardPerPrefix[n:n+common.AddressLength], add.Bytes())
+	n += copy(delegateRewardPerPrefix[n:n+lengthUint64], common.Uint64ToBytes(stakingNum))
+
+	keys := make([][]byte, 0)
+	for i := indexFrom; i <= indexTo; i++ {
+		delegateRewardPerKey := append(delegateRewardPerPrefix[:], common.Uint32ToBytes(i)...)
+		keys = append(keys, delegateRewardPerKey)
+	}
+	return keys
+}
+
+func NewDelegateRewardPer(epoch uint64, per, totalDelegate *big.Int) *DelegateRewardPer {
+	return &DelegateRewardPer{
+		DelegateAmount: totalDelegate,
+		Per:            per,
+		Epoch:          epoch,
+	}
+}
+
+type DelegateRewardPer struct {
+	//this is the node total effective delegate  amount at this epoch
+	DelegateAmount *big.Int
+	Epoch          uint64
+	//this is the node total delegate reward per amount at this epoch
+	Per *big.Int
+}
+
+type DelegateRewardPerList struct {
+	Pers    []*DelegateRewardPer
+	changed bool
+}
+
+func NewDelegateRewardPerList() *DelegateRewardPerList {
+	del := new(DelegateRewardPerList)
+	del.Pers = make([]*DelegateRewardPer, 0)
+	return del
+}
+
+func (d DelegateRewardPerList) String() string {
+	v, err := json.Marshal(d)
+	if err != nil {
+		panic(err)
+	}
+	return string(v)
+}
+
+func (d *DelegateRewardPerList) AppendDelegateRewardPer(per *DelegateRewardPer) {
+	d.Pers = append(d.Pers, per)
+}
+
+func (d *DelegateRewardPerList) DecreaseTotalAmount(receipt []DelegateRewardReceipt) int {
+	var indexOfReceipt int
+	for indexOfList := 0; indexOfList < len(d.Pers) && indexOfReceipt < len(receipt); {
+		if d.Pers[indexOfList].Epoch < receipt[indexOfReceipt].Epoch {
+			indexOfList++
+		} else if d.Pers[indexOfList].Epoch > receipt[indexOfReceipt].Epoch {
+			indexOfReceipt++
+		} else {
+			d.Pers[indexOfList].DelegateAmount.Sub(d.Pers[indexOfList].DelegateAmount, receipt[indexOfReceipt].Delegate)
+			if d.Pers[indexOfList].DelegateAmount.Cmp(common.Big0) <= 0 {
+				d.Pers = append(d.Pers[:indexOfList], d.Pers[indexOfList+1:]...)
+			} else {
+				indexOfList++
+			}
+			indexOfReceipt++
+			d.changed = true
+		}
+	}
+	return indexOfReceipt
+}
+
+func (d *DelegateRewardPerList) ShouldDel() bool {
+	if len(d.Pers) == 0 {
+		return true
+	}
+	return false
+}
+
+func (d *DelegateRewardPerList) IsChange() bool {
+	return d.changed
+}
+
+type NodeDelegateReward struct {
+	NodeID     discover.NodeID `json:"nodeID"`
+	StakingNum uint64          `json:"stakingNum"`
+	Reward     *big.Int        `json:"reward" rlp:"nil"`
+}
+
+type NodeDelegateRewardPresenter struct {
+	NodeID     discover.NodeID `json:"nodeID" `
+	Reward     *hexutil.Big    `json:"reward" `
+	StakingNum uint64          `json:"stakingNum"`
+}
+
+type DelegateRewardReceipt struct {
+	//this is the account  total effective delegate amount with the node  on this epoch
+	Delegate *big.Int
+	Epoch    uint64
 }

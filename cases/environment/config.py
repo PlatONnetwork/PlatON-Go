@@ -4,7 +4,8 @@ from conf.settings import ConfTmpDir
 
 
 class TestConfig:
-    def __init__(self, conf_tmp: ConfTmpDir, install_supervisor=True, install_dependency=True, init_chain=True, is_need_static=True):
+    def __init__(self, conf_tmp: ConfTmpDir, install_supervisor=True, install_dependency=True, init_chain=True, is_need_static=True, can_deploy=True):
+        self.can_deploy = can_deploy
         # local must file
         self.platon_bin_file = conf.PLATON_BIN_FILE
         self.genesis_file = conf.GENESIS_FILE
@@ -47,3 +48,4 @@ class TestConfig:
         # log related
         self.bug_log = abspath("./bug_log")
         self.tmp_log = abspath("./tmp_log")
+

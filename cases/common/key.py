@@ -25,6 +25,35 @@ def generate_key():
     return privatekey.to_hex()[2:], keys.private_key_to_public_key(privatekey).to_hex()[2:]
 
 
+def generate_blskey():
+    """
+    generate bls public and private keys
+    :return:
+        bls_private_key
+        bls_public_key
+    """
+    if sys.platform in "linux,linux2":
+        tool_file = abspath("tool/linux/keytool")
+        run("chmod +x {}".format(tool_file))
+    else:
+        tool_file = abspath("tool/win/keytool.exe")
+    keypair = run("{} genblskeypair".format(tool_file))
+    if not keypair:
+        raise Exception("unable to use generate blskey tool")
+    lines = keypair.split("\n")
+    bls_private_key = ""
+    bls_public_key = ""
+    for l in lines:
+        kv = l.split(":")
+        if kv[0] == "PrivateKey":
+            bls_private_key = kv[1].strip()
+        elif kv[0] == "PublicKey ":
+            bls_public_key = kv[1].strip()
+    if not bls_private_key or not bls_public_key:
+        raise Exception("Blskey cannot be generated")
+    return bls_private_key, bls_public_key
+
+
 def run(cmd):
     """
     The machine executes the cmd command and gets the result
@@ -84,4 +113,4 @@ def mock_duplicate_sign(dtype, sk, blskey, block_number, epoch=0, view_number=0,
 
 
 if __name__ == "__main__":
-    print(get_pub_key("http://192.168.9.201:6789", 2))
+    print(generate_blskey())

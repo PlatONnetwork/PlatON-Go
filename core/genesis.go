@@ -414,27 +414,29 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
+	/*
+		// TODO this should change
+		generalAddr := common.HexToAddress("0x5437959B69eD1014cf6Aa8B4a2c77e7Ba2341955")
+		generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
-	// TODO this should change
-	generalAddr := common.HexToAddress("0x5437959B69eD1014cf6Aa8B4a2c77e7Ba2341955")
-	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
+		rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
-	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
-
-	genesis := Genesis{
-		Config:    params.MainnetChainConfig,
-		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
-		Timestamp: 0,
-		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  params.GenesisGasLimit,
-		Alloc: map[common.Address]GenesisAccount{
-			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
-			generalAddr:              {Balance: generalBalance},
-		},
-		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
-	}
-	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
-	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+		genesis := Genesis{
+			Config:    params.MainnetChainConfig,
+			Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+			Timestamp: 0,
+			ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+			GasLimit:  params.GenesisGasLimit,
+			Alloc: map[common.Address]GenesisAccount{
+				vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
+				generalAddr:              {Balance: generalBalance},
+			},
+			EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
+		}
+		xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+		xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+		return &genesis*/
+	genesis := Genesis{}
 	return &genesis
 }
 
@@ -452,7 +454,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  params.GenesisGasLimit,
-		Timestamp: 1546300800000,
+		Timestamp: 0,
 		Alloc: map[common.Address]GenesisAccount{
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
 			generalAddr:              {Balance: generalBalance},
@@ -461,6 +463,64 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	}
 	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
 	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	return &genesis
+}
+
+// DefaultRallynetGenesisBlock returns the PlatON Rally net genesis block.
+func DefaultRallynetGenesisBlock() *Genesis {
+
+	// TODO this should change
+	generalAddr := common.HexToAddress("0x99dd0a64d2809e3e293e43bdbf2704cffd87acec")
+	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
+
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
+
+	genesis := Genesis{
+		Config:    params.RallynetChainConfig,
+		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+		Timestamp: 0,
+		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  params.GenesisGasLimit,
+		Alloc: map[common.Address]GenesisAccount{
+			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
+			generalAddr:              {Balance: generalBalance},
+		},
+		EconomicModel: xcom.GetEc(xcom.DefaultRallyNet),
+	}
+	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	return &genesis
+}
+
+// DefaultUatnetGenesisBlock returns the PlatON Uat net genesis block.
+func DefaultUatnetGenesisBlock() *Genesis {
+
+	// TODO this should change
+	generalAddr := common.HexToAddress("0x3D452519bB81D4D622840F710B54e074717780A3")
+	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
+
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
+
+	genesis := Genesis{
+		Config:    params.UatnetChainConfig,
+		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+		Timestamp: 0,
+		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  params.GenesisGasLimit,
+		Alloc: map[common.Address]GenesisAccount{
+			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
+			generalAddr:              {Balance: generalBalance},
+		},
+		EconomicModel: xcom.GetEc(xcom.DefaultUatNet),
+	}
+	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	return &genesis
+}
+
+// DefaultDemonetGenesisBlock returns the PlatON Demo net genesis block.
+func DefaultDemonetGenesisBlock() *Genesis {
+	genesis := Genesis{}
 	return &genesis
 }
 

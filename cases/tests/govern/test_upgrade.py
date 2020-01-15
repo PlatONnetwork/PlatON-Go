@@ -5,7 +5,9 @@ from dacite import from_dict
 from tests.govern.test_voting_statistics import submittpandvote, submitcppandvote, \
     submitppandvote, submitcvpandvote, submitvpandvote
 import time
-import pytest, allure
+from tests.govern.conftest import verifier_node_version
+import pytest
+import allure
 from tests.govern.test_declare_version import replace_version_declare
 
 
@@ -20,6 +22,7 @@ def verify_proposal_status(clients, proposaltype, status):
     assert_code(pip.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
     assert_code(pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(clients))
     assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), status)
+
 
 def update_setting_rate(new_genesis_env, proposaltype, *args):
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
@@ -45,12 +48,13 @@ def update_setting_rate(new_genesis_env, proposaltype, *args):
     new_genesis_env.set_genesis(genesis.to_dict())
     new_genesis_env.deploy_all()
 
+
 class TestSupportRateVoteRatePP:
     @pytest.mark.P0
     @pytest.mark.compatibility
     @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_001_VS_EP_002(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 3,  0, 0.332, 0.751)
+        update_setting_rate(new_genesis_env, 3, 0, 0.332, 0.751)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=3, status=3)
 
@@ -96,6 +100,7 @@ class TestSupportRateVoteRatePP:
         update_setting_rate(new_genesis_env, 3, 0, 0.332, 0.75)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=3, status=3)
+
 
 class TestSupportRateVoteRateCPP:
     @pytest.mark.P1
@@ -274,17 +279,20 @@ class TestUpgradedST:
         proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Get param proposal information {}'.format(proposalinfo_param))
         result = pip.vote(pip.node.node_id, proposalinfo_param.get('ProposalID'), pip.cfg.vote_option_yeas,
-                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Vote param proposal result : {}'.format(result))
         assert_code(result, 0)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 302028)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.version5)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.version4)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.version6)
         result = pip.pip.listProposal()
         log.info('Interface listProposal result : {}'.format(result))
         assert_code(result, 0)
@@ -306,13 +314,13 @@ class TestUpgradedST:
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID'))
 
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version8, 3,
-                                       pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                                   pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_version = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo_version))
         result = pip.submitCancel(pip.node.node_id, str(time.time()), 1, proposalinfo_version.get('ProposalID'),
-                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
@@ -322,11 +330,11 @@ class TestUpgradedST:
         pip.node.restart()
 
         result = pip.vote(pip.node.node_id, proposalinfo_version.get('ProposalID'), pip.cfg.vote_option_yeas,
-                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Vote result : {}'.format(result))
         assert_code(result, 0)
         result = pip.vote(pip.node.node_id, proposalinfo_cancel.get('ProposalID'), pip.cfg.vote_option_yeas,
-                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         assert_code(result, 0)
         log.info('Node {} vote result : {}'.format(pip.node.node_id, result))
 
@@ -350,7 +358,7 @@ class TestUpgradeVP:
                                                            transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
         programversion = client_noconsensus.staking.get_version()
-        assert_code(programversion, self.calculate_version(pip.cfg.version0))
+        assert_code(programversion, pip.cfg.version0)
         pip_test.economic.wait_settlement_blocknum(pip_test.node)
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
@@ -396,7 +404,7 @@ class TestUpgradeVP:
                                                            transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
         programversion = client_noconsensus.staking.get_version()
-        assert_code(programversion, self.calculate_version(pip.cfg.version0))
+        assert_code(programversion, pip.cfg.version0)
         pip_test.economic.wait_settlement_blocknum(pip_test.node)
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
@@ -410,8 +418,9 @@ class TestUpgradeVP:
         replace_version_declare(pip_test, pip_test.cfg.PLATON_NEW_BIN, pip_test.cfg.version5)
         assert_code(result, 0)
         programversion = client_noconsensus.staking.get_version()
-        assert_code(programversion, self.calculate_version(pip_test.cfg.version0))
+        assert_code(programversion, pip.cfg.version0)
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        verifier_node_version(pip, proposalinfo.get('NewVersion'))
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
@@ -430,26 +439,27 @@ class TestUpgradeVP:
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id in verifier_list
         programversion = clients_consensus[0].staking.get_version()
-        assert_code(programversion, self.calculate_version(pip.cfg.version5))
+        assert_code(programversion, pip.cfg.version5)
         programversion = client_noconsensus.staking.get_version()
-        assert_code(programversion, self.calculate_version(pip_test.cfg.version5))
-
+        assert_code(programversion, pip_test.cfg.version5)
 
     @pytest.mark.P1
     @allure.title('Version proposal statistical function verification')
     def test_UV_NO_1(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 2, 0.249)
+        update_setting_rate(new_genesis_env, 2, 0.251)
         pip = clients_consensus[0].pip
         submitvpandvote([clients_consensus[0]])
+        node_version = verifier_node_version(pip)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal infomation  {}'.format(proposalinfo))
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        verifier_node_version(pip, node_version)
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
         assert pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(clients_consensus)
         assert pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert pip.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 0
         assert pip.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
-        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
     @pytest.mark.P1
     @allure.title('Version proposal statistical function verification')
@@ -460,6 +470,7 @@ class TestUpgradeVP:
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal infomation  {}'.format(proposalinfo))
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        verifier_node_version(pip, proposalinfo.get('NewVersion'))
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
         assert pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(clients_consensus)
         assert pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
@@ -468,7 +479,6 @@ class TestUpgradeVP:
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
         wait_block_number(pip.node, proposalinfo.get('ActiveBlock'))
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
-
 
     def test_1(self, new_genesis_env, clients_consensus):
         pip = clients_consensus[-1].pip
@@ -513,5 +523,3 @@ class TestUpgradeVP:
 
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info(verifier_list)
-
-

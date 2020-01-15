@@ -265,6 +265,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 }
 
 func TestSlashingPlugin_BeginBlock(t *testing.T) {
+	newPlugins()
 	_, _, _ = newChainState()
 	si, stateDB := initInfo(t)
 	defer func() {

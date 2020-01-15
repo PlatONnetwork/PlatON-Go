@@ -11,7 +11,7 @@ from ruamel import yaml
 from environment.node import Node
 from environment.server import Server
 from common.abspath import abspath
-from common.key import generate_key
+from common.key import generate_key, generate_blskey
 from common.load_file import LoadFile, calc_hash
 from common.log import log
 from environment.account import Account
@@ -67,6 +67,8 @@ class TestEnvironment:
 
         # accounts
         self.account = Account(self.cfg.account_file, self.genesis_config["config"]["chainId"])
+
+        self.rewrite_genesis_file()
 
     @property
     def consensus_node_list(self) -> List[Node]:
@@ -136,6 +138,7 @@ class TestEnvironment:
         """
         self.cfg = cfg
         genesis_config = LoadFile(self.cfg.genesis_file).get_data()
+        self.rewrite_genesis_file()
         self.set_genesis(genesis_config)
         for node in self.get_all_nodes():
             node.cfg = cfg
@@ -332,8 +335,8 @@ class TestEnvironment:
     def deploy_nodes(self, node_list: List[Node], genesis_file):
         """
         Deployment node
-                                Choose whether to empty the environment depending on whether initialization is required
-                                Upload all node files
+                                                                Choose whether to empty the environment depending on whether initialization is required
+                                                                Upload all node files
         :param node_list:
         :param genesis_file:
         """
@@ -594,6 +597,9 @@ class TestEnvironment:
         if not node_config.get("id") or not node_config.get("nodekey"):
             self.__is_update_node_file = True
             node_config["nodekey"], node_config["id"] = generate_key()
+        if not node_config.get("blsprikey") or not node_config.get("blspubkey"):
+            self.__is_update_node_file = True
+            node_config["blsprikey"], node_config["blspubkey"] = generate_blskey()
         if not node_config.get("port"):
             self.__is_update_node_file = True
             node_config["port"] = 16789
@@ -648,12 +654,12 @@ class TestEnvironment:
 
 
 def create_env(conf_tmp=None, node_file=None, account_file=None, init_chain=True,
-               install_dependency=False, install_supervisor=False) -> TestEnvironment:
+               install_dependency=False, install_supervisor=False, can_deploy=True) -> TestEnvironment:
     if not conf_tmp:
         conf_tmp = DEFAULT_CONF_TMP_DIR
     else:
         conf_tmp = ConfTmpDir(conf_tmp)
-    cfg = TestConfig(conf_tmp=conf_tmp, install_supervisor=install_supervisor, install_dependency=install_dependency, init_chain=init_chain)
+    cfg = TestConfig(conf_tmp=conf_tmp, install_supervisor=install_supervisor, install_dependency=install_dependency, init_chain=init_chain, can_deploy=can_deploy)
     if node_file:
         cfg.node_file = node_file
     if account_file:
