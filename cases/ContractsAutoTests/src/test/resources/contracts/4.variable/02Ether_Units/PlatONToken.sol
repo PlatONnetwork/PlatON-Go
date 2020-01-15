@@ -1,4 +1,4 @@
-pragma solidity 0.5.12;
+pragma solidity 0.5.13;
 
 /**************************************************
 * PlatON的单位关键字有von, kvon, mvon, gvon，szabo,finney,lat,klat,mlat,glat换算格式如下：
@@ -17,22 +17,30 @@ pragma solidity 0.5.12;
 // 对 PlatON  币的几个单位进行测试
 contract PlatONToken {
     // 定义全局变量
-    uint public balance;
+    uint public platontoken;
 
-    function Plat() public returns(uint balance){
-        balance = 1 lat; //1000000000000000000
+    function Token() public{
+        platontoken = 1 von;
     }
 
-    function Pfinney() public returns(uint balance){
-        balance = 1 finney; //1000000000000000
+    function Plat() public view returns(uint platontoken){
+        //1lat = 1000000000000000000
+        return platontoken + 1 lat;
     }
 
-    function Pszabo() public returns(uint balance){
-        balance = 1 szabo; //1000000000000
+    function Pfinney() public view returns(uint platontoken){
+        //1finney = 1000000000000000
+        return platontoken + 1 finney;
     }
 
-    function Pvon() public returns(uint balance){
-        balance = 1 ; //1
+    function Pszabo() public view  returns(uint platontoken){
+        //1 szabo = 1000000000000
+        return platontoken + 1 szabo;
+    }
+
+    function Pvon() public view returns(uint platontoken){
+        //默认缺省单位是von
+        return platontoken + 1;
     }
 
 }

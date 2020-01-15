@@ -4,20 +4,11 @@ import beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.Time;
-import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.abi.datatypes.Array;
-import org.web3j.protocol.core.RemoteCall;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple2;
-import org.web3j.tx.RawTransactionManager;
-import org.web3j.tx.gas.ContractGasProvider;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 
 /**
@@ -73,6 +64,7 @@ public class TimeTest extends ContractPrepareTest {
 
 
         } catch (Exception e) {
+            collector.logStepFail("TimeContract Calling Method fail.", e.toString());
             e.printStackTrace();
         }
     }
