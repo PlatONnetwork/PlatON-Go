@@ -3829,13 +3829,31 @@ func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 			ValidatorTerm   : v.ValidatorTerm,
 			NodeId          : v.NodeId,
 		}
+		var isCurrent = false
 		for _,cv := range currentCandidate{
 			if cv.NodeId == v.NodeId {
 				vQSave[k].DelegateRewardTotal = cv.DelegateRewardTotal.ToInt()
 				vQSave[k].DelegateTotal = cv.DelegateTotal.ToInt()
+				isCurrent = true
 				break;
 			}
 		}
+		if !isCurrent {
+			nodeIdAddr, err := xutil.NodeId2Addr(v.NodeId)
+			if nil != err {
+				log.Error("Failed to NodeId2Addr: parse current nodeId is failed", "err", err)
+			}
+			can, err := sk.GetCandidateInfo(block.Hash(),nodeIdAddr)
+			if err != nil || can == nil{
+				log.Error("Failed to Query Current Round candidate info on stakingPlugin Confirmed When Settletmetn block",
+					"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
+				xcom.PrintObject("Failed get can :", can)
+			} else {
+				vQSave[k].DelegateRewardTotal = can.DelegateRewardTotal
+				vQSave[k].DelegateTotal = can.DelegateTotal
+			}
+		}
+
 	}
 	currentValidatorArray.Arr = vQSave
 	data, err := rlp.EncodeToBytes(currentValidatorArray)
