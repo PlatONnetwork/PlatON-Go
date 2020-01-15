@@ -503,22 +503,22 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int32_t platon_static_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
-	// func $platon_static_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
-	addFuncExport(m,
-		wasm.FunctionSig{
-			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
-			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
-		},
-		wasm.Function{
-			Host: reflect.ValueOf(StaticCallContract),
-			Body: &wasm.FunctionBody{},
-		},
-		wasm.ExportEntry{
-			FieldStr: "platon_static_call",
-			Kind:     wasm.ExternalFunction,
-		},
-	)
+	/*	// int32_t platon_static_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
+		// func $platon_static_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
+		addFuncExport(m,
+			wasm.FunctionSig{
+				ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+			},
+			wasm.Function{
+				Host: reflect.ValueOf(StaticCallContract),
+				Body: &wasm.FunctionBody{},
+			},
+			wasm.ExportEntry{
+				FieldStr: "platon_static_call",
+				Kind:     wasm.ExternalFunction,
+			},
+		)*/
 
 	// int32_t platon_destroy()
 	// func $platon_destroy (result i32)
@@ -568,89 +568,6 @@ func NewHostModule() *wasm.Module {
 			Kind:     wasm.ExternalFunction,
 		},
 	)
-
-	/*// void platon_event(const uint8_t* args, size_t argsLen)
-	// func $platon_event (param $0 i32) (param $1 i32)
-	addFuncExport(m,
-		wasm.FunctionSig{
-			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
-		},
-		wasm.Function{
-			Host: reflect.ValueOf(EmitEvent),
-			Body: &wasm.FunctionBody{},
-		},
-		wasm.ExportEntry{
-			FieldStr: "platon_event",
-			Kind:     wasm.ExternalFunction,
-		},
-	)
-
-	// void platon_event1(const uint8_t* topic, size_t topicLen, const uint8_t* args, size_t argsLen)
-	// func $platon_event1 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
-	addFuncExport(m,
-		wasm.FunctionSig{
-			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
-		},
-		wasm.Function{
-			Host: reflect.ValueOf(EmitEvent1),
-			Body: &wasm.FunctionBody{},
-		},
-		wasm.ExportEntry{
-			FieldStr: "platon_event1",
-			Kind:     wasm.ExternalFunction,
-		},
-	)
-
-	// void platon_event2(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* args, size_t argsLen)
-	// func $platon_event2 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
-	addFuncExport(m,
-		wasm.FunctionSig{
-			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
-		},
-		wasm.Function{
-			Host: reflect.ValueOf(EmitEvent2),
-			Body: &wasm.FunctionBody{},
-		},
-		wasm.ExportEntry{
-			FieldStr: "platon_event2",
-			Kind:     wasm.ExternalFunction,
-		},
-	)
-
-	// void platon_event3(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* topic3, size_t topic3Len, uint8_t* args, size_t argsLen)
-	// func $platon_event3 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
-	addFuncExport(m,
-		wasm.FunctionSig{
-			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
-				wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
-		},
-		wasm.Function{
-			Host: reflect.ValueOf(EmitEvent3),
-			Body: &wasm.FunctionBody{},
-		},
-		wasm.ExportEntry{
-			FieldStr: "platon_event3",
-			Kind:     wasm.ExternalFunction,
-		},
-	)
-
-	// void platon_event4(const uint8_t* topic1, size_t topic1Len, const uint8_t* topic2, size_t topic2Len, const uint8_t* topic3, size_t topic3Len, const uint8_t* topic4, size_t topic4Len, uint8_t* args, size_t argsLen)
-	// func $platon_event4 (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
-	addFuncExport(m,
-		wasm.FunctionSig{
-			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
-				wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
-				wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
-		},
-		wasm.Function{
-			Host: reflect.ValueOf(EmitEvent4),
-			Body: &wasm.FunctionBody{},
-		},
-		wasm.ExportEntry{
-			FieldStr: "platon_event4",
-			Kind:     wasm.ExternalFunction,
-		},
-	)*/
 
 	return m
 }
@@ -905,7 +822,8 @@ func Debug(proc *exec.Process, dst uint32, len uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	buf := make([]byte, len)
 	proc.ReadAt(buf, int64(dst))
-	ctx.Log.Debug(string(buf))
+	ctx.Log.Debug("WASM:" + string(buf))
+	ctx.Log.Flush()
 }
 
 func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
@@ -960,7 +878,7 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 		}
 	}
 
-	//fmt.Println("Addr:", addr.String(), "Data:", input)
+	//fmt.Println("Addr:", addr.String(), "Data:", input, "gas:", gas, "bCost:", bCost, "value:", value)
 	ret, returnGas, err := ctx.evm.Call(ctx.contract, addr, input, gas, bValue)
 	if err != nil {
 		panic(err)
@@ -969,7 +887,7 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 	ctx.contract.Gas += returnGas
 
 	ctx.CallOut = ret
-	return int32(len(ctx.CallOut))
+	return 0
 }
 
 func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
@@ -1002,7 +920,8 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 
 	gas = ctx.evm.callGasTemp
 
-	//fmt.Println("delegateCall,Addr:", addr.String(), "Data:", input)
+	//fmt.Println("################### Addr:", addr.String(), "Data:", input, "gas:", gas, "bCost:", bCost)
+
 	ret, returnGas, err := ctx.evm.DelegateCall(ctx.contract, addr, input, gas)
 	if err != nil {
 		panic(err)
@@ -1011,7 +930,7 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 	ctx.contract.Gas += returnGas
 
 	ctx.CallOut = ret
-	return int32(len(ctx.CallOut))
+	return 0
 }
 
 func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
@@ -1044,7 +963,7 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	checkGas(ctx, gas)
 
 	gas = ctx.evm.callGasTemp
-	//fmt.Println("staticCall, Addr:", addr.String(), "Data:", input)
+
 	ret, returnGas, err := ctx.evm.StaticCall(ctx.contract, addr, input, gas)
 	if err != nil {
 		panic(err)
@@ -1053,7 +972,7 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	ctx.contract.Gas += returnGas
 
 	ctx.CallOut = ret
-	return int32(len(ctx.CallOut))
+	return 0
 }
 
 func DestroyContract(proc *exec.Process) int32 {
@@ -1182,6 +1101,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	// init new contract context
 	contract := NewContract(AccountRef(sender), AccountRef(newContract), balance, gas)
 	contract.SetCallCode(&newContract, crypto.Keccak256Hash(input), input)
+	contract.DeployContract = true
 
 	// deploy new contract
 	ret, err := run(ctx.evm, contract, nil, false)
@@ -1241,20 +1161,16 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 		indexes := make([]byte, indexesLen)
 		proc.ReadAt(indexes, int64(indexesPtr))
 
-		kind, content, _, err := rlp.Split(indexes)
+		content, _, err := rlp.SplitList(indexes)
 
-		switch {
-		case err != nil:
+		if nil != err {
 			panic(err)
-		case kind != rlp.List:
-			panic(fmt.Errorf("failed to parse topics"))
 		}
 
 		decodeTopics := func(b []byte) ([]byte, []byte, error) {
-			_, member, rest, err := rlp.Split(b)
-			switch {
-			case err != nil:
-				return nil, nil, err
+			member, rest, err := rlp.SplitString(b)
+			if nil != err {
+				panic(err)
 			}
 			return member, rest, nil
 		}
@@ -1283,161 +1199,6 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
-
-//func EmitEvent(proc *exec.Process, args, argsLen uint32) {
-//	ctx := proc.HostCtx().(*VMContext)
-//
-//	if ctx.readOnly {
-//		panic(errWASMWriteProtection)
-//	}
-//
-//	gas, err := logGas(0, uint64(argsLen))
-//	if nil != err {
-//		panic(err)
-//	}
-//	checkGas(ctx, gas)
-//
-//	topics := make([]common.Hash, 0)
-//
-//	input := make([]byte, argsLen)
-//	proc.ReadAt(input, int64(args))
-//
-//	bn := ctx.evm.BlockNumber.Uint64()
-//
-//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
-//}
-//
-//func EmitEvent1(proc *exec.Process, t, tLen, args, argsLen uint32) {
-//	ctx := proc.HostCtx().(*VMContext)
-//
-//	if ctx.readOnly {
-//		panic(errWASMWriteProtection)
-//	}
-//
-//	gas, err := logGas(1, uint64(argsLen))
-//	if nil != err {
-//		panic(err)
-//	}
-//	checkGas(ctx, gas)
-//
-//	topic := make([]byte, tLen)
-//	proc.ReadAt(topic, int64(t))
-//	topics := []common.Hash{common.BytesToHash(crypto.Keccak256(topic))}
-//
-//	input := make([]byte, argsLen)
-//	proc.ReadAt(input, int64(args))
-//
-//	bn := ctx.evm.BlockNumber.Uint64()
-//
-//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
-//}
-//
-//func EmitEvent2(proc *exec.Process, t1, t1Len, t2, t2Len, args, argsLen uint32) {
-//	ctx := proc.HostCtx().(*VMContext)
-//
-//	if ctx.readOnly {
-//		panic(errWASMWriteProtection)
-//	}
-//
-//	gas, err := logGas(2, uint64(argsLen))
-//	if nil != err {
-//		panic(err)
-//	}
-//	checkGas(ctx, gas)
-//
-//	topic1 := make([]byte, t1Len)
-//	proc.ReadAt(topic1, int64(t1))
-//	topic2 := make([]byte, t2Len)
-//	proc.ReadAt(topic2, int64(t2))
-//
-//	arr := [][]byte{topic1, topic2}
-//	topics := make([]common.Hash, len(arr))
-//	for i, t := range arr {
-//		topics[i] = common.BytesToHash(crypto.Keccak256(t))
-//	}
-//
-//	input := make([]byte, argsLen)
-//	proc.ReadAt(input, int64(args))
-//
-//	bn := ctx.evm.BlockNumber.Uint64()
-//
-//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
-//}
-//
-//func EmitEvent3(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, args, argsLen uint32) {
-//	ctx := proc.HostCtx().(*VMContext)
-//
-//	if ctx.readOnly {
-//		panic(errWASMWriteProtection)
-//	}
-//
-//	gas, err := logGas(3, uint64(argsLen))
-//	if nil != err {
-//		panic(err)
-//	}
-//	checkGas(ctx, gas)
-//
-//	topic1 := make([]byte, t1Len)
-//	proc.ReadAt(topic1, int64(t1))
-//	topic2 := make([]byte, t2Len)
-//	proc.ReadAt(topic2, int64(t2))
-//
-//	topic3 := make([]byte, t3Len)
-//	proc.ReadAt(topic3, int64(t3))
-//
-//	arr := [][]byte{topic1, topic2, topic3}
-//	topics := make([]common.Hash, len(arr))
-//	for i, t := range arr {
-//		topics[i] = common.BytesToHash(crypto.Keccak256(t))
-//	}
-//
-//	input := make([]byte, argsLen)
-//	proc.ReadAt(input, int64(args))
-//
-//	bn := ctx.evm.BlockNumber.Uint64()
-//
-//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
-//}
-//
-//func EmitEvent4(proc *exec.Process, t1, t1Len, t2, t2Len, t3, t3Len, t4, t4Len, args, argsLen uint32) {
-//	ctx := proc.HostCtx().(*VMContext)
-//
-//	if ctx.readOnly {
-//		panic(errWASMWriteProtection)
-//	}
-//
-//	gas, err := logGas(3, uint64(argsLen))
-//	if nil != err {
-//		panic(err)
-//	}
-//	checkGas(ctx, gas)
-//
-//	topic1 := make([]byte, t1Len)
-//	proc.ReadAt(topic1, int64(t1))
-//
-//	topic2 := make([]byte, t2Len)
-//	proc.ReadAt(topic2, int64(t2))
-//
-//	topic3 := make([]byte, t3Len)
-//	proc.ReadAt(topic3, int64(t3))
-//
-//	topic4 := make([]byte, t4Len)
-//	proc.ReadAt(topic4, int64(t4))
-//
-//	arr := [][]byte{topic1, topic2, topic3, topic4}
-//
-//	topics := make([]common.Hash, len(arr))
-//	for i, t := range arr {
-//		topics[i] = common.BytesToHash(crypto.Keccak256(t))
-//	}
-//
-//	input := make([]byte, argsLen)
-//	proc.ReadAt(input, int64(args))
-//
-//	bn := ctx.evm.BlockNumber.Uint64()
-//
-//	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
-//}
 
 func addLog(state StateDB, address common.Address, topics []common.Hash, data []byte, bn uint64) {
 	log := &types.Log{
