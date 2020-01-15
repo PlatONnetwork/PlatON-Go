@@ -19,7 +19,6 @@ package common
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -52,7 +51,7 @@ func PrintDepricationWarning(str string) {
 `, line, emptyLine, str, emptyLine, line)
 }
 
-func CurrentGoRoutineID() string {
+/*func CurrentGoRoutineID() string {
 	bytes := debug.Stack()
 	for i, ch := range bytes {
 		if ch == '\n' || ch == '\r' {
@@ -68,4 +67,4 @@ func CurrentGoRoutineID() string {
 	} else {
 		return ""
 	}
-}
+}*/
