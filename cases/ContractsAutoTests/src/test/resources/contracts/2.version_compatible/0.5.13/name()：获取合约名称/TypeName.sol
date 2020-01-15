@@ -1,7 +1,7 @@
 pragma solidity 0.5.13;
 
 /**
- * type(C).name()：提供对合约名称的访问
+ * type(C).name()：获取合约名称
  *
  * @author hudenian
  * @dev 2019/12/23 13:57

@@ -52,7 +52,7 @@ contract DisallowSyntax {
     * 5-不允许使用一元运算符 +
     */
     // uint value = +1 ether; //编译出错，可以写成 value = 1ether
-    uint value1 = 1 ether; //编译出错，可以写成 value = 1ether
+    uint value1 = 1 lat; //编译出错，可以写成 value = 1ether
     
     
     /**

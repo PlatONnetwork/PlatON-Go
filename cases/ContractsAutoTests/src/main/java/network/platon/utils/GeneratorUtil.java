@@ -42,7 +42,7 @@ public class GeneratorUtil {
                     System.out.println("Not supported operate system platform");
                 }
             } else {
-                args = new String[]{"/bin/bash", "-c", "pwd && cd ./scripts/platon-web3j/bin && platon-web3j", "solidity", "generate", binPath, abiPath, "-o", outputPath, "-p", packagePath};
+                args = new String[]{"/bin/bash", "-c", "pwd && cd ./scripts/platon-web3j/bin && ./platon-web3j", "solidity", "generate", binPath, abiPath, "-o", outputPath, "-p", packagePath};
             }
 
             ps = Runtime.getRuntime().exec(args);
