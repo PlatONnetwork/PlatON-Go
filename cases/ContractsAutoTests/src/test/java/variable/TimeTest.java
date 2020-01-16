@@ -1,4 +1,4 @@
-package variable.Time;
+package variable;
 
 import beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
