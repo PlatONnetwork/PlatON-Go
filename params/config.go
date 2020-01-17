@@ -144,7 +144,7 @@ var (
 
 	// RallynetChainConfig is the chain parameters to run a node on the Rally network.
 	RallynetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(95),
+		ChainID:     big.NewInt(94),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
