@@ -38,7 +38,7 @@ void platon_debug(uint8_t *dst, size_t len);
 int32_t platon_call(const uint8_t to[20], const uint8_t *args, size_t argsLen, const uint8_t *value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
 int32_t platon_delegate_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
 //int32_t platon_static_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
-int32_t platon_destroy();
+int32_t platon_destroy(const uint8_t to[20]);
 int32_t platon_migrate(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
 void platon_event(const uint8_t* topic, size_t topicLen, const uint8_t* args, size_t argsLen);
 
@@ -227,7 +227,8 @@ void platon_delegate_call_contract_test () {
 
 WASM_EXPORT
 void platon_destroy_contract_test () {
-    platon_destroy();
+    uint8_t addr[20] = {1, 2, 6};
+    platon_destroy(addr);
 }
 
 WASM_EXPORT

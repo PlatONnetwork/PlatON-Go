@@ -444,10 +444,8 @@ var testCase = []*Case{
 			ctx.evm.interpreters = append(ctx.evm.interpreters, NewWASMInterpreter(ctx.evm, ctx.config))
 		},
 		check: func(ctx *VMContext, err error) bool {
-			sender := addr2
 			to := addr1
-
-			flag := ctx.evm.StateDB.GetBalance(sender).Cmp(big.NewInt(3000)) == 0
+			flag := ctx.evm.StateDB.GetBalance(addr3).Cmp(big.NewInt(2000)) == 0
 			suicided := ctx.evm.StateDB.HasSuicided(to)
 			return flag && suicided
 		},
