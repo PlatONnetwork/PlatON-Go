@@ -520,10 +520,11 @@ func NewHostModule() *wasm.Module {
 			},
 		)*/
 
-	// int32_t platon_destroy()
-	// func $platon_destroy (result i32)
+	// int32_t platon_destroy(const uint8_t to[20])
+	// func $platon_destroy (param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
@@ -985,18 +986,21 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	return 0
 }
 
-func DestroyContract(proc *exec.Process) int32 {
+func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
 		panic(errWASMWriteProtection)
 	}
 
-	caller := ctx.contract.Caller()
+	address := make([]byte, common.AddressLength)
+	proc.ReadAt(address, int64(addrPtr))
+	addr := common.BytesToAddress(address)
+
 	contractAddr := ctx.contract.Address()
 
 	gas := params.SelfdestructGas
-	if ctx.evm.StateDB.Empty(caller) && ctx.evm.StateDB.GetBalance(contractAddr).Sign() != 0 {
+	if ctx.evm.StateDB.Empty(addr) && ctx.evm.StateDB.GetBalance(contractAddr).Sign() != 0 {
 		gas += params.CreateBySelfdestructGas
 	}
 
@@ -1007,8 +1011,8 @@ func DestroyContract(proc *exec.Process) int32 {
 	checkGas(ctx, gas)
 
 	balance := ctx.evm.StateDB.GetBalance(contractAddr)
-	//fmt.Println("sender:", ctx.contract.Caller().String(), "to:", ctx.contract.Address().String(), "value:", balance)
-	ctx.evm.StateDB.AddBalance(caller, balance)
+	//fmt.Println("sender:", ctx.contract.Caller().String(), "to:", ctx.contract.Address().String(), "receive:", addr.String(), "value:", balance)
+	ctx.evm.StateDB.AddBalance(addr, balance)
 
 	ctx.evm.StateDB.Suicide(contractAddr)
 
@@ -1027,7 +1031,6 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 		panic(ErrDepth)
 	}
 
-	//
 	oldContract := ctx.contract.Address()
 
 	input := make([]byte, argsLen)
