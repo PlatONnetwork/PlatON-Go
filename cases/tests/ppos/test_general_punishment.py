@@ -677,7 +677,7 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 30
+    genesis.economicModel.slashing.slashBlocksReward = 50
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -695,9 +695,6 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     plan = [{'Epoch': 1, 'Amount': amount}]
     result = client1.restricting.createRestrictingPlan(address, plan, address)
     assert_code(result, 0)
-    # view block_reward
-    block_reward, staking_reward = client1.economic.get_current_year_reward(node)
-    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
     slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
     # create staking
@@ -713,6 +710,9 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     # view Consensus Amount of pledge
     candidate_info = client1.ppos.getCandidateInfo(node.node_id)
     log.info("Pledge node information: {}".format(candidate_info))
+    # view block_reward
+    block_reward, staking_reward = client1.economic.get_current_year_reward(node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     pledge_amount1 = candidate_info['Ret']['Released']
     log.info("Current block height: {}".format(client1.node.eth.blockNumber))
     # stop node

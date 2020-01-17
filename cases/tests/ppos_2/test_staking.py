@@ -22,7 +22,7 @@ def test_IV_001_002_010(global_test_env, client_consensus):
         StakingAddress = node.get("StakingAddress")
         log.info(StakingAddress)
         assert client_consensus.node.web3.toChecksumAddress(StakingAddress) == \
-            client_consensus.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
+               client_consensus.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     log.info(nodeid_list)
     consensus_node_list = global_test_env.consensus_node_list
     nodeid_list_ = [node.node_id for node in consensus_node_list]
@@ -262,7 +262,7 @@ def test_IV_027(client_new_node):
     result = client_new_node.ppos.createStaking(0, address, client_new_node.node.node_id,
                                                 external_id, node_name, website, details, amount,
                                                 program_version, program_version_sign, bls_pubkey, bls_proof,
-                                                pri_key)
+                                                pri_key, reward_per=0)
     assert_code(result, 301002)
 
 

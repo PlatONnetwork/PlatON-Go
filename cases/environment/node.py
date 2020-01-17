@@ -565,3 +565,13 @@ class Node:
         candidate_info = result.get('Ret', {})
         address = candidate_info.get('StakingAddress')
         return self.web3.toChecksumAddress(address)
+
+    @property
+    def benifit_address(self):
+        """
+        staking wallet address
+        """
+        result = self.ppos.getCandidateInfo(self.node_id)
+        candidate_info = result.get('Ret', {})
+        address = candidate_info.get('BenefitAddress')
+        return self.web3.toChecksumAddress(address)

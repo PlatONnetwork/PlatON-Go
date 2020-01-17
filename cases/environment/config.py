@@ -45,6 +45,7 @@ class TestConfig:
         self.remote_supervisor_tmp = "{}/tmp/supervisor_{}/".format(self.deploy_path, conf_tmp.dir)
         self.remote_compression_tmp_path = "{}/tmp/env_{}/".format(self.deploy_path, conf_tmp.dir)
 
+
         # log related
         self.bug_log = abspath("./bug_log")
         self.tmp_log = abspath("./tmp_log")

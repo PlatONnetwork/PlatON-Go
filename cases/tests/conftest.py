@@ -137,7 +137,7 @@ def client_new_node(global_running_env, staking_cfg) -> Client:
     normal_node = global_running_env.get_a_normal_node()
     for noconsensus_node in global_running_env.normal_node_list:
         msg = noconsensus_node.ppos.getCandidateInfo(noconsensus_node.node_id)
-        log.info(noconsensus_node.node_id)
+        log.info(msg)
         if msg["Code"] == 301204:
             log.info("Current linked node: {}".format(noconsensus_node.node_mark))
             return Client(global_running_env, noconsensus_node, staking_cfg)

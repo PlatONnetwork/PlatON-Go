@@ -23,7 +23,7 @@ def test_staking_gas(client_new_node):
                                                 details, economic.create_staking_limit,
                                                 node.program_version, node.program_version_sign, node.blspubkey,
                                                 node.schnorr_NIZK_prove,
-                                                pri_key)
+                                                pri_key,reward_per=0)
 
     assert_code(result, 0)
     data = rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(bytes.fromhex(benifit_address_)),
@@ -140,14 +140,14 @@ def test_edit_candidate_gas(client_new_node):
     balance1 = node.eth.getBalance(benifit_address)
     log.info(balance1)
     result = client.ppos.editCandidate(benifit_address, node.node_id, external_id, node_name, website, details,
-                                       pri_key)
+                                       pri_key,reward_per=0)
     assert_code(result, 0)
     balance2 = node.eth.getBalance(benifit_address)
     log.info(balance2)
     benifit_address_ = benifit_address[2:]
     data = rlp.encode(
         [rlp.encode(int(1001)), rlp.encode(bytes.fromhex(benifit_address_)), rlp.encode(bytes.fromhex(node.node_id)),
-         rlp.encode("external_id"), rlp.encode("node_name"), rlp.encode("website"), rlp.encode("details")])
+         rlp.encode("external_id"), rlp.encode("node_name"), rlp.encode("website"), rlp.encode("details"), rlp.encode(0)])
     gas = get_the_dynamic_parameter_gas_fee(data) + 21000 + 6000 + 12000
     log.info(gas)
 
