@@ -68,7 +68,8 @@ class Economic:
         block_namber = self.consensus_size * roundnum
         count = 0
         for i in range(block_namber):
-            node_id = get_pub_key(node.url, current_block)
+            node_id = node.eth.ecrecover(current_block)
+            # node_id = get_pub_key(node.url, current_block)
             current_block = current_block - 1
             if node_id == node.node_id:
                 count = count + 1
@@ -83,7 +84,8 @@ class Economic:
         block_number = self.settlement_size * roundnum
         count = 0
         for i in range(block_number):
-            node_id = get_pub_key(node.url, last_end_block)
+            node_id = node.eth.ecrecover(last_end_block)
+            # node_id = get_pub_key(node.url, last_end_block)
             last_end_block = last_end_block - 1
             if node_id == node.node_id:
                 count = count + 1
@@ -93,7 +95,6 @@ class Economic:
         block_number = self.get_number_blocks_in_interval(node)
         if reward is None:
             reward = node.ppos.getCandidateInfo(node.node_id)["Ret"]["RewardPer"]
-        print('reward: ', reward)
         return int(Decimal(str(staking_reward))*Decimal(str(reward))/Decimal(str(10000)) + Decimal(str(int(Decimal(str(block_reward))*Decimal(str(reward))/Decimal(str(10000))))) * Decimal(str(block_number)))
 
     def delegate_cumulative_income(self, node, block_reward, staking_reward, delegate_total_amount, delegate_amount, reward=None):
@@ -111,7 +112,6 @@ class Economic:
         current_commission_award = int((Decimal(str(delegate_amount)) / (10 ** 9)) * Decimal(str(unit_commission_award)))
         print("current_commission_award: ", current_commission_award)
         return current_commission_award
-
 
     def get_current_year_reward(self, node: Node, verifier_num=None):
         """
