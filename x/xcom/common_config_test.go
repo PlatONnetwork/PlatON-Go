@@ -12,9 +12,6 @@ func TestGetDefaultEMConfig(t *testing.T) {
 	if getDefaultEMConfig(DefaultRallyNet) == nil {
 		t.Error("DefaultRallyNet can't be nil config")
 	}
-	if getDefaultEMConfig(DefaultUatNet) == nil {
-		t.Error("DefaultUatNet can't be nil config")
-	}
 	if getDefaultEMConfig(DefaultDemoNet) == nil {
 		t.Error("DefaultDemoNet can't be nil config")
 	}

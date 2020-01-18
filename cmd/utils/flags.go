@@ -143,10 +143,6 @@ var (
 		Name:  "rallynet",
 		Usage: "Rallynet network: pre-configured Rally network",
 	}
-	UatnetFlag = cli.BoolFlag{
-		Name:  "uatnet",
-		Usage: "Uatnet network: pre-configured Uat network",
-	}
 	DemonetFlag = cli.BoolFlag{
 		Name:  "demonet",
 		Usage: "Demonet network: pre-configured demo network",
@@ -629,8 +625,6 @@ func MakeDataDir(ctx *cli.Context) string {
 			return filepath.Join(path, "testnet")
 		} else if ctx.GlobalBool(RallynetFlag.Name) {
 			return filepath.Join(path, "rallynet")
-		} else if ctx.GlobalBool(UatnetFlag.Name) {
-			return filepath.Join(path, "uatnet")
 		} else if ctx.GlobalBool(DemonetFlag.Name) {
 			return filepath.Join(path, "demonet")
 		}
@@ -689,8 +683,6 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.TestnetBootnodes
 	case ctx.GlobalBool(RallynetFlag.Name):
 		urls = params.RallynetBootnodes
-	case ctx.GlobalBool(UatnetFlag.Name):
-		urls = params.UatnetBootnodes
 	case ctx.GlobalBool(DemonetFlag.Name):
 		urls = params.DemonetBootnodes
 	case cfg.BootstrapNodes != nil:
@@ -964,8 +956,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
 	case ctx.GlobalBool(RallynetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rallynet")
-	case ctx.GlobalBool(UatnetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "uatnet")
 	case ctx.GlobalBool(DemonetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "demonet")
 	}
@@ -1210,12 +1200,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 3000
 		}
 		cfg.Genesis = core.DefaultRallynetGenesisBlock()
-	// Uat NetWork
-	case ctx.GlobalBool(UatnetFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 4000
-		}
-		cfg.Genesis = core.DefaultUatnetGenesisBlock()
 	// Demo NetWork
 	case ctx.GlobalBool(DemonetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
@@ -1383,8 +1367,6 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.GlobalBool(RallynetFlag.Name):
 		genesis = core.DefaultRallynetGenesisBlock()
-	case ctx.GlobalBool(UatnetFlag.Name):
-		genesis = core.DefaultUatnetGenesisBlock()
 	case ctx.GlobalBool(DemonetFlag.Name):
 		genesis = core.DefaultDemonetGenesisBlock()
 	}
