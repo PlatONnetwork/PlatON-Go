@@ -1119,7 +1119,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 			//"to":                tx.To(),
 			"gasUsed":           hexutil.Uint64(receipt.GasUsed),
 			//"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
-			//"contractAddress":   nil,
+			"contractAddress":   nil,
 			"logs":              rb.Logs,
 			//"logsBloom":         receipt.Bloom,
 		}
@@ -1134,9 +1134,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 			fields["logs"] = [][]*types.Log{}
 		}
 		// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
-		//if receipt.ContractAddress != (common.Address{}) {
-		//	fields["contractAddress"] = receipt.ContractAddress
-		//}
+		if receipt.ContractAddress != (common.Address{}) {
+			fields["contractAddress"] = receipt.ContractAddress
+		}
 		queue[key] = fields;
 	}
 	return queue, nil
