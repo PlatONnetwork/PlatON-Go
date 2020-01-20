@@ -25,8 +25,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -2535,9 +2533,8 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 		lazyCalcDelegateAmount(epoch, del)
 	}
 	totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
-	totalReleasedUnit := new(big.Int).Div(totalReleased, new(big.Int).SetUint64(params.GVon))
 	for i, rewardPer := range per {
-		if totalReleasedUnit.Cmp(common.Big0) > 0 {
+		if totalReleased.Cmp(common.Big0) > 0 {
 			if nil == del.CumulativeIncome {
 				del.CumulativeIncome = new(big.Int)
 			}
@@ -2546,12 +2543,11 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 				Delegate: new(big.Int).Set(totalReleased),
 			}
 			delegateRewardReceives = append(delegateRewardReceives, delegateRewardReceive)
-			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, new(big.Int).Mul(totalReleasedUnit, rewardPer.Per))
+			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, rewardPer.CalDelegateReward(totalReleased))
 		}
 		if i == 0 {
 			lazyCalcDelegateAmount(epoch, del)
 			totalReleased = new(big.Int).Add(del.Released, del.RestrictingPlan)
-			totalReleasedUnit = new(big.Int).Div(totalReleased, new(big.Int).SetUint64(params.GVon))
 		}
 	}
 	log.Debug("Call calcDelegateIncome end", "currEpoch", epoch, "perLen", len(per), "delegateRewardReceivesLen", len(delegateRewardReceives),
