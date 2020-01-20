@@ -332,57 +332,45 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 	})
 
 	type delegateInfo struct {
-		nodeID                                                discover.NodeID
-		stakingNum                                            uint64
-		delegateRewardPer, totalDelegateReward, totalDelegate *big.Int
+		nodeID                                            discover.NodeID
+		stakingNum                                        uint64
+		currentReward, totalDelegateReward, totalDelegate *big.Int
 	}
 
-	generate := func(hash common.Hash, header *types.Header, sdb snapshotdb.DB, info delegateInfo) error {
-		currentEpoch := xutil.CalculateEpoch(header.Number.Uint64())
-		per := reward.NewDelegateRewardPer(currentEpoch, info.delegateRewardPer, info.totalDelegate)
-		if err := AppendDelegateRewardPer(hash, info.nodeID, info.stakingNum, per, sdb); err != nil {
-			log.Error("call HandleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
-			return err
-		}
-		return nil
-	}
 	delegateInfos := make([]delegateInfo, 0)
-	for _, nodeId := range nodeIdArr {
+	for i := 0; i < 10; i++ {
 		delegateInfos = append(delegateInfos, delegateInfo{
-			nodeID:              nodeId,
+			nodeID:              nodeIdArr[0],
 			stakingNum:          100,
-			delegateRewardPer:   big.NewInt(100000000),
+			currentReward:       big.NewInt(100000000),
 			totalDelegateReward: big.NewInt(1000000000),
 			totalDelegate:       big.NewInt(1000000000),
 		})
 	}
+
 	delegateInfos2 := make([]delegateInfo, 0)
-	for _, nodeId := range nodeIdArr {
+	for i := 0; i < 10; i++ {
 		delegateInfos2 = append(delegateInfos2, delegateInfo{
-			nodeID:              nodeId,
+			nodeID:              nodeIdArr[1],
 			stakingNum:          200,
-			delegateRewardPer:   big.NewInt(200000000),
+			currentReward:       big.NewInt(200000000),
 			totalDelegateReward: big.NewInt(2000000000),
 			totalDelegate:       big.NewInt(2000000000),
 		})
 	}
 	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-		for _, info := range delegateInfos {
-			if err := generate(hash, header, sdb, info); err != nil {
+		for index, info := range delegateInfos {
+			per := reward.NewDelegateRewardPer(uint64(index), info.currentReward, info.totalDelegate)
+			if err := AppendDelegateRewardPer(hash, info.nodeID, info.stakingNum, per, sdb); err != nil {
+				log.Error("call HandleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
 				return err
 			}
 		}
-		return nil
-	}); err != nil {
-		t.Error(err)
-		return
-	}
-	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-		return nil
-	})
-	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-		for _, info := range delegateInfos2 {
-			if err := generate(hash, header, sdb, info); err != nil {
+
+		for index, info := range delegateInfos2 {
+			per := reward.NewDelegateRewardPer(uint64(index), info.currentReward, info.totalDelegate)
+			if err := AppendDelegateRewardPer(hash, info.nodeID, info.stakingNum, per, sdb); err != nil {
+				log.Error("call HandleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
 				return err
 			}
 		}
@@ -401,16 +389,19 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	for _, val := range list {
+	for index, val := range list {
 
-		if val.Epoch != xutil.CalculateEpoch(200) {
+		if val.Epoch != uint64(index) {
 			t.Error("epoch should be same ")
 		}
-		if val.DelegateAmount.Cmp(big.NewInt(2000000000)) != 0 {
+		if val.Left.Cmp(big.NewInt(2000000000)) != 0 {
 			t.Error("total amount should be same ")
 		}
-		if val.Per.Cmp(big.NewInt(200000000)) != 0 {
-			t.Error("reward per should be same ")
+		if val.Reward.Cmp(big.NewInt(200000000)) != 0 {
+			t.Error("Reward  should be same ")
+		}
+		if val.Delegate.Cmp(big.NewInt(2000000000)) != 0 {
+			t.Error("Delegate per should be same ")
 		}
 	}
 
@@ -432,8 +423,8 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(list2) != 0 {
-		t.Error("should be empty")
+	if list2[1].Epoch == 1 {
+		t.Error("should be 2")
 	}
 }
 
@@ -711,7 +702,7 @@ func TestDelegateRewardPerUpdateAndAppend(t *testing.T) {
 		list := reward.NewDelegateRewardPerList()
 		perLength := reward.DelegateRewardPerLength*2 + 800
 		for i := 0; i < perLength; i++ {
-			per := reward.NewDelegateRewardPer(uint64(i), big.NewInt(10), big.NewInt(300))
+			per := reward.NewDelegateRewardPer(uint64(i), big.NewInt(300), big.NewInt(300))
 			list.Pers = append(list.Pers, per)
 			if err := AppendDelegateRewardPer(common.ZeroHash, nodeID, 100, per, chain.SnapDB); err != nil {
 				return err
@@ -739,11 +730,11 @@ func TestDelegateRewardPerUpdateAndAppend(t *testing.T) {
 		if per[len(per)-1].Epoch != uint64(perLength-1) {
 			return fmt.Errorf("Epoch is wrong :%v", per[len(per)-1].Epoch)
 		}
-		if per[len(per)-1].DelegateAmount.Cmp(big.NewInt(300)) != 0 {
-			return fmt.Errorf("DelegateAmount is wrong :%v", per[len(per)-1].DelegateAmount)
+		if per[len(per)-1].Left.Cmp(big.NewInt(300)) != 0 {
+			return fmt.Errorf("Left is wrong :%v", per[len(per)-1].Left)
 		}
-		if per[len(per)-1].Per.Cmp(big.NewInt(10)) != 0 {
-			return fmt.Errorf("per  is wrong :%v", per[len(per)-1].Per)
+		if per[len(per)-1].Reward.Cmp(big.NewInt(300)) != 0 {
+			return fmt.Errorf("total reward  is wrong :%v", per[len(per)-1].Reward)
 		}
 
 		return nil

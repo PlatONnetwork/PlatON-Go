@@ -1594,12 +1594,14 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
 	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
-		Epoch: 1,
-		Per:   new(big.Int).SetUint64(10),
+		Epoch:    1,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
 	})
 	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
-		Epoch: 2,
-		Per:   new(big.Int).SetUint64(10),
+		Epoch:    2,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
 	})
 
 	canAddr, _ := xutil.NodeId2Addr(can.NodeId)
@@ -1610,7 +1612,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 		return
 	}
 
-	expectedCumulativeIncome := new(big.Int).Mul(new(big.Int).Div(del.ReleasedHes, new(big.Int).SetUint64(params.GVon)), delegateRewardPerList[1].Per)
+	expectedCumulativeIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
 	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.LAT))
 	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
 		t.Fatal("Failed to Delegate:", err)
@@ -1720,21 +1722,23 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 
 	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
 	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
-		Epoch: 1,
-		Per:   new(big.Int).SetUint64(10),
+		Epoch:    1,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
 	})
 	if err := AppendDelegateRewardPer(blockHash3, can.NodeId, can.StakingBlockNum, delegateRewardPerList[0], sndb); nil != err {
 		t.Fatal(err)
 	}
 	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
-		Epoch: 2,
-		Per:   new(big.Int).SetUint64(10),
+		Epoch:    2,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
 	})
 	if err := AppendDelegateRewardPer(blockHash3, can.NodeId, can.StakingBlockNum, delegateRewardPerList[1], sndb); nil != err {
 		t.Fatal(err)
 	}
 
-	expectedIssueIncome := new(big.Int).Mul(new(big.Int).Div(del.ReleasedHes, new(big.Int).SetUint64(params.GVon)), delegateRewardPerList[1].Per)
+	expectedIssueIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
 	expectedBalance := new(big.Int).Add(state.GetBalance(addrArr[index+1]), expectedIssueIncome)
 	expectedBalance = new(big.Int).Add(expectedBalance, del.ReleasedHes)
 	issueIncome, err := StakingInstance().WithdrewDelegate(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
@@ -3614,14 +3618,16 @@ func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
 	del.CumulativeIncome = new(big.Int)
 	per := make([]*reward.DelegateRewardPer, 0)
 	per = append(per, &reward.DelegateRewardPer{
-		Epoch: 1,
-		Per:   new(big.Int).SetUint64(10),
+		Epoch:    1,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
 	})
 	per = append(per, &reward.DelegateRewardPer{
-		Epoch: 2,
-		Per:   new(big.Int).SetUint64(20),
+		Epoch:    2,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(200),
 	})
-	expectedCumulativeIncome := new(big.Int).Mul(new(big.Int).Div(del.ReleasedHes, new(big.Int).SetInt64(params.GVon)), per[1].Per)
+	expectedCumulativeIncome := per[1].CalDelegateReward(del.ReleasedHes)
 	calcDelegateIncome(3, del, per)
 	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
 
@@ -3634,15 +3640,18 @@ func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
 	del.CumulativeIncome = new(big.Int)
 	per = make([]*reward.DelegateRewardPer, 0)
 	per = append(per, &reward.DelegateRewardPer{
-		Epoch: 2,
-		Per:   new(big.Int).SetUint64(10),
+		Epoch:    2,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
 	})
 	per = append(per, &reward.DelegateRewardPer{
-		Epoch: 3,
-		Per:   new(big.Int).SetUint64(10),
+		Epoch:    3,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
 	})
-	expectedCumulativeIncome = new(big.Int).Mul(new(big.Int).Div(del.Released, new(big.Int).SetInt64(params.GVon)), per[0].Per)
-	expectedCumulativeIncome = expectedCumulativeIncome.Add(expectedCumulativeIncome, new(big.Int).Mul(new(big.Int).Div(new(big.Int).Add(del.Released, del.ReleasedHes), new(big.Int).SetInt64(params.GVon)), per[1].Per))
+
+	expectedCumulativeIncome = per[0].CalDelegateReward(del.Released)
+	expectedCumulativeIncome = expectedCumulativeIncome.Add(expectedCumulativeIncome, per[1].CalDelegateReward(new(big.Int).Add(del.Released, del.ReleasedHes)))
 	calcDelegateIncome(4, del, per)
 	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
 }
