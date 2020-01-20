@@ -18,12 +18,9 @@ package plugin
 
 import (
 	"encoding/json"
-	"errors"
 	"math"
 	"math/big"
 	"sync"
-
-	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -239,13 +236,11 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
 			rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state)
 		} else {
-			delegateTotalLat := new(big.Int).Div(verifier.DelegateTotal, new(big.Int).SetUint64(params.GVon))
-			delegateRewardPer := new(big.Int).Div(verifier.CurrentEpochDelegateReward, delegateTotalLat)
 
-			per := reward.NewDelegateRewardPer(currentEpoch, delegateRewardPer, verifier.DelegateTotal)
+			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, verifier.DelegateTotal)
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
 				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-					"nodeId", verifier.NodeId.TerminalString(), "err", err, "per", delegateRewardPer)
+					"nodeId", verifier.NodeId.TerminalString(), "err", err, "CurrentEpochDelegateReward", verifier.CurrentEpochDelegateReward, "delegateTotal", verifier.DelegateTotal)
 				return err
 			}
 			currentEpochDelegateReward := new(big.Int).Set(verifier.CurrentEpochDelegateReward)
@@ -263,7 +258,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 				return err
 			}
 			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "blockNum", blockNumber, "node_id", verifier.NodeId.TerminalString(), "stakingNum", verifier.StakingBlockNum,
-				"per", delegateRewardPer, "cu_epoch_delegate_reward", currentEpochDelegateReward, "total_delegate_reward", verifier.DelegateRewardTotal, "total_delegate", verifier.DelegateTotal,
+				"cu_epoch_delegate_reward", currentEpochDelegateReward, "total_delegate_reward", verifier.DelegateRewardTotal, "total_delegate", verifier.DelegateTotal,
 				"epoch", currentEpoch)
 		}
 	}
@@ -504,9 +499,6 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, sta
 }
 
 func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) error {
-	if per.Per.Cmp(common.Big0) <= 0 {
-		return errors.New("per must great than zero")
-	}
 	key := reward.DelegateRewardPerKey(nodeID, stakingNum, per.Epoch)
 	list := reward.NewDelegateRewardPerList()
 	val, err := db.Get(blockHash, key)
