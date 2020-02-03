@@ -239,5 +239,4 @@ mvn clean test
 
 ### 5.3 测试代码结构图
 
-![image-20191217094605262](./src/main/resources/templates/images/结构.png)
-
+![结构](.\src\main\resources\templates\images\结构.png)
