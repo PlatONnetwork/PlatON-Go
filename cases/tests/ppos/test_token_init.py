@@ -242,6 +242,9 @@ def test_IT_SD_009(client_consensus):
     assert balance1 == balance + node.web3.toWei(200, 'ether'), "ErrMsg:Account balance after transfer：{}".format(
         balance1)
 
+def test111(client_consensus):
+    client_consensus.economic.env.stop_all()
+
 
 @pytest.mark.P2
 def test_IT_SD_010(client_consensus):

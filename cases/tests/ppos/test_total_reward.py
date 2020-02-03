@@ -1170,3 +1170,34 @@ def test_DG_TR_030(clients_noconsensus, reset_environment):
     block_num = economic.get_number_blocks_in_interval(node)
     end_balance_two = get_ben_balance(node, economic, ben_address)
     assert end_balance_two - end_balance == calculate(block_reward, block_num)
+
+
+@pytest.mark.P1
+def test_DG_TR_031(client_new_node, reset_environment):
+    """
+    领取分红，查看质押节点信息委托总收益金额
+    :param client_new_node:
+    :param reset_environment:
+    :return:
+    """
+    reward = 1000
+    node = client_new_node.node
+    economic = client_new_node.economic
+    create_staking(client_new_node, reward)
+    delegate_address_1, _ = economic.account.generate_account(node.web3, economic.delegate_limit * 4)
+    result = client_new_node.delegate.delegate(0, delegate_address_1)
+    assert_code(result, 0)
+
+    economic.wait_settlement_blocknum(node)
+    log.info("Current block height：{}".format(node.eth.blockNumber))
+    block_reward, staking_reward = economic.get_current_year_reward(node)
+
+    economic.wait_settlement_blocknum(node)
+    log.info("Current block height：{}".format(node.eth.blockNumber))
+    reward_total_one = economic.calculate_delegate_reward(node, block_reward, staking_reward)
+    candidate_info_1 = client_new_node.ppos.getCandidateInfo(node.node_id)
+    assert candidate_info_1["Ret"]["DelegateRewardTotal"] == reward_total_one
+    result = client_new_node.delegate.withdraw_delegate_reward(delegate_address_1)
+    assert_code(result, 0)
+    candidate_info_2 = client_new_node.ppos.getCandidateInfo(node.node_id)
+    assert candidate_info_2["Ret"]["DelegateRewardTotal"] == candidate_info_1["Ret"]["DelegateRewardTotal"]
