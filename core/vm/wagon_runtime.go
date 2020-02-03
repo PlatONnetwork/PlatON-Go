@@ -163,8 +163,8 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_balance(uint8_t addr[20], uin8_t balance[32])
-	// func $platon_balance (param $0 i32) (param $1 i32)
+	// uint8_t platon_balance(const uint8_t addr[20], uint8_t balance[32])
+	// func $platon_balance (param $0 i32) (param $1 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -213,7 +213,7 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// uint8_t platon_call_value(uint8_t val[32]);
-	// func $platon_call_value (param $0 i32)
+	// func $platon_call_value (param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
@@ -617,12 +617,11 @@ func Timestamp(proc *exec.Process) int64 {
 	return ctx.evm.Time.Int64()
 }
 
-func Coinbase(proc *exec.Process, dst uint32) int64 {
+func Coinbase(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
 	coinBase := ctx.evm.Coinbase
 	proc.WriteAt(coinBase.Bytes(), int64(dst))
-	return 0
 }
 
 func Balance(proc *exec.Process, dst uint32, balance uint32) uint32 {
