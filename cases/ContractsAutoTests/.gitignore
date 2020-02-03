@@ -1,0 +1,12 @@
+.idea/*
+*.iml
+target/
+$RECYCLE.BIN/
+velocity.log*
+*.vm
+solc/*
+*.zip
+*plan.error.xml
+src/test/resources/contracts/build/*
+scripts/platon-web3j
+autotest_log
