@@ -217,7 +217,27 @@ mvn clean test
 
 使用`mvn clean test`测试时，因为`windows`默认采用`GBK`编码，所以`src/main/resources/templates`里面的文件编码需要调整成`GBK`，否则报告会乱码
 
-### 
 
 
+## 5 补充说明
+
+目前测试用例版本将包含EVM和WASM两个版本，脚本数和用例数已经变得庞大，为了规范两种类别的自动化测试用例，接下来将区分测试代码和测试数据：
+
+### 5.1 测试方法改造
+
+测试方法的注解需要带`sourcePrefix = "evm"`或者`sourcePrefix = "wasm"`
+
+完整信息：`@DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",        author = "qcxiao", showName = "complexcontracts.TokenTransferTest-代币转移", sourcePrefix = "evm")`
+
+### 5.2 测试数据转移
+
+测试数据均需要放到`evm`或者`wasm`文件夹下面
+
+### 5.2 测试优先级
+
+因为当前EVM测试需要半小时，如何全部执行时只执行WASM的用例，需要在Excel表中的casePriority字段标识成WASM，执行测试时通过命令：`mvn test -DcasePriority=WASM`，此时将只执行WASM的用例
+
+### 5.3 测试代码结构图
+
+![image-20191217094605262](./src/main/resources/templates/images/结构.png)
 
