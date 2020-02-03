@@ -211,7 +211,7 @@ mvn clean test
 
 #### 4.2 报告示例
 
-![image-20191217094605262](./src/main/resources/templates/images/image-20191217094605262.png)
+![image-20191217094605262](https://github.com/qcblockchain/PlatON-Go/blob/feature/wasm/cases/ContractsAutoTests/src/main/resources/templates/images/image-20191217094605262.png)
 
 #### 4.3 编码说明
 
@@ -239,4 +239,4 @@ mvn clean test
 
 ### 5.3 测试代码结构图
 
-![结构](.\src\main\resources\templates\images\结构.png)
+![结构](https://github.com/qcblockchain/PlatON-Go/blob/feature/wasm/cases/ContractsAutoTests/src/main/resources/templates/images/%E7%BB%93%E6%9E%84.png)
