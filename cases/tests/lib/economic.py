@@ -68,11 +68,15 @@ class Economic:
         block_namber = self.consensus_size * roundnum
         count = 0
         for i in range(block_namber):
-            node_id = node.eth.ecrecover(current_block)
-            # node_id = get_pub_key(node.url, current_block)
-            current_block = current_block - 1
-            if node_id == node.node_id:
-                count = count + 1
+            if current_block > 0:
+                node_id = node.eth.ecrecover(current_block)
+                # node_id = get_pub_key(node.url, current_block)
+                current_block = current_block - 1
+                if node_id == node.node_id:
+                    count = count + 1
+            else:
+                break
+        print(current_block)
         return count
 
     def get_number_blocks_in_interval(self, node: Node, roundnum=1):
