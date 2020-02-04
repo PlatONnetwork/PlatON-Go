@@ -493,7 +493,7 @@ def test_DG_TR_013_2(client_new_node, reset_environment):
     candidate_info = client_new_node.ppos.getCandidateInfo(node.node_id)
     assert_next_reward_per(candidate_info, update_reward)
     block_reward, staking_reward = economic.get_current_year_reward(node)
-    balance_pool = int(Decimal(str(calculate_pool_balance(node, economic))) % Decimal(str(10**10)))
+    # balance_pool = int(Decimal(str(calculate_pool_balance(node, economic))) % Decimal(str(10**10)))
 
     economic.wait_settlement_blocknum(node)
     switch_block = calculate_switch_block(node, economic)
@@ -503,7 +503,7 @@ def test_DG_TR_013_2(client_new_node, reset_environment):
     candidate_info = client_new_node.ppos.getCandidateInfo(node.node_id)
     assert_reward_per(candidate_info, update_reward)
     assert_reward_total(candidate_info, delegate_reward_one)
-    assert calculate_pool_balance(node, economic) == balance_pool
+    assert calculate_pool_balance(node, economic) == 0
     assert end_balance - start_balance >= total_reward
 
 
@@ -539,7 +539,7 @@ def test_DG_TR_014(client_new_node, reset_environment):
     candidate_info = client_new_node.ppos.getCandidateInfo(node.node_id)
     assert_next_reward_per(candidate_info, update_reward)
     block_reward, staking_reward = economic.get_current_year_reward(node)
-    balance_pool = int(Decimal(str(calculate_pool_balance(node, economic))) % Decimal(str(10**10)))
+    # balance_pool = int(Decimal(str(calculate_pool_balance(node, economic))) % Decimal(str(10**10)))
     economic.wait_settlement_blocknum(node)
     switch_block = calculate_switch_block(node, economic)
     block_num = economic.get_number_blocks_in_interval(node)
@@ -548,7 +548,7 @@ def test_DG_TR_014(client_new_node, reset_environment):
     candidate_info = client_new_node.ppos.getCandidateInfo(node.node_id)
     total_delegate_reward = delegate_reward_two + delegate_reward_one
     assert_reward_total(candidate_info, total_delegate_reward)
-    assert calculate_pool_balance(node, economic) - balance_pool == delegate_reward_two
+    assert calculate_pool_balance(node, economic) == delegate_reward_two
     assert end_balance - start_balance >= total_reward - delegate_reward_two
     block_reward, staking_reward = economic.get_current_year_reward(node)
 
@@ -557,7 +557,7 @@ def test_DG_TR_014(client_new_node, reset_environment):
     total_reward, delegate_reward_thr = calculate_reward(block_reward, staking_reward, block_num, update_reward)
     candidate_info = client_new_node.ppos.getCandidateInfo(node.node_id)
     assert_reward_total(candidate_info, delegate_reward_one + delegate_reward_two + delegate_reward_thr)
-    assert calculate_pool_balance(node, economic) - balance_pool == delegate_reward_two + delegate_reward_thr
+    assert calculate_pool_balance(node, economic) == delegate_reward_two + delegate_reward_thr
     end_balance_two = node.eth.getBalance(ben_address, switch_block)
     assert end_balance_two - end_balance == total_reward - delegate_reward_thr
 
@@ -731,7 +731,7 @@ def test_DG_TR_018_2(delegate_node_client):
     block_reward_2, staking_reward_2 = economic.get_current_year_reward(node)
     block_num = economic.get_number_blocks_in_interval(node)
     total_reward_one, delegate_reward_one = calculate_reward(block_reward_1, staking_reward_1, block_num, delegate_node_client.reward)
-
+    delegate_reward_one = economic.calculate_delegate_reward(node, block_reward_1, staking_reward_1, delegate_node_client.reward)
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1, "ether"))
 
     for i in range(economic.consensus_wheel):
