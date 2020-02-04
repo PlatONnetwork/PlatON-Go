@@ -96,7 +96,7 @@ class TestEnvironment:
 
     @property
     def version(self):
-        return ""
+        return "0.8.0"
 
     @property
     def running(self) -> bool:
@@ -669,7 +669,7 @@ def create_env(conf_tmp=None, node_file=None, account_file=None, init_chain=True
 
 if __name__ == "__main__":
     from tests.lib import get_no_pledge_node, get_no_pledge_node_list, get_pledge_list, check_node_in_list
-    node_filename = abspath("deploy/node/debug_4_4.yml")
+    node_filename = abspath("deploy/node/one_node.yml")
     env = create_env(node_file=node_filename)
     # print(os.path.getctime(env.cfg.platon_bin_file))
     # new_cfg = copy.copy(env.cfg)
