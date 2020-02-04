@@ -2,11 +2,18 @@
 #include <string>
 using namespace platon;
 
-extern "C"{
-    uint64_t platon_block_number();
-    int64_t platon_timestamp();
-}
-CONTRACT PlatONSpecialFunctionsA : public platon::Contract{
+/**
+* 验证内置的一些与链交互的函数
+* 1.函数platon_block_number
+* 2.函数platon_timestamp
+*/
+
+//extern "C"{
+//    uint64_t platon_block_number();
+//    int64_t platon_timestamp();
+//}
+
+CONTRACT SpecialFunctionsA : public platon::Contract{
 	public:
     ACTION void init(){}
 
