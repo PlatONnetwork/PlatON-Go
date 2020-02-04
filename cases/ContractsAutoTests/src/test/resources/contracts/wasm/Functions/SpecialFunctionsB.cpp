@@ -2,11 +2,19 @@
 #include <string>
 using namespace platon;
 
-extern "C"{
-    uint64_t platon_gas();
-    uint64_t platon_gas_limit();
-    uint64_t platon_gas_price();
-}
+/**
+* 验证内置的一些与链交互的函数
+* 1.函数platon_gas
+* 2.函数platon_gas_limit
+* 3.函数platon_gas_price
+*/
+
+//extern "C"{
+//    uint64_t platon_gas();
+//    uint64_t platon_gas_limit();
+//    uint64_t platon_gas_price();
+//}
+
 CONTRACT PlatONSpecialFunctionsB : public platon::Contract{
 	public:
     ACTION void init(){}
