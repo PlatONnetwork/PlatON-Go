@@ -23,7 +23,7 @@ import java.util.concurrent.Semaphore;
  * @author: qcxiao
  * @create: 2019/12/18 11:27
  **/
-public class GeneratorPreTest extends ContractPrepareTest {
+public class WASMGeneratorPreTest extends ContractPrepareTest {
 
     private String contractAndLibrarys;
 
@@ -36,7 +36,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao",
-            showName = "GeneratorPreTest-编译并生成包装类", sourcePrefix = "evm")
+            showName = "WASMGeneratorPreTest-编译并生成包装类", sourcePrefix = "wasm")
     public void compileAndGenerator() {
         Date compileStartDate = new Date();
         try {
