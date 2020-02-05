@@ -33,7 +33,7 @@ public class DeleteDemoTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.DeleteDemoTest-delete操作测试")
+            author = "liweic", showName = "function.DeleteDemoTest-delete操作测试", sourcePrefix = "evm")
     public void Deletedemo() {
         try {
             DeleteDemo deletedemo = DeleteDemo.deploy(web3j, transactionManager, provider).send();

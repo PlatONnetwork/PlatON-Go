@@ -28,7 +28,7 @@ public class AddressFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.AddressFunctionsTest-地址相关函数测试")
+            author = "liweic", showName = "function.AddressFunctionsTest-地址相关函数测试", sourcePrefix = "evm")
     public void Addressfunctions() {
         try {
             AddressFunctions addressfunctions = AddressFunctions.deploy(web3j, transactionManager, provider).send();

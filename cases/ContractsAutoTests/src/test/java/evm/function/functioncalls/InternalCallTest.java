@@ -27,7 +27,7 @@ public class InternalCallTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.InternalCallTest-函数内部调用测试")
+            author = "liweic", showName = "function.InternalCallTest-函数内部调用测试", sourcePrefix = "evm")
     public void intercall() {
         try {
             IntenalCall intercall = IntenalCall.deploy(web3j, transactionManager, provider).send();

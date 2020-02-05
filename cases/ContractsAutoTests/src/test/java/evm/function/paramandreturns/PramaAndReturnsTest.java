@@ -37,7 +37,7 @@ public class PramaAndReturnsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.PramaAndReturnsTest-参数和返回类型测试")
+            author = "liweic", showName = "function.PramaAndReturnsTest-参数和返回类型测试", sourcePrefix = "evm")
     public void ParamAndReturn() {
         try {
 
