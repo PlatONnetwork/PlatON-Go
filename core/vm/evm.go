@@ -19,7 +19,6 @@ package vm
 import (
 	"context"
 	"math/big"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -102,7 +101,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 
 			}
 		}
-
+	}
 	// Don't bother with the execution if there's no code.
 	if len(contract.Code) == 0 {
 		return nil, nil
