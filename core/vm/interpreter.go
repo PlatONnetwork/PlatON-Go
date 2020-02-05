@@ -22,7 +22,7 @@ import (
 	"hash"
 	"sync/atomic"
 
-        "github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
