@@ -33,7 +33,7 @@ public class AssemblyReturnsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.AssemblyReturnsTest-AssemblyReturns测试")
+            author = "liweic", showName = "function.AssemblyReturnsTest-AssemblyReturns测试", sourcePrefix = "evm")
     public void Assemblyreturns() {
         try {
             AssemblyReturns assemblyreturns = AssemblyReturns.deploy(web3j, transactionManager, provider).send();

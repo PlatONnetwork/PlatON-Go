@@ -26,7 +26,7 @@ public class SelectorTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.SelectorTest-Selector测试")
+            author = "liweic", showName = "function.SelectorTest-Selector测试", sourcePrefix = "evm")
     public void selector() {
         try {
             Selector selector = Selector.deploy(web3j, transactionManager, provider).send();
