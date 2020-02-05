@@ -21,7 +21,7 @@ import "math/big"
 const (
 	GasLimitBoundDivisor uint64 = 256                // The bound divisor of the gas limit, used in update calculations.
 	MinGasLimit          uint64 = 5000               // Minimum the gas limit may ever be.
-	GenesisGasLimit      uint64 = 4712388            // Gas limit of the Genesis block.
+	GenesisGasLimit      uint64 = 100000000          // todo  /*4712388*/ // Gas limit of the Genesis block.
 	DefaultMinerGasCeil  uint64 = 4000 * 21000 * 1.2 // 100800000
 	MaxGasCeil           uint64 = 21000 * 10000
 
@@ -55,25 +55,26 @@ const (
 	NetSstoreResetRefund      uint64 = 4800  // Once per SSTORE operation for resetting to the original non-zero value
 	NetSstoreResetClearRefund uint64 = 19800 // Once per SSTORE operation for resetting to the original zero value
 
-	JumpdestGas      uint64 = 1     // Refunded gas, once per SSTORE operation if the zeroness changes to zero.
-	EpochDuration    uint64 = 30000 // Duration between proof-of-work epochs.
-	CallGas          uint64 = 40    // Once per CALL operation & message call transaction.
-	CreateDataGas    uint64 = 20    //
-	CallCreateDepth  uint64 = 1024  // Maximum depth of call/create stack.
-	ExpGas           uint64 = 10    // Once per EXP instruction
-	LogGas           uint64 = 375   // Per LOG* operation.
-	CopyGas          uint64 = 3     //
-	StackLimit       uint64 = 1024  // Maximum size of VM stack allowed.
-	TierStepGas      uint64 = 0     // Once per operation, for a selection of them.
-	LogTopicGas      uint64 = 375   // Multiplied by the * of the LOG*, per LOG transaction. e.g. LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
-	CreateGas        uint64 = 32000 // Once per CREATE operation & contract-creation transaction.
-	Create2Gas       uint64 = 32000 // Once per CREATE2 operation
-	SuicideRefundGas uint64 = 24000 // Refunded following a suicide operation.
-	MemoryGas        uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
-	TxDataNonZeroGas uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
-
-	// todo: MAX CODE SIZE. pre value : 24576 524288
-	MaxCodeSize = 24576 // Maximum bytecode to permit for a contract
+	JumpdestGas             uint64 = 1     // Refunded gas, once per SSTORE operation if the zeroness changes to zero.
+	EpochDuration           uint64 = 30000 // Duration between proof-of-work epochs.
+	CallGas                 uint64 = 40    // Once per CALL operation & message call transaction.
+	CreateDataGas           uint64 = 20    //
+	CallCreateDepth         uint64 = 1024  // Maximum depth of call/create stack.
+	ExpGas                  uint64 = 10    // Once per EXP instruction
+	LogGas                  uint64 = 375   // Per LOG* operation.
+	CopyGas                 uint64 = 3     //
+	StackLimit              uint64 = 1024  // Maximum size of VM stack allowed.
+	TierStepGas             uint64 = 0     // Once per operation, for a selection of them.
+	LogTopicGas             uint64 = 375   // Multiplied by the * of the LOG*, per LOG transaction. e.g. LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
+	CreateGas               uint64 = 32000 // Once per CREATE operation & contract-creation transaction.
+	Create2Gas              uint64 = 32000 // Once per CREATE2 operation
+	SuicideRefundGas        uint64 = 24000 // Refunded following a suicide operation.
+	MemoryGas               uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
+	TxDataNonZeroGas        uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
+	SelfdestructGas         uint64 = 5000  // Cost of SELFDESTRUCT post EIP 150 (Tangerine)
+	CreateBySelfdestructGas uint64 = 25000 // CreateBySelfdestructGas is used when the refunded account is one that does not exist. This logic is similar to call.Introduced in Tangerine Whistle (Eip 150)
+	// todo: MAX CODE SIZE. pre value : 24576
+	MaxCodeSize = 524288 // Maximum bytecode to permit for a contract
 
 	// Precompiled contract gas prices
 

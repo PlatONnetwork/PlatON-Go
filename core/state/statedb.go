@@ -690,7 +690,7 @@ func (self *StateDB) TxIdx() uint32 {
 	return uint32(self.txIndex)
 }
 
-func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
+/*func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
 	so := db.getStateObject(addr)
 	if so == nil {
 		return
@@ -703,6 +703,43 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 			continue
 		}
 		cb(key, common.BytesToHash(it.Value))
+	}
+}*/
+
+func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte) bool) {
+	so := db.getStateObject(addr)
+	if so == nil {
+		return
+	}
+
+	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
+	for it.Next() {
+		key := db.trie.GetKey(it.Key)
+		if valueKey, ok := so.dirtyStorage[string(key)]; ok {
+			if value, dirty := so.dirtyValueStorage[valueKey]; dirty {
+				cb(key, value)
+				continue
+			}
+		}
+
+		cb(key, db.trie.GetKey(it.Value))
+	}
+}
+
+func (db *StateDB) MigrateStorage(from, to common.Address) {
+
+	fromObj := db.getStateObject(from)
+	toObj := db.getStateObject(to)
+	if nil != fromObj && nil != toObj {
+		// replace storageRootHash
+		toObj.data.Root = fromObj.data.Root
+		// replace storageTrie
+		toObj.trie = db.db.CopyTrie(fromObj.trie)
+		// replace storage
+		toObj.dirtyStorage = fromObj.dirtyStorage.Copy()
+		toObj.dirtyValueStorage = fromObj.dirtyValueStorage.Copy()
+		toObj.originStorage = fromObj.originStorage.Copy()
+		toObj.originValueStorage = fromObj.originValueStorage.Copy()
 	}
 }
 

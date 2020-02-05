@@ -114,7 +114,6 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter:  "evm",
 		GenesisVersion: GenesisVersion,
 	}
 
@@ -138,7 +137,6 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter:  "evm",
 		GenesisVersion: GenesisVersion,
 	}
 
@@ -153,7 +151,6 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter:  "wasm",
 		GenesisVersion: GenesisVersion,
 	}
 
@@ -168,7 +165,6 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter:  "wasm",
 		GenesisVersion: GenesisVersion,
 	}
 
@@ -223,12 +219,9 @@ type ChainConfig struct {
 	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
 	EWASMBlock  *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)
 	// Various consensus engines
-	Clique *CliqueConfig `json:"clique,omitempty"`
-	Cbft   *CbftConfig   `json:"cbft,omitempty"`
-
-	// Various vm interpreter
-	VMInterpreter  string `json:"interpreter,omitempty"`
-	GenesisVersion uint32 `json:"genesisVersion"`
+	Clique         *CliqueConfig `json:"clique,omitempty"`
+	Cbft           *CbftConfig   `json:"cbft,omitempty"`
+	GenesisVersion uint32        `json:"genesisVersion"`
 }
 
 type CbftNode struct {
