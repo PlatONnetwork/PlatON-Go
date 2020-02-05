@@ -66,16 +66,16 @@ public class GeneratorPreTest extends ContractPrepareTest {
      * @create: 2019/12/24 14:44
      **/
     public void compile() throws InterruptedException {
-        String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts").toUri().getPath());
-        String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "build").toUri().getPath());
+        String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm").toUri().getPath());
+        String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "build").toUri().getPath());
         File[] list = new File(buildPath).listFiles();
         if (null != list) {
             for (File file : list) {
                 file.delete();
             }
         }
-        // 获取所有sol源文件
-        List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
+        // 获取所有wasm源文件
+        List<String> files = new OneselfFileUtil().getWasmResourcesFile(resourcePath, 0);
         int size = files.size();
 
         ExecutorService executorService = Executors.newCachedThreadPool();
@@ -90,7 +90,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
-                    compileUtil.evmCompile(file, buildPath);
+                    compileUtil.wasmCompile(file, buildPath);
                     collector.logStepPass("compile success:" + file);
                     semaphore.release();
                 } catch (Exception e) {
