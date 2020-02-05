@@ -57,4 +57,22 @@ public class OneselfFileUtil {
         }
         return files;
     }
+
+    public List<String> getWasmResourcesFile(String path, int deep) {
+        // 获得指定文件对象
+        File file = new File(path);
+        // 获得该文件夹内的所有文件
+        File[] files = file.listFiles();
+        for (int i = 0; i < files.length; i++) {
+            if (files[i].isFile()) {
+                if (files[i].getName().substring(files[i].getName().lastIndexOf(".") + 1).equals("wasm")) {
+                    list.add(files[i].getPath());
+                }
+            } else if (files[i].isDirectory()) {
+                //文件夹需要调用递归 ，深度+1
+                getResourcesFile(files[i].getPath(), deep + 1);
+            }
+        }
+        return list;
+    }
 }
