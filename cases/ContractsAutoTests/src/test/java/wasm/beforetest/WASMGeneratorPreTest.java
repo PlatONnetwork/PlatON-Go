@@ -88,9 +88,11 @@ public class WASMGeneratorPreTest extends ContractPrepareTest {
         for (String file : files) {
             //collector.logStepPass("staring compile:" + file);
             executorService.execute(() -> {
+                String fileName = file.substring(file.lastIndexOf("\\") + 1, file.lastIndexOf(".cpp"));
+                System.out.println(fileName);
                 try {
                     semaphore.acquire();
-                    compileUtil.wasmCompile(file, buildPath);
+                    compileUtil.wasmCompile(file, buildPath + fileName);
                     collector.logStepPass("compile success:" + file);
                     semaphore.release();
                 } catch (Exception e) {
