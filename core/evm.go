@@ -59,6 +59,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Con
 		GasLimit:    header.GasLimit,
 		GasPrice:    new(big.Int).Set(msg.GasPrice()),
 		BlockHash:   blockHash,
+		Difficulty:  new(big.Int).SetUint64(0), // This one must not be deleted, otherwise the solidity contract will be failed
 	}
 }
 
