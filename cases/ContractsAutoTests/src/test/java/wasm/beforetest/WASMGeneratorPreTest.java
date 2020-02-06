@@ -112,7 +112,7 @@ public class WASMGeneratorPreTest extends ContractPrepareTest {
      **/
     public void generatorEVMWrapper() throws InterruptedException {
         // 获取已编译后的二进制文件
-        List<String> binFileName = new OneselfFileUtil().getBinFileName();
+        List<String> binFileName = new OneselfFileUtil().getWasmFileName();
         // 获取合约文件数量
         int size = binFileName.size();
 
@@ -128,7 +128,7 @@ public class WASMGeneratorPreTest extends ContractPrepareTest {
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
-                    generatorUtil.generator(fileName);
+                    generatorUtil.generatorWasm(fileName);
                     collector.logStepPass("generator success:" + fileName);
                     semaphore.release();
                 } catch (Exception e) {
