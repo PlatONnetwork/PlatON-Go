@@ -65,7 +65,7 @@ public class OneselfFileUtil {
         File[] files = file.listFiles();
         for (int i = 0; i < files.length; i++) {
             if (files[i].isFile()) {
-                if (files[i].getName().substring(files[i].getName().lastIndexOf(".") + 1).equals("wasm")) {
+                if (files[i].getName().substring(files[i].getName().lastIndexOf(".") + 1).equals("cpp")) {
                     list.add(files[i].getPath());
                 }
             } else if (files[i].isDirectory()) {
@@ -74,5 +74,23 @@ public class OneselfFileUtil {
             }
         }
         return list;
+    }
+
+    public List<String> getWasmFileName() {
+        List<String> files = new ArrayList<>();
+        String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "build").toUri().getPath());
+        File file = new File(filePath);
+        File[] tempList = file.listFiles();
+
+        for (int i = 0; i < tempList.length; i++) {
+            if (tempList[i].isFile()) {
+                String fileName = tempList[i].getName();
+                if (fileName.substring(fileName.lastIndexOf(".") + 1).equals("wasm")) {
+                    fileName = fileName.substring(0, fileName.lastIndexOf("."));
+                    files.add(fileName);
+                }
+            }
+        }
+        return files;
     }
 }
