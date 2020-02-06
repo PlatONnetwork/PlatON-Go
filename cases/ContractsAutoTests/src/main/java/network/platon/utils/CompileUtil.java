@@ -29,13 +29,15 @@ public class CompileUtil {
     }
 
     public void wasmCompile(String file, String buildPath) throws Exception {
+        Process ps = null;
+        BufferedReader br = null;
         try {
             permit.acquire();
             // /usr/local/bin/platon-cpp
             String[] args = new String[]{"/bin/bash", "-c", "/usr/local/bin/platon-cpp" + " " + "-o" + " " + file + " " + buildPath + " " + "-abigen"};
-            Process ps = Runtime.getRuntime().exec(args);
+            ps = Runtime.getRuntime().exec(args);
             ps.waitFor(2, TimeUnit.SECONDS);
-            BufferedReader br = new BufferedReader(new InputStreamReader(ps.getInputStream()));
+            br = new BufferedReader(new InputStreamReader(ps.getInputStream()));
             StringBuffer sb = new StringBuffer();
 
             String line;
@@ -50,6 +52,8 @@ public class CompileUtil {
             throw new Exception(e);
         } finally {
             permit.release();
+            br.close();
+            ps.destroy();
         }
     }
 }

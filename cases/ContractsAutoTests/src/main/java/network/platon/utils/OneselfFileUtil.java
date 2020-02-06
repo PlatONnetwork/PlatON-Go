@@ -42,7 +42,7 @@ public class OneselfFileUtil {
      */
     public static List<String> getBinFileName() {
         List<String> files = new ArrayList<>();
-        String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "build").toUri().getPath());
+        String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
         File file = new File(filePath);
         File[] tempList = file.listFiles();
 
@@ -70,7 +70,7 @@ public class OneselfFileUtil {
                 }
             } else if (files[i].isDirectory()) {
                 //文件夹需要调用递归 ，深度+1
-                getResourcesFile(files[i].getPath(), deep + 1);
+                getWasmResourcesFile(files[i].getPath(), deep + 1);
             }
         }
         return list;
