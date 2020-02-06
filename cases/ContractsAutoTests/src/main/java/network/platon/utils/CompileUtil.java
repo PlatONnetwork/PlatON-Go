@@ -32,7 +32,7 @@ public class CompileUtil {
         try {
             permit.acquire();
             // /usr/local/bin/platon-cpp
-            String[] args = new String[]{"/bin/bash", "/usr/local/bin/platon-cpp", "-o", file, buildPath, "-abigen"};
+            String[] args = new String[]{"/bin/bash", "-c", "/usr/local/bin/platon-cpp" + " " + "-o" + " " + file + " " + buildPath + " " + "-abigen"};
             Process ps = Runtime.getRuntime().exec(args);
             ps.waitFor(2, TimeUnit.SECONDS);
             BufferedReader br = new BufferedReader(new InputStreamReader(ps.getInputStream()));
@@ -44,6 +44,7 @@ public class CompileUtil {
             }
 
             String result = sb.toString();
+            System.out.println(result);
         } catch (Exception e) {
             e.printStackTrace();
             throw new Exception(e);
