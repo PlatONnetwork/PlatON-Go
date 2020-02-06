@@ -8,10 +8,8 @@ import network.platon.autotest.utils.FileUtil;
 import network.platon.utils.CompileUtil;
 import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -41,7 +39,7 @@ public class WASMGeneratorPreTest {
         Date compileStartDate = new Date();
         try {
             // 1.编译wasm源文件
-            compile();
+            compileWasm();
             Date compileEndDate = new Date();
             long ms = compileEndDate.getTime() - compileStartDate.getTime();
             collector.logStepPass("compile time:" + ms + "ms");
@@ -65,7 +63,7 @@ public class WASMGeneratorPreTest {
      * @author: qcxiao
      * @create: 2019/12/24 14:44
      **/
-    public void compile() throws InterruptedException {
+    public void compileWasm() throws InterruptedException {
         String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm").toUri().getPath());
         String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "build").toUri().getPath());
         File[] list = new File(buildPath).listFiles();
@@ -88,7 +86,7 @@ public class WASMGeneratorPreTest {
         for (String file : files) {
             //collector.logStepPass("staring compile:" + file);
             executorService.execute(() -> {
-                String fileName = file.substring(file.lastIndexOf("/") + 1, file.lastIndexOf(".cpp"));
+                String fileName = file.substring(file.lastIndexOf("/") + 1, file.lastIndexOf(".cpp")) + ".wasm";
                 try {
                     semaphore.acquire();
                     compileUtil.wasmCompile(file, buildPath + fileName);
