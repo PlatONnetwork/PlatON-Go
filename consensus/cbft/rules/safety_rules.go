@@ -228,6 +228,10 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		if current != nil {
 			return newCommonError(fmt.Sprintf("blockIndex already exists(index:%d)", block.BlockIndex))
 		}
+		// Verify the prepareBlock time
+		if err := acceptBlockTime(); err != nil {
+			return err
+		}
 		if isFirstBlock() {
 			if !isQCChild() && !isLockChild() {
 				return newCommonError(fmt.Sprintf("the first index block is not contiguous by local highestQC or highestLock"))
@@ -242,10 +246,6 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		if pre.NumberU64()+1 != block.BlockNum() || pre.Hash() != block.Block.ParentHash() {
 			return newCommonError(fmt.Sprintf("non contiguous index block(preIndex:%d,preNum:%d,preHash:%s,curIndex:%d,curNum:%d,curParentHash:%s)",
 				block.BlockIndex-1, pre.NumberU64(), pre.Hash().String(), block.BlockIndex, block.BlockNum(), block.Block.ParentHash().String()))
-		}
-		// Verify the prepareBlock time
-		if err := acceptBlockTime(); err != nil {
-			return err
 		}
 		return nil
 	}
