@@ -93,7 +93,7 @@ public class GeneratorUtil {
             }
 
             String result = sb.toString();
-            log.debug("result:{}", result);
+            System.out.println(result);
         } catch (Exception e) {
             log.error("contract generator error:{}", e.getMessage());
             throw new Exception(e);

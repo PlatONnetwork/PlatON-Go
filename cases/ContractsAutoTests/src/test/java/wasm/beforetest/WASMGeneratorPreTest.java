@@ -2,11 +2,14 @@ package wasm.beforetest;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
+import network.platon.autotest.junit.rules.AssertCollector;
+import network.platon.autotest.junit.rules.DriverService;
 import network.platon.autotest.utils.FileUtil;
 import network.platon.utils.CompileUtil;
 import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
@@ -19,20 +22,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
 /**
- * @title 1.将cpp编译成二进制和ABI文件，2.通过合约二进制和ABI文件生成包裝类
- * @author: qcxiao
- * @create: 2019/12/18 11:27
- **/
-public class WASMGeneratorPreTest extends ContractPrepareTest {
+ * @title WASMGeneratorPreTest
+ * @description 1.将cpp编译成二进制和ABI文件，2.通过合约二进制和ABI文件生成包裝类
+ * @author qcxiao
+ * @updateTime 2020/2/6 12:11
+ */
+public class WASMGeneratorPreTest {
 
-    private String contractAndLibrarys;
-
-    @Before
-    public void before() {
-        this.prepare();
-        contractAndLibrarys = driverService.param.get("contractAndLibrarys") == null ? "" : driverService.param.get("contractAndLibrarys").toString();
-    }
-
+    @Rule
+    public DriverService driverService = new DriverService();
+    @Rule
+    public AssertCollector collector = new AssertCollector();
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao",
@@ -47,8 +47,8 @@ public class WASMGeneratorPreTest extends ContractPrepareTest {
             collector.logStepPass("compile time:" + ms + "ms");
 
             Date generatorWrapperStartDate = new Date();
-            // 3.通过合约二进制和ABI文件生成包裝类
-            generatorEVMWrapper();
+            // 2.通过合约二进制和ABI文件生成包裝类
+            generatorWasmWrapper();
             Date generatorWrapperEndDate = new Date();
 
             ms = generatorWrapperEndDate.getTime() - generatorWrapperStartDate.getTime();
@@ -88,8 +88,7 @@ public class WASMGeneratorPreTest extends ContractPrepareTest {
         for (String file : files) {
             //collector.logStepPass("staring compile:" + file);
             executorService.execute(() -> {
-                String fileName = file.substring(file.lastIndexOf("\\") + 1, file.lastIndexOf(".cpp"));
-                System.out.println(fileName);
+                String fileName = file.substring(file.lastIndexOf("/") + 1, file.lastIndexOf(".cpp"));
                 try {
                     semaphore.acquire();
                     compileUtil.wasmCompile(file, buildPath + fileName);
@@ -112,7 +111,7 @@ public class WASMGeneratorPreTest extends ContractPrepareTest {
      * @author: qcxiao
      * @create: 2019/12/24 14:45
      **/
-    public void generatorEVMWrapper() throws InterruptedException {
+    public void generatorWasmWrapper() throws InterruptedException {
         // 获取已编译后的二进制文件
         List<String> binFileName = new OneselfFileUtil().getWasmFileName();
         // 获取合约文件数量
