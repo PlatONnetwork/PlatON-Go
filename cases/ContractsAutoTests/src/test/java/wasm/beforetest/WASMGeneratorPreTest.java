@@ -19,7 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
 /**
- * @title 1.将sol编译成二进制和ABI文件，2.通过合约二进制和ABI文件生成包裝类
+ * @title 1.将cpp编译成二进制和ABI文件，2.通过合约二进制和ABI文件生成包裝类
  * @author: qcxiao
  * @create: 2019/12/18 11:27
  **/
