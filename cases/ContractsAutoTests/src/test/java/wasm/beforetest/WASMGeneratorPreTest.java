@@ -58,7 +58,7 @@ public class WASMGeneratorPreTest {
 
 
     /**
-     * @title 将sol编译成二进制和ABI文件
+     * @title 将cpp编译成二进制和ABI文件
      * @description:
      * @author: qcxiao
      * @create: 2019/12/24 14:44

@@ -14,7 +14,8 @@
 
 ### 1.3 包装类生成
 
-初次合约测试脚本编写之前，将二进制和`abi`文件放在`src/test/resources/contracts/build`路径下，再执行`src/test/java/beforetest`路径下的`GeneratorPreTest`类的`junit`方法（右键直接使用`junit`插件即可执行）
+* EVM:将二进制和`abi`文件放在`src/test/resources/contracts/evm/build`路径下，再执行`src/test/java/evm/beforetest`路径下的`GeneratorPreTest`类的`junit`方法（右键直接使用`junit`插件即可执行）
+* WASM:将二进制和`abi`文件放在`src/test/resources/contracts/wasm/build`路径下，再执行`src/test/java/wasm/beforetest`路径下的`WASMGeneratorPreTest`类的`junit`方法（右键直接使用`junit`插件即可执行）
 
 ## 2 合约测试脚本编写
 
