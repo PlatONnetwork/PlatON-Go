@@ -9,7 +9,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
 
 /**
- * @title 合约终止
+ * @title 合约销毁
  * @description:
  * @author: hudenian
  * @create: 2020/02/07
