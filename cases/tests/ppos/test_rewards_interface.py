@@ -807,7 +807,7 @@ class TestwithdrawDelegateReward():
         assert balance_before_withdraw1 - gas1 + rewards1 == balance_after_withdraw1
 
     @pytest.mark.P2
-    def test_IN_DR_004_IN_DR_014(self, clients_new_node):
+    def test_IN_DR_004_IN_DR_014(self, clients_new_node, reset_environment):
         client0 = clients_new_node[0]
         client1 = clients_new_node[1]
         address0, _ = client0.economic.account.generate_account(client0.node.web3, init_amount)
@@ -892,7 +892,7 @@ class TestwithdrawDelegateReward():
         assert balance_before1 - gas1 + rewards1 == balance_after1
 
     @pytest.mark.P2
-    def test_IN_DR_005_IN_DR_015(self, clients_new_node):
+    def test_IN_DR_005_IN_DR_015(self, clients_new_node, reset_environment):
         client0 = clients_new_node[0]
         client1 = clients_new_node[1]
         address0, _ = client0.economic.account.generate_account(client0.node.web3, init_amount)
@@ -1318,7 +1318,7 @@ class TestwithdrawDelegateReward():
 
 class TestGas:
     @pytest.mark.P1
-    def test_IN_GA_001_IN_GA_002(self, clients_new_node):
+    def test_IN_GA_001_IN_GA_002(self, clients_new_node, reset_environment):
         client1 = clients_new_node[0]
         client2 = clients_new_node[1]
         address1, _ = client1.economic.account.generate_account(client1.node.web3, init_amount)
@@ -1642,14 +1642,16 @@ class TestNet:
     @pytest.mark.P2
     def test_DD_NE_003(self, global_test_env):
         test_node = self.deploy_me(global_test_env, 'rallynet')
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 95
+        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 94
         assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 3000
 
     @pytest.mark.P2
     def test_DD_NE_004(self, global_test_env):
-        test_node = self.deploy_me(global_test_env, 'uatnet')
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 299
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 4000
+        pass
+        # delete for 0.8.0
+        # test_node = self.deploy_me(global_test_env, 'uatnet')
+        # assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 299
+        # assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 4000
 
     @pytest.mark.P2
     def test_DD_NE_005(self, global_test_env):
