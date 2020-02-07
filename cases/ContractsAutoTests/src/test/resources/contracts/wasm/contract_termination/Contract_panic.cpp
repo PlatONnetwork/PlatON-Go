@@ -17,7 +17,7 @@ CONTRACT ContractPanic : public platon::Contract{
        * platon 提供断言函数 platon_assert，断言失败会退出合约，此时会花费掉实际执行消耗的 gas。
        * VM returned with error err="execute function code: exec: transaction panic"
        */  
-      ACTION void destory_contract(std::string name, uint64_t value){
+      ACTION void panic_contract(std::string name, uint64_t value){
             stringstorage.self() = name;
             platon_panic();
             stringstorage1.self() = name;
@@ -40,4 +40,4 @@ CONTRACT ContractPanic : public platon::Contract{
       platon::StorageType<string_storage1, std::string> stringstorage1;
 };
 
-PLATON_DISPATCH(ContractPanic, (init)(destory_contract)(set_string_storage)(get_string_storage)(get_string_storage1))
+PLATON_DISPATCH(ContractPanic, (init)(panic_contract)(set_string_storage)(get_string_storage)(get_string_storage1))
