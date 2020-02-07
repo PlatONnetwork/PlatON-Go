@@ -9,12 +9,13 @@ using namespace platon;
  * 测试验证功能点：
  * 1、定义array类型
  *
- * 2、定长/变长array
+ * 2、字节数组bytes
  *
  * */
 extern char const array_uint8[] = "array_uint8_t";
 extern char const array_string[] = "array_string";
 extern char const array_bool[] = "array_bool";
+extern char const array_bytes[] = "array_bytes";
 
 CONTRACT arrayContractTest : public platon::Contract{
 
@@ -22,6 +23,7 @@ CONTRACT arrayContractTest : public platon::Contract{
        platon::StorageType<array_string,std::array<std::string, 10>> array_string;
        platon::StorageType<array_uint8,std::array<uint8_t,10>> array_uint8;
        platon::StorageType<array_bool,std::array<bool,5>> array_bool;
+       platon::StorageType<array_bytes,bytes> array_bytes;
     public:
         ACTION void init(){}
 
@@ -51,21 +53,25 @@ CONTRACT arrayContractTest : public platon::Contract{
              return array_string.self().size();
          }
 
-        /**
-         *2、定长/变长array
-         *
-         **/
-         //1)、验证定长数组赋值超出存储空间、赋值错误类型值
+        //4)、定长array:验证定长数组赋值超出存储空间、赋值错误类型值
          ACTION void setArrayOver(){
                array_bool.self() = {true,false};//正常
                //array_bool.self() = {1,2,3};//异常，赋值错误类型值
                //array_bool.self() = {true,false,true,false,true,false,true,false};//异常，赋值超过存储空间
          }
-         //2)、变长数组---？？如何编写语法
 
+         /**
+          * 2、字节数组bytes
+          *
+          **/
+           ACTION void setBytesArray(){
+               array_bytes.self() = {1,2,3,4,5};
+           }
 
-
-
+           CONST uint8_t getBytesArrayIndex(){
+                return array_bytes.self()[0];
+           }
 };
 
-PLATON_DISPATCH(arrayContractTest, (init)(setArray)(setInitArray)(getArrayIndex)(getArraySize))
+PLATON_DISPATCH(arrayContractTest, (init)(setArray)(setInitArray)(getArrayIndex)(getArraySize)
+                (setArrayOver)(setBytesArray)(getBytesArrayIndex))
