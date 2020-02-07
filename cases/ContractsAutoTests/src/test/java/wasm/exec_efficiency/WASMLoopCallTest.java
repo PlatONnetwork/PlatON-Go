@@ -3,22 +3,21 @@ package wasm.exec_efficiency;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.RecursionCall;
+import network.platon.contracts.LoopCall;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.ContractPrepareTest;
+import wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;
 
 /**
- * @title 执行效率-递归调用
+ * @title 执行效率-循环调用
  * @description:
  * @author: qcxiao
  * @create: 2019/12/26 14:38
  **/
-public class RecursionCallTest extends ContractPrepareTest {
-
+public class WASMLoopCallTest extends WASMContractPrepareTest {
 
     private BigInteger numberOfCalls;
     private String contractAddress;
@@ -30,16 +29,16 @@ public class RecursionCallTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "exec_efficiency.RecursionCallTest-递归执行")
+            author = "qcxiao", showName = "wasm.exec_efficiency.LoopCallTest-循环执行", sourcePrefix = "wasm")
     public void test() {
         prepare();
         try {
-            RecursionCall recursionCall = RecursionCall.deploy(web3j, transactionManager, provider).send();
-            contractAddress = recursionCall.getContractAddress();
+            LoopCall loopCall = LoopCall.deploy(web3j, transactionManager, provider).send();
+            contractAddress = loopCall.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
 
-            TransactionReceipt transactionReceipt = RecursionCall.load(contractAddress, web3j, transactionManager, provider)
-                    .recursionCallTest(numberOfCalls).send();
+            TransactionReceipt transactionReceipt = LoopCall.load(contractAddress, web3j, transactionManager, provider)
+                    .loopCallTest(numberOfCalls).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
             collector.logStepPass("gasUsed:" + gasUsed);

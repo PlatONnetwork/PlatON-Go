@@ -34,7 +34,7 @@ public class WASMGeneratorPreTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao",
-            showName = "WASMGeneratorPreTest-编译并生成包装类", sourcePrefix = "wasm")
+            showName = "wasm.GeneratorPreTest-编译并生成包装类", sourcePrefix = "wasm")
     public void compileAndGenerator() {
         Date compileStartDate = new Date();
         try {

@@ -16,7 +16,7 @@ import java.math.BigInteger;
  * @author: albedo
  * @create: 2019/12/26 11:27
  **/
-public class ContractPrepareTest {
+public class WASMContractPrepareTest {
     @Rule
     public DriverService driverService = new DriverService();
     @Rule

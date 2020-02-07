@@ -27,7 +27,7 @@ public class SpaceComplexityTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "exec_efficiency.SpaceComplexityTest-空间复杂度")
+            author = "qcxiao", showName = "exec_efficiency.SpaceComplexityTest-空间复杂度", sourcePrefix = "evm")
     public void test() {
         prepare();
         try {
