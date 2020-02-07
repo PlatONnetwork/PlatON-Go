@@ -5,7 +5,7 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.LoopCallOfView;
 import org.junit.Before;
 import org.junit.Test;
-import wasm.beforetest.ContractPrepareTest;
+import wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;
 
@@ -15,7 +15,7 @@ import java.math.BigInteger;
  * @author qcxiao
  * @updateTime 2020/1/9 20:19
  */
-public class LoopCallOfViewTest extends ContractPrepareTest {
+public class WASMLoopCallOfViewTest extends WASMContractPrepareTest {
 
     private BigInteger numberOfCalls;
     private String contractAddress;
@@ -27,7 +27,7 @@ public class LoopCallOfViewTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "exec_efficiency.LoopCallOfView-循环执行")
+            author = "qcxiao", showName = "wasm.exec_efficiency.LoopCallOfView-循环执行", sourcePrefix = "wasm")
     public void test() {
         prepare();
         try {
