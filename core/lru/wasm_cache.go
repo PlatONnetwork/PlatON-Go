@@ -16,15 +16,11 @@ var (
 )
 
 type WasmLDBCache struct {
-	lru *simplelru.LRU
-	//db   *leveldb.DB
+	lru  *simplelru.LRU
 	lock sync.RWMutex
 }
 
 type WasmModule struct {
-	//Module       *compiler.Module
-	//FunctionCode []compiler.InterpreterCode
-
 	Module *exec.CompiledModule
 }
 
@@ -32,67 +28,20 @@ func WasmCache() *WasmLDBCache {
 	return wasmCache
 }
 
-//func SetWasmDB(dataDir string) error {
-//	path := filepath.Join(dataDir, DefaultWasmCacheDir)
-//
-//	db, err := leveldb.OpenFile(path, nil)
-//	if err != nil {
-//		return err
-//	}
-//	wasmCache.SetDB(db)
-//	return nil
-//}
-
 func NewWasmCache(size int) (*WasmLDBCache, error) {
 	w := &WasmLDBCache{}
-
-	onEvicted := func(k interface{}, v interface{}) {
-		//var addr common.Address
-		//var module *WasmModule
-		//var ok bool
-		//
-		//if addr, ok = k.(common.Address); !ok {
-		//	return
-		//}
-		//
-		//if module, ok = v.(*WasmModule); !ok {
-		//	return
-		//}
-		//if w.db != nil {
-		//	if ok, err := w.db.Has(addr.Bytes(), nil); err != nil || !ok {
-		//		buffer := new(bytes.Buffer)
-		//		enc := gob.NewEncoder(buffer)
-		//		if err := enc.Encode(module); err != nil {
-		//			log.Error("encode module err:", err)
-		//			return
-		//		}
-		//		w.db.Put(addr.Bytes(), buffer.Bytes(), nil)
-		//	}
-		//}
-	}
-
-	lru, err := simplelru.NewLRU(size, simplelru.EvictCallback(onEvicted))
+	lru, err := simplelru.NewLRU(size, nil)
 
 	if err != nil {
 		return nil, err
 	}
-
 	w.lru = lru
 	return w, nil
 }
 
 func NewWasmLDBCache(size int) (*WasmLDBCache, error) {
 	return NewWasmCache(size)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//w.db = db
-	//return w, nil
 }
-
-//func (w *WasmLDBCache) SetDB(db *leveldb.DB) {
-//	w.db = db
-//}
 
 // Purge is used to completely clear the cache
 func (w *WasmLDBCache) Purge() {
@@ -116,22 +65,6 @@ func (w *WasmLDBCache) Get(key common.Address) (*WasmModule, bool) {
 	if !ok {
 		return nil, ok
 	}
-	//if !ok {
-	//	if w.db != nil {
-	//		if value, err := w.db.Get(key.Bytes(), nil); err == nil {
-	//			module := WasmModule{}
-	//			buffer := bytes.NewReader(value)
-	//			dec := gob.NewDecoder(buffer)
-	//			if err := dec.Decode(&module); err != nil {
-	//				log.Error("decode module err:", err)
-	//				return nil, false
-	//			}
-	//			w.lru.Add(key, &module)
-	//			return &module, true
-	//		}
-	//	}
-	//	return nil, false
-	//}
 	return value.(*WasmModule), ok
 }
 
@@ -158,18 +91,6 @@ func (w *WasmLDBCache) Peek(key common.Address) (*WasmModule, bool) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 	value, ok := w.lru.Peek(key)
-	//if !ok {
-	//	if w.db != nil {
-	//		if value, err := w.db.Get(key.Bytes(), nil); err == nil {
-	//			var module WasmModule
-	//			buffer := bytes.NewReader(value)
-	//			dec := gob.NewDecoder(buffer)
-	//			dec.Decode(&module)
-	//			return &module, true
-	//		}
-	//	}
-	//	return nil, false
-	//}
 	return value.(*WasmModule), ok
 }
 
@@ -192,9 +113,6 @@ func (w *WasmLDBCache) ContainsOrAdd(key common.Address, value *WasmModule) (ok,
 func (w *WasmLDBCache) Remove(key common.Address) {
 	w.lock.Lock()
 	w.lru.Remove(key)
-	//if w.db != nil {
-	//	w.db.Delete(key.Bytes(), nil)
-	//}
 	w.lock.Unlock()
 }
 
