@@ -7,7 +7,8 @@ velocity.log*
 solc/*
 *.zip
 *plan.error.xml
-src/test/resources/contracts/build/*
+src/test/resources/contracts/wasm/build/*
+src/test/resources/contracts/evm/build/*
 scripts/platon-web3j
 autotest_log
 *.wasm
