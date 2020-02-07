@@ -3,10 +3,12 @@
 target/
 $RECYCLE.BIN/
 velocity.log*
-*.vm
+#*.vm
 solc/*
 *.zip
 *plan.error.xml
 src/test/resources/contracts/build/*
 scripts/platon-web3j
 autotest_log
+*.wasm
+*.abi.json
