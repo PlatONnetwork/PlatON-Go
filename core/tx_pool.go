@@ -17,14 +17,18 @@
 package core
 
 import (
+	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"math"
 	"math/big"
+	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -820,58 +824,59 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	// If the transaction is already known, discard it
 	hash := tx.Hash()
-	if pool.all.Get(hash) != nil {
-		log.Trace("Discarding already known transaction", "hash", hash)
-		return false, fmt.Errorf("known transaction: %x", hash)
-	}
-	// If the transaction fails basic validation, discard it
+	//if pool.all.Get(hash) != nil {
+	//	log.Trace("Discarding already known transaction", "hash", hash)
+	//	return false, fmt.Errorf("known transaction: %x", hash)
+	//}
+	//// If the transaction fails basic validation, discard it
 	if err := pool.validateTx(tx, local); err != nil {
 		log.Trace("Discarding invalid transaction", "hash", hash, "err", err)
 		invalidTxCounter.Inc(1)
 		return false, err
 	}
-	// If the transaction pool is full, discard underpriced transactions
-	if uint64(pool.all.Count()) >= pool.config.GlobalSlots+pool.config.GlobalQueue {
-		// If the new transaction is underpriced, don't accept it
-		if !local && pool.priced.Underpriced(tx, pool.locals) {
-			log.Trace("Discarding underpriced transaction", "hash", hash, "price", tx.GasPrice())
-			underpricedTxCounter.Inc(1)
-			return false, ErrUnderpriced
-		}
-		// New transaction is better than our worse ones, make room for it
-		drop := pool.priced.Discard(pool.all.Count()-int(pool.config.GlobalSlots+pool.config.GlobalQueue-1), pool.locals)
-		for _, tx := range drop {
-			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
-			underpricedTxCounter.Inc(1)
-			pool.removeTx(tx.Hash(), false)
-		}
-	}
-	// If the transaction is replacing an already pending one, do directly
-	from, _ := types.Sender(pool.signer, tx) // already validated
-	if list := pool.pending[from]; list != nil && list.Overlaps(tx) {
-		// Nonce already pending, check if required price bump is met
-		inserted, old := list.Add(tx, pool.config.PriceBump)
-		if !inserted {
-			pendingDiscardCounter.Inc(1)
-			return false, ErrReplaceUnderpriced
-		}
-		// New transaction is better, replace old one
-		if old != nil {
-			pool.all.Remove(old.Hash())
-			pool.priced.Removed()
-			pendingReplaceCounter.Inc(1)
-		}
-		pool.all.Add(tx)
-		pool.priced.Put(tx)
-		pool.journalTx(from, tx)
-
-		log.Trace("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
-
-		// We've directly injected a replacement transaction, notify subsystems
-		go pool.txFeed.Send(NewTxsEvent{types.Transactions{tx}})
-
-		return old != nil, nil
-	}
+	//// If the transaction pool is full, discard underpriced transactions
+	//if uint64(pool.all.Count()) >= pool.config.GlobalSlots+pool.config.GlobalQueue {
+	//	// If the new transaction is underpriced, don't accept it
+	//	if !local && pool.priced.Underpriced(tx, pool.locals) {
+	//		log.Debug("Discarding underpriced transaction", "hash", hash, "price", tx.GasPrice())
+	//		underpricedTxCounter.Inc(1)
+	//		return false, ErrUnderpriced
+	//	}
+	//	// New transaction is better than our worse ones, make room for it
+	//	drop := pool.priced.Discard(pool.all.Count()-int(pool.config.GlobalSlots+pool.config.GlobalQueue-1), pool.locals)
+	//	for _, tx := range drop {
+	//		log.Debug("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
+	//		underpricedTxCounter.Inc(1)
+	//		pool.removeTx(tx.Hash(), false)
+	//	}
+	//}
+	//from, _ := types.Sender(pool.signer, tx) // already validated
+	//
+	//// If the transaction is replacing an already pending one, do directly
+	//if list := pool.pending[from]; list != nil && list.Overlaps(tx) {
+	//	// Nonce already pending, check if required price bump is met
+	//	inserted, old := list.Add(tx, pool.config.PriceBump)
+	//	if !inserted {
+	//		pendingDiscardCounter.Inc(1)
+	//		return false, ErrReplaceUnderpriced
+	//	}
+	//	// New transaction is better, replace old one
+	//	if old != nil {
+	//		pool.all.Remove(old.Hash())
+	//		pool.priced.Removed()
+	//		pendingReplaceCounter.Inc(1)
+	//	}
+	//	pool.all.Add(tx)
+	//	pool.priced.Put(tx)
+	//	pool.journalTx(from, tx)
+	//
+	//	log.Trace("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
+	//
+	//	// We've directly injected a replacement transaction, notify subsystems
+	//	go pool.txFeed.Send(NewTxsEvent{types.Transactions{tx}})
+	//
+	//	return old != nil, nil
+	//}
 	// New transaction isn't replacing a pending one, push into queue
 	replace, err := pool.enqueueTx(hash, tx)
 	if err != nil {
@@ -879,14 +884,15 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	}
 	// Mark local addresses and journal local transactions
 	if local {
+		from, _ := types.Sender(pool.signer, tx) // already validated
 		if !pool.locals.contains(from) {
 			log.Info("Setting new local account", "address", from)
 			pool.locals.add(from)
 		}
 	}
-	pool.journalTx(from, tx)
+	//	pool.journalTx(from, tx)
 
-	log.Trace("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
+	//	log.Trace("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
 	return replace, nil
 }
 
@@ -967,6 +973,110 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 	pool.pendingState.SetNonce(addr, tx.Nonce()+1)
 
 	return true
+}
+
+type PriAccount struct {
+	Priv    *ecdsa.PrivateKey
+	Nonce   uint64
+	Address common.Address
+}
+
+func generateAccount(size int) []*PriAccount {
+	addrs := make([]*PriAccount, size)
+	for i := 0; i < size; i++ {
+		privateKey, _ := crypto.GenerateKey()
+		address := crypto.PubkeyToAddress(privateKey.PublicKey)
+		addrs[i] = &PriAccount{privateKey, 0, address}
+	}
+	return addrs
+}
+
+func (pool *TxPool) MakeTransaction() error {
+	time.Sleep(10 * time.Second)
+	pri, err := crypto.HexToECDSA("bfa6c75e2240a4735fdc99a73b48ae42d625f34b859327fc2f0e553f7e97888e")
+	if err != nil {
+		return fmt.Errorf("hex to ecdsa fail:%v", err)
+	}
+	singine := types.NewEIP155Signer(new(big.Int).SetInt64(102))
+
+	accountsize := 10000
+	log.Debug("MakeTransaction begin prepare account", "account size", accountsize)
+	accounts := generateAccount(accountsize)
+	amountEach, _ := new(big.Int).SetString("100000000000000000000", 10)
+	gasPrice := new(big.Int).SetInt64(10000)
+	nonce := uint64(0)
+	for _, account := range accounts {
+		tx := types.NewTransaction(nonce, account.Address, amountEach, 30000, gasPrice, nil)
+		newTx, err := types.SignTx(tx, singine, pri)
+		if err != nil {
+			panic(fmt.Errorf("sign error,%s", err.Error()))
+		}
+		if err := pool.AddLocal(newTx); err != nil {
+			return err
+		}
+		nonce++
+	}
+	log.Debug("MakeTransaction begin prepare account finish")
+
+	time.Sleep(10 * time.Second)
+
+	//	add := common.HexToAddress("0x021875a46201a572fa092e88fab46b8be6a88a13")
+	amount := new(big.Int).SetInt64(1)
+
+	txsCh := make(chan []*types.Transaction, 1)
+	exitCH := make(chan struct{})
+	go func() {
+		for {
+			if len(pool.pending) > 1000 {
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
+			select {
+			case txs := <-txsCh:
+				a := make([]*types.Transaction, 0)
+				now := time.Now()
+				for _, tx := range txs {
+					a = append(a, tx)
+					if len(a) > 300 {
+						pool.addTxs(a, true)
+						a = make([]*types.Transaction, 0)
+					}
+					//err := pool.addTx(tx, false)
+					//if err != nil {
+					//	log.Crit("addTxLocked fail", "err", err)
+					//}
+				}
+				if len(a) > 0 {
+					pool.addTxs(a, true)
+				}
+				log.Debug("MakeTransaction time use", "use", time.Since(now))
+			case <-exitCH:
+				return
+			}
+		}
+	}()
+
+	log.Debug("begin to MakeTransaction")
+	for i := 0; i < 100000000/accountsize; i++ {
+		txs := make([]*types.Transaction, accountsize)
+		for n, account := range accounts {
+			tx := types.NewTransaction(account.Nonce, accounts[rand.Int31n(int32(accountsize))].Address, amount, 30000, gasPrice, nil)
+			newTx, err := types.SignTx(tx, singine, account.Priv)
+			if err != nil {
+				log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
+			}
+			txs[n] = newTx
+			account.Nonce++
+		}
+
+		txsCh <- txs
+		if i%10 == 0 {
+			log.Debug("Transaction have be send", "i", i*accountsize)
+		}
+	}
+	exitCH <- struct{}{}
+	log.Debug("finish to MakeTransaction")
+	return nil
 }
 
 // AddLocal enqueues a single transaction into the pool if it is valid, marking
@@ -1195,6 +1305,10 @@ func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) []error {
 		if replace, errs[i] = pool.add(tx, local); errs[i] == nil && !replace {
 			from, _ := types.Sender(pool.signer, tx) // already validated
 			dirty[from] = struct{}{}
+		} else {
+			if errs[i] != nil {
+				panic(errs[i])
+			}
 		}
 	}
 	// Only reprocess the internal state if something was actually added

@@ -109,6 +109,13 @@ func (s *Ethereum) AddLesServer(ls LesServer) {
 	ls.SetBloomBitsIndexer(s.bloomIndexer)
 }
 
+func (s *Ethereum) MakeTractions() {
+	err := s.txPool.MakeTransaction()
+	if err != nil {
+		panic(err)
+	}
+}
+
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
 func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
