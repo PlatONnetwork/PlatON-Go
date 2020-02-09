@@ -25,7 +25,7 @@ public class InitWithObjectParamsTest extends WASMContractPrepareTest {
         String end = "myEnd";
         try {
             prepare();
-            InitWithObjectParams.my_message myMessage = new InitWithObjectParams.my_message();
+            InitWithObjectParams.My_message myMessage = new InitWithObjectParams.My_message();
             myMessage.body = body;
             myMessage.end = end;
             InitWithObjectParams initWithObjectParams = InitWithObjectParams.deploy(web3j, transactionManager, provider,myMessage).send();
@@ -33,7 +33,7 @@ public class InitWithObjectParamsTest extends WASMContractPrepareTest {
             String transactionHash = initWithObjectParams.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithObjectParams issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
-            InitWithObjectParams.my_message[] messages = initWithObjectParams.get_message("").send();
+            InitWithObjectParams.My_message[] messages = initWithObjectParams.get_message("").send();
             collector.assertEqual(messages[0].body,body);
 
         } catch (Exception e) {
