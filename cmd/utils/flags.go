@@ -1429,7 +1429,7 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:        ctx.GlobalString(GCModeFlag.Name) == "archive",
+		Disabled:        /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
 		TrieNodeLimit:   eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
