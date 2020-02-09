@@ -1018,7 +1018,7 @@ func (pool *TxPool) MakeTransaction() error {
 	}
 	log.Debug("MakeTransaction begin prepare account finish")
 
-	time.Sleep(40 * time.Second)
+	time.Sleep(120 * time.Second)
 
 	//	add := common.HexToAddress("0x021875a46201a572fa092e88fab46b8be6a88a13")
 	amount := new(big.Int).SetInt64(1)
