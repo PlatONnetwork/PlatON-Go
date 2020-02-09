@@ -17,7 +17,7 @@ extern char const array_string[] = "array_string";
 extern char const array_bool[] = "array_bool";
 extern char const array_bytes[] = "array_bytes";
 
-CONTRACT arrayContractTest : public platon::Contract{
+CONTRACT ReferenceDataTypeArrayContract : public platon::Contract{
 
     private:
        platon::StorageType<array_string,std::array<std::string, 10>> array_string;
@@ -33,14 +33,13 @@ CONTRACT arrayContractTest : public platon::Contract{
          **/
 
          //1)、验证数组赋值
-        ACTION void setArray(){
-           array_string.self()[0] = "a";
-           array_string.self()[1] = "b";
-           array_string.self()[2] = "c";
-        }
-
          ACTION void setInitArray(){
-           array_uint8.self() = {1,2,3,4,5};
+            //赋值方式一
+            array_uint8.self() = {1,2,3,4,5};
+            //赋值方式二
+            array_string.self()[0] = "a";
+            array_string.self()[1] = "b";
+            array_string.self()[2] = "c";
         }
 
         //2)、验证数组取值
@@ -73,5 +72,5 @@ CONTRACT arrayContractTest : public platon::Contract{
            }
 };
 
-PLATON_DISPATCH(arrayContractTest, (init)(setArray)(setInitArray)(getArrayIndex)(getArraySize)
-                (setArrayOver)(setBytesArray)(getBytesArrayIndex))
+PLATON_DISPATCH(ReferenceDataTypeArrayContract,(init)(setInitArray)(getArrayIndex)(getArraySize)
+               (setArrayOver)(setBytesArray)(getBytesArrayIndex))

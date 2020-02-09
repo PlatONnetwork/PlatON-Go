@@ -43,8 +43,7 @@ CONTRACT mapContractTest : public platon::Contract{
             map_bool.self()[true] = "test2";//正常
             map_string.self()["1"] = "test3";//正常
             //key为Address类型
-            Address address;
-            platon_caller(address);
+            Address address = platon_caller();//获取交易发起者地址
             map_address.self()[address] = "test4";//正常
         }
         //2)、key关键字只能在map出现一次，value值可以多次

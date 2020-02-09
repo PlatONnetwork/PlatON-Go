@@ -55,10 +55,10 @@ CONTRACT basicDataTypeContract : public platon::Contract{
        platon:: StorageType<uint8_c,uint8_t> cUint8;
        platon:: StorageType<uint8_d,uint8_t> dUint8;
        platon:: StorageType<uint8_e,uint8_t> eUint8;
-       platon:: StorageType<u160_g,u160> gU160;
-       platon:: StorageType<bigInt_h,bigint> hBigInt;
+      // platon:: StorageType<u160_g,u160> gU160;
+      // platon:: StorageType<bigInt_h,bigint> hBigInt;
 
-       platon:: StorageType<byte_a,byte> aByte;
+     /*  platon:: StorageType<byte_a,byte> aByte;
        platon:: StorageType<bool_a,bool> aBool;
        platon:: StorageType<bool_a,bool> bBool;
 
@@ -68,7 +68,7 @@ CONTRACT basicDataTypeContract : public platon::Contract{
        // platon:: StorageType<enum_a,enum> aEnum;
        platon:: StorageType<address_a,Address> contractAddress;
        platon:: StorageType<float_a,float> aFloat;
-       platon:: StorageType<double_a,double> aDouble;
+       platon:: StorageType<double_a,double> aDouble;*/
 
     public:
        ACTION void init(){
@@ -81,11 +81,11 @@ CONTRACT basicDataTypeContract : public platon::Contract{
 
        //1)、验证有符号/无符号整型
        ACTION void setSignedInt(){
-            aInt8.self() = 1;//正常
-            bInt16.self() = -10;//正常
-            cUint8.self() = 3;//正常
-            // dUint8 = -4;//异常，值范围：0~255，估无符号编译异常
-       } 
+           aInt8.self() = 1;//正常
+           bInt16.self() = -10;//正常
+           cUint8.self() = 3;//正常
+           // dUint8 = -4;//异常，值范围：0~255，估无符号编译异常
+        }
 
        //2)、验证无符号整数位数
        ACTION void setUint(){
@@ -96,7 +96,7 @@ CONTRACT basicDataTypeContract : public platon::Contract{
        }
 
        //3)、验证有符号整数位数
-      ACTION void setInt(){
+     /* ACTION void setInt(){
             //8位有符号整数取值范围-128~127
             aInt8.self() = 1;//正常
             aInt8.self() = 127;//正常
@@ -105,41 +105,41 @@ CONTRACT basicDataTypeContract : public platon::Contract{
             fInt8.self() =  -1;//正常
             fInt8.self() =  -128;//正常
             //fInt8.self() =  -129;//异常，整数溢出，编译报错
-      }
+      }*/
 
       //4)、大位数整型赋值
-      ACTION void setBigInt(){
+    /*  ACTION void setBigInt(){
            gU160.self() = 99999999999999;
            hBigInt.self() = 99999999999999999;
-      }
+      }*/
 
       /**
        * 2、布尔型(bool)
        *   取值常量true、false
        *
        **/
-      ACTION void setBool(){
+     /* ACTION void setBool(){
           aBool.self() = true;
           bBool.self() = false;
       }
 
        CONST bool getBool(){
            return aBool.self();
-       }
+       }*/
 
       /**
        * 3、字节类型（byte）
        *   byte相当于uint8_t
        **/
-      ACTION void setByte(){
+    /*  ACTION void setByte(){
           aByte.self() = 100;//正常
-      }
+      }*/
 
       /**
        * 4、字符串(string)
        *    字符串赋值、拼接、字符串.size()
        **/
-       ACTION void setString(){
+      /* ACTION void setString(){
            aString.self() = "A";
            bString.self() = "B";
            cString.self() = "C" +  bString.self();
@@ -151,25 +151,23 @@ CONTRACT basicDataTypeContract : public platon::Contract{
 
        CONST void getStringLength(){
            cString.self().size();
-       }
+       }*/
 
      /**
       * 5、浮点类型(float、double)
       *
       **/
-      ACTION void setFloat(){
+     /* ACTION void setFloat(){
           aFloat.self() = 1.0;
           aDouble.self() = 2.56;
-       }
+       }*/
 
       /**
        * 6、地址类型(Address)
        * 
        **/
      /* ACTION void setContractAddress(){
-           Address address;
-           platon_caller(address);//获取交易发起者地址
-           contractAddress.self() = address;
+           contractAddress.self() = platon_caller();//获取交易发起者地址
       }
 
       CONST std::string getContractAddress(){
@@ -191,5 +189,6 @@ CONTRACT basicDataTypeContract : public platon::Contract{
 
 };
 
-PLATON_DISPATCH(basicDataTypeContract,(init)(setSignedInt)(setUint)(setInt)(setBool)(getBool)
-               (setByte)(setString)(getString)(getStringLength)(setFloat))
+/*PLATON_DISPATCH(basicDataTypeContract,(init)(setUint)(setBool)(getBool)
+               (setByte)(setString)(getString)(getStringLength)(setFloat))*/
+PLATON_DISPATCH(basicDataTypeContract,(init)(setUint))
