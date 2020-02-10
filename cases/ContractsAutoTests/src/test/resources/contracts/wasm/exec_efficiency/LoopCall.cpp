@@ -10,10 +10,10 @@ using namespace platon;
 CONTRACT LoopCall : public platon::Contract {
 
     private:
-        uint8_t sum;
+        uint64_t sum;
     public:
         ACTION void init(){}
-        ACTION void loopCallTest(uint8_t n) {
+        ACTION void loopCallTest(uint64_t n) {
             for (int i = 0; i < n; i++) {
                 sum += i;
             }
