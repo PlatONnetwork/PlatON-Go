@@ -7,10 +7,10 @@ extern char const string_contract_ower[] = "contract_ower";
 
 CONTRACT ContractMigrate : public platon::Contract{
    public:
+      PLATON_EVENT1(transfer,std::string,std::string)
+
       ACTION void init(){
-          Address caller_address;
-          platon_caller(caller_address);
-          contract_ower.self() = caller_address.toString();
+          contract_ower.self() = platon_caller().toString();
       }
 
       /**
@@ -20,13 +20,12 @@ CONTRACT ContractMigrate : public platon::Contract{
        * transfer_value 为转到新合约地址的金额，gas_value 为预估消耗的 gas
        */  
       ACTION std::string migrate_contract(const bytes &init_arg, uint64_t transfer_value, uint64_t gas_value){
-            Address platon_address;
-            platon_origin_caller(platon_address);
-            if (contract_ower.self() != platon_address.toString()){
+            if (contract_ower.self() != platon_caller().toString()){
                 return "invalid address";
             }
             Address return_address;
             platon_migrate_contract(return_address, init_arg, transfer_value, gas_value);
+            PLATON_EMIT_EVENT1(transfer,return_address.toString(),return_address.toString());
             stringstorage.self() = return_address.toString();
             return return_address.toString();
       }

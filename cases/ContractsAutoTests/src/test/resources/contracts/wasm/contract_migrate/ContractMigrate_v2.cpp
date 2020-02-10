@@ -8,6 +8,8 @@ extern char const uint8_storage[] = "uint8storage";
 
 CONTRACT ContractMigrate : public platon::Contract{
    public:
+      PLATON_EVENT1(transfer,std::string,std::string)
+
       ACTION void init(){
           Address caller_address;
           platon_caller(caller_address);
@@ -28,6 +30,7 @@ CONTRACT ContractMigrate : public platon::Contract{
             }
             Address return_address;
             platon_migrate_contract(return_address, init_arg, transfer_value, gas_value);
+            PLATON_EMIT_EVENT1(transfer,return_address.toString(),return_address.toString());
             stringstorage.self() = return_address.toString();
 
 
