@@ -29,11 +29,11 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
 
     public static final String FUNC_SETARRAYOVER = "setArrayOver";
 
+    public static final String FUNC_GETARRAYSIZE = "getArraySize";
+
     public static final String FUNC_SETINITARRAY = "setInitArray";
 
     public static final String FUNC_GETARRAYINDEX = "getArrayIndex";
-
-    public static final String FUNC_GETARRAYSIZE = "getArraySize";
 
     public static final String FUNC_SETBYTESARRAY = "setBytesArray";
 
@@ -50,6 +50,11 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
     public RemoteCall<TransactionReceipt> setArrayOver() {
         final WasmFunction function = new WasmFunction(FUNC_SETARRAYOVER, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<Byte> getArraySize() {
+        final WasmFunction function = new WasmFunction(FUNC_GETARRAYSIZE, Arrays.asList(), Byte.class);
+        return executeRemoteCall(function, Byte.class);
     }
 
     public static RemoteCall<ReferenceDataTypeArrayContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -69,11 +74,6 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
 
     public RemoteCall<Byte> getArrayIndex() {
         final WasmFunction function = new WasmFunction(FUNC_GETARRAYINDEX, Arrays.asList(), Byte.class);
-        return executeRemoteCall(function, Byte.class);
-    }
-
-    public RemoteCall<Byte> getArraySize() {
-        final WasmFunction function = new WasmFunction(FUNC_GETARRAYSIZE, Arrays.asList(), Byte.class);
         return executeRemoteCall(function, Byte.class);
     }
 
