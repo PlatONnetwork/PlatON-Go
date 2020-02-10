@@ -160,4 +160,15 @@ public class DataChangeUtil {
         return new BigInteger(1, bytes).toString(radix);// 这里的1代表正数
     }
 
+
+    public static byte[] toPrimitives(Byte[] oBytes){
+        byte[] bytes = new byte[oBytes.length];
+
+        for(int i = 0; i < oBytes.length; i++) {
+            bytes[i] = oBytes[i];
+        }
+
+        return bytes;
+    }
+
 }
