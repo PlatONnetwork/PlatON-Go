@@ -1040,6 +1040,7 @@ func (pool *TxPool) MakeTransaction() error {
 					if len(a) > 300 {
 						pool.addTxs(a, true)
 						a = make([]*types.Transaction, 0)
+						time.Sleep(time.Millisecond * 50)
 					}
 					//err := pool.addTx(tx, false)
 					//if err != nil {
