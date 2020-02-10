@@ -76,12 +76,15 @@ public class OneselfFileUtil {
         return list;
     }
 
-    public List<String> getWasmFileName() {
+    public List<String> getWasmFileName() throws Exception {
         List<String> files = new ArrayList<>();
         String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "build").toUri().getPath());
         File file = new File(filePath);
         File[] tempList = file.listFiles();
-
+        if (0 == tempList.length) {
+            System.out.println("src/test/resources/contracts/wasm/build路径下无wasm和abi文件，因此请查看编译步骤.");
+            throw new Exception("src/test/resources/contracts/wasm/build路径下无wasm和abi文件");
+        }
         for (int i = 0; i < tempList.length; i++) {
             if (tempList[i].isFile()) {
                 String fileName = tempList[i].getName();
