@@ -51,7 +51,7 @@ public class WASMGeneratorPreTest {
 
             ms = generatorWrapperEndDate.getTime() - generatorWrapperStartDate.getTime();
             collector.logStepPass("generator wrapper time:" + ms + "ms");
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -109,9 +109,10 @@ public class WASMGeneratorPreTest {
      * @author: qcxiao
      * @create: 2019/12/24 14:45
      **/
-    public void generatorWasmWrapper() throws InterruptedException {
+    public void generatorWasmWrapper() throws Exception {
         // 获取已编译后的二进制文件
         List<String> binFileName = new OneselfFileUtil().getWasmFileName();
+
         // 获取合约文件数量
         int size = binFileName.size();
 
