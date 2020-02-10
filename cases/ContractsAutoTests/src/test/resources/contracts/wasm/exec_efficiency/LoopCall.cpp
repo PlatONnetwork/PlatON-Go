@@ -13,10 +13,11 @@ CONTRACT LoopCall : public platon::Contract {
         uint64_t sum;
     public:
         ACTION void init(){}
-        ACTION void loopCallTest(uint64_t n) {
+        ACTION uint64_t loopCallTest(uint64_t n) {
             for (int i = 0; i < n; i++) {
                 sum += i;
             }
+	    return sum;
         }
 };
 PLATON_DISPATCH(LoopCall,(init)(loopCallTest))
