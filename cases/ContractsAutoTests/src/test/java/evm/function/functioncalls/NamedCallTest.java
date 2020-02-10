@@ -29,7 +29,7 @@ public class NamedCallTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.NamedCallTest-函数具名调用测试")
+            author = "liweic", showName = "function.NamedCallTest-函数具名调用测试", sourcePrefix = "evm")
     public void namedcall() {
         try {
             NamedCall namedcall = NamedCall.deploy(web3j, transactionManager, provider).send();

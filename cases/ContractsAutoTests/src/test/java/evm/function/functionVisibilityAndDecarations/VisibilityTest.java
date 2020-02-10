@@ -27,7 +27,7 @@ public class VisibilityTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.VisibilityTest-函数可见性测试")
+            author = "liweic", showName = "function.VisibilityTest-函数可见性测试", sourcePrefix = "evm")
     public void Visibility() {
         try {
             Visibility visibility = Visibility.deploy(web3j, transactionManager, provider).send();

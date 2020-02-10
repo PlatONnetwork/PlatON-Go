@@ -24,7 +24,7 @@ class person {
 
 extern char const person_vector[] = "input_vector";
 
-CONTRACT initOverload : public platon::Contract{
+CONTRACT InitOverload : public platon::Contract{
     public:
     ACTION void init(){}
 

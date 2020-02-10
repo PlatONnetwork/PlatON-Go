@@ -27,4 +27,4 @@ CONTRACT SpecialFunctionsA : public platon::Contract{
 
 };
 
-PLATON_DISPATCH(PlatONSpecialFunctionsA, (init)(getBlockNumber)(getTimestamp))
+PLATON_DISPATCH(SpecialFunctionsA, (init)(getBlockNumber)(getTimestamp))
