@@ -3,9 +3,7 @@ package wasm.contract_migrate;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
-import network.platon.contracts.wasm.ContractDistory;
 import network.platon.contracts.wasm.ContractMigrate_v1;
-import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.rlp.RlpEncoder;
@@ -17,7 +15,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.Arrays;
 
 /**
  * @title 合约升级
