@@ -24,7 +24,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "zjsunzone", showName = "wasm.data_type",sourcePrefix = "wasm")
     public void testFunctionContract() {
-        
+
         try {
             prepare();
 
