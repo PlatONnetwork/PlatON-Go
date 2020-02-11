@@ -218,7 +218,7 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 			return tAddress.self().toString();
 		}
 
-		/// set value for address.
+		/// set value for u256.
 		ACTION void setU256(uint64_t input)
 		{
 			tU256.self() = u256(input);
