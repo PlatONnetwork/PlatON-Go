@@ -24,6 +24,11 @@ CONTRACT InnerFunction:public platon::Contract{
 			return platon::platon_gas_limit();		
 		}
 		
+		/// 获取当前交易发送的Gas
+		CONST uint64_t gas() {
+			return platon::platon_gas();		
+		}
+	
 		
 	
 };
