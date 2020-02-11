@@ -34,6 +34,17 @@ CONTRACT InnerFunction:public platon::Contract{
 			return platon::platon_timestamp();		
 		}
 
+		/// 获取消息发送者的nonce
+		CONST uint64_t nonce() {
+			return platon::platon_caller_nonce();		
+		}
+
+		/// 获取指定区块高度的哈希
+		CONST std::string block_hash(int64_t bn) {
+			h256 bhash = platon::platon_block_hash(bn);
+			return bhash.toString();	
+		}
+			
 		
 	
 };
