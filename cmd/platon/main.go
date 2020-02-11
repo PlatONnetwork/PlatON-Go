@@ -40,6 +40,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/elastic/gosigar"
+	"github.com/panjf2000/ants/v2"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -265,6 +266,7 @@ func init() {
 	app.After = func(ctx *cli.Context) error {
 		debug.Exit()
 		console.Stdin.Close() // Resets terminal mode.
+		ants.Release()
 		return nil
 	}
 }
