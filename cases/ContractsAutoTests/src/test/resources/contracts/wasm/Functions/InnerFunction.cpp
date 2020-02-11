@@ -66,6 +66,13 @@ CONTRACT InnerFunction:public platon::Contract{
 			platon::platon_transfer(Address(addr), Energon(amount));
 		}
 		
+		/// 获取消息携带的value(fix) 
+		/// define: u256 platon_call_value();
+		CONST std::string value() { 
+			u256 val = platon::platon_call_value();
+			return to_string(val);		
+		}
+
 		
 	
 };
