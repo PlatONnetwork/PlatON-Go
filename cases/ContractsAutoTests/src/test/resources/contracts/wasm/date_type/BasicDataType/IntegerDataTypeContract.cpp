@@ -128,6 +128,19 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 			return tInt64.self();
 		}
 
+		/// to set value for uint8.
+		ACTION void setUint8(uint8_t input)
+		{
+			tUint8.self() = input;
+			DEBUG("Invoke setUint8", "input", input);
+		}
+		
+		/// get the value from uint8.
+		CONST uint8_t getUint8()
+		{
+			return tUint8.self();
+		}
+
 	
 	private:
 		platon::StorageType<sint8, int8_t> tInt8;
