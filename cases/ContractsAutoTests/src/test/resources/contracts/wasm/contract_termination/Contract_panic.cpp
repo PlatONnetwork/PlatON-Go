@@ -19,7 +19,7 @@ CONTRACT ContractPanic : public platon::Contract{
        */  
       ACTION void panic_contract(std::string name, uint64_t value){
             stringstorage.self() = name;
-//            platon_panic();
+            ::platon_panic;
             stringstorage1.self() = name;
       }
 
