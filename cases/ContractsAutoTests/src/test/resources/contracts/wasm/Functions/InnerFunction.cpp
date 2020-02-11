@@ -115,9 +115,15 @@ CONTRACT InnerFunction:public platon::Contract{
 			Address ori = platon::platon_origin();
 			return ori.toString();		
 		}
+
+		/// compile test
+		/// summary: compile success.
+		std::string compile(){
+			return "compile";		
+		}
 	
 };
 
-PLATON_DISPATCH(InnerFunction, (init)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase)(transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin))
+PLATON_DISPATCH(InnerFunction, (init)(compile)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase)(transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin))
 
 
