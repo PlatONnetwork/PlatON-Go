@@ -56,6 +56,16 @@ CONTRACT InnerFunction:public platon::Contract{
 			return to_string(e.Get());		
 		}
 
+		/// 主币转账
+		/// define: int32_t platon_transfer(const Address& addr, const Energon& amount);
+		ACTION void transfer(const std::string& addr, uint64_t amount) {
+			if(amount == 0){
+				DEBUG("Transfer failed", "address", addr, "amount", amount);
+				return;
+			}		
+			platon::platon_transfer(Address(addr), Energon(amount));
+		}
+		
 		
 	
 };
