@@ -44,6 +44,8 @@ public class WASMLoopCallTest extends WASMContractPrepareTest {
             collector.logStepPass("gasUsed:" + gasUsed);
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
+            Long sum = LoopCall.load(contractAddress, web3j, transactionManager, provider).get_sum().send();
+            collector.logStepPass("computing result:" + sum);
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());
