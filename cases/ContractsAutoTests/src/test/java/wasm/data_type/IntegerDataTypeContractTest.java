@@ -9,6 +9,7 @@ import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
+import org.web3j.utils.Bytes;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
@@ -48,7 +49,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke int64 success, int64: " + int8);
 
             // test: uint8
-            byte uint8 = contract.uint8t(Byte.valueOf("1")).send();
+            byte uint8 = contract.uint8t(Byte.valueOf((byte)1)).send();
             collector.logStepPass("To invoke uint8t success, uint8: " + uint8);
 
 
