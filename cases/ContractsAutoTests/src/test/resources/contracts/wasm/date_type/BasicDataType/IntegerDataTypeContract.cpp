@@ -140,8 +140,69 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		{
 			return tUint8.self();
 		}
+		
+		/// to set value for uint32.
+		ACTION void setUint32(uint32_t input)
+		{
+			tUint32.self() = input;
+			DEBUG("Invoke setUint32", "input", input);
+		}
+		
+		/// get the value from uint32.
+		CONST uint32_t getUint32()
+		{
+			return tUint32.self();
+		}
 
-	
+		/// to set value for uint64.
+		ACTION void setUint64(uint64_t input)
+		{
+			tUint64.self() = input;
+			DEBUG("Invoke setUint64", "input", input);
+		}
+		
+		/// get the value from uint64.
+		CONST uint64_t getUint64()
+		{
+			return tUint64.self();
+		}
+		
+		/// To set value for string.
+		ACTION void setString(const std::string& input)
+		{
+			tString.self() = input;		
+		}
+		
+		/// get the value from string.
+		CONST std::string getString()
+		{
+			return tString.self();
+		}
+		
+		/// To set value for bool.
+		ACTION void setBool(bool input)
+		{
+			tBool.self() = input;		
+		}
+		
+		/// get the value from bool.
+		CONST bool getBool()
+		{
+			return tBool.self();
+		}
+
+		/// To set value for char.
+		ACTION void setChar(char input)
+		{
+			tByte.self() = input;		
+		}
+		
+		/// get the value from char.
+		CONST char getChar()
+		{
+			return tByte.self();
+		}
+			
 	private:
 		platon::StorageType<sint8, int8_t> tInt8;
 		platon::StorageType<sint32, int32_t> tInt32;
@@ -158,7 +219,9 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 };
 
 PLATON_DISPATCH(IntegerDataTypeContract,(init)(int8)(int64)(uint8t)(uint32t)(uint64t)(u128t)(u256t)
-(setInt8)(getInt8)(setInt32)(getInt32)(setInt64)(getInt64))
+(setInt8)(getInt8)(setInt32)(getInt32)(setInt64)(getInt64)
+(setUint8)(getUint8)(setUint32)(getUint32)(setUint64)(getUint64)
+(setString)(getString)(setBool)(getBool)(setChar)(getChar))
 
 
 
