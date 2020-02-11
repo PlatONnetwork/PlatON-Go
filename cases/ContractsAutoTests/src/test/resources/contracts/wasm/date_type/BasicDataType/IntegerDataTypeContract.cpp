@@ -1,3 +1,5 @@
+// Author: zjsunzone
+// Desc: 验证所有基础数据类型的入参、返回值等是否合规
 #include <platon/platon.hpp>
 #include <string>
 using namespace platon;
@@ -19,10 +21,6 @@ extern char const saddress[] = "saddress";
 extern char const su256[] = "su256";
 extern char const sh256[] = "sh256";
 
-
-/**
- * 验证所有基础数据类型的入参、返回值等是否合规
- */
 CONTRACT IntegerDataTypeContract: public platon::Contract
 {
 
