@@ -1,5 +1,6 @@
 package wasm.contract_func;
 
+import com.fasterxml.jackson.databind.node.BigIntegerNode;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractDistory;
@@ -8,9 +9,13 @@ import org.junit.Test;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * The test class of the function for chain.
@@ -61,7 +66,17 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             collector.assertEqual(credentials.getAddress(), Numeric.prependHexPrefix(coinbase));
 
             // test: transfer
-
+            String toAddress = "0x250b67c9f1baa47dafcd1cfd5ad7780bb7b9b193";
+            long amount = 1;
+            Transfer t = new Transfer(web3j, transactionManager);
+            t.sendFunds(contractAddress, new BigDecimal(amount), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
+            TransactionReceipt transferTr = innerFunction.transfer(toAddress, amount).send();
+            BigInteger balance = web3j.platonGetBalance(toAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("To invoke transfer success, hash:" + transferTr.getTransactionHash() + " balance: " + balance);
+            collector.assertEqual(amount, balance);
+            
             // test: sha3
             String sha3v1 = innerFunction.sha3("this is bob").send();
             String sha3v2 = innerFunction.sha3("this is bob").send();
