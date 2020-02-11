@@ -23,7 +23,7 @@ class sub_my_message : public my_message {
       PLATON_SERIALIZE_DERIVED(sub_my_message, my_message,(from)(to))
 };
 
-extern char const sub_my_message_vector[] = "info";
+//extern char const sub_my_message_vector[] = "info";
 
 CONTRACT TwoInherit : public platon::Contract{
    public:
@@ -48,7 +48,7 @@ CONTRACT TwoInherit : public platon::Contract{
 
 
    private:
-      platon::StorageType<sub_my_message_vector, std::vector<sub_my_message>> info;
+      platon::StorageType<"sub_my_message_vector"_n, std::vector<sub_my_message>> info;
 };
 
 PLATON_DISPATCH(TwoInherit, (init)(add_sub_my_message)(get_sub_my_message_size)(get_sub_my_message_head)(get_sub_my_message_from))
