@@ -78,7 +78,7 @@ type Trie struct {
 	// when their generation is older than than cachegen-cachelimit.
 	cachegen, cachelimit uint16
 
-	dag *TrieDAGV2
+	dag *trieDag
 }
 
 // SetCacheLimit sets the number of 'cache generations' to keep.
@@ -106,7 +106,7 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 	trie := &Trie{
 		db:           db,
 		originalRoot: root,
-		dag:          newTrieDAGV2(),
+		dag:          newTrieDag(),
 	}
 	// If root is not empty, restore the node from the DB (the whole tree)
 	if root != (common.Hash{}) && root != emptyRoot {
@@ -562,18 +562,6 @@ func (t *Trie) Hash() common.Hash {
 	return common.BytesToHash(hash.(hashNode))
 }
 
-func (t *Trie) ParallelHash() common.Hash {
-	tm := time.Now()
-	hash, cached, err := t.parallelHashRoot(nil, nil)
-	if time.Since(tm) >= 10*time.Millisecond {
-		log.Error("Trie Parallel Hash", "duration", time.Since(tm))
-	}
-	if err == nil {
-		t.root = cached
-	}
-	return common.BytesToHash(hash.(hashNode))
-}
-
 func (t *Trie) ParallelHash2() common.Hash {
 	tm := time.Now()
 	hash, cached, err := t.parallelHashRoot2(nil, nil)
@@ -596,24 +584,6 @@ func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	hash, cached, err := t.hashRoot(t.db, onleaf)
 	if time.Since(tm) >= 10*time.Millisecond {
 		log.Error("Trie Commit", "duration", time.Since(tm))
-	}
-	if err != nil {
-		return common.Hash{}, err
-	}
-	t.root = cached
-	t.cachegen++
-	return common.BytesToHash(hash.(hashNode)), nil
-}
-
-func (t *Trie) ParallelCommit(onleaf LeafCallback) (root common.Hash, err error) {
-	if t.db == nil {
-		panic("commit called on trie with nil database")
-	}
-
-	tm := time.Now()
-	hash, cached, err := t.parallelHashRoot(t.db, onleaf)
-	if time.Since(tm) >= 10*time.Millisecond {
-		log.Error("Trie Parallel Commit", "duration", time.Since(tm))
 	}
 	if err != nil {
 		return common.Hash{}, err
@@ -653,15 +623,6 @@ func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	return h.hash(t.root, db, true)
 }
 
-func (t *Trie) parallelHashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
-	if t.root == nil {
-		return hashNode(emptyRoot.Bytes()), nil, nil
-	}
-	dag := NewTrieDAG(t.cachegen, t.cachelimit)
-	dag.init(t.root)
-	return dag.hash(db, true, onleaf)
-}
-
 func (t *Trie) parallelHashRoot2(db *Database, onleaf LeafCallback) (node, node, error) {
 	if t.root == nil {
 		return hashNode(emptyRoot.Bytes()), nil, nil
@@ -694,7 +655,7 @@ func (t *Trie) DeepCopyTrie() *Trie {
 		cachegen:     t.cachegen,
 		cachelimit:   t.cachelimit,
 		//dag:          t.dag.DeepCopy(),
-		dag: newTrieDAGV2(),
+		dag: newTrieDag(),
 	}
 }
 

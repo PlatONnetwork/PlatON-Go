@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"container/list"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -14,101 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDAG(t *testing.T) {
-	dag := NewDAG()
-	assert.True(t, dag.totalVertexs == 0)
-	assert.True(t, dag.totalConsumed == 0)
-
-	dag.addVertex(1)
-	dag.addVertex(2)
-	dag.addVertex(3)
-	dag.addVertex(4)
-	dag.addVertex(5)
-	assert.True(t, dag.totalVertexs == 5)
-
-	dag.addEdge(1, 2)
-	assert.True(t, dag.vtxs[1].outEdge[0] == 2)
-	//assert.True(t, dag.vtxs[2].inDegree == 1)
-
-	dag.addEdge(2, 3)
-	dag.addEdge(3, 4)
-	dag.addEdge(4, 5)
-	dag.generate()
-	assert.True(t, dag.vtxs[2].inDegree == 1)
-	assert.True(t, dag.topLevel.Len() == 1)
-
-	id := dag.waitPop()
-	assert.True(t, id == 1)
-	id = dag.consume(id)
-	assert.True(t, id == 2)
-	id = dag.consume(id)
-	assert.True(t, id == 3)
-	assert.True(t, dag.totalConsumed == 2)
-	id = dag.consume(id)
-	assert.True(t, id == 4)
-	id = dag.consume(id)
-	assert.True(t, id == 5)
-	id = dag.consume(id)
-	assert.True(t, id == invalidId)
-	id = dag.waitPop()
-	assert.True(t, id == invalidId)
-	id = dag.waitPop()
-	assert.True(t, id == invalidId)
-
-	dag.clear()
-	assert.True(t, dag.totalVertexs == 0)
-	assert.True(t, dag.totalConsumed == 0)
-}
-
-func TestTrieDAG(t *testing.T) {
-	dag := NewTrieDAG(0, 0)
-
-	trie := newEmpty()
-
-	updateString(trie, "doe", "reindeer")
-	updateString(trie, "dog", "puppy")
-	updateString(trie, "dogglesworth", "cat")
-
-	cpyTrie := trie.DeepCopyTrie()
-
-	dag.init(trie.root)
-	assert.True(t, len(dag.nodes) > 0)
-
-	hashed, _, err := dag.hash(nil, false, nil)
-	assert.Nil(t, err)
-
-	h, _, e := cpyTrie.hashRoot(nil, nil)
-	assert.Nil(t, e)
-	assert.Equal(t, hashed, h)
-
-	fmt.Printf("%x\n", common.BytesToHash(h.(hashNode)))
-
-	b := getString(trie, "doe")
-	assert.Equal(t, b, []byte("reindeer"))
-
-	h1 := trie.Hash()
-	fmt.Printf("%x\n", h1)
-
-	hash1 := trie.ParallelHash()
-	assert.Equal(t, hash1, h1)
-	hash, err := trie.ParallelCommit(nil)
-	assert.Nil(t, err)
-	assert.Equal(t, hash, h1)
-
-	nt, err := New(hash, trie.db)
-
-	b0 := getString(nt, "doe")
-	assert.Equal(t, b, b0)
-
-	assert.Nil(t, err)
-	updateString(nt, "doog", "test")
-
-	cpyNt := nt.DeepCopyTrie()
-
-	assert.Equal(t, nt.ParallelHash(), cpyNt.Hash())
-}
-
-func TestTrieDAGCommit(t *testing.T) {
+func TestTrieDAG2(t *testing.T) {
 	triedb := NewDatabase(ethdb.NewMemDatabase())
 
 	tr, _ := New(common.Hash{}, triedb)
@@ -117,16 +24,25 @@ func TestTrieDAGCommit(t *testing.T) {
 	updateString(tr, "dog", "puppy")
 	updateString(tr, "dogglesworth", "cat")
 
-	//h, _ := tr.ParallelCommit(nil)
-	h := tr.ParallelHash()
+	h := tr.ParallelHash2()
+
+	ntr := tr.DeepCopyTrie()
+
+	h2, _ := tr.ParallelCommit2(nil)
+	assert.Equal(t, h, h2)
+
+	fmt.Printf("%x\n", h)
 
 	tr0 := newEmpty()
 	updateString(tr0, "doe", "reindeer")
 	updateString(tr0, "dog", "puppy")
 	updateString(tr0, "dogglesworth", "cat")
 	hh := tr0.Hash()
+	fmt.Printf("%x\n", hh)
 
 	assert.Equal(t, h, hh)
+	nh := ntr.ParallelHash2()
+	assert.Equal(t, hh, nh)
 
 	checkr, _ := New(common.Hash{}, triedb)
 
@@ -135,12 +51,53 @@ func TestTrieDAGCommit(t *testing.T) {
 		checkr.Update(it.Key, it.Value)
 	}
 
-	h0 := tr.ParallelHash()
+	//h0 := tr.ParallelHash2()
 	h1 := checkr.Hash()
-	assert.Equal(t, h0, h1)
+	assert.Equal(t, h, h1)
+
+	deleteString(tr, "dog")
+	h = tr.ParallelHash2()
+
+	deleteString(tr0, "dog")
+	hh = tr0.Hash()
+
+	assert.Equal(t, h, hh)
+
+	deleteString(ntr, "dog")
+	updateString(ntr, "dob", "dddd")
+	updateString(tr0, "dob", "dddd")
+	assert.Equal(t, ntr.ParallelHash2(), tr0.ParallelHash2())
 }
 
-func testTrieDAGRnd(t *testing.T, n int) {
+func TestList(t *testing.T) {
+	l := list.New()
+	l.PushFront(1)
+	l.PushFront(2)
+	l.PushFront(3)
+
+	e := l.Back()
+	l.Remove(e)
+	e = l.Back()
+	l.Remove(e)
+	assert.NotNil(t, e)
+}
+
+func TestRnd2(t *testing.T) {
+	testTrieDAGRnd2(t, 1)
+	testTrieDAGRnd2(t, 10)
+	testTrieDAGRnd2(t, 100)
+	testTrieDAGRnd2(t, 248) // special point, error
+	testTrieDAGRnd2(t, 500)
+	testTrieDAGRnd2(t, 1000)
+	testTrieDAGRnd2(t, 2045) // special point, error
+	testTrieDAGRnd2(t, 10000)
+	testTrieDAGRnd2(t, 100000)
+	testTrieDAGRnd2(t, 513294) //513295
+	//testTrieDAGRnd2(t, 1000000)
+	//testTrieDAGRnd2(t, 5000000)
+}
+
+func testTrieDAGRnd2(t *testing.T, n int) {
 	// Make the random benchmark deterministic
 	random := rand.New(rand.NewSource(0))
 
@@ -161,21 +118,33 @@ func testTrieDAGRnd(t *testing.T, n int) {
 		)
 		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
 	}
+	fmt.Println("gen accounts end")
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
 	cpyTrie := newEmpty()
 	for i := 0; i < len(addresses); i++ {
+		if i == 247 {
+			trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+			cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+			continue
+		}
+		if i == 2044 {
+			trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+			cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+			continue
+		}
+		if i == 200000 {
+			trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+			cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+			continue
+		}
 		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 		cpyTrie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 	}
 
-	dag := NewTrieDAG(0, 0)
 	tm := time.Now()
-	dag.init(trie.root)
-	fmt.Printf("n: %d, init duration: %s\n", n, time.Since(tm))
-	tm = time.Now()
-	hashed, _, err := dag.hash(nil, false, nil)
-	fmt.Printf("n: %d, hash duration: %s\n", n, time.Since(tm))
+	hashed, _, err := trie.dag.hash(nil, false, nil)
+	fmt.Printf("n: %d, parallel hash duration: %s\n", n, time.Since(tm))
 	assert.Nil(t, err)
 	tm = time.Now()
 	h, _, e := cpyTrie.hashRoot(nil, nil)
@@ -184,14 +153,81 @@ func testTrieDAGRnd(t *testing.T, n int) {
 	assert.Equal(t, hashed, h)
 }
 
-func TestRnd(t *testing.T) {
-	testTrieDAGRnd(t, 1)
-	testTrieDAGRnd(t, 10)
-	testTrieDAGRnd(t, 100)
-	testTrieDAGRnd(t, 1000)
-	testTrieDAGRnd(t, 10000)
-	testTrieDAGRnd(t, 100000)
-	//testTrieDAGRnd(t, 1000000)
-	//testTrieDAGRnd(t, 5000000)
-	//testTrieDAGRnd(t, 10000000)
+func TestDAGCommit(t *testing.T) {
+	triedb := NewDatabase(ethdb.NewMemDatabase())
+	tr, _ := New(common.Hash{}, triedb)
+
+	tr.Update([]byte("adabce"), []byte("12312312"))
+
+	tr.ParallelHash2()
+	tr.ParallelCommit2(nil)
+
+	tr.Update([]byte("bcdade"), []byte("12312321"))
+	tr.Update([]byte("quedad"), []byte("asfasf"))
+	tr.ParallelCommit2(nil)
+	tr.ParallelCommit2(nil)
+	tr.ParallelCommit2(nil)
+	tr.Update([]byte("asdfasbvf"), []byte("asfasbe"))
+	tr.Update([]byte("asdfsafasfds"), []byte("fasgdsafa"))
+	tr.Delete([]byte("quedad"))
+	h := tr.ParallelHash2()
+
+	tr0 := newEmpty()
+	tr0.Update([]byte("adabce"), []byte("12312312"))
+	tr0.Update([]byte("bcdade"), []byte("12312321"))
+	tr0.Update([]byte("quedad"), []byte("asfasf"))
+	tr0.Update([]byte("asdfasbvf"), []byte("asfasbe"))
+	tr0.Update([]byte("asdfsafasfds"), []byte("fasgdsafa"))
+	tr0.Delete([]byte("quedad"))
+	h0 := tr0.Hash()
+
+	assert.Equal(t, h, h0)
+	fmt.Printf("h: %x\n", h)
+	fmt.Printf("h0: %x\n", h0)
+
+	tr = newEmpty()
+	tr.Update([]byte("abc"), []byte("1111"))
+	tr.ParallelHash2()
+	tr.ParallelCommit2(nil)
+	tr.Update([]byte("12312"), []byte("12312312"))
+	tr.Delete([]byte("abc"))
+	tr.ParallelHash2()
+	tr.ParallelCommit2(nil)
+	tr.Update([]byte("12312"), []byte("12312312"))
+	h = tr.ParallelHash2()
+
+	tr0 = newEmpty()
+	tr0.Update([]byte("12312"), []byte("12312312"))
+	h0 = tr0.ParallelHash2()
+
+	assert.Equal(t, h, h0)
+}
+
+func TestDAGFull(t *testing.T) {
+	tr := newEmpty()
+	tr0 := newEmpty()
+
+	tr.Update([]byte("abc"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("abc"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	assert.True(t, len(tr.dag.nodes) == 1)
+	tr.Update([]byte("abc"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("abc"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	assert.True(t, len(tr.dag.nodes) == 1)
+
+	tr.Update([]byte("abcd"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("abcd"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	assert.True(t, len(tr.dag.nodes) == 3)
+
+	tr.Update([]byte("123"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("123"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	assert.True(t, len(tr.dag.nodes) == 5)
+
+	tr.Update([]byte("de"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	tr0.Update([]byte("de"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
+	assert.True(t, len(tr.dag.nodes) == 7)
+
+	assert.True(t, tr.ParallelHash2() == tr0.Hash())
+	tr.ParallelCommit2(nil)
+
+	tr0.Commit(nil)
 }

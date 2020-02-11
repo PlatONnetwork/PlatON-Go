@@ -434,11 +434,11 @@ func runRandTest(rt randTest) bool {
 				rt[i].err = fmt.Errorf("mismatch for key 0x%x, got 0x%x want 0x%x", step.key, v, want)
 			}
 		case opCommit:
-			_, rt[i].err = tr.ParallelCommit(nil)
+			_, rt[i].err = tr.Commit(nil)
 		case opHash:
-			tr.ParallelHash()
+			tr.Hash()
 		case opReset:
-			hash, err := tr.ParallelCommit(nil)
+			hash, err := tr.Commit(nil)
 			if err != nil {
 				rt[i].err = err
 				return false
@@ -455,8 +455,8 @@ func runRandTest(rt randTest) bool {
 			for it.Next() {
 				checktr.Update(it.Key, it.Value)
 			}
-			if tr.ParallelHash() != checktr.Hash() {
-				fmt.Printf("phash: %x, chash: %x\n", tr.ParallelHash(), checktr.Hash())
+			if tr.Hash() != checktr.Hash() {
+				fmt.Printf("phash: %x, chash: %x\n", tr.Hash(), checktr.Hash())
 				rt[i].err = fmt.Errorf("hash mismatch in opItercheckhash")
 			}
 		case opCheckCacheInvariant:
@@ -688,38 +688,6 @@ func BenchmarkHash(b *testing.B) {
 	trie.Hash()
 }
 
-func BenchmarkParallelHash(b *testing.B) {
-	// Make the random benchmark deterministic
-	random := rand.New(rand.NewSource(0))
-
-	// Create a realistic account trie to hash
-	addresses := make([][20]byte, b.N)
-	for i := 0; i < len(addresses); i++ {
-		for j := 0; j < len(addresses[i]); j++ {
-			addresses[i][j] = byte(random.Intn(256))
-		}
-	}
-	accounts := make([][]byte, len(addresses))
-	for i := 0; i < len(accounts); i++ {
-		var (
-			nonce   = uint64(random.Int63())
-			balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
-			root    = emptyRoot
-			code    = crypto.Keccak256(nil)
-		)
-		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
-	}
-	// Insert the accounts into the trie and hash it
-	trie := newEmpty()
-	trie.dag = nil
-	for i := 0; i < len(addresses); i++ {
-		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
-	}
-	b.ResetTimer()
-	b.ReportAllocs()
-	trie.ParallelHash()
-}
-
 func BenchmarkParallelHash2(b *testing.B) {
 	// Make the random benchmark deterministic
 	random := rand.New(rand.NewSource(0))
@@ -749,39 +717,6 @@ func BenchmarkParallelHash2(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	trie.ParallelHash2()
-}
-
-func BenchmarkParallelInit(b *testing.B) {
-	// Make the random benchmark deterministic
-	random := rand.New(rand.NewSource(0))
-
-	// Create a realistic account trie to hash
-	addresses := make([][20]byte, b.N)
-	for i := 0; i < len(addresses); i++ {
-		for j := 0; j < len(addresses[i]); j++ {
-			addresses[i][j] = byte(random.Intn(256))
-		}
-	}
-	accounts := make([][]byte, len(addresses))
-	for i := 0; i < len(accounts); i++ {
-		var (
-			nonce   = uint64(random.Int63())
-			balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
-			root    = emptyRoot
-			code    = crypto.Keccak256(nil)
-		)
-		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
-	}
-	// Insert the accounts into the trie and hash it
-	trie := newEmpty()
-	for i := 0; i < len(addresses); i++ {
-		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
-	}
-	b.ResetTimer()
-	b.ReportAllocs()
-	//trie.ParallelHash()
-	dag := NewTrieDAG(trie.cachegen, trie.cachelimit)
-	dag.init(trie.root)
 }
 
 func tempDB() (string, *Database) {
