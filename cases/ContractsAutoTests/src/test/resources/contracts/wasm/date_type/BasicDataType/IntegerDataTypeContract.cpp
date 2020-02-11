@@ -102,31 +102,7 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 			return tInt8.self();
 		}
 		
-		/// to set value for int32.
-		ACTION void setInt32(int32_t input)
-		{
-			tInt32.self() = input;
-			DEBUG("Invoke setInt32", "input", input);
-		}
 		
-		/// get the value from int32.
-		CONST int32_t getInt32()
-		{
-			return tInt32.self();
-		}
-
-		/// to set value for int64.
-		ACTION void setInt64(int64_t input)
-		{
-			tInt64.self() = input;
-			DEBUG("Invoke setInt64", "input", input);
-		}
-		
-		/// get the value from int64.
-		CONST int64_t getInt64()
-		{
-			return tInt64.self();
-		}
 
 	
 	private:
