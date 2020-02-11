@@ -19,6 +19,11 @@ CONTRACT InnerFunction:public platon::Contract{
 			return platon::platon_block_number();	
 		}
 
+		/// 获取gasLimit
+		CONST uint64_t gas_limit() {
+			return platon::platon_gas_limit();		
+		}
+		
 		
 	
 };
