@@ -82,7 +82,39 @@ CONTRACT InnerFunction:public platon::Contract{
 			return hash.toString();
 		} 
 
+		/// 设置函数返回值
+		/// define: template <typename T> void platon_return(const T& t);
+		CONST void rreturn() {
+			std::string str = "hello";
+			platon::platon_return(str);
+		}
+
+		/// 终止交易 panic, 交易完成，合约执行异常
+		/// define: void platon_panic();
+		ACTION void panic() {
+			platon::platon_panic();		
+		}
+
+		/// 终止交易 revert
+		/// define: void platon_revert();
+		ACTION void revert(int64_t flag) {
+			if(flag == 1){
+				platon::platon_revert();
+			}		
+		} 
+
+		/// 合约销毁 destroy, 销毁后检测余额
+		/// define: bool platon_destroy(const Address& addr);
+		ACTION void destroy(const std::string& addr) {
+			platon::platon_destroy(Address(addr));		
+		}
 		
+		/// 消息的原始发送者origin
+		/// define: Address platon_origin();
+		CONST std::string origin() {
+			Address ori = platon::platon_origin();
+			return ori.toString();		
+		}
 	
 };
 
