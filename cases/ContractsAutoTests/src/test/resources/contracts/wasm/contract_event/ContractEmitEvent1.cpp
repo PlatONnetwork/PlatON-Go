@@ -15,6 +15,7 @@ CONTRACT ContractEmitEvent1 : public platon::Contract{
    public:
       PLATON_EVENT1(transfer,std::string,uint32_t)
       PLATON_EVENT1(transfer2,std::string,uint32_t,std::string)
+      PLATON_EVENT1(transfer3,std::string,uint32_t,std::string,std::string,std::string,std::string,std::string,uint32_t,uint32_t,std::string)
 
       ACTION void init(){}
  
@@ -28,6 +29,12 @@ CONTRACT ContractEmitEvent1 : public platon::Contract{
            PLATON_EMIT_EVENT1(transfer2,name,value,name);
       }
 
+      ACTION void one_emit_event1_args9(std::string topic,uint32_t value,std::string name1,std::string name2,std::string name3,std::string name4,std::string name5,uint32_t value2
+      ,uint32_t value3,std::string name6){
+           stringstorage.self() = name1;
+           PLATON_EMIT_EVENT1(transfer3,topic,value,name1,name2,name3,name4,name5,value2,value3,name6);
+      }
+
       CONST std::string get_string(){
           return stringstorage.self();
       }
@@ -35,4 +42,4 @@ CONTRACT ContractEmitEvent1 : public platon::Contract{
       platon::StorageType<string_storage, std::string> stringstorage;
 };
 
-PLATON_DISPATCH(ContractEmitEvent1, (init)(one_emit_event1)(one_emit_event1_args2)(get_string))
+PLATON_DISPATCH(ContractEmitEvent1, (init)(one_emit_event1)(one_emit_event1_args2)(one_emit_event1_args9)(get_string))

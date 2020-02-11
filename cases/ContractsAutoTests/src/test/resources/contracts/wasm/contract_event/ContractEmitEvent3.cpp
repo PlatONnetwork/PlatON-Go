@@ -14,7 +14,7 @@ extern char const string_storage[] = "stringstorage";
 CONTRACT ContractEmitEvent3 : public platon::Contract{
    public:
       PLATON_EVENT3(transfer,std::string,std::string,std::string,uint32_t)
-      PLATON_EVENT3(transfer2,std::string,std::string,std::string,uint32_t,uint32_t)
+      PLATON_EVENT3(transfer2,std::string,std::string,std::string,uint32_t,uint32_t,std::string,std::string)
 
       ACTION void init(){}
  
@@ -23,9 +23,9 @@ CONTRACT ContractEmitEvent3 : public platon::Contract{
            PLATON_EMIT_EVENT3(transfer,name,nationality,city,value);
       }
 
-      ACTION void three_emit_event3_args2(std::string name,std::string nationality,std::string city,uint32_t value){
+      ACTION void three_emit_event3_args4(std::string name,std::string nationality,std::string city,uint32_t value1,uint32_t value2,std::string name1,std::string name2){
            stringstorage.self() = name;
-           PLATON_EMIT_EVENT3(transfer2,name,nationality,city,value,value);
+           PLATON_EMIT_EVENT3(transfer2,name,nationality,city,value1,value2,name1,name2);
       }
 
       CONST std::string get_string(){
@@ -35,4 +35,4 @@ CONTRACT ContractEmitEvent3 : public platon::Contract{
       platon::StorageType<string_storage, std::string> stringstorage;
 };
 
-PLATON_DISPATCH(ContractEmitEvent3, (init)(three_emit_event3)(three_emit_event3_args2)(get_string))
+PLATON_DISPATCH(ContractEmitEvent3, (init)(three_emit_event3)(three_emit_event3_args4)(get_string))

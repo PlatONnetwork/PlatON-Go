@@ -10,13 +10,16 @@ using namespace platon;
 CONTRACT LoopCall : public platon::Contract {
 
     private:
-        StorageType<uint8_t> sum;
+	platon::StorageType<"test"_n, uint64_t> sum;
     public:
         ACTION void init(){}
-        ACTION loopCallTest(uint n) {
+        ACTION void loopCallTest(uint64_t n) {
             for (int i = 0; i < n; i++) {
                 sum += i;
             }
         }
+	CONST uint64_t get_sum() {
+	    return sum.self();
+	}
 };
-PLATON_DISPATCH(LoopCall,(init)(loopCallTest))
+PLATON_DISPATCH(LoopCall,(init)(loopCallTest)(get_sum))

@@ -81,7 +81,7 @@ public class OneselfFileUtil {
         String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "build").toUri().getPath());
         File file = new File(filePath);
         File[] tempList = file.listFiles();
-        if (0 == tempList.length) {
+        if (null == tempList || 0 == tempList.length) {
             System.out.println("src/test/resources/contracts/wasm/build路径下无wasm和abi文件，因此请查看编译步骤.");
             throw new Exception("src/test/resources/contracts/wasm/build路径下无wasm和abi文件");
         }
