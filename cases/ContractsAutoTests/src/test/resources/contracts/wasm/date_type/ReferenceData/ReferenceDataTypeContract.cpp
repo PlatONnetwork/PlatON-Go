@@ -82,7 +82,6 @@ CONTRACT ReferenceDataTypeContract: public platon::Contract{
 			return tmh256.self().size();
 		}
         
-
 };
 
 PLATON_DISPATCH(ReferenceDataTypeContract, (init)
