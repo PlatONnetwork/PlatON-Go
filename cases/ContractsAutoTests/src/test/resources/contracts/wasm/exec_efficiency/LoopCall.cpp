@@ -10,7 +10,7 @@ using namespace platon;
 CONTRACT LoopCall : public platon::Contract {
 
     private:
-        uint64_t sum;
+	platon::StorageType<"test"_n, uint64_t> sum;
     public:
         ACTION void init(){}
         ACTION void loopCallTest(uint64_t n) {
@@ -19,7 +19,7 @@ CONTRACT LoopCall : public platon::Contract {
             }
         }
 	CONST uint64_t get_sum() {
-	    return sum;
+	    return sum.self();
 	}
 };
 PLATON_DISPATCH(LoopCall,(init)(loopCallTest)(get_sum))
