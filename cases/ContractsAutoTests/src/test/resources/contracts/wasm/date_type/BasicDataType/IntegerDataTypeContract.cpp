@@ -14,6 +14,10 @@ extern char const suint8[] = "suint8";
 extern char const suint32[] = "suint32";
 extern char const suint64[] = "suint64";
 
+// 封装类型
+extern char const saddress[] = "saddress";
+extern char const su256[] = "su256";
+extern char const sh256[] = "sh256";
 
 
 /**
@@ -213,6 +217,10 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		platon::StorageType<suint64, uint64_t> tUint64;
 		platon::StorageType<sbyte, char> tByte;
 		platon::StorageType<sbool, bool> tBool;
+
+		platon::StorageType<saddress, Address> taddress;
+		platon::StorageType<su256, u256> tu256;
+		platon::StorageType<sh256, h256> th256;
 
 		
 
