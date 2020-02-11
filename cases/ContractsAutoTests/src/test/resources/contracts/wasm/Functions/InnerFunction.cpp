@@ -14,6 +14,11 @@ CONTRACT InnerFunction:public platon::Contract{
 			return platon::platon_gas_price();
 		}
 
+		/// 获取区块高度
+		CONST uint64_t block_number(){
+			return platon::platon_block_number();	
+		}
+
 		
 	
 };
