@@ -217,6 +217,17 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		{
 			return tAddress.self().toString();
 		}
+
+		/// set value for address.
+		ACTION void setU256(uint64_t input)
+		{
+			tU256.self() = u256(input);
+		}
+		
+		CONST std::string getU256()
+		{
+			return to_string(tU256.self());
+		}
 			
 	private:
 		platon::StorageType<sint8, int8_t> tInt8;
