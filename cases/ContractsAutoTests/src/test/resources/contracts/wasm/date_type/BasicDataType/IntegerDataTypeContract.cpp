@@ -228,6 +228,17 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		{
 			return to_string(tU256.self());
 		}
+
+		/// set value for h256.
+		ACTION void setH256(const std::string& input)
+		{
+			tH256.self() = h256(input);
+		}
+		
+		CONST std::string getH256()
+		{
+			return tH256.self().toString();
+		}
 			
 	private:
 		platon::StorageType<sint8, int8_t> tInt8;
@@ -251,7 +262,8 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 PLATON_DISPATCH(IntegerDataTypeContract,(init)(int8)(int64)(uint8t)(uint32t)(uint64t)(u128t)(u256t)
 (setInt8)(getInt8)(setInt32)(getInt32)(setInt64)(getInt64)
 (setUint8)(getUint8)(setUint32)(getUint32)(setUint64)(getUint64)
-(setString)(getString)(setBool)(getBool)(setChar)(getChar))
+(setString)(getString)(setBool)(getBool)(setChar)(getChar)
+(setAddress)(getAddress)(setU256)(getU256)(setH256)(getH256))
 
 
 
