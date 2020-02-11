@@ -206,6 +206,17 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		{
 			return tByte.self();
 		}
+
+		/// set value for address.
+		ACTION void setAddress(const std::string& input)
+		{
+			tAddress.self() = Address(input);
+		}
+		
+		CONST std::string getAddress()
+		{
+			return tAddress.self().toString();
+		}
 			
 	private:
 		platon::StorageType<sint8, int8_t> tInt8;
@@ -218,9 +229,9 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		platon::StorageType<sbyte, char> tByte;
 		platon::StorageType<sbool, bool> tBool;
 
-		platon::StorageType<saddress, Address> taddress;
-		platon::StorageType<su256, u256> tu256;
-		platon::StorageType<sh256, h256> th256;
+		platon::StorageType<saddress, Address> tAddress;
+		platon::StorageType<su256, u256> tU256;
+		platon::StorageType<sh256, h256> tH256;
 
 		
 
