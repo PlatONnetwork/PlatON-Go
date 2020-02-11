@@ -87,14 +87,20 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             // ignore
 
             // test: panic
-            //TransactionReceipt panicTr = innerFunction.panic().send();
-            //collector.logStepPass("To invoke panic success. hash:"+ panicTr.getTransactionHash() +" useGas: " + panicTr.getGasUsed().toString());
-            //collector.assertEqual(provider.getGasLimit(), panicTr.getGasUsed().longValue());
+            TransactionReceipt panicTr = null;
+            try {
+                panicTr = innerFunction.panic().send();
+                collector.logStepPass("To invoke panic success. hash:"+ panicTr.getTransactionHash() +" useGas: " + panicTr.getGasUsed().toString());
+            }catch (Exception e){
+                if (panicTr != null) {
+                    collector.assertEqual(provider.getGasLimit(), panicTr.getGasUsed().longValue());
+                }
+            }
 
             // test: revert(bug)
-            //TransactionReceipt tr = innerFunction.revert(Long.valueOf(1)).send();
-            //collector.logStepPass("To invoke revert success. hash:"+ tr.getTransactionHash() +" useGas: " + tr.getGasUsed().toString());
-            //collector.assertEqual(provider.getGasLimit(), tr.getGasUsed().longValue());
+            TransactionReceipt tr = innerFunction.revert(Long.valueOf(1)).send();
+            collector.logStepPass("To invoke revert success. hash:"+ tr.getTransactionHash() +" useGas: " + tr.getGasUsed().toString());
+            collector.assertFalse(provider.getGasLimit().longValue() == tr.getGasUsed().longValue());
 
             // test: destroy
             String receiveAddr = "0x250b67c9f1baa47dafcd1cfd5ad7780bb7b9b193";
