@@ -145,7 +145,7 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 };
 
 PLATON_DISPATCH(IntegerDataTypeContract,(init)(int8)(int64)(uint8t)(uint32t)(uint64t)(u128t)(u256t)
-(setInt8)(getInt8)(setInt32)(getInt32))
+(setInt8)(getInt8)(setInt32)(getInt32)(setInt64)(getInt64))
 
 
 
