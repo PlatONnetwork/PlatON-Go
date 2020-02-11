@@ -73,6 +73,15 @@ CONTRACT InnerFunction:public platon::Contract{
 			return to_string(val);		
 		}
 
+		/// sha3操作
+		/// define: h256 platon_sha3(const bytes& data);
+		CONST std::string sha3(const std::string& str) {
+			bytes data;
+			data.insert(data.begin(), str.begin(), str.end());
+			h256 hash = platon::platon_sha3(data);
+			return hash.toString();
+		} 
+
 		
 	
 };
