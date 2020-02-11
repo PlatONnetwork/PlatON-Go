@@ -444,7 +444,7 @@ func DefaultGenesisBlock() *Genesis {
 func DefaultTestnetGenesisBlock() *Genesis {
 
 	// TODO this should change
-	generalAddr := common.HexToAddress("0x9bbac0df99f269af1473fd384cb0970b95311001")
+	generalAddr := common.HexToAddress("0x99dd0a64d2809e3e293e43bdbf2704cffd87acec")
 	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
@@ -452,40 +452,14 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	genesis := Genesis{
 		Config:    params.TestnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+		Timestamp: 0,
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  params.GenesisGasLimit,
-		Timestamp: 0,
 		Alloc: map[common.Address]GenesisAccount{
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
 			generalAddr:              {Balance: generalBalance},
 		},
 		EconomicModel: xcom.GetEc(xcom.DefaultTestNet),
-	}
-	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
-	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
-	return &genesis
-}
-
-// DefaultRallynetGenesisBlock returns the PlatON Rally net genesis block.
-func DefaultRallynetGenesisBlock() *Genesis {
-
-	// TODO this should change
-	generalAddr := common.HexToAddress("0x99dd0a64d2809e3e293e43bdbf2704cffd87acec")
-	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
-
-	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
-
-	genesis := Genesis{
-		Config:    params.RallynetChainConfig,
-		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
-		Timestamp: 0,
-		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  params.GenesisGasLimit,
-		Alloc: map[common.Address]GenesisAccount{
-			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
-			generalAddr:              {Balance: generalBalance},
-		},
-		EconomicModel: xcom.GetEc(xcom.DefaultRallyNet),
 	}
 	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
 	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
