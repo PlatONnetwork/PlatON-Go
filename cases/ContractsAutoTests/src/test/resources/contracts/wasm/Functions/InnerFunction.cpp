@@ -29,6 +29,11 @@ CONTRACT InnerFunction:public platon::Contract{
 			return platon::platon_gas();		
 		}
 	
+		/// 获取当前块的时间戳
+		CONST int64_t timestamp() {
+			return platon::platon_timestamp();		
+		}
+
 		
 	
 };
