@@ -74,6 +74,13 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke getU256 success, getU256: " + getU256);
             collector.assertEqual(getU256, expectU256);
 
+            // test: store h256
+            String expectH256 = "0x80b543239ae8e4f679019719312524d10f14fef79fd0d9117d810bffdedf608e";
+            TransactionReceipt h256Tr = contract.setH256(expectH256).send();
+            collector.logStepPass("To invoke setH256 success, txHash: " + h256Tr.getTransactionHash());
+            String getH256 = contract.getH256().send();
+            collector.logStepPass("To invoke getH256 success, getH256: " + getH256);
+            //collector.assertEqual(getH256, expectH256);
 
 
         } catch (Exception e) {
