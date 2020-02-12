@@ -2,7 +2,7 @@
 #include <string>
 using namespace platon;
 
-extern char const string_storage[] = "stringstorage";
+//extern char const string_storage[] = "stringstorage";
  /**
    * PLATON_EVENT 测试一个主题
    * 编译：./platon-cpp ContractEmitEvent4.cpp -std=c++17
@@ -32,7 +32,7 @@ CONTRACT ContractEmitEvent4 : public platon::Contract{
           return stringstorage.self();
       }
    private:
-      platon::StorageType<string_storage, std::string> stringstorage;
+      platon::StorageType<"string_storage"_n, std::string> stringstorage;
 };
 
 PLATON_DISPATCH(ContractEmitEvent4, (init)(four_emit_event4)(four_emit_event4_args4)(get_string))

@@ -2,7 +2,7 @@
 #include <string>
 using namespace platon;
 
-extern char const string_storage[] = "stringstorage";
+//extern char const string_storage[] = "stringstorage";
 /**
  * platon_assert
  */
@@ -22,7 +22,7 @@ CONTRACT ContractTermination : public platon::Contract{
       }
 
    private:
-      platon::StorageType<string_storage, std::string> stringstorage;
+      platon::StorageType<"string_storage"_n, std::string> stringstorage;
 };
 
 PLATON_DISPATCH(ContractTermination, (init)(transfer_assert)(get_string_storage))
