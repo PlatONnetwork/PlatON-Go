@@ -107,7 +107,7 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter:  "wasm",
+		VMInterpreter:  "evm",
 		GenesisVersion: GenesisVersion,
 	}
 
