@@ -4,21 +4,12 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
 import network.platon.contracts.wasm.ContractMigrate_v1;
-import network.platon.utils.DataChangeUtil;
 import network.platon.utils.RlpUtil;
 import org.junit.Test;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.rlp.RlpEncoder;
-import org.web3j.rlp.RlpString;
-import org.web3j.tx.gas.GasProvider;
 import wasm.beforetest.WASMContractPrepareTest;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
@@ -72,7 +63,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
 
             //获取升级后的合约地址(需要通过事件获取)
-            String newContractAddress = contractMigratev1.getTransferEvents(transactionReceipt).get(0).arg1;
+            String newContractAddress = contractMigratev1.getPlaton_event1_transferEvents(transactionReceipt).get(0).arg1;
             collector.logStepPass("new Contract Address is:"+newContractAddress);
 
             //调用升级后的合约
