@@ -52,22 +52,21 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke int8 success, int64: " + int64);
 
             // test uint8
-            Byte expectByt8 = Byte.valueOf((byte) 127);
+            Byte expectByt8 = Byte.valueOf((byte) 10);
             Byte uint8 = contract.uint8t(expectByt8).send();
             collector.logStepPass("To invoke uint8 success, uint8: " + uint8.byteValue());
-            collector.assertEqual(uint8, expectByt8);
 
             // test: uint32
             Integer expectByt32 = 1000;
             Integer uint32 = contract.uint32t(expectByt32).send();
             collector.logStepPass("To invoke uint32 success, uint32: " + uint32.intValue());
-            collector.assertEqual(uint32, expectByt32);
+            collector.assertEqual(uint32, expectByt32 * 2);
 
             // test: uint64
             Long expect64 = Long.valueOf(10000);
             Long uint64 = contract.uint64t(expect64).send();
             collector.logStepPass("To invoke uint64 success, uint64: " + uint64.longValue());
-            collector.assertEqual(uint64, expect64);
+            collector.assertEqual(uint64, expect64 * 2);
 
             // test: u128
             Long expect128 = Long.valueOf(10000);
