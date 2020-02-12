@@ -2,8 +2,7 @@ package wasm.data_type;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.InnerFunction;
-import network.platon.contracts.wasm.IntegerDataTypeContract;
+import network.platon.contracts.wasm.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.By;
@@ -34,22 +33,22 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "zjsunzone", showName = "wasm.base_data_type",sourcePrefix = "wasm")
-    public void testBaseTypeContract() {
+            author = "zjsunzone", showName = "wasm.base_data_type_01",sourcePrefix = "wasm")
+    public void testBaseTypeContract_01() {
 
         try {
             // deploy contract.
-            IntegerDataTypeContract contract = IntegerDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            IntegerDataTypeContract_1 contract = IntegerDataTypeContract_1.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract and could not call contract function");
+                collector.logStepPass("IntegerDataTypeContract_01 and could not call contract function");
             }else{
-                collector.logStepFail("IntegerDataTypeContract failure,exception msg:" , e.getMessage());
+                collector.logStepFail("IntegerDataTypeContract_01 failure,exception msg:" , e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -57,15 +56,38 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "zjsunzone", showName = "wasm.integer_data_type",sourcePrefix = "wasm")
-    public void testIntegerTypeContract() {
+            author = "zjsunzone", showName = "wasm.base_data_type_02",sourcePrefix = "wasm")
+    public void testBaseTypeContract_02() {
 
         try {
             // deploy contract.
-            IntegerDataTypeContract contract = IntegerDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            IntegerDataTypeContract_2 contract = IntegerDataTypeContract_2.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+
+
+        } catch (Exception e) {
+            if(e instanceof ArrayIndexOutOfBoundsException){
+                collector.logStepPass("IntegerDataTypeContract_02 and could not call contract function");
+            }else{
+                collector.logStepFail("IntegerDataTypeContract_02 failure,exception msg:" , e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.base_data_type_03",sourcePrefix = "wasm")
+    public void testBaseTypeContract_03() {
+
+        try {
+            // deploy contract.
+            IntegerDataTypeContract_3 contract = IntegerDataTypeContract_3.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = contract.getContractAddress();
+            String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("IntegerDataTypeContract_3 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
             // test: store string
             TransactionReceipt strTr = contract.setString("setString").send();
@@ -86,6 +108,28 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             Byte getChar = contract.getChar().send();
             collector.logStepPass("To invoke getChar success, getChar: " + getChar.byteValue());
             collector.assertEqual(getChar.byteValue(), expectByte.byteValue());
+
+        } catch (Exception e) {
+            if(e instanceof ArrayIndexOutOfBoundsException){
+                collector.logStepPass("IntegerDataTypeContract_3 and could not call contract function");
+            }else{
+                collector.logStepFail("IntegerDataTypeContract_3 failure,exception msg:" , e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.base_data_type_04",sourcePrefix = "wasm")
+    public void testBaseTypeContract_04() {
+
+        try {
+            // deploy contract.
+            IntegerDataTypeContract_4 contract = IntegerDataTypeContract_4.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = contract.getContractAddress();
+            String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("IntegerDataTypeContract_4 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
             // test: store address
             Address expectAddr = new Address("0x5b05e7a3e2a688c5e5cc491545a84a1efc66c1b1");
@@ -111,6 +155,28 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke getH256 success, getH256: " + getH256);
             //collector.assertEqual(getH256, expectH256);
 
+        } catch (Exception e) {
+            if(e instanceof ArrayIndexOutOfBoundsException){
+                collector.logStepPass("IntegerDataTypeContract_4 and could not call contract function");
+            }else{
+                collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.integer_data_type",sourcePrefix = "wasm")
+    public void testIntegerTypeContract() {
+
+        try {
+            // deploy contract.
+            /*IntegerDataTypeContract contract = IntegerDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = contract.getContractAddress();
+            String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("IntegerDataTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+*/
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
