@@ -21,7 +21,7 @@ CONTRACT TransferFunction : public platon::Contract{
         return result;
     }
 
-    ACTION int32_t platon_transfer(bytes addr){
+    ACTION int32_t get_platon_transfer(bytes addr){
         addr.resize(20);
         int32_t ptransfer;
         uint8_t *amount = new uint8_t(100);
@@ -31,4 +31,4 @@ CONTRACT TransferFunction : public platon::Contract{
 
 };
 
-PLATON_DISPATCH(TransferFunction, (init)(get_Balance)(platon_transfer))
+PLATON_DISPATCH(TransferFunction, (init)(get_Balance)(get_platon_transfer))
