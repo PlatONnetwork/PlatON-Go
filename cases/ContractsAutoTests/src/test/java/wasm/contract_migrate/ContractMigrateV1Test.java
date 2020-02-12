@@ -5,9 +5,12 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
 import network.platon.contracts.wasm.ContractMigrate_v1;
 import org.junit.Test;
+import org.web3j.crypto.Credentials;
+import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.rlp.RlpEncoder;
 import org.web3j.rlp.RlpString;
+import org.web3j.tx.gas.GasProvider;
 import wasm.beforetest.WASMContractPrepareTest;
 
 import java.io.File;
@@ -35,6 +38,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
         Byte[] init_arg = null;
         Long transfer_value = 100000L;
         Long gas_value = 200000L;
+        String name = "hello";
 
         try {
             prepare();
@@ -42,6 +46,15 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             String contractAddress = contractMigratev1.getContractAddress();
             String transactionHash = contractMigratev1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractMigrateV1 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+
+            //设置值
+            transactionHash = contractMigratev1.set_string(name).send().getTransactionHash();
+            collector.logStepPass("ContractMigrateV1 set_string successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+
+            //查询结果
+            String chainName = contractMigratev1.get_string().send();
+            collector.assertContains(chainName,name);
+
 
             /**
              * 加载需要升级的合约
@@ -56,8 +69,13 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
 
             //获取升级后的合约地址(需要通过事件获取)
-//            String newContractAddress = contractMigratev1.get_new_contract_addr().send();
-//            collector.logStepPass("new Contract Address is:"+newContractAddress);
+            String newContractAddress = contractMigratev1.getPlaton_event1_transferEvents(transactionReceipt).get(0).arg1;
+            collector.logStepPass("new Contract Address is:"+newContractAddress);
+
+            //调用升级后的合约
+            ContractMigrate_v1 new_contractMigrate_v1 = ContractMigrate_v1.load(newContractAddress,web3j,credentials,provider);
+            String newContractChainName = new_contractMigrate_v1.get_string().send();
+            collector.assertContains(newContractChainName,name);
 
         } catch (Exception e) {
             collector.logStepFail("ContractDistoryTest failure,exception msg:" , e.getMessage());
