@@ -25,10 +25,12 @@ CONTRACT ContractMigrate : public platon::Contract{
       }
 
       ACTION void set_string(const std::string  &one_name){
+          DEBUG("set_string:", one_name);
           stringstorage.self()= one_name;
       }
 
       CONST std::string get_string(){
+          DEBUG("get_string:", stringstorage.self());
           return stringstorage.self();
       }
    private:
