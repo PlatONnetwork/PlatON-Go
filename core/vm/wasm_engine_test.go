@@ -59,6 +59,13 @@ func TestWasmRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, ret)
 
+	// read Only call
+	// good call
+	engine.contract.DeployContract = false
+	ret, err = engine.Run(buf, true)
+	assert.NotNil(t, err)
+	assert.Nil(t, ret)
+
 	// bad call for validate funcName
 	buf = callData(t, "init")
 	engine.contract.DeployContract = false
