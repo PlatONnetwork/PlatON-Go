@@ -60,7 +60,7 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
             collector.logStepPass("After migrate, origin contract balance is: " + originAfterMigrateBalance);
             collector.assertEqual(originAfterMigrateBalance, BigInteger.valueOf(0), "checkout origin contract balance");
             
-            String newContractAddress = contractMigratev1.getPlaton_event1_transferEvents(transactionReceipt).get(0).arg1;
+            String newContractAddress = contractMigratev1.getTransferEvents(transactionReceipt).get(0).arg1;
             collector.logStepPass("new Contract Address is:"+newContractAddress);
             BigInteger newMigrateBalance = web3j.platonGetBalance(newContractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("new contract balance is: " + newMigrateBalance);
