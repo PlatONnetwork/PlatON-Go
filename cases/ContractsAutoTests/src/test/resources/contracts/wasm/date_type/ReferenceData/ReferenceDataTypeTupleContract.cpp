@@ -16,8 +16,7 @@ using namespace platon;
 extern char const tuple_a[] = "tuple_a";
 extern char const tuple_b[] = "tuple_b";
 
-
-CONTRACT structContractTest : public platon::Contract{
+CONTRACT ReferenceDataTypeTupleContract : public platon::Contract{
 
     private:
        platon::StorageType<tuple_a,std::tuple<std::string,uint8_t,std::vector<string>>> tuple_a;
@@ -39,10 +38,10 @@ CONTRACT structContractTest : public platon::Contract{
             auto tupleObj = make_tuple(true,"1",1);//此对象类似于std::tuple<bool,std::string,uint8_t>
             tuple_b.self() = tupleObj;
         }
-        //3)、取值
-        CONST std::string getTupleValue(){
+        //3)、tuple根据索引取值
+        CONST std::string getTupleValueIndex(){
             return get<0>(tuple_a.self());
         }
 };
 
-PLATON_DISPATCH(structContractTest, (init)(setInitTuple)(setTupleObject)(getTupleValue))
+PLATON_DISPATCH(ReferenceDataTypeTupleContract, (init)(setInitTuple)(setTupleObject)(getTupleValueIndex))

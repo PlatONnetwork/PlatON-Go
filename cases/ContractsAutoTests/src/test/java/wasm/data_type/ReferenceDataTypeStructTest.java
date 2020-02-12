@@ -1,0 +1,53 @@
+package wasm.data_type;
+
+import network.platon.autotest.junit.annotations.DataSource;
+import network.platon.autotest.junit.enums.DataSourceType;
+import network.platon.contracts.wasm.ReferenceDataTypeMapContract;
+import network.platon.contracts.wasm.ReferenceDataTypeStructContract;
+import org.junit.Test;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import wasm.beforetest.WASMContractPrepareTest;
+
+/**
+ * @title 测试引用类型结构体（Struct）
+ * @description:
+ * @author: qudong
+ * @create: 2020/02/07
+ */
+public class ReferenceDataTypeStructTest extends WASMContractPrepareTest {
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "qudong", showName = "wasm.referenceDataTypeStructTest",sourcePrefix = "wasm")
+    public void testReferenceDataTypeStruct() {
+
+         //部署合约
+        ReferenceDataTypeStructContract referenceDataTypeStructContract = null;
+        try {
+            prepare();
+            referenceDataTypeStructContract = ReferenceDataTypeStructContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = referenceDataTypeStructContract.getContractAddress();
+            TransactionReceipt tx = referenceDataTypeStructContract.getTransactionReceipt().get();
+            collector.logStepPass("referenceDataTypeStructContract issued successfully.contractAddress:" + contractAddress
+                                  + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
+        } catch (Exception e) {
+            collector.logStepFail("referenceDataTypeStructContract deploy fail.", e.toString());
+            e.printStackTrace();
+        }
+        //调用合约方法
+        try {
+            String name = "Lucy";
+            Long age = Long.parseLong("25");
+            //1、验证：定义struct类型并赋值
+            TransactionReceipt  transactionReceipt = referenceDataTypeStructContract.setStructPersonA(name,age).send();
+            collector.logStepPass("referenceDataTypeStructContract 【验证定义struct类型并赋值】 successfully hash:" + transactionReceipt.getTransactionHash());
+            //2、验证：struct取值
+            String actualValue = referenceDataTypeStructContract.getPersonName().send();
+            collector.logStepPass("referenceDataTypeStructContract 【验证struct取值】 执行getPersonName() successfully actualValue:" + actualValue);
+            collector.assertEqual(actualValue,name, "checkout  execute success.");
+        } catch (Exception e) {
+            collector.logStepFail("referenceDataTypeStructContract Calling Method fail.", e.toString());
+            e.printStackTrace();
+        }
+    }
+}
