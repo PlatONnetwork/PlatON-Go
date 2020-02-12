@@ -36,22 +36,17 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("IntegerDataTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
-            // test: int8
-            int int8 = contract.int8().send();
-            collector.logStepPass("To invoke int8 success, int8: " + int8);
+            // test: store string
+            TransactionReceipt strTr = contract.setString("setString").send();
+            String getString = contract.getString().send();
+            collector.logStepPass("To invoke setString and getString, getString: " + getString);
+            collector.assertEqual(getString, "setString");
 
-            // test: int32
-            int int32 = contract.int32().send();
-            collector.logStepPass("To invoke int32 success, int8: " + int32);
-
-            // test: int64
-            int int64 = contract.int64().send();
-            collector.logStepPass("To invoke int64 success, int64: " + int8);
-
-            // test: uint8
-            byte uint8 = contract.uint8t(Byte.valueOf((byte)1)).send();
-            collector.logStepPass("To invoke uint8t success, uint8: " + uint8);
-
+            // test: store bool
+            TransactionReceipt boolTr = contract.setBool(true).send();
+            boolean getBool = contract.getBool().send();
+            collector.logStepPass("To invoke setBool and getBool, bool: " + getBool);
+            collector.assertEqual(getBool, true);
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
