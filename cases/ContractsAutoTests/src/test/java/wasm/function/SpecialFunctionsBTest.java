@@ -28,7 +28,8 @@ public class SpecialFunctionsBTest extends WASMContractPrepareTest {
 
             Long gas =specialfunctionsb.getPlatONGas().send();
             collector.logStepPass("getPlatONGas函数返回值:" + gas);
-            collector.assertEqual(gas, 4294935165L);
+            boolean result = "0".toString().equals(gas.toString());
+            collector.assertEqual(result, false);
 
             Long gaslimit = specialfunctionsb.getPlatONGasLimit().send();
             collector.logStepPass("getPlatONGasLimit函数返回值:" + gaslimit);

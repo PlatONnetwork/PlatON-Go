@@ -29,7 +29,7 @@ public class CoinbaseFunctionTest extends WASMContractPrepareTest {
 
             String coinbaseaddr = coinbase.get_platon_coinbase().send();
             collector.logStepPass("getPlatONConibase函数返回值:" + coinbaseaddr);
-            collector.assertEqual(coinbaseaddr, "1000000000000000000000000000000000000003");
+            collector.assertEqual(coinbaseaddr, "0x1000000000000000000000000000000000000003");
 
 
         } catch (Exception e) {
