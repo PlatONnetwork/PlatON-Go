@@ -17,6 +17,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 /**
+ * @author zjsunzone
+ *
  * The test class of the function for chain.
  */
 public class OverrideContractTest extends WASMContractPrepareTest {
@@ -37,11 +39,11 @@ public class OverrideContractTest extends WASMContractPrepareTest {
             // 1. input = 1, get: 100, input == 2, get: 10000
             int area01 = contract.getArea(Long.valueOf(1)).send();
             collector.logStepPass("To invoke getArea success, area: " + area01);
-            //collector.assertEqual(area01, 100);
+            collector.assertEqual(area01, 100);
 
             int area02 = contract.getArea(Long.valueOf(2)).send();
             collector.logStepPass("To invoke getArea success, area2: " + area02);
-            //collector.assertEqual(area01, 100);
+            collector.assertEqual(area02, 10000);
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
