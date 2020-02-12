@@ -8,6 +8,7 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.RawTransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
+import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 
@@ -58,5 +59,12 @@ public class WASMContractPrepareTest {
      */
     protected void prepare(){
         this.prepare(gasPrice,gasLimit);
+    }
+
+    protected String prependHexPrefix(String input){
+        if(Numeric.containsHexPrefix(input)){
+            return input;
+        }
+        return Numeric.prependHexPrefix(input);
     }
 }

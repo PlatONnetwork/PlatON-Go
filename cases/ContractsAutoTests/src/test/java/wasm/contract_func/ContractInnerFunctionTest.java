@@ -1,9 +1,7 @@
 package wasm.contract_func;
 
-import com.fasterxml.jackson.databind.node.BigIntegerNode;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.ContractDistory;
 import network.platon.contracts.wasm.InnerFunction;
 import org.junit.Test;
 import org.web3j.protocol.core.DefaultBlockParameterName;
@@ -52,13 +50,12 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             Long rnonce = web3j.platonGetTransactionCount(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getTransactionCount().longValue();
             Long nonce = innerFunction.nonce().send();
             collector.logStepPass("To invoke nonce success, nonce: " + nonce + " rnonce: " + rnonce);
-            //collector.assertEqual(nonce, rnonce);
 
             // test: block_hash
             String bhsh = innerFunction.block_hash(Long.valueOf(100)).send();
             collector.logStepPass("To invoke block_hash success, hash: " + bhsh);
             String bhash2 = web3j.platonGetBlockByNumber(new DefaultBlockParameterNumber(100), false).send().getBlock().getHash();
-            //collector.assertEqual(bhash2, bhsh);
+            collector.assertEqual(prependHexPrefix(bhash2), prependHexPrefix(bhsh));
 
             // test: coinbase
             String coinbase = innerFunction.origin().send();
@@ -87,14 +84,20 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             // ignore
 
             // test: panic
-            //TransactionReceipt panicTr = innerFunction.panic().send();
-            //collector.logStepPass("To invoke panic success. hash:"+ panicTr.getTransactionHash() +" useGas: " + panicTr.getGasUsed().toString());
-            //collector.assertEqual(provider.getGasLimit(), panicTr.getGasUsed().longValue());
+            TransactionReceipt panicTr = null;
+            try {
+                panicTr = innerFunction.panic().send();
+                collector.logStepPass("To invoke panic success. hash:"+ panicTr.getTransactionHash() +" useGas: " + panicTr.getGasUsed().toString());
+            }catch (Exception e){
+                if (panicTr != null) {
+                    collector.assertEqual(provider.getGasLimit(), panicTr.getGasUsed().longValue());
+                }
+            }
 
             // test: revert(bug)
-            //TransactionReceipt tr = innerFunction.revert(Long.valueOf(1)).send();
-            //collector.logStepPass("To invoke revert success. hash:"+ tr.getTransactionHash() +" useGas: " + tr.getGasUsed().toString());
-            //collector.assertEqual(provider.getGasLimit(), tr.getGasUsed().longValue());
+            TransactionReceipt tr = innerFunction.revert(Long.valueOf(1)).send();
+            collector.logStepPass("To invoke revert success. hash:"+ tr.getTransactionHash() +" useGas: " + tr.getGasUsed().toString());
+            collector.assertFalse(provider.getGasLimit().longValue() == tr.getGasUsed().longValue());
 
             // test: destroy
             String receiveAddr = "0x250b67c9f1baa47dafcd1cfd5ad7780bb7b9b193";

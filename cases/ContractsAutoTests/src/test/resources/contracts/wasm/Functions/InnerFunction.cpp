@@ -30,7 +30,7 @@ CONTRACT InnerFunction:public platon::Contract{
 		}
 	
 		/// 获取当前块的时间戳
-		CONST int64_t timestamp() {
+		CONST uint64_t timestamp() {
 			return platon::platon_timestamp();		
 		}
 
@@ -40,7 +40,7 @@ CONTRACT InnerFunction:public platon::Contract{
 		}
 
 		/// 获取指定区块高度的哈希
-		CONST std::string block_hash(int64_t bn) {
+		CONST std::string block_hash(uint64_t bn) {
 			h256 bhash = platon::platon_block_hash(bn);
 			return bhash.toString();	
 		}
@@ -115,9 +115,15 @@ CONTRACT InnerFunction:public platon::Contract{
 			Address ori = platon::platon_origin();
 			return ori.toString();		
 		}
+
+		/// compile test
+		/// summary: compile success.
+		std::string compile(){
+			return "compile";		
+		}
 	
 };
 
-PLATON_DISPATCH(InnerFunction, (init)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase)(transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin))
+PLATON_DISPATCH(InnerFunction, (init)(compile)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase)(transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin))
 
 
