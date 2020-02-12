@@ -13,15 +13,16 @@ using namespace platon;
  * 6、地址类型
  * 7、枚举类型
  *
- * 
+ *
  * */
 
 /*class clothes{
-       enum color {red,orange, yellow, green};
        public:
+         //原生写法
+         //enum color {red, orange, yellow, green};
+         //改成这样吗？
+         enum color { red, green, blue } colors;
          clothes(){}
-         // clothes(const color &c):color1(c){}
-         color colors;
          PLATON_SERIALIZE(clothes, (colors))
 };*/
 extern char const storage_byte[] = "byte_storage";
@@ -32,23 +33,19 @@ extern char const storage_double[] = "double_storage";
 extern char const storage_enum[] = "enum_storage";
 extern char const storage_address[] = "address_storage";
 
-
 CONTRACT BasicDataTypeContract : public platon::Contract{
 
     private:
        platon:: StorageType<storage_byte,byte> storage_byte;
        platon:: StorageType<storage_bool,bool> a_storage_bool;
        platon:: StorageType<storage_bool,bool> b_storage_bool;
-
        platon:: StorageType<storage_string,std::string> a_storage_string;
        platon:: StorageType<storage_string,std::string> b_storage_string;
        platon:: StorageType<storage_string,std::string> c_storage_string;
-
        platon:: StorageType<storage_address,Address> storage_address;
        platon:: StorageType<storage_float,float> storage_float;
        platon:: StorageType<storage_double,double> storage_double;
-       // platon:: StorageType<storage_enum,enum> aEnum;
-
+       //platon:: StorageType<storage_enum,clothes> storage_enum_clothes;
 
     public:
        ACTION void init(){
@@ -115,16 +112,15 @@ CONTRACT BasicDataTypeContract : public platon::Contract{
           return storage_address.self().toString();
       }
 
-        /**
-              * 7、枚举(enum)
-              **/
-          /*  ACTION void setEnum(const clothes &c){
-                aEnum.self() = c;
-            }
-
-            ACTION clothes getEnum(){
-                return  aEnum.self();
-            }*/
+      /**
+       * 6、枚举(enum)
+       **/
+      /* ACTION void setEnum(){
+            storage_enum_clothes.self().colors = yellow;
+        }
+        ACTION colors getEnum(){
+            return  storage_enum_clothes.self().colors;
+        }*/
 };
 
 PLATON_DISPATCH(BasicDataTypeContract,(init)(setBool)(getBool)(setByte)(setString)(getString)(getStringLength)
