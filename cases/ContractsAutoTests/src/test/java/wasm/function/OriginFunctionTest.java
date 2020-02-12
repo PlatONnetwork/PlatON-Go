@@ -28,7 +28,7 @@ public class OriginFunctionTest extends WASMContractPrepareTest {
 
             String originaddr = origin.get_platon_origin().send();
             collector.logStepPass("getPlatONOrigin函数返回值:" + originaddr);
-            collector.assertEqual(originaddr, "493301712671ada506ba6ca7891f436d29185821");
+            collector.assertEqual(originaddr, walletAddress.toLowerCase());
 
 
         } catch (Exception e) {

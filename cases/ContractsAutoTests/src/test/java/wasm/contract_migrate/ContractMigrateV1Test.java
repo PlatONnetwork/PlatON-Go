@@ -72,7 +72,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
 
             //获取升级后的合约地址(需要通过事件获取)
-            String newContractAddress = contractMigratev1.getPlaton_event1_transferEvents(transactionReceipt).get(0).arg1;
+            String newContractAddress = contractMigratev1.getTransferEvents(transactionReceipt).get(0).arg1;
             collector.logStepPass("new Contract Address is:"+newContractAddress);
 
             //调用升级后的合约

@@ -36,7 +36,7 @@ public class ContractEmitEvent2Test extends WASMContractPrepareTest {
             TransactionReceipt transactionReceipt = contractEmitEvent2.two_emit_event2(name,nationality,value).send();
             collector.logStepPass("contractEmitEvent2 call zero_emit_event successfully hash:" + transactionReceipt.getTransactionHash());
 
-            List<ContractEmitEvent2.Platon_event2_transferEventResponse> eventList = contractEmitEvent2.getPlaton_event2_transferEvents(transactionReceipt);
+            List<ContractEmitEvent2.TransferEventResponse> eventList = contractEmitEvent2.getTransferEvents(transactionReceipt);
             String data = eventList.get(0).log.getData();
             collector.assertEqual(eventList.get(0).arg1,value);
             collector.logStepPass("topics is:"+eventList.get(0).log.getTopics().get(0).toString());
