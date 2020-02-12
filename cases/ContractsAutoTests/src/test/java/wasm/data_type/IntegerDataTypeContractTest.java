@@ -4,6 +4,7 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InnerFunction;
 import network.platon.contracts.wasm.IntegerDataTypeContract;
+import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.By;
 import org.web3j.abi.datatypes.Address;
@@ -20,9 +21,39 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 /**
- * Base data type test.
+ * @author zjsunzone
+ *
+ * This class is used to test date type of integer.
  */
 public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
+
+    @Before
+    public void before(){
+        prepare();
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.base_data_type",sourcePrefix = "wasm")
+    public void testBaseTypeContract() {
+
+        try {
+            // deploy contract.
+            IntegerDataTypeContract contract = IntegerDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = contract.getContractAddress();
+            String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("IntegerDataTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+
+
+        } catch (Exception e) {
+            if(e instanceof ArrayIndexOutOfBoundsException){
+                collector.logStepPass("IntegerDataTypeContract and could not call contract function");
+            }else{
+                collector.logStepFail("IntegerDataTypeContract failure,exception msg:" , e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
@@ -30,8 +61,6 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
     public void testIntegerTypeContract() {
 
         try {
-            prepare();
-
             // deploy contract.
             IntegerDataTypeContract contract = IntegerDataTypeContract.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
