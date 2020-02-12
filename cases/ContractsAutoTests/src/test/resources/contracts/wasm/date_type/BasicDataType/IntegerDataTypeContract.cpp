@@ -243,18 +243,17 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		platon::StorageType<sint8, int8_t> tInt8;
 		platon::StorageType<sint32, int32_t> tInt32;
 		platon::StorageType<sint64, int64_t> tInt64;
-		platon::StorageType<sstring, std::string> tString;
 		platon::StorageType<suint8, uint8_t> tUint8;
 		platon::StorageType<suint32, uint32_t> tUint32;
 		platon::StorageType<suint64, uint64_t> tUint64;
 		platon::StorageType<sbyte, char> tByte;
 		platon::StorageType<sbool, bool> tBool;
+		platon::StorageType<sstring, std::string> tString;
 
 		platon::StorageType<saddress, Address> tAddress;
 		platon::StorageType<su256, u256> tU256;
 		platon::StorageType<sh256, h256> tH256;
 
-		
 
 };
 

@@ -15,12 +15,12 @@ class Shape {
 			height = b;
 		}
 
-		virtual int32_t area()
+		virtual uint32_t area()
 		{
 			return width * height;
 		}
 
-		int32_t area2()
+		uint32_t area2()
 		{
 			return 100 * 100;	
 		}
@@ -35,12 +35,12 @@ CONTRACT OverrideContract: public platon::Contract, public Shape {
 		};
 		
 		// override area from super class.
-		int32_t area() 
+		uint32_t area() 
 		{
 			return 100;	
 		}
 
-		CONST int32_t getArea(uint64_t input)
+		CONST uint32_t getArea(uint64_t input)
 		{	
 			if(input == 1)
 			{
