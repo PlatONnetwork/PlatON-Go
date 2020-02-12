@@ -71,27 +71,14 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	}
 
 	// Iterate over and process the individual transactions
-	parallelMode := true
-	if parallelMode {
-		if len(block.Transactions()) > 0 {
-			ctx := NewVerifyBlockContext(statedb, header, block.Hash(), gp, usedGas)
-			ctx.SetTxList(block.Transactions())
-			if err := GetExecutor().VerifyBlockTxs(ctx); err != nil {
-				return nil, nil, 0, err
-			}
-			receipts = ctx.GetReceipts()
-			allLogs = ctx.GetLogs()
+	for i, tx := range block.Transactions() {
+		statedb.Prepare(tx.Hash(), block.Hash(), i)
+		receipt, _, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
+		if err != nil {
+			return nil, nil, 0, err
 		}
-	} else {
-		for i, tx := range block.Transactions() {
-			statedb.Prepare(tx.Hash(), block.Hash(), i)
-			receipt, _, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
-			if err != nil {
-				return nil, nil, 0, err
-			}
-			receipts = append(receipts, receipt)
-			allLogs = append(allLogs, receipt.Logs...)
-		}
+		receipts = append(receipts, receipt)
+		allLogs = append(allLogs, receipt.Logs...)
 	}
 
 	if bcr != nil {

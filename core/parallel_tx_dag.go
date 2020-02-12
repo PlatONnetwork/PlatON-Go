@@ -2,13 +2,13 @@ package core
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	dag3 "github.com/PlatONnetwork/PlatON-Go/core/dag"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	dag2 "github.com/PlatONnetwork/PlatON-Go/dag"
 )
 
 type TxDag struct {
-	dag    *dag2.Dag
+	dag    *dag3.Dag
 	signer types.Signer
 }
 
@@ -20,7 +20,7 @@ func NewTxDag(signer types.Signer) *TxDag {
 }
 
 func (txDag *TxDag) MakeDagGraph(txs []*types.Transaction) error {
-	txDag.dag = dag2.NewDag(len(txs))
+	txDag.dag = dag3.NewDag(len(txs))
 	tempMap := make(map[common.Address]int, 0)
 	latestPrecompiledIndex := -1
 	for curIdx, cur := range txs {

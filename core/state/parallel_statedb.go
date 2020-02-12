@@ -12,13 +12,6 @@ var (
 	parallelLocker sync.Mutex
 )
 
-func (self *StateDB) JustCreateAccount(addr common.Address) {
-	new, prev := self.justCreateObject(addr)
-	if prev != nil {
-		new.setBalance(prev.data.Balance)
-	}
-}
-
 func (self *StateDB) GetOrNewParallelStateObject(addr common.Address) *ParallelStateObject {
 	stateObject := self.justGetStateObject(addr)
 	if stateObject == nil || stateObject.deleted {

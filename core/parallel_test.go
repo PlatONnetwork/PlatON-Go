@@ -30,6 +30,7 @@ import (
 
 var (
 	chainConfig = params.TestnetChainConfig
+	engine      = consensus.NewFaker()
 
 	nodePriKey = crypto.HexMustToECDSA("1191dc5317d5930beb77848f416ee023921fa4452f4d783384f35352409c0ad0")
 	nodeID     = crypto.PubkeyToAddress(nodePriKey.PublicKey)
@@ -184,7 +185,7 @@ func initChain() {
 	}
 	gspec.MustCommit(db)
 
-	blockchain, _ = NewBlockChain(db, nil, gspec.Config, consensus.NewFaker(), cvm.Config{}, nil)
+	blockchain, _ = NewBlockChain(db, nil, gspec.Config, engine, cvm.Config{}, nil)
 
 	parent := blockchain.Genesis()
 	block, header = NewBlock(parent.Hash(), parent.NumberU64()+1)
@@ -271,16 +272,20 @@ func TestMain(m *testing.M) {
 }
 
 func TestParallel_PackParallel_VerifyParallel(t *testing.T) {
-	parallelMode(t, true)
+	//initTx()
+	initChain()
+	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, engine))
+	parallelMode(t)
 }
 
 func TestParallel_PackParallel_VerifySerial(t *testing.T) {
-	parallelMode(t, false)
-}
-
-func parallelMode(t testing.TB, verifyParallelMode bool) {
 	//initTx()
 	initChain()
+	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, engine))
+	parallelMode(t)
+}
+
+func parallelMode(t testing.TB) {
 	initState := stateDb.Copy()
 
 	NewExecutor(chainConfig, blockchain, cvm.Config{})
@@ -306,45 +311,27 @@ func parallelMode(t testing.TB, verifyParallelMode bool) {
 	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
 		t.Fatal("Seal block failed", "err", err)
 	} else {
-
-		if verifyParallelMode {
-			//processParallelMode = true
-			/*			//verify block in parallel mode
-						rootParallelMode := stateDb.Root().Hex()
-						minerEarningsParallelMode := stateDb.GetBalance(nodeID).Uint64()
-						verifyGasPool := new(GasPool).AddGas(sealedBlock.GasLimit())
-						blockGasUsed := new(uint64)
-						ctx := NewVerifyBlockContext(initState, sealedBlock.Header(), sealedBlock.Hash(), verifyGasPool, blockGasUsed)
-						ctx.SetTxList(sealedBlock.Transactions())
-						if err := GetExecutor().VerifyBlockTxs(ctx); err != nil {
-							t.Fatal("verify block error", err)
-						}
-						rootSerialMode := initState.Root().Hex()
-						minerEarningsSerialMode := initState.GetBalance(nodeID).Uint64()
-						t.Logf("usedGas1: %d, userGas2: %d\n", usedGas1, *blockGasUsed)
-						assert.Equal(t, usedGas1, *blockGasUsed)
-						assert.Equal(t, rootParallelMode, rootSerialMode)
-						assert.Equal(t, minerEarningsParallelMode, minerEarningsSerialMode)*/
-		} else {
-			//processParallelMode = true
-		}
 		if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
 			t.Fatal("ProcessDirectly block error", "err", err)
 		}
 	}
 }
 
-func T2estParallel_PackSerial_VerifyParallel(t *testing.T) {
-	serialMode(t, true)
-}
-
-func T2estParallel_PackSerial_VerifySerial(t *testing.T) {
-	serialMode(t, false)
-}
-
-func serialMode(t testing.TB, verifyParallelMode bool) {
+func TestParallel_PackSerial_VerifyParallel(t *testing.T) {
 	//initTx()
 	initChain()
+	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, engine))
+	serialMode(t)
+}
+
+func TestParallel_PackSerial_VerifySerial(t *testing.T) {
+	//initTx()
+	initChain()
+	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, engine))
+	serialMode(t)
+}
+
+func serialMode(t testing.TB) {
 	initState := stateDb.Copy()
 	gp := new(GasPool).AddGas(1000000000000000000)
 	start := time.Now()
@@ -373,28 +360,6 @@ func serialMode(t testing.TB, verifyParallelMode bool) {
 	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
 		t.Fatal("Seal block failed", "err", err)
 	} else {
-		//verify block in parallel mode
-		if !verifyParallelMode {
-			/*NewExecutor(chainConfig, blockchain, cvm.Config{})
-			var verifyUsedGas = new(uint64)
-			verifyGasPool := new(GasPool).AddGas(sealedBlock.GasLimit())
-			blockGasUsed := new(uint64)
-			ctx := NewVerifyBlockContext(initState, sealedBlock.Header(), sealedBlock.Hash(), verifyGasPool, blockGasUsed)
-			ctx.SetTxList(sealedBlock.Transactions())
-			if err := GetExecutor().VerifyBlockTxs(ctx); err != nil {
-				t.Logf("verify block error, %+v", err)
-			}
-			receipts = ctx.GetReceipts()
-			*verifyUsedGas = ctx.GetBlockGasUsed()
-			rootParallelMode := initState.Root().Hex()
-			minerEarningsParallelMode := initState.GetBalance(nodeID).Uint64()
-			assert.Equal(t, gasUsed1, blockGasUsed)
-			assert.Equal(t, rootSerialMode, rootParallelMode)
-			assert.Equal(t, minerEarningsSerialMode, minerEarningsParallelMode)*/
-		} else {
-			//verify block in serial mode
-			//processParallelMode = false
-		}
 		if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
 			t.Fatal("ProcessDirectly block error", "err", err)
 		}
