@@ -121,6 +121,25 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             Long getInt64 = contract.getInt64().send();
             collector.logStepPass("To invoke getInt64 success, getInt64: " + getInt64);
 
+            // ======================= uint =======================
+            //  uint8
+            TransactionReceipt uint8Tr = contract.setUint8(Byte.valueOf((byte) 2)).send();
+            collector.logStepPass("To invoke setUint8 success, txHash: " + uint8Tr.getTransactionHash());
+            Byte getUint8 = contract.getUint8().send();
+            collector.logStepPass("To invoke getUint8 8 success, getUint8: " + getUint8.byteValue());
+
+            //  uint32
+            TransactionReceipt uint32Tr = contract.setUint32(100).send();
+            collector.logStepPass("To invoke setuUint32 success, txHash: " + uint32Tr.getTransactionHash());
+            Integer getUint32 = contract.getUint32().send();
+            collector.logStepPass("To invoke getUint32 success, getUint32: " + getUint32);
+
+            // uint64
+            TransactionReceipt uint64Tr = contract.setUint64(Long.valueOf("1111111111")).send();
+            collector.logStepPass("To invoke setUint64 success, txHash: " + uint64Tr.getTransactionHash());
+            Long getUint64 = contract.getUint64().send();
+            collector.logStepPass("To invoke getUint64 success, getUint64: " + getUint64);
+
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
                 collector.logStepPass("IntegerDataTypeContract_02 and could not call contract function");
