@@ -12,9 +12,9 @@ using namespace platon;
    */
 CONTRACT ContractEmitEvent : public platon::Contract{
    public:
-      PLATON_EVENT(transfer,std::string)
-      PLATON_EVENT(transfer2,std::string,std::string)
-      PLATON_EVENT(transfer3,std::string,std::string,uint32_t)
+      PLATON_EVENT0(transfer,std::string)
+      PLATON_EVENT0(transfer2,std::string,std::string)
+      PLATON_EVENT0(transfer3,std::string,std::string,uint32_t)
 
       ACTION void init(){}
  
