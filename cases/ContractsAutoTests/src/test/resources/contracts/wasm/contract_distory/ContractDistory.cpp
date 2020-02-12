@@ -2,7 +2,7 @@
 #include <string>
 using namespace platon;
 
-extern char const string_storage[] = "stringstorage";
+//extern char const string_storage[] = "stringstorage";
 
 CONTRACT ContractDistory : public platon::Contract{
    public:
@@ -38,7 +38,7 @@ CONTRACT ContractDistory : public platon::Contract{
           return stringstorage.self();
       }
    private:
-      platon::StorageType<string_storage, std::string> stringstorage;
+      platon::StorageType<"string_storage"_n, std::string> stringstorage;
 };
 
 PLATON_DISPATCH(ContractDistory, (init)(distory_contract)(set_string)(get_string))

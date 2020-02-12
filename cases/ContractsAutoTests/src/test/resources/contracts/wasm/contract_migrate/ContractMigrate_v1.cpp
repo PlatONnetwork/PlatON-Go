@@ -2,8 +2,8 @@
 #include <string>
 using namespace platon;
 
-extern char const string_storage[] = "stringstorage";
-extern char const string_contract_ower[] = "contract_ower";
+//extern char const string_storage[] = "stringstorage";
+//extern char const string_contract_ower[] = "contract_ower";
 
 CONTRACT ContractMigrate : public platon::Contract{
    public:
@@ -35,8 +35,8 @@ CONTRACT ContractMigrate : public platon::Contract{
           return stringstorage.self();
       }
    private:
-      platon::StorageType<string_storage, std::string> stringstorage;
-      platon::StorageType<string_contract_ower, std::string> contract_ower;
+      platon::StorageType<"string_storage"_n, std::string> stringstorage;
+      platon::StorageType<"string_contract_ower"_n, std::string> contract_ower;
 };
 
 PLATON_DISPATCH(ContractMigrate, (init)(migrate_contract)(get_new_contract_addr))

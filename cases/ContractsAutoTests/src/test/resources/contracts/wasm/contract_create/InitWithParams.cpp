@@ -10,7 +10,7 @@ class Person {
         PLATON_SERIALIZE(Person, (name))
 };
 
-extern char const person_vector[] = "person_vector";
+//extern char const person_vector[] = "person_vector";
 
 CONTRACT InitWithParams : public platon::Contract{
    public:
@@ -27,7 +27,7 @@ CONTRACT InitWithParams : public platon::Contract{
       }
 
    private:
-      platon::StorageType<person_vector, std::vector<Person>> info;
+      platon::StorageType<"person_vector"_n, std::vector<Person>> info;
 };
 
 PLATON_DISPATCH(InitWithParams, (init)(add_person)(get_person))

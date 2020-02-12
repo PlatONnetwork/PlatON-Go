@@ -16,7 +16,7 @@ class my_message : public message {
       PLATON_SERIALIZE_DERIVED(my_message, message, (body)(end))
 };
 
-extern char const my_message_vector[] = "info";
+//extern char const my_message_vector[] = "info";
  /**
    * 单继承测试
    * 编译：./platon-cpp bbb.cpp
@@ -47,7 +47,7 @@ CONTRACT OneInherit : public platon::Contract{
 
 
    private:
-      platon::StorageType<my_message_vector, std::vector<my_message>> info;
+      platon::StorageType<"my_message_vector"_n, std::vector<my_message>> info;
 };
 
 PLATON_DISPATCH(OneInherit, (init)(add_my_message)(get_my_message_size)(get_my_message_head)(get_my_message_body))

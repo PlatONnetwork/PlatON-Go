@@ -17,6 +17,8 @@ CONTRACT CallerFunction : public platon::Contract{
         bytes addr;
       	addr.resize(20);
         ::platon_caller(addr.data());
+        Address address(addr);
+        DEBUG("caller", "addr", address.toString());
         return Address(addr).toString();
     }
 };
