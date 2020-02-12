@@ -19,7 +19,7 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "zjsunzone", showName = "wasm.reference_data_type",sourcePrefix = "wasm")
-    public void testIntegerTypeContract() {
+    public void testContract() {
 
         try {
             prepare();
@@ -30,6 +30,20 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
+            // test: map
+            String expectKey1 = "name";
+            String expectValue11 = "Bob";
+            TransactionReceipt mapTr = contract.setAddressMap(expectKey1, expectValue11).send();
+            collector.logStepPass("To invoke setAddressMap success, txHash1: " + mapTr.getTransactionHash());
+
+            String expectKey2 = "name2";
+            String expectValue2 = "Bob2";
+            TransactionReceipt mapTr2 = contract.setAddressMap(expectKey2, expectValue2).send();
+            collector.logStepPass("To invoke setAddressMap success, txHash2: " + mapTr2.getTransactionHash());
+
+            String actValue1 = contract.getAddrFromMap(expectKey1).send();
+            String actValue2 = contract.getAddrFromMap(expectKey2).send();
+            collector.logStepPass("To invoke getAddrFromMap success, value1: " + actValue1 + " value2:" + actValue2);
 
 
         } catch (Exception e) {
