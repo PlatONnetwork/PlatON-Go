@@ -4,6 +4,7 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.IntegerDataTypeContract;
 import network.platon.contracts.wasm.ReferenceDataTypeContract;
+import org.junit.Before;
 import org.junit.Test;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -16,14 +17,17 @@ import wasm.beforetest.WASMContractPrepareTest;
  */
 public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
+    @Before
+    public void before(){
+        prepare();
+    }
+
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "zjsunzone", showName = "wasm.reference_data_type",sourcePrefix = "wasm")
-    public void testContract() {
+            author = "zjsunzone", showName = "wasm.address_map_type",sourcePrefix = "wasm")
+    public void testAddressMapContract() {
 
         try {
-            prepare();
-
             // deploy contract.
             ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
@@ -32,18 +36,68 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
             // test: map
             String expectKey1 = "name";
-            String expectValue11 = "Bob";
+            String expectValue11 = "0xc4482dd68fbaa5f4da143145198672bd17245ff2";
             TransactionReceipt mapTr = contract.setAddressMap(expectKey1, expectValue11).send();
             collector.logStepPass("To invoke setAddressMap success, txHash1: " + mapTr.getTransactionHash());
 
             String expectKey2 = "name2";
-            String expectValue2 = "Bob2";
+            String expectValue2 = "0xc4482dd68fbaa5f4da143145198672bd17245ff1";
             TransactionReceipt mapTr2 = contract.setAddressMap(expectKey2, expectValue2).send();
             collector.logStepPass("To invoke setAddressMap success, txHash2: " + mapTr2.getTransactionHash());
 
             String actValue1 = contract.getAddrFromMap(expectKey1).send();
             String actValue2 = contract.getAddrFromMap(expectKey2).send();
             collector.logStepPass("To invoke getAddrFromMap success, value1: " + actValue1 + " value2:" + actValue2);
+
+            Byte mapSize = contract.sizeOfAddrMap().send();
+            collector.logStepPass("To invoke sizeOfAddrMap success, mapSize: " + mapSize.intValue());
+            collector.assertEqual(mapSize.intValue(), 2);
+            //collector.assertEqual(actValue1.toUpperCase(), expectValue11.toUpperCase());
+            //collector.assertEqual(actValue2.toUpperCase(), expectValue2.toUpperCase());
+
+
+        } catch (Exception e) {
+            if(e instanceof ArrayIndexOutOfBoundsException){
+                collector.logStepPass("ReferenceDataTypeContract and could not call contract function");
+            }else{
+                collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.u256_map_type",sourcePrefix = "wasm")
+    public void testU256MapContract() {
+
+        try {
+            // deploy contract.
+            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = contract.getContractAddress();
+            String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+
+            // test: u256
+            String expectKey1 = "name";
+            String expectValue11 = "100000";
+            TransactionReceipt tr1 = contract.setU256Map(expectKey1, Long.valueOf(expectValue11)).send();
+            collector.logStepPass("To invoke setU256Map success, txHash1: " + tr1.getTransactionHash());
+
+            String expectKey2 = "name2";
+            String expectValue2 = "200000";
+            TransactionReceipt mapTr2 = contract.setU256Map(expectKey2, Long.valueOf(expectValue2)).send();
+            collector.logStepPass("To invoke setU256Map success, txHash2: " + mapTr2.getTransactionHash());
+
+            String actValue1 = contract.getU256FromMap(expectKey1).send();
+            String actValue2 = contract.getU256FromMap(expectKey2).send();
+            collector.logStepPass("To invoke getU256FromMap success, value1: " + actValue1 + " value2:" + actValue2);
+
+            Byte mapSize = contract.sizeOfU256Map().send();
+            collector.logStepPass("To invoke sizeOfU256Map success, mapSize: " + mapSize.intValue());
+            collector.assertEqual(mapSize.intValue(), 2);
+            collector.assertEqual(actValue1.toUpperCase(), expectValue11.toUpperCase());
+            collector.assertEqual(actValue2.toUpperCase(), expectValue2.toUpperCase());
 
 
         } catch (Exception e) {
