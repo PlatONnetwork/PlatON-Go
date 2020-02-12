@@ -5,40 +5,43 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
 import network.platon.contracts.wasm.ContractMigrate_v1;
 import org.junit.Test;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.rlp.RlpEncoder;
 import org.web3j.rlp.RlpString;
-import org.web3j.tx.gas.GasProvider;
+import org.web3j.tx.Transfer;
+import org.web3j.utils.Convert;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+
 import wasm.beforetest.WASMContractPrepareTest;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.file.Paths;
 
 /**
- * @title 合约升级
+ * @title contract migrate
  * @description:
- * @author: hudenian
- * @create: 2020/02/10
+ * @author: yuanwenjun
+ * @create: 2020/02/12
  */
-public class ContractMigrateV1Test extends WASMContractPrepareTest {
+public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
 
-    //需要升级的合约
+    //the file name of migrate contract
     private String wasmFile = "ContractMigrate_v1.bin";
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "wasm.contract_migrate合约升级",sourcePrefix = "wasm")
-    public void testMigrateContract() {
+            author = "yuanwenjun", showName = "wasm.contract_migrate",sourcePrefix = "wasm")
+    public void testMigrateContractBalance() {
 
         Byte[] init_arg = null;
         Long transfer_value = 100000L;
         Long gas_value = 200000L;
-        String name = "hello";
+        BigInteger origin_contract_value = BigInteger.valueOf(10000);
 
         try {
             prepare();
@@ -46,37 +49,25 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             String contractAddress = contractMigratev1.getContractAddress();
             String transactionHash = contractMigratev1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractMigrateV1 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
-
-            //设置值
-            transactionHash = contractMigratev1.set_string(name).send().getTransactionHash();
-            collector.logStepPass("ContractMigrateV1 set_string successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
-
-            //查询结果
-            String chainName = contractMigratev1.get_string().send();
-            collector.assertEqual(chainName,name);
-
-
-            /**
-             * 加载需要升级的合约
-             * init_arg 参数为  magic number +  RLP(code, RLP("init", init_paras...))
-             * transfer_value 为转到新合约地址的金额，gas_value 为预估消耗的 gas
-             */
+            
+            Transfer transfer = new Transfer(web3j, transactionManager);
+            transfer.sendFunds(contractAddress, new BigDecimal(origin_contract_value), Convert.Unit.VON).send();
+            BigInteger originBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("origin contract balance is: " + originBalance);
+            
             init_arg = loadInitArg();
-//            System.out.println(Arrays.toString(init_arg));
-
-            //合约升级
             TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(init_arg,transfer_value,gas_value).send();
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
-
-            //获取升级后的合约地址(需要通过事件获取)
+            
+            BigInteger originAfterMigrateBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("After migrate, origin contract balance is: " + originAfterMigrateBalance);
+            collector.assertEqual(originAfterMigrateBalance, BigInteger.valueOf(0), "checkout origin contract balance");
+            
             String newContractAddress = contractMigratev1.getPlaton_event1_transferEvents(transactionReceipt).get(0).arg1;
             collector.logStepPass("new Contract Address is:"+newContractAddress);
-
-            //调用升级后的合约
-            //FIXME 等bug修复后放开
-//            ContractMigrate_v1 new_contractMigrate_v1 = ContractMigrate_v1.load(newContractAddress,web3j,credentials,provider);
-//            String newContractChainName = new_contractMigrate_v1.get_string().send();
-//            collector.assertContains(newContractChainName,name);
+            BigInteger newMigrateBalance = web3j.platonGetBalance(newContractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("new contract balance is: " + newMigrateBalance);
+            collector.assertEqual(newMigrateBalance, origin_contract_value.add(BigInteger.valueOf(transfer_value)), "checkout new contract balance");
 
         } catch (Exception e) {
             collector.logStepFail("ContractDistoryTest failure,exception msg:" , e.getMessage());
@@ -85,12 +76,12 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
     }
 
     /**
-     * 拼装需要加载的合约信息
-     * init_arg 参数为  magic number +  RLP(code, RLP("init", init_paras...))
+     * generate the migrate int_arg parameter
+     * init_arg magic number +  RLP(code, RLP("init", init_paras...))
      * @return
      */
     private Byte[] loadInitArg() {
-        //创建一个文件对象 wasmFile
+        //create file object wasmFile
         String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "contract_migrate").toUri().getPath());
         File file = new File(filePath+File.separator+wasmFile);
 
@@ -110,7 +101,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
                     && (numRead = fi.read(buffer, offset, buffer.length - offset)) >= 0) {
                 offset += numRead;
             }
-            // 确保所有数据均被读取
+            // make sure get all data
             if (offset != buffer.length) {
                 throw new IOException("Could not completely read file "
                         + file.getName());
@@ -120,7 +111,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
 
             byte[] initAndParamsRlp = RlpEncoder.encode(RlpString.create("init"));
 
-            //将两个数组合并
+            //merge two arrays
             byte[] bt3 = new byte[bufferFinish.length+initAndParamsRlp.length];
             System.arraycopy(bufferFinish, 0, bt3, 0, bufferFinish.length);
             System.arraycopy(initAndParamsRlp, 0, bt3, bufferFinish.length, initAndParamsRlp.length);
@@ -128,7 +119,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             Byte[] bodyRlp = toObjects(RlpEncoder.encode(RlpString.create(bt3)));
 
 
-            //magic number为固定值0x0061736d
+            //magic number is 0x0061736d
 //            String magicNumber = "0x0061736d";
 //            byte[] magicNumberRlp = RlpEncoder.encode(RlpString.create(magicNumber));
             Byte[] magicNumberRlp = new Byte[4];
@@ -139,14 +130,15 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             magicNumberRlp[3] = 0x6d;
 
 
-            //需要传入进行升级合约中的代码
+            //pass new contract code
             finalByte = new Byte[magicNumberRlp.length+bodyRlp.length];
             System.arraycopy(magicNumberRlp,0,finalByte,0,magicNumberRlp.length);
             System.arraycopy(bodyRlp,0,finalByte,magicNumberRlp.length,bodyRlp.length);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-            collector.logStepFail("加载wasm二进制文件失败，失败原因:",e.getMessage());
+            collector.logStepFail("load wasm file fail:",e.getMessage());
         } catch (IOException e) {
+        	collector.logStepFail("load wasm file fail:",e.getMessage());
             e.printStackTrace();
         }
 //        System.out.println(DataChangeUtil.bytesToHex(DataChangeUtil.toPrimitives(finalByte)));
@@ -155,7 +147,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
 
 
     /**
-     * byte[] 与 Byte[]之间转换
+     * transfer between byte[] and Byte[]
      * @param bytesPrim
      * @return
      */
