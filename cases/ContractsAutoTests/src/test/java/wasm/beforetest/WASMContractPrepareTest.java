@@ -61,7 +61,7 @@ public class WASMContractPrepareTest {
         this.prepare(gasPrice,gasLimit);
     }
 
-    protected String toAddress(String input){
+    protected String prependHexPrefix(String input){
         if(Numeric.containsHexPrefix(input)){
             return input;
         }

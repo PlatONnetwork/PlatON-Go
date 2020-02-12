@@ -40,7 +40,7 @@ CONTRACT InnerFunction:public platon::Contract{
 		}
 
 		/// 获取指定区块高度的哈希
-		CONST std::string block_hash(int64_t bn) {
+		CONST std::string block_hash(uint64_t bn) {
 			h256 bhash = platon::platon_block_hash(bn);
 			return bhash.toString();	
 		}

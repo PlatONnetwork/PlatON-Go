@@ -2,11 +2,9 @@ package wasm.data_type;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.IntegerDataTypeContract;
 import network.platon.contracts.wasm.ReferenceDataTypeContract;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.abi.datatypes.Address;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
 
@@ -52,8 +50,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             Byte mapSize = contract.sizeOfAddrMap().send();
             collector.logStepPass("To invoke sizeOfAddrMap success, mapSize: " + mapSize.intValue());
             collector.assertEqual(mapSize.intValue(), 2);
-            collector.assertEqual(toAddress(actValue1).toUpperCase(), toAddress(expectValue11).toUpperCase());
-            collector.assertEqual(toAddress(actValue2).toUpperCase(), toAddress(expectValue2).toUpperCase());
+            collector.assertEqual(prependHexPrefix(actValue1).toUpperCase(), prependHexPrefix(expectValue11).toUpperCase());
+            collector.assertEqual(prependHexPrefix(actValue2).toUpperCase(), prependHexPrefix(expectValue2).toUpperCase());
 
 
         } catch (Exception e) {
