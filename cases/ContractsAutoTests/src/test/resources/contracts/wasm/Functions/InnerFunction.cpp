@@ -30,7 +30,7 @@ CONTRACT InnerFunction:public platon::Contract{
 		}
 	
 		/// 获取当前块的时间戳
-		CONST int64_t timestamp() {
+		CONST uint64_t timestamp() {
 			return platon::platon_timestamp();		
 		}
 
