@@ -4,6 +4,7 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
 import network.platon.contracts.wasm.ContractMigrate_v1;
+import network.platon.utils.RlpUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.rlp.RlpEncoder;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
 /**
  * @title contract migrate
@@ -54,8 +56,9 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
             transfer.sendFunds(contractAddress, new BigDecimal(origin_contract_value), Convert.Unit.VON).send();
             BigInteger originBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("origin contract balance is: " + originBalance);
-            
-            init_arg = loadInitArg();
+
+            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "contract_migrate").toUri().getPath());
+            init_arg = RlpUtil.loadInitArg(filePath+File.separator+wasmFile,new ArrayList<String>());
             TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(init_arg,transfer_value,gas_value).send();
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
             
@@ -73,90 +76,5 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
             collector.logStepFail("ContractDistoryTest failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
-    }
-
-    /**
-     * generate the migrate int_arg parameter
-     * init_arg magic number +  RLP(code, RLP("init", init_paras...))
-     * @return
-     */
-    private Byte[] loadInitArg() {
-        //create file object wasmFile
-        String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "contract_migrate").toUri().getPath());
-        File file = new File(filePath+File.separator+wasmFile);
-
-        long fileSize = file.length();
-        if (fileSize > Integer.MAX_VALUE) {
-            System.out.println("file too big...");
-        }
-
-        FileInputStream fi = null;
-        Byte[] finalByte = null;
-        try {
-            fi = new FileInputStream(file);
-            byte[] buffer = new byte[(int) fileSize];
-            int offset = 0;
-            int numRead = 0;
-            while (offset < buffer.length
-                    && (numRead = fi.read(buffer, offset, buffer.length - offset)) >= 0) {
-                offset += numRead;
-            }
-            // make sure get all data
-            if (offset != buffer.length) {
-                throw new IOException("Could not completely read file "
-                        + file.getName());
-            }
-            fi.close();
-            byte[] bufferFinish = buffer;//wasm
-
-            byte[] initAndParamsRlp = RlpEncoder.encode(RlpString.create("init"));
-
-            //merge two arrays
-            byte[] bt3 = new byte[bufferFinish.length+initAndParamsRlp.length];
-            System.arraycopy(bufferFinish, 0, bt3, 0, bufferFinish.length);
-            System.arraycopy(initAndParamsRlp, 0, bt3, bufferFinish.length, initAndParamsRlp.length);
-
-            Byte[] bodyRlp = toObjects(RlpEncoder.encode(RlpString.create(bt3)));
-
-
-            //magic number is 0x0061736d
-//            String magicNumber = "0x0061736d";
-//            byte[] magicNumberRlp = RlpEncoder.encode(RlpString.create(magicNumber));
-            Byte[] magicNumberRlp = new Byte[4];
-            //0x,00,61,73,6d
-            magicNumberRlp[0] = 0x00;
-            magicNumberRlp[1] = 0x61;
-            magicNumberRlp[2] = 0x73;
-            magicNumberRlp[3] = 0x6d;
-
-
-            //pass new contract code
-            finalByte = new Byte[magicNumberRlp.length+bodyRlp.length];
-            System.arraycopy(magicNumberRlp,0,finalByte,0,magicNumberRlp.length);
-            System.arraycopy(bodyRlp,0,finalByte,magicNumberRlp.length,bodyRlp.length);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            collector.logStepFail("load wasm file fail:",e.getMessage());
-        } catch (IOException e) {
-        	collector.logStepFail("load wasm file fail:",e.getMessage());
-            e.printStackTrace();
-        }
-//        System.out.println(DataChangeUtil.bytesToHex(DataChangeUtil.toPrimitives(finalByte)));
-        return finalByte;
-    }
-
-
-    /**
-     * transfer between byte[] and Byte[]
-     * @param bytesPrim
-     * @return
-     */
-    private  Byte[] toObjects(byte[] bytesPrim) {
-        Byte[] bytes = new Byte[bytesPrim.length];
-
-        int i = 0;
-        for (byte b : bytesPrim) bytes[i++] = b; // Autoboxing
-
-        return bytes;
     }
 }
