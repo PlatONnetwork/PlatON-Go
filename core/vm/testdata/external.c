@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-uint64_t platon_gas_price();
+uint8_t platon_gas_price(uint8_t gas_price[32]);
 void platon_return(const uint8_t *value, size_t len);
 void platon_block_hash(int64_t num,  uint8_t hash[32]);
 uint64_t platon_block_number();
@@ -47,8 +47,9 @@ void platon_event(const uint8_t* topic, size_t topicLen, const uint8_t* args, si
 
 WASM_EXPORT
 void platon_gas_price_test() {
-    uint64_t gas = platon_gas_price();
-    platon_return((uint8_t*)&gas, sizeof(gas));
+    uint8_t gas[32] = {0};
+    uint8_t len = platon_gas_price(gas);
+    platon_return(gas, len);
 }
 
 WASM_EXPORT
@@ -201,7 +202,7 @@ void platon_call_contract_test() {
   platon_get_input(data);
   uint8_t gas = 100000;
   uint8_t value = 2;
-  platon_call(addr, &data, datalen, &value, 1, &gas, 5);
+  platon_call(addr, data, datalen, &value, 1, &gas, 5);
 }
 
 WASM_EXPORT
@@ -211,7 +212,7 @@ void platon_delegate_call_contract_test () {
     size_t datalen = platon_get_input_length();
     platon_get_input(data);
     uint8_t gas = 100000;
-    platon_delegate_call(addr, &data, datalen, &gas, 5);
+    platon_delegate_call(addr, data, datalen, &gas, 5);
 
 }
 
@@ -239,7 +240,7 @@ void platon_migrate_contract_test () {
     platon_get_input(data);
     uint8_t gas = 100000;
     uint8_t value = 2;
-    platon_migrate(newAddr, &data, datalen, &value, 1, &gas, 5);
+    platon_migrate(newAddr, data, datalen, &value, 1, &gas, 5);
     platon_return(newAddr, 20);
 }
 
@@ -251,7 +252,7 @@ void platon_event0_test () {
     platon_get_input(data);
 
     // empty topic
-    uint8_t topics[0] = {0};
+    uint8_t topics[1] = {0};
 
     platon_event(topics, 0, data, len);
 }
