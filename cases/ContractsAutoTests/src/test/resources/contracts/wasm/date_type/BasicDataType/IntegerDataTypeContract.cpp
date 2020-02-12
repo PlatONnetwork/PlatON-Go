@@ -32,24 +32,24 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		}
 	
 	/// integer data type.
-	public: 
+	//public: 
 		/// int8 返回验证
 		/// range: -32768 到 32767
-		CONST short int int8()
+		/*CONST short int int8()
 		{
 			return 3;
-		} 
+		}*/
 
 		/// int32
 		/// range: -2147483648 到 2147483647
-		CONST int int32()
+		/*CONST int int32()
 		{
 			return 2;
-		}
+		}*/
 	
 		/// int64
 		/// range: -9,223,372,036,854,775,808 到 9,223,372,036,854,775,807
-		CONST long int int64()
+		/*CONST long int int64()
 		{
 			return 200;
 		}
@@ -86,11 +86,11 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		{
 			u256 u = u256(input);
 			return to_string(u);
-		}
+		}*/
 	
 	// ACTION
 	public:
-
+		/*
 		/// to set value for int8.
 		ACTION void setInt8(int8_t input)
 		{
@@ -168,6 +168,7 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		{
 			return tUint64.self();
 		}
+		*/
 		
 		/// To set value for string.
 		ACTION void setString(const std::string& input)
@@ -239,13 +240,13 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		}
 			
 	private:
-		platon::StorageType<sint8, int8_t> tInt8;
-		platon::StorageType<sint32, int32_t> tInt32;
-		platon::StorageType<sint64, int64_t> tInt64;
+		//platon::StorageType<sint8, int8_t> tInt8;
+		//platon::StorageType<sint32, int32_t> tInt32;
+		//platon::StorageType<sint64, int64_t> tInt64;
 		platon::StorageType<sstring, std::string> tString;
-		platon::StorageType<suint8, uint8_t> tUint8;
-		platon::StorageType<suint32, uint32_t> tUint32;
-		platon::StorageType<suint64, uint64_t> tUint64;
+		//platon::StorageType<suint8, uint8_t> tUint8;
+		//platon::StorageType<suint32, uint32_t> tUint32;
+		//platon::StorageType<suint64, uint64_t> tUint64;
 		platon::StorageType<sbyte, char> tByte;
 		platon::StorageType<sbool, bool> tBool;
 
@@ -256,10 +257,10 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		
 
 };
-
-PLATON_DISPATCH(IntegerDataTypeContract,(init)(int8)(int64)(uint8t)(uint32t)(uint64t)(u128t)(u256t)
-(setInt8)(getInt8)(setInt32)(getInt32)(setInt64)(getInt64)
-(setUint8)(getUint8)(setUint32)(getUint32)(setUint64)(getUint64)
+// (int8)(int64)(uint8t)(uint32t)(uint64t)(u128t)(u256t)
+// (setInt8)(getInt8)(setInt32)(getInt32)(setInt64)(getInt64)
+// (setUint8)(getUint8)(setUint32)(getUint32)(setUint64)(getUint64)
+PLATON_DISPATCH(IntegerDataTypeContract,(init)
 (setString)(getString)(setBool)(getBool)(setChar)(getChar)
 (setAddress)(getAddress)(setU256)(getU256)(setH256)(getH256))
 
