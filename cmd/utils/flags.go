@@ -609,6 +609,15 @@ var (
 		Usage: "Number of cache block states, default 10",
 		Value: eth.DefaultConfig.DBGCBlock,
 	}
+	DBNoCacheFlag = cli.BoolFlag{
+		Name:  "db.nochache",
+		Usage: "Disable database storage of special data",
+	}
+	DBCacheEpochFlag = cli.IntFlag{
+		Name:  "db.chache_epoch",
+		Usage: "Number of cache epoch states, default 10",
+		Value: eth.DefaultConfig.DBCacheEpoch,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1212,6 +1221,15 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		b := ctx.GlobalInt(DBGCBlockFlag.Name)
 		if b > 0 {
 			cfg.DBGCBlock = b
+		}
+	}
+	if ctx.GlobalIsSet(DBNoCacheFlag.Name) {
+		cfg.DBDisabledCache = ctx.GlobalBool(DBNoCacheFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBCacheEpochFlag.Name) {
+		b := ctx.GlobalInt(DBCacheEpochFlag.Name)
+		if b > 0 {
+			cfg.DBCacheEpoch = b
 		}
 	}
 }
