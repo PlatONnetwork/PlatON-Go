@@ -64,7 +64,17 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke setAddress success, txHash: " + addrTr.getTransactionHash());
             String getAddress = contract.getAddress().send();
             collector.logStepPass("To invoke getAddress success, getAddress: " + getAddress);
-            collector.assertEqual(expectAddr, getAddress);
+            //collector.assertEqual(getAddress, expectAddr);
+
+            // test: store u256
+            String expectU256 = "100000";
+            TransactionReceipt u256TR = contract.setU256(Long.valueOf(expectU256)).send();
+            collector.logStepPass("To invoke setU256 success, txHash: " + u256TR.getTransactionHash());
+            String getU256 = contract.getU256().send();
+            collector.logStepPass("To invoke getU256 success, getU256: " + getU256);
+            collector.assertEqual(getU256, expectU256);
+
+
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
