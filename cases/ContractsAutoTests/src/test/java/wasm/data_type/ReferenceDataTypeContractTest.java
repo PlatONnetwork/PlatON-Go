@@ -52,8 +52,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             Byte mapSize = contract.sizeOfAddrMap().send();
             collector.logStepPass("To invoke sizeOfAddrMap success, mapSize: " + mapSize.intValue());
             collector.assertEqual(mapSize.intValue(), 2);
-            //collector.assertEqual(actValue1.toUpperCase(), expectValue11.toUpperCase());
-            //collector.assertEqual(actValue2.toUpperCase(), expectValue2.toUpperCase());
+            collector.assertEqual(toAddress(actValue1).toUpperCase(), toAddress(expectValue11).toUpperCase());
+            collector.assertEqual(toAddress(actValue2).toUpperCase(), toAddress(expectValue2).toUpperCase());
 
 
         } catch (Exception e) {
