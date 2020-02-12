@@ -6,7 +6,7 @@ using namespace platon;
 
 
 // 定义基础数据类型的存储
-extern char const sint8[] = "sint8";
+/*extern char const sint8[] = "sint8";
 extern char const sint32[] = "sint32";
 extern char const sint64[] = "sint64";
 extern char const sbyte[] = "sbyte";
@@ -20,6 +20,7 @@ extern char const suint64[] = "suint64";
 extern char const saddress[] = "saddress";
 extern char const su256[] = "su256";
 extern char const sh256[] = "sh256";
+*/
 
 CONTRACT IntegerDataTypeContract: public platon::Contract
 {
@@ -240,19 +241,19 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		}
 			
 	private:
-		platon::StorageType<sint8, int8_t> tInt8;
-		platon::StorageType<sint32, int32_t> tInt32;
-		platon::StorageType<sint64, int64_t> tInt64;
-		platon::StorageType<suint8, uint8_t> tUint8;
-		platon::StorageType<suint32, uint32_t> tUint32;
-		platon::StorageType<suint64, uint64_t> tUint64;
-		platon::StorageType<sbyte, char> tByte;
-		platon::StorageType<sbool, bool> tBool;
-		platon::StorageType<sstring, std::string> tString;
+		platon::StorageType<"sint8"_n, int8_t> tInt8;
+		platon::StorageType<"sint32"_n, int32_t> tInt32;
+		platon::StorageType<"sint64"_n, int64_t> tInt64;
+		platon::StorageType<"suint8"_n, uint8_t> tUint8;
+		platon::StorageType<"suint32"_n, uint32_t> tUint32;
+		platon::StorageType<"suint64"_n, uint64_t> tUint64;
+		platon::StorageType<"sbyte"_n, char> tByte;
+		platon::StorageType<"sbool"_n, bool> tBool;
+		platon::StorageType<"sstring"_n, std::string> tString;
 
-		platon::StorageType<saddress, Address> tAddress;
-		platon::StorageType<su256, u256> tU256;
-		platon::StorageType<sh256, h256> tH256;
+		platon::StorageType<"saddress"_n, Address> tAddress;
+		platon::StorageType<"su256"_n, u256> tU256;
+		platon::StorageType<"sh256"_n, h256> tH256;
 
 
 };
