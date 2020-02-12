@@ -43,6 +43,43 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
+            // test: int8
+            int int8 = contract.int8().send();
+            collector.logStepPass("To invoke int8 success, int8: " + int8);
+
+            // test: int64
+            long int64 = contract.int64().send();
+            collector.logStepPass("To invoke int8 success, int64: " + int64);
+
+            // test uint8
+            Byte expectByt8 = Byte.valueOf((byte) 127);
+            Byte uint8 = contract.uint8t(expectByt8).send();
+            collector.logStepPass("To invoke uint8 success, uint8: " + uint8.byteValue());
+            collector.assertEqual(uint8, expectByt8);
+
+            // test: uint32
+            Integer expectByt32 = 1000;
+            Integer uint32 = contract.uint32t(expectByt32).send();
+            collector.logStepPass("To invoke uint32 success, uint32: " + uint32.intValue());
+            collector.assertEqual(uint32, expectByt32);
+
+            // test: uint64
+            Long expect64 = Long.valueOf(10000);
+            Long uint64 = contract.uint64t(expect64).send();
+            collector.logStepPass("To invoke uint64 success, uint64: " + uint64.longValue());
+            collector.assertEqual(uint64, expect64);
+
+            // test: u128
+            Long expect128 = Long.valueOf(10000);
+            String u128 = contract.u128t(expect128).send();
+            collector.logStepPass("To invoke uint64 success, u128: " + u128);
+            collector.assertEqual(u128, expect128.toString());
+
+            // test: u256
+            Long expect256 = Long.valueOf(10000);
+            String u256 = contract.u256t(expect256).send();
+            collector.logStepPass("To invoke u256t success, u256: " + u128);
+            collector.assertEqual(u256, expect256.toString());
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
@@ -160,29 +197,6 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 collector.logStepPass("IntegerDataTypeContract_4 and could not call contract function");
             }else{
                 collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
-        }
-    }
-
-    @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "zjsunzone", showName = "wasm.integer_data_type",sourcePrefix = "wasm")
-    public void testIntegerTypeContract() {
-
-        try {
-            // deploy contract.
-            /*IntegerDataTypeContract contract = IntegerDataTypeContract.deploy(web3j, transactionManager, provider).send();
-            String contractAddress = contract.getContractAddress();
-            String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
-*/
-
-        } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract failure,exception msg:" , e.getMessage());
                 e.printStackTrace();
             }
         }
