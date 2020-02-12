@@ -87,8 +87,13 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 	if nil != moduleErr {
 		return nil, moduleErr
 	}
-	if err := engine.prepare(module, input, readOnly); nil != err {
+	if err := engine.prepare(module, input); nil != err {
 		return nil, err
+	}
+
+	if readOnly && !engine.isReadOnly() {
+		engine.setReadOnly(true)
+		defer func() { engine.setReadOnly(false) }()
 	}
 
 	go func(ctx context.Context) {
@@ -106,7 +111,7 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 	return ret, err
 }
 
-func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte, readOnly bool) error {
+func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte) error {
 	vm, err := exec.NewVMWithCompiled(module, memoryLimit)
 	if nil != err {
 		return err
@@ -119,7 +124,6 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte, re
 		db:       engine.StateDB(),
 		Input:    input, //set input bytes
 		Log:      NewWasmLogger(engine.config, log.WasmRoot()),
-		readOnly: readOnly,
 	}
 	vm.SetHostCtx(ctx)
 	vm.SetUseGas(func(b byte) {
@@ -237,6 +241,17 @@ func (engine *wagonEngine) makeModuleWithCall() (*exec.CompiledModule, int64, er
 	}
 	index := int64(entry.Index)
 	return mod, index, nil
+}
+
+func (engine *wagonEngine) isReadOnly() bool {
+	ctx := engine.vm.HostCtx().(*VMContext)
+	return ctx.readOnly
+}
+
+func (engine *wagonEngine) setReadOnly(ro bool) {
+	ctx := engine.vm.HostCtx().(*VMContext)
+	ctx.readOnly = ro
+	engine.vm.SetHostCtx(ctx)
 }
 
 // disassemblyDeployCode parses out the contract code and call data during wasm deployment.

@@ -163,8 +163,8 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_balance(uint8_t addr[20], uin8_t balance[32])
-	// func $platon_balance (param $0 i32) (param $1 i32)
+	// uint8_t platon_balance(const uint8_t addr[20], uint8_t balance[32])
+	// func $platon_balance (param $0 i32) (param $1 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -213,7 +213,7 @@ func NewHostModule() *wasm.Module {
 	)
 
 	// uint8_t platon_call_value(uint8_t val[32]);
-	// func $platon_call_value (param $0 i32)
+	// func $platon_call_value (param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
@@ -590,7 +590,10 @@ func BlockHash(proc *exec.Process, num uint64, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
 	blockHash := ctx.evm.GetHash(num)
-	proc.WriteAt(blockHash.Bytes(), int64(dst))
+	_, err := proc.WriteAt(blockHash.Bytes(), int64(dst))
+	if nil != err {
+		panic(err)
+	}
 }
 
 func BlockNumber(proc *exec.Process) uint64 {
@@ -617,34 +620,48 @@ func Timestamp(proc *exec.Process) int64 {
 	return ctx.evm.Time.Int64()
 }
 
-func Coinbase(proc *exec.Process, dst uint32) int64 {
+func Coinbase(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
 	coinBase := ctx.evm.Coinbase
-	proc.WriteAt(coinBase.Bytes(), int64(dst))
-	return 0
+	_, err := proc.WriteAt(coinBase.Bytes(), int64(dst))
+	if nil != err {
+		panic(err)
+	}
 }
 
 func Balance(proc *exec.Process, dst uint32, balance uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
 	var addr common.Address
-	proc.ReadAt(addr[:], int64(dst))
+	_, err := proc.ReadAt(addr[:], int64(dst))
+	if nil != err {
+		panic(err)
+	}
 	value := ctx.evm.StateDB.GetBalance(addr).Bytes()
-	proc.WriteAt(value, int64(balance))
+	_, err = proc.WriteAt(value, int64(balance))
+	if nil != err {
+		panic(err)
+	}
 	return uint32(len(value))
 }
 
 func Origin(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
-	proc.WriteAt(ctx.evm.Origin.Bytes(), int64(dst))
+	_, err := proc.WriteAt(ctx.evm.Origin.Bytes(), int64(dst))
+	if nil != err {
+		panic(err)
+	}
 }
 
 func Caller(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
-	proc.WriteAt(ctx.contract.caller.Address().Bytes(), int64(dst))
+	_, err := proc.WriteAt(ctx.contract.caller.Address().Bytes(), int64(dst))
+	if nil != err {
+		panic(err)
+	}
 }
 
 // define: uint8_t callValue();
@@ -652,7 +669,10 @@ func CallValue(proc *exec.Process, dst uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
 	value := ctx.contract.value.Bytes()
-	proc.WriteAt(value, int64(dst))
+	_, err := proc.WriteAt(value, int64(dst))
+	if nil != err {
+		panic(err)
+	}
 	return uint32(len(value))
 }
 
@@ -660,7 +680,10 @@ func CallValue(proc *exec.Process, dst uint32) uint32 {
 func Address(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
-	proc.WriteAt(ctx.contract.Address().Bytes(), int64(dst))
+	_, err := proc.WriteAt(ctx.contract.Address().Bytes(), int64(dst))
+	if nil != err {
+		panic(err)
+	}
 }
 
 // define: void sha3(char *src, size_t srcLen, char *dest, size_t destLen);
@@ -670,12 +693,18 @@ func Sha3(proc *exec.Process, src uint32, srcLen uint32, dst uint32, dstLen uint
 	checkGas(ctx, Sha3DataGas*uint64(srcLen))
 
 	data := make([]byte, srcLen)
-	proc.ReadAt(data, int64(src))
+	_, err := proc.ReadAt(data, int64(src))
+	if nil != err {
+		panic(err)
+	}
 	hash := crypto.Keccak256(data)
 	if int(dstLen) < len(hash) {
 		panic(fmt.Errorf("dst len too short"))
 	}
-	proc.WriteAt(hash, int64(dst))
+	_, err = proc.WriteAt(hash, int64(dst))
+	if nil != err {
+		panic(err)
+	}
 }
 
 func CallerNonce(proc *exec.Process) uint64 {
@@ -689,10 +718,16 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 	address := make([]byte, common.AddressLength)
 
-	proc.ReadAt(address, int64(dst))
+	_, err := proc.ReadAt(address, int64(dst))
+	if nil != err {
+		panic(err)
+	}
 
 	value := make([]byte, len)
-	proc.ReadAt(value, int64(amount))
+	_, err = proc.ReadAt(value, int64(amount))
+	if nil != err {
+		panic(err)
+	}
 	bValue := new(big.Int)
 	// 256 bits
 	bValue.SetBytes(value)
@@ -739,16 +774,25 @@ func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen 
 	}
 	checkGas(ctx, StoreGas*uint64(keyLen+valLen))
 	keyBuf := make([]byte, keyLen)
-	proc.ReadAt(keyBuf, int64(key))
+	_, err := proc.ReadAt(keyBuf, int64(key))
+	if nil != err {
+		panic(err)
+	}
 	valBuf := make([]byte, valLen)
-	proc.ReadAt(valBuf, int64(val))
+	_, err = proc.ReadAt(valBuf, int64(val))
+	if nil != err {
+		panic(err)
+	}
 	ctx.evm.StateDB.SetState(ctx.contract.Address(), keyBuf, valBuf)
 }
 
 func GetStateLength(proc *exec.Process, key uint32, keyLen uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
 	keyBuf := make([]byte, keyLen)
-	proc.ReadAt(keyBuf, int64(key))
+	_, err := proc.ReadAt(keyBuf, int64(key))
+	if nil != err {
+		panic(err)
+	}
 	val := ctx.evm.StateDB.GetState(ctx.contract.Address(), keyBuf)
 	checkGas(ctx, StoreLenGas*uint64(len(val)))
 
@@ -758,7 +802,10 @@ func GetStateLength(proc *exec.Process, key uint32, keyLen uint32) uint32 {
 func GetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
 	keyBuf := make([]byte, keyLen)
-	proc.ReadAt(keyBuf, int64(key))
+	_, err := proc.ReadAt(keyBuf, int64(key))
+	if nil != err {
+		panic(err)
+	}
 	valBuf := ctx.evm.StateDB.GetState(ctx.contract.Address(), keyBuf)
 	checkGas(ctx, StoreLenGas*uint64(len(valBuf)))
 
@@ -766,7 +813,10 @@ func GetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen 
 		return math.MaxUint32
 	}
 
-	proc.WriteAt(valBuf, int64(val))
+	_, err = proc.WriteAt(valBuf, int64(val))
+	if nil != err {
+		panic(err)
+	}
 	return 0
 }
 
@@ -823,7 +873,10 @@ func Panic(proc *exec.Process) {
 func Debug(proc *exec.Process, dst uint32, len uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	buf := make([]byte, len)
-	proc.ReadAt(buf, int64(dst))
+	_, err := proc.ReadAt(buf, int64(dst))
+	if nil != err {
+		panic(err)
+	}
 	ctx.Log.Debug("WASM:" + string(buf) + "\n")
 	ctx.Log.Flush()
 }
@@ -832,21 +885,33 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
-	proc.ReadAt(address, int64(addrPtr))
+	_, err := proc.ReadAt(address, int64(addrPtr))
+	if nil != err {
+		panic(err)
+	}
 	addr := common.BytesToAddress(address)
 
 	input := make([]byte, argsLen)
-	proc.ReadAt(input, int64(args))
+	_, err = proc.ReadAt(input, int64(args))
+	if nil != err {
+		panic(err)
+	}
 
 	value := make([]byte, valLen)
-	proc.ReadAt(value, int64(val))
+	_, err = proc.ReadAt(value, int64(val))
+	if nil != err {
+		panic(err)
+	}
 	bValue := new(big.Int)
 	// 256 bits
 	bValue.SetBytes(value)
 	bValue = imath.U256(bValue)
 
 	cost := make([]byte, callCostLen)
-	proc.ReadAt(cost, int64(callCost))
+	_, err = proc.ReadAt(cost, int64(callCost))
+	if nil != err {
+		panic(err)
+	}
 	bCost := new(big.Int)
 	// 256 bits
 	bCost.SetBytes(cost)
@@ -899,14 +964,23 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
-	proc.ReadAt(address, int64(addrPtr))
+	_, err := proc.ReadAt(address, int64(addrPtr))
+	if nil != err {
+		panic(err)
+	}
 	addr := common.BytesToAddress(address)
 
 	input := make([]byte, paramsLen)
-	proc.ReadAt(input, int64(params))
+	_, err = proc.ReadAt(input, int64(params))
+	if nil != err {
+		panic(err)
+	}
 
 	cost := make([]byte, callCostLen)
-	proc.ReadAt(cost, int64(callCost))
+	_, err = proc.ReadAt(cost, int64(callCost))
+	if nil != err {
+		panic(err)
+	}
 	bCost := new(big.Int)
 	// 256 bits
 	bCost.SetBytes(cost)
@@ -928,8 +1002,6 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 
 	gas = ctx.evm.callGasTemp
 
-	//fmt.Println("################### Addr:", addr.String(), "Data:", input, "gas:", gas, "bCost:", bCost)
-
 	ret, returnGas, err := ctx.evm.DelegateCall(ctx.contract, addr, input, gas)
 	if err != nil {
 		panic(err)
@@ -945,14 +1017,23 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	ctx := proc.HostCtx().(*VMContext)
 
 	address := make([]byte, common.AddressLength)
-	proc.ReadAt(address, int64(addrPtr))
+	_, err := proc.ReadAt(address, int64(addrPtr))
+	if nil != err {
+		panic(err)
+	}
 	addr := common.BytesToAddress(address)
 
 	input := make([]byte, paramsLen)
-	proc.ReadAt(input, int64(params))
+	_, err = proc.ReadAt(input, int64(params))
+	if nil != err {
+		panic(err)
+	}
 
 	cost := make([]byte, callCostLen)
-	proc.ReadAt(cost, int64(callCost))
+	_, err = proc.ReadAt(cost, int64(callCost))
+	if nil != err {
+		panic(err)
+	}
 	bCost := new(big.Int)
 	// 256 bits
 	bCost.SetBytes(cost)
@@ -994,7 +1075,10 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 	}
 
 	address := make([]byte, common.AddressLength)
-	proc.ReadAt(address, int64(addrPtr))
+	_, err := proc.ReadAt(address, int64(addrPtr))
+	if nil != err {
+		panic(err)
+	}
 	addr := common.BytesToAddress(address)
 
 	contractAddr := ctx.contract.Address()
@@ -1034,17 +1118,26 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	oldContract := ctx.contract.Address()
 
 	input := make([]byte, argsLen)
-	proc.ReadAt(input, int64(args))
+	_, err := proc.ReadAt(input, int64(args))
+	if nil != err {
+		panic(err)
+	}
 
 	value := make([]byte, valLen)
-	proc.ReadAt(value, int64(val))
+	_, err = proc.ReadAt(value, int64(val))
+	if nil != err {
+		panic(err)
+	}
 	bValue := new(big.Int)
 	// 256 bits
 	bValue.SetBytes(value)
 	bValue = imath.U256(bValue)
 
 	cost := make([]byte, callCostLen)
-	proc.ReadAt(cost, int64(callCost))
+	_, err = proc.ReadAt(cost, int64(callCost))
+	if nil != err {
+		panic(err)
+	}
 	bCost := new(big.Int)
 	// 256 bits
 	bCost.SetBytes(cost)
@@ -1159,7 +1252,10 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 
 	ctx.contract.Gas = contract.Gas
 
-	proc.WriteAt(newContract.Bytes(), int64(newAddr))
+	_, err = proc.WriteAt(newContract.Bytes(), int64(newAddr))
+	if nil != err {
+		panic(err)
+	}
 
 	return 0
 }
@@ -1176,10 +1272,12 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 	if indexesLen != 0 {
 
 		indexes := make([]byte, indexesLen)
-		proc.ReadAt(indexes, int64(indexesPtr))
+		_, err := proc.ReadAt(indexes, int64(indexesPtr))
+		if nil != err {
+			panic(err)
+		}
 
 		content, _, err := rlp.SplitList(indexes)
-
 		if nil != err {
 			panic(err)
 		}
@@ -1204,7 +1302,10 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 	}
 
 	input := make([]byte, argsLen)
-	proc.ReadAt(input, int64(args))
+	_, err := proc.ReadAt(input, int64(args))
+	if nil != err {
+		panic(err)
+	}
 
 	gas, err := logGas(uint64(len(topics)), uint64(argsLen))
 	if nil != err {

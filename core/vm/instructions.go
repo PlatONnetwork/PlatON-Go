@@ -33,7 +33,7 @@ var (
 	tt255                    = math.BigPow(2, 255)
 	errWriteProtection       = errors.New("evm: write protection")
 	errReturnDataOutOfBounds = errors.New("evm: return data out of bounds")
-	errExecutionReverted     = errors.New("evm: execution reverted")
+	errExecutionReverted     = errors.New("execution reverted")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
 )
 
