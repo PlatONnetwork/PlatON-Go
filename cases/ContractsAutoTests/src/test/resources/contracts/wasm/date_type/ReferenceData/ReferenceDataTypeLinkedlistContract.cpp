@@ -24,38 +24,56 @@ using namespace platon;
         listNode(const std::string &my_name,listNode *my_nextPointer):name(my_name),nextPointer(my_nextPointer){}
         PLATON_SERIALIZE(listNode, (name))
  };
-extern char const listNode_a[] = "listNode_a";
-extern char const listNode_b[] = "listNode_b";
-extern char const listNode_c[] = "listNode_c";
+extern char const storage_listnode_a[] = "listnode_storage_a";
+extern char const storage_listnode_b[] = "listnode_storage_b";
+extern char const storage_listnode_c[] = "listnode_storage_c";
+extern char const storage_listnode_d[] = "listnode_storage_d";
+
+extern char const storage_listnode_vector[] = "listnode_storage_vector";
 
 
 CONTRACT linkedListContractTest : public platon::Contract{
 
     private:
-       platon::StorageType<listNode_a,listNode> listNode_a;
-       platon::StorageType<listNode_b,listNode> listNode_b;
-       platon::StorageType<listNode_c,listNode> listNode_c;
+       platon::StorageType<storage_listnode_a,listNode> storage_listnode_a;
+       platon::StorageType<storage_listnode_b,listNode> storage_listnode_b;
+       platon::StorageType<storage_listnode_c,listNode> storage_listnode_c;
+       platon::StorageType<storage_listnode_d,listNode> storage_listnode_d;
+       platon::StorageType<storage_listnode_vector, std::vector<listNode>> listnode_vector;
 
     public:
         ACTION void init(){}
+
          /**
          * 1、定义链表类型
-         *
          **/
-
          //1)、定义单向链表
         ACTION void setListNode(){
             //第一个结点
-            listNode_a.self().name = "a";
+            storage_listnode_a.self().name = "a";
             //第二个结点
-            listNode_b.self().name = "b";
-            listNode_b.self().nextPointer = &listNode_a.self();
+            storage_listnode_b.self().name = "b";
+            storage_listnode_b.self().nextPointer = &storage_listnode_a.self();
             //第三个结点
-            listNode_c.self().name = "c";
-            listNode_c.self().nextPointer = &listNode_b.self();
+            storage_listnode_c.self().name = "c";
+            storage_listnode_c.self().nextPointer = &storage_listnode_b.self();
+        }
+        //2)、增加节点
+     /*   ACTION void addListNodeVector(const std::string &my_name,listNode *my_nextPointer)){
+            listnode_vector.self().push_back(listNode(my_name,my_nextPointer));
+        }*/
+
+        ACTION void addListNode(){
+            for(int i = 0; i < 5; i++){
+                storage_listnode_d.self().name = "Lucy";
+                storage_listnode_d.self().nextPointer = &storage_listnode_d.self();
+            }
         }
 
-
+        CONST uint64_t getListNode(){
+           //nextPointer：是指针类型
+            return (uint64_t)storage_listnode_d.self().nextPointer;
+        }
 };
 
-PLATON_DISPATCH(linkedListContractTest, (init)(setListNode))
+PLATON_DISPATCH(linkedListContractTest,(init)(setListNode)(addListNode)(getListNode))
