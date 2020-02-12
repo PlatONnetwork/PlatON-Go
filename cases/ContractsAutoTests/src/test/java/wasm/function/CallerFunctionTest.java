@@ -29,7 +29,7 @@ public class CallerFunctionTest extends WASMContractPrepareTest {
 
             String calleraddr =caller.get_platon_caller().send();
             collector.logStepPass("getPlatONCaller函数返回值:" + calleraddr);
-            collector.assertEqual(calleraddr, "493301712671ada506ba6ca7891f436d29185821");
+            collector.assertEqual(calleraddr, walletAddress.toLowerCase());
 
 
         } catch (Exception e) {
