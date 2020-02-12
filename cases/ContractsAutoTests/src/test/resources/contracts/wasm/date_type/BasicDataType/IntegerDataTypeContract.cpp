@@ -240,13 +240,13 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		}
 			
 	private:
-		//platon::StorageType<sint8, int8_t> tInt8;
-		//platon::StorageType<sint32, int32_t> tInt32;
-		//platon::StorageType<sint64, int64_t> tInt64;
+		platon::StorageType<sint8, int8_t> tInt8;
+		platon::StorageType<sint32, int32_t> tInt32;
+		platon::StorageType<sint64, int64_t> tInt64;
 		platon::StorageType<sstring, std::string> tString;
-		//platon::StorageType<suint8, uint8_t> tUint8;
-		//platon::StorageType<suint32, uint32_t> tUint32;
-		//platon::StorageType<suint64, uint64_t> tUint64;
+		platon::StorageType<suint8, uint8_t> tUint8;
+		platon::StorageType<suint32, uint32_t> tUint32;
+		platon::StorageType<suint64, uint64_t> tUint64;
 		platon::StorageType<sbyte, char> tByte;
 		platon::StorageType<sbool, bool> tBool;
 
@@ -257,10 +257,11 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		
 
 };
-// (int8)(int64)(uint8t)(uint32t)(uint64t)(u128t)(u256t)
-// (setInt8)(getInt8)(setInt32)(getInt32)(setInt64)(getInt64)
-// (setUint8)(getUint8)(setUint32)(getUint32)(setUint64)(getUint64)
+
 PLATON_DISPATCH(IntegerDataTypeContract,(init)
+(int8)(int64)(uint8t)(uint32t)(uint64t)(u128t)(u256t)
+(setInt8)(getInt8)(setInt32)(getInt32)(setInt64)(getInt64)
+(setUint8)(getUint8)(setUint32)(getUint32)(setUint64)(getUint64)
 (setString)(getString)(setBool)(getBool)(setChar)(getChar)
 (setAddress)(getAddress)(setU256)(getU256)(setH256)(getH256))
 
