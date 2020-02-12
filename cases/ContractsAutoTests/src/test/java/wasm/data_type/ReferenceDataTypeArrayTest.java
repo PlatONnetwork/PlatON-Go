@@ -18,7 +18,7 @@ public class ReferenceDataTypeArrayTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "qudong", showName = "wasm.referenceDataTypeArrayTest验证数组定义及赋值",sourcePrefix = "wasm")
-    public void testNewContract() {
+    public void testReferenceDataTypeArray() {
 
          //部署合约
         ReferenceDataTypeArrayContract referenceDataTypeArrayContract = null;

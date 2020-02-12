@@ -17,7 +17,7 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class ReferenceDataTypeStructTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qudong", showName = "wasm.referenceDataTypeStructTest",sourcePrefix = "wasm")
+            author = "qudong", showName = "wasm.referenceDataTypeStructTest验证结构体赋值&取值",sourcePrefix = "wasm")
     public void testReferenceDataTypeStruct() {
 
          //部署合约

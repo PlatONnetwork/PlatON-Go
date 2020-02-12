@@ -17,7 +17,7 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class ReferenceDataTypeVectorTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qudong", showName = "wasm.referenceDataTypeVectorTest",sourcePrefix = "wasm")
+            author = "qudong", showName = "wasm.referenceDataTypeVectorTest验证Vector容器赋值及属性",sourcePrefix = "wasm")
     public void testReferenceDataTypeVector() {
          //部署合约
         ReferenceDataTypeVectorContract referenceDataTypeVectorContract = null;
