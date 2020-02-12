@@ -2,7 +2,7 @@
 #include <string>
 using namespace platon;
 
-extern char const string_storage[] = "stringstorage";
+//extern char const string_storage[] = "stringstorage";
  /**
    * PLATON_EVENT 测试一个主题
    * 编译：./platon-cpp ContractEmitEvent4.cpp -std=c++17
@@ -14,7 +14,7 @@ extern char const string_storage[] = "stringstorage";
 CONTRACT ContractEmitEvent4 : public platon::Contract{
    public:
       PLATON_EVENT4(transfer,std::string,std::string,std::string,std::string,uint32_t)
-      PLATON_EVENT4(transfer2,std::string,std::string,std::string,std::string,uint32_t,uint32_t)
+      PLATON_EVENT4(transfer2,std::string,std::string,std::string,std::string,uint32_t,uint32_t,std::string,std::string)
 
       ACTION void init(){}
  
@@ -23,16 +23,16 @@ CONTRACT ContractEmitEvent4 : public platon::Contract{
            PLATON_EMIT_EVENT4(transfer,name,nationality,city,village,value);
       }
 
-      ACTION void four_emit_event4_args2(std::string name,std::string nationality,std::string city,std::string village,uint32_t value){
+      ACTION void four_emit_event4_args4(std::string name,std::string nationality,std::string city,std::string village,uint32_t value1,uint32_t value2,std::string name1,std::string name2){
            stringstorage.self() = name;
-           PLATON_EMIT_EVENT4(transfer2,name,nationality,city,village,value,value);
+           PLATON_EMIT_EVENT4(transfer2,name,nationality,city,village,value1,value2,name1,name2);
       }
 
       CONST std::string get_string(){
           return stringstorage.self();
       }
    private:
-      platon::StorageType<string_storage, std::string> stringstorage;
+      platon::StorageType<"string_storage"_n, std::string> stringstorage;
 };
 
-PLATON_DISPATCH(ContractEmitEvent4, (init)(four_emit_event4)(four_emit_event4_args2)(get_string))
+PLATON_DISPATCH(ContractEmitEvent4, (init)(four_emit_event4)(four_emit_event4_args4)(get_string))

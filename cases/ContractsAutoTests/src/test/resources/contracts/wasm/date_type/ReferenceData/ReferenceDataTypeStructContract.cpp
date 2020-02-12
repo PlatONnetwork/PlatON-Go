@@ -10,7 +10,6 @@ using namespace platon;
  * 测试验证功能点：
  * 1、定义struct类型
  *    赋值、取值
- *
  * */
 
 struct person{
@@ -25,7 +24,7 @@ extern char const struct_person[] = "struct_person";
 extern char const string_name[] = "string_name";
 extern char const uint64_age[] = "uint64_age";
 
-CONTRACT structContractTest : public platon::Contract{
+CONTRACT ReferenceDataTypeStructContract : public platon::Contract{
 
     private:
        platon::StorageType<struct_person,person> struct_person;
@@ -57,4 +56,4 @@ CONTRACT structContractTest : public platon::Contract{
         }
 };
 
-PLATON_DISPATCH(structContractTest, (init)(setStructPersonA)(setStructPersonB)(getPersonName))
+PLATON_DISPATCH(ReferenceDataTypeStructContract, (init)(setStructPersonA)(setStructPersonB)(getPersonName))

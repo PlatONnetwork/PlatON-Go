@@ -17,7 +17,7 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class ReferenceDataTypeMapTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qudong", showName = "wasm.referenceDataTypeMapTest",sourcePrefix = "wasm")
+            author = "qudong", showName = "wasm.referenceDataTypeMapTest验证Map集合",sourcePrefix = "wasm")
     public void testReferenceDataTypeMap() {
 
          //部署合约
