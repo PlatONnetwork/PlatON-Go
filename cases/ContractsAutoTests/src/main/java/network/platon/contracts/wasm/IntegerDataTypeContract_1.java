@@ -26,6 +26,8 @@ public class IntegerDataTypeContract_1 extends WasmContract {
 
     private static String BINARY = BINARY_0 + BINARY_1;
 
+    public static final String FUNC_U256T = "u256t";
+
     public static final String FUNC_U128T = "u128t";
 
     public static final String FUNC_INT8 = "int8";
@@ -40,14 +42,17 @@ public class IntegerDataTypeContract_1 extends WasmContract {
 
     public static final String FUNC_UINT64T = "uint64t";
 
-    public static final String FUNC_U256T = "u256t";
-
     protected IntegerDataTypeContract_1(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
     }
 
     protected IntegerDataTypeContract_1(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<String> u256t(Long input) {
+        final WasmFunction function = new WasmFunction(FUNC_U256T, Arrays.asList(input), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<String> u128t(Long input) {
@@ -93,11 +98,6 @@ public class IntegerDataTypeContract_1 extends WasmContract {
     public RemoteCall<Long> uint64t(Long input) {
         final WasmFunction function = new WasmFunction(FUNC_UINT64T, Arrays.asList(input), Long.class);
         return executeRemoteCall(function, Long.class);
-    }
-
-    public RemoteCall<String> u256t(Long input) {
-        final WasmFunction function = new WasmFunction(FUNC_U256T, Arrays.asList(input), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public static IntegerDataTypeContract_1 load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
