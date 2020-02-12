@@ -4,6 +4,8 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
 import network.platon.contracts.wasm.ContractMigrate_v1;
+import network.platon.utils.DataChangeUtil;
+import network.platon.utils.RlpUtil;
 import org.junit.Test;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
@@ -18,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
 /**
  * @title 合约升级
@@ -61,8 +64,8 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
              * init_arg 参数为  magic number +  RLP(code, RLP("init", init_paras...))
              * transfer_value 为转到新合约地址的金额，gas_value 为预估消耗的 gas
              */
-            init_arg = loadInitArg();
-//            System.out.println(Arrays.toString(init_arg));
+            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "contract_migrate").toUri().getPath());
+            init_arg = RlpUtil.loadInitArg(filePath+File.separator+wasmFile,new ArrayList<String>());
 
             //合约升级
             TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(init_arg,transfer_value,gas_value).send();
@@ -84,87 +87,4 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
         }
     }
 
-    /**
-     * 拼装需要加载的合约信息
-     * init_arg 参数为  magic number +  RLP(code, RLP("init", init_paras...))
-     * @return
-     */
-    private Byte[] loadInitArg() {
-        //创建一个文件对象 wasmFile
-        String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "contract_migrate").toUri().getPath());
-        File file = new File(filePath+File.separator+wasmFile);
-
-        long fileSize = file.length();
-        if (fileSize > Integer.MAX_VALUE) {
-            System.out.println("file too big...");
-        }
-
-        FileInputStream fi = null;
-        Byte[] finalByte = null;
-        try {
-            fi = new FileInputStream(file);
-            byte[] buffer = new byte[(int) fileSize];
-            int offset = 0;
-            int numRead = 0;
-            while (offset < buffer.length
-                    && (numRead = fi.read(buffer, offset, buffer.length - offset)) >= 0) {
-                offset += numRead;
-            }
-            // 确保所有数据均被读取
-            if (offset != buffer.length) {
-                throw new IOException("Could not completely read file "
-                        + file.getName());
-            }
-            fi.close();
-            byte[] bufferFinish = buffer;//wasm
-
-            byte[] initAndParamsRlp = RlpEncoder.encode(RlpString.create("init"));
-
-            //将两个数组合并
-            byte[] bt3 = new byte[bufferFinish.length+initAndParamsRlp.length];
-            System.arraycopy(bufferFinish, 0, bt3, 0, bufferFinish.length);
-            System.arraycopy(initAndParamsRlp, 0, bt3, bufferFinish.length, initAndParamsRlp.length);
-
-            Byte[] bodyRlp = toObjects(RlpEncoder.encode(RlpString.create(bt3)));
-
-
-            //magic number为固定值0x0061736d
-//            String magicNumber = "0x0061736d";
-//            byte[] magicNumberRlp = RlpEncoder.encode(RlpString.create(magicNumber));
-            Byte[] magicNumberRlp = new Byte[4];
-            //0x,00,61,73,6d
-            magicNumberRlp[0] = 0x00;
-            magicNumberRlp[1] = 0x61;
-            magicNumberRlp[2] = 0x73;
-            magicNumberRlp[3] = 0x6d;
-
-
-            //需要传入进行升级合约中的代码
-            finalByte = new Byte[magicNumberRlp.length+bodyRlp.length];
-            System.arraycopy(magicNumberRlp,0,finalByte,0,magicNumberRlp.length);
-            System.arraycopy(bodyRlp,0,finalByte,magicNumberRlp.length,bodyRlp.length);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            collector.logStepFail("加载wasm二进制文件失败，失败原因:",e.getMessage());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-//        System.out.println(DataChangeUtil.bytesToHex(DataChangeUtil.toPrimitives(finalByte)));
-        return finalByte;
-    }
-
-
-    /**
-     * byte[] 与 Byte[]之间转换
-     * @param bytesPrim
-     * @return
-     */
-    private  Byte[] toObjects(byte[] bytesPrim) {
-        Byte[] bytes = new Byte[bytesPrim.length];
-
-        int i = 0;
-        for (byte b : bytesPrim) bytes[i++] = b; // Autoboxing
-
-        return bytes;
-    }
 }
