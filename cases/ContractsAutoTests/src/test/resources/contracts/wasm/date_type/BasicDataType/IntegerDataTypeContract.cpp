@@ -32,24 +32,24 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		}
 	
 	/// integer data type.
-	//public: 
+	public: 
 		/// int8 返回验证
 		/// range: -32768 到 32767
-		/*CONST short int int8()
+		CONST short int int8()
 		{
 			return 3;
-		}*/
+		}
 
 		/// int32
 		/// range: -2147483648 到 2147483647
-		/*CONST int int32()
+		CONST int int32()
 		{
 			return 2;
-		}*/
+		}
 	
 		/// int64
 		/// range: -9,223,372,036,854,775,808 到 9,223,372,036,854,775,807
-		/*CONST long int int64()
+		CONST long long int64()
 		{
 			return 200;
 		}
@@ -86,11 +86,11 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		{
 			u256 u = u256(input);
 			return to_string(u);
-		}*/
+		}
 	
 	// ACTION
 	public:
-		/*
+		
 		/// to set value for int8.
 		ACTION void setInt8(int8_t input)
 		{
@@ -168,7 +168,7 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		{
 			return tUint64.self();
 		}
-		*/
+		
 		
 		/// To set value for string.
 		ACTION void setString(const std::string& input)
