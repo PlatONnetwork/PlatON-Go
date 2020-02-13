@@ -6,10 +6,13 @@ import network.platon.autotest.utils.FileUtil;
 import network.platon.contracts.wasm.ContractMigrate_v1;
 import network.platon.utils.RlpUtil;
 import org.junit.Test;
+import org.web3j.abi.WasmFunctionEncoder;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
+import org.web3j.tx.gas.ContractGasProvider;
 import org.web3j.utils.Convert;
+import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
 
 import java.io.File;
@@ -17,6 +20,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * @title contract migrate
@@ -26,21 +30,18 @@ import java.util.ArrayList;
  */
 public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
 
-    //the file name of migrate contract
-    private String wasmFile = "ContractMigrate_v1.bin";
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "yuanwenjun", showName = "wasm.contract_migrate",sourcePrefix = "wasm")
     public void testMigrateContractBalance() {
 
-        Byte[] init_arg = null;
         Long transfer_value = 100000L;
-        Long gas_value = 200000L;
         BigInteger origin_contract_value = BigInteger.valueOf(10000);
 
         try {
             prepare();
+            provider = new ContractGasProvider(BigInteger.valueOf(50000000004L), BigInteger.valueOf(90000000L));
             ContractMigrate_v1 contractMigratev1 = ContractMigrate_v1.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contractMigratev1.getContractAddress();
             String transactionHash = contractMigratev1.getTransactionReceipt().get().getTransactionHash();
@@ -51,9 +52,10 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
             BigInteger originBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("origin contract balance is: " + originBalance);
 
-            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "contract_migrate").toUri().getPath());
-            init_arg = RlpUtil.loadInitArg(filePath+File.separator+wasmFile,new ArrayList<String>());
-            TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(init_arg,transfer_value,gas_value).send();
+            String code = WasmFunctionEncoder.encodeConstructor(contractMigratev1.getContractBinary(), Arrays.asList());
+            byte[] data = Numeric.hexStringToByteArray(code);
+
+            TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(data,0L, 90000000L).send();
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
             
             BigInteger originAfterMigrateBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
