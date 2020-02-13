@@ -34,7 +34,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testAddressCheck",
-            author = "albedo", showName = "ContractAndAddressTest-合约和地址成员变量(函数)")
+            author = "albedo", showName = "evm.ContractAndAddressTest-合约和地址成员变量(函数)", sourcePrefix = "evm")
     public void testAddressCheck() {
         try {
             prepare();

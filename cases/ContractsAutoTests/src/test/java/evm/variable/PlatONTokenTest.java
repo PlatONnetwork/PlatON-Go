@@ -28,7 +28,7 @@ public class PlatONTokenTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.TimeTest-Token单位测试")
+            author = "liweic", showName = "evm.function.TimeTest-Token单位测试", sourcePrefix = "evm")
     public void PlatonTokens() {
         try {
             PlatONToken platonToken = PlatONToken.deploy(web3j, transactionManager, provider).send();

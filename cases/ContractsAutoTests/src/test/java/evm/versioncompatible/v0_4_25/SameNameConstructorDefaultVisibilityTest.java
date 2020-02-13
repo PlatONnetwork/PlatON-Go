@@ -26,7 +26,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testSameNameConstructorVisibility",
-            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-同名函数未声明可见性构造函数")
+            author = "albedo", showName = "evm.SameNameConstructorDefaultVisibilityTest-同名函数未声明可见性构造函数", sourcePrefix = "evm")
     public void testSameNameConstructorVisibility() {
         try {
             TransactionReceipt sameNameConstructorTx = deployContract();
