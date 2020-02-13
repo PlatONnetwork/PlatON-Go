@@ -41,7 +41,7 @@ public class ControlTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ControlTest-控制结构测试")
+            author = "hudenian", showName = "ControlTest-控制结构测试", sourcePrefix = "evm")
     public void controlStructCheck() {
         try {
 

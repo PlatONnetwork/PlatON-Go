@@ -21,7 +21,7 @@ import java.util.List;
 public class LibraryStaticUsingTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "emitEvent",
-            author = "albedo", showName = "lib.LibraryStaticUsingTest-类static方式引用")
+            author = "albedo", showName = "lib.LibraryStaticUsingTest-类static方式引用", sourcePrefix = "evm")
     public void testEmitEvent() {
         try {
             prepare();
