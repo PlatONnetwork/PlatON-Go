@@ -56,7 +56,7 @@ public class PlatONTransferTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "PlatonTransferTest-普通有回执转账交易")
+            author = "qcxiao", showName = "evm.PlatonTransferTest-普通有回执转账交易", sourcePrefix = "evm")
     public void testTransfer() {
         Credentials credentials = null;
         BigInteger nonce = null;

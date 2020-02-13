@@ -21,7 +21,7 @@ import java.math.BigInteger;
 public class ConstructorDefaultVisibilityTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "albedo", showName = "ConstructorDefaultVisibilityTest-构造函数和可见性", sourcePrefix = "evm")
+            author = "albedo", showName = "evm.ConstructorDefaultVisibilityTest-构造函数和可见性", sourcePrefix = "evm")
     public void testGetOutI() {
         try {
             prepare();

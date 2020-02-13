@@ -22,7 +22,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testFunctionCheck",
-            author = "albedo", showName = "DeprecatedFunctionsTest-0.4.25版本仍生效函数", sourcePrefix = "evm")
+            author = "albedo", showName = "evm.DeprecatedFunctionsTest-0.4.25版本仍生效函数", sourcePrefix = "evm")
     public void testFunctionCheck() {
         try {
             prepare();
@@ -41,7 +41,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testThrowCheck",
-            author = "albedo", showName = "DeprecatedFunctionsTest-验证throw关键字", sourcePrefix = "evm")
+            author = "albedo", showName = "DeprecatedFunctionsTest-验证throw关键字")
     public void testThrowCheck() {
         try {
             prepare();
@@ -64,7 +64,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testSuicide",
-            author = "albedo", showName = "DeprecatedFunctionsTest-验证suicide函数", sourcePrefix = "evm")
+            author = "albedo", showName = "DeprecatedFunctionsTest-验证suicide函数")
     public void testSuicide() {
         try {
             prepare();
