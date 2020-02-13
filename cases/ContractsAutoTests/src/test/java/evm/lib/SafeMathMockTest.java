@@ -12,7 +12,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "max",
-            author = "albedo", showName = "lib.SafeMathMockTest-最大值")
+            author = "albedo", showName = "lib.SafeMathMockTest-最大值", sourcePrefix = "evm")
     public void testMax() {
         try {
             prepare();

@@ -94,7 +94,7 @@ public class ContractMigrate_v2 extends WasmContract {
         return deployRemoteCall(ContractMigrate_v2.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
-    public RemoteCall<TransactionReceipt> migrate_contract(Byte[] init_arg, Long transfer_value, Long gas_value) {
+    public RemoteCall<TransactionReceipt> migrate_contract(byte[] init_arg, Long transfer_value, Long gas_value) {
         final WasmFunction function = new WasmFunction(FUNC_MIGRATE_CONTRACT, Arrays.asList(init_arg,transfer_value,gas_value), Void.class);
         return executeRemoteCallTransaction(function);
     }

@@ -28,7 +28,7 @@ public class Caller0425Test extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "Caller0425Test-0.4.25跨合约调用CALL")
+            author = "hudenian", showName = "Caller0425Test-0.4.25跨合约调用CALL", sourcePrefix = "evm")
     public void caller0425CallTest() {
         try {
             //调用者合约地址
