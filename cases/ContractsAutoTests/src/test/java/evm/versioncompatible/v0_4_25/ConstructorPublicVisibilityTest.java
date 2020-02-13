@@ -32,7 +32,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testConstantCheck",
-            author = "albedo", showName = "ConstructorPublicVisibilityTest-constant修饰函数状态可变性")
+            author = "albedo", showName = "ConstructorPublicVisibilityTest-constant修饰函数状态可变性", sourcePrefix = "evm")
     public void testConstantCheck() {
         try {
             prepare();
@@ -51,7 +51,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testNamedReturn",
-            author = "albedo", showName = "ConstructorPublicVisibilityTest-定义具有命名返回值的函数类型")
+            author = "albedo", showName = "ConstructorPublicVisibilityTest-定义具有命名返回值的函数类型", sourcePrefix = "evm")
     public void testNamedReturn() {
         try {
             prepare();
@@ -70,7 +70,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testGrammarCheck",
-            author = "albedo", showName = "ConstructorPublicVisibilityTest-支持语法覆盖")
+            author = "albedo", showName = "ConstructorPublicVisibilityTest-支持语法覆盖", sourcePrefix = "evm")
     public void testGrammarCheck() {
         try {
             prepare();
@@ -90,7 +90,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testAbstractFunction",
-            author = "albedo", showName = "ConstructorPublicVisibilityTest-未实现的函数使用修饰符")
+            author = "albedo", showName = "ConstructorPublicVisibilityTest-未实现的函数使用修饰符", sourcePrefix = "evm")
     public void testAbstractFunction() {
         try {
             prepare();
@@ -109,7 +109,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testShow",
-            author = "albedo", showName = "ConstructorPublicVisibilityTest-msg.value用在非 payable函数里以及此函数的修饰符")
+            author = "albedo", showName = "ConstructorPublicVisibilityTest-msg.value用在非 payable函数里以及此函数的修饰符", sourcePrefix = "evm")
     public void testShow() {
         try {
             prepare();

@@ -32,7 +32,7 @@ public class SameNameConstructorInternalVisibilityTest extends ContractPrepareTe
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testDiscardVariable",
-            author = "albedo", showName = "SameNameConstructorInternalVisibilityTest-弃用字面量及后缀整体覆盖")
+            author = "albedo", showName = "SameNameConstructorInternalVisibilityTest-弃用字面量及后缀整体覆盖", sourcePrefix = "evm")
     public void testDiscardVariable() {
         try {
             prepare();

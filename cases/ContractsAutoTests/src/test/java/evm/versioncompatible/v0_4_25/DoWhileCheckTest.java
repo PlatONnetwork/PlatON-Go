@@ -23,7 +23,7 @@ import java.math.BigInteger;
 public class DoWhileCheckTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "albedo", showName = "DoWhileCheckTest-重大bug验证")
+            author = "albedo", showName = "DoWhileCheckTest-重大bug验证", sourcePrefix = "evm")
     public void testDoWhileCheck() {
         try {
             prepare();
