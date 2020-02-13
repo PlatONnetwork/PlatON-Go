@@ -24,7 +24,7 @@ public class ShortCircuitErrorTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ShortCircuitErrorTest-短路语法")
+            author = "hudenian", showName = "ShortCircuitErrorTest-短路语法", sourcePrefix = "evm")
     public void shortCircuitStruct() {
         try {
 

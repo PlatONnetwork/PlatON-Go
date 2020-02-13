@@ -27,7 +27,7 @@ public class RuntimeCodeTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "RuntimeCodeTest-type(C).runtimeCode()")
+            author = "hudenian", showName = "RuntimeCodeTest-type(C).runtimeCode()", sourcePrefix = "evm")
     public void testRuntimeType() {
         try {
 

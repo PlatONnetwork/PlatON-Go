@@ -27,7 +27,7 @@ public class HexLiteralsChangeByteTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "version_compatible.0.5.0.HexLiteralsChangeByteTest-弃用类型转换")
+            author = "hudenian", showName = "version_compatible.0.5.0.HexLiteralsChangeByteTest-弃用类型转换", sourcePrefix = "evm")
     public void update() {
         try {
 

@@ -26,7 +26,7 @@ public class SuicideAndSelfdestructTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "SuicideAndSelfdestructTest-suicide")
+            author = "hudenian", showName = "SuicideAndSelfdestructTest-suicide", sourcePrefix = "evm")
     public void selfKill() {
         try {
 

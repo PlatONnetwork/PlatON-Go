@@ -33,7 +33,7 @@ public class OrderDaoTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "OrderDaoTest-结算复杂合约测试验证")
+            author = "hudenian", showName = "OrderDaoTest-结算复杂合约测试验证", sourcePrefix = "evm")
     public void orderDaoTest() {
         try {
             //调用者合约地址

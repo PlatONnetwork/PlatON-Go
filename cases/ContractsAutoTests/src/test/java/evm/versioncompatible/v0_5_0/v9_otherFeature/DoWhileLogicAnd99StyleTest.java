@@ -36,7 +36,7 @@ public class DoWhileLogicAnd99StyleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "DoWhileLogicAnd99StyleTest-c99语法风格")
+            author = "hudenian", showName = "DoWhileLogicAnd99StyleTest-c99语法风格", sourcePrefix = "evm")
     public void doWhileAndFor() {
         try {
             DoWhileLogicAnd99Style doWhileLogicAnd99Style = DoWhileLogicAnd99Style.deploy(web3j, transactionManager, provider).send();
