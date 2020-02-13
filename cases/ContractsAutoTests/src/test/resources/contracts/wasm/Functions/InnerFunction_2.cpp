@@ -5,10 +5,10 @@ using namespace platon;
 /**
  * 针对系统链上函数的调用
  */
-CONTRACT InnerFunction:public platon::Contract{
+CONTRACT InnerFunction_2:public platon::Contract{
 	public:
 		ACTION void init() {}
-		
+		/*
 		/// 获取GasPrice
 		CONST std::string gas_price(){
 			u256 price = platon_gas_price();
@@ -56,7 +56,7 @@ CONTRACT InnerFunction:public platon::Contract{
 			Energon e = platon_balance(Address(addr));
 			return to_string(e.Get());		
 		}
-		/*
+		*/
 		/// 主币转账
 		/// define: int32_t platon_transfer(const Address& addr, const Energon& amount);
 		ACTION void transfer(const std::string& addr, uint64_t amount) {
@@ -121,11 +121,11 @@ CONTRACT InnerFunction:public platon::Contract{
 		/// summary: compile success.
 		std::string compile(){
 			return "compile";		
-		}*/
+		}
 	
 };
 
-// (transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin)
-PLATON_DISPATCH(InnerFunction, (init)(compile)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase))
+// (compile)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase)
+PLATON_DISPATCH(InnerFunction_2, (init)(transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin))
 
 
