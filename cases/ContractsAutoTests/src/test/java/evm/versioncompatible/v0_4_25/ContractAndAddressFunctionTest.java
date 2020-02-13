@@ -62,7 +62,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testVon",
-            author = "albedo", showName = "ContractAndAddressTest-VON转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-VON转账测试", sourcePrefix = "evm")
     public void testVon() {
         try {
             prepare();
@@ -90,7 +90,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testKVon",
-            author = "albedo", showName = "ContractAndAddressTest-KVON转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-KVON转账测试", sourcePrefix = "evm")
     public void testKVon() {
         try {
             prepare();
@@ -118,7 +118,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testMVon",
-            author = "albedo", showName = "ContractAndAddressTest-MVON转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-MVON转账测试", sourcePrefix = "evm")
     public void testMVon() {
         try {
             prepare();
@@ -146,7 +146,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testGVon",
-            author = "albedo", showName = "ContractAndAddressTest-GVON转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-GVON转账测试", sourcePrefix = "evm")
     public void testGVon() {
         try {
             prepare();
@@ -174,7 +174,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testSzabo",
-            author = "albedo", showName = "ContractAndAddressTest-SZABO转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-SZABO转账测试", sourcePrefix = "evm")
     public void testSzabo() {
         try {
             prepare();
@@ -202,7 +202,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testFinney",
-            author = "albedo", showName = "ContractAndAddressTest-FINNEY转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-FINNEY转账测试", sourcePrefix = "evm")
     public void testFinney() {
         try {
             prepare();
@@ -230,7 +230,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testLat",
-            author = "albedo", showName = "ContractAndAddressTest-LAT转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-LAT转账测试", sourcePrefix = "evm")
     public void testLat() {
         try {
             prepare();
@@ -258,7 +258,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testKLat",
-            author = "albedo", showName = "ContractAndAddressTest-KLAT转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-KLAT转账测试", sourcePrefix = "evm")
     public void testKLat() {
         try {
             prepare();
@@ -286,7 +286,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testMLat",
-            author = "albedo", showName = "ContractAndAddressTest-MLAT转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-MLAT转账测试", sourcePrefix = "evm")
     public void testMLat() {
         try {
             prepare();
@@ -314,7 +314,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testGLat",
-            author = "albedo", showName = "ContractAndAddressTest-GLAT转账测试")
+            author = "albedo", showName = "ContractAndAddressTest-GLAT转账测试", sourcePrefix = "evm")
     public void testGLat() {
         try {
             prepare();
