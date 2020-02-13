@@ -32,7 +32,7 @@ public class DecimalLiteralsChangeByteDeprecatedTypeTest extends ContractPrepare
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "version_compatible.0.5.0.constructorDeprecatedElementTest-弃用元素测试")
+            author = "hudenian", showName = "version_compatible.0.5.0.constructorDeprecatedElementTest-弃用元素测试", sourcePrefix = "evm")
     public void changeByteDeprecatedType() {
         try {
 

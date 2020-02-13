@@ -27,7 +27,7 @@ public class InterfaceEnableStructAndenumImplTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "InterfaceEnableStructAndenumImplTest-接口允许定义结构体与枚举")
+            author = "hudenian", showName = "InterfaceEnableStructAndenumImplTest-接口允许定义结构体与枚举", sourcePrefix = "evm")
     public void callEnum() {
         try {
 

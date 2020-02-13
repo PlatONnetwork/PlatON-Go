@@ -30,7 +30,7 @@ public class Sha3AndKeccake256Test extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "Sha3AndKeccake256Test-keccak256")
+            author = "hudenian", showName = "Sha3AndKeccake256Test-keccak256", sourcePrefix = "evm")
     public void keccake256() {
         try {
 
