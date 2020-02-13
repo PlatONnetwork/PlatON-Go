@@ -55,7 +55,7 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
             String code = WasmFunctionEncoder.encodeConstructor(contractMigratev1.getContractBinary(), Arrays.asList());
             byte[] data = Numeric.hexStringToByteArray(code);
 
-            TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(data,0L, 90000000L).send();
+            TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(data,transfer_value, 90000000L).send();
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
             
             BigInteger originAfterMigrateBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
