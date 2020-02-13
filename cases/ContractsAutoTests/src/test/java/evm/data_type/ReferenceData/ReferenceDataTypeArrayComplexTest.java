@@ -23,6 +23,7 @@ public class ReferenceDataTypeArrayComplexTest extends ContractPrepareTest {
     private String a,b,c,d,e;
     private String sum;
 
+
     @Before
     public void before() {
        this.prepare();
