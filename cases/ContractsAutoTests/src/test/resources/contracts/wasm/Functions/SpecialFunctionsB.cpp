@@ -28,7 +28,7 @@ CONTRACT SpecialFunctionsB : public platon::Contract{
     }
 
     CONST uint64_t getPlatONGasPrice(){
-        return platon_gas_price();
+        return platon::platon_gas_price();
     }
 
 };
