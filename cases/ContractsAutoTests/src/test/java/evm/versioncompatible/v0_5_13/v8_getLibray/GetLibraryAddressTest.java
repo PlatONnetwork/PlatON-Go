@@ -28,7 +28,7 @@ public class GetLibraryAddressTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "GetLibraryAddressTest-获取链接库的地址")
+            author = "hudenian", showName = "GetLibraryAddressTest-获取链接库的地址", sourcePrefix = "evm")
     public void getLibraryAddress() {
 
         ContractGasProvider provider = new ContractGasProvider(new BigInteger("50000000000"), new BigInteger("3000000"));

@@ -24,7 +24,7 @@ public class RecursiveStorageMemoryComplexTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls",sheetName = "structs", author = "hudenian", showName = "StructDataTypeTest.结构体数据类型")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls",sheetName = "structs", author = "hudenian", showName = "StructDataTypeTest.结构体数据类型", sourcePrefix = "evm")
     public void testRecursiveStorageMemoryComplex() {
 
         RecursiveStorageMemoryComplex recursiveStorageMemoryComplex = null;
