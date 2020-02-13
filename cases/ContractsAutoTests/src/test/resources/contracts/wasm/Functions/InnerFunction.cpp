@@ -10,49 +10,50 @@ CONTRACT InnerFunction:public platon::Contract{
 		ACTION void init() {}
 		
 		/// 获取GasPrice
-		CONST uint64_t gas_price(){
-			return platon::platon_gas_price();
+		CONST std::string gas_price(){
+			u256 price = platon_gas_price();
+			return to_string(price);
 		}
 
 		/// 获取区块高度
 		CONST uint64_t block_number(){
-			return platon::platon_block_number();	
+			return platon_block_number();	
 		}
 
 		/// 获取gasLimit
 		CONST uint64_t gas_limit() {
-			return platon::platon_gas_limit();		
+			return platon_gas_limit();		
 		}
 		
 		/// 获取当前交易发送的Gas
 		CONST uint64_t gas() {
-			return platon::platon_gas();		
+			return platon_gas();		
 		}
 	
 		/// 获取当前块的时间戳
 		CONST uint64_t timestamp() {
-			return platon::platon_timestamp();		
+			return platon_timestamp();		
 		}
 
 		/// 获取消息发送者的nonce
 		CONST uint64_t nonce() {
-			return platon::platon_caller_nonce();		
+			return platon_caller_nonce();		
 		}
 
 		/// 获取指定区块高度的哈希
 		CONST std::string block_hash(uint64_t bn) {
-			h256 bhash = platon::platon_block_hash(bn);
+			h256 bhash = platon_block_hash(bn);
 			return bhash.toString();	
 		}
 			
 		/// 获取当前旷工地址
 		CONST std::string coinbase() {
-			return platon::platon_coinbase().toString();		
+			return platon_coinbase().toString();		
 		}
 		
 		/// 获取指定地址的余额(bug)
 		CONST std::string balanceOf(const std::string& addr) {
-			Energon e = platon::platon_balance(Address(addr));
+			Energon e = platon_balance(Address(addr));
 			return to_string(e.Get());		
 		}
 
@@ -63,13 +64,13 @@ CONTRACT InnerFunction:public platon::Contract{
 				DEBUG("Transfer failed", "address", addr, "amount", amount);
 				return;
 			}		
-			platon::platon_transfer(Address(addr), Energon(amount));
+			platon_transfer(Address(addr), Energon(amount));
 		}
 		
 		/// 获取消息携带的value(fix) 
 		/// define: u256 platon_call_value();
 		CONST std::string value() { 
-			u256 val = platon::platon_call_value();
+			u256 val = platon_call_value();
 			return to_string(val);		
 		}
 
@@ -86,27 +87,27 @@ CONTRACT InnerFunction:public platon::Contract{
 		/// define: template <typename T> void platon_return(const T& t);
 		CONST void rreturn() {
 			std::string str = "hello";
-			platon::platon_return(str);
+			platon_return(str);
 		}
 
 		/// 终止交易 panic, 交易完成，合约执行异常
 		/// define: void platon_panic();
 		ACTION void panic() {
-			platon::platon_panic();		
+			platon_panic();		
 		}
 
 		/// 终止交易 revert
 		/// define: void platon_revert();
 		ACTION void revert(int64_t flag) {
 			if(flag == 1){
-				platon::platon_revert();
+				platon_revert();
 			}		
 		} 
 
 		/// 合约销毁 destroy, 销毁后检测余额
 		/// define: bool platon_destroy(const Address& addr);
 		ACTION void destroy(const std::string& addr) {
-			platon::platon_destroy(Address(addr));		
+			platon_destroy(Address(addr));		
 		}
 		
 		/// 消息的原始发送者origin
