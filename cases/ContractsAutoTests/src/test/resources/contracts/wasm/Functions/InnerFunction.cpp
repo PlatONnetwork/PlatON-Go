@@ -125,7 +125,7 @@ CONTRACT InnerFunction:public platon::Contract{
 	
 };
 
-// (transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin)
-PLATON_DISPATCH(InnerFunction, (init)(compile)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase))
+// (transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin)(compile)
+PLATON_DISPATCH(InnerFunction, (init)(balanceOf)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase))
 
 
