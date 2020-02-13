@@ -21,7 +21,7 @@ import java.math.BigInteger;
 public class RevertHandleTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "revertCheck",
-            author = "albedo", showName = "exceptionhandle.RevertHandle-revert()函数")
+            author = "albedo", showName = "exceptionhandle.RevertHandle-revert()函数", sourcePrefix = "evm")
     public void testRevertCheck() {
         try {
             prepare();
@@ -44,7 +44,7 @@ public class RevertHandleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "revertReasonCheck",
-            author = "albedo", showName = "exceptionhandle.RevertHandle-revert(string reason)函数")
+            author = "albedo", showName = "exceptionhandle.RevertHandle-revert(string reason)函数", sourcePrefix = "evm")
     public void testParamException() {
         try {
             prepare();

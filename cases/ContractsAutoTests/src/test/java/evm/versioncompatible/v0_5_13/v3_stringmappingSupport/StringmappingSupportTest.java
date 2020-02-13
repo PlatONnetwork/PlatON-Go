@@ -34,7 +34,7 @@ public class StringmappingSupportTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "StringmappingSupportTest-添加对具有string键类型的mapping的获取器的支持")
+            author = "hudenian", showName = "StringmappingSupportTest-添加对具有string键类型的mapping的获取器的支持", sourcePrefix = "evm")
     public void testStringMapping() {
 
         ContractGasProvider provider = new ContractGasProvider(new BigInteger("50000000000"), new BigInteger("3000000"));
@@ -66,7 +66,7 @@ public class StringmappingSupportTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test1.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "StringmappingSupportTest-添加对具有bytes键类型的mapping的获取器的支持")
+            author = "hudenian", showName = "StringmappingSupportTest-添加对具有bytes键类型的mapping的获取器的支持", sourcePrefix = "evm")
     public void testBytesMapping() {
 
         ContractGasProvider provider = new ContractGasProvider(new BigInteger("50000000000"), new BigInteger("3000000"));

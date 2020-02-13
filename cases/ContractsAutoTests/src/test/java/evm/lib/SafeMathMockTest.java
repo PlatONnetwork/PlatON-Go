@@ -30,7 +30,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "min",
-            author = "albedo", showName = "lib.SafeMathMockTest-最小值")
+            author = "albedo", showName = "lib.SafeMathMockTest-最小值", sourcePrefix = "evm")
     public void testMin() {
         try {
             prepare();
@@ -48,7 +48,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "average",
-            author = "albedo", showName = "lib.SafeMathMockTest-平均值")
+            author = "albedo", showName = "lib.SafeMathMockTest-平均值", sourcePrefix = "evm")
     public void testAverage() {
         try {
             prepare();
@@ -66,7 +66,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "add",
-            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型相加")
+            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型相加", sourcePrefix = "evm")
     public void testAdd() {
         try {
             prepare();
@@ -83,7 +83,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     }
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "mul",
-            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型相乘")
+            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型相乘", sourcePrefix = "evm")
     public void testMul() {
         try {
             prepare();
@@ -100,7 +100,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     }
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "sub",
-            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型相减")
+            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型相减", sourcePrefix = "evm")
     public void testSub() {
         try {
             prepare();
@@ -120,7 +120,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "div",
-            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型相除")
+            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型相除", sourcePrefix = "evm")
     public void testDiv() {
         try {
             prepare();
@@ -139,7 +139,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     }
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "mod",
-            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型除余")
+            author = "albedo", showName = "lib.SafeMathMockTest-无符号整型除余", sourcePrefix = "evm")
     public void testMod() {
         try {
             prepare();

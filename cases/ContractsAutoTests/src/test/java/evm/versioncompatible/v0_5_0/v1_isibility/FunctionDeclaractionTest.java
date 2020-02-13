@@ -34,7 +34,7 @@ public class FunctionDeclaractionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test1.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "version_compatible.0.5.0.FunctionDeclaractionTest-update_public-可见性测试")
+            author = "hudenian", showName = "evm.version_compatible.0.5.0.FunctionDeclaractionTest-update_public-可见性测试", sourcePrefix = "evm")
     public void update_public() {
         try {
 
@@ -66,7 +66,7 @@ public class FunctionDeclaractionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test2.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "version_compatible.0.5.0.FunctionDeclaractionTest-update_external-可见性测试")
+            author = "hudenian", showName = "version_compatible.0.5.0.FunctionDeclaractionTest-update_external-可见性测试", sourcePrefix = "evm")
     public void update_external() {
         try {
 

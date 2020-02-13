@@ -21,7 +21,7 @@ import java.util.List;
 public class EventCallContractTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "emitEvent",
-            author = "albedo", showName = "event.EventCallContractTest-event关键字声明事件")
+            author = "albedo", showName = "event.EventCallContractTest-event关键字声明事件", sourcePrefix = "evm")
     public void testEmitEvent() {
         try {
             prepare();
@@ -41,7 +41,7 @@ public class EventCallContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "indexedEvent",
-            author = "albedo", showName = "event.EventCallContractTest-indexed关键字定义事件索引")
+            author = "albedo", showName = "event.EventCallContractTest-indexed关键字定义事件索引", sourcePrefix = "evm")
     public void testIndexedEvent() {
         try {
             prepare();
@@ -62,7 +62,7 @@ public class EventCallContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "anonymousEvent",
-            author = "albedo", showName = "event.EventCallContractTest-anonymous关键字定义匿名事件")
+            author = "albedo", showName = "event.EventCallContractTest-anonymous关键字定义匿名事件", sourcePrefix = "evm")
     public void testAnonymousEvent() {
         try {
             prepare();
@@ -80,7 +80,7 @@ public class EventCallContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testEmitEvents",
-            author = "albedo", showName = "event.EventCallContractTest-函数多事件监听")
+            author = "albedo", showName = "event.EventCallContractTest-函数多事件监听", sourcePrefix = "evm")
     public void testEmitEvents() {
         try {
             prepare();
@@ -110,7 +110,7 @@ public class EventCallContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testMultiAnonymousEvents",
-            author = "albedo", showName = "event.EventCallContractTest-函数多匿名事件监听")
+            author = "albedo", showName = "event.EventCallContractTest-函数多匿名事件监听", sourcePrefix = "evm")
     public void testMultiAnonymousEvents() {
         try {
             prepare();

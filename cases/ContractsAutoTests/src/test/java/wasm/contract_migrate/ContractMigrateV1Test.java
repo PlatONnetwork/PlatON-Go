@@ -62,6 +62,13 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             String newContractChainName = new_contractMigrate_v1.get_string().send();
             collector.assertContains(newContractChainName,name);
 
+            //调用旧的合约(旧合约已被销毁不能再调用)
+            try{
+                String chainName2 =  contractMigratev1.get_string().send();
+            }catch (Exception e){
+                collector.logStepPass("old contract can not migrate");
+            }
+
         } catch (Exception e) {
             collector.logStepFail("ContractDistoryTest failure,exception msg:" , e.getMessage());
             e.printStackTrace();

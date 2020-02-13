@@ -33,7 +33,7 @@ public class UserLibUseMappingTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "UserLibUseMappingTest-允许public和external库函数的参数和返回变量使用mapping类型")
+            author = "hudenian", showName = "UserLibUseMappingTest-允许public和external库函数的参数和返回变量使用mapping类型", sourcePrefix = "evm")
     public void testLibMappingParam() {
         try {
 
