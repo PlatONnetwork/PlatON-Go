@@ -24,7 +24,7 @@ public class MappingDataTypeContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "MappingDataTypeContract.映射（Mapping）定义赋值取值")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "MappingDataTypeContract.映射（Mapping）定义赋值取值",sourcePrefix = "evm")
     public void testMappingContract() {
 
         MappingContractTest mappingContractTest = null;

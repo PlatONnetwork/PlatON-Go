@@ -22,7 +22,7 @@ public class AbstractContractAInhertNoImpTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约被继承未实现执行情况")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约被继承未实现执行情况",sourcePrefix = "evm")
     public void testAbstractContract() {
 
         AbstractContractSon sonAbstractContract = null;

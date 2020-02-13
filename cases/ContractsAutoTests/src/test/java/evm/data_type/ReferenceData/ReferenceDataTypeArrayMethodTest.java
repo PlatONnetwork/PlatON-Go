@@ -29,7 +29,7 @@ public class ReferenceDataTypeArrayMethodTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeMultiArrayContractTest.数组（Array）方法")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeMultiArrayContractTest.数组（Array）方法",sourcePrefix = "evm")
     public void testReferenceDataTypeArrayTest() {
 
         ReferenceDataTypeArrayContract referenceDataTypeArrayContract = null;
