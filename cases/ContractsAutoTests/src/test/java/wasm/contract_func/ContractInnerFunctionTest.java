@@ -5,6 +5,7 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InnerFunction;
 import network.platon.contracts.wasm.InnerFunction_1;
 import network.platon.contracts.wasm.InnerFunction_2;
+import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
@@ -22,6 +23,11 @@ import java.math.BigInteger;
  */
 public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
+    @Before
+    public void before(){
+        prepare();
+    }
+
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "zjsunzone", showName = "wasm.contract_function",sourcePrefix = "wasm")
@@ -29,16 +35,11 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
         String name = "zjsunzone";
         try {
-            prepare();
-
             // deploy contract.
             InnerFunction innerFunction = InnerFunction.deploy(web3j, transactionManager, provider).send();
             String contractAddress = innerFunction.getContractAddress();
             String transactionHash = innerFunction.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InnerFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
-
-            // testing: (gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)
-            // (coinbase)(transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin)
 
             // test: timestamp(bug)
             Long timestamp = innerFunction.timestamp().send();
@@ -71,7 +72,6 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
         String name = "zjsunzone";
         try {
-            prepare();
 
             // deploy contract.
             InnerFunction_1 innerFunction = InnerFunction_1.deploy(web3j, transactionManager, provider).send();
@@ -89,10 +89,10 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke nonce success, nonce: " + nonce + " rnonce: " + rnonce);
 
             // test: block_hash
-            String bhsh = innerFunction.block_hash(Long.valueOf(100)).send();
-            collector.logStepPass("To invoke block_hash success, hash: " + bhsh);
-            String bhash2 = web3j.platonGetBlockByNumber(new DefaultBlockParameterNumber(100), false).send().getBlock().getHash();
-            collector.assertEqual(prependHexPrefix(bhash2), prependHexPrefix(bhsh));
+            //String bhsh = innerFunction.block_hash(Long.valueOf(100)).send();
+            //collector.logStepPass("To invoke block_hash success, hash: " + bhsh);
+            //String bhash2 = web3j.platonGetBlockByNumber(new DefaultBlockParameterNumber(100), false).send().getBlock().getHash();
+            //collector.assertEqual(prependHexPrefix(bhash2), prependHexPrefix(bhsh));
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
@@ -110,8 +110,6 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
     public void testFunctionContract_02() {
 
         try {
-            prepare();
-
             // deploy contract.
             InnerFunction_2 innerFunction = InnerFunction_2.deploy(web3j, transactionManager, provider).send();
             String contractAddress = innerFunction.getContractAddress();

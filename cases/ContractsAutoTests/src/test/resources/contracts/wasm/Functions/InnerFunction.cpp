@@ -30,11 +30,7 @@ CONTRACT InnerFunction:public platon::Contract{
 			return platon_timestamp();		
 		}
 		
-		/// 获取指定地址的余额(bug)
-		CONST std::string balanceOf(const std::string& addr) {
-			Energon e = platon_balance(Address(addr));
-			return to_string(e.Get());		
-		}
+		
 		/*
 		/// 主币转账
 		/// define: int32_t platon_transfer(const Address& addr, const Energon& amount);
@@ -106,6 +102,6 @@ CONTRACT InnerFunction:public platon::Contract{
 
 // (transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin)(compile)
 // (gas)(nonce)(block_hash)(coinbase)
-PLATON_DISPATCH(InnerFunction, (init)(balanceOf)(gas_price)(block_number)(gas_limit)(timestamp))
+PLATON_DISPATCH(InnerFunction, (init)(gas_price)(block_number)(gas_limit)(timestamp))
 
 
