@@ -29,11 +29,11 @@ public class InnerFunction_2 extends WasmContract {
 
     public static final String FUNC_SHA3 = "sha3";
 
+    public static final String FUNC_TRANSFER = "transfer";
+
     public static final String FUNC_VALUE = "value";
 
     public static final String FUNC_RRETURN = "rreturn";
-
-    public static final String FUNC_TRANSFER = "transfer";
 
     public static final String FUNC_PANIC = "panic";
 
@@ -56,15 +56,6 @@ public class InnerFunction_2 extends WasmContract {
         return executeRemoteCall(function, String.class);
     }
 
-    public RemoteCall<String> value() {
-        final WasmFunction function = new WasmFunction(FUNC_VALUE, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public void rreturn() {
-        throw new RuntimeException("cannot call constant function with void return type");
-    }
-
     public static RemoteCall<InnerFunction_2> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(InnerFunction_2.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -78,6 +69,15 @@ public class InnerFunction_2 extends WasmContract {
     public RemoteCall<TransactionReceipt> transfer(String addr, Long amount) {
         final WasmFunction function = new WasmFunction(FUNC_TRANSFER, Arrays.asList(addr,amount), Void.class);
         return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<String> value() {
+        final WasmFunction function = new WasmFunction(FUNC_VALUE, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
+    public void rreturn() {
+        throw new RuntimeException("cannot call constant function with void return type");
     }
 
     public RemoteCall<TransactionReceipt> panic() {
