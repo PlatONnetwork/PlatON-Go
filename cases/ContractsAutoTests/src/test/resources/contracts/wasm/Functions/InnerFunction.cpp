@@ -24,31 +24,10 @@ CONTRACT InnerFunction:public platon::Contract{
 		CONST uint64_t gas_limit() {
 			return platon_gas_limit();		
 		}
-		
-		/// 获取当前交易发送的Gas
-		CONST uint64_t gas() {
-			return platon_gas();		
-		}
 	
 		/// 获取当前块的时间戳
 		CONST uint64_t timestamp() {
 			return platon_timestamp();		
-		}
-
-		/// 获取消息发送者的nonce
-		CONST uint64_t nonce() {
-			return platon_caller_nonce();		
-		}
-
-		/// 获取指定区块高度的哈希
-		CONST std::string block_hash(uint64_t bn) {
-			h256 bhash = platon_block_hash(bn);
-			return bhash.toString();	
-		}
-			
-		/// 获取当前旷工地址
-		CONST std::string coinbase() {
-			return platon_coinbase().toString();		
 		}
 		
 		/// 获取指定地址的余额(bug)
@@ -126,6 +105,7 @@ CONTRACT InnerFunction:public platon::Contract{
 };
 
 // (transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin)(compile)
-PLATON_DISPATCH(InnerFunction, (init)(balanceOf)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase))
+// (gas)(nonce)(block_hash)(coinbase)
+PLATON_DISPATCH(InnerFunction, (init)(balanceOf)(gas_price)(block_number)(gas_limit)(timestamp))
 
 
