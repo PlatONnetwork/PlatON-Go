@@ -187,6 +187,7 @@ func (n *Node) Start() error {
 			services:       make(map[reflect.Type]Service),
 			EventMux:       n.eventmux,
 			AccountManager: n.accman,
+			serverConfig:   n.serverConfig,
 		}
 		for kind, s := range services { // copy needed for threaded access
 			ctx.services[kind] = s

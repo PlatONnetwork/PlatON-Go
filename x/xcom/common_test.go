@@ -1,6 +1,7 @@
 package xcom
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -77,4 +78,22 @@ func TestCommon_StorageAvgPackTime(t *testing.T) {
 
 	avgPackTime, err = LoadCurrentAvgPackTime()
 	assert.Equal(t, uint64(2000), avgPackTime)
+}
+
+func TestStateDB(t *testing.T) {
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+
+	resByte := NewResult(common.InternalError, "test")
+
+	res := new(Result)
+	if err := json.Unmarshal(resByte, res); err != nil {
+		t.Error(err)
+	}
+	if res.Code != common.InternalError.Code {
+		t.Error("code must same")
+	}
+
+	AddLog(chain.StateDB, 1, common.ZeroAddr, "aa", "bb")
+	AddLogWithRes(chain.StateDB, 1, common.ZeroAddr, "aa", "bb", "cc")
 }

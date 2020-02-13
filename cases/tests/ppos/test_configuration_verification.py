@@ -10,7 +10,9 @@ from environment.node import Node
 
 
 def assert_error_deploy(env: Node, genesis_file, msg="Error config"):
+    env.clean_db()
     is_success, err_msg = env.deploy_me(genesis_file)
+    print(is_success)
     assert not is_success, "{}-{}".format(msg, err_msg)
 
 
@@ -18,7 +20,7 @@ def assert_error_deploy(env: Node, genesis_file, msg="Error config"):
 def stop(global_test_env):
     global_test_env.stop_all()
     yield
-    global_test_env.deploy_all()
+    # global_test_env.deploy_all()
 
 
 @pytest.fixture()
@@ -277,11 +279,18 @@ def test_IP_CP_002_validator_mode(reset_cfg_env_node, value):
     创世文件共识参数验证
     :return:
     """
-    genesis = reset_cfg_env_node.genesis
-    genesis.config.cbft.validatorMode = value
-    new_file = reset_cfg_env_node.genesis_path
-    genesis.to_file(new_file)
-    assert_error_deploy(reset_cfg_env_node, new_file, "Abnormal validatorMode")
+    if value == "":
+        genesis = reset_cfg_env_node.genesis
+        genesis.config.cbft.validatorMode = value
+        new_file = reset_cfg_env_node.genesis_path
+        genesis.to_file(new_file)
+        reset_cfg_env_node.deploy_me(new_file)
+    else:
+        genesis = reset_cfg_env_node.genesis
+        genesis.config.cbft.validatorMode = value
+        new_file = reset_cfg_env_node.genesis_path
+        genesis.to_file(new_file)
+        assert_error_deploy(reset_cfg_env_node, new_file, "Abnormal validatorMode")
 
 
 @pytest.mark.P2
