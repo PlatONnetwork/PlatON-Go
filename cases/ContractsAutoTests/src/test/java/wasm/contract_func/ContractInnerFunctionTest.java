@@ -111,14 +111,14 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             collector.assertEqual(credentials.getAddress(), Numeric.prependHexPrefix(origin));
 
             // test: gas_price
-            Long gasPrice = innerFunction.gas_price().send();
-            collector.logStepPass("To invoke gas_price success. gasPrice: " + gasPrice);
-            collector.assertEqual(provider.getGasPrice().longValue(), gasPrice);
+            String price = innerFunction.gas_price().send();
+            collector.logStepPass("To invoke gas_price success. gasPrice: " + price);
+            collector.assertEqual(provider.getGasPrice().longValue(), price);
 
             // test: gas_limit
             Long gasLimit = innerFunction.gas_limit().send();
             collector.logStepPass("To invoke gas_limit success. gasLimit: " + gasLimit);
-            collector.assertFalse(provider.getGasLimit().longValue() == gasPrice);
+            collector.assertFalse(provider.getGasLimit().longValue() == gasLimit.longValue());
 
             // test: block_number
             Long bn = innerFunction.block_number().send();
