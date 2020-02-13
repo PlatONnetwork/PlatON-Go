@@ -27,7 +27,7 @@ public class IntegerDataTypeContract_3 extends WasmContract {
 
     private static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_GETCHAR = "getChar";
+    public static final String FUNC_SETCHAR = "setChar";
 
     public static final String FUNC_SETSTRING = "setString";
 
@@ -37,7 +37,7 @@ public class IntegerDataTypeContract_3 extends WasmContract {
 
     public static final String FUNC_GETBOOL = "getBool";
 
-    public static final String FUNC_SETCHAR = "setChar";
+    public static final String FUNC_GETCHAR = "getChar";
 
     protected IntegerDataTypeContract_3(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -57,9 +57,9 @@ public class IntegerDataTypeContract_3 extends WasmContract {
         return deployRemoteCall(IntegerDataTypeContract_3.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
-    public RemoteCall<Byte> getChar() {
-        final WasmFunction function = new WasmFunction(FUNC_GETCHAR, Arrays.asList(), Byte.class);
-        return executeRemoteCall(function, Byte.class);
+    public RemoteCall<TransactionReceipt> setChar(Byte input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETCHAR, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<TransactionReceipt> setString(String input) {
@@ -82,9 +82,9 @@ public class IntegerDataTypeContract_3 extends WasmContract {
         return executeRemoteCall(function, Boolean.class);
     }
 
-    public RemoteCall<TransactionReceipt> setChar(Byte input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETCHAR, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
+    public RemoteCall<Byte> getChar() {
+        final WasmFunction function = new WasmFunction(FUNC_GETCHAR, Arrays.asList(), Byte.class);
+        return executeRemoteCall(function, Byte.class);
     }
 
     public static IntegerDataTypeContract_3 load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

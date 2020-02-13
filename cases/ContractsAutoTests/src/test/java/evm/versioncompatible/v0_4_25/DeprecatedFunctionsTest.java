@@ -22,7 +22,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testFunctionCheck",
-            author = "albedo", showName = "DeprecatedFunctionsTest-0.4.25版本仍生效函数")
+            author = "albedo", showName = "evm.DeprecatedFunctionsTest-0.4.25版本仍生效函数", sourcePrefix = "evm")
     public void testFunctionCheck() {
         try {
             prepare();

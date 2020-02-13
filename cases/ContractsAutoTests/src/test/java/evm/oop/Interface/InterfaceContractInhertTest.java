@@ -33,7 +33,7 @@ public class InterfaceContractInhertTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.合约多继承接口执行情况")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.合约多继承接口执行情况",sourcePrefix = "evm")
     public void testAbstractContract() {
 
         InterfaceContractInheritMultipleTest interfaceInheritMultiple = null;

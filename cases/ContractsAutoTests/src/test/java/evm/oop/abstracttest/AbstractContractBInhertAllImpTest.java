@@ -26,7 +26,7 @@ public class AbstractContractBInhertAllImpTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约单继承且实现执行情况")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约单继承且实现执行情况",sourcePrefix = "evm")
     public void testAbstractContract() {
 
         AbstractContractBSubclass abstractContractBSubclass= null;

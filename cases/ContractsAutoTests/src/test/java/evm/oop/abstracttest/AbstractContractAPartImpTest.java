@@ -23,7 +23,7 @@ public class AbstractContractAPartImpTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约实现部分执行情况")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约实现部分执行情况",sourcePrefix = "evm")
     public void testAbstractContract() {
 
         AbstractContractFather fatherAbstractContract = null;

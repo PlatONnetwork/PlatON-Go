@@ -27,9 +27,9 @@ public class ContractDelegateCall extends WasmContract {
 
     private static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_GET_VECTOR_SIZE = "get_vector_size";
-
     public static final String FUNC_DELEGATE_CALL_ADD_MESSAGE = "delegate_call_add_message";
+
+    public static final String FUNC_GET_VECTOR_SIZE = "get_vector_size";
 
     protected ContractDelegateCall(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -37,11 +37,6 @@ public class ContractDelegateCall extends WasmContract {
 
     protected ContractDelegateCall(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<Long> get_vector_size() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR_SIZE, Arrays.asList(), Long.class);
-        return executeRemoteCall(function, Long.class);
     }
 
     public static RemoteCall<ContractDelegateCall> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -57,6 +52,11 @@ public class ContractDelegateCall extends WasmContract {
     public RemoteCall<TransactionReceipt> delegate_call_add_message(String target_address, My_message one_message, Long gas) {
         final WasmFunction function = new WasmFunction(FUNC_DELEGATE_CALL_ADD_MESSAGE, Arrays.asList(target_address,one_message,gas), Void.class);
         return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<Long> get_vector_size() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR_SIZE, Arrays.asList(), Long.class);
+        return executeRemoteCall(function, Long.class);
     }
 
     public static ContractDelegateCall load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

@@ -27,7 +27,7 @@ public class TimeTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.TimeTest-时间单位测试")
+            author = "liweic", showName = "evm.function.TimeTest-时间单位测试", sourcePrefix = "evm")
     public void time() {
         try {
             Time time = Time.deploy(web3j, transactionManager, provider).send();

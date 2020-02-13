@@ -25,7 +25,7 @@ public class ThreeContractCallTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ThreeContractCallTest-三个合约间跨合约调用者")
+            author = "hudenian", showName = "ThreeContractCallTest-三个合约间跨合约调用者", sourcePrefix = "evm")
     public void threeContractCaller() {
         try {
             //第一个合约
