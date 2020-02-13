@@ -24,7 +24,7 @@ public class TypeConversionBytesToUintContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "TypeConversionContract.字节转换整型")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "TypeConversionContract.字节转换整型",sourcePrefix = "evm")
     public void testTypeConversionContract() {
 
         TypeConversionBytesToUintContract typeConversionBytesToUintContract = null;

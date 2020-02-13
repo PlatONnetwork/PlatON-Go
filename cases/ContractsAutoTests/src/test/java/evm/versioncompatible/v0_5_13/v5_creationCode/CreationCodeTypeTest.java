@@ -28,7 +28,7 @@ public class CreationCodeTypeTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "OverloadTest-type(C).creationCode()")
+            author = "hudenian", showName = "OverloadTest-type(C).creationCode()", sourcePrefix = "evm")
     public void testType() {
         try {
 

@@ -47,7 +47,7 @@ public class RequireHandleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "newContractException",
-            author = "albedo", showName = "exceptionhandle.RequireHandle-new创建合约没有正确返回")
+            author = "albedo", showName = "exceptionhandle.RequireHandle-new创建合约没有正确返回", sourcePrefix = "evm")
     public void testNewContractException() {
         try {
             prepare();
@@ -68,7 +68,7 @@ public class RequireHandleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "outFunctionCallException",
-            author = "albedo", showName = "exceptionhandle.RequireHandle-调用外部函数，被调用的对象不包含代码")
+            author = "albedo", showName = "exceptionhandle.RequireHandle-调用外部函数，被调用的对象不包含代码", sourcePrefix = "evm")
     public void testOutFunctionCallException() {
         try {
             prepare();
@@ -89,7 +89,7 @@ public class RequireHandleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "nonPayableReceiveEthException",
-            author = "albedo", showName = "exceptionhandle.RequireHandle-合约在没有payable修饰符的public的函数中接收主币")
+            author = "albedo", showName = "exceptionhandle.RequireHandle-合约在没有payable修饰符的public的函数中接收主币", sourcePrefix = "evm")
     public void testNonPayableReceiveEthException() {
         try {
             prepare();
@@ -110,7 +110,7 @@ public class RequireHandleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "publicGetterReceiveEthException",
-            author = "albedo", showName = "exceptionhandle.RequireHandle-合约通过一个public的getter函数接收主币")
+            author = "albedo", showName = "exceptionhandle.RequireHandle-合约通过一个public的getter函数接收主币", sourcePrefix = "evm")
     public void testPublicGetterReceiveEthException() {
         try {
             prepare();
@@ -131,7 +131,7 @@ public class RequireHandleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "transferCallException",
-            author = "albedo", showName = "exceptionhandle.RequireHandle-transfer()函数执行失败")
+            author = "albedo", showName = "exceptionhandle.RequireHandle-transfer()函数执行失败", sourcePrefix = "evm")
     public void testTransferCallException() {
         try {
             prepare();
@@ -152,7 +152,7 @@ public class RequireHandleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "albedo", showName = "exceptionhandle.RequireHandle-检测异常")
+            author = "albedo", showName = "exceptionhandle.RequireHandle-检测异常", sourcePrefix = "evm")
     public void testParamException() {
         try {
             prepare();

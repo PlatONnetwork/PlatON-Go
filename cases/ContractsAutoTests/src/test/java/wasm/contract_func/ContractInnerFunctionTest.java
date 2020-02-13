@@ -3,6 +3,9 @@ package wasm.contract_func;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InnerFunction;
+import network.platon.contracts.wasm.InnerFunction_1;
+import network.platon.contracts.wasm.InnerFunction_2;
+import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
@@ -20,6 +23,11 @@ import java.math.BigInteger;
  */
 public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
+    @Before
+    public void before(){
+        prepare();
+    }
+
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "zjsunzone", showName = "wasm.contract_function",sourcePrefix = "wasm")
@@ -27,20 +35,49 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
         String name = "zjsunzone";
         try {
-            prepare();
-
             // deploy contract.
             InnerFunction innerFunction = InnerFunction.deploy(web3j, transactionManager, provider).send();
             String contractAddress = innerFunction.getContractAddress();
             String transactionHash = innerFunction.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InnerFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
-            // testing: (gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)
-            // (coinbase)(transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin)
-
             // test: timestamp(bug)
             Long timestamp = innerFunction.timestamp().send();
             collector.logStepPass("To invoke timestamp success, timestamp: " + timestamp);
+
+            // test: gas_limit
+            Long gasLimit = innerFunction.gas_limit().send();
+            collector.logStepPass("To invoke gas_limit success. gasLimit: " + gasLimit);
+            collector.assertFalse(provider.getGasLimit().longValue() == gasLimit.longValue());
+
+            // test: block_number
+            Long bn = innerFunction.block_number().send();
+            collector.logStepPass("To invoke block_number success, bn: " + bn);
+
+
+        } catch (Exception e) {
+            if(e instanceof ArrayIndexOutOfBoundsException){
+                collector.logStepPass("InnerFunction and could not call contract function");
+            }else{
+                collector.logStepFail("InnerFunction failure,exception msg:" , e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.contract_function_01",sourcePrefix = "wasm")
+    public void testFunctionContract_01() {
+
+        String name = "zjsunzone";
+        try {
+
+            // deploy contract.
+            InnerFunction_1 innerFunction = InnerFunction_1.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = innerFunction.getContractAddress();
+            String transactionHash = innerFunction.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("InnerFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
             // test: gas
             Long gas = innerFunction.gas().send();
@@ -52,10 +89,33 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke nonce success, nonce: " + nonce + " rnonce: " + rnonce);
 
             // test: block_hash
-            String bhsh = innerFunction.block_hash(Long.valueOf(100)).send();
-            collector.logStepPass("To invoke block_hash success, hash: " + bhsh);
-            String bhash2 = web3j.platonGetBlockByNumber(new DefaultBlockParameterNumber(100), false).send().getBlock().getHash();
-            collector.assertEqual(prependHexPrefix(bhash2), prependHexPrefix(bhsh));
+            //String bhsh = innerFunction.block_hash(Long.valueOf(100)).send();
+            //collector.logStepPass("To invoke block_hash success, hash: " + bhsh);
+            //String bhash2 = web3j.platonGetBlockByNumber(new DefaultBlockParameterNumber(100), false).send().getBlock().getHash();
+            //collector.assertEqual(prependHexPrefix(bhash2), prependHexPrefix(bhsh));
+
+        } catch (Exception e) {
+            if(e instanceof ArrayIndexOutOfBoundsException){
+                collector.logStepPass("InnerFunction_1 and could not call contract function");
+            }else{
+                collector.logStepFail("InnerFunction_1 failure,exception msg:" , e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.contract_function_02",sourcePrefix = "wasm")
+    public void testFunctionContract_02() {
+
+        try {
+            // deploy contract.
+            InnerFunction_2 innerFunction = InnerFunction_2.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = innerFunction.getContractAddress();
+            String transactionHash = innerFunction.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("InnerFunction deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+
 
             // test: coinbase
             String coinbase = innerFunction.origin().send();
@@ -109,21 +169,6 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             String origin = innerFunction.origin().send();
             collector.logStepPass("To invoke origin success. origin: " + Numeric.prependHexPrefix(origin));
             collector.assertEqual(credentials.getAddress(), Numeric.prependHexPrefix(origin));
-
-            // test: gas_price
-            Long gasPrice = innerFunction.gas_price().send();
-            collector.logStepPass("To invoke gas_price success. gasPrice: " + gasPrice);
-            collector.assertEqual(provider.getGasPrice().longValue(), gasPrice);
-
-            // test: gas_limit
-            Long gasLimit = innerFunction.gas_limit().send();
-            collector.logStepPass("To invoke gas_limit success. gasLimit: " + gasLimit);
-            collector.assertFalse(provider.getGasLimit().longValue() == gasPrice);
-
-            // test: block_number
-            Long bn = innerFunction.block_number().send();
-            collector.logStepPass("To invoke block_number success, bn: " + bn);
-
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){

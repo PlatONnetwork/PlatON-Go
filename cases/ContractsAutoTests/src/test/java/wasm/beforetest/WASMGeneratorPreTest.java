@@ -85,8 +85,8 @@ public class WASMGeneratorPreTest {
 
         for (String file : files) {
             //collector.logStepPass("staring compile:" + file);
+            String fileName = file.substring(file.lastIndexOf("/") + 1, file.lastIndexOf(".cpp")) + ".wasm";
             executorService.execute(() -> {
-                String fileName = file.substring(file.lastIndexOf("/") + 1, file.lastIndexOf(".cpp")) + ".wasm";
                 try {
                     semaphore.acquire();
                     compileUtil.wasmCompile(file, buildPath + fileName);

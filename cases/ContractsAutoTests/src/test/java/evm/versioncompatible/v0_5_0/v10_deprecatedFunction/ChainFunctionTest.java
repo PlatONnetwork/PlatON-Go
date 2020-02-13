@@ -30,7 +30,7 @@ public class ChainFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ChainFunctionTest-revert，require，assert代替throw")
+            author = "hudenian", showName = "ChainFunctionTest-revert，require，assert代替throw", sourcePrefix = "evm")
     public void throwExceptionTest() {
         try {
 
