@@ -36,11 +36,11 @@ public class ContractEmitEvent2 extends WasmContract {
 
     private static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_GET_STRING = "get_string";
+    public static final String FUNC_TWO_EMIT_EVENT2_ARGS4 = "two_emit_event2_args4";
 
     public static final String FUNC_TWO_EMIT_EVENT2 = "two_emit_event2";
 
-    public static final String FUNC_TWO_EMIT_EVENT2_ARGS4 = "two_emit_event2_args4";
+    public static final String FUNC_GET_STRING = "get_string";
 
     public static final WasmEvent TRANSFER_EVENT = new WasmEvent("transfer", Arrays.asList(String.class , String.class), Arrays.asList(Integer.class));
     ;
@@ -54,6 +54,11 @@ public class ContractEmitEvent2 extends WasmContract {
 
     protected ContractEmitEvent2(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> two_emit_event2_args4(String name, String nationality, Integer value1, Integer value2, String name1, String name2) {
+        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2_ARGS4, Arrays.asList(name,nationality,value1,value2,name1,name2), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
@@ -89,11 +94,6 @@ public class ContractEmitEvent2 extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
-    }
-
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
@@ -152,9 +152,9 @@ public class ContractEmitEvent2 extends WasmContract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> two_emit_event2_args4(String name, String nationality, Integer value1, Integer value2, String name1, String name2) {
-        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2_ARGS4, Arrays.asList(name,nationality,value1,value2,name1,name2), Void.class);
-        return executeRemoteCallTransaction(function);
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static ContractEmitEvent2 load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

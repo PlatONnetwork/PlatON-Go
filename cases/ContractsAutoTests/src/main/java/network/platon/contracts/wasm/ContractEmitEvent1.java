@@ -36,9 +36,9 @@ public class ContractEmitEvent1 extends WasmContract {
 
     private static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_ONE_EMIT_EVENT1_ARGS2 = "one_emit_event1_args2";
-
     public static final String FUNC_ONE_EMIT_EVENT1 = "one_emit_event1";
+
+    public static final String FUNC_ONE_EMIT_EVENT1_ARGS2 = "one_emit_event1_args2";
 
     public static final String FUNC_ONE_EMIT_EVENT1_ARGS9 = "one_emit_event1_args9";
 
@@ -59,11 +59,6 @@ public class ContractEmitEvent1 extends WasmContract {
 
     protected ContractEmitEvent1(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> one_emit_event1_args2(String name, Integer value) {
-        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1_ARGS2, Arrays.asList(name,value), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
@@ -195,6 +190,11 @@ public class ContractEmitEvent1 extends WasmContract {
 
     public RemoteCall<TransactionReceipt> one_emit_event1(String name, Integer value) {
         final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1, Arrays.asList(name,value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> one_emit_event1_args2(String name, Integer value) {
+        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1_ARGS2, Arrays.asList(name,value), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
