@@ -28,7 +28,7 @@ public class FallbackDeclaractionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "FallbackDeclaractionTest-可见性测试")
+            author = "hudenian", showName = "FallbackDeclaractionTest-可见性测试", sourcePrefix = "evm")
     public void update() {
         try {
 

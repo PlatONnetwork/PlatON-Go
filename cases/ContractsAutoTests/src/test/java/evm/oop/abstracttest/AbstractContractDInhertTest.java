@@ -28,7 +28,7 @@ public class AbstractContractDInhertTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约继承接口执行情况")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约继承接口执行情况",sourcePrefix = "evm")
     public void testAbstractContract() {
 
         AbstractContractGSubclass abstractContractGSubclass= null;

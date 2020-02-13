@@ -25,7 +25,7 @@ public class ReferenceDataTypeMultiArrayContractTest extends ContractPrepareTest
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeMultiArray.多维数组声明及初始化及取值")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeMultiArray.多维数组声明及初始化及取值",sourcePrefix = "evm")
     public void testReferenceDataTypeArrayTest() {
 
         ReferenceDataTypeArrayContract referenceDataTypeArrayContract = null;

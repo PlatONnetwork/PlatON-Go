@@ -35,7 +35,8 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao", showName = "GeneratorPreTest-编译并生成包装类")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao"
+            , showName = "GeneratorPreTest-编译并生成包装类", sourcePrefix = "evm")
     public void compileAndGenerator() {
         Date compileStartDate = new Date();
         try {

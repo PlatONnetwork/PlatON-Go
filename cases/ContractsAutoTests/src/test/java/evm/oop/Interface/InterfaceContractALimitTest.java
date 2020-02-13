@@ -29,7 +29,7 @@ public class InterfaceContractALimitTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InterfaceContract.接口的函数只能声明外部类型")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InterfaceContract.接口的函数只能声明外部类型",sourcePrefix = "evm")
     public void testInterfaceContractLimit() {
 
         InterfaceContractParentTest interfaceContractParentTest= null;

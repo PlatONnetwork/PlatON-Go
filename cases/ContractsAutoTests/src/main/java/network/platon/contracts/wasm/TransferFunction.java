@@ -47,12 +47,12 @@ public class TransferFunction extends WasmContract {
         return deployRemoteCall(TransferFunction.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
-    public RemoteCall<Byte> get_Balance(Byte[] addr) {
+    public RemoteCall<Byte> get_Balance(byte[] addr) {
         final WasmFunction function = new WasmFunction(FUNC_GET_BALANCE, Arrays.asList(addr), Byte.class);
         return executeRemoteCall(function, Byte.class);
     }
 
-    public RemoteCall<TransactionReceipt> get_platon_transfer(Byte[] addr) {
+    public RemoteCall<TransactionReceipt> get_platon_transfer(byte[] addr) {
         final WasmFunction function = new WasmFunction(FUNC_GET_PLATON_TRANSFER, Arrays.asList(addr), Void.class);
         return executeRemoteCallTransaction(function);
     }

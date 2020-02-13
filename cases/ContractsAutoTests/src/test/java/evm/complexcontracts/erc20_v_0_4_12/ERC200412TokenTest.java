@@ -62,7 +62,7 @@ public class ERC200412TokenTest extends ContractPrepareTest {
 
         @Test
         @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-                author = "albedo", showName = "ERC200412TokenTest-测试0.4.12版本ERC20")
+                author = "albedo", showName = "ERC200412TokenTest-测试0.4.12版本ERC20", sourcePrefix = "evm")
         public void erc20Test() {
             try {
 

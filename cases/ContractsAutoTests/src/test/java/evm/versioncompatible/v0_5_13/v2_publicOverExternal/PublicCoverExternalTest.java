@@ -24,7 +24,7 @@ public class PublicCoverExternalTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "PublicCoverExternalTest-允许public函数覆盖external函数")
+            author = "hudenian", showName = "PublicCoverExternalTest-允许public函数覆盖external函数", sourcePrefix = "evm")
     public void testPublicCoverExternal() {
         try {
 
