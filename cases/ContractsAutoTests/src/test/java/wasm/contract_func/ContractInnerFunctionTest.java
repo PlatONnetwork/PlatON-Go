@@ -44,26 +44,6 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             Long timestamp = innerFunction.timestamp().send();
             collector.logStepPass("To invoke timestamp success, timestamp: " + timestamp);
 
-            // test: gas
-            Long gas = innerFunction.gas().send();
-            collector.logStepPass("To invoke gas success, gas: " + gas);
-
-            // test: nonce
-            Long rnonce = web3j.platonGetTransactionCount(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getTransactionCount().longValue();
-            Long nonce = innerFunction.nonce().send();
-            collector.logStepPass("To invoke nonce success, nonce: " + nonce + " rnonce: " + rnonce);
-
-            // test: block_hash
-            String bhsh = innerFunction.block_hash(Long.valueOf(100)).send();
-            collector.logStepPass("To invoke block_hash success, hash: " + bhsh);
-            String bhash2 = web3j.platonGetBlockByNumber(new DefaultBlockParameterNumber(100), false).send().getBlock().getHash();
-            collector.assertEqual(prependHexPrefix(bhash2), prependHexPrefix(bhsh));
-
-            // test: gas_price
-            String price = innerFunction.gas_price().send();
-            collector.logStepPass("To invoke gas_price success. gasPrice: " + price);
-            collector.assertEqual(provider.getGasPrice().longValue(), price);
-
             // test: gas_limit
             Long gasLimit = innerFunction.gas_limit().send();
             collector.logStepPass("To invoke gas_limit success. gasLimit: " + gasLimit);
