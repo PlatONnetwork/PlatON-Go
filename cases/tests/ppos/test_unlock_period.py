@@ -355,19 +355,10 @@ def test_UP_FV_009(clients_new_node):
     log.info("restricting plan informtion: {}".format(restricting_info))
     info = restricting_info['Ret']
     if punishment_amonut < economic.create_staking_limit:
-        assert info['balance'] == economic.create_staking_limit - punishment_amonut, 'ErrMsg: restricting balance amount {}'.format(
+        assert (info['balance'] == economic.create_staking_limit - punishment_amonut) or (info['balance'] == economic.create_staking_limit - punishment_amonut * 2), 'ErrMsg: restricting balance amount {}'.format(
             info['balance'])
     else:
         assert_code(restricting_info, 304005)
-    # # Obtain the lock account pledge account balance
-    # balance = client2.node.eth.getBalance(address1)
-    # # Waiting for the end of the 2 settlement period
-    # economic.wait_settlement_blocknum(client2.node, 3)
-    # # Regain the lock pledge account balance again
-    # balance1 = client2.node.eth.getBalance(address1)
-    # restricting_info = client2.ppos.getRestrictingInfo(address1)
-    # assert_code(restricting_info, 304005)
-    # assert balance1 == balance, 'ErrMsg: account balance1 {}'.format(balance1)
 
 
 @pytest.mark.P2

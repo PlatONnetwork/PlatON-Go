@@ -17,12 +17,14 @@
 package plugin
 
 import (
+	"fmt"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -144,11 +146,11 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 	var err error
 
 	for i := 0; i < 3200; i++ {
-		if err := chain.AddBlockWithSnapDBMiner(func(header *types.Header, sdb snapshotdb.DB) error {
+		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 			plugin := new(RewardMgrPlugin)
 			plugin.db = sdb
 			if header.Number.Uint64() == 1 {
-				packageReward, stakingReward, err = plugin.CalcEpochReward(common.ZeroHash, header, chain.StateDB)
+				packageReward, stakingReward, err = plugin.CalcEpochReward(hash, header, chain.StateDB)
 				if err != nil {
 					return err
 				}
@@ -158,7 +160,7 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 			chain.StateDB.SubBalance(vm.RewardManagerPoolAddr, packageReward)
 			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
 				chain.StateDB.SubBalance(vm.RewardManagerPoolAddr, stakingReward)
-				packageReward, stakingReward, err = plugin.CalcEpochReward(common.ZeroHash, header, chain.StateDB)
+				packageReward, stakingReward, err = plugin.CalcEpochReward(hash, header, chain.StateDB)
 				if err != nil {
 					return err
 				}
@@ -176,7 +178,9 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	var plugin = RewardMgrInstance()
 	StakingInstance()
+	plugin.SetCurrentNodeID(nodeIdArr[0])
 	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
 	packTime := int64(xcom.Interval() * uint64(millisecond))
 	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
 		tmp := new(big.Int).Set(b)
@@ -217,7 +221,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	for i := 0; i < int(xutil.CalcBlocksEachEpoch()*5); i++ {
 		var currentHeader *types.Header
 
-		if err := chain.AddBlockWithSnapDBMiner(func(header *types.Header, sdb snapshotdb.DB) error {
+		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 			currentHeader = header
 			if currentHeader.Number.Uint64() < xutil.CalcBlocksEachEpoch() {
 				currentHeader.Time.Add(currentHeader.Time, new(big.Int).SetInt64(packTime))
@@ -313,4 +317,430 @@ func TestIncreaseIssuance(t *testing.T) {
 	thisYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(thisYear)))
 
 	assert.Equal(t, new(big.Int).Sub(thisYearIssue, lastYearIssue), new(big.Int).Div(lastYearIssue, big.NewInt(IncreaseIssue)))
+}
+
+func TestSaveRewardDelegateRewardPer(t *testing.T) {
+	chain := mock.NewChain()
+
+	defer chain.SnapDB.Clear()
+
+	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		return nil
+	})
+	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		return nil
+	})
+
+	type delegateInfo struct {
+		nodeID                                            discover.NodeID
+		stakingNum                                        uint64
+		currentReward, totalDelegateReward, totalDelegate *big.Int
+	}
+
+	delegateInfos := make([]delegateInfo, 0)
+	for i := 0; i < 10; i++ {
+		delegateInfos = append(delegateInfos, delegateInfo{
+			nodeID:              nodeIdArr[0],
+			stakingNum:          100,
+			currentReward:       big.NewInt(100000000),
+			totalDelegateReward: big.NewInt(1000000000),
+			totalDelegate:       big.NewInt(1000000000),
+		})
+	}
+
+	delegateInfos2 := make([]delegateInfo, 0)
+	for i := 0; i < 10; i++ {
+		delegateInfos2 = append(delegateInfos2, delegateInfo{
+			nodeID:              nodeIdArr[1],
+			stakingNum:          200,
+			currentReward:       big.NewInt(200000000),
+			totalDelegateReward: big.NewInt(2000000000),
+			totalDelegate:       big.NewInt(2000000000),
+		})
+	}
+	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		for index, info := range delegateInfos {
+			per := reward.NewDelegateRewardPer(uint64(index), info.currentReward, info.totalDelegate)
+			if err := AppendDelegateRewardPer(hash, info.nodeID, info.stakingNum, per, sdb); err != nil {
+				log.Error("call HandleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
+				return err
+			}
+		}
+
+		for index, info := range delegateInfos2 {
+			per := reward.NewDelegateRewardPer(uint64(index), info.currentReward, info.totalDelegate)
+			if err := AppendDelegateRewardPer(hash, info.nodeID, info.stakingNum, per, sdb); err != nil {
+				log.Error("call HandleDelegatePerReward fail AppendDelegateRewardPer", "err", err)
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+
+	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		return nil
+	})
+
+	list, err := getDelegateRewardPerList(chain.CurrentHeader().Hash(), delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, 0, 2000, chain.SnapDB)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for index, val := range list {
+
+		if val.Epoch != uint64(index) {
+			t.Error("epoch should be same ")
+		}
+		if val.Left.Cmp(big.NewInt(2000000000)) != 0 {
+			t.Error("total amount should be same ")
+		}
+		if val.Reward.Cmp(big.NewInt(200000000)) != 0 {
+			t.Error("Reward  should be same ")
+		}
+		if val.Delegate.Cmp(big.NewInt(2000000000)) != 0 {
+			t.Error("Delegate per should be same ")
+		}
+	}
+
+	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+
+		receive := make([]reward.DelegateRewardReceipt, 0)
+		receive = append(receive, reward.DelegateRewardReceipt{big.NewInt(2000000000), 1})
+		if err := UpdateDelegateRewardPer(hash, delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, receive, sdb); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+
+	list2, err := getDelegateRewardPerList(chain.CurrentHeader().Hash(), delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, 0, 2000, chain.SnapDB)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if list2[1].Epoch == 1 {
+		t.Error("should be 2")
+	}
+}
+
+func TestAllocatePackageBlock(t *testing.T) {
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		panic(err)
+	}
+	delegateRewardAdd := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+
+	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
+	index, queue, can, delegate := generateStk(1000, big.NewInt(params.LAT*3), 10)
+	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		if err := stkDB.SetEpochValIndex(hash, index); err != nil {
+			return err
+		}
+		if err := stkDB.SetEpochValList(hash, index[0].Start, index[0].End, queue); err != nil {
+			return err
+		}
+		if err := stkDB.SetCanBaseStore(hash, queue[0].NodeAddress, can.CandidateBase); err != nil {
+			return err
+		}
+		if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+			return err
+		}
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+	rm := &RewardMgrPlugin{
+		db: chain.SnapDB,
+		stakingPlugin: &StakingPlugin{
+			db: staking.NewStakingDBWithDB(chain.SnapDB),
+		},
+	}
+	rm.SetCurrentNodeID(can.NodeId)
+
+	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
+	chain.StateDB.AddBalance(vm.RewardManagerPoolAddr, big.NewInt(100000000000000))
+	log.Debug("reward", "delegateRewardAdd", chain.StateDB.GetBalance(delegateRewardAdd), "delegateReward poll",
+		chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr), "can address", chain.StateDB.GetBalance(can.BenefitAddress), "reward_pool",
+		chain.StateDB.GetBalance(vm.RewardManagerPoolAddr))
+
+	for i := 0; i < int(xutil.CalcBlocksEachEpoch())-10; i++ {
+		if err := chain.AddBlockWithSnapDB(false, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+			return nil
+		}); err != nil {
+			t.Error(err)
+			return
+		}
+	}
+
+	delegateReward := new(big.Int)
+	for i := 0; i < 9; i++ {
+		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+			if xutil.IsBeginOfEpoch(header.Number.Uint64()) {
+				can.CandidateMutable.CleanCurrentEpochDelegateReward()
+				if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+					return err
+				}
+			}
+			if err := rm.AllocatePackageBlock(hash, header, blockReward, chain.StateDB); err != nil {
+				return err
+			}
+			dr, _ := rm.CalDelegateRewardAndNodeReward(blockReward, can.RewardPer)
+			delegateReward.Add(delegateReward, dr)
+			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
+				verifierList, err := rm.AllocateStakingReward(header.Number.Uint64(), hash, stakingReward, chain.StateDB)
+				if err != nil {
+					return err
+				}
+				dr, _ := rm.CalDelegateRewardAndNodeReward(stakingReward, can.RewardPer)
+				delegateReward.Add(delegateReward, dr)
+				if err := rm.HandleDelegatePerReward(hash, header.Number.Uint64(), verifierList, chain.StateDB); err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			t.Error(err)
+			return
+		}
+	}
+
+	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		if xutil.IsBeginOfEpoch(header.Number.Uint64()) {
+			can.CandidateMutable.CleanCurrentEpochDelegateReward()
+			if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+				return err
+			}
+		}
+		if err := stkDB.SetEpochValList(hash, index[1].Start, index[1].End, queue); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+
+	for i := 0; i < 9; i++ {
+		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+			if xutil.IsBeginOfEpoch(header.Number.Uint64()) {
+				can.CandidateMutable.CleanCurrentEpochDelegateReward()
+				if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+					return err
+				}
+			}
+			dr, _ := rm.CalDelegateRewardAndNodeReward(blockReward, can.RewardPer)
+			delegateReward.Add(delegateReward, dr)
+			if err := rm.AllocatePackageBlock(hash, header, blockReward, chain.StateDB); err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			t.Error(err)
+			return
+		}
+	}
+	if chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr).Cmp(delegateReward) != 0 {
+		t.Error("reward must same", "delegateReward", delegateReward, "balance", chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr))
+	}
+
+}
+
+func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (staking.ValArrIndexQueue, staking.ValidatorQueue, staking.Candidate, staking.Delegation) {
+	var canMu staking.CandidateMutable
+	canMu.Released = big.NewInt(10000)
+	canMu.RewardPer = rewardPer
+	canMu.DelegateTotal = delegateTotal
+	canMu.CurrentEpochDelegateReward = delegateTotal
+
+	var canBase staking.CandidateBase
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		panic(err)
+	}
+	nodeID, add := discover.PubkeyID(&privateKey.PublicKey), crypto.PubkeyToAddress(privateKey.PublicKey)
+	canBase.BenefitAddress = add
+	canBase.NodeId = nodeID
+	canBase.StakingBlockNum = 100
+
+	var delegation staking.Delegation
+	delegation.Released = delegateTotal
+	delegation.DelegateEpoch = uint32(xutil.CalculateEpoch(blockNumber))
+
+	stakingValIndex := make(staking.ValArrIndexQueue, 0)
+	stakingValIndex = append(stakingValIndex, &staking.ValArrIndex{
+		Start: 0,
+		End:   xutil.CalcBlocksEachEpoch(),
+	})
+	stakingValIndex = append(stakingValIndex, &staking.ValArrIndex{
+		Start: xutil.CalcBlocksEachEpoch(),
+		End:   xutil.CalcBlocksEachEpoch() * 2,
+	})
+	stakingValIndex = append(stakingValIndex, &staking.ValArrIndex{
+		Start: xutil.CalcBlocksEachEpoch() * 2,
+		End:   xutil.CalcBlocksEachEpoch() * 3,
+	})
+	stakingValIndex = append(stakingValIndex, &staking.ValArrIndex{
+		Start: xutil.CalcBlocksEachEpoch() * 3,
+		End:   xutil.CalcBlocksEachEpoch() * 4,
+	})
+	validatorQueue := make(staking.ValidatorQueue, 0)
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:          nodeID,
+		NodeAddress:     canBase.BenefitAddress,
+		StakingBlockNum: canBase.StakingBlockNum,
+	})
+
+	return stakingValIndex, validatorQueue, staking.Candidate{&canBase, &canMu}, delegation
+}
+
+func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		panic(err)
+	}
+	delegateRewardAdd := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+
+	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
+	index, queue, can, delegate := generateStk(1000, big.NewInt(params.LAT*3), 10)
+	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		if err := stkDB.SetEpochValIndex(hash, index); err != nil {
+			return err
+		}
+		if err := stkDB.SetEpochValList(hash, index[0].Start, index[0].End, queue); err != nil {
+			return err
+		}
+		if err := stkDB.SetCanBaseStore(hash, queue[0].NodeAddress, can.CandidateBase); err != nil {
+			return err
+		}
+		if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+			return err
+		}
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
+			return err
+		}
+		return nil
+	})
+	rm := &RewardMgrPlugin{
+		db: chain.SnapDB,
+		stakingPlugin: &StakingPlugin{
+			db: staking.NewStakingDBWithDB(chain.SnapDB),
+		},
+	}
+	rm.SetCurrentNodeID(can.NodeId)
+
+	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
+	chain.StateDB.AddBalance(vm.RewardManagerPoolAddr, big.NewInt(100000000000000))
+	log.Debug("reward", "delegateRewardAdd", chain.StateDB.GetBalance(delegateRewardAdd), "delegateReward poll",
+		chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr), "can address", chain.StateDB.GetBalance(can.BenefitAddress), "reward_pool",
+		chain.StateDB.GetBalance(vm.RewardManagerPoolAddr))
+	for i := 0; i < int(xutil.CalcBlocksEachEpoch()); i++ {
+		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+			if xutil.IsBeginOfEpoch(header.Number.Uint64()) {
+				can.CandidateMutable.CleanCurrentEpochDelegateReward()
+				if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+					return err
+				}
+			}
+
+			if err := rm.AllocatePackageBlock(hash, header, blockReward, chain.StateDB); err != nil {
+				return err
+			}
+			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
+
+				verifierList, err := rm.AllocateStakingReward(header.Number.Uint64(), hash, stakingReward, chain.StateDB)
+				if err != nil {
+					return err
+				}
+				if err := rm.HandleDelegatePerReward(hash, header.Number.Uint64(), verifierList, chain.StateDB); err != nil {
+					return err
+				}
+
+				if err := stkDB.SetEpochValList(hash, index[xutil.CalculateEpoch(header.Number.Uint64())].Start, index[xutil.CalculateEpoch(header.Number.Uint64())].End, queue); err != nil {
+					return err
+				}
+
+			}
+			return nil
+		}); err != nil {
+			t.Error(err)
+			return
+		}
+
+	}
+
+	re, err := rm.GetDelegateReward(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), delegateRewardAdd, nil, chain.StateDB)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	log.Debug("reward", "delegateRewardAdd", chain.StateDB.GetBalance(delegateRewardAdd), "delegateReward poll",
+		chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr), "can address", chain.StateDB.GetBalance(can.BenefitAddress), "reward_pool",
+		chain.StateDB.GetBalance(vm.RewardManagerPoolAddr))
+	log.Debug("get", "re", re, "in", re[0].Reward.ToInt())
+
+}
+
+func TestDelegateRewardPerUpdateAndAppend(t *testing.T) {
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		list := reward.NewDelegateRewardPerList()
+		perLength := reward.DelegateRewardPerLength*2 + 800
+		for i := 0; i < perLength; i++ {
+			per := reward.NewDelegateRewardPer(uint64(i), big.NewInt(300), big.NewInt(300))
+			list.Pers = append(list.Pers, per)
+			if err := AppendDelegateRewardPer(common.ZeroHash, nodeID, 100, per, chain.SnapDB); err != nil {
+				return err
+			}
+		}
+
+		receiptLength := 1700
+		tmp := make([]reward.DelegateRewardReceipt, 1700)
+		receiptIndex := 800
+		for i := 0; i < 1700; i++ {
+			tmp[i] = reward.DelegateRewardReceipt{Epoch: uint64(receiptIndex + i), Delegate: big.NewInt(300)}
+		}
+
+		if err := UpdateDelegateRewardPer(common.ZeroHash, nodeID, 100, tmp, chain.SnapDB); err != nil {
+			return err
+		}
+
+		per, err := getDelegateRewardPerList(common.ZeroHash, nodeID, 100, 0, 2800, chain.SnapDB)
+		if err != nil {
+			return err
+		}
+		if len(per) != perLength-receiptLength {
+			return fmt.Errorf("per length is wrong,length :%v", len(per))
+		}
+		if per[len(per)-1].Epoch != uint64(perLength-1) {
+			return fmt.Errorf("Epoch is wrong :%v", per[len(per)-1].Epoch)
+		}
+		if per[len(per)-1].Left.Cmp(big.NewInt(300)) != 0 {
+			return fmt.Errorf("Left is wrong :%v", per[len(per)-1].Left)
+		}
+		if per[len(per)-1].Reward.Cmp(big.NewInt(300)) != 0 {
+			return fmt.Errorf("total reward  is wrong :%v", per[len(per)-1].Reward)
+		}
+
+		return nil
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+
 }

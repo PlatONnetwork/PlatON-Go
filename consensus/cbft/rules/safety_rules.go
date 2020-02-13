@@ -232,7 +232,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 			if !isQCChild() && !isLockChild() {
 				return newCommonError(fmt.Sprintf("the first index block is not contiguous by local highestQC or highestLock"))
 			}
-			return nil
+			return acceptBlockTime()
 		}
 		// If block index is greater than 0, query the parent block from the viewBlocks
 		pre := r.viewState.ViewBlockByIndex(block.BlockIndex - 1)

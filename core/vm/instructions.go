@@ -24,7 +24,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -124,10 +124,22 @@ func opSmod(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 
 func opExp(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	base, exponent := stack.pop(), stack.pop()
-	stack.push(math.Exp(base, exponent))
-
-	interpreter.intPool.put(base, exponent)
-
+	// some shortcuts
+	cmpToOne := exponent.Cmp(big1)
+	if cmpToOne < 0 { // Exponent is zero
+		// x ^ 0 == 1
+		stack.push(base.SetUint64(1))
+	} else if base.Sign() == 0 {
+		// 0 ^ y, if y != 0, == 0
+		stack.push(base.SetUint64(0))
+	} else if cmpToOne == 0 { // Exponent is one
+		// x ^ 1 == x
+		stack.push(base)
+	} else {
+		stack.push(math.Exp(base, exponent))
+		interpreter.intPool.put(base)
+	}
+	interpreter.intPool.put(exponent)
 	return nil, nil
 }
 
@@ -372,14 +384,21 @@ func opSAR(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 
 func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	offset, size := stack.pop(), stack.pop()
-	data := memory.Get(offset.Int64(), size.Int64())
-	hash := crypto.Keccak256(data)
-	/*
-		evm := interpreter.evm
-		if evm.vmConfig.EnablePreimageRecording {
-			evm.StateDB.AddPreimage(common.BytesToHash(hash), data)
-		}*/
-	stack.push(interpreter.intPool.get().SetBytes(hash))
+	data := memory.GetPtr(offset.Int64(), size.Int64())
+
+	if interpreter.hasher == nil {
+		interpreter.hasher = sha3.NewKeccak256().(keccakState)
+	} else {
+		interpreter.hasher.Reset()
+	}
+	interpreter.hasher.Write(data)
+	interpreter.hasher.Read(interpreter.hasherBuf[:])
+        /*
+	evm := interpreter.evm
+	if evm.vmConfig.EnablePreimageRecording {
+		evm.StateDB.AddPreimage(interpreter.hasherBuf, data)
+	}*/
+	stack.push(interpreter.intPool.get().SetBytes(interpreter.hasherBuf[:]))
 
 	interpreter.intPool.put(offset, size)
 	return nil, nil
@@ -525,7 +544,12 @@ func opExtCodeCopy(pc *uint64, interpreter *EVMInterpreter, contract *Contract, 
 // this account should be regarded as a non-existent account and zero should be returned.
 func opExtCodeHash(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.SetBytes(interpreter.evm.StateDB.GetCodeHash(common.BigToAddress(slot)).Bytes())
+	address := common.BigToAddress(slot)
+	if interpreter.evm.StateDB.Empty(address) {
+		slot.SetUint64(0)
+	} else {
+		slot.SetBytes(interpreter.evm.StateDB.GetCodeHash(address).Bytes())
+	}
 	return nil, nil
 }
 
@@ -578,11 +602,9 @@ func opPop(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 }
 
 func opMload(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	offset := stack.pop()
-	val := interpreter.intPool.get().SetBytes(memory.Get(offset.Int64(), 32))
-	stack.push(val)
-
-	interpreter.intPool.put(offset)
+	v := stack.peek()
+	offset := v.Int64()
+	v.SetBytes(memory.GetPtr(offset, 32))
 	return nil, nil
 }
 
@@ -622,7 +644,7 @@ func opSstore(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memor
 
 func opJump(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	pos := stack.pop()
-	if !contract.jumpdests.has(contract.CodeHash, contract.Code, pos) {
+	if !contract.validJumpdest(pos) {
 		nop := contract.GetOp(pos.Uint64())
 		return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
 	}
@@ -635,7 +657,7 @@ func opJump(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 func opJumpi(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	pos, cond := stack.pop(), stack.pop()
 	if cond.Sign() != 0 {
-		if !contract.jumpdests.has(contract.CodeHash, contract.Code, pos) {
+		if !contract.validJumpdest(pos) {
 			nop := contract.GetOp(pos.Uint64())
 			return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
 		}
@@ -674,6 +696,8 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memor
 		input        = memory.Get(offset.Int64(), size.Int64())
 		gas          = contract.Gas
 	)
+
+	gas -= gas / 64
 
 	contract.UseGas(gas)
 	res, addr, returnGas, suberr := interpreter.evm.Create(contract, input, gas, value)
@@ -726,7 +750,7 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memo
 }
 
 func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	// Pop gas. The actual gas in in interpreter.evm.callGasTemp.
+	// Pop gas. The actual gas in interpreter.evm.callGasTemp.
 	interpreter.intPool.put(stack.pop())
 	gas := interpreter.evm.callGasTemp
 	// Pop other call parameters.
@@ -734,7 +758,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	toAddr := common.BigToAddress(addr)
 	value = math.U256(value)
 	// Get the arguments from the memory.
-	args := memory.Get(inOffset.Int64(), inSize.Int64())
+	args := memory.GetPtr(inOffset.Int64(), inSize.Int64())
 
 	if value.Sign() != 0 {
 		gas += params.CallStipend
@@ -763,7 +787,7 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, contract *Contract, mem
 	toAddr := common.BigToAddress(addr)
 	value = math.U256(value)
 	// Get arguments from the memory.
-	args := memory.Get(inOffset.Int64(), inSize.Int64())
+	args := memory.GetPtr(inOffset.Int64(), inSize.Int64())
 
 	if value.Sign() != 0 {
 		gas += params.CallStipend
@@ -791,7 +815,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract,
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.BigToAddress(addr)
 	// Get arguments from the memory.
-	args := memory.Get(inOffset.Int64(), inSize.Int64())
+	args := memory.GetPtr(inOffset.Int64(), inSize.Int64())
 
 	ret, returnGas, err := interpreter.evm.DelegateCall(contract, toAddr, args, gas)
 	if err != nil {
@@ -816,7 +840,7 @@ func opStaticCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.BigToAddress(addr)
 	// Get arguments from the memory.
-	args := memory.Get(inOffset.Int64(), inSize.Int64())
+	args := memory.GetPtr(inOffset.Int64(), inSize.Int64())
 
 	ret, returnGas, err := interpreter.evm.StaticCall(contract, toAddr, args, gas)
 	if err != nil {

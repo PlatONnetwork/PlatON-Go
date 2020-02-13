@@ -1129,6 +1129,10 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 		panic(err)
 	}
 
+	if len(input) == 0 {
+		panic(errWASMMigrate)
+	}
+
 	value := make([]byte, valLen)
 	_, err = proc.ReadAt(value, int64(val))
 	if nil != err {

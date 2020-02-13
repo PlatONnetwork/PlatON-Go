@@ -30,7 +30,9 @@ def staking_cfg():
     return cfg
 
 
-def get_clients(env, cfg):
+def get_clients(env, cfg=None):
+    if cfg is None:
+        cfg = StakingConfig("externalId", "nodeName", "website", "details")
     all_clients = []
     all_nodes = env.get_all_nodes()
     for node_obj in all_nodes:
@@ -43,7 +45,7 @@ def all_clients(global_running_env, staking_cfg) -> List[Client]:
     """
     Get all node  Node object list
     """
-    return get_clients_by_nodeid(global_running_env, staking_cfg)
+    return get_clients(global_running_env, staking_cfg)
 
 
 def get_consensus_clients(env, cfg):
@@ -107,7 +109,7 @@ def client_verifier(global_running_env, staking_cfg) -> Client:
     """
     Get a verifier node  Client object
     """
-    all_clients = get_clients_by_nodeid(global_running_env, staking_cfg)
+    all_clients = get_clients(global_running_env, staking_cfg)
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
     for client in all_clients:
@@ -121,7 +123,7 @@ def clients_verifier(global_running_env, staking_cfg) -> List[Client]:
     """
     Get verifier node  Client object list
     """
-    all_clients = get_clients_by_nodeid(global_running_env, staking_cfg)
+    all_clients = get_clients(global_running_env, staking_cfg)
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
     return get_clients_by_nodeid(verifier_list, all_clients)
@@ -160,7 +162,7 @@ def client_candidate(global_running_env, staking_cfg):
     Get a candidate node Client object
     """
     client_consensus = get_client_consensus(global_running_env, staking_cfg)
-    all_clients = get_clients_by_nodeid(global_running_env, staking_cfg)
+    all_clients = get_clients(global_running_env, staking_cfg)
     clients_noconsensus = get_clients_noconsensus(global_running_env, staking_cfg)
     if not client_consensus.staking.get_candidate_list_not_verifier():
         log.info('There is no candidate, node stake')
@@ -190,7 +192,7 @@ def reset_environment(global_test_env):
     global_test_env.deploy_all()
 
 
-@pytest.fixture
+@pytest.fixture()
 def new_genesis_env(global_test_env):
     cfg = copy(global_test_env.cfg)
     yield global_test_env
@@ -211,7 +213,7 @@ def param_governance_verify(client, module, name, newvalue, effectiveflag=True):
             pip.is_exist_effective_proposal_for_vote(pip.cfg.version_proposal):
         raise Exception('There is effective param proposal or version proposal')
     result = pip.submitParam(pip.node.node_id, str(time.time()), module, name, newvalue, pip.node.staking_address,
-                                 transaction_cfg=pip.cfg.transaction_cfg)
+                             transaction_cfg=pip.cfg.transaction_cfg)
     log.info('submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -219,17 +221,21 @@ def param_governance_verify(client, module, name, newvalue, effectiveflag=True):
     all_clients = []
     for node_obj in pip.economic.env.get_all_nodes():
         all_clients.append(Client(pip.economic.env, node_obj,
-                                      StakingConfig("externalId", "nodeName", "website", "details")))
+                                  StakingConfig("externalId", "nodeName", "website", "details")))
     client = get_client_by_nodeid(pip.node.node_id, all_clients)
     verifier_list = get_pledge_list(client.ppos.getVerifierList)
     log.info('verifierlist : {}'.format(verifier_list))
     clients_verifier = get_clients_by_nodeid(verifier_list, all_clients)
     if effectiveflag:
+        blocknum = 0
         for client in clients_verifier:
+            if client.node.block_number < blocknum and blocknum != 0:
+                wait_block_number(client.node, blocknum)
             result = client.pip.vote(client.node.node_id, proposalinfo.get('ProposalID'),
-                                         client.pip.cfg.vote_option_yeas,
-                                         client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
+                                     client.pip.cfg.vote_option_yeas,
+                                     client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
             log.info('Node {} vote proposal result : {}'.format(client.node.node_id, result))
+            blocknum = client.node.block_number
     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
     if effectiveflag:
         assert pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 2
@@ -257,7 +263,7 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
             pip.is_exist_effective_proposal_for_vote(pip.cfg.version_proposal):
         raise Exception('There is effective param proposal or version proposal')
     result = pip.submitParam(pip.node.node_id, str(time.time()), module, name, newvalue, pip.node.staking_address,
-                                 transaction_cfg=pip.cfg.transaction_cfg)
+                             transaction_cfg=pip.cfg.transaction_cfg)
     log.info('submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -265,16 +271,20 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
     all_clients = []
     for node in pip.economic.env.get_all_nodes():
         all_clients.append(Client(pip.economic.env, node,
-                                      StakingConfig("externalId", "nodeName", "website", "details")))
+                                  StakingConfig("externalId", "nodeName", "website", "details")))
     client = get_client_by_nodeid(pip.node.node_id, all_clients)
     verifier_list = get_pledge_list(client.ppos.getVerifierList)
     log.info('verifierlist : {}'.format(verifier_list))
     clients_verifier = get_clients_by_nodeid(verifier_list, all_clients)
     if effectiveflag:
+        blocknum = 0
         for client in clients_verifier:
+            if client.node.block_number < blocknum and blocknum != 0:
+                wait_block_number(client.node, blocknum)
             result = client.pip.vote(client.node.node_id, proposalinfo.get('ProposalID'),
-                                         client.pip.cfg.vote_option_yeas,
-                                         client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
+                                     client.pip.cfg.vote_option_yeas,
+                                     client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
             log.info('Node {} vote proposal result : {}'.format(client.node.node_id, result))
+            blocknum = client.node.block_number
     log.info('The proposal endvoting block is {}'.format(proposalinfo.get('EndVotingBlock')))
     return proposalinfo.get('EndVotingBlock')
