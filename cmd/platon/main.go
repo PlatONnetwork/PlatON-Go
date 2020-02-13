@@ -105,7 +105,6 @@ var (
 		utils.DeveloperPeriodFlag,
 		utils.MainFlag,
 		utils.TestnetFlag,
-		utils.RallynetFlag,
 		utils.DemonetFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
