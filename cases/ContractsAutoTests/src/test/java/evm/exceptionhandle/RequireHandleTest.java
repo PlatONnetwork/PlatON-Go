@@ -26,7 +26,7 @@ import java.math.BigInteger;
 public class RequireHandleTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "functionCallException",
-            author = "albedo", showName = "exceptionhandle.RequireHandle-消息调用函数过程中没有正确结束异常")
+            author = "albedo", showName = "evm.exceptionhandle.RequireHandle-消息调用函数过程中没有正确结束异常", sourcePrefix = "evm")
     public void testFunctionCallException() {
         try {
             prepare();

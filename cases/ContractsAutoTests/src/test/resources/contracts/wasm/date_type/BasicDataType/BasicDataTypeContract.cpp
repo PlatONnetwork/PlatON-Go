@@ -7,146 +7,121 @@ using namespace platon;
  * 测试合约基本数据类型
  * 1、整型
  * 2、布尔型
- * 3、地址类型
- * 4、枚举类型
- * 5、字符串类型
- * 
+ * 3、字节类型（byte）
+ * 4、字符串类型
+ * 5、浮点类型(float、double)
+ * 6、地址类型
+ * 7、枚举类型
+ *
+ *
  * */
 
-class clothes{
-    public:
-      enum color {red,orange, yellow, green};
-      clothes(){}
-      clothes(const color &c):color1(c){}
-       
-    private:
-       color color1;
-       PLATON_SERIALIZE(clothes, (color1)) 
-};
+/*class clothes{
+       public:
+         //原生写法
+         //enum color {red, orange, yellow, green};
+         //改成这样吗？
+         enum color { red, green, blue } colors;
+         clothes(){}
+         PLATON_SERIALIZE(clothes, (colors))
+};*/
+extern char const storage_byte[] = "byte_storage";
+extern char const storage_bool[] = "bool_storage";
+extern char const storage_string[] = "string_storage";
+extern char const storage_float[] = "float_storage";
+extern char const storage_double[] = "double_storage";
+extern char const storage_enum[] = "enum_storage";
+extern char const storage_address[] = "address_storage";
 
-
-extern char const int8_a[] = "int8_t";
-extern char const int32_b[] = "int32_t";
-extern char const uint8_c[] = "uint8_t";
-extern char const uint8_d[] = "uint8_t";
-extern char const uint8_e[] = "uint8_t";
-
-extern char const bool_a[] = "bool";
-
-extern char const string_a[] = "string";
-extern char const string_b[] = "string";
-extern char const string_c[] = "string";
-
-extern char const enum_a[] = "enum";
-
-//extern char const int128_var[] = "int128_t";
-//extern char const int256_var[] = "int256_t";
-
-
-CONTRACT basicDataTypeContract : public platon::Contract{    
+CONTRACT BasicDataTypeContract : public platon::Contract{
 
     private:
-      //platon:: StorageType<int8_a,int8_t> aInt8;
-      //platon:: StorageType<int32_b,int> bInt32;
-       platon:: StorageType<uint8_c,uint8_t> cUint8;
-       platon:: StorageType<uint8_d,uint8_t> dUint8;
-       platon:: StorageType<uint8_e,uint8_t> eUint8;
-       
-       platon:: StorageType<bool_a,bool> aBool;
-       platon:: StorageType<bool_a,bool> bBool;
+       platon:: StorageType<storage_byte,byte> storage_byte;
+       platon:: StorageType<storage_bool,bool> a_storage_bool;
+       platon:: StorageType<storage_bool,bool> b_storage_bool;
+       platon:: StorageType<storage_string,std::string> a_storage_string;
+       platon:: StorageType<storage_string,std::string> b_storage_string;
+       platon:: StorageType<storage_string,std::string> c_storage_string;
+       platon:: StorageType<storage_address,Address> storage_address;
+       platon:: StorageType<storage_float,float> storage_float;
+       platon:: StorageType<storage_double,double> storage_double;
+       //platon:: StorageType<storage_enum,clothes> storage_enum_clothes;
 
-       platon:: StorageType<string_a,std::string> aString;
-       platon:: StorageType<string_b,std::string> bString;
-       platon:: StorageType<string_c,std::string> cString;
-
-       platon:: StorageType<enum_a,clothes> aEnum;
     public:
-
        ACTION void init(){
        }
-
-       /**
-         * 1、整型
-         * 1)、有符号整型int
-         * 2)、无符号整型uint
-         **/
-
-       //1)、验证有符号/无符号整型
-       ACTION void setSignedInt(){
-           // aInt8.self() = 1;//异常，不支持int --------??待开发协助
-          // bInt32.self() = -10;
-           cUint8.self() = 3;//正常
-          // dUint8 = -4;//异常，值范围：0~255，估无符号编译异常
-       } 
-
-       //2)、验证无符号整数位数
-       ACTION void setUint(){
-            cUint8.self() = 1;//正常
-            dUint8.self() = 255;//正常，8位无符号整数取值范围0~255
-            //eUint8.self() = 256;//异常，8位数无符号整数溢出，编译报错
-       }
-
-       //3)、验证有符号整数位数
-      ACTION void setInt(){
-          //整型类型暂时不支持，待支持后编写
-          // todo.....
-      }
-
       /**
-       * 2、布尔型(bool)
+       * 1、布尔型(bool)
        *   取值常量true、false
        *
        **/
       ACTION void setBool(){
-          aBool.self() = true;
-          bBool.self() = false;
+          a_storage_bool.self() = true;
+          b_storage_bool.self() = false;
       }
 
        CONST bool getBool(){
-           return aBool.self();
-       } 
-      
+           return a_storage_bool.self();
+       }
+
+      /**
+       * 2、字节类型（byte）
+       *   byte相当于uint8_t
+       **/
+      ACTION void setByte(){
+          storage_byte.self() = 100;//正常
+      }
+
       /**
        * 3、字符串(string)
        *    字符串赋值、拼接、字符串.size()
        **/
-       ACTION void setString(){
-           aString.self() = "A";
-           bString.self() = "B";
-           cString.self() = "C" +  bString.self();
+       ACTION void setString(std::string &str){
+           a_storage_string.self() = str;
        }
 
        CONST std::string getString(){
-           return cString.self();
+           return a_storage_string.self();
        }
 
-       CONST void getStringLength(){
-           cString.self().size();
+       CONST uint8_t getStringLength(){
+           return a_storage_string.self().size();
        }
-       
-       /**
-        * 4、枚举(enum)
-        **/
-      ACTION void setEnum(const clothes &c){
-          aEnum.self() = c; 
-      }
+     /**
+      * 4、浮点类型(float、double)
+      *  浮点型暂时不支持，后续测试
+      **/
+     /* ACTION void setFloat(){
+          storage_float.self() = 1.0;
+          storage_double.self() = 2.56;
+       }*/
 
-      ACTION clothes getEnum(){
-          return  aEnum.self();
-      }
+     /* CONST float getFloat(){
+          return storage_float.self();
+      }*/
 
       /**
        * 5、地址类型(Address)
        * 
        **/
+      ACTION void setContractCallAddress(){
+           storage_address.self() = platon_caller();//获取交易发起者地址
+      }
 
+      CONST std::string getContractCallAddress(){
+          return storage_address.self().toString();
+      }
 
-
-
-
-
-
-      
+      /**
+       * 6、枚举(enum)
+       **/
+      /* ACTION void setEnum(){
+            storage_enum_clothes.self().colors = yellow;
+        }
+        ACTION colors getEnum(){
+            return  storage_enum_clothes.self().colors;
+        }*/
 };
 
-PLATON_DISPATCH(basicDataTypeContract,(init)(setSignedInt)(setUint)(setBool)(setString))
+PLATON_DISPATCH(BasicDataTypeContract,(init)(setBool)(getBool)(setByte)(setString)(getString)(getStringLength)
+               (setContractCallAddress)(getContractCallAddress))

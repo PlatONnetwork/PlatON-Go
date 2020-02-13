@@ -37,7 +37,7 @@ public class ConstructorPublicDeclaractionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ConstructorPublicDeclaractionTest-可见性测试")
+            author = "hudenian", showName = "ConstructorPublicDeclaractionTest-可见性测试", sourcePrefix = "evm")
     public void constructPublicTest() {
         try {
 

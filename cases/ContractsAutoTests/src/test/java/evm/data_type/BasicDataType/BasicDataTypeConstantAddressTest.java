@@ -31,7 +31,7 @@ public class BasicDataTypeConstantAddressTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "BasicDataTypeConstantContractTest.合约地址Address常量")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "BasicDataTypeConstantContractTest.合约地址Address常量",sourcePrefix = "evm")
     public void testBasicDataTypeContract() {
 
         BasicDataTypeConstantContract basicDataTypeConstantContract = null;

@@ -2,8 +2,8 @@
 #include <string>
 using namespace platon;
 
-extern char const string_storage[] = "stringstorage";
-extern char const string_storage1[] = "stringstorage1";
+//extern char const string_storage[] = "stringstorage";
+//extern char const string_storage1[] = "stringstorage1";
 /**
  * platon_panic 函数退出合约，此时会把用户的全部 gas 用完
  */
@@ -17,9 +17,9 @@ CONTRACT ContractPanic : public platon::Contract{
        * platon 提供断言函数 platon_assert，断言失败会退出合约，此时会花费掉实际执行消耗的 gas。
        * VM returned with error err="execute function code: exec: transaction panic"
        */  
-      ACTION void destory_contract(std::string name, uint64_t value){
+      ACTION void panic_contract(std::string name, uint64_t value){
             stringstorage.self() = name;
-            platon_panic();
+            ::platon_panic;
             stringstorage1.self() = name;
       }
 
@@ -36,8 +36,8 @@ CONTRACT ContractPanic : public platon::Contract{
       }
 
    private:
-      platon::StorageType<string_storage, std::string> stringstorage;
-      platon::StorageType<string_storage1, std::string> stringstorage1;
+      platon::StorageType<"string_storage"_n, std::string> stringstorage;
+      platon::StorageType<"string_storage1"_n, std::string> stringstorage1;
 };
 
-PLATON_DISPATCH(ContractPanic, (init)(destory_contract)(set_string_storage)(get_string_storage)(get_string_storage1))
+PLATON_DISPATCH(ContractPanic, (init)(panic_contract)(set_string_storage)(get_string_storage)(get_string_storage1))

@@ -32,7 +32,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testConstantCheck",
-            author = "albedo", showName = "ConstructorPublicVisibilityTest-constant修饰函数状态可变性")
+            author = "albedo", showName = "evm.ConstructorPublicVisibilityTest-constant修饰函数状态可变性", sourcePrefix = "evm")
     public void testConstantCheck() {
         try {
             prepare();

@@ -40,7 +40,7 @@ public class MathAndCryptographicFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.MathAndCryptographicFunctionsTest-数学和加密函数测试")
+            author = "liweic", showName = "function.MathAndCryptographicFunctionsTest-数学和加密函数测试", sourcePrefix = "evm")
     public void MathAndCryptographicfunction() {
         try {
             MathAndCryptographicFunctions mathAndCryptographicFunctions = MathAndCryptographicFunctions.deploy(web3j, transactionManager, provider).send();

@@ -22,9 +22,9 @@ class person {
         PLATON_SERIALIZE(person, (name))
 };
 
-extern char const person_vector[] = "input_vector";
+//extern char const person_vector[] = "input_vector";
 
-CONTRACT initOverload : public platon::Contract{
+CONTRACT InitOverload : public platon::Contract{
     public:
     ACTION void init(){}
 
@@ -54,7 +54,7 @@ CONTRACT initOverload : public platon::Contract{
 */    
 
     private:
-    platon::StorageType<person_vector, std::vector<person>> input_vector;
+    platon::StorageType<"person_vector"_n, std::vector<person>> input_vector;
 };
 
 PLATON_DISPATCH(InitOverload, (init)(add_vector)(get_vector_size)(get_vector))

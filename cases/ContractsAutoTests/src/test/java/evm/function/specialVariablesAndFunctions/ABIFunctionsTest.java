@@ -32,7 +32,7 @@ public class ABIFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.ABIFunctionsTest-ABI函数测试")
+            author = "liweic", showName = "function.ABIFunctionsTest-ABI函数测试", sourcePrefix = "evm")
     public void ABIfunction() {
         try {
             ABIFunctions abiFunctions = ABIFunctions.deploy(web3j, transactionManager, provider).send();

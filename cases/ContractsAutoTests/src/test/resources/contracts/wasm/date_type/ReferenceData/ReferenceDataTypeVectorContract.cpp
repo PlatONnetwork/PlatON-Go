@@ -12,31 +12,38 @@ using namespace platon;
 
 class clothes {
     public:
+        std::string color;
         clothes(){}
         clothes(const std::string &my_color):color(my_color){}
-    private:
-        std::string color;
         PLATON_SERIALIZE(clothes, (color))
 };
 
 extern char const vector_clothes[] = "vector_clothes";
 
-CONTRACT clothesVector : public platon::Contract{
+CONTRACT ReferenceDataTypeVectorContract : public platon::Contract{
     public:
     ACTION void init(){}
 
-     //新增
-    ACTION void setClothesColor(const clothes &myClothes){
+     //新增方式一
+    ACTION void setClothesColorOne(const clothes &myClothes){
         vector_clothes.self().push_back(myClothes);
     }
+    //新增方式二
+      ACTION void setClothesColorTwo(const std::string &my_color){
+         vector_clothes.self().push_back(clothes(my_color));
+      }
+     //取值
+     CONST std::string getClothesColorIndex(){
+         return vector_clothes.self()[0].color;
+     }
     //vector大小
-    CONST uint64_t getClothesColor(){
+    CONST uint64_t getClothesColorLength(){
         return vector_clothes.self().size();
     }
 
-    
     private:
     platon::StorageType<vector_clothes, std::vector<clothes>> vector_clothes;
 };
 
-PLATON_DISPATCH(clothesVector, (init)(setClothesColor)(getClothesColor))
+PLATON_DISPATCH(ReferenceDataTypeVectorContract, (init)(setClothesColorOne)(setClothesColorTwo)(getClothesColorIndex)
+               (getClothesColorLength))

@@ -15,7 +15,7 @@ using namespace platon;
 //    uint64_t platon_gas_price();
 //}
 
-CONTRACT PlatONSpecialFunctionsB : public platon::Contract{
+CONTRACT SpecialFunctionsB : public platon::Contract{
 	public:
     ACTION void init(){}
 
@@ -33,4 +33,4 @@ CONTRACT PlatONSpecialFunctionsB : public platon::Contract{
 
 };
 
-PLATON_DISPATCH(PlatONSpecialFunctionsB, (init)(getPlatONGas)(getPlatONGasLimit)(getPlatONGasPrice))
+PLATON_DISPATCH(SpecialFunctionsB, (init)(getPlatONGas)(getPlatONGasLimit)(getPlatONGasPrice))

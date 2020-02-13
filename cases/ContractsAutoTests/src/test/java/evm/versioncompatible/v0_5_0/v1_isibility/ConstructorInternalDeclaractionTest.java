@@ -36,7 +36,7 @@ public class ConstructorInternalDeclaractionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ConstructorInternalDeclaractionTest-可见性测试")
+            author = "hudenian", showName = "ConstructorInternalDeclaractionTest-可见性测试", sourcePrefix = "evm")
     public void update() {
         try {
             ConstructorInternalDeclaractionSub constructorInternalDeclaractionSub = ConstructorInternalDeclaractionSub.deploy(web3j, transactionManager, provider,new BigInteger(initValue)).send();

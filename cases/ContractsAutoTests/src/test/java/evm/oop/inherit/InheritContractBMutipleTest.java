@@ -24,7 +24,7 @@ public class InheritContractBMutipleTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InheritContract.多重继承(遵循先父到子的继承顺序)")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InheritContract.多重继承(遵循先父到子的继承顺序)",sourcePrefix = "evm")
     public void testInheritContractMutipleTest1() {
 
         InheritContractSubclass inheritContractSubclass = null;

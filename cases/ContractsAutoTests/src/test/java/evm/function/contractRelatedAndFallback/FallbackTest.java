@@ -27,7 +27,7 @@ public class FallbackTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.FallbackTest-this和回退函数测试")
+            author = "liweic", showName = "function.FallbackTest-this和回退函数测试", sourcePrefix = "evm")
     public void fallback() {
         try {
             FallBack fallback = FallBack.deploy(web3j, transactionManager, provider).send();

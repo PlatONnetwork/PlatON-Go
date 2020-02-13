@@ -26,7 +26,7 @@ public class ConstantViewPureTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.ConstantViewPureTest-函数声明方式测试")
+            author = "liweic", showName = "function.ConstantViewPureTest-函数声明方式测试", sourcePrefix = "evm")
     public void constantviewPure() {
         try {
             ConstantViewPure constantviewpure = ConstantViewPure.deploy(web3j, transactionManager, provider).send();

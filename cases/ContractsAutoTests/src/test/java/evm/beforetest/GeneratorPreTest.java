@@ -35,7 +35,8 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao", showName = "GeneratorPreTest-编译并生成包装类")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao"
+            , showName = "GeneratorPreTest-编译并生成包装类", sourcePrefix = "evm")
     public void compileAndGenerator() {
         Date compileStartDate = new Date();
         try {
@@ -75,8 +76,8 @@ public class GeneratorPreTest extends ContractPrepareTest {
      * @create: 2019/12/24 14:44
      **/
     public void compile() throws InterruptedException {
-        String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts").toUri().getPath());
-        String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "build").toUri().getPath());
+        String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm").toUri().getPath());
+        String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
         File[] list = new File(buildPath).listFiles();
         if (null != list) {
             for (File file : list) {
@@ -125,7 +126,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
         BufferedReader bufferedReader = null;
         try {
-            String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "build").toUri().getPath());
+            String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
 
             String[] libraryArr = librarys.split("\\|\\|");
 
