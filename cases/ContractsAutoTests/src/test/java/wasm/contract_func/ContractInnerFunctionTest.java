@@ -3,6 +3,7 @@ package wasm.contract_func;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InnerFunction;
+import network.platon.contracts.wasm.InnerFunction_1;
 import network.platon.contracts.wasm.InnerFunction_2;
 import org.junit.Test;
 import org.web3j.protocol.core.DefaultBlockParameterName;
@@ -78,6 +79,46 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
                 collector.logStepPass("InnerFunction and could not call contract function");
             }else{
                 collector.logStepFail("InnerFunction failure,exception msg:" , e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.contract_function_01",sourcePrefix = "wasm")
+    public void testFunctionContract_01() {
+
+        String name = "zjsunzone";
+        try {
+            prepare();
+
+            // deploy contract.
+            InnerFunction_1 innerFunction = InnerFunction_1.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = innerFunction.getContractAddress();
+            String transactionHash = innerFunction.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("InnerFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+
+            // test: gas
+            Long gas = innerFunction.gas().send();
+            collector.logStepPass("To invoke gas success, gas: " + gas);
+
+            // test: nonce
+            Long rnonce = web3j.platonGetTransactionCount(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getTransactionCount().longValue();
+            Long nonce = innerFunction.nonce().send();
+            collector.logStepPass("To invoke nonce success, nonce: " + nonce + " rnonce: " + rnonce);
+
+            // test: block_hash
+            String bhsh = innerFunction.block_hash(Long.valueOf(100)).send();
+            collector.logStepPass("To invoke block_hash success, hash: " + bhsh);
+            String bhash2 = web3j.platonGetBlockByNumber(new DefaultBlockParameterNumber(100), false).send().getBlock().getHash();
+            collector.assertEqual(prependHexPrefix(bhash2), prependHexPrefix(bhsh));
+
+        } catch (Exception e) {
+            if(e instanceof ArrayIndexOutOfBoundsException){
+                collector.logStepPass("InnerFunction_1 and could not call contract function");
+            }else{
+                collector.logStepFail("InnerFunction_1 failure,exception msg:" , e.getMessage());
                 e.printStackTrace();
             }
         }
