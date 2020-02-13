@@ -26,7 +26,7 @@ public class DelegatecallCaller050Test extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "DelegatecallCaller050Test-0.5.0跨合约调用者")
+            author = "hudenian", showName = "DelegatecallCaller050Test-0.5.0跨合约调用者", sourcePrefix = "evm")
     public void caller050Test() {
         try {
             //调用者合约地址

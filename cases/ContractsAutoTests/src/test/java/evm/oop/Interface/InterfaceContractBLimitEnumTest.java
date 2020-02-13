@@ -24,7 +24,7 @@ public class InterfaceContractBLimitEnumTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InterfaceContractLimitEnum.验证接口中定义枚举")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InterfaceContractLimitEnum.验证接口中定义枚举",sourcePrefix = "evm")
     public void testInterfaceContractLimitEnum() {
 
         InterfaceContractEnumTest interfaceContractEnumTest= null;

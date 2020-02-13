@@ -32,7 +32,7 @@ public class MappingArrayDataTypeContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "MappingDataTypeContract.mapping数组类型")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "MappingDataTypeContract.mapping数组类型",sourcePrefix = "evm")
     public void testMappingContract() {
 
         MappingArrayDataTypeContract mappingArrayDataTypeContract = null;

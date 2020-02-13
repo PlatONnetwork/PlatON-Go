@@ -26,7 +26,7 @@ public class ReferenceDataTypeArrayOperatorTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeArray.数组支持的运算符")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeArray.数组支持的运算符",sourcePrefix = "evm")
     public void testReferenceDataTypeArrayTest() {
 
         ReferenceDataTypeArrayOperatorContract referenceDataTypeArrayOperator = null;
