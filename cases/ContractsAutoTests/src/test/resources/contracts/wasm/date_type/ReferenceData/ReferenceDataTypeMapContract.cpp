@@ -13,20 +13,15 @@ using namespace platon;
  * 2、map属性方法
  *     增加、删除、容器集合大小
  * */
-extern char const map_int[] = "map_int8_t";
-extern char const map_uint8[] = "map_uint8_t";
-extern char const map_bool[] = "map_bool";
-extern char const map_string[] = "map_string";
-extern char const map_address[] = "map_address";
 
 CONTRACT mapContractTest : public platon::Contract{
 
     private:
       // platon::StorageType<map_int,std::map<int8_t,std::string>> map_int;
-       platon::StorageType<map_uint8,std::map<uint8_t,std::string>> map_uint;
-       platon::StorageType<map_bool,std::map<bool,std::string>> map_bool;
-       platon::StorageType<map_string,std::map<std::string,std::string>> map_string;
-       platon::StorageType<map_address,std::map<Address,std::string>> map_address;
+       platon::StorageType<"map_uint8"_n,std::map<uint8_t,std::string>> map_uint;
+       platon::StorageType<"map_bool"_n,std::map<bool,std::string>> map_bool;
+       platon::StorageType<"map_string"_n,std::map<std::string,std::string>> map_string;
+       platon::StorageType<"map_address"_n,std::map<Address,std::string>> map_address;
 
     public:
         ACTION void init(){}

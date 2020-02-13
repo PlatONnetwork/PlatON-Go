@@ -23,6 +23,7 @@ public class ReferenceDataTypeMapTest extends WASMContractPrepareTest {
          //部署合约
         ReferenceDataTypeMapContract referenceDataTypeMapContract = null;
         try {
+
             prepare();
             referenceDataTypeMapContract = ReferenceDataTypeMapContract.deploy(web3j, transactionManager, provider).send();
             String contractAddress = referenceDataTypeMapContract.getContractAddress();
