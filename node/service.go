@@ -17,6 +17,7 @@
 package node
 
 import (
+	"crypto/ecdsa"
 	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -34,6 +35,7 @@ type ServiceContext struct {
 	services       map[reflect.Type]Service // Index of the already constructed services
 	EventMux       *event.TypeMux           // Event multiplexer used for decoupled notifications
 	AccountManager *accounts.Manager        // Account manager created by the node.
+	serverConfig   p2p.Config
 }
 
 func NewServiceContext(config *Config, services map[reflect.Type]Service, EventMux *event.TypeMux, AccountManager *accounts.Manager) *ServiceContext {
@@ -74,6 +76,10 @@ func (ctx *ServiceContext) Service(service interface{}) error {
 		return nil
 	}
 	return ErrServiceUnknown
+}
+
+func (ctx *ServiceContext) NodePriKey() *ecdsa.PrivateKey {
+	return ctx.serverConfig.PrivateKey
 }
 
 // ServiceConstructor is the function signature of the constructors needed to be

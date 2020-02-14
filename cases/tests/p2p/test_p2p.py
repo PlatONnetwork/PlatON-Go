@@ -32,6 +32,15 @@ def one_put_genesis_task(node, genesis_file):
     return True, "{} upload genesis file success".format(node.node_mark)
 
 
+@pytest.fixture(scope="module", autouse=True)
+def reset_config(global_test_env):
+    yield
+    config_data = LoadFile(global_test_env.cfg.config_json_tmp).get_data()
+    with open(global_test_env.cfg.config_json_tmp, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(config_data, indent=4))
+    global_test_env.deploy_all()
+
+
 @allure.title("Node maximum link quantity test")
 @pytest.mark.P1
 def test_NE_P2P_001(global_test_env):

@@ -48,7 +48,6 @@ var (
             "stakeThreshold": 1000000000000000000000000,
             "operatingThreshold": 10000000000000000000,
             "maxValidators": 30,
-            "hesitateRatio": 1,
             "unStakeFreezeDuration": 2
         },
         "slashing":{

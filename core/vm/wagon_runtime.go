@@ -53,11 +53,12 @@ func NewHostModule() *wasm.Module {
 	m := wasm.NewModule()
 	m.Export.Entries = make(map[string]wasm.ExportEntry)
 
-	// uint64_t platon_gas_price()
-	// func $platon_gas_price(result i64)
+	// void platon_gas_price(uint8_t gas_price)
+	// func $platon_gas_price(param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
 			Host: reflect.ValueOf(GasPrice),
@@ -579,11 +580,16 @@ func checkGas(ctx *VMContext, gas uint64) {
 		panic(ErrOutOfGas)
 	}
 }
-func GasPrice(proc *exec.Process) uint64 {
+func GasPrice(proc *exec.Process, gasPrice uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, IndirectCallGas)
-	price := ctx.evm.GasPrice.Uint64()
-	return price
+	value := ctx.evm.GasPrice.Bytes()
+	_, err := proc.WriteAt(value, int64(gasPrice))
+	if err != nil {
+		panic(err)
+	}
+
+	return uint32(len(value))
 }
 
 func BlockHash(proc *exec.Process, num uint64, dst uint32) {
@@ -1121,6 +1127,10 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	_, err := proc.ReadAt(input, int64(args))
 	if nil != err {
 		panic(err)
+	}
+
+	if len(input) == 0 {
+		panic(errWASMMigrate)
 	}
 
 	value := make([]byte, valLen)
