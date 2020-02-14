@@ -20,7 +20,7 @@ import java.math.BigInteger;
 /**
  * The test class of the function for chain.
  */
-public class ContractSimpleStorageTest extends WASMContractPrepareTest {
+public class ContractFibonacciTest extends WASMContractPrepareTest {
 
     @Before
     public void before(){
