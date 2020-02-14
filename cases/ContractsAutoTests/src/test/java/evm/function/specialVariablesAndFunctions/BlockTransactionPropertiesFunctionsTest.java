@@ -82,7 +82,9 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证block.coinbase函数(获取矿工地址)
             String resultC = blockTransactionPropertiesFunctions.getBlockCoinbase().send();
             collector.logStepPass("block.coinbase函数返回值：" + resultC);
-            collector.assertEqual(coinbase ,resultC);
+            String coinaddr = "0x0000000000000000000000000000000000000000";
+            boolean iscoinbase = resultC.equals(coinaddr);
+            collector.assertEqual(!iscoinbase ,true);
 
             //验证block.difficulty(获取当前块的难度)
             BigInteger resultD = blockTransactionPropertiesFunctions.getBlockDifficulty().send();
