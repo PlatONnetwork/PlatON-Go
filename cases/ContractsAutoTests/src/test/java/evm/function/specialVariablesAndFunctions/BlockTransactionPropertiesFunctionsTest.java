@@ -105,6 +105,7 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             String today = sdf.format(new Date());
             collector.assertEqual(today,resultTime);
 
+
             //验证msg.data(获取完整的calldata)
             byte[] resultG = blockTransactionPropertiesFunctions.getData().send();
             String hexvalue2 = DataChangeUtil.bytesToHex(resultG);
