@@ -15,12 +15,13 @@ import wasm.beforetest.WASMContractPrepareTest;
  * @create: 2020/02/07
  */
 public class ReferenceDataTypeMapTest extends WASMContractPrepareTest {
+
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "qudong", showName = "wasm.referenceDataTypeMapTest验证Map集合",sourcePrefix = "wasm")
     public void testReferenceDataTypeMap() {
 
-         //部署合约
+        //部署合约
         ReferenceDataTypeMapContract referenceDataTypeMapContract = null;
         try {
 
@@ -29,7 +30,7 @@ public class ReferenceDataTypeMapTest extends WASMContractPrepareTest {
             String contractAddress = referenceDataTypeMapContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeMapContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeMapContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                    + ", hash:" + tx.getTransactionHash());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeMapContract deploy fail.", e.toString());

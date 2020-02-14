@@ -44,10 +44,10 @@ public class ContractEmitEvent extends WasmContract {
 
     public static final String FUNC_GET_STRING = "get_string";
 
-    public static final WasmEvent TRANSFER_EVENT = new WasmEvent("transfer", Arrays.asList(), Arrays.asList(String.class));
+    public static final WasmEvent TRANSFER2_EVENT = new WasmEvent("transfer2", Arrays.asList(), Arrays.asList(String.class , String.class));
     ;
 
-    public static final WasmEvent TRANSFER2_EVENT = new WasmEvent("transfer2", Arrays.asList(), Arrays.asList(String.class , String.class));
+    public static final WasmEvent TRANSFER_EVENT = new WasmEvent("transfer", Arrays.asList(), Arrays.asList(String.class));
     ;
 
     public static final WasmEvent TRANSFER3_EVENT = new WasmEvent("transfer3", Arrays.asList(), Arrays.asList(String.class , String.class , Integer.class));
@@ -59,6 +59,39 @@ public class ContractEmitEvent extends WasmContract {
 
     protected ContractEmitEvent(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER2_EVENT, transactionReceipt);
+        ArrayList<Transfer2EventResponse> responses = new ArrayList<Transfer2EventResponse>(valueList.size());
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
+            Transfer2EventResponse typedResponse = new Transfer2EventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(1);
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Observable<Transfer2EventResponse> transfer2EventObservable(PlatonFilter filter) {
+        return web3j.platonLogObservable(filter).map(new Func1<Log, Transfer2EventResponse>() {
+            @Override
+            public Transfer2EventResponse call(Log log) {
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER2_EVENT, log);
+                Transfer2EventResponse typedResponse = new Transfer2EventResponse();
+                typedResponse.log = log;
+                typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(1);
+                return typedResponse;
+            }
+        });
+    }
+
+    public Observable<Transfer2EventResponse> transfer2EventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER2_EVENT));
+        return transfer2EventObservable(filter);
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
@@ -95,39 +128,6 @@ public class ContractEmitEvent extends WasmContract {
     public RemoteCall<TransactionReceipt> zero_emit_event(String name) {
         final WasmFunction function = new WasmFunction(FUNC_ZERO_EMIT_EVENT, Arrays.asList(name), Void.class);
         return executeRemoteCallTransaction(function);
-    }
-
-    public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
-        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER2_EVENT, transactionReceipt);
-        ArrayList<Transfer2EventResponse> responses = new ArrayList<Transfer2EventResponse>(valueList.size());
-        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
-            Transfer2EventResponse typedResponse = new Transfer2EventResponse();
-            typedResponse.log = eventValues.getLog();
-            typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(1);
-            responses.add(typedResponse);
-        }
-        return responses;
-    }
-
-    public Observable<Transfer2EventResponse> transfer2EventObservable(PlatonFilter filter) {
-        return web3j.platonLogObservable(filter).map(new Func1<Log, Transfer2EventResponse>() {
-            @Override
-            public Transfer2EventResponse call(Log log) {
-                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER2_EVENT, log);
-                Transfer2EventResponse typedResponse = new Transfer2EventResponse();
-                typedResponse.log = log;
-                typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(1);
-                return typedResponse;
-            }
-        });
-    }
-
-    public Observable<Transfer2EventResponse> transfer2EventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
-        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER2_EVENT));
-        return transfer2EventObservable(filter);
     }
 
     public List<Transfer3EventResponse> getTransfer3Events(TransactionReceipt transactionReceipt) {
@@ -198,16 +198,16 @@ public class ContractEmitEvent extends WasmContract {
         return new ContractEmitEvent(contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static class TransferEventResponse {
-        public Log log;
-
-        public String arg1;
-    }
-
     public static class Transfer2EventResponse {
         public Log log;
 
         public String arg2;
+
+        public String arg1;
+    }
+
+    public static class TransferEventResponse {
+        public Log log;
 
         public String arg1;
     }
