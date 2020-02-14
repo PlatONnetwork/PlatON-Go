@@ -1,4 +1,4 @@
-package wasm.contract_func;
+package wasm.contract_docs;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -8,7 +8,6 @@ import network.platon.contracts.wasm.InnerFunction_2;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
@@ -19,9 +18,11 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 /**
- * The test class of the function for chain.
+ * @author zjsunzone
+ *
+ * This class is for docs.
  */
-public class ContractInnerFunctionTest extends WASMContractPrepareTest {
+public class ContractSimpleStorageTest extends WASMContractPrepareTest {
 
     @Before
     public void before(){
@@ -30,10 +31,8 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "zjsunzone", showName = "wasm.contract_function",sourcePrefix = "wasm")
+            author = "zjsunzone", showName = "wasm.contract_simple_storage",sourcePrefix = "wasm")
     public void testFunctionContract() {
-
-        String name = "zjsunzone";
         try {
             // deploy contract.
             InnerFunction innerFunction = InnerFunction.deploy(web3j, transactionManager, provider).send();
