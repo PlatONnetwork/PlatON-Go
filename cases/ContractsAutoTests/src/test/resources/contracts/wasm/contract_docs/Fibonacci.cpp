@@ -16,13 +16,13 @@ CONTRACT Fibonacci: public platon::Contract
 			// do something to init.
 		}
 		
-		ACTION void fibonacciNotify(uint64_t number)
+		ACTION void fibonacci_notify(uint64_t number)
 		{
 			uint64_t result = fibonacci(number);
 			PLATON_EMIT_EVENT1(Notify, number, result); 
 		}
 		
-		CONST uint64_t fibonacci(uint64_t number)
+		CONST uint64_t fibonacci_call(uint64_t number)
 		{
 			if(number == 0){
 				return 0;			
@@ -36,8 +36,7 @@ CONTRACT Fibonacci: public platon::Contract
 };
 
 
-PLATON_DISPATCH(Fibonacci,(init)
-(fibonacciNotify)(fibonacci))
+PLATON_DISPATCH(Fibonacci,(init)(fibonacci_notify)(fibonacci_call))
 
 
 
