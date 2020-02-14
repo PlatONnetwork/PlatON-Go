@@ -8,7 +8,7 @@ CONTRACT Fibonacci: public platon::Contract
 {
 
 	public:
-		PLATON_EVENT(Notify, uint64_t, uint64_t)
+		PLATON_EVENT(Notify, std::string, uint64_t, uint64_t)
 
 	public:
 		ACTION void init()
@@ -19,7 +19,7 @@ CONTRACT Fibonacci: public platon::Contract
 		ACTION void fibonacci_notify(uint64_t number)
 		{
 			uint64_t result = fibonacci_call(number);
-			PLATON_EMIT_EVENT(Notify, number, result); 
+			PLATON_EMIT_EVENT(Notify, "ok", number, result); 
 		}
 		
 		CONST uint64_t fibonacci_call(uint64_t number)
