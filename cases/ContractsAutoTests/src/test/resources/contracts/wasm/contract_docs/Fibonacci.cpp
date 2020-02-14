@@ -8,7 +8,7 @@ CONTRACT Fibonacci: public platon::Contract
 {
 
 	public:
-		PLATON_EVENT1(notify, std::string, uint64_t, uint64_t);
+		PLATON_EVENT0(notify, std::string, uint64_t, uint64_t);
 
 	public:
 		ACTION void init()
@@ -18,18 +18,23 @@ CONTRACT Fibonacci: public platon::Contract
 		
 		ACTION void fibonacci_notify(uint64_t number)
 		{
-			uint64_t result = fibonacci_call(number);
-			PLATON_EMIT_EVENT1(notify, "ok", number, result); 
+			uint64_t result = deep_call(number);
+			PLATON_EMIT_EVENT0(notify, "ok", number, result); 
 		}
 		
 		CONST uint64_t fibonacci_call(uint64_t number)
 		{
+			return deep_call(number);
+		}
+
+	private:
+		uint64_t deep_call(uint64_t number) {
 			if(number == 0){
 				return 0;			
 			} else if(number == 1){
 				return 1;			
 			} else {
-				return fibonacci_call(number-1) + fibonacci_call(number-2);		
+				return deep_call(number-1) + deep_call(number-2);		
 			}
 		}
 
