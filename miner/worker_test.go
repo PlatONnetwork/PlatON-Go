@@ -17,6 +17,7 @@
 package miner
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -517,4 +518,51 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 			t.Error("interval reset timeout")
 		}
 	}()
+}
+
+func TestRecoverPanic(t *testing.T) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println(fmt.Sprintf("recover panic:%s", err))
+		}
+	}()
+
+	fmt.Println("Running...")
+	panic("run error")
+}
+
+func TestRecoverPanic2(t *testing.T) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println(fmt.Sprintf("recover panic:%s", err))
+		}
+	}()
+
+	defer func() {
+		panic("defer error") // recover()只捕获最后一次panic
+	}()
+
+	fmt.Println("Running...")
+
+	panic("run error")
+}
+
+func TestDefer(t *testing.T) {
+	defer func() {
+		fmt.Println("invoke defer")
+	}()
+
+	fmt.Println("Running...1")
+	//return
+	if err := xx(); nil != err {
+		fmt.Println("Failed to xx", "err", err)
+		return
+	}
+	fmt.Println("Running...2")
+	return
+}
+
+func xx() error {
+	fmt.Println("invoke xx method")
+	return fmt.Errorf("return xx error")
 }
