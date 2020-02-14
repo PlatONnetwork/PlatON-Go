@@ -27,9 +27,9 @@ public class InnerFunction_2 extends WasmContract {
 
     private static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_VALUE = "value";
-
     public static final String FUNC_SHA3 = "sha3";
+
+    public static final String FUNC_VALUE = "value";
 
     public static final String FUNC_TRANSFER = "transfer";
 
@@ -51,13 +51,13 @@ public class InnerFunction_2 extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> value() {
-        final WasmFunction function = new WasmFunction(FUNC_VALUE, Arrays.asList(), String.class);
+    public RemoteCall<String> sha3(String str) {
+        final WasmFunction function = new WasmFunction(FUNC_SHA3, Arrays.asList(str), String.class);
         return executeRemoteCall(function, String.class);
     }
 
-    public RemoteCall<String> sha3(String str) {
-        final WasmFunction function = new WasmFunction(FUNC_SHA3, Arrays.asList(str), String.class);
+    public RemoteCall<String> value() {
+        final WasmFunction function = new WasmFunction(FUNC_VALUE, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
     }
 
