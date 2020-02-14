@@ -16,6 +16,7 @@ using namespace platon;
 
 CONTRACT mapContractTest : public platon::Contract{
 
+
     private:
       // platon::StorageType<map_int,std::map<int8_t,std::string>> map_int;
        platon::StorageType<"map_uint8"_n,std::map<uint8_t,std::string>> map_uint;
