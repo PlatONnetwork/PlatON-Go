@@ -398,7 +398,7 @@ class Node:
             cmd = "{} --identity platon --datadir".format(self.remote_bin_file)
             cmd = cmd + " {} --port ".format(self.remote_data_dir) + self.p2p_port
             cmd = cmd + " --db.nogc"
-            cmd = cmd + " --gcmode archive --nodekey " + self.remote_nodekey_file
+            cmd = cmd + " --nodekey " + self.remote_nodekey_file
             cmd = cmd + " --cbft.blskey " + self.remote_blskey_file
             cmd = cmd + " --config " + self.remote_config_file
             cmd = cmd + " --syncmode '{}'".format(self.cfg.syncmode)
