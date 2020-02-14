@@ -18,7 +18,7 @@ CONTRACT Fibonacci: public platon::Contract
 		
 		ACTION void fibonacci_notify(uint64_t number)
 		{
-			uint64_t result = fibonacci(number);
+			uint64_t result = fibonacci_call(number);
 			PLATON_EMIT_EVENT(Notify, number, result); 
 		}
 		
@@ -29,7 +29,7 @@ CONTRACT Fibonacci: public platon::Contract
 			} else if(number == 1){
 				return 1;			
 			} else {
-				return fibonacci(number-1) + fibonacci(number-2);		
+				return fibonacci_call(number-1) + fibonacci_call(number-2);		
 			}
 		}
 
