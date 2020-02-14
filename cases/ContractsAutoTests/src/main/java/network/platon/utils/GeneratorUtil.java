@@ -43,9 +43,7 @@ public class GeneratorUtil {
                     System.out.println("Not supported operate system platform");
                 }
             } else {
-//                args = new String[]{"/bin/bash", "-c", "./scripts/platon-web3j/bin/platon-web3j " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
-                args = new String[]{"/bin/bash", "-c", "/home/platon/Jenkins/jenkins/workspace/ContractsAutoTestsForEVM/cases/ContractsAutoTests/scripts/platon-web3j/bin/platon-web3j "+"solidity"+" "+"generate"+" "+binPath+" "+abiPath+" "+"-o"+" "+outputPath+" "+"-p"+" "+packagePath};
-
+                args = new String[]{"/bin/bash", "-c", "./scripts/platon-web3j/bin/platon-web3j " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
             }
 
             ps = Runtime.getRuntime().exec(args);
