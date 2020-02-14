@@ -1,30 +1,54 @@
 #include <platon/platon.hpp>
 #include <string>
+//#include <Contract_hello.hpp>
 using namespace platon;
 
 
+class message {
+   public:
+      message(){}
+      message(const std::string &p_head):head(p_head){}
+   private:
+      std::string head;
+      PLATON_SERIALIZE(message, (head))
+};
+
+class my_message : public message {
+   public:
+      my_message(){}
+      my_message(const std::string &p_head, const std::string &p_body, const std::string &p_end):message(p_head), body(p_body), end(p_end){}
+   private:
+      std::string body;
+      std::string end;
+      PLATON_SERIALIZE_DERIVED(my_message, message, (body)(end))
+};
+
 CONTRACT hello : public platon::Contract{
    public:
-      PLATON_EVENT1(myevent, std::string, std::string)
+
 
      ACTION void init(){}
       
-      ACTION void set_string(const std::string &name){
-          PLATON_EMIT_EVENT1(myevent, "set_string", name);
-          DEBUG("hello set_string", "name:", name);
-          str.self() = name;
+      ACTION std::vector<my_message> add_message(const my_message &one_message){
+
+          DEBUG("hello add_message");
+          arr.self().push_back(one_message);
+          return arr.self();
       }
-      CONST const std::string get_string(){
-          PLATON_EMIT_EVENT1(myevent, "get_string", str.self());
-          DEBUG("hello get_string", "name:", str.self());
-          return str.self();
+      CONST std::vector<my_message> get_message(const std::string &name){
+
+          DEBUG("hello get_message");
+          return arr.self();
       }
 
-      
+      CONST uint64_t get_vector_size(){
+          DEBUG("hello get_vector_size");
+          return arr.self().size();
+      }
 
 
    private:
-      platon::StorageType<"str"_n, std::string> str;
+      platon::StorageType<"info_arr"_n, std::vector<my_message>> arr;
 };
 
-PLATON_DISPATCH(hello, (init)(set_string)(get_string))
+PLATON_DISPATCH(hello, (init)(add_message)(get_message)(get_vector_size))
