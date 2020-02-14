@@ -1,3 +1,4 @@
+import math
 import time
 
 import pytest
@@ -9,14 +10,13 @@ from client_sdk_python import Web3
 from decimal import Decimal
 from tests.conftest import get_clients_noconsensus
 from tests.lib import (EconomicConfig,
-                       Genesis, StakingConfig,
-                       Staking,
+                       Genesis,
                        check_node_in_list,
                        assert_code,
                        von_amount,
                        get_governable_parameter_value,
-                       get_pledge_list, HexBytes
-                       )
+                       get_pledge_list, HexBytes,
+                       wait_block_number)
 
 
 @pytest.mark.P0
@@ -304,7 +304,7 @@ def consensus_node_pledge_award_assertion(client, address):
     log.info(
         "incentive pool address：{} amount：{}".format(EconomicConfig.INCENTIVEPOOL_ADDRESS, incentive_pool_balance2))
     assert incentive_pool_balance2 - incentive_pool_balance < client.node.web3.toWei(1,
-                                                                                                  'ether'), "ErrMsg:Balance of incentive pool：{}".format(
+                                                                                     'ether'), "ErrMsg:Balance of incentive pool：{}".format(
         incentive_pool_balance2)
 
 
@@ -538,6 +538,7 @@ def test_AL_BI_002(new_genesis_env, staking_cfg):
     verifier_list = client2.ppos.getVerifierList()
     log.info("verifier_list: {}".format(verifier_list))
     slash_blocks = get_governable_parameter_value(client2, 'slashBlocksReward')
+    log.info("slash_blocks".format(slash_blocks))
     # Get the penalty amount
     penalty_amount = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("penalty_amount: {}".format(penalty_amount))
@@ -640,7 +641,7 @@ def create_pledge_node(client, base, multiple=2):
                                                account_balance))
     # create account
     address, _ = client.economic.account.generate_account(client.node.web3,
-                                                                       client.economic.create_staking_limit * multiple)
+                                                          client.economic.create_staking_limit * multiple)
 
     log.info("address: {} ,amount: {}".format(address, client.node.eth.getBalance(address)))
     benifit_address, _ = client.economic.account.generate_account(client.node.web3, 0)
@@ -795,7 +796,7 @@ def assert_benifit_reward(client, benifit_address, address):
             log.info("benifit_balance: {}".format(benifit_balance1))
             assert benifit_balance + staking_reward + blocknumber * Decimal(
                 str(block_reward)) - benifit_balance1 < client.node.web3.toWei(1,
-                                                                                            'ether'), "ErrMsg:benifit_balance: {}".format(
+                                                                               'ether'), "ErrMsg:benifit_balance: {}".format(
                 benifit_balance1)
             break
         else:
@@ -1038,6 +1039,7 @@ def test_AL_NBI_018(new_genesis_env, client_new_node):
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
+
     client = client_new_node
     economic = client.economic
     node = client.node
@@ -1052,17 +1054,18 @@ def test_AL_NBI_018(new_genesis_env, client_new_node):
     # Check account balance
     balance = node.eth.getBalance(address1)
     log.info("Account Balance： {}".format(balance))
-    # Get the number of certifiers in the billing cycle list
-    verifier_list = get_pledge_list(node.ppos.getVerifierList)
-    verifier_num = len(verifier_list)
-    # Get block_reward And pledge rewards
-    amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, 0)
-    block_proportion = str(60 / 100)
-    staking_proportion = str(1 - 60 / 100)
-    block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(1600)))
-    staking_reward = int(Decimal(str(amount)) * Decimal(str(staking_proportion)) / Decimal(str(10)) / Decimal(
-        str(verifier_num)))
-    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    block_reward, staking_reward = economic.get_current_year_reward(node)
+    # # Get the number of certifiers in the billing cycle list
+    # verifier_list = get_pledge_list(node.ppos.getVerifierList)
+    # verifier_num = len(verifier_list)
+    # # Get block_reward And pledge rewards
+    # amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, 0)
+    # block_proportion = str(60 / 100)
+    # staking_proportion = str(1 - 60 / 100)
+    # block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(1600)))
+    # staking_reward = int(Decimal(str(amount)) * Decimal(str(staking_proportion)) / Decimal(str(10)) / Decimal(
+    #     str(verifier_num)))
+    # log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # withdrew of pledge
     result = client.staking.withdrew_staking(address1)
     assert_code(result, 0)
@@ -1078,6 +1081,7 @@ def test_AL_NBI_018(new_genesis_env, client_new_node):
     log.info("Account Balance： {}".format(balance1))
     # Pledged income account to get the bonus amount
     total_reward = int(Decimal(str(block_reward)) * blocknumber) + staking_reward
+    log.info("total:{}".format(balance + total_reward))
     assert balance + total_reward - balance1 < node.web3.toWei(1, 'ether'), "ErrMsg:benifit_balance: {}".format(
         balance1)
 
@@ -1085,3 +1089,280 @@ def test_AL_NBI_018(new_genesis_env, client_new_node):
     # address, benifit_address = create_pledge_node(client_new_node, 1.2)
     # # assert benifit reward
     # assert_benifit_reward(client_new_node, benifit_address, address)
+
+
+def calculate_block_rewards_and_pledge_rewards(client, incentive_pool_amount, annualcycle):
+    new_block_rate = client.economic.genesis.economicModel.reward.newBlockRate
+    block_proportion = str(new_block_rate / 100)
+    log.info("Get incentive pool to allocate block reward ratio: {}".format(block_proportion))
+    verifier_list = get_pledge_list(client.node.ppos.getVerifierList)
+    verifier_num = len(verifier_list)
+    log.info("Number of verification nodes in the current settlement cycle： {}".format(verifier_num))
+    amount_per_settlement = int(Decimal(str(incentive_pool_amount)) / Decimal(str(annualcycle)))
+    total_block_rewards = int(Decimal(str(amount_per_settlement)) * Decimal(str(block_proportion)))
+    per_block_reward = int(Decimal(str(total_block_rewards)) / Decimal(str(client.economic.settlement_size)))
+    log.info("Total block rewards: {} Each block reward: {}".format(total_block_rewards, per_block_reward))
+    staking_reward_total = amount_per_settlement - total_block_rewards
+    staking_reward = int(Decimal(str(staking_reward_total)) / Decimal(str(verifier_num)))
+    log.info("Total pledged rewards: {} Amount of pledged rewards in current settlement cycle: {}".format(
+        staking_reward_total, staking_reward))
+    return per_block_reward, staking_reward
+
+
+def test_AL_NBI_019(client_consensus):
+    """
+    验证第一个结算周期区块奖励和质押奖励
+    :param client_consensus:
+    :return:
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    log.info("Start resetting the chain")
+    economic.env.deploy_all()
+    time.sleep(5)
+    incentive_pool_balance = 262215742000000000000000000
+    log.info("Get the initial value of the incentive pool：{}".format(incentive_pool_balance))
+    annualcycle = math.ceil((economic.additional_cycle_time * 60) / economic.settlement_size)
+    log.info("Number of current additional settlement cycles：{}".format(annualcycle))
+    annual_size = annualcycle * economic.settlement_size
+    log.info("Block height of current issuance cycle: {}".format(annual_size))
+    per_block_reward, staking_reward = calculate_block_rewards_and_pledge_rewards(client, incentive_pool_balance, annualcycle)
+    chain_block_reward, chain_staking_reward = economic.get_current_year_reward(node)
+    log.info("Block rewards on the chain： {}".format(chain_block_reward))
+    log.info("Pledge rewards on the chain：{}".format(chain_staking_reward))
+    assert per_block_reward == chain_block_reward, "ErrMsg:Block reward for the first settlement cycle {}".format(per_block_reward)
+    assert staking_reward == chain_staking_reward, "ErrMsg:Pledge rewards for the first settlement cycle {}".format(staking_reward)
+
+
+def test_AL_NBI_020(client_consensus):
+    """
+    调整出块间隔，查看第二个结算周期出块奖励和质押奖励
+    :param client_consensus:
+    :return:
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    economic.env.deploy_all()
+    economic.wait_consensus_blocknum(node)
+    log.info("Start adjusting the block interval")
+    for i in range(3):
+        economic.env.stop_all()
+        time.sleep(2)
+        economic.env.start_nodes(economic.env.get_all_nodes(), False)
+        time.sleep(5)
+    current_settlement_block_height = economic.get_settlement_switchpoint(node)
+    log.info("Block height of current settlement cycle： {}".format(current_settlement_block_height))
+    wait_block_number(node, current_settlement_block_height)
+    annualcycle = math.ceil((economic.additional_cycle_time * 60) / economic.settlement_size)
+    log.info("Number of current additional settlement cycles：{}".format(annualcycle))
+    incentive_pool_balance = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, 0)
+    remaining_incentive_pool_amount = incentive_pool_balance - int(Decimal(str(incentive_pool_balance)) / Decimal(str(annualcycle)))
+    log.info("Settlement block high incentive pool balance： {}".format(remaining_incentive_pool_amount))
+    block_info = node.eth.getBlock(1)
+    first_timestamp = block_info['timestamp']
+    log.info("First block timestamp： {}".format(first_timestamp))
+    settlement_block_info = node.eth.getBlock(current_settlement_block_height)
+    settlement_timestamp = settlement_block_info['timestamp']
+    log.info("High block timestamp at the end of the current settlement cycle： {}".format(settlement_timestamp))
+    issuing_cycle_timestamp = first_timestamp + (economic.additional_cycle_time * 60000)
+    log.info("End time stamp of current issue cycle： {}".format(issuing_cycle_timestamp))
+    remaining_additional_time = issuing_cycle_timestamp - settlement_timestamp
+    log.info("Remaining time of current issuance cycle： {}".format(remaining_additional_time))
+    average_interval = (settlement_timestamp - first_timestamp) // (economic.settlement_size - 1)
+    log.info("Block interval in the last settlement cycle： {}".format(average_interval))
+    number_of_remaining_blocks = math.ceil(remaining_additional_time / average_interval)
+    log.info("Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
+    remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
+    log.info("remaining settlement cycles in the current issuance cycle： {}".format(remaining_settlement_cycle))
+    per_block_reward, staking_reward = calculate_block_rewards_and_pledge_rewards(client, remaining_incentive_pool_amount, remaining_settlement_cycle)
+    chain_block_reward, chain_staking_reward = economic.get_current_year_reward(node)
+    log.info("Block rewards on the chain： {}".format(chain_block_reward))
+    log.info("Pledge rewards on the chain：{}".format(chain_staking_reward))
+    result = client.ppos.getAvgPackTime()
+    chain_time_interval = result['Ret']
+    log.info("Block interval on the chain：{}".format(chain_time_interval))
+    assert per_block_reward == chain_block_reward, "ErrMsg:Block rewards for the current settlement cycle {}".format(
+        per_block_reward)
+    assert staking_reward == chain_staking_reward, "ErrMsg:Pledge rewards for the current settlement cycle {}".format(
+        staking_reward)
+    assert average_interval == chain_time_interval, "ErrMsg:Block interval in the last settlement cycle {}".format(average_interval)
+
+
+def AL_FI_006(client_consensus):
+    """
+    增发周期动态调整
+    :param client_consensus:
+    :return:
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    economic.env.deploy_all()
+    log.info("Chain reset completed")
+    economic.wait_consensus_blocknum(node)
+    log.info("Start adjusting the block interval")
+    for i in range(3):
+        economic.env.stop_all()
+        time.sleep(2)
+        economic.env.start_nodes(economic.env.get_all_nodes(), False)
+        time.sleep(5)
+    remaining_settlement_cycle = (economic.additional_cycle_time * 60) // economic.settlement_size
+    annual_size = remaining_settlement_cycle * economic.settlement_size
+    log.info("Additional issue settlement period：{} Block height of current issuance cycle: {}".format(remaining_settlement_cycle, annual_size))
+    economic.wait_settlement_blocknum(node)
+    while remaining_settlement_cycle != 1:
+        block_info = node.eth.getBlock(1)
+        first_timestamp = block_info['timestamp']
+        log.info("First block timestamp： {}".format(first_timestamp))
+        tmp_current_block = node.eth.blockNumber
+        if tmp_current_block % economic.settlement_size == 0:
+            time.sleep(1)
+        last_settlement_block = (math.ceil(tmp_current_block / economic.settlement_size) - 1) * economic.settlement_size
+        log.info("The last block height of the previous settlement period： {}".format(last_settlement_block))
+        settlement_block_info = node.eth.getBlock(last_settlement_block)
+        settlement_timestamp = settlement_block_info['timestamp']
+        log.info("High block timestamp at the end of the current settlement cycle： {}".format(settlement_timestamp))
+        issuing_cycle_timestamp = first_timestamp + (economic.additional_cycle_time * 60) * 1000
+        log.info("End time stamp of current issue cycle： {}".format(issuing_cycle_timestamp))
+        remaining_additional_time = issuing_cycle_timestamp - settlement_timestamp
+        log.info("Remaining time of current issuance cycle： {}".format(remaining_additional_time))
+        average_interval = (settlement_timestamp - first_timestamp) // (last_settlement_block - 1)
+        log.info("Block interval in the last settlement cycle： {}".format(average_interval))
+        number_of_remaining_blocks = math.ceil(remaining_additional_time / average_interval)
+        log.info("Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
+        remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
+        log.info("remaining settlement cycles in the current issuance cycle： {}".format(remaining_settlement_cycle))
+        consensus_verification_list = node.ppos.getVerifierList()
+        log.info("List of consensus validators in the current settlement cycle： {}".format(consensus_verification_list))
+        economic.wait_settlement_blocknum(node)
+    plan_incentive_pool_amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, annual_size)
+    annual_last_block = (math.ceil(node.eth.blockNumber / economic.settlement_size) - 1) * economic.settlement_size
+    # current_increase_last_block = economic.get_settlement_switchpoint(node)
+    # log.info("The current issue cycle is high： {}".format(current_increase_last_block))
+    actual_incentive_pool_amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, annual_last_block)
+    log.info("Incentive pool actual amount： {}".format(actual_incentive_pool_amount))
+    assert actual_incentive_pool_amount > plan_incentive_pool_amount, "ErrMsg：Incentive pool balance {}".format(actual_incentive_pool_amount)
+
+
+def AL_FI_007(client_consensus):
+    """
+    验证增发第一年出块奖励和质押奖励
+    :param client_consensus:
+    :return:
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    economic.env.deploy_all()
+    log.info("Chain reset completed")
+    economic.wait_consensus_blocknum(node)
+    log.info("Start adjusting the block interval")
+    for i in range(3):
+        economic.env.stop_all()
+        time.sleep(2)
+        economic.env.start_nodes(economic.env.get_all_nodes(), False)
+        time.sleep(5)
+    remaining_settlement_cycle = (economic.additional_cycle_time * 60) // economic.settlement_size
+    annual_size = remaining_settlement_cycle * economic.settlement_size
+    log.info("Additional issue settlement period：{} Block height of current issuance cycle: {}".format(
+        remaining_settlement_cycle, annual_size))
+    economic.wait_settlement_blocknum(node)
+    block_info = node.eth.getBlock(1)
+    first_timestamp = block_info['timestamp']
+    log.info("First block timestamp： {}".format(first_timestamp))
+    issuing_cycle_timestamp = None
+    while remaining_settlement_cycle != 1:
+        tmp_current_block = node.eth.blockNumber
+        if tmp_current_block % economic.settlement_size == 0:
+            time.sleep(1)
+        last_settlement_block = (math.ceil(tmp_current_block / economic.settlement_size) - 1) * economic.settlement_size
+        log.info("The last block height of the previous settlement period： {}".format(last_settlement_block))
+        settlement_block_info = node.eth.getBlock(last_settlement_block)
+        settlement_timestamp = settlement_block_info['timestamp']
+        log.info("High block timestamp at the end of the current settlement cycle： {}".format(settlement_timestamp))
+        issuing_cycle_timestamp = first_timestamp + (economic.additional_cycle_time * 60000)
+        log.info("End time stamp of current issue cycle： {}".format(issuing_cycle_timestamp))
+        remaining_additional_time = issuing_cycle_timestamp - settlement_timestamp
+        log.info("Remaining time of current issuance cycle： {}".format(remaining_additional_time))
+        average_interval = (settlement_timestamp - first_timestamp) // (last_settlement_block - 1)
+        log.info("Block interval in the last settlement cycle： {}".format(average_interval))
+        number_of_remaining_blocks = math.ceil(remaining_additional_time / average_interval)
+        log.info("Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
+        remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
+        log.info("remaining settlement cycles in the current issuance cycle： {}".format(remaining_settlement_cycle))
+        consensus_verification_list = node.ppos.getVerifierList()
+        log.info("List of consensus validators in the current settlement cycle： {}".format(consensus_verification_list))
+        economic.wait_settlement_blocknum(node)
+    annual_last_block = (math.ceil(node.eth.blockNumber / economic.settlement_size) - 1) * economic.settlement_size
+    log.info("Last block height of last year：{}".format(annual_last_block))
+    settlement_block_info = node.eth.getBlock(annual_last_block)
+    settlement_timestamp = settlement_block_info['timestamp']
+    log.info("Second High block timestamp at the end of the current settlement cycle：{}".format(settlement_timestamp))
+    second_issuing_cycle_timestamp = issuing_cycle_timestamp + (economic.additional_cycle_time * 60000)
+    log.info("Second end time stamp of current issue cycle： {}".format(second_issuing_cycle_timestamp))
+    remaining_additional_time = second_issuing_cycle_timestamp - settlement_timestamp
+    log.info("Second Remaining time of current issuance cycle： {}".format(remaining_additional_time))
+    average_interval = (settlement_timestamp - first_timestamp) // (annual_last_block - 1)
+    log.info("Second Block interval in the last settlement cycle： {}".format(average_interval))
+    number_of_remaining_blocks = math.ceil(remaining_additional_time / average_interval)
+    log.info("Second Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
+    remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
+    log.info("The additional settlement cycle in the second year： {}".format(number_of_remaining_blocks))
+    actual_incentive_pool_amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, annual_last_block)
+    log.info("Incentive pool actual amount： {}".format(actual_incentive_pool_amount))
+    per_block_reward, staking_reward = calculate_block_rewards_and_pledge_rewards(client, actual_incentive_pool_amount, remaining_settlement_cycle)
+    chain_block_reward, chain_staking_reward = economic.get_current_year_reward(node)
+    log.info("Block rewards on the chain： {}".format(chain_block_reward))
+    log.info("Pledge rewards on the chain：{}".format(chain_staking_reward))
+    result = client.ppos.getAvgPackTime()
+    chain_time_interval = result['Ret']
+    log.info("Block interval on the chain：{}".format(chain_time_interval))
+    assert per_block_reward == chain_block_reward, "ErrMsg:Block rewards for the current settlement cycle {}".format(
+        per_block_reward)
+    assert staking_reward == chain_staking_reward, "ErrMsg:Pledge rewards for the current settlement cycle {}".format(
+        staking_reward)
+    assert average_interval == chain_time_interval, "ErrMsg:Block interval in the last settlement cycle {}".format(average_interval)
+    economic.wait_settlement_blocknum(node)
+
+    amount_per_settlement = int(Decimal(str(actual_incentive_pool_amount)) / Decimal(str(remaining_settlement_cycle)))
+    remaining_incentive_pool_balance = actual_incentive_pool_amount - amount_per_settlement
+    log.info("Amount of remaining incentive pool： {}".format(remaining_incentive_pool_balance))
+    first_settlement_cycle = annual_last_block / economic.settlement_size
+    log.info("Number of first additional issue settlement cycles： {}".format(first_settlement_cycle))
+    current_last_block = (math.ceil(node.eth.blockNumber / economic.settlement_size) - 1) * economic.settlement_size
+    log.info("Current settlement block height： {}".format(current_last_block))
+    current_settlement_cycle = current_last_block / economic.settlement_size
+    log.info("Current latest settlement cycles： {}".format(current_settlement_cycle))
+    number = current_settlement_cycle - first_settlement_cycle
+    log.info("Phase difference period： {}".format(number))
+    second_start_info = node.eth.getBlock(int((first_settlement_cycle - (first_settlement_cycle - number)) * economic.settlement_size))
+    second_start_timestamp = second_start_info['timestamp']
+    log.info("second start timestamp ： {}".format(second_start_timestamp))
+    second_end_info = node.eth.getBlock(current_last_block)
+    second_end_timestamp = second_end_info['timestamp']
+    log.info("second end timestamp ： {}".format(second_end_timestamp))
+    average_interval = (second_end_timestamp - second_start_timestamp) // (annual_last_block - 1)
+    log.info("Second Block interval in the last settlement cycle： {}".format(average_interval))
+
+    remaining_additional_time = second_issuing_cycle_timestamp - second_end_timestamp
+    log.info("Second Remaining time of current issuance cycle： {}".format(remaining_additional_time))
+    number_of_remaining_blocks = math.ceil(remaining_additional_time / average_interval)
+    log.info("Second Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
+    remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
+    log.info("The additional settlement cycle in the second year： {}".format(number_of_remaining_blocks))
+    per_block_reward, staking_reward = calculate_block_rewards_and_pledge_rewards(client, remaining_incentive_pool_balance,
+                                                                                  remaining_settlement_cycle)
+    chain_block_reward, chain_staking_reward = economic.get_current_year_reward(node)
+    log.info("Block rewards on the chain： {}".format(chain_block_reward))
+    log.info("Pledge rewards on the chain：{}".format(chain_staking_reward))
+    result = client.ppos.getAvgPackTime()
+    chain_time_interval = result['Ret']
+    log.info("Block interval on the chain：{}".format(chain_time_interval))
+    assert per_block_reward == chain_block_reward, "ErrMsg:Block rewards for the current settlement cycle {}".format(
+        per_block_reward)
+    assert staking_reward == chain_staking_reward, "ErrMsg:Pledge rewards for the current settlement cycle {}".format(
+        staking_reward)
+    assert average_interval == chain_time_interval, "ErrMsg:Block interval in the last settlement cycle {}".format(
+        average_interval)

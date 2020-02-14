@@ -3,7 +3,6 @@ from environment.node import Node
 from .config import PipConfig
 from .economic import Economic
 from .utils import int_to_bytes, get_blockhash, proposal_list_effective, proposal_effective, find_proposal
-import json
 from typing import List
 import time
 
@@ -392,8 +391,8 @@ class Pip:
     def is_exist_effective_proposal(self, proposal_type=None):
         """
         Determine if there is a valid upgrade proposal on the chain - to determine if a proposal can be initiated
-                                :param proposal_type: 2 is the upgrade proposal 1. Text proposal 4. Cancel the proposal
-                                :return:
+    :param proposal_type: 2 is the upgrade proposal 1. Text proposal 4. Cancel the proposal
+    :return:
         """
         if proposal_type is None:
             proposal_type = self.cfg.version_proposal
@@ -451,7 +450,7 @@ class Pip:
         """
         candidate_list = self.node.ppos.getCandidateList().get('Ret')
         verifier_list = self.node.ppos.getVerifierList().get('Ret')
-        if verifier_list == "Getting verifierList is failed:The validator is not exist":
+        if verifier_list == "Getting verifierList is failed:The validator is not exist" or verifier_list == []:
             time.sleep(10)
             verifier_list = self.node.ppos.getVerifierList().get('Ret')
         candidate_no_verify_list = []

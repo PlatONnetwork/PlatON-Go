@@ -24,7 +24,7 @@ class Staking:
         return self.node.ppos
 
     def create_staking(self, typ, benifit_address, from_address, node_id=None, amount=None, program_version=None,
-                       program_version_sign=None, bls_pubkey=None, bls_proof=None, transaction_cfg=None):
+                       program_version_sign=None, bls_pubkey=None, bls_proof=None, transaction_cfg=None, reward_per=0):
         """
         Initiate Staking
         :param typ: Indicates whether the account free amount or the account's lock amount is used for staking, 0: free amount; 1: lock amount
@@ -43,6 +43,7 @@ class Staking:
                   "gasPrice":2000000000000,
                   "nonce":1,
               }
+        :param reward_per: Proportion of the reward share obtained from the commission, using BasePoint 1BP = 0.01%
         :return: if is need analyze return transaction result dict
                 if is not need analyze return transaction hash
         """
@@ -61,9 +62,9 @@ class Staking:
         pri_key = self.economic.account.find_pri_key(from_address)
         return self.ppos.createStaking(typ, benifit_address, node_id, self.cfg.external_id, self.cfg.node_name,
                                        self.cfg.website, self.cfg.details, amount, program_version, program_version_sign,
-                                       bls_pubkey, bls_proof, pri_key, transaction_cfg=transaction_cfg)
+                                       bls_pubkey, bls_proof, pri_key, reward_per, transaction_cfg=transaction_cfg)
 
-    def edit_candidate(self, from_address, benifit_address, node_id=None, transaction_cfg=None):
+    def edit_candidate(self, from_address, benifit_address, node_id=None, transaction_cfg=None, reward_per=0):
         """
         Modify staking information
         :param benifit_address: Income account for accepting block rewards and staking rewards
@@ -76,6 +77,7 @@ class Staking:
                   "gasPrice":2000000000000,
                   "nonce":1,
               }
+        :param reward_per: Proportion of the reward share obtained from the commission, using BasePoint 1BP = 0.01%
         :return: if is need analyze return transaction result dict
                 if is not need analyze return transaction hash
         """
@@ -83,7 +85,7 @@ class Staking:
             node_id = self.node.node_id
         pri_key = self.economic.account.find_pri_key(from_address)
         return self.ppos.editCandidate(benifit_address, node_id, self.cfg.external_id, self.cfg.node_name, self.cfg.website, self.cfg.details,
-                                       pri_key, transaction_cfg=transaction_cfg)
+                                       pri_key, reward_per, transaction_cfg=transaction_cfg)
 
     def increase_staking(self, typ, from_address, node_id=None, amount=None, transaction_cfg=None):
         """

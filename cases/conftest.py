@@ -2,9 +2,28 @@ import pytest
 import socket
 import allure
 import os
+import sys
 from common import download
 from environment.env import create_env
 from common.log import log
+
+"""
+Download platon bin, this file cannot be imported as a package
+"""
+if len(sys.argv) > 1 and ("--platonUrl" in sys.argv or "--platonUrl=" in "".join(sys.argv)):
+    i = 0
+    url = None
+    for arg in sys.argv:
+        if "--platonUrl" == arg:
+            url = sys.argv[i + 1]
+            break
+        elif "--platonUrl=" in arg:
+            url = arg.split("=")[1]
+            break
+        i += 1
+    if url is None:
+        raise Exception("URL IS NONE")
+    download.download_platon(url)
 
 
 def set_report_env(allure_dir, env):
@@ -37,7 +56,7 @@ def pytest_addoption(parser):
     parser.addoption("--initChain", action="store_true", default=True, dest="initChain", help="nodeConfig: default to init chain data")
     parser.addoption("--installDependency", action="store_true", default=False, dest="installDependency", help="installDependency: default do not install dependencies")
     parser.addoption("--installSupervisor", action="store_true", default=False, dest="installSuperVisor", help="installSupervisor: default do not install supervisor service")
-
+    parser.addoption("--cantDeploy", action="store_true", default=False, dest="cantDeploy", help="deploy switch default to can deploy")
 
 # pytest 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_4.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure"
 # --reruns 3
@@ -50,7 +69,8 @@ def global_test_env(request, worker_id):
     init_chain = request.config.getoption("--initChain")
     install_dependency = request.config.getoption("--installDependency")
     install_supervisor = request.config.getoption("--installSupervisor")
-    platon_url = request.config.getoption("--platonUrl")
+    cant_deploy = request.config.getoption("--cantDeploy")
+    # platon_url = request.config.getoption("--platonUrl")
     allure_dir = request.config.getoption("--alluredir")
     log.info(node_file)
     if worker_id != "master":
@@ -62,12 +82,12 @@ def global_test_env(request, worker_id):
                 node_file = node_file_list[i]
                 log.info("Session with nodeFile:{}".format(node_file_list[i]))
                 tmp_dir = str(tmp_dir) + worker_id
-    if platon_url:
-        download.download_platon(platon_url)
-    env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)
+    # if platon_url:
+    #     download.download_platon(platon_url)
+    env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor, can_deploy=not cant_deploy)
     # Must choose one, don't use both
-    # env.deploy_all()
-    env.prepare_all()
+    env.deploy_all()
+    # env.prepare_all()
     yield env
 
     if allure_dir:

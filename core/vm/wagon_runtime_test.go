@@ -37,9 +37,7 @@ var testCase = []*Case{
 		},
 		funcName: "platon_gas_price_test",
 		check: func(ctx *VMContext, err error) bool {
-			var res [8]byte
-			binary.LittleEndian.PutUint64(res[:], ctx.evm.GasPrice.Uint64())
-			return bytes.Equal(res[:], ctx.Output)
+			return big.NewInt(12).Cmp(new(big.Int).SetBytes(ctx.Output)) == 0
 		},
 	},
 	{

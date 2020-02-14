@@ -49,7 +49,8 @@ public class PlatONTransferTest {
     @Before
     public void before() {
         chainId = Integer.valueOf(driverService.param.get("chainId"));
-        transferFrom = driverService.param.get("transferFrom");
+        //transferFrom = driverService.param.get("transferFrom");
+        transferFrom = driverService.param.get("address");
         transferTo = driverService.param.get("transferTo");
         amount = driverService.param.get("amount");
     }
@@ -62,7 +63,8 @@ public class PlatONTransferTest {
         BigInteger nonce = null;
         try {
             web3j = Web3j.build(new HttpService(driverService.param.get("nodeUrl")));
-            credentials = Credentials.create(driverService.param.get("privateKeyOfTransferFrom"));
+            //credentials = Credentials.create(driverService.param.get("privateKeyOfTransferFrom"));
+            credentials = Credentials.create(driverService.param.get("privateKey"));
             collector.logStepPass("currentBlockNumber:" + web3j.platonBlockNumber().send().getBlockNumber());
             //获取nonce，交易笔数
             nonce = getNonce(transferFrom);
