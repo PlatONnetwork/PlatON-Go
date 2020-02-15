@@ -2,9 +2,7 @@ package wasm.data_type;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.ReferenceDataTypeMapContract;
 import network.platon.contracts.wasm.ReferenceDataTypeMapTestContract;
-import network.platon.contracts.wasm.StorageType_map_string;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -20,18 +18,23 @@ public class ReferenceDataTypeMapTest2 extends WASMContractPrepareTest {
 
     private String key;
     private String value;
+    private String mapSize;
 
     private String keyPerson;
     private String personName;
     private String personAge;
+    private String mapPersonSize;
 
     @Before
     public void before() {
         key = driverService.param.get("key");
         value = driverService.param.get("value");
+        mapSize = driverService.param.get("mapSize");
+
         keyPerson = driverService.param.get("keyPerson");
         personName = driverService.param.get("personName");
         personAge = driverService.param.get("personAge");
+        mapPersonSize = driverService.param.get("mapPersonSize");
     }
 
 
@@ -65,26 +68,27 @@ public class ReferenceDataTypeMapTest2 extends WASMContractPrepareTest {
             //3、验证：map容器数量
             Long actualValueSize = referenceDataTypeMapTestContract.getMapStringSize().send();
             collector.logStepPass("referenceDataTypeMapContract 【验证map容器数量】 执行getMapStringSize() actualValueSize:" + actualValueSize);
-            collector.assertEqual(actualValueSize,Long.parseLong("1"), "checkout  execute success.");
-            //3、验证：map容器根据key获取值
-            //Byte expectMapLength = 3;
+            collector.assertEqual(actualValueSize,Long.parseLong(mapSize), "checkout  execute success.");
+            //4、验证：map容器根据key获取值
             String actualValue = referenceDataTypeMapTestContract.getMapValueByString(key).send();
             collector.logStepPass("referenceDataTypeMapContract 【验证map容器根据key获取值】 执行getMapValueByString() actualValue:" + actualValue);
             collector.assertEqual(actualValue,value, "checkout  execute success.");
-            //4、验证：person类型map容器赋值
+
+            //5、验证：person类型map容器赋值
             ReferenceDataTypeMapTestContract.Person person = new ReferenceDataTypeMapTestContract.Person();
             person.name = personName;
             person.age  = Long.parseLong(personAge);
             TransactionReceipt  transactionReceipt2 = referenceDataTypeMapTestContract.addMapByPerson(Byte.valueOf(keyPerson),person).send();
             collector.logStepPass("referenceDataTypeMapContract 【验证person类型map容器赋值】 执行setMapByPerson() successfully hash:" + transactionReceipt2.getTransactionHash());
-            //4、验证：map容器数量
+            //6、验证：map容器数量
             Long actualPersonSize = referenceDataTypeMapTestContract.getMapByPersonSize().send();
             collector.logStepPass("referenceDataTypeMapContract 【验证map容器数量】 执行getMapByPersonSize() actualPersonSize:" + actualPersonSize);
-            collector.assertEqual(actualPersonSize,Long.parseLong("1"), "checkout  execute success.");
-            //5、验证：map容器根据key获取值Person
-            String actualValueName = referenceDataTypeMapTestContract.getMapByPerson(Byte.valueOf(keyPerson)).send();
+            collector.assertEqual(actualPersonSize,Long.parseLong(mapPersonSize), "checkout  execute success.");
+
+            //7、验证：map容器根据key获取值Person
+          /*String actualValueName = referenceDataTypeMapTestContract.getMapByPerson(Byte.valueOf(keyPerson)).send();
             collector.logStepPass("referenceDataTypeMapContract 【验证map容器根据key获取值】 执行getMapByPerson() actualValueName:" + actualValueName);
-            //collector.assertEqual(actualValuePerson.name,personName, "checkout  execute success.");
+            collector.assertEqual(actualValueName,personName, "checkout  execute success.");*/
 
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeMapContract Calling Method fail.", e.toString());
