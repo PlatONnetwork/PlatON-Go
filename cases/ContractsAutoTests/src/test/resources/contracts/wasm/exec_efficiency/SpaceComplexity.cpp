@@ -44,7 +44,7 @@ CONTRACT SpaceComplexity : public platon::Contract {
         	assert(rangeL <= rangeR);
 
         	int *arr = new int[n]; // 创建一个 n个元素的数组
-        	
+
         	srand(time(NULL)); // 随机种子
         	for (int i = 0; i < n; i++)
         	    arr[i] = rand() % (rangeR - rangeL + 1) + rangeL;

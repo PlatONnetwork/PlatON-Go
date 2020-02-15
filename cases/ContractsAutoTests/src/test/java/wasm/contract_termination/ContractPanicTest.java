@@ -1,4 +1,4 @@
-package wasm.wasm.contract_termination;
+package wasm.contract_termination;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
