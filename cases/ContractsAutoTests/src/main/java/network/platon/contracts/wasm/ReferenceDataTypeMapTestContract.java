@@ -27,9 +27,9 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
 
     private static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_SETMAPKEYTYPE = "setMapKeyType";
-
     public static final String FUNC_ADDMAPSTRING = "addMapString";
+
+    public static final String FUNC_SETMAPKEYTYPE = "setMapKeyType";
 
     public static final String FUNC_GETMAPSTRINGSIZE = "getMapStringSize";
 
@@ -51,6 +51,11 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> addMapString(String one_key, String one_value) {
+        final WasmFunction function = new WasmFunction(FUNC_ADDMAPSTRING, Arrays.asList(one_key,one_value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
     public static RemoteCall<ReferenceDataTypeMapTestContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ReferenceDataTypeMapTestContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -63,11 +68,6 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
 
     public RemoteCall<TransactionReceipt> setMapKeyType() {
         final WasmFunction function = new WasmFunction(FUNC_SETMAPKEYTYPE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> addMapString(String one_key, String one_value) {
-        final WasmFunction function = new WasmFunction(FUNC_ADDMAPSTRING, Arrays.asList(one_key,one_value), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
