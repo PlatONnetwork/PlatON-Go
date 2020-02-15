@@ -38,12 +38,12 @@ public class GeneratorUtil {
             String[] args = null;
             if (!os.startsWith("Linux") && !os.startsWith("Mac OS")) {
                 if (os.startsWith("Windows")) {
-                    args = new String[]{"cmd", "/C", "cd ./scripts/platon-web3j/bin && platon-web3j.bat", "solidity", "generate", binPath, abiPath, "-o", outputPath, "-p", packagePath};
+                    args = new String[]{"cmd", "/C", "./scripts/platon-web3j/bin/platon-web3j.bat" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
                 } else {
                     System.out.println("Not supported operate system platform");
                 }
             } else {
-                args = new String[]{"/bin/bash", "-c", "./scripts/platon-web3j/bin/platon-web3j " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
+                args = new String[]{"/bin/bash", "-c", "./scripts/platon-web3j/bin/platon-web3j" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
             }
 
             ps = Runtime.getRuntime().exec(args);

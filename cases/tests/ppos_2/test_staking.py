@@ -22,7 +22,7 @@ def test_IV_001_002_010(global_test_env, client_consensus):
         StakingAddress = node.get("StakingAddress")
         log.info(StakingAddress)
         assert client_consensus.node.web3.toChecksumAddress(StakingAddress) == \
-               client_consensus.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
+            client_consensus.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     log.info(nodeid_list)
     consensus_node_list = global_test_env.consensus_node_list
     nodeid_list_ = [node.node_id for node in consensus_node_list]
@@ -268,26 +268,35 @@ def test_IV_027(client_new_node):
 
 @allure.title("Pledge has been made before and the candidate has been invalidated (penalized)")
 @pytest.mark.P2
-def test_IV_028(client_new_node, client_consensus):
-    address, pri_key = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                         10 ** 18 * 10000000)
-    value = client_new_node.economic.create_staking_limit * 2
-    result = client_new_node.staking.create_staking(0, address, address, amount=value)
+def test_IV_028(clients_new_node, client_consensus):
+    client = clients_new_node[0]
+    node = client.node
+    other_node = client_consensus.node
+    economic = client.economic
+    address, pri_key = economic.account.generate_account(node.web3, 10 ** 18 * 10000000)
+
+    value = economic.create_staking_limit * 2
+    result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
+    economic.wait_consensus_blocknum(other_node, number=4)
+    validator_list = get_pledge_list(other_node.ppos.getValidatorList)
+    assert node.node_id in validator_list
     log.info("Close one node")
-    client_new_node.node.stop()
-    node = client_consensus.node
-    log.info("The next two periods")
-    client_new_node.economic.wait_settlement_blocknum(node, number=2)
+    node.stop()
+    for i in range(4):
+        economic.wait_consensus_blocknum(other_node, number=i)
+        candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
+        log.info(candidate_info)
+        if candidate_info["Ret"]["Released"] < value:
+            break
     log.info("Restart the node")
-    client_new_node.node.start()
-    result = client_new_node.staking.edit_candidate(address, address)
+    node.start()
+    result = client.staking.edit_candidate(address, address)
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
-    time.sleep(20)
-    result = client_new_node.staking.create_staking(0, address, address, amount=value)
+    economic.wait_settlement_blocknum(node, number=2)
+    result = client.staking.create_staking(0, address, address)
     assert_code(result, 0)
 
 

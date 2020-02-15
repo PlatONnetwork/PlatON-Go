@@ -4,6 +4,7 @@ import os
 from common.connect import run_ssh, connect_linux
 from environment.config import TestConfig
 from common.log import log
+from environment.mock import mock_connect_linux
 
 
 class Server:
@@ -13,8 +14,10 @@ class Server:
         self.username = server_conf["username"]
         self.password = server_conf["password"]
         self.ssh_port = server_conf.get("sshport", 22)
-        self.ssh, self.sftp, self.t = connect_linux(self.host, self.username, self.password, self.ssh_port)
-
+        if self.cfg.can_deploy:
+            self.ssh, self.sftp, self.t = connect_linux(self.host, self.username, self.password, self.ssh_port)
+        else:
+            self.ssh, self.sftp, self.t = mock_connect_linux()
         self.remote_supervisor_conf = "{}/supervisord.conf".format(self.cfg.remote_supervisor_tmp)
 
     def run_ssh(self, cmd, need_password=False):

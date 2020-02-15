@@ -27,7 +27,7 @@ def pledge_punishment(clients):
     # stop node
     first_client.node.stop()
     # Waiting for a settlement round
-    second_client.economic.wait_consensus_blocknum(second_client.node, 2)
+    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
     log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
     # view verifier list
     verifier_list = second_client.ppos.getVerifierList()
@@ -57,7 +57,7 @@ def verify_changed_parameters(clients, first_pledge_amount, block_reward, slash_
     second_pledge_amount = candidate_info['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     if punishment_amonut < first_pledge_amount:
-        assert second_pledge_amount == first_pledge_amount - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+        assert (second_pledge_amount == first_pledge_amount - punishment_amonut) or (second_pledge_amount == first_pledge_amount - punishment_amonut * 2), "ErrMsg:Consensus Amount of pledge {}".format(
             second_pledge_amount)
     else:
         assert second_pledge_amount == 0, "ErrMsg:Consensus Amount of pledge {}".format(second_pledge_amount)
@@ -112,7 +112,7 @@ def test_PIP_PVF_003(clients_consensus, reset_environment):
 @pytest.mark.P1
 def test_PIP_PVF_004(client_consensus, clients_noconsensus, reset_environment):
     """
-    治理修改低0出块率扣除验证人自有质押金块数成功扣除区块奖励块数60100-自由金额质押
+    治理修改低0出块率扣除验证人自有质押金块数成功扣除区块奖励块数49999-自由金额质押
     :param client_consensus:
     :param clients_noconsensus:
     :param reset_environment:
@@ -125,7 +125,7 @@ def test_PIP_PVF_004(client_consensus, clients_noconsensus, reset_environment):
     log.info("Current connection non-consensus node：{}".format(first_client.node.node_mark))
     economic = consensus_client.economic
     node = consensus_client.node
-    change_parameter_value = '60100'
+    change_parameter_value = '49999'
     # get pledge amount1 and block reward
     consensus_pledge_amount, block_reward, first_slash_blocks = information_before_slash_blocks(consensus_client)
     # create Parametric proposal
@@ -159,7 +159,7 @@ def test_PIP_PVF_004(client_consensus, clients_noconsensus, reset_environment):
 @pytest.mark.P1
 def test_PIP_PVF_005(client_consensus, clients_noconsensus, reset_environment):
     """
-    治理修改低出块率扣除验证人自有质押金比例扣除区块奖励块数60100-锁仓金额质押
+    治理修改低出块率扣除验证人自有质押金比例扣除区块奖励块数49999-锁仓金额质押
     :param client_consensus:
     :param clients_noconsensus:
     :param reset_environment:
@@ -172,7 +172,7 @@ def test_PIP_PVF_005(client_consensus, clients_noconsensus, reset_environment):
     log.info("Current connection non-consensus node：{}".format(first_client.node.node_mark))
     economic = consensus_client.economic
     node = consensus_client.node
-    change_parameter_value = '60100'
+    change_parameter_value = '4999'
     # get pledge amount1 and block reward
     consensus_pledge_amount, block_reward, first_slash_blocks = information_before_slash_blocks(consensus_client)
     # create Parametric proposal
@@ -591,7 +591,7 @@ def asster_income_account_amount(client, first_report_amount, first_incentive_po
     log.info("second_incentive_pool_account {} ,first_incentive_pool_account {} , incentive_pool_reward {}".format(
         second_incentive_pool_account, first_incentive_pool_account, incentive_pool_reward))
     assert second_incentive_pool_account == first_incentive_pool_account + incentive_pool_reward + (
-            first_report_amount + proportion_reward - second_report_amount), "ErrMsg:Incentive pool account {}".format(
+        first_report_amount + proportion_reward - second_report_amount), "ErrMsg:Incentive pool account {}".format(
         second_incentive_pool_account)
 
 
@@ -635,6 +635,12 @@ def test_PIP_PVF_016_017(clients_consensus, mark, reset_environment):
     # asster account amount
     asster_income_account_amount(second_client, first_report_amount, first_incentive_pool_account,
                                  report_address, proportion_reward, incentive_pool_reward)
+
+
+@pytest.mark.P1
+def testt(client_consensus):
+    a = client_consensus.node.eth.getTransactionCount(client_consensus.economic.account.account_with_money['address'])
+    print(a)
 
 
 @pytest.mark.P1

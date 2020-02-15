@@ -18,13 +18,14 @@ package cbft
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -100,6 +101,7 @@ func ReachBlock(t *testing.T, nodes []*TestCBFT, reach int) {
 				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 			}
 			parent = b
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 }
@@ -149,7 +151,7 @@ func NewBadBlock(parent common.Hash, number uint64, node *TestCBFT) *types.Block
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
 		ParentHash:  parent,
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b422")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),

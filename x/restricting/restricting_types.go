@@ -27,12 +27,7 @@ type RestrictingInfo struct {
 	NeedRelease     *big.Int
 	StakingAmount   *big.Int
 	CachePlanAmount *big.Int
-	//	SlashingMount *big.Int
-
-	//Balance     *big.Int // Balance representation all locked amount
-	//Debt        *big.Int // Debt representation will released amount.
-	//DebtSymbol  bool     // Debt is owed to release in the past while symbol is true, else Debt can be used instead of release
-	ReleaseList []uint64 // ReleaseList representation which epoch will release restricting
+	ReleaseList     []uint64 // ReleaseList representation which epoch will release restricting
 }
 
 func (r *RestrictingInfo) RemoveEpoch(epoch uint64) {
@@ -63,9 +58,3 @@ type Result struct {
 	Entry   []ReleaseAmountInfo `json:"plans"`
 	Pledge  *hexutil.Big        `json:"Pledge"`
 }
-
-//
-//type EpochInfo struct {
-//	Account common.Address
-//	Amount  *big.Int
-//}

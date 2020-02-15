@@ -20,10 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"os"
 	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	//"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -702,7 +699,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 }
 
 func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	chain := setup(t)
 	defer clear(chain, t)
@@ -1550,10 +1547,10 @@ func Test_ResetVoteOption(t *testing.T) {
 
 func logResult(t *testing.T, resultValue interface{}) {
 	if IsBlank(resultValue) {
-		resultBytes := xcom.NewFailedResult(common.NotFound)
+		resultBytes := xcom.NewResult(common.NotFound, nil)
 		t.Log("result  json：", string(resultBytes))
 	} else {
-		resultBytes := xcom.NewOkResult(resultValue)
+		resultBytes := xcom.NewResult(nil, resultValue)
 		t.Log("result  json：", string(resultBytes))
 	}
 
@@ -1597,7 +1594,7 @@ func Test_Json_Marshal_nil(t *testing.T) {
 	var str string
 	str = "20"
 	//jsonByte, _ := json.Marshal(str)
-	resultBytes := xcom.NewOkResult(str)
+	resultBytes := xcom.NewResult(nil, str)
 	t.Log("result string", string(resultBytes))
 
 }

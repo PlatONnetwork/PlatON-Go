@@ -86,7 +86,7 @@ def test_VP_PV_001_to_003(client_consensus, repor_type, reset_environment):
                                                                                  'ether'), "ErrMsg:report amount {}".format(
         report_amount2)
     assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (
-            report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
+        report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
         incentive_pool_account2)
 
 
@@ -605,6 +605,7 @@ def test_VP_PV_030(client_consensus, reset_environment):
     client = client_consensus
     economic = client.economic
     node = client.node
+    client.economic.env.deploy_all()
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Obtain information of report evidence
@@ -703,7 +704,7 @@ def test_VP_PR_003(client_new_node, reset_environment):
             log.info("proportion_reward + incentive_pool_reward: {}".format(proportion_reward + incentive_pool_reward))
             info = candidate_info['Ret']
             assert info['Released'] == pledge_amount1 - (
-                    proportion_reward + incentive_pool_reward), "ErrMsg:Pledge amount {}".format(
+                proportion_reward + incentive_pool_reward), "ErrMsg:Pledge amount {}".format(
                 info['Released'])
             break
         else:

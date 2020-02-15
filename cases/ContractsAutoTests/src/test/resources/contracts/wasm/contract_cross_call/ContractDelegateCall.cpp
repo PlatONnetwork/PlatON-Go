@@ -31,6 +31,7 @@ CONTRACT cross_delegate_call : public platon::Contract {
 
         ACTION uint64_t delegate_call_add_message(const std::string &target_address,
         const my_message &one_message, uint64_t gas) {
+
             platon::bytes params = platon::cross_call_args("add_message", one_message);
             if (platon_delegate_call(Address(target_address), params, gas)) {
                  DEBUG("Delegate call contract success", "address", target_address);
@@ -41,12 +42,9 @@ CONTRACT cross_delegate_call : public platon::Contract {
         }
 
          CONST uint64_t get_vector_size(){
+             platon::StorageType<"info_arr"_n, std::vector<my_message>> arr; // Must use local definitions for manipulating the corresponding keys in the account space
              return arr.self().size();
-         }
-
-
-    private:
-       platon::StorageType<"info_arr"_n, std::vector<my_message>> arr;
+         }     
 
 };
 
