@@ -14,7 +14,7 @@ import wasm.beforetest.WASMContractPrepareTest;
  * @author: qudong
  * @create: 2020/02/07
  */
-public class ReferenceDataTypeMapTest2 extends WASMContractPrepareTest {
+public class ReferenceDataTypeMapOFDongTest extends WASMContractPrepareTest {
 
     private String key;
     private String value;
