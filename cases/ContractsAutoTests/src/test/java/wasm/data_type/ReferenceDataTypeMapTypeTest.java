@@ -14,7 +14,7 @@ import wasm.beforetest.WASMContractPrepareTest;
  * @author: qudong
  * @create: 2020/02/07
  */
-public class ReferenceDataTypeMapOFDongTest extends WASMContractPrepareTest {
+public class ReferenceDataTypeMapTypeTest extends WASMContractPrepareTest {
 
     private String key;
     private String value;
@@ -41,7 +41,7 @@ public class ReferenceDataTypeMapOFDongTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "qudong", showName = "wasm.referenceDataTypeMapTest验证Map集合",sourcePrefix = "wasm")
-    public void testReferenceDataTypeMap() {
+    public void testReferenceDataTypeMapType() {
 
          //部署合约
         ReferenceDataTypeMapTestContract referenceDataTypeMapTestContract = null;
