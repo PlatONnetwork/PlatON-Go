@@ -42,7 +42,6 @@ public class ReferenceDataTypeMapTypeTest extends WASMContractPrepareTest {
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "qudong", showName = "wasm.referenceDataTypeMapTest验证Map集合",sourcePrefix = "wasm")
     public void testReferenceDataTypeMapType() {
-
          //部署合约
         ReferenceDataTypeMapTestContract referenceDataTypeMapTestContract = null;
         try {
