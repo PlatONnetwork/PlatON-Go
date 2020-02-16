@@ -3,24 +3,15 @@ package wasm.data_type;
 import com.platon.rlp.Int64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.*;
+import network.platon.contracts.wasm.IntegerDataTypeContract_1;
+import network.platon.contracts.wasm.IntegerDataTypeContract_2;
+import network.platon.contracts.wasm.IntegerDataTypeContract_3;
+import network.platon.contracts.wasm.IntegerDataTypeContract_4;
 import org.junit.Before;
 import org.junit.Test;
-import org.openqa.selenium.By;
 import org.web3j.abi.datatypes.Address;
-import org.web3j.abi.datatypes.Int;
-import org.web3j.abi.datatypes.generated.Int8;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Bytes;
-import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
 /**
  * @author zjsunzone
@@ -44,7 +35,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             IntegerDataTypeContract_1 contract = IntegerDataTypeContract_1.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: int8
             Int64 int8 = contract.int8().send();
@@ -103,7 +96,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             IntegerDataTypeContract_2 contract = IntegerDataTypeContract_2.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             //  int8
             TransactionReceipt int8Tr = contract.setInt8(Int64.of((byte) 2)).send();
@@ -162,7 +157,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             IntegerDataTypeContract_3 contract = IntegerDataTypeContract_3.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract_3 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_3 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: store string
             TransactionReceipt strTr = contract.setString("setString").send();
@@ -204,7 +201,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             IntegerDataTypeContract_4 contract = IntegerDataTypeContract_4.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract_4 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_4 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: store address
             Address expectAddr = new Address("0x5b05e7a3e2a688c5e5cc491545a84a1efc66c1b1");
