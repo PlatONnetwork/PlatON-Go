@@ -27,11 +27,11 @@ public class ReferenceDataTypeMapFuncContract extends WasmContract {
 
     private static String BINARY = BINARY_0 + BINARY_1;
 
+    public static final String FUNC_INSERTMAPUINT = "insertMapUint";
+
     public static final String FUNC_CLEARMAPUINT = "clearMapUint";
 
     public static final String FUNC_GETMAPISEMPTY = "getMapIsEmpty";
-
-    public static final String FUNC_INSERTMAPUINT = "insertMapUint";
 
     public static final String FUNC_ADDMAPBYUINT = "addMapByUint";
 
@@ -47,6 +47,11 @@ public class ReferenceDataTypeMapFuncContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> insertMapUint(Byte key, String value) {
+        final WasmFunction function = new WasmFunction(FUNC_INSERTMAPUINT, Arrays.asList(key,value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
     public RemoteCall<TransactionReceipt> clearMapUint() {
         final WasmFunction function = new WasmFunction(FUNC_CLEARMAPUINT, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
@@ -55,11 +60,6 @@ public class ReferenceDataTypeMapFuncContract extends WasmContract {
     public RemoteCall<Boolean> getMapIsEmpty() {
         final WasmFunction function = new WasmFunction(FUNC_GETMAPISEMPTY, Arrays.asList(), Boolean.class);
         return executeRemoteCall(function, Boolean.class);
-    }
-
-    public RemoteCall<TransactionReceipt> insertMapUint(Byte key, String value) {
-        final WasmFunction function = new WasmFunction(FUNC_INSERTMAPUINT, Arrays.asList(key,value), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public static RemoteCall<ReferenceDataTypeMapFuncContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
