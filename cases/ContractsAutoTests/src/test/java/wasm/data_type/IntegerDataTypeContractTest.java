@@ -106,21 +106,21 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
             //  int8
-            TransactionReceipt int8Tr = contract.setInt8(Byte.valueOf((byte) 2)).send();
+            TransactionReceipt int8Tr = contract.setInt8(Int64.of((byte) 2)).send();
             collector.logStepPass("To invoke setInt 8 success, txHash: " + int8Tr.getTransactionHash());
-            Byte getInt8 = contract.getInt8().send();
-            collector.logStepPass("To invoke getInt8 8 success, getInt8: " + getInt8.byteValue());
+            Int64 getInt8 = contract.getInt8().send();
+            collector.logStepPass("To invoke getInt8 8 success, getInt8: " + getInt8.getValue());
 
             //  int32
-            TransactionReceipt int32Tr = contract.setInt32(100).send();
+            TransactionReceipt int32Tr = contract.setInt32(Int64.of(100)).send();
             collector.logStepPass("To invoke setInt32 success, txHash: " + int32Tr.getTransactionHash());
-            Integer getInt32 = contract.getInt32().send();
+            Int64 getInt32 = contract.getInt32().send();
             collector.logStepPass("To invoke getInt32 success, getInt32: " + getInt32);
 
             // int64
-            TransactionReceipt int64Tr = contract.setInt64(Long.valueOf("1111111111")).send();
+            TransactionReceipt int64Tr = contract.setInt64(Int64.of(1111111111)).send();
             collector.logStepPass("To invoke setInt64 success, txHash: " + int64Tr.getTransactionHash());
-            Long getInt64 = contract.getInt64().send();
+            Int64 getInt64 = contract.getInt64().send();
             collector.logStepPass("To invoke getInt64 success, getInt64: " + getInt64);
 
             // ======================= uint =======================
@@ -178,11 +178,11 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
             // test: store char
             Byte expectByte = (byte)1;
-            TransactionReceipt charTr = contract.setChar(expectByte).send();
+            TransactionReceipt charTr = contract.setChar(Int64.of(expectByte.byteValue())).send();
             collector.logStepPass("To invoke setChar success, txHash: " + charTr.getTransactionHash());
-            Byte getChar = contract.getChar().send();
-            collector.logStepPass("To invoke getChar success, getChar: " + getChar.byteValue());
-            collector.assertEqual(getChar.byteValue(), expectByte.byteValue());
+            Int64 getChar = contract.getChar().send();
+            collector.logStepPass("To invoke getChar success, getChar: " + getChar.getValue());
+            collector.assertEqual(getChar.getValue(), expectByte.byteValue());
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
