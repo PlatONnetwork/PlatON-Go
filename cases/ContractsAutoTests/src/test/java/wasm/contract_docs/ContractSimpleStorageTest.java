@@ -45,7 +45,7 @@ public class ContractSimpleStorageTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke set success, txHash: " + tr.getTransactionHash());
             Long result = contract.get().send();
             collector.logStepPass("To invoke get success, result: " + result.longValue());
-            collector.assertEqual(result.longValue(), 10000);
+            collector.assertEqual(result.longValue(), Long.valueOf(10000).longValue());
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
