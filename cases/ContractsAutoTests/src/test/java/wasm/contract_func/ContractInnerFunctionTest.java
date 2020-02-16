@@ -40,7 +40,9 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             InnerFunction innerFunction = InnerFunction.deploy(web3j, transactionManager, provider).send();
             String contractAddress = innerFunction.getContractAddress();
             String transactionHash = innerFunction.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("InnerFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("InnerFunction issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + innerFunction.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: timestamp(bug)
             Long timestamp = innerFunction.timestamp().send();
@@ -78,7 +80,9 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             InnerFunction_1 innerFunction = InnerFunction_1.deploy(web3j, transactionManager, provider).send();
             String contractAddress = innerFunction.getContractAddress();
             String transactionHash = innerFunction.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("InnerFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("InnerFunction issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + innerFunction.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: gas
             Long gas = innerFunction.gas().send();
@@ -115,7 +119,9 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             InnerFunction_2 innerFunction = InnerFunction_2.deploy(web3j, transactionManager, provider).send();
             String contractAddress = innerFunction.getContractAddress();
             String transactionHash = innerFunction.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("InnerFunction deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("InnerFunction deploy successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + innerFunction.getTransactionReceipt().get().getGasUsed().toString());
 
 
             // test: coinbase
