@@ -2,7 +2,6 @@ package wasm.data_type;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.ReferenceDataTypeMapContract;
 import network.platon.contracts.wasm.ReferenceDataTypeStructContract;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
