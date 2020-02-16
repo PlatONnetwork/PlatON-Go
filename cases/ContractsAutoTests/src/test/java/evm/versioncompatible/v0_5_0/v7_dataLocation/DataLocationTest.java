@@ -38,7 +38,7 @@ public class DataLocationTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "version_compatible.0.5.0.DataLocationTest-存储区域")
+            author = "hudenian", showName = "version_compatible.0.5.0.DataLocationTest-存储区域", sourcePrefix = "evm")
     public void update() {
         try {
 

@@ -27,8 +27,9 @@ CONTRACT SpecialFunctionsB : public platon::Contract{
         return platon_gas_limit();
     }
 
-    CONST uint64_t getPlatONGasPrice(){
-        return platon_gas_price();
+    CONST std::string getPlatONGasPrice(){
+    	u256 gasprice = platon_gas_price();
+    	return to_string(gasprice);
     }
 
 };

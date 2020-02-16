@@ -26,7 +26,7 @@ public class msgSenderBelongToPayableTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "DataLocationTest-存储区域")
+            author = "hudenian", showName = "DataLocationTest-存储区域", sourcePrefix = "evm")
     public void dataLocationTest() {
         try {
 

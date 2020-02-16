@@ -26,7 +26,7 @@ public class DoWhileErrorTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ControlTest-dowhile控制结构测试")
+            author = "hudenian", showName = "ControlTest-dowhile控制结构测试", sourcePrefix = "evm")
     public void doWhileStruct() {
         try {
 

@@ -26,7 +26,7 @@ public class ContractAdressTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "version_compatible.0.5.0.ContractAdressTest-合约与地址互相转换")
+            author = "hudenian", showName = "version_compatible.0.5.0.ContractAdressTest-合约与地址互相转换", sourcePrefix = "evm")
     public void addressAndPaybleChange() {
         try {
 

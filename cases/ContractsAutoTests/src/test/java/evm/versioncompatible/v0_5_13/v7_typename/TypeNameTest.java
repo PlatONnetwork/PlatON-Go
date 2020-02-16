@@ -26,7 +26,7 @@ public class TypeNameTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "TypeNameTest-type(C).name()")
+            author = "hudenian", showName = "TypeNameTest-type(C).name()", sourcePrefix = "evm")
     public void testRuntimeType() {
         try {
 

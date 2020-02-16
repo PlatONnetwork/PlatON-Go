@@ -30,7 +30,7 @@ public class DisallowYearsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "DisallowYearsTest-弃用字面量及后缀")
+            author = "hudenian", showName = "DisallowYearsTest-弃用字面量及后缀", sourcePrefix = "evm")
     public void update() {
         try {
 

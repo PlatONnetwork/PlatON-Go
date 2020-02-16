@@ -25,7 +25,7 @@ public class StructDataTypeTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls",sheetName = "structs", author = "hudenian", showName = "StructDataTypeTest.结构体数据类型")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls",sheetName = "structs", author = "hudenian", showName = "StructDataTypeTest.结构体数据类型",sourcePrefix = "evm")
     public void testTypeConversionContract() {
 
         StructDataType structDataType = null;

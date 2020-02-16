@@ -26,7 +26,7 @@ public class WhileErrorTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "WhileErrorTest-while控制结构测试")
+            author = "hudenian", showName = "WhileErrorTest-while控制结构测试", sourcePrefix = "evm")
     public void whileStruct() {
         try {
 

@@ -34,7 +34,7 @@ public class AssertContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "AssertContractTest-assert函数用法")
+            author = "hudenian", showName = "AssertContractTest-assert函数用法", sourcePrefix = "evm")
     public void assertTest() {
         try {
 

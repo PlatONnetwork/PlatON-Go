@@ -24,22 +24,16 @@ using namespace platon;
         listNode(const std::string &my_name,listNode *my_nextPointer):name(my_name),nextPointer(my_nextPointer){}
         PLATON_SERIALIZE(listNode, (name))
  };
-extern char const storage_listnode_a[] = "listnode_storage_a";
-extern char const storage_listnode_b[] = "listnode_storage_b";
-extern char const storage_listnode_c[] = "listnode_storage_c";
-extern char const storage_listnode_d[] = "listnode_storage_d";
-
-extern char const storage_listnode_vector[] = "listnode_storage_vector";
 
 
 CONTRACT linkedListContractTest : public platon::Contract{
 
     private:
-       platon::StorageType<storage_listnode_a,listNode> storage_listnode_a;
-       platon::StorageType<storage_listnode_b,listNode> storage_listnode_b;
-       platon::StorageType<storage_listnode_c,listNode> storage_listnode_c;
-       platon::StorageType<storage_listnode_d,listNode> storage_listnode_d;
-       platon::StorageType<storage_listnode_vector, std::vector<listNode>> listnode_vector;
+       platon::StorageType<"storage_listnode_a"_n,listNode> storage_listnode_a;
+       platon::StorageType<"storage_listnode_b"_n,listNode> storage_listnode_b;
+       platon::StorageType<"storage_listnode_c"_n,listNode> storage_listnode_c;
+       platon::StorageType<"storage_listnode_d"_n,listNode> storage_listnode_d;
+       //platon::StorageType<"storage_listnode_vector"_n, std::vector<listNode>> listnode_vector;
 
     public:
         ACTION void init(){}

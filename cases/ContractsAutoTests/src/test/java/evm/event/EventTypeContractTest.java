@@ -21,7 +21,7 @@ import java.util.List;
 public class EventTypeContractTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testOneDimensionalArray",
-            author = "albedo", showName = "event.EventTypeContractTest-一维数组类型")
+            author = "albedo", showName = "event.EventTypeContractTest-一维数组类型", sourcePrefix = "evm")
     public void testOneDimensionalArray() {
         try {
             prepare();
@@ -45,7 +45,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testTwoDimensionalArray",
-            author = "albedo", showName = "event.EventTypeContractTest-二维数组类型")
+            author = "albedo", showName = "event.EventTypeContractTest-二维数组类型", sourcePrefix = "evm")
     public void testTwoDimensionalArray() {
         try {
             prepare();
@@ -67,7 +67,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testStr",
-            author = "albedo", showName = "event.EventTypeContractTest-字符串")
+            author = "albedo", showName = "event.EventTypeContractTest-字符串", sourcePrefix = "evm")
     public void testStr() {
         try {
             prepare();
@@ -86,7 +86,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
     }
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testEnum",
-            author = "albedo", showName = "event.EventTypeContractTest-枚举")
+            author = "albedo", showName = "event.EventTypeContractTest-枚举", sourcePrefix = "evm")
     public void testEnum() {
         try {
             prepare();

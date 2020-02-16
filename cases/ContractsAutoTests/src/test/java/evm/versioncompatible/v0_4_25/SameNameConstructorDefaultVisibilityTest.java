@@ -39,7 +39,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testDefaultVisibility",
-            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数默认可见性声明")
+            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数默认可见性声明", sourcePrefix = "evm")
     public void testDefaultVisibility() {
         try {
             deployContract();
@@ -53,7 +53,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testPublicVisibility",
-            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数public可见性声明")
+            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数public可见性声明", sourcePrefix = "evm")
     public void testPublicVisibility() {
         try {
             deployContract();
@@ -67,7 +67,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testExternalVisibility",
-            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数external可见性声明")
+            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数external可见性声明", sourcePrefix = "evm")
     public void testExternalVisibility() {
         try {
             deployContract();
@@ -81,7 +81,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testPrivateVisibilityCheck",
-            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数private可见性声明")
+            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数private可见性声明", sourcePrefix = "evm")
     public void testPrivateVisibilityCheck() {
         try {
             deployContract();
@@ -95,7 +95,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testInternalVisibilityCheck",
-            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数internal可见性声明")
+            author = "albedo", showName = "SameNameConstructorDefaultVisibilityTest-函数internal可见性声明", sourcePrefix = "evm")
     public void testInternalVisibilityCheck() {
         try {
             deployContract();
