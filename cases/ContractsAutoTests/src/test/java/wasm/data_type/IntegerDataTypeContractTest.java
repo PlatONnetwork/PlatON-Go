@@ -182,7 +182,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke setChar success, txHash: " + charTr.getTransactionHash());
             Int64 getChar = contract.getChar().send();
             collector.logStepPass("To invoke getChar success, getChar: " + getChar.getValue());
-            collector.assertEqual(getChar.getValue(), expectByte.byteValue());
+            collector.assertEqual(getChar.getValue(), expectByte.longValue());
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
