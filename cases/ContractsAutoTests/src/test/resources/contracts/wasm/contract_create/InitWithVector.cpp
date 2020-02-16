@@ -4,7 +4,7 @@ using namespace std;
 using namespace platon;
 
 
-CONTRACT InitWithStruct : public platon::Contract{
+CONTRACT InitWithVector : public platon::Contract{
     public:
     ACTION void init(uint16_t &age){
         ageVector.self().push_back(age);
@@ -26,4 +26,4 @@ CONTRACT InitWithStruct : public platon::Contract{
     platon::StorageType<"age_vector"_n, std::vector<uint64_t>> ageVector;
 };
 
-PLATON_DISPATCH(InitWithStruct, (init)(add_vector)(get_vector_size)(get_vector))
+PLATON_DISPATCH(InitWithVector, (init)(add_vector)(get_vector_size)(get_vector))
