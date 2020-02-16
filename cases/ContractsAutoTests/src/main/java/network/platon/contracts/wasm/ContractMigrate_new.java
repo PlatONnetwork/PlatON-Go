@@ -34,13 +34,13 @@ public class ContractMigrate_new extends WasmContract {
 
     private static String BINARY = BINARY_0;
 
+    public static final String FUNC_GETUINT16 = "getUint16";
+
     public static final String FUNC_SETUINT16 = "setUint16";
 
     public static final String FUNC_SETUINT8NEW = "setUint8New";
 
     public static final String FUNC_GETUINT8NEW = "getUint8New";
-
-    public static final String FUNC_GETUINT16 = "getUint16";
 
     public static final WasmEvent TRANSFER_EVENT = new WasmEvent("transfer", Arrays.asList(String.class), Arrays.asList(String.class));
     ;
@@ -51,11 +51,6 @@ public class ContractMigrate_new extends WasmContract {
 
     protected ContractMigrate_new(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> setUint16(Integer input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETUINT16, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
@@ -91,6 +86,16 @@ public class ContractMigrate_new extends WasmContract {
         return transferEventObservable(filter);
     }
 
+    public RemoteCall<Integer> getUint16() {
+        final WasmFunction function = new WasmFunction(FUNC_GETUINT16, Arrays.asList(), Integer.class);
+        return executeRemoteCall(function, Integer.class);
+    }
+
+    public RemoteCall<TransactionReceipt> setUint16(Integer input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETUINT16, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
     public static RemoteCall<ContractMigrate_new> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Byte input, Integer input2) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(input,input2));
         return deployRemoteCall(ContractMigrate_new.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -109,11 +114,6 @@ public class ContractMigrate_new extends WasmContract {
     public RemoteCall<Byte> getUint8New() {
         final WasmFunction function = new WasmFunction(FUNC_GETUINT8NEW, Arrays.asList(), Byte.class);
         return executeRemoteCall(function, Byte.class);
-    }
-
-    public RemoteCall<Integer> getUint16() {
-        final WasmFunction function = new WasmFunction(FUNC_GETUINT16, Arrays.asList(), Integer.class);
-        return executeRemoteCall(function, Integer.class);
     }
 
     public static ContractMigrate_new load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
