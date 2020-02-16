@@ -78,6 +78,12 @@ public class GeneratorPreTest extends ContractPrepareTest {
     public void compile() throws InterruptedException {
         String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm").toUri().getPath());
         String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
+
+        File buildPathFile = new File(buildPath);
+        if (!buildPathFile.exists() || !buildPathFile.isDirectory()) {
+            buildPathFile.mkdirs();
+        }
+
         File[] list = new File(buildPath).listFiles();
         if (null != list) {
             for (File file : list) {
