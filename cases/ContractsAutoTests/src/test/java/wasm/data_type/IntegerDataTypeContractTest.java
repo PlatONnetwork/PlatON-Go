@@ -1,5 +1,6 @@
 package wasm.data_type;
 
+import com.platon.rlp.Int64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.*;
@@ -8,6 +9,7 @@ import org.junit.Test;
 import org.openqa.selenium.By;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Int;
+import org.web3j.abi.datatypes.generated.Int8;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -45,11 +47,11 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
             // test: int8
-            int int8 = contract.int8().send();
-            collector.logStepPass("To invoke int8 success, int8: " + int8);
+            Int64 int8 = contract.int8().send();
+            collector.logStepPass("To invoke int8 success, int8: " + int8.value);
 
             // test: int64
-            long int64 = contract.int64().send();
+            Int64 int64 = contract.int64().send();
             collector.logStepPass("To invoke int8 success, int64: " + int64);
 
             // test uint8
