@@ -34,7 +34,9 @@ public class OverrideContractTest extends WASMContractPrepareTest {
             OverrideContract contract = OverrideContract.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("OverrideContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("OverrideContract issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // 1. input = 1, get: 100, input == 2, get: 10000
             int area01 = contract.getArea(Long.valueOf(1)).send();
