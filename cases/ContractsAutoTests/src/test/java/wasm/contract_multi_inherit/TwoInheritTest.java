@@ -64,7 +64,7 @@ public class TwoInheritTest extends WASMContractPrepareTest {
 
             //查询消息from
             String chainFrom = twoInherit.get_sub_my_message_from(idx).send();
-            collector.logStepPass("OneInheritTest call get_sub_my_message_from successfully hash:" + transactionReceipt.getTransactionHash());
+            collector.logStepPass("TwoInheritTest call get_sub_my_message_from successfully hash:" + transactionReceipt.getTransactionHash());
             collector.assertEqual(chainFrom,from);
 
 
