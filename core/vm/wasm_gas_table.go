@@ -12,189 +12,191 @@ const (
 	MigrateContractGas = uint64(68000)
 )
 
-var WasmGasCostTable = map[byte]uint64{
-	Unreachable:  0,
-	Nop:          0,
-	Block:        0,
-	Loop:         0,
-	If:           0,
-	Else:         0,
-	End:          0,
-	Br:           2,
-	BrIf:         3,
-	BrTable:      2,
-	Return:       2,
-	Call:         2,
-	CallIndirect: 3,
+var WasmGasCostTable [255]uint64
 
-	Drop:   3,
-	Select: 3,
+func init() {
+	WasmGasCostTable[Unreachable] = 0
+	WasmGasCostTable[Nop] = 0
+	WasmGasCostTable[Block] = 0
+	WasmGasCostTable[Loop] = 0
+	WasmGasCostTable[If] = 0
+	WasmGasCostTable[Else] = 0
+	WasmGasCostTable[End] = 0
+	WasmGasCostTable[Br] = 2
+	WasmGasCostTable[BrIf] = 3
+	WasmGasCostTable[BrTable] = 2
+	WasmGasCostTable[Return] = 2
+	WasmGasCostTable[Call] = 2
+	WasmGasCostTable[CallIndirect] = 3
 
-	GetLocal:  3,
-	SetLocal:  3,
-	TeeLocal:  3,
-	GetGlobal: 3,
-	SetGlobal: 3,
+	WasmGasCostTable[Drop] = 3
+	WasmGasCostTable[Select] = 3
 
-	I32Load:    3,
-	I64Load:    3,
-	F32Load:    3,
-	F64Load:    3,
-	I32Load8s:  3,
-	I32Load8u:  3,
-	I32Load16s: 3,
-	I32Load16u: 3,
-	I64Load8s:  3,
-	I64Load8u:  3,
-	I64Load16s: 3,
-	I64Load16u: 3,
-	I64Load32s: 3,
-	I64Load32u: 3,
+	WasmGasCostTable[GetLocal] = 3
+	WasmGasCostTable[SetLocal] = 3
+	WasmGasCostTable[TeeLocal] = 3
+	WasmGasCostTable[GetGlobal] = 3
+	WasmGasCostTable[SetGlobal] = 3
 
-	I32Store:   3,
-	I64Store:   3,
-	F32Store:   3,
-	F64Store:   3,
-	I32Store8:  3,
-	I32Store16: 3,
-	I64Store8:  3,
-	I64Store16: 3,
-	I64Store32: 3,
+	WasmGasCostTable[I32Load] = 3
+	WasmGasCostTable[I64Load] = 3
+	WasmGasCostTable[F32Load] = 3
+	WasmGasCostTable[F64Load] = 3
+	WasmGasCostTable[I32Load8s] = 3
+	WasmGasCostTable[I32Load8u] = 3
+	WasmGasCostTable[I32Load16s] = 3
+	WasmGasCostTable[I32Load16u] = 3
+	WasmGasCostTable[I64Load8s] = 3
+	WasmGasCostTable[I64Load8u] = 3
+	WasmGasCostTable[I64Load16s] = 3
+	WasmGasCostTable[I64Load16u] = 3
+	WasmGasCostTable[I64Load32s] = 3
+	WasmGasCostTable[I64Load32u] = 3
 
-	CurrentMemory: 3,
-	GrowMemory:    64 * 1024,
+	WasmGasCostTable[I32Store] = 3
+	WasmGasCostTable[I64Store] = 3
+	WasmGasCostTable[F32Store] = 3
+	WasmGasCostTable[F64Store] = 3
+	WasmGasCostTable[I32Store8] = 3
+	WasmGasCostTable[I32Store16] = 3
+	WasmGasCostTable[I64Store8] = 3
+	WasmGasCostTable[I64Store16] = 3
+	WasmGasCostTable[I64Store32] = 3
 
-	I32Const: 0,
-	I64Const: 0,
-	F32Const: 0,
-	F64Const: 0,
+	WasmGasCostTable[CurrentMemory] = 3
+	WasmGasCostTable[GrowMemory] = 64 * 1024
 
-	I32Eqz: 1,
-	I32Eq:  1,
-	I32Ne:  1,
-	I32LtS: 1,
-	I32LtU: 1,
-	I32GtS: 1,
-	I32GtU: 1,
-	I32LeS: 1,
-	I32LeU: 1,
-	I32GeS: 1,
-	I32GeU: 1,
-	I64Eqz: 1,
-	I64Eq:  1,
-	I64Ne:  1,
-	I64LtS: 1,
-	I64LtU: 1,
-	I64GtS: 1,
-	I64GtU: 1,
-	I64LeS: 1,
-	I64LeU: 1,
-	I64GeS: 1,
-	I64GeU: 1,
-	F32Eq:  math.MaxInt64,
-	F32Ne:  math.MaxInt64,
-	F32Lt:  math.MaxInt64,
-	F32Gt:  math.MaxInt64,
-	F32Le:  math.MaxInt64,
-	F32Ge:  math.MaxInt64,
-	F64Eq:  math.MaxInt64,
-	F64Ne:  math.MaxInt64,
-	F64Lt:  math.MaxInt64,
-	F64Gt:  math.MaxInt64,
-	F64Le:  math.MaxInt64,
-	F64Ge:  math.MaxInt64,
+	WasmGasCostTable[I32Const] = 0
+	WasmGasCostTable[I64Const] = 0
+	WasmGasCostTable[F32Const] = 0
+	WasmGasCostTable[F64Const] = 0
 
-	I32Clz:      105,
-	I32Ctz:      105,
-	I32Popcnt:   1,
-	I32Add:      1,
-	I32Sub:      1,
-	I32Mul:      3,
-	I32DivS:     80,
-	I32DivU:     80,
-	I32RemS:     80,
-	I32RemU:     80,
-	I32And:      1,
-	I32Or:       1,
-	I32Xor:      1,
-	I32Shl:      2,
-	I32ShrS:     2,
-	I32ShrU:     2,
-	I32Rotl:     2,
-	I32Rotr:     2,
-	I64Clz:      105,
-	I64Ctz:      105,
-	I64Popcnt:   1,
-	I64Add:      1,
-	I64Sub:      1,
-	I64Mul:      3,
-	I64DivS:     80,
-	I64DivU:     80,
-	I64RemS:     80,
-	I64RemU:     80,
-	I64And:      1,
-	I64Or:       1,
-	I64Xor:      1,
-	I64Shl:      2,
-	I64ShrS:     2,
-	I64ShrU:     2,
-	I64Rotl:     2,
-	I64Rotr:     2,
-	F32Abs:      math.MaxInt64,
-	F32Neg:      math.MaxInt64,
-	F32Ceil:     math.MaxInt64,
-	F32Floor:    math.MaxInt64,
-	F32Trunc:    math.MaxInt64,
-	F32Nearest:  math.MaxInt64,
-	F32Sqrt:     math.MaxInt64,
-	F32Add:      math.MaxInt64,
-	F32Sub:      math.MaxInt64,
-	F32Mul:      math.MaxInt64,
-	F32Div:      math.MaxInt64,
-	F32Min:      math.MaxInt64,
-	F32Max:      math.MaxInt64,
-	F32Copysign: math.MaxInt64,
-	F64Abs:      math.MaxInt64,
-	F64Neg:      math.MaxInt64,
-	F64Ceil:     math.MaxInt64,
-	F64Floor:    math.MaxInt64,
-	F64Trunc:    math.MaxInt64,
-	F64Nearest:  math.MaxInt64,
-	F64Sqrt:     math.MaxInt64,
-	F64Add:      math.MaxInt64,
-	F64Sub:      math.MaxInt64,
-	F64Mul:      math.MaxInt64,
-	F64Div:      math.MaxInt64,
-	F64Min:      math.MaxInt64,
-	F64Max:      math.MaxInt64,
-	F64Copysign: math.MaxInt64,
+	WasmGasCostTable[I32Eqz] = 1
+	WasmGasCostTable[I32Eq] = 1
+	WasmGasCostTable[I32Ne] = 1
+	WasmGasCostTable[I32LtS] = 1
+	WasmGasCostTable[I32LtU] = 1
+	WasmGasCostTable[I32GtS] = 1
+	WasmGasCostTable[I32GtU] = 1
+	WasmGasCostTable[I32LeS] = 1
+	WasmGasCostTable[I32LeU] = 1
+	WasmGasCostTable[I32GeS] = 1
+	WasmGasCostTable[I32GeU] = 1
+	WasmGasCostTable[I64Eqz] = 1
+	WasmGasCostTable[I64Eq] = 1
+	WasmGasCostTable[I64Ne] = 1
+	WasmGasCostTable[I64LtS] = 1
+	WasmGasCostTable[I64LtU] = 1
+	WasmGasCostTable[I64GtS] = 1
+	WasmGasCostTable[I64GtU] = 1
+	WasmGasCostTable[I64LeS] = 1
+	WasmGasCostTable[I64LeU] = 1
+	WasmGasCostTable[I64GeS] = 1
+	WasmGasCostTable[I64GeU] = 1
+	WasmGasCostTable[F32Eq] = math.MaxInt64
+	WasmGasCostTable[F32Ne] = math.MaxInt64
+	WasmGasCostTable[F32Lt] = math.MaxInt64
+	WasmGasCostTable[F32Gt] = math.MaxInt64
+	WasmGasCostTable[F32Le] = math.MaxInt64
+	WasmGasCostTable[F32Ge] = math.MaxInt64
+	WasmGasCostTable[F64Eq] = math.MaxInt64
+	WasmGasCostTable[F64Ne] = math.MaxInt64
+	WasmGasCostTable[F64Lt] = math.MaxInt64
+	WasmGasCostTable[F64Gt] = math.MaxInt64
+	WasmGasCostTable[F64Le] = math.MaxInt64
+	WasmGasCostTable[F64Ge] = math.MaxInt64
 
-	I32WrapI64:     3,
-	I32TruncSF32:   3,
-	I32TruncUF32:   3,
-	I32TruncSF64:   3,
-	I32TruncUF64:   3,
-	I64ExtendSI32:  3,
-	I64ExtendUI32:  3,
-	I64TruncSF32:   3,
-	I64TruncUF32:   3,
-	I64TruncSF64:   3,
-	I64TruncUF64:   3,
-	F32ConvertSI32: math.MaxInt64,
-	F32ConvertUI32: math.MaxInt64,
-	F32ConvertSI64: math.MaxInt64,
-	F32ConvertUI64: math.MaxInt64,
-	F32DemoteF64:   math.MaxInt64,
-	F64ConvertSI32: math.MaxInt64,
-	F64ConvertUI32: math.MaxInt64,
-	F64ConvertSI64: math.MaxInt64,
-	F64ConvertUI64: math.MaxInt64,
-	F64PromoteF32:  math.MaxInt64,
+	WasmGasCostTable[I32Clz] = 105
+	WasmGasCostTable[I32Ctz] = 105
+	WasmGasCostTable[I32Popcnt] = 1
+	WasmGasCostTable[I32Add] = 1
+	WasmGasCostTable[I32Sub] = 1
+	WasmGasCostTable[I32Mul] = 3
+	WasmGasCostTable[I32DivS] = 80
+	WasmGasCostTable[I32DivU] = 80
+	WasmGasCostTable[I32RemS] = 80
+	WasmGasCostTable[I32RemU] = 80
+	WasmGasCostTable[I32And] = 1
+	WasmGasCostTable[I32Or] = 1
+	WasmGasCostTable[I32Xor] = 1
+	WasmGasCostTable[I32Shl] = 2
+	WasmGasCostTable[I32ShrS] = 2
+	WasmGasCostTable[I32ShrU] = 2
+	WasmGasCostTable[I32Rotl] = 2
+	WasmGasCostTable[I32Rotr] = 2
+	WasmGasCostTable[I64Clz] = 105
+	WasmGasCostTable[I64Ctz] = 105
+	WasmGasCostTable[I64Popcnt] = 1
+	WasmGasCostTable[I64Add] = 1
+	WasmGasCostTable[I64Sub] = 1
+	WasmGasCostTable[I64Mul] = 3
+	WasmGasCostTable[I64DivS] = 80
+	WasmGasCostTable[I64DivU] = 80
+	WasmGasCostTable[I64RemS] = 80
+	WasmGasCostTable[I64RemU] = 80
+	WasmGasCostTable[I64And] = 1
+	WasmGasCostTable[I64Or] = 1
+	WasmGasCostTable[I64Xor] = 1
+	WasmGasCostTable[I64Shl] = 2
+	WasmGasCostTable[I64ShrS] = 2
+	WasmGasCostTable[I64ShrU] = 2
+	WasmGasCostTable[I64Rotl] = 2
+	WasmGasCostTable[I64Rotr] = 2
+	WasmGasCostTable[F32Abs] = math.MaxInt64
+	WasmGasCostTable[F32Neg] = math.MaxInt64
+	WasmGasCostTable[F32Ceil] = math.MaxInt64
+	WasmGasCostTable[F32Floor] = math.MaxInt64
+	WasmGasCostTable[F32Trunc] = math.MaxInt64
+	WasmGasCostTable[F32Nearest] = math.MaxInt64
+	WasmGasCostTable[F32Sqrt] = math.MaxInt64
+	WasmGasCostTable[F32Add] = math.MaxInt64
+	WasmGasCostTable[F32Sub] = math.MaxInt64
+	WasmGasCostTable[F32Mul] = math.MaxInt64
+	WasmGasCostTable[F32Div] = math.MaxInt64
+	WasmGasCostTable[F32Min] = math.MaxInt64
+	WasmGasCostTable[F32Max] = math.MaxInt64
+	WasmGasCostTable[F32Copysign] = math.MaxInt64
+	WasmGasCostTable[F64Abs] = math.MaxInt64
+	WasmGasCostTable[F64Neg] = math.MaxInt64
+	WasmGasCostTable[F64Ceil] = math.MaxInt64
+	WasmGasCostTable[F64Floor] = math.MaxInt64
+	WasmGasCostTable[F64Trunc] = math.MaxInt64
+	WasmGasCostTable[F64Nearest] = math.MaxInt64
+	WasmGasCostTable[F64Sqrt] = math.MaxInt64
+	WasmGasCostTable[F64Add] = math.MaxInt64
+	WasmGasCostTable[F64Sub] = math.MaxInt64
+	WasmGasCostTable[F64Mul] = math.MaxInt64
+	WasmGasCostTable[F64Div] = math.MaxInt64
+	WasmGasCostTable[F64Min] = math.MaxInt64
+	WasmGasCostTable[F64Max] = math.MaxInt64
+	WasmGasCostTable[F64Copysign] = math.MaxInt64
 
-	I32ReinterpretF32: 3,
-	I64ReinterpretF64: 3,
-	F32ReinterpretI32: math.MaxInt64,
-	F64ReinterpretI64: math.MaxInt64,
+	WasmGasCostTable[I32WrapI64] = 3
+	WasmGasCostTable[I32TruncSF32] = 3
+	WasmGasCostTable[I32TruncUF32] = 3
+	WasmGasCostTable[I32TruncSF64] = 3
+	WasmGasCostTable[I32TruncUF64] = 3
+	WasmGasCostTable[I64ExtendSI32] = 3
+	WasmGasCostTable[I64ExtendUI32] = 3
+	WasmGasCostTable[I64TruncSF32] = 3
+	WasmGasCostTable[I64TruncUF32] = 3
+	WasmGasCostTable[I64TruncSF64] = 3
+	WasmGasCostTable[I64TruncUF64] = 3
+	WasmGasCostTable[F32ConvertSI32] = math.MaxInt64
+	WasmGasCostTable[F32ConvertUI32] = math.MaxInt64
+	WasmGasCostTable[F32ConvertSI64] = math.MaxInt64
+	WasmGasCostTable[F32ConvertUI64] = math.MaxInt64
+	WasmGasCostTable[F32DemoteF64] = math.MaxInt64
+	WasmGasCostTable[F64ConvertSI32] = math.MaxInt64
+	WasmGasCostTable[F64ConvertUI32] = math.MaxInt64
+	WasmGasCostTable[F64ConvertSI64] = math.MaxInt64
+	WasmGasCostTable[F64ConvertUI64] = math.MaxInt64
+	WasmGasCostTable[F64PromoteF32] = math.MaxInt64
+
+	WasmGasCostTable[I32ReinterpretF32] = 3
+	WasmGasCostTable[I64ReinterpretF64] = 3
+	WasmGasCostTable[F32ReinterpretI32] = math.MaxInt64
+	WasmGasCostTable[F64ReinterpretI64] = math.MaxInt64
 }
 
 var WasmInstrString = map[byte]string{
