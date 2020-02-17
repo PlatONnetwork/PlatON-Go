@@ -17,6 +17,14 @@ import java.util.concurrent.*;
 public class GeneratorUtil {
     private static final Semaphore permit = new Semaphore(100, true);
 
+    public static void main(String[] args) {
+        try {
+            generator("test");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * @description:
      * @author: qcxiao
@@ -36,14 +44,16 @@ public class GeneratorUtil {
 
             String os = System.getProperty("os.name");
             String[] args = null;
+            String rootPath = System.getProperty("user.dir");
+            System.out.println("rootPath:" + rootPath);
             if (!os.startsWith("Linux") && !os.startsWith("Mac OS")) {
                 if (os.startsWith("Windows")) {
-                    args = new String[]{"cmd", "/C", "./scripts/platon-web3j/bin/platon-web3j.bat" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
+                    args = new String[]{"cmd", "/C", rootPath + "/scripts/platon-web3j/bin/platon-web3j.bat" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
                 } else {
                     System.out.println("Not supported operate system platform");
                 }
             } else {
-                args = new String[]{"/bin/bash", "-c", "./scripts/platon-web3j/bin/platon-web3j" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
+                args = new String[]{"/bin/bash", "-c", rootPath + "/scripts/platon-web3j/bin/platon-web3j" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
             }
 
             ps = Runtime.getRuntime().exec(args);
@@ -79,8 +89,9 @@ public class GeneratorUtil {
 
             String outputPath = FileUtil.pathOptimization(System.getProperty("user.dir") + "/src/main/java");
             String packagePath = "network.platon.contracts.wasm";
-
-            String[] args = new String[]{"/bin/bash", "-c", "./scripts/platon-web3j/bin/platon-web3j" + " " + "wasm" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
+            String rootPath = System.getProperty("user.dir");
+            System.out.println("rootPath:" + rootPath);
+            String[] args = new String[]{"/bin/bash", "-c", rootPath + "/scripts/platon-web3j/bin/platon-web3j" + " " + "wasm" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
 
             ps = Runtime.getRuntime().exec(args);
             ps.waitFor(2, TimeUnit.SECONDS);
