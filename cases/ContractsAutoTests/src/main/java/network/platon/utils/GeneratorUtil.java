@@ -4,8 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import network.platon.autotest.utils.FileUtil;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.concurrent.*;
 
 /**
@@ -44,18 +46,19 @@ public class GeneratorUtil {
 
             String os = System.getProperty("os.name");
             String[] args = null;
-            String rootPath = System.getProperty("user.dir");
-            System.out.println("rootPath:" + rootPath);
+            String rootPath = FileUtil.pathOptimization(Paths.get("scripts", "platon-web3j", "bin").toUri().getPath());
+
             if (!os.startsWith("Linux") && !os.startsWith("Mac OS")) {
                 if (os.startsWith("Windows")) {
-                    args = new String[]{"cmd", "/C", rootPath + "/scripts/platon-web3j/bin/platon-web3j.bat" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
+                    args = new String[]{"cmd", "/C", rootPath + "platon-web3j.bat" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
                 } else {
                     System.out.println("Not supported operate system platform");
                 }
             } else {
-                args = new String[]{"/bin/bash", "-c", rootPath + "/scripts/platon-web3j/bin/platon-web3j" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
+                args = new String[]{"/bin/bash", "-c", rootPath + "platon-web3j" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
             }
 
+            System.out.println("args:" + Arrays.toString(args));
             ps = Runtime.getRuntime().exec(args);
             ps.waitFor(2, TimeUnit.SECONDS);
             br = new BufferedReader(new InputStreamReader(ps.getInputStream()));
