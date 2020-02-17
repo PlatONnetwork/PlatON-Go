@@ -34,9 +34,9 @@ public class ContractMigrate_old extends WasmContract {
 
     private static String BINARY = BINARY_0;
 
-    public static final String FUNC_SETUINT8 = "setUint8";
-
     public static final String FUNC_MIGRATE_CONTRACT = "migrate_contract";
+
+    public static final String FUNC_SETUINT8 = "setUint8";
 
     public static final String FUNC_GETUINT8 = "getUint8";
 
@@ -49,11 +49,6 @@ public class ContractMigrate_old extends WasmContract {
 
     protected ContractMigrate_old(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> setUint8(Byte input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETUINT8, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
@@ -101,6 +96,11 @@ public class ContractMigrate_old extends WasmContract {
 
     public RemoteCall<TransactionReceipt> migrate_contract(byte[] init_arg, Long transfer_value, Long gas_value) {
         final WasmFunction function = new WasmFunction(FUNC_MIGRATE_CONTRACT, Arrays.asList(init_arg,transfer_value,gas_value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setUint8(Byte input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETUINT8, Arrays.asList(input), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
