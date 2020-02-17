@@ -37,7 +37,7 @@ public class GeneratorUtil {
         BufferedReader br = null;
         try {
             permit.acquire();
-            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "build").toUri().getPath());
+            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
             String binPath = filePath + contractName + ".bin";
             String abiPath = filePath + contractName + ".abi";
 
