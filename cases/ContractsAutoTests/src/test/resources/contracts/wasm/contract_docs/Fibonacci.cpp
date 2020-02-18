@@ -24,7 +24,7 @@ CONTRACT Fibonacci: public platon::Contract
 		
 		CONST uint64_t fibonacci_call(uint64_t number)
 		{
-			return number;
+			return deep_call(number);
 		}
 
 	private:
