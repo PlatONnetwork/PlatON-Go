@@ -3,18 +3,18 @@
 using namespace platon;
 
 
-CONTRACT hello : public platon::Contract{
+CONTRACT storge_str : public platon::Contract{
    public:
 
      ACTION void init(){}
       
       ACTION void set_string(const std::string &name){
-          DEBUG("hello set_string", "name:", name);
+          DEBUG("storge_str set_string", "name:", name);
           str.self() = name;
       }
       
       CONST const std::string get_string(){
-          DEBUG("hello get_string", "name:", str.self());
+          DEBUG("storge_str get_string", "name:", str.self());
           return str.self();
       }
 
@@ -23,4 +23,4 @@ CONTRACT hello : public platon::Contract{
       platon::StorageType<"str"_n, std::string> str;
 };
 
-PLATON_DISPATCH(hello, (init)(set_string)(get_string))
+PLATON_DISPATCH(storge_str, (init)(set_string)(get_string))
