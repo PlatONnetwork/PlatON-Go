@@ -1,24 +1,17 @@
 package wasm.data_type;
 
+import com.platon.rlp.Int64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.*;
+import network.platon.contracts.wasm.IntegerDataTypeContract_1;
+import network.platon.contracts.wasm.IntegerDataTypeContract_2;
+import network.platon.contracts.wasm.IntegerDataTypeContract_3;
+import network.platon.contracts.wasm.IntegerDataTypeContract_4;
 import org.junit.Before;
 import org.junit.Test;
-import org.openqa.selenium.By;
 import org.web3j.abi.datatypes.Address;
-import org.web3j.abi.datatypes.Int;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Bytes;
-import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
 /**
  * @author zjsunzone
@@ -42,14 +35,16 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             IntegerDataTypeContract_1 contract = IntegerDataTypeContract_1.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: int8
-            int int8 = contract.int8().send();
-            collector.logStepPass("To invoke int8 success, int8: " + int8);
+            Int64 int8 = contract.int8().send();
+            collector.logStepPass("To invoke int8 success, int8: " + int8.value);
 
             // test: int64
-            long int64 = contract.int64().send();
+            Int64 int64 = contract.int64().send();
             collector.logStepPass("To invoke int8 success, int64: " + int64);
 
             // test uint8
@@ -101,24 +96,26 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             IntegerDataTypeContract_2 contract = IntegerDataTypeContract_2.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             //  int8
-            TransactionReceipt int8Tr = contract.setInt8(Byte.valueOf((byte) 2)).send();
+            TransactionReceipt int8Tr = contract.setInt8(Int64.of((byte) 2)).send();
             collector.logStepPass("To invoke setInt 8 success, txHash: " + int8Tr.getTransactionHash());
-            Byte getInt8 = contract.getInt8().send();
-            collector.logStepPass("To invoke getInt8 8 success, getInt8: " + getInt8.byteValue());
+            Int64 getInt8 = contract.getInt8().send();
+            collector.logStepPass("To invoke getInt8 8 success, getInt8: " + getInt8.getValue());
 
             //  int32
-            TransactionReceipt int32Tr = contract.setInt32(100).send();
+            TransactionReceipt int32Tr = contract.setInt32(Int64.of(100)).send();
             collector.logStepPass("To invoke setInt32 success, txHash: " + int32Tr.getTransactionHash());
-            Integer getInt32 = contract.getInt32().send();
+            Int64 getInt32 = contract.getInt32().send();
             collector.logStepPass("To invoke getInt32 success, getInt32: " + getInt32);
 
             // int64
-            TransactionReceipt int64Tr = contract.setInt64(Long.valueOf("1111111111")).send();
+            TransactionReceipt int64Tr = contract.setInt64(Int64.of(1111111111)).send();
             collector.logStepPass("To invoke setInt64 success, txHash: " + int64Tr.getTransactionHash());
-            Long getInt64 = contract.getInt64().send();
+            Int64 getInt64 = contract.getInt64().send();
             collector.logStepPass("To invoke getInt64 success, getInt64: " + getInt64);
 
             // ======================= uint =======================
@@ -160,7 +157,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             IntegerDataTypeContract_3 contract = IntegerDataTypeContract_3.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract_3 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_3 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: store string
             TransactionReceipt strTr = contract.setString("setString").send();
@@ -176,11 +175,11 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
             // test: store char
             Byte expectByte = (byte)1;
-            TransactionReceipt charTr = contract.setChar(expectByte).send();
+            TransactionReceipt charTr = contract.setChar(Int64.of(expectByte.byteValue())).send();
             collector.logStepPass("To invoke setChar success, txHash: " + charTr.getTransactionHash());
-            Byte getChar = contract.getChar().send();
-            collector.logStepPass("To invoke getChar success, getChar: " + getChar.byteValue());
-            collector.assertEqual(getChar.byteValue(), expectByte.byteValue());
+            Int64 getChar = contract.getChar().send();
+            collector.logStepPass("To invoke getChar success, getChar: " + getChar.getValue());
+            collector.assertEqual(getChar.getValue(), expectByte.longValue());
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
@@ -202,7 +201,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             IntegerDataTypeContract_4 contract = IntegerDataTypeContract_4.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("IntegerDataTypeContract_4 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("IntegerDataTypeContract_4 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: store address
             Address expectAddr = new Address("0x5b05e7a3e2a688c5e5cc491545a84a1efc66c1b1");
