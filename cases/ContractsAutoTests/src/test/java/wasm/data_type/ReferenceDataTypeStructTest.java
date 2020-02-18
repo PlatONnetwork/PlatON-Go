@@ -3,6 +3,7 @@ package wasm.data_type;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeStructContract;
+import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
@@ -14,6 +15,18 @@ import wasm.beforetest.WASMContractPrepareTest;
  * @create: 2020/02/07
  */
 public class ReferenceDataTypeStructTest extends WASMContractPrepareTest {
+
+    private String name;
+    private String age;
+
+
+    @Before
+    public void before() {
+        name = driverService.param.get("name");
+        age = driverService.param.get("age");
+    }
+
+
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "qudong", showName = "wasm.referenceDataTypeStructTest验证结构体赋值&取值",sourcePrefix = "wasm")
@@ -35,10 +48,8 @@ public class ReferenceDataTypeStructTest extends WASMContractPrepareTest {
         }
         //调用合约方法
         try {
-            String name = "Lucy";
-            Long age = Long.parseLong("25");
             //1、验证：定义struct类型并赋值
-            TransactionReceipt  transactionReceipt = referenceDataTypeStructContract.setStructPersonA(name,age).send();
+            TransactionReceipt  transactionReceipt = referenceDataTypeStructContract.setStructPersonA(name,Long.parseLong(age)).send();
             collector.logStepPass("referenceDataTypeStructContract 【验证定义struct类型并赋值】 successfully hash:" + transactionReceipt.getTransactionHash());
             //2、验证：struct取值
             String actualValue = referenceDataTypeStructContract.getPersonName().send();
