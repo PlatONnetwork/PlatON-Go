@@ -1,4 +1,5 @@
 
+
 #include <platon/platon.hpp>
 #include <string>
 using namespace platon;
@@ -51,12 +52,16 @@ CONTRACT SpaceComplexity : public platon::Contract {
             }
         }
 
-        ACTION std::array<int64_t, 10> sort(std::array<int64_t, 10> arr, int64_t start, int64_t end) {
+        ACTION void sort(std::array<int64_t, 10> arr, int64_t start, int64_t end) {
             storage_array_int64.self() = arr;
             quickSort(storage_array_int64.self(), start, end);
+        }
+
+        CONST std::array<int64_t, 10> get_array() {
             return storage_array_int64.self();
         }
 
 };
-PLATON_DISPATCH(SpaceComplexity,(init)(sort))
+PLATON_DISPATCH(SpaceComplexity,(init)(sort)(get_array))
+
 
