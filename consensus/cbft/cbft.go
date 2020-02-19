@@ -724,6 +724,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 
 // OnSeal is used to process the blocks that have already been generated.
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) {
+	// When the seal ends, the completion signal will be passed to the goroutine of worker
 	defer func() { complete <- struct{}{} }()
 
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {

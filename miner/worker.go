@@ -499,6 +499,7 @@ func (w *worker) mainLoop() {
 		select {
 		case req := <-w.newWorkCh:
 			if err := w.commitNewWork(req.interrupt, req.noempty, common.Millis(req.timestamp), req.commitBlock, req.blockDeadline); err != nil {
+				// If error during this commiting, the task ends and change the CommitStatus to idle to allow the next commiting to be triggered
 				w.commitWorkEnv.setCommitStatusIdle()
 			}
 
@@ -514,6 +515,7 @@ func (w *worker) mainLoop() {
 			return
 
 		case <-w.prepareCompleteCh:
+			// Indicates that a seal operation has completed, change the CommitStatus to idle regardless of success or failure
 			w.commitWorkEnv.setCommitStatusIdle()
 
 		case block := <-w.prepareResultCh:
