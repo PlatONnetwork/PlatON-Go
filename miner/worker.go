@@ -114,6 +114,10 @@ func (e *commitWorkEnv) getCurrentBaseBlock() *types.Block {
 	}
 }
 
+func (e *commitWorkEnv) setCommitStatusIdle() {
+	atomic.StoreInt32(&e.commitStatus, commitStatusIdle)
+}
+
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
@@ -495,7 +499,7 @@ func (w *worker) mainLoop() {
 		select {
 		case req := <-w.newWorkCh:
 			if err := w.commitNewWork(req.interrupt, req.noempty, common.Millis(req.timestamp), req.commitBlock, req.blockDeadline); err != nil {
-				atomic.StoreInt32(&w.commitWorkEnv.commitStatus, commitStatusIdle)
+				w.commitWorkEnv.setCommitStatusIdle()
 			}
 
 		case <-w.chainSideCh:
@@ -510,7 +514,11 @@ func (w *worker) mainLoop() {
 			return
 
 		case <-w.prepareCompleteCh:
-			atomic.StoreInt32(&w.commitWorkEnv.commitStatus, commitStatusIdle)
+			status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
+			log.Debug("before：", "status", status)
+			w.commitWorkEnv.setCommitStatusIdle()
+			status = atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
+			log.Debug("after：", "status", status)
 
 		case block := <-w.prepareResultCh:
 			// Short circuit when receiving empty result.
@@ -561,7 +569,7 @@ func (w *worker) taskLoop() {
 			// Reject duplicate sealing work due to resubmitting.
 			sealHash := w.engine.SealHash(task.block.Header())
 			if sealHash == prev {
-				atomic.StoreInt32(&w.commitWorkEnv.commitStatus, commitStatusIdle)
+				w.commitWorkEnv.setCommitStatusIdle()
 				continue
 			}
 			// Interrupt previous sealing operation
@@ -569,7 +577,7 @@ func (w *worker) taskLoop() {
 			stopCh, prev = make(chan struct{}), sealHash
 
 			if w.skipSealHook != nil && w.skipSealHook(task) {
-				atomic.StoreInt32(&w.commitWorkEnv.commitStatus, commitStatusIdle)
+				w.commitWorkEnv.setCommitStatusIdle()
 				continue
 			}
 			w.pendingMu.Lock()
@@ -585,13 +593,14 @@ func (w *worker) taskLoop() {
 				log.Debug("Add seal block to blockchain cache", "sealHash", sealHash, "number", task.block.NumberU64())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh, w.prepareCompleteCh); err != nil {
 					log.Warn("Block sealing failed on bft engine", "err", err)
-					atomic.StoreInt32(&w.commitWorkEnv.commitStatus, commitStatusIdle)
+					w.commitWorkEnv.setCommitStatusIdle()
 				}
 				continue
 			}
 
 			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh, w.prepareCompleteCh); err != nil {
 				log.Warn("Block sealing failed", "err", err)
+				w.commitWorkEnv.setCommitStatusIdle()
 			}
 
 		case <-w.exitCh:
@@ -1254,7 +1263,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		}
 		return nil
 	}
-	atomic.StoreInt32(&w.commitWorkEnv.commitStatus, commitStatusIdle)
+	w.commitWorkEnv.setCommitStatusIdle()
 	return nil
 }
 
