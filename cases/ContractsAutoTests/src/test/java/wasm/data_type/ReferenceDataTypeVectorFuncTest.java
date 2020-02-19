@@ -46,7 +46,6 @@ public class ReferenceDataTypeVectorFuncTest extends WASMContractPrepareTest {
         vectorLength3 = driverService.param.get("vectorLength3");
         vectorLength4 = driverService.param.get("vectorLength4");
         vectorLength5 = driverService.param.get("vectorLength5");
-
     }
 
     @Test
