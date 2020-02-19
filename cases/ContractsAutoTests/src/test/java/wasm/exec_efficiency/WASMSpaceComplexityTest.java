@@ -31,9 +31,10 @@ public class WASMSpaceComplexityTest extends WASMContractPrepareTest {
             contractAddress = spaceComplexity.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
 
-            Int64[] arr = new Int64[]{Int64.of(1), Int64.of(1000)};
+            Int64[] arr = new Int64[]{Int64.of(1), Int64.of(-1), Int64.of(5), Int64.of(8), Int64.of(10),
+                    Int64.of(11), Int64.of(20), Int64.of(30), Int64.of(38), Int64.of(10)};
             TransactionReceipt transactionReceipt = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider)
-                    .sort(arr, Int64.of(1), Int64.of(1000)).send();
+                    .sort(arr, Int64.of(-1)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
             collector.logStepPass("gasUsed:" + gasUsed);
@@ -42,7 +43,9 @@ public class WASMSpaceComplexityTest extends WASMContractPrepareTest {
 
             Int64[] generationArr = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider).get_array().send();
 
-            System.out.println(Arrays.toString(generationArr));
+            for (Int64 ele : generationArr) {
+                System.out.print(ele.value + ",");
+            }
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());
