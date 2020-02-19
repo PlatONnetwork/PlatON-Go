@@ -3,7 +3,10 @@ package wasm.data_type;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.platon.rlp.Int16;
+import com.platon.rlp.Int32;
 import com.platon.rlp.Int64;
+import com.platon.rlp.Int8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.IntegerDataTypeContract_1;
@@ -44,7 +47,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                     + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: int8
-            Int64 int8 = contract.int8().send();
+            Int16 int8 = contract.int8().send();
             collector.logStepPass("To invoke int8 success, int8: " + int8.value);
 
             // test: int64
@@ -105,15 +108,15 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                     + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             //  int8
-            TransactionReceipt int8Tr = contract.setInt8(Int64.of((byte) 2)).send();
+            TransactionReceipt int8Tr = contract.setInt8(Int8.of((byte) 2)).send();
             collector.logStepPass("To invoke setInt 8 success, txHash: " + int8Tr.getTransactionHash());
-            Int64 getInt8 = contract.getInt8().send();
+            Int8 getInt8 = contract.getInt8().send();
             collector.logStepPass("To invoke getInt8 8 success, getInt8: " + getInt8.getValue());
 
             //  int32
-            TransactionReceipt int32Tr = contract.setInt32(Int64.of(100)).send();
+            TransactionReceipt int32Tr = contract.setInt32(Int32.of(100)).send();
             collector.logStepPass("To invoke setInt32 success, txHash: " + int32Tr.getTransactionHash());
-            Int64 getInt32 = contract.getInt32().send();
+            Int32 getInt32 = contract.getInt32().send();
             collector.logStepPass("To invoke getInt32 success, getInt32: " + getInt32);
 
             // int64
@@ -179,9 +182,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
             // test: store char
             Byte expectByte = (byte)1;
-            TransactionReceipt charTr = contract.setChar(Int64.of(expectByte.byteValue())).send();
+            TransactionReceipt charTr = contract.setChar(Int8.of(expectByte.byteValue())).send();
             collector.logStepPass("To invoke setChar success, txHash: " + charTr.getTransactionHash());
-            Int64 getChar = contract.getChar().send();
+            Int8 getChar = contract.getChar().send();
             collector.logStepPass("To invoke getChar success, getChar: " + getChar.getValue());
             collector.assertEqual(getChar.getValue(), expectByte.longValue());
 
@@ -277,9 +280,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 int input = testCase.getIntValue("input");
                 int expect = testCase.getIntValue("expect");
                 String equal = testCase.getString("equal");
-                TransactionReceipt int8Tr = contract.setInt8(Int64.of(input)).send();
+                TransactionReceipt int8Tr = contract.setInt8(Int8.of((byte)input)).send();
                 collector.logStepPass("To invoke setInt8 success, txHash: " + int8Tr.getTransactionHash());
-                Int64 getInt8 = contract.getInt8().send();
+                Int8 getInt8 = contract.getInt8().send();
                 collector.logStepPass("To invoke getInt8 success, getInt8: " + getInt8.getValue());
                 if(equal.equals("Y")){
                     collector.assertEqual(getInt8.getValue(), Long.valueOf(expect).longValue());
@@ -326,9 +329,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 int input = testCase.getIntValue("input");
                 int expect = testCase.getIntValue("expect");
                 String equal = testCase.getString("equal");
-                TransactionReceipt tr = contract.setInt32(Int64.of(input)).send();
+                TransactionReceipt tr = contract.setInt32(Int32.of(input)).send();
                 collector.logStepPass("To invoke setInt32 success, txHash: " + tr.getTransactionHash());
-                Int64 getUint8 = contract.getInt32().send();
+                Int32 getUint8 = contract.getInt32().send();
                 collector.logStepPass("To invoke getInt32 success,setInt32: "+ input +", getInt32: " + getUint8.getValue());
                 if(equal.equals("Y")){
                     collector.assertEqual(getUint8.getValue(), Long.valueOf(expect).longValue());
