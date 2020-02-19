@@ -18,8 +18,6 @@ class clothes {
         PLATON_SERIALIZE(clothes, (color))
 };
 
-extern char const vector_clothes[] = "vector_clothes";
-
 CONTRACT ReferenceDataTypeVectorContract : public platon::Contract{
     public:
     ACTION void init(){}
@@ -42,7 +40,7 @@ CONTRACT ReferenceDataTypeVectorContract : public platon::Contract{
     }
 
     private:
-    platon::StorageType<vector_clothes, std::vector<clothes>> vector_clothes;
+    platon::StorageType<"vector_clothes"_n, std::vector<clothes>> vector_clothes;
 };
 
 PLATON_DISPATCH(ReferenceDataTypeVectorContract, (init)(setClothesColorOne)(setClothesColorTwo)(getClothesColorIndex)
