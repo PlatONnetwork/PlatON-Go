@@ -76,11 +76,13 @@ func MockNodes(t *testing.T, num int) []*TestCBFT {
 
 func ReachBlock(t *testing.T, nodes []*TestCBFT, reach int) {
 	result := make(chan *types.Block, 1)
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < reach; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {
