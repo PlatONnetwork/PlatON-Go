@@ -37,11 +37,11 @@ public class ContractCrossDelegateCallStorageStrTest  extends WASMContractPrepar
             // check arr size 1st
             String strcStr = strc.get_string().send();
             System.out.println("the msg count in arr of  storge_str contract:" + strcStr);
-
+            collector.assertEqual(strcStr, "");
 
             String delegateCallStr = delegateCall.get_string().send();
             System.out.println("the msg count in arr of cross_delegate_call_storage_str contract:" + delegateCallStr);
-
+            collector.assertEqual(delegateCallStr, "");
 
             String msg = "Gavin";
 

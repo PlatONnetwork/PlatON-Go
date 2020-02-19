@@ -9,6 +9,7 @@ CONTRACT call_precompile : public platon::Contract {
         ACTION void init(){}
 
 
+
 };
 
-PLATON_DISPATCH(cross_call, (init)(call_add_message)(get_vector_size))
+PLATON_DISPATCH(call_precompile, (init)(call_add_message)(get_vector_size))

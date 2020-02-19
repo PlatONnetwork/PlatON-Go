@@ -34,14 +34,14 @@ public class ContractCrossCallStorageStrTest extends WASMContractPrepareTest {
             collector.logStepPass("cross_call_storage_str issued sucessfully, contractAddress:" + crossCallAddr + ", txHash:" + crossCallTxHash);
 
 
-            // check arr size 1st
+            // check str value 1st
             String strcStr = strc.get_string().send();
             System.out.println("the msg count in arr of  storge_str contract:" + strcStr);
-
+            collector.assertEqual(strcStr, "");
 
             String crossCallStr = crossCall.get_string().send();
             System.out.println("the msg count in arr of cross_call_storage_str contract:" + crossCallStr);
-
+            collector.assertEqual(crossCallStr, "");
 
             String msg = "Gavin";
 
@@ -50,7 +50,7 @@ public class ContractCrossCallStorageStrTest extends WASMContractPrepareTest {
             collector.logStepPass("cross_call_storage_str call_add_message successfully txHash:" + receipt.getTransactionHash());
 
 
-            // check arr size 2nd
+            // check str value 2nd
             strcStr = strc.get_string().send();
             System.out.println("the msg count in arr of  storge_str contract:" + strcStr);
             collector.assertEqual(strcStr, msg);

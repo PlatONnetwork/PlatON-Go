@@ -5,7 +5,7 @@
 using namespace platon;
 
 
-CONTRACT cross_delegate_call_storage_str : public platon::Contract {
+CONTRACT delegate_call_storage_str : public platon::Contract {
      public:
 
      ACTION void init(){}
@@ -33,4 +33,4 @@ CONTRACT cross_delegate_call_storage_str : public platon::Contract {
 
 };
 
-PLATON_DISPATCH(cross_delegate_call_storage_str, (init)(delegate_call_set_string)(get_string))
+PLATON_DISPATCH(delegate_call_storage_str, (init)(delegate_call_set_string)(get_string))
