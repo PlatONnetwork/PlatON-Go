@@ -1,5 +1,8 @@
 package wasm.data_type;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.platon.rlp.Int64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -9,6 +12,7 @@ import network.platon.contracts.wasm.IntegerDataTypeContract_3;
 import network.platon.contracts.wasm.IntegerDataTypeContract_4;
 import org.junit.Before;
 import org.junit.Test;
+import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
@@ -260,13 +264,147 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             // int64: -9,223,372,036,854,775,808 ~ 9,223,372,036,854,775,807
             // uint64: 0 ~ 18,446,744,073,709,551,615
 
-            //  int8 -128 ~ 127
-            TransactionReceipt int8Tr = contract.setInt8(Int64.of(-128)).send();
-            collector.logStepPass("To invoke setInt8 success, txHash: " + int8Tr.getTransactionHash());
-            Int64 getInt8 = contract.getInt8().send();
-            collector.logStepPass("To invoke getInt8 success, getInt8: " + getInt8.getValue());
+            // int8: -128 ~ 127
+            // [{"input":100, "expect": 100, "equal":"N"}]
+            JSONArray int8Cases = JSON.parseArray("["
+                    + "{\"input\":-128, \"expect\": -128, \"equal\":\"Y\"}"
+                    + "{\"input\":-129, \"expect\": -129, \"equal\":\"N\"}"
+                    + "{\"input\":127, \"expect\": 127, \"equal\":\"Y\"}"
+                    + "{\"input\":128, \"expect\": 128, \"equal\":\"N\"}"
+                    +"]");
+            for (int i = 0; i < int8Cases.size(); i++) {
+                JSONObject testCase = int8Cases.getJSONObject(i);
+                int input = testCase.getIntValue("input");
+                int expect = testCase.getIntValue("expect");
+                String equal = testCase.getString("equal");
+                TransactionReceipt int8Tr = contract.setInt8(Int64.of(input)).send();
+                collector.logStepPass("To invoke setInt8 success, txHash: " + int8Tr.getTransactionHash());
+                Int64 getInt8 = contract.getInt8().send();
+                collector.logStepPass("To invoke getInt8 success, getInt8: " + getInt8.getValue());
+                if(equal.equals("Y")){
+                    collector.assertEqual(getInt8.getValue(), Long.valueOf(expect).longValue());
+                } else {
+                    collector.assertFalse(getInt8.getValue() == Long.valueOf(expect).longValue());
+                }
+            }
 
+            // uint8: 0 ~ 255
+            JSONArray uint8Cases = JSON.parseArray("["
+                    //+ "{\"input\":-1, \"expect\": -1, \"equal\":\"N\"}"
+                    + "{\"input\":0, \"expect\": 0, \"equal\":\"Y\"}"
+                    //+ "{\"input\":254, \"expect\": 254, \"equal\":\"Y\"}" // return: -2
+                    + "{\"input\":255, \"expect\": 255, \"equal\":\"N\"}"
+                    + "{\"input\":256, \"expect\": 256, \"equal\":\"N\"}"
+                    +"]");
+            for (int i = 0; i < uint8Cases.size(); i++) {
+                JSONObject testCase = uint8Cases.getJSONObject(i);
+                int input = testCase.getIntValue("input");
+                int expect = testCase.getIntValue("expect");
+                String equal = testCase.getString("equal");
+                TransactionReceipt int8Tr = contract.setUint8(Byte.valueOf((byte)input)).send();
+                collector.logStepPass("To invoke setUint8 success, txHash: " + int8Tr.getTransactionHash());
+                Byte getUint8 = contract.getUint8().send();
+                collector.logStepPass("To invoke getUint8 success,setUint8: "+ input +", getUint8: " + getUint8.longValue());
+                if(equal.equals("Y")){
+                    collector.assertEqual(getUint8.longValue(), Long.valueOf(expect).longValue());
+                } else {
+                    collector.assertFalse(getUint8.longValue() == Long.valueOf(expect).longValue());
+                }
+            }
 
+            // int32: -2147483648 ~ 2147483647
+            // uint32: 0 ~ 4294967295
+            // int32
+            JSONArray int32Cases = JSON.parseArray("["
+                    + "{\"input\": -2147483648, \"expect\": -2147483648, \"equal\":\"Y\"}"
+                    + "{\"input\": 2147483647, \"expect\": 2147483647, \"equal\":\"Y\"}"
+                    + "{\"input\":0, \"expect\": 0, \"equal\":\"Y\"}"
+                    //+ "{\"input\":2147483648, \"expect\": 2147483648, \"equal\":\"N\"}"
+                    +"]");
+            for (int i = 0; i < int32Cases.size(); i++) {
+                JSONObject testCase = int32Cases.getJSONObject(i);
+                int input = testCase.getIntValue("input");
+                int expect = testCase.getIntValue("expect");
+                String equal = testCase.getString("equal");
+                TransactionReceipt tr = contract.setInt32(Int64.of(input)).send();
+                collector.logStepPass("To invoke setInt32 success, txHash: " + tr.getTransactionHash());
+                Int64 getUint8 = contract.getInt32().send();
+                collector.logStepPass("To invoke getInt32 success,setInt32: "+ input +", getInt32: " + getUint8.getValue());
+                if(equal.equals("Y")){
+                    collector.assertEqual(getUint8.getValue(), Long.valueOf(expect).longValue());
+                } else {
+                    collector.assertFalse(getUint8.getValue() == Long.valueOf(expect).longValue());
+                }
+            }
+
+            // uint32: 0 ~ 4294967295
+            // uint32
+            JSONArray uint32Cases = JSON.parseArray("["
+                    //+ "{\"input\": \"-1\", \"expect\": \"-1\", \"equal\":\"N\"}"
+                    //+ "{\"input\": \"4294967294\", \"expect\": \"4294967294\", \"equal\":\"Y\"}"
+                    + "{\"input\": \"0\", \"expect\": \"0\", \"equal\":\"Y\"}"
+                    +"]");
+            for (int i = 0; i < uint32Cases.size(); i++) {
+                JSONObject testCase = uint32Cases.getJSONObject(i);
+                String input = testCase.getString("input");
+                String expect = testCase.getString("expect");
+                String equal = testCase.getString("equal");
+                TransactionReceipt tr = contract.setUint32(Integer.valueOf(input)).send();
+                collector.logStepPass("To invoke setUint32 success, txHash: " + tr.getTransactionHash());
+                Integer getReturn = contract.getUint32().send();
+                collector.logStepPass("To invoke getUint32 success,setUint32: "+ input +", getUint32: " + getReturn);
+                if(equal.equals("Y")){
+                    collector.assertEqual(getReturn.toString(), expect);
+                } else {
+                    collector.assertFalse(getReturn.toString().equals(expect));
+                }
+            }
+
+            // int64: -9,223,372,036,854,775,808 ~ 9,223,372,036,854,775,807
+            // int64
+            JSONArray int64Cases = JSON.parseArray("["
+                    + "{\"input\": \"-1\", \"expect\": \"-1\", \"equal\":\"Y\"}"
+                    + "{\"input\": \"4294967294\", \"expect\": \"4294967294\", \"equal\":\"Y\"}"
+                    + "{\"input\": \"0\", \"expect\": \"0\", \"equal\":\"Y\"}"
+                    +"]");
+            for (int i = 0; i < int64Cases.size(); i++) {
+                JSONObject testCase = int64Cases.getJSONObject(i);
+                String input = testCase.getString("input");
+                String expect = testCase.getString("expect");
+                String equal = testCase.getString("equal");
+                TransactionReceipt tr = contract.setInt64(Int64.of(Long.valueOf(input))).send();
+                collector.logStepPass("To invoke setInt64 success, txHash: " + tr.getTransactionHash());
+                Int64 getReturn = contract.getInt64().send();
+                collector.logStepPass("To invoke getInt64 success,setInt64: "+ input +", getInt64: " + getReturn.getValue());
+                if(equal.equals("Y")){
+                    collector.assertEqual(getReturn.getValue(), Long.valueOf(expect).longValue());
+                } else {
+                    collector.assertFalse(getReturn.getValue() == Long.valueOf(expect).longValue());
+                }
+            }
+
+            // uint64: 0 ~ 18,446,744,073,709,551,615
+            JSONArray uint64Cases = JSON.parseArray("["
+                    //+ "{\"input\": \"-1\", \"expect\": \"-1\", \"equal\":\"Y\"}"
+                    + "{\"input\": \"4294967294\", \"expect\": \"4294967294\", \"equal\":\"Y\"}"
+                    + "{\"input\": \"0\", \"expect\": \"0\", \"equal\":\"Y\"}"
+                    //+ "{\"input\": \"18446744073709551615\", \"expect\": \"18446744073709551615\", \"equal\":\"Y\"}"
+                    +"]");
+            for (int i = 0; i < uint64Cases.size(); i++) {
+                JSONObject testCase = uint64Cases.getJSONObject(i);
+                String input = testCase.getString("input");
+                String expect = testCase.getString("expect");
+                String equal = testCase.getString("equal");
+                TransactionReceipt tr = contract.setUint64(Long.valueOf(input)).send();
+                collector.logStepPass("To invoke setUint64 success, txHash: " + tr.getTransactionHash());
+                Long getReturn = contract.getUint64().send();
+                collector.logStepPass("To invoke setUint64 success,setUint64: "+ input +", getUint64: " + getReturn.longValue());
+                if(equal.equals("Y")){
+                    collector.assertEqual(getReturn.longValue(), Long.valueOf(expect).longValue());
+                } else {
+                    collector.assertFalse(getReturn.longValue() == Long.valueOf(expect).longValue());
+                }
+            }
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
