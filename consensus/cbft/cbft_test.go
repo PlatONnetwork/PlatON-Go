@@ -239,8 +239,9 @@ func testSeal(t *testing.T, node, node2 *TestCBFT) {
 	block := NewBlock(node.chain.Genesis().Hash(), 1)
 
 	result := make(chan *types.Block, 1)
-
-	node.engine.Seal(node.cache, block, result, nil)
+	complete := make(chan struct{}, 1)
+	node.engine.Seal(node.cache, block, result, nil, complete)
+	<-complete
 	//node.engine.OnSeal(block, result, nil)
 	b := <-result
 	assert.NotNil(t, b)
@@ -278,12 +279,13 @@ func testExecuteBlock(t *testing.T) {
 	}
 
 	result := make(chan *types.Block, 1)
-
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 8; i++ {
 		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {
@@ -331,12 +333,13 @@ func TestChangeView(t *testing.T) {
 	}
 
 	result := make(chan *types.Block, 1)
-
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 10; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {
@@ -380,6 +383,7 @@ func testValidatorSwitch(t *testing.T) {
 	}()
 
 	result := make(chan *types.Block, 1)
+	complete := make(chan struct{}, 1)
 
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 4; i++ {
@@ -399,7 +403,8 @@ func testValidatorSwitch(t *testing.T) {
 				nodes[i].cache.WriteStateDB(block.Header().SealHash(), statedb, block.NumberU64())
 			}
 
-			nodes[i].engine.Seal(nodes[i].chain, block, result, nil)
+			nodes[i].engine.Seal(nodes[i].chain, block, result, nil, complete)
+			<-complete
 
 			_, qc := nodes[i].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 			select {
@@ -460,7 +465,8 @@ func testValidatorSwitch(t *testing.T) {
 	statedb, _ := nodes[0].cache.MakeStateDB(parent)
 	block, _ = nodes[0].engine.Finalize(nodes[0].chain, header, statedb, []*types.Transaction{}, []*types.Receipt{})
 	nodes[0].cache.WriteStateDB(block.Header().SealHash(), statedb, block.NumberU64())
-	nodes[0].engine.Seal(nodes[0].chain, block, result, nil)
+	nodes[0].engine.Seal(nodes[0].chain, block, result, nil, complete)
+	<-complete
 	_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 	select {
 	case b := <-result:
@@ -644,13 +650,15 @@ func TestInsertChain(t *testing.T) {
 	}
 
 	result := make(chan *types.Block, 1)
+	complete := make(chan struct{}, 1)
 
 	parent := nodes[0].chain.Genesis()
 	hasQCBlock := make([]*types.Block, 0)
 	for i := 0; i < 10; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {

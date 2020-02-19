@@ -8,10 +8,10 @@ using namespace platon;
  **/
 CONTRACT SpaceComplexity : public platon::Contract {
     private:
-        platon::StorageType<"storage_array_int64"_n, std::array<int64_t,10>> storage_array_int64;
+        platon::StorageType<"storage_array_int8"_n, std::array<int8_t,10>> storage_array_int8;
     public:
         ACTION void init(){}
-        void quickSort(std::array<int64_t, 10>& array, int start, int last)
+        std::array<int8_t, 10> quickSort(std::array<int8_t, 10>& array, int start, int last)
         {
             int i = start;
             int j = last;
@@ -20,7 +20,7 @@ CONTRACT SpaceComplexity : public platon::Contract {
             {
                 while (i < j)
                 {
-                    while (i < j &&  array[j]>=temp )
+                    while (i < j && array[j]>=temp )
                         j--;
                     if (i < j)
                     {
@@ -41,15 +41,15 @@ CONTRACT SpaceComplexity : public platon::Contract {
                 quickSort(array, start, i - 1);
                 quickSort(array, i + 1, last);
             }
+            return array;
         }
 
-        ACTION void sort(std::array<int64_t, 10> arr, int64_t start, int64_t end) {
-            storage_array_int64.self() = arr;
-            quickSort(storage_array_int64.self(), start, end);
+        ACTION void sort(std::array<int8_t, 10> arr, int8_t start) {
+            storage_array_int8.self() = quickSort(arr, start, 10);
         }
 
-        CONST std::array<int64_t, 10> get_array() {
-            return storage_array_int64.self();
+        CONST std::array<int8_t, 10> get_array() {
+            return storage_array_int8.self();
         }
 
 };
