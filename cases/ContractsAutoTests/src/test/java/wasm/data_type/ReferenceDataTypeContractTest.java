@@ -30,7 +30,9 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: map
             String expectKey1 = "name";
@@ -74,7 +76,9 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: u256
             String expectKey1 = "name";
@@ -118,7 +122,9 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: u256
             String expectKey1 = "name";

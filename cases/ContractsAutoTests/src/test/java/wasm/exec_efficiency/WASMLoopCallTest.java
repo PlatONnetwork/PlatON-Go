@@ -8,7 +8,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
-
 import java.math.BigInteger;
 
 /**
@@ -47,8 +46,7 @@ public class WASMLoopCallTest extends WASMContractPrepareTest {
             Long sum = LoopCall.load(contractAddress, web3j, transactionManager, provider).get_sum().send();
             collector.logStepPass("computing result:" + sum);
         } catch (Exception e) {
-            e.printStackTrace();
-            collector.logStepFail("The contract fail.", e.toString());
+            collector.logStepFail("The contract fail.", e.getMessage());
         }
     }
 

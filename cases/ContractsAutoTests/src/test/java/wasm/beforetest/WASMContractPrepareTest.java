@@ -31,7 +31,7 @@ public class WASMContractPrepareTest {
     protected RawTransactionManager transactionManager;
     protected ContractGasProvider provider;
     protected String walletAddress;
-    protected String gasLimit = "4712388";
+    protected String gasLimit = "47123880";
     protected String gasPrice = "1000000000";
 
     /**
