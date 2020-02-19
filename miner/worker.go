@@ -514,11 +514,7 @@ func (w *worker) mainLoop() {
 			return
 
 		case <-w.prepareCompleteCh:
-			status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
-			log.Debug("before：", "status", status)
 			w.commitWorkEnv.setCommitStatusIdle()
-			status = atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
-			log.Debug("after：", "status", status)
 
 		case block := <-w.prepareResultCh:
 			// Short circuit when receiving empty result.
