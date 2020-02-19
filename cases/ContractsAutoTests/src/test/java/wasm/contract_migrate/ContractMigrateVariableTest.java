@@ -65,7 +65,7 @@ public class ContractMigrateVariableTest extends WASMContractPrepareTest {
             Byte newContractval = new_contractMigrate.getUint8New().send();
             collector.logStepPass("new Contract origin variable value is:" + newContractval);
             collector.assertEqual(newContractval, newval, "checkout old variable of new contract value");
-            Integer newVar = new_contractMigrate.getUint16().send();
+            short newVar = new_contractMigrate.getUint16().send();
             collector.logStepPass("new Contract new variable value is:" + newVar);
             collector.assertEqual(newVar, newvar, "checkout new variable of new contract value");
         } catch (Exception e) {
