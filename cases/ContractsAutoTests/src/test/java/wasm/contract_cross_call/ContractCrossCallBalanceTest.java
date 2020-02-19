@@ -18,7 +18,7 @@ public class ContractCrossCallBalanceTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_cross_call",sourcePrefix = "wasm")
+            author = "xujiacan", showName = "wasm.contract_cross_call_balance",sourcePrefix = "wasm")
     public void testCrossCallContract() {
 
         try {

@@ -12,7 +12,7 @@ public class ContractDelegateCallStorageVecTest extends WASMContractPrepareTest 
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_delegate_call",sourcePrefix = "wasm")
+            author = "xujiacan", showName = "wasm.contract_delegate_call_storage_vector",sourcePrefix = "wasm")
     public void testDelegateCallContract() {
 
         try {

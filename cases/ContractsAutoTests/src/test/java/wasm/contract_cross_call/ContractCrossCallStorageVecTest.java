@@ -16,7 +16,7 @@ public class ContractCrossCallStorageVecTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_cross_call",sourcePrefix = "wasm")
+            author = "xujiacan", showName = "wasm.contract_cross_call_storage_vector",sourcePrefix = "wasm")
     public void testCrossCallContract() {
 
         try {

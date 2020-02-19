@@ -11,7 +11,7 @@ public class ContractCrossCallOriginTypeTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_cross_call",sourcePrefix = "wasm")
+            author = "xujiacan", showName = "wasm.contract_cross_call_origin_type",sourcePrefix = "wasm")
     public void testCrossCallContract() {
 
         try {
@@ -25,7 +25,7 @@ public class ContractCrossCallOriginTypeTest extends WASMContractPrepareTest {
             collector.logStepPass("storge_str issued sucessfully, contractAddress:" + originAddr + ", txHash:" + originTxHash);
 
 
-            // deploy the cross_call_storage_str  contract second
+            // deploy the cross_call_origin_type  contract second
             ContractCrossCallOriginType crossCall = ContractCrossCallOriginType.deploy(web3j, transactionManager, provider).send();
 
             String crossCallAddr = crossCall.getContractAddress();

@@ -8,11 +8,11 @@ import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
 
-public class ContractCrossDelegateCallStorageStrTest  extends WASMContractPrepareTest {
+public class ContractDelegateCallStorageStrTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_delegate_call",sourcePrefix = "wasm")
+            author = "xujiacan", showName = "wasm.contract_delegate_call_storage_str",sourcePrefix = "wasm")
     public void testDelegateCallContract() {
 
         try {
