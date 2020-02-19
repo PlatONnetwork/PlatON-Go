@@ -238,4 +238,43 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             }
         }
     }
+
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.base_data_type_border",sourcePrefix = "wasm")
+    public void testBaseTypeContract_border() {
+        // 主要测试各类型的边界值
+        try {
+            // deploy contract.
+            IntegerDataTypeContract_2 contract = IntegerDataTypeContract_2.deploy(web3j, transactionManager, provider).send();
+            String contractAddress = contract.getContractAddress();
+            String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
+
+            // int8: -128 ~ 127
+            // uint: 0 ~ 255
+            // int32: -2147483648 ~ 2147483647
+            // uint32: 0 ~ 4294967295
+            // int64: -9,223,372,036,854,775,808 ~ 9,223,372,036,854,775,807
+            // uint64: 0 ~ 18,446,744,073,709,551,615
+
+            //  int8 -128 ~ 127
+            TransactionReceipt int8Tr = contract.setInt8(Int64.of(-128)).send();
+            collector.logStepPass("To invoke setInt8 success, txHash: " + int8Tr.getTransactionHash());
+            Int64 getInt8 = contract.getInt8().send();
+            collector.logStepPass("To invoke getInt8 success, getInt8: " + getInt8.getValue());
+
+
+
+        } catch (Exception e) {
+            if(e instanceof ArrayIndexOutOfBoundsException){
+                collector.logStepPass("IntegerDataTypeContract_02 and could not call contract function");
+            }else{
+                collector.logStepFail("IntegerDataTypeContract_02 failure,exception msg:" , e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
 }
