@@ -29,11 +29,11 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
 
     public static final String FUNC_GETARRAYUINTSIZE = "getArrayUintSize";
 
-    public static final String FUNC_SETBYTESARRAY = "setBytesArray";
-
     public static final String FUNC_SETINITARRAY = "setInitArray";
 
     public static final String FUNC_GETARRAYSTRINGINDEX = "getArrayStringIndex";
+
+    public static final String FUNC_SETBYTESARRAY = "setBytesArray";
 
     protected ReferenceDataTypeArrayContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -51,11 +51,6 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
     public RemoteCall<Byte> getArrayUintSize() {
         final WasmFunction function = new WasmFunction(FUNC_GETARRAYUINTSIZE, Arrays.asList(), Byte.class);
         return executeRemoteCall(function, Byte.class);
-    }
-
-    public RemoteCall<TransactionReceipt> setBytesArray() {
-        final WasmFunction function = new WasmFunction(FUNC_SETBYTESARRAY, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public static RemoteCall<ReferenceDataTypeArrayContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -76,6 +71,11 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
     public RemoteCall<String> getArrayStringIndex(Integer index) {
         final WasmFunction function = new WasmFunction(FUNC_GETARRAYSTRINGINDEX, Arrays.asList(index), String.class);
         return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<TransactionReceipt> setBytesArray() {
+        final WasmFunction function = new WasmFunction(FUNC_SETBYTESARRAY, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public static ReferenceDataTypeArrayContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

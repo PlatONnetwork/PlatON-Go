@@ -44,16 +44,6 @@ public class BasicDataIntegerTypeContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
     public RemoteCall<TransactionReceipt> setStorageInt(Int64 a, Int64 b, Int64 c, Byte d) {
         final WasmFunction function = new WasmFunction(FUNC_SETSTORAGEINT, Arrays.asList(a,b,c,d), Void.class);
         return executeRemoteCallTransaction(function);
@@ -67,6 +57,16 @@ public class BasicDataIntegerTypeContract extends WasmContract {
     public RemoteCall<Int64> getStorageInt32() {
         final WasmFunction function = new WasmFunction(FUNC_GETSTORAGEINT32, Arrays.asList(), Int64.class);
         return executeRemoteCall(function, Int64.class);
+    }
+
+    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
     public RemoteCall<Byte> getStorageUint8() {
