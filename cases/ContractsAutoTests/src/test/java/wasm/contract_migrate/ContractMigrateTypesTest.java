@@ -3,7 +3,6 @@ package wasm.contract_migrate;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractMigrate_types;
-import network.platon.contracts.wasm.ContractMigrate_v1;
 import org.junit.Test;
 import org.web3j.abi.WasmFunctionEncoder;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -43,7 +42,7 @@ public class ContractMigrateTypesTest extends WASMContractPrepareTest {
             msg.head = structvalue;
             contractMigrateTypes.setMessage(msg).send();
             
-            Integer vecEle1 = 12, vecEle2 = 13;
+            short vecEle1 = 12, vecEle2 = 13;
             contractMigrateTypes.pushVector(vecEle1).send();
             contractMigrateTypes.pushVector(vecEle2).send();
             
@@ -64,8 +63,8 @@ public class ContractMigrateTypesTest extends WASMContractPrepareTest {
             collector.logStepPass("new Contract message variable is:" + newMsg.head);
             collector.assertEqual(newMsg.head, structvalue, "check migrate struct value");
             
-            Integer newVecEle1 = new_contractMigrate.getVectorElement(Long.valueOf(0)).send();
-            Integer newVecEle2 = new_contractMigrate.getVectorElement(Long.valueOf(1)).send();
+            short newVecEle1 = new_contractMigrate.getVectorElement(Long.valueOf(0)).send();
+            short newVecEle2 = new_contractMigrate.getVectorElement(Long.valueOf(1)).send();
             collector.logStepPass("new Contract vector variable 0 is:" + newVecEle1);
             collector.logStepPass("new Contract vector variable 1 is:" + newVecEle2);
             collector.assertEqual(newVecEle1, vecEle1, "check vector variable 0");
