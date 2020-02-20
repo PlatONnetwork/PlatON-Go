@@ -1,22 +1,13 @@
 package wasm.contract_docs;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.Fibonacci;
-import network.platon.contracts.wasm.InnerFunction;
-import network.platon.contracts.wasm.InnerFunction_1;
-import network.platon.contracts.wasm.InnerFunction_2;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
 /**
  * @author zjsunzone
@@ -42,15 +33,15 @@ public class ContractFibonacciTest extends WASMContractPrepareTest {
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("Fibonacci deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             Long number = Long.valueOf(5);
-            TransactionReceipt tr = contract.fibonacci_notify(number).send();
+            TransactionReceipt tr = contract.fibonacci_notify(Uint64.of(number)).send();
             Fibonacci.NotifyEventResponse eventResponse = contract.getNotifyEvents(tr).get(0);
 
-            collector.logStepPass("To invoke fibonacci_notify success, args0: " + eventResponse.arg1.longValue()
+            collector.logStepPass("To invoke fibonacci_notify success, args0: " + eventResponse.arg1.value
                     + " args2: " + eventResponse.arg2
                     + " args3: " + eventResponse.arg3);
 
-            Long result = contract.fibonacci_call(number).send();
-            collector.logStepPass("To invoke fibonacci success, result: " + result);
+            Uint64 result = contract.fibonacci_call(Uint64.of(number)).send();
+            collector.logStepPass("To invoke fibonacci success, result: " + result.toString());
 
 
 

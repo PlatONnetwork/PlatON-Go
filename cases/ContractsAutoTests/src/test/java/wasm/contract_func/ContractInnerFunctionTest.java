@@ -1,6 +1,6 @@
 package wasm.contract_func;
 
-import com.platon.rlp.Int64;
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InnerFunction;
@@ -9,7 +9,6 @@ import network.platon.contracts.wasm.InnerFunction_2;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
@@ -45,17 +44,17 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
                     + " gasUsed:" + innerFunction.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: timestamp(bug)
-            Long timestamp = innerFunction.timestamp().send();
-            collector.logStepPass("To invoke timestamp success, timestamp: " + timestamp);
+            Uint64 timestamp = innerFunction.timestamp().send();
+            collector.logStepPass("To invoke timestamp success, timestamp: " + timestamp.getValue().toString());
 
             // test: gas_limit
-            Long gasLimit = innerFunction.gas_limit().send();
+            Uint64 gasLimit = innerFunction.gas_limit().send();
             collector.logStepPass("To invoke gas_limit success. gasLimit: " + gasLimit);
-            collector.assertFalse(provider.getGasLimit().longValue() == gasLimit.longValue());
+            collector.assertFalse(provider.getGasLimit().longValue() == gasLimit.getValue().longValue());
 
             // test: block_number
-            Long bn = innerFunction.block_number().send();
-            collector.logStepPass("To invoke block_number success, bn: " + bn);
+            Uint64 bn = innerFunction.block_number().send();
+            collector.logStepPass("To invoke block_number success, bn: " + bn.getValue().toString());
 
 
         } catch (Exception e) {
@@ -85,13 +84,13 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
                     + " gasUsed:" + innerFunction.getTransactionReceipt().get().getGasUsed().toString());
 
             // test: gas
-            Long gas = innerFunction.gas().send();
-            collector.logStepPass("To invoke gas success, gas: " + gas);
+            Uint64 gas = innerFunction.gas().send();
+            collector.logStepPass("To invoke gas success, gas: " + gas.getValue().toString());
 
             // test: nonce
             Long rnonce = web3j.platonGetTransactionCount(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getTransactionCount().longValue();
-            Long nonce = innerFunction.nonce().send();
-            collector.logStepPass("To invoke nonce success, nonce: " + nonce + " rnonce: " + rnonce);
+            Uint64 nonce = innerFunction.nonce().send();
+            collector.logStepPass("To invoke nonce success, nonce: " + nonce.getValue().toString() + " rnonce: " + rnonce);
 
             // test: block_hash
             //String bhsh = innerFunction.block_hash(Long.valueOf(100)).send();
@@ -136,7 +135,7 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             t.sendFunds(contractAddress, new BigDecimal(amount), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
             BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
-            TransactionReceipt transferTr = innerFunction.transfer(toAddress, amount).send();
+            TransactionReceipt transferTr = innerFunction.transfer(toAddress, Uint64.of(BigInteger.valueOf(amount))).send();
             BigInteger balance = web3j.platonGetBalance(toAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("To invoke transfer success, hash:" + transferTr.getTransactionHash() + " balance: " + balance);
             //collector.assertEqual(amount, balance.longValue());
