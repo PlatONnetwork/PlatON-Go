@@ -271,9 +271,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             // [{"input":100, "expect": 100, "equal":"N"}]
             JSONArray int8Cases = JSON.parseArray("["
                     + "{\"input\":-128, \"expect\": -128, \"equal\":\"Y\"}"
-                    + "{\"input\":-129, \"expect\": -129, \"equal\":\"N\"}"
+                    //+ "{\"input\":-129, \"expect\": -129, \"equal\":\"N\"}"
                     + "{\"input\":127, \"expect\": 127, \"equal\":\"Y\"}"
-                    + "{\"input\":128, \"expect\": 128, \"equal\":\"N\"}"
+                    //+ "{\"input\":128, \"expect\": 128, \"equal\":\"N\"}"
                     +"]");
             for (int i = 0; i < int8Cases.size(); i++) {
                 JSONObject testCase = int8Cases.getJSONObject(i);
@@ -285,9 +285,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 Int8 getInt8 = contract.getInt8().send();
                 collector.logStepPass("To invoke getInt8 success, getInt8: " + getInt8.getValue());
                 if(equal.equals("Y")){
-                    collector.assertEqual(getInt8.getValue(), Long.valueOf(expect).longValue());
+                    collector.assertEqual(getInt8.getValue(), (byte)expect);
                 } else {
-                    collector.assertFalse(getInt8.getValue() == Long.valueOf(expect).longValue());
+                    collector.assertFalse(getInt8.getValue() == (byte)expect);
                 }
             }
 
@@ -334,9 +334,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 Int32 getUint8 = contract.getInt32().send();
                 collector.logStepPass("To invoke getInt32 success,setInt32: "+ input +", getInt32: " + getUint8.getValue());
                 if(equal.equals("Y")){
-                    collector.assertEqual(getUint8.getValue(), Long.valueOf(expect).longValue());
+                    collector.assertEqual(getUint8.getValue(), expect);
                 } else {
-                    collector.assertFalse(getUint8.getValue() == Long.valueOf(expect).longValue());
+                    collector.assertFalse(getUint8.getValue() == expect);
                 }
             }
 
