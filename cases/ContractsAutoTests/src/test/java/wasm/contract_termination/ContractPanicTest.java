@@ -1,8 +1,8 @@
 package wasm.contract_termination;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.ContractDistory;
 import network.platon.contracts.wasm.Contract_panic;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -22,7 +22,7 @@ public class ContractPanicTest extends WASMContractPrepareTest {
     public void testPanicContract() {
 
         String name = "hudenian";
-        Long value = 3L;
+        Uint64 value = Uint64.of(3L);
         try {
             prepare();
             Contract_panic contractPanic = Contract_panic.deploy(web3j, transactionManager, provider).send();

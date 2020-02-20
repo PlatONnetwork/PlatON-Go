@@ -1,5 +1,7 @@
 package wasm.contract_migrate;
 
+import com.platon.rlp.datatypes.Uint16;
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractMigrate_types;
@@ -42,7 +44,8 @@ public class ContractMigrateTypesTest extends WASMContractPrepareTest {
             msg.head = structvalue;
             contractMigrateTypes.setMessage(msg).send();
             
-            short vecEle1 = 12, vecEle2 = 13;
+            Uint16 vecEle1 = Uint16.of(12);
+            Uint16 vecEle2 = Uint16.of(13);
             contractMigrateTypes.pushVector(vecEle1).send();
             contractMigrateTypes.pushVector(vecEle2).send();
             
@@ -52,7 +55,7 @@ public class ContractMigrateTypesTest extends WASMContractPrepareTest {
 
             String code = WasmFunctionEncoder.encodeConstructor(contractMigrateTypes.getContractBinary(), Arrays.asList());
             byte[] data = Numeric.hexStringToByteArray(code);
-            TransactionReceipt transactionReceipt = contractMigrateTypes.migrate_contract(data,0L, 90000000L).send();
+            TransactionReceipt transactionReceipt = contractMigrateTypes.migrate_contract(data, Uint64.of(0L), Uint64.of(90000000L)).send();
             collector.logStepPass("contractMigrateTypes migrate successfully hash:" + transactionReceipt.getTransactionHash());
 
             String newContractAddress = contractMigrateTypes.getTransferEvents(transactionReceipt).get(0).arg1;
@@ -62,9 +65,9 @@ public class ContractMigrateTypesTest extends WASMContractPrepareTest {
             ContractMigrate_types.Message newMsg = new_contractMigrate.getMessage().send();
             collector.logStepPass("new Contract message variable is:" + newMsg.head);
             collector.assertEqual(newMsg.head, structvalue, "check migrate struct value");
-            
-            short newVecEle1 = new_contractMigrate.getVectorElement(Long.valueOf(0)).send();
-            short newVecEle2 = new_contractMigrate.getVectorElement(Long.valueOf(1)).send();
+
+            Uint16 newVecEle1 = new_contractMigrate.getVectorElement(Uint64.of(0)).send();
+            Uint16 newVecEle2 = new_contractMigrate.getVectorElement(Uint64.of(1)).send();
             collector.logStepPass("new Contract vector variable 0 is:" + newVecEle1);
             collector.logStepPass("new Contract vector variable 1 is:" + newVecEle2);
             collector.assertEqual(newVecEle1, vecEle1, "check vector variable 0");

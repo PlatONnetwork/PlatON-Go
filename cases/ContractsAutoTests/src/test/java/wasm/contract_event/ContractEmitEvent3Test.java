@@ -1,5 +1,6 @@
 package wasm.contract_event;
 
+import com.platon.rlp.datatypes.Uint32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractEmitEvent2;
@@ -23,7 +24,7 @@ public class ContractEmitEvent3Test extends WASMContractPrepareTest {
     public void testThreeEventContract() {
 
         String name = "hudenian";
-        Integer value = 1;
+        Uint32 value = Uint32.of(1L);
         String nationality = "myNationality";
         String city = "shanghai";
         try {

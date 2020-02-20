@@ -1,5 +1,7 @@
 package wasm.contract_create;
 
+import com.platon.rlp.datatypes.Uint64;
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitWithStruct;
@@ -19,7 +21,7 @@ public class InitWithStructTest extends WASMContractPrepareTest {
     public void testNewContract() {
 
         String name = "myName";
-        Long age = 12L;
+        Uint64 age = Uint64.of(12L);
         try {
             prepare();
             InitWithStruct initWithStruct = InitWithStruct.deploy(web3j, transactionManager, provider).send();
@@ -30,7 +32,7 @@ public class InitWithStructTest extends WASMContractPrepareTest {
             transactionHash =initWithStruct.add_vector(name,age).send().getTransactionHash();
             collector.logStepPass("InitWithStructTest invoke successfully  hash:" + transactionHash);
 
-            Byte idx = 0;
+            Uint8 idx = Uint8.of(0);
             String chainName = initWithStruct.get_vector(idx).send();
             collector.assertEqual(chainName,name);
 

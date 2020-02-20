@@ -1,25 +1,18 @@
 package wasm.contract_migrate;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.autotest.utils.FileUtil;
 import network.platon.contracts.wasm.ContractMigrate_v1;
 import network.platon.contracts.wasm.ContractMigrate_v2;
 import org.junit.Test;
 import org.web3j.abi.WasmFunctionEncoder;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.rlp.RlpEncoder;
-import org.web3j.rlp.RlpString;
 import org.web3j.tx.gas.ContractGasProvider;
 import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.file.Paths;
 import java.util.Arrays;
 
 /**
@@ -58,7 +51,7 @@ public class ContractMigrateV2Test extends WASMContractPrepareTest {
             byte[] data = Numeric.hexStringToByteArray(code);
 
             //合约升级
-            TransactionReceipt transactionReceipt = contractMigratev2.migrate_contract(data,0L, 90000000L).send();
+            TransactionReceipt transactionReceipt = contractMigratev2.migrate_contract(data, Uint64.of(0L), Uint64.of(90000000L)).send();
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
 
             //获取升级后的合约地址(需要通过事件获取)

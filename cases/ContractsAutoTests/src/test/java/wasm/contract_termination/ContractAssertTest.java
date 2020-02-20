@@ -1,5 +1,6 @@
 package wasm.contract_termination;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.Contract_termination;
@@ -22,8 +23,8 @@ public class ContractAssertTest extends WASMContractPrepareTest {
 
         String nomalName = "nomalName";
         String errorName = "errorName";
-        Long nomalValue = 112L;
-        Long errorValue = 12L;
+        Uint64 nomalValue = Uint64.of(112L);
+        Uint64 errorValue = Uint64.of(12L);
         try {
             prepare();
             Contract_termination contractTermination = Contract_termination.deploy(web3j, transactionManager, provider).send();
