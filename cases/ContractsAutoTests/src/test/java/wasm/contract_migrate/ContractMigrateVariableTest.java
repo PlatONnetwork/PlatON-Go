@@ -52,7 +52,7 @@ public class ContractMigrateVariableTest extends WASMContractPrepareTest {
             collector.logStepPass("ContractMigrateVariableTest old contract variable value:" + varval);
 
             Byte newval = 23;
-            Integer newvar = 26;
+            short newvar = 26;
             String code = WasmFunctionEncoder.encodeConstructor(ContractMigrate_new.BINARY, Arrays.asList(newval, newvar));
             byte[] data = Numeric.hexStringToByteArray(code);
             TransactionReceipt transactionReceipt = contractMigrateOld.migrate_contract(data,0L, 90000000L).send();
