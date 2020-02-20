@@ -1,5 +1,6 @@
 package wasm.function;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.SpecialFunctionsB;
@@ -29,14 +30,14 @@ public class SpecialFunctionsBTest extends WASMContractPrepareTest {
             String transactionHash = specialfunctionsb.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SpecialFunctionsBTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
-            Long gas =specialfunctionsb.getPlatONGas().send();
-            collector.logStepPass("getPlatONGas函数返回值:" + gas);
-            boolean result = "0".toString().equals(gas.toString());
+            Uint64 gas =specialfunctionsb.getPlatONGas().send();
+            collector.logStepPass("getPlatONGas函数返回值:" + gas.value);
+            boolean result = "0".toString().equals(gas.value.toString());
             collector.assertEqual(result, false);
 
-            Long gaslimit = specialfunctionsb.getPlatONGasLimit().send();
-            collector.logStepPass("getPlatONGasLimit函数返回值:" + gaslimit);
-            collector.assertEqual(gaslimit, 100000000L);
+            Uint64 gaslimit = specialfunctionsb.getPlatONGasLimit().send();
+            collector.logStepPass("getPlatONGasLimit函数返回值:" + gaslimit.value);
+            collector.assertEqual(gaslimit.value, 100000000L);
 
             String gasprice = specialfunctionsb.getPlatONGasPrice().send();
             collector.logStepPass("getPlatONGasPrice函数返回值:" + gasprice);

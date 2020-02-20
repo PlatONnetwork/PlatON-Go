@@ -17,7 +17,7 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class CallerFunctionTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "wasm.SpecialFunctionsA验证链上函数platon_caller",sourcePrefix = "wasm")
+            author = "liweic", showName = "wasm.CallerFunctionTest验证链上函数platon_caller",sourcePrefix = "wasm")
     public void Callerfunction() {
 
         try {
