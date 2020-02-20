@@ -67,7 +67,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             Uint64 expect64 = Uint64.of(10000);
             Uint64 uint64 = contract.uint64t(expect64).send();
             collector.logStepPass("To invoke uint64 success, uint64: " + uint64.getValue().toString());
-            collector.assertEqual(uint64, BigInteger.valueOf(20000));
+            collector.assertEqual(uint64.getValue(), BigInteger.valueOf(20000));
 
             // test: u128
             Uint64 expect128 = Uint64.of(10000);
@@ -184,7 +184,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke setChar success, txHash: " + charTr.getTransactionHash());
             Int8 getChar = contract.getChar().send();
             collector.logStepPass("To invoke getChar success, getChar: " + getChar.getValue());
-            collector.assertEqual(getChar.getValue(), expectByte.longValue());
+            collector.assertEqual(getChar.getValue(), expectByte.byteValue());
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
@@ -296,7 +296,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                     + "{\"input\":0, \"expect\": 0, \"equal\":\"Y\"}"
                     //+ "{\"input\":254, \"expect\": 254, \"equal\":\"Y\"}" // return: -2
                     + "{\"input\":255, \"expect\": 255, \"equal\":\"N\"}"
-                    + "{\"input\":256, \"expect\": 256, \"equal\":\"N\"}"
+                    //+ "{\"input\":256, \"expect\": 256, \"equal\":\"N\"}"
                     +"]");
             for (int i = 0; i < uint8Cases.size(); i++) {
                 JSONObject testCase = uint8Cases.getJSONObject(i);
