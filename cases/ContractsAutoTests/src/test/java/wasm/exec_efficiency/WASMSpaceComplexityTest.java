@@ -1,6 +1,6 @@
 package wasm.exec_efficiency;
 
-import com.platon.rlp.Int64;
+import com.platon.rlp.Int8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.SpaceComplexity;
@@ -31,19 +31,20 @@ public class WASMSpaceComplexityTest extends WASMContractPrepareTest {
             contractAddress = spaceComplexity.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
 
-            Int64[] arr = new Int64[]{Int64.of(1), Int64.of(-1), Int64.of(5), Int64.of(8), Int64.of(10),
-                    Int64.of(11), Int64.of(20), Int64.of(30), Int64.of(38), Int64.of(10)};
+            Int8[] arr = new Int8[]{Int8.of((byte) 1), Int8.of((byte) -1), Int8.of((byte) 5),
+                    Int8.of((byte) 8), Int8.of((byte) 10), Int8.of((byte) 11), Int8.of((byte) 20),
+                    Int8.of((byte) 30), Int8.of((byte) 32), Int8.of((byte) 127)};
             TransactionReceipt transactionReceipt = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider)
-                    .sort(arr, Int64.of(-1)).send();
+                    .sort(arr, Int8.of((byte) 0), Int8.of((byte) 9)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
             collector.logStepPass("gasUsed:" + gasUsed);
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            Int64[] generationArr = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider).get_array().send();
+            Int8[] generationArr = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider).get_array().send();
 
-            for (Int64 ele : generationArr) {
+            for (Int8 ele : generationArr) {
                 System.out.print(ele.value + ",");
             }
         } catch (Exception e) {

@@ -44,8 +44,8 @@ CONTRACT SpaceComplexity : public platon::Contract {
             return array;
         }
 
-        ACTION void sort(std::array<int8_t, 10> arr, int8_t start) {
-            storage_array_int8.self() = quickSort(arr, start, 10);
+        ACTION void sort(std::array<int8_t, 10>& arr, int8_t start, int8_t last) {
+            storage_array_int8.self() = quickSort(arr, start, last);
         }
 
         CONST std::array<int8_t, 10> get_array() {
