@@ -283,17 +283,18 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 TransactionReceipt int8Tr = contract.setInt8(Int8.of((byte)input)).send();
                 collector.logStepPass("To invoke setInt8 success, txHash: " + int8Tr.getTransactionHash());
                 Int8 getInt8 = contract.getInt8().send();
-                collector.logStepPass("To invoke getInt8 success, getInt8: " + getInt8.getValue());
+                collector.logStepPass("To invoke getInt8 success, setInt8: " + input+ " getInt8: " + getInt8.getValue());
                 if(equal.equals("Y")){
-                    collector.assertEqual(getInt8.getValue(), Long.valueOf(expect).longValue());
+                    collector.assertEqual(getInt8.getValue(), (byte)expect);
                 } else {
-                    collector.assertFalse(getInt8.getValue() == Long.valueOf(expect).longValue());
+                    boolean eq = (int)getInt8.getValue() != expect;
+                    collector.assertTrue(eq);
                 }
             }
 
             // uint8: 0 ~ 255
             JSONArray uint8Cases = JSON.parseArray("["
-                    //+ "{\"input\":-1, \"expect\": -1, \"equal\":\"N\"}"
+                    //+ "{\"input\":-1, \"expect\": -1, \"equal\":\"N\"}" // error: 
                     + "{\"input\":0, \"expect\": 0, \"equal\":\"Y\"}"
                     //+ "{\"input\":254, \"expect\": 254, \"equal\":\"Y\"}" // return: -2
                     + "{\"input\":255, \"expect\": 255, \"equal\":\"N\"}"
@@ -307,11 +308,11 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 TransactionReceipt int8Tr = contract.setUint8(Byte.valueOf((byte)input)).send();
                 collector.logStepPass("To invoke setUint8 success, txHash: " + int8Tr.getTransactionHash());
                 Byte getUint8 = contract.getUint8().send();
-                collector.logStepPass("To invoke getUint8 success,setUint8: "+ input +", getUint8: " + getUint8.longValue());
+                collector.logStepPass("To invoke getUint8 success, setUint8: "+ input +", getUint8: " + getUint8.longValue());
                 if(equal.equals("Y")){
                     collector.assertEqual(getUint8.longValue(), Long.valueOf(expect).longValue());
                 } else {
-                    collector.assertFalse(getUint8.longValue() == Long.valueOf(expect).longValue());
+                    collector.assertFalse(getUint8.intValue() == expect);
                 }
             }
 
@@ -334,9 +335,9 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 Int32 getUint8 = contract.getInt32().send();
                 collector.logStepPass("To invoke getInt32 success,setInt32: "+ input +", getInt32: " + getUint8.getValue());
                 if(equal.equals("Y")){
-                    collector.assertEqual(getUint8.getValue(), Long.valueOf(expect).longValue());
+                    collector.assertEqual(getUint8.getValue(), expect);
                 } else {
-                    collector.assertFalse(getUint8.getValue() == Long.valueOf(expect).longValue());
+                    collector.assertFalse(getUint8.getValue() == expect);
                 }
             }
 
