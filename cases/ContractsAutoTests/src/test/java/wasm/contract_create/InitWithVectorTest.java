@@ -20,7 +20,7 @@ public class InitWithVectorTest extends WASMContractPrepareTest {
             author = "hudenian", showName = "wasm.contract_create创建合约init带vector",sourcePrefix = "wasm")
     public void testNewContract() {
 
-        int age = 20;
+        short age = 20;
 
         try {
             prepare();
