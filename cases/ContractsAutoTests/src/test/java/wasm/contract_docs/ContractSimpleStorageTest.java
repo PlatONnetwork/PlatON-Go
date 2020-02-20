@@ -1,22 +1,13 @@
 package wasm.contract_docs;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.InnerFunction;
-import network.platon.contracts.wasm.InnerFunction_1;
-import network.platon.contracts.wasm.InnerFunction_2;
 import network.platon.contracts.wasm.SimpleStorage;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
 /**
  * @author zjsunzone
@@ -41,11 +32,11 @@ public class ContractSimpleStorageTest extends WASMContractPrepareTest {
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SimpleStorage issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
-            TransactionReceipt tr = contract.set(Long.valueOf(10000)).send();
+            TransactionReceipt tr = contract.set(Uint64.of(10000)).send();
             collector.logStepPass("To invoke set success, txHash: " + tr.getTransactionHash());
-            Long result = contract.get().send();
-            collector.logStepPass("To invoke get success, result: " + result.longValue());
-            collector.assertEqual(result.longValue(), Long.valueOf(10000).longValue());
+            Uint64 result = contract.get().send();
+            collector.logStepPass("To invoke get success, result: " + result.value.toString());
+            collector.assertEqual(result.value.toString(), "10000");
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){

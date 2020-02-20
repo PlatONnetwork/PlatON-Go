@@ -3,10 +3,7 @@ package wasm.data_type;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.platon.rlp.Int16;
-import com.platon.rlp.Int32;
-import com.platon.rlp.Int64;
-import com.platon.rlp.Int8;
+import com.platon.rlp.datatypes.*;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.IntegerDataTypeContract_1;
@@ -15,10 +12,11 @@ import network.platon.contracts.wasm.IntegerDataTypeContract_3;
 import network.platon.contracts.wasm.IntegerDataTypeContract_4;
 import org.junit.Before;
 import org.junit.Test;
-import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
+
+import java.math.BigInteger;
 
 /**
  * @author zjsunzone
@@ -48,40 +46,40 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
             // test: int8
             Int16 int8 = contract.int8().send();
-            collector.logStepPass("To invoke int8 success, int8: " + int8.value);
+            collector.logStepPass("To invoke int8 success, int8: " + int8.getValue());
 
             // test: int64
             Int64 int64 = contract.int64().send();
-            collector.logStepPass("To invoke int8 success, int64: " + int64);
+            collector.logStepPass("To invoke int8 success, int64: " + int64.getValue());
 
             // test uint8
-            Byte expectByt8 = Byte.valueOf((byte) 10);
-            Byte uint8 = contract.uint8t(expectByt8).send();
-            collector.logStepPass("To invoke uint8 success, uint8: " + uint8.byteValue());
+            Uint8 expectByt8 = Uint8.of(10);
+            Uint8 uint8 = contract.uint8t(expectByt8).send();
+            collector.logStepPass("To invoke uint8 success, uint8: " + uint8.getValue().toString());
 
             // test: uint32
-            Integer expectByt32 = 1000;
-            Integer uint32 = contract.uint32t(expectByt32).send();
-            collector.logStepPass("To invoke uint32 success, uint32: " + uint32.intValue());
-            collector.assertEqual(uint32, expectByt32 * 2);
+            Uint32 expectByt32 = Uint32.of(1000);
+            Uint32 uint32 = contract.uint32t(expectByt32).send();
+            collector.logStepPass("To invoke uint32 success, uint32: " + uint32.getValue());
+            collector.assertEqual(uint32.getValue(), BigInteger.valueOf(2000));
 
             // test: uint64
-            Long expect64 = Long.valueOf(10000);
-            Long uint64 = contract.uint64t(expect64).send();
-            collector.logStepPass("To invoke uint64 success, uint64: " + uint64.longValue());
-            collector.assertEqual(uint64, expect64 * 2);
+            Uint64 expect64 = Uint64.of(10000);
+            Uint64 uint64 = contract.uint64t(expect64).send();
+            collector.logStepPass("To invoke uint64 success, uint64: " + uint64.getValue().toString());
+            collector.assertEqual(uint64, BigInteger.valueOf(20000));
 
             // test: u128
-            Long expect128 = Long.valueOf(10000);
+            Uint64 expect128 = Uint64.of(10000);
             String u128 = contract.u128t(expect128).send();
             collector.logStepPass("To invoke uint64 success, u128: " + u128);
-            collector.assertEqual(u128, expect128.toString());
+            collector.assertEqual(u128, expect128.getValue().toString());
 
             // test: u256
-            Long expect256 = Long.valueOf(10000);
+            Uint64 expect256 = Uint64.of(10000);
             String u256 = contract.u256t(expect256).send();
             collector.logStepPass("To invoke u256t success, u256: " + u128);
-            collector.assertEqual(u256, expect256.toString());
+            collector.assertEqual(u256, expect256.getValue().toString());
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
@@ -127,22 +125,22 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
             // ======================= uint =======================
             //  uint8
-            TransactionReceipt uint8Tr = contract.setUint8(Byte.valueOf((byte) 2)).send();
+            TransactionReceipt uint8Tr = contract.setUint8(Uint8.of(2)).send();
             collector.logStepPass("To invoke setUint8 success, txHash: " + uint8Tr.getTransactionHash());
-            Byte getUint8 = contract.getUint8().send();
-            collector.logStepPass("To invoke getUint8 8 success, getUint8: " + getUint8.byteValue());
+            Uint8 getUint8 = contract.getUint8().send();
+            collector.logStepPass("To invoke getUint8 8 success, getUint8: " + getUint8.getValue().toString());
 
             //  uint32
-            TransactionReceipt uint32Tr = contract.setUint32(100).send();
+            TransactionReceipt uint32Tr = contract.setUint32(Uint32.of(100)).send();
             collector.logStepPass("To invoke setuUint32 success, txHash: " + uint32Tr.getTransactionHash());
-            Integer getUint32 = contract.getUint32().send();
-            collector.logStepPass("To invoke getUint32 success, getUint32: " + getUint32);
+            Uint32 getUint32 = contract.getUint32().send();
+            collector.logStepPass("To invoke getUint32 success, getUint32: " + getUint32.getValue().toString());
 
             // uint64
-            TransactionReceipt uint64Tr = contract.setUint64(Long.valueOf("1111111111")).send();
+            TransactionReceipt uint64Tr = contract.setUint64(Uint64.of("1111111111")).send();
             collector.logStepPass("To invoke setUint64 success, txHash: " + uint64Tr.getTransactionHash());
-            Long getUint64 = contract.getUint64().send();
-            collector.logStepPass("To invoke getUint64 success, getUint64: " + getUint64);
+            Uint64 getUint64 = contract.getUint64().send();
+            collector.logStepPass("To invoke getUint64 success, getUint64: " + getUint64.getValue().toString());
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
@@ -222,7 +220,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
             // test: store u256
             String expectU256 = "100000";
-            TransactionReceipt u256TR = contract.setU256(Long.valueOf(expectU256)).send();
+            TransactionReceipt u256TR = contract.setU256(Uint64.of(expectU256)).send();
             collector.logStepPass("To invoke setU256 success, txHash: " + u256TR.getTransactionHash());
             String getU256 = contract.getU256().send();
             collector.logStepPass("To invoke getU256 success, getU256: " + getU256);
@@ -305,14 +303,14 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 int input = testCase.getIntValue("input");
                 int expect = testCase.getIntValue("expect");
                 String equal = testCase.getString("equal");
-                TransactionReceipt int8Tr = contract.setUint8(Byte.valueOf((byte)input)).send();
+                TransactionReceipt int8Tr = contract.setUint8(Uint8.of(input)).send();
                 collector.logStepPass("To invoke setUint8 success, txHash: " + int8Tr.getTransactionHash());
-                Byte getUint8 = contract.getUint8().send();
-                collector.logStepPass("To invoke getUint8 success, setUint8: "+ input +", getUint8: " + getUint8.longValue());
+                Uint8 getUint8 = contract.getUint8().send();
+                collector.logStepPass("To invoke getUint8 success, setUint8: "+ input +", getUint8: " + getUint8.getValue().toString());
                 if(equal.equals("Y")){
-                    collector.assertEqual(getUint8.longValue(), Long.valueOf(expect).longValue());
+                    collector.assertEqual(getUint8.getValue().toString(), String.valueOf(expect));
                 } else {
-                    collector.assertFalse(getUint8.intValue() == expect);
+                    collector.assertFalse(getUint8.getValue() == BigInteger.valueOf(expect));
                 }
             }
 
@@ -353,14 +351,14 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 String input = testCase.getString("input");
                 String expect = testCase.getString("expect");
                 String equal = testCase.getString("equal");
-                TransactionReceipt tr = contract.setUint32(Integer.valueOf(input)).send();
+                TransactionReceipt tr = contract.setUint32(Uint32.of(input)).send();
                 collector.logStepPass("To invoke setUint32 success, txHash: " + tr.getTransactionHash());
-                Integer getReturn = contract.getUint32().send();
+                Uint32 getReturn = contract.getUint32().send();
                 collector.logStepPass("To invoke getUint32 success,setUint32: "+ input +", getUint32: " + getReturn);
                 if(equal.equals("Y")){
-                    collector.assertEqual(getReturn.toString(), expect);
+                    collector.assertEqual(getReturn.getValue().toString(), expect);
                 } else {
-                    collector.assertFalse(getReturn.toString().equals(expect));
+                    collector.assertFalse(getReturn.getValue().toString().equals(expect));
                 }
             }
 
@@ -399,14 +397,14 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                 String input = testCase.getString("input");
                 String expect = testCase.getString("expect");
                 String equal = testCase.getString("equal");
-                TransactionReceipt tr = contract.setUint64(Long.valueOf(input)).send();
+                TransactionReceipt tr = contract.setUint64(Uint64.of(input)).send();
                 collector.logStepPass("To invoke setUint64 success, txHash: " + tr.getTransactionHash());
-                Long getReturn = contract.getUint64().send();
-                collector.logStepPass("To invoke setUint64 success,setUint64: "+ input +", getUint64: " + getReturn.longValue());
+                Uint64 getReturn = contract.getUint64().send();
+                collector.logStepPass("To invoke setUint64 success,setUint64: "+ input +", getUint64: " + getReturn.getValue().toString());
                 if(equal.equals("Y")){
-                    collector.assertEqual(getReturn.longValue(), Long.valueOf(expect).longValue());
+                    collector.assertEqual(getReturn.getValue(), new BigInteger(expect));
                 } else {
-                    collector.assertFalse(getReturn.longValue() == Long.valueOf(expect).longValue());
+                    collector.assertFalse(getReturn.getValue().compareTo(new BigInteger(expect)) == 0);
                 }
             }
 
