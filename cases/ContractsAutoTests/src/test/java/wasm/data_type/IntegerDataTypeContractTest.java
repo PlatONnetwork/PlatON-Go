@@ -296,7 +296,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                     + "{\"input\":0, \"expect\": 0, \"equal\":\"Y\"}"
                     //+ "{\"input\":254, \"expect\": 254, \"equal\":\"Y\"}" // return: -2
                     + "{\"input\":255, \"expect\": 255, \"equal\":\"N\"}"
-                    + "{\"input\":256, \"expect\": 256, \"equal\":\"N\"}"
+                    //+ "{\"input\":256, \"expect\": 256, \"equal\":\"N\"}"
                     +"]");
             for (int i = 0; i < uint8Cases.size(); i++) {
                 JSONObject testCase = uint8Cases.getJSONObject(i);
