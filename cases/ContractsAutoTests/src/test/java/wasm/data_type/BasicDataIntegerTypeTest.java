@@ -1,11 +1,15 @@
 package wasm.data_type;
 
+import com.platon.rlp.Int16;
+import com.platon.rlp.Int32;
 import com.platon.rlp.Int64;
+import com.platon.rlp.Int8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.BasicDataIntegerTypeContract;
 import org.junit.Before;
 import org.junit.Test;
+
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
 
@@ -52,9 +56,13 @@ public class BasicDataIntegerTypeTest extends WASMContractPrepareTest {
         //调用合约方法
         try {
             //1、验证：整型有符号/无符号类型
-            Int64 a = Int64.of(Integer.parseInt(aValue));
-            Int64 b = Int64.of(Integer.parseInt(bValue));
-            Int64 c = Int64.of(Integer.parseInt(cValue));
+          /*  Int8 a = new Int8(Long.parseLong(aValue));
+            Int16 b = new Int16(Long.parseLong(bValue));
+            Int32 c = new Int32(Long.parseLong(cValue));*/
+
+            Int8 a = Int8.of(Byte.parseByte(aValue));
+            Int16 b = Int16.of(Byte.parseByte(bValue));
+            Int32 c = Int32.of(Byte.parseByte(cValue));
             Byte d = Byte.parseByte(dValue);
             TransactionReceipt  transactionReceipt = basicDataIntegerTypeContract.setStorageInt(a,b,c,d).send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证整型有符号/无符号类型】 successfully hash:" + transactionReceipt.getTransactionHash());
@@ -63,17 +71,17 @@ public class BasicDataIntegerTypeTest extends WASMContractPrepareTest {
             collector.logStepPass("basicDataIntegerTypeContract 【验证整数uint8取值】 执行getStorageUint8() successfully actualValue:" + actualUint8Value);
             collector.assertEqual(actualUint8Value,d, "checkout  execute success.");
             //3、验证：整型int8_t取值
-            Int64 actualInt8Value = basicDataIntegerTypeContract.getStorageInt8().send();
+            Int8 actualInt8Value = basicDataIntegerTypeContract.getStorageInt8().send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证整数int8_t取值】 执行getStorageInt8() successfully actualInt8Value:" + actualInt8Value.getValue());
-            collector.assertEqual(actualInt8Value.getValue(),a.value, "checkout  execute success.");
+            collector.assertEqual(actualInt8Value.getValue(),a.getValue(), "checkout  execute success.");
             //4、验证：整型int16_t取值
-            Int64 actualInt16Value = basicDataIntegerTypeContract.getStorageInt16().send();
+            Int16 actualInt16Value = basicDataIntegerTypeContract.getStorageInt16().send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证整型int16_t取值】 执行getStorageInt16() successfully actualInt16Value:" + actualInt16Value.getValue());
-            collector.assertEqual(actualInt16Value.getValue(),b.value, "checkout  execute success.");
+            collector.assertEqual(actualInt16Value.getValue(),b.getValue(), "checkout  execute success.");
             //4、验证：整型int32_t取值
-            Int64 actualInt32Value = basicDataIntegerTypeContract.getStorageInt32().send();
+           /* Int32 actualInt32Value = basicDataIntegerTypeContract.getStorageInt32().send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证整型int32_t取值】 执行getStorageInt32() successfully actualInt32Value:" + actualInt32Value.getValue());
-            collector.assertEqual(actualInt32Value.getValue(),c.value, "checkout  execute success.");
+            collector.assertEqual(actualInt32Value,c, "checkout  execute success.");*/
 
             //5、验证：无符号整数位数
           /*  TransactionReceipt  transactionReceipt1 = basicDataIntegerTypeContract.setUint().send();
