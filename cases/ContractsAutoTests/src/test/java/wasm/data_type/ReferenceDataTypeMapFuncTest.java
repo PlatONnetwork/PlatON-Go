@@ -1,5 +1,6 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeMapFuncContract;
@@ -8,6 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
+
+import java.math.BigInteger;
 
 /**
  * @title map属性方法
@@ -62,35 +65,35 @@ public class ReferenceDataTypeMapFuncTest extends WASMContractPrepareTest {
         //调用合约方法
         try {
             //1、验证：map循环新增值
-          TransactionReceipt  transactionReceipt = referenceDataTypeMapFuncContract.addMapByUint(new Byte(cycleNum)).send();
+          TransactionReceipt  transactionReceipt = referenceDataTypeMapFuncContract.addMapByUint(Uint8.of(cycleNum)).send();
             collector.logStepPass("referenceDataTypeMapFuncContract 【验证map循环新增值】 successfully hash:" + transactionReceipt.getTransactionHash());
             //2、验证：循环map容器数量
-            Byte actualValueSize = referenceDataTypeMapFuncContract.getMapBySize().send();
+            Uint8 actualValueSize = referenceDataTypeMapFuncContract.getMapBySize().send();
             collector.logStepPass("referenceDataTypeMapFuncContract 【验证循环map容器数量】 执行getMapBySize() actualValueSize:" + actualValueSize);
-            collector.assertEqual(actualValueSize,new Byte(cycleMapNum), "checkout  execute success.");
+            collector.assertEqual(actualValueSize.getValue(),new BigInteger(cycleMapNum), "checkout  execute success.");
             //3、验证：map容器删除指定值
-            TransactionReceipt transactionReceipt1 = referenceDataTypeMapFuncContract.deleteMapByIndex(new Byte(deleteIndex)).send();
+            TransactionReceipt transactionReceipt1 = referenceDataTypeMapFuncContract.deleteMapByIndex(Uint8.of(deleteIndex)).send();
             collector.logStepPass("referenceDataTypeMapFuncContract 【验证map容器删除指定值】 successfully hash:" + transactionReceipt1.getTransactionHash());
             //获取删除容器数量
-            Byte actualValueSize1 = referenceDataTypeMapFuncContract.getMapBySize().send();
+            Uint8 actualValueSize1 = referenceDataTypeMapFuncContract.getMapBySize().send();
             collector.logStepPass("referenceDataTypeMapFuncContract 【验证删除map容器数量】 执行getMapBySize() actualValueSize1:" + actualValueSize1);
-            collector.assertEqual(actualValueSize1,new Byte(deleteMapNum), "checkout  execute success.");
+            collector.assertEqual(actualValueSize1.getValue(),new BigInteger(deleteMapNum), "checkout  execute success.");
 
             //4、验证：map容器插入方法insert()
-            TransactionReceipt  transactionReceipt2 = referenceDataTypeMapFuncContract.insertMapUint(new Byte(insertKey),insertValue).send();
+            TransactionReceipt  transactionReceipt2 = referenceDataTypeMapFuncContract.insertMapUint(Uint8.of(insertKey),insertValue).send();
             collector.logStepPass("referenceDataTypeMapFuncContract 【验证map容器插入方法insert()】 执行insertMap() successfully hash:" + transactionReceipt2.getTransactionHash());
             //数量
-            Byte actualValueSize2 = referenceDataTypeMapFuncContract.getMapBySize().send();
+            Uint8 actualValueSize2 = referenceDataTypeMapFuncContract.getMapBySize().send();
             collector.logStepPass("referenceDataTypeMapFuncContract 【验证map容器插入元素数量】 执行getMapBySize() actualValueSize2:" + actualValueSize2);
-            collector.assertEqual(actualValueSize2,new Byte(insertMapNum), "checkout  execute success.");
+            collector.assertEqual(actualValueSize2.getValue(),new BigInteger(insertMapNum), "checkout  execute success.");
 
             //5、验证map清空方法clear()
             TransactionReceipt  transactionReceipt3 = referenceDataTypeMapFuncContract.clearMapUint().send();
             collector.logStepPass("referenceDataTypeMapFuncContract 【验证map清空方法clear()】 执行clearMapString() successfully hash:" + transactionReceipt3.getTransactionHash());
             //数量
-            Byte actualValueSize3 = referenceDataTypeMapFuncContract.getMapBySize().send();
+            Uint8 actualValueSize3 = referenceDataTypeMapFuncContract.getMapBySize().send();
             collector.logStepPass("referenceDataTypeMapFuncContract 【验证map容器清空数量】 执行getMapStringByKeySize() actualValueSize3:" + actualValueSize3);
-            collector.assertEqual(actualValueSize3,new Byte(clearMapNum), "checkout  execute success.");
+            collector.assertEqual(actualValueSize3.getValue(),new BigInteger(clearMapNum), "checkout  execute success.");
             //6、验证map容器判断空
             boolean actualValue4 = referenceDataTypeMapFuncContract.getMapIsEmpty().send();
             collector.logStepPass("referenceDataTypeMapFuncContract 【验证map容器判断空】 执行getMapIsEmpty() actualValue4:" + actualValue4);

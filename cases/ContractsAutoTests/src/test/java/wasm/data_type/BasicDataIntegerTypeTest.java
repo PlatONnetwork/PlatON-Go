@@ -1,9 +1,10 @@
 package wasm.data_type;
 
-import com.platon.rlp.Int16;
-import com.platon.rlp.Int32;
-import com.platon.rlp.Int64;
-import com.platon.rlp.Int8;
+
+import com.platon.rlp.datatypes.Int16;
+import com.platon.rlp.datatypes.Int32;
+import com.platon.rlp.datatypes.Int8;
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.BasicDataIntegerTypeContract;
@@ -56,18 +57,14 @@ public class BasicDataIntegerTypeTest extends WASMContractPrepareTest {
         //调用合约方法
         try {
             //1、验证：整型有符号/无符号类型
-          /*  Int8 a = new Int8(Long.parseLong(aValue));
-            Int16 b = new Int16(Long.parseLong(bValue));
-            Int32 c = new Int32(Long.parseLong(cValue));*/
-
             Int8 a = Int8.of(Byte.parseByte(aValue));
             Int16 b = Int16.of(Byte.parseByte(bValue));
             Int32 c = Int32.of(Byte.parseByte(cValue));
-            Byte d = Byte.parseByte(dValue);
+            Uint8 d = Uint8.of(dValue);
             TransactionReceipt  transactionReceipt = basicDataIntegerTypeContract.setStorageInt(a,b,c,d).send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证整型有符号/无符号类型】 successfully hash:" + transactionReceipt.getTransactionHash());
             //2、验证：整型uint8_t取值
-            Byte actualUint8Value = basicDataIntegerTypeContract.getStorageUint8().send();
+            Uint8 actualUint8Value = basicDataIntegerTypeContract.getStorageUint8().send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证整数uint8取值】 执行getStorageUint8() successfully actualValue:" + actualUint8Value);
             collector.assertEqual(actualUint8Value,d, "checkout  execute success.");
             //3、验证：整型int8_t取值

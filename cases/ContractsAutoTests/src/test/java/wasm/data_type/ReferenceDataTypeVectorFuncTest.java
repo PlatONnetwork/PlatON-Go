@@ -1,5 +1,6 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeVectorContract;
@@ -76,13 +77,13 @@ public class ReferenceDataTypeVectorFuncTest extends WASMContractPrepareTest {
             getVectorLength(referenceDataTypeVectorFuncContract,vectorLength1);
 
             //2、验证：(增加函数)指定位置插入多个相同数据
-            TransactionReceipt  transactionReceipt1 = referenceDataTypeVectorFuncContract.insertVectorMangValue(Long.parseLong(insertNum2),insertValue2).send();
+            TransactionReceipt  transactionReceipt1 = referenceDataTypeVectorFuncContract.insertVectorMangValue(Uint64.of(insertNum2),insertValue2).send();
             collector.logStepPass("referenceDataTypeVectorFuncContract 【验证(增加函数)指定位置插入多个相同数据】 successfully hash:" + transactionReceipt1.getTransactionHash());
             //vector类型获取容器大小
             getVectorLength(referenceDataTypeVectorFuncContract,vectorLength2);
 
             //3、验证at()函数，返回index位置元素的引用 [two,two,one]
-            String actualVectorAtValue = referenceDataTypeVectorFuncContract.findVectorAt(Long.parseLong(expectValueAtIndex)).send();
+            String actualVectorAtValue = referenceDataTypeVectorFuncContract.findVectorAt(Uint64.of(expectValueAtIndex)).send();
             collector.logStepPass("referenceDataTypeVectorFuncContract 【验证at()函数，返回index位置元素的引用】 执行findVectorAt() successfully actualVectorAtValue:" + actualVectorAtValue);
             collector.assertEqual(actualVectorAtValue,expectValueAtValue, "checkout execute success.");
 
@@ -123,11 +124,10 @@ public class ReferenceDataTypeVectorFuncTest extends WASMContractPrepareTest {
 
     public void getVectorLength(ReferenceDataTypeVectorFuncContract referenceDataTypeVectorFuncContract,String vectorLength){
 
-            Long expectValue = Long.parseLong(vectorLength);
         try {
-            Long actualVectorLength = referenceDataTypeVectorFuncContract.getVectorLength().send();
+            Uint64 actualVectorLength = referenceDataTypeVectorFuncContract.getVectorLength().send();
             collector.logStepPass("referenceDataTypeVectorFuncContract 【验证vector类型获取容器大小】 执行getVectorLength() successfully actualVectorLength:" + actualVectorLength);
-            collector.assertEqual(actualVectorLength,expectValue, "checkout execute success.");
+            collector.assertEqual(actualVectorLength,Uint64.of(vectorLength), "checkout execute success.");
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("referenceDataTypeVectorFuncContract Calling Method fail.", e.toString());
