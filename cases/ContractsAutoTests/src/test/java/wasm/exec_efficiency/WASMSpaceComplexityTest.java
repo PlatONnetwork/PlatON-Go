@@ -1,16 +1,13 @@
 package wasm.exec_efficiency;
 
-import com.platon.rlp.Int8;
+import com.platon.rlp.datatypes.Int8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.SpaceComplexity;
-import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
-
 import java.math.BigInteger;
-import java.util.Arrays;
 
 /**
  * @title SpaceComplexityTest
