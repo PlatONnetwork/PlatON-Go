@@ -1,5 +1,6 @@
 package wasm.function;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.SpecialFunctionsA;
@@ -29,9 +30,9 @@ public class SpecialFunctionsATest extends WASMContractPrepareTest {
             String transactionHash = specialfunctionsa.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SpecialFunctionsATest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
-            Long blocknumber =specialfunctionsa.getBlockNumber().send();
-            collector.logStepPass("getPlatONGas函数返回值:" + blocknumber);
-            boolean result = "0".toString().equals(blocknumber.toString());
+            Uint64 blocknumber =specialfunctionsa.getBlockNumber().send();
+            collector.logStepPass("getPlatONGas函数返回值:" + blocknumber.value);
+            boolean result = "0".toString().equals(blocknumber.value.toString());
             collector.assertEqual(result, false);
 
             //bug
