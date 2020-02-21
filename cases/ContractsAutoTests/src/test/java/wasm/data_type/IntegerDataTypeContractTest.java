@@ -292,11 +292,11 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
             // uint8: 0 ~ 255
             JSONArray uint8Cases = JSON.parseArray("["
-                    //+ "{\"input\":-1, \"expect\": -1, \"equal\":\"N\"}" // error: 
+                    //+ "{\"input\":-1, \"expect\": -1, \"equal\":\"N\"}" // pass:
                     + "{\"input\":0, \"expect\": 0, \"equal\":\"Y\"}"
                     //+ "{\"input\":254, \"expect\": 254, \"equal\":\"Y\"}" // return: -2
                     + "{\"input\":255, \"expect\": 255, \"equal\":\"N\"}"
-                    //+ "{\"input\":256, \"expect\": 256, \"equal\":\"N\"}"
+                    //+ "{\"input\":256, \"expect\": 256, \"equal\":\"N\"}" // pass.
                     +"]");
             for (int i = 0; i < uint8Cases.size(); i++) {
                 JSONObject testCase = uint8Cases.getJSONObject(i);
@@ -315,35 +315,37 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             }
 
             // int32: -2147483648 ~ 2147483647
-            // uint32: 0 ~ 4294967295
             // int32
             JSONArray int32Cases = JSON.parseArray("["
-                    + "{\"input\": -2147483648, \"expect\": -2147483648, \"equal\":\"Y\"}"
-                    + "{\"input\": 2147483647, \"expect\": 2147483647, \"equal\":\"Y\"}"
-                    + "{\"input\":0, \"expect\": 0, \"equal\":\"Y\"}"
-                    //+ "{\"input\":2147483648, \"expect\": 2147483648, \"equal\":\"N\"}"
+                    //+ "{\"input\": \"-2147483649\", \"expect\": \"-2147483649\", \"equal\":\"N\"}" // pass.
+                    + "{\"input\": \"-2147483648\", \"expect\": \"-2147483648\", \"equal\":\"Y\"}"  // right
+                    + "{\"input\": \"2147483647\", \"expect\": \"2147483647\", \"equal\":\"Y\"}"
+                    + "{\"input\":\"0\", \"expect\": \"0\", \"equal\":\"Y\"}"
+                    //+ "{\"input\": \"2147483648\", \"expect\": \"2147483648\", \"equal\":\"N\"}"
                     +"]");
             for (int i = 0; i < int32Cases.size(); i++) {
                 JSONObject testCase = int32Cases.getJSONObject(i);
-                int input = testCase.getIntValue("input");
-                int expect = testCase.getIntValue("expect");
+                String input = testCase.getString("input");
+                String expect = testCase.getString("expect");
                 String equal = testCase.getString("equal");
-                TransactionReceipt tr = contract.setInt32(Int32.of(input)).send();
+                TransactionReceipt tr = contract.setInt32(Int32.of(Long.valueOf(input))).send();
                 collector.logStepPass("To invoke setInt32 success, txHash: " + tr.getTransactionHash());
-                Int32 getUint8 = contract.getInt32().send();
-                collector.logStepPass("To invoke getInt32 success,setInt32: "+ input +", getInt32: " + getUint8.getValue());
+                Int32 getInt32 = contract.getInt32().send();
+                collector.logStepPass("To invoke getInt32 success,setInt32: "+ input +", getInt32: " + getInt32.toString());
                 if(equal.equals("Y")){
-                    collector.assertEqual(getUint8.getValue(), expect);
+                    collector.assertEqual(getInt32.getValue(), Integer.valueOf(expect));
                 } else {
-                    collector.assertFalse(getUint8.getValue() == expect);
+                    collector.assertFalse(getInt32.toString().equals(expect));
                 }
             }
 
             // uint32: 0 ~ 4294967295
             // uint32
             JSONArray uint32Cases = JSON.parseArray("["
-                    //+ "{\"input\": \"-1\", \"expect\": \"-1\", \"equal\":\"N\"}"
+                    //+ "{\"input\": \"-1\", \"expect\": \"-1\", \"equal\":\"N\"}"  // pass
                     //+ "{\"input\": \"4294967294\", \"expect\": \"4294967294\", \"equal\":\"Y\"}"
+                    + "{\"input\": \"4294967295\", \"expect\": \"4294967295\", \"equal\":\"Y\"}"
+                    //+ "{\"input\": \"4294967296\", \"expect\": \"4294967296\", \"equal\":\"N\"}"  // pass
                     + "{\"input\": \"0\", \"expect\": \"0\", \"equal\":\"Y\"}"
                     +"]");
             for (int i = 0; i < uint32Cases.size(); i++) {
@@ -366,8 +368,10 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             // int64
             JSONArray int64Cases = JSON.parseArray("["
                     + "{\"input\": \"-1\", \"expect\": \"-1\", \"equal\":\"Y\"}"
-                    + "{\"input\": \"4294967294\", \"expect\": \"4294967294\", \"equal\":\"Y\"}"
+                    + "{\"input\": \"-9223372036854775808\", \"expect\": \"-9223372036854775808\", \"equal\":\"Y\"}"
                     + "{\"input\": \"0\", \"expect\": \"0\", \"equal\":\"Y\"}"
+                    + "{\"input\": \"9223372036854775807\", \"expect\": \"9223372036854775807\", \"equal\":\"Y\"}"
+                    //+ "{\"input\": \"9223372036854775808\", \"expect\": \"9223372036854775808\", \"equal\":\"N\"}"
                     +"]");
             for (int i = 0; i < int64Cases.size(); i++) {
                 JSONObject testCase = int64Cases.getJSONObject(i);
@@ -387,10 +391,10 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
             // uint64: 0 ~ 18,446,744,073,709,551,615
             JSONArray uint64Cases = JSON.parseArray("["
-                    //+ "{\"input\": \"-1\", \"expect\": \"-1\", \"equal\":\"Y\"}"
+                    //+ "{\"input\": \"-1\", \"expect\": \"-1\", \"equal\":\"Y\"}"  // pass
                     + "{\"input\": \"4294967294\", \"expect\": \"4294967294\", \"equal\":\"Y\"}"
                     + "{\"input\": \"0\", \"expect\": \"0\", \"equal\":\"Y\"}"
-                    //+ "{\"input\": \"18446744073709551615\", \"expect\": \"18446744073709551615\", \"equal\":\"Y\"}"
+                    + "{\"input\": \"18446744073709551615\", \"expect\": \"18446744073709551615\", \"equal\":\"Y\"}"
                     +"]");
             for (int i = 0; i < uint64Cases.size(); i++) {
                 JSONObject testCase = uint64Cases.getJSONObject(i);
