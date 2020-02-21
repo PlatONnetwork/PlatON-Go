@@ -28,8 +28,8 @@ public class ContractInterfaceTest extends WASMContractPrepareTest {
             String transactionHash = contractInterface.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractInterface issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
-            Long number = 10L;
-            TransactionReceipt transactionReceipt = contractInterface.setCount(Uint64.of(number)).send();
+            Uint64 number = Uint64.of(10);
+            TransactionReceipt transactionReceipt = contractInterface.setCount(number).send();
             collector.logStepPass("ContractInterface setCount successfully hash:" + transactionReceipt.getTransactionHash());
 
             Uint64 count = contractInterface.getCount().send();
