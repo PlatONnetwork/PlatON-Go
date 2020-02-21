@@ -63,7 +63,7 @@ CONTRACT PagingQuery : public platon::Contract{
         strVecInfo += "\"";
         strVecInfo += "PageTotal";
         strVecInfo += "\":";
-        strVecInfo += to_string(vecSize);
+        strVecInfo += to_string(pages);
         strVecInfo += ",";
         strVecInfo += "\"";
         strVecInfo += "Data";
@@ -75,6 +75,9 @@ CONTRACT PagingQuery : public platon::Contract{
             strTmp = storage_vector_string.self().at(i);
             strVecInfo += strTmp + ",";
         }
+
+        strVecInfo.pop_back();
+        strVecInfo += "]}";
 
         char* buf = (char*)malloc(strVecInfo.size() + 1);
         memset(buf, 0, strVecInfo.size()+1);
