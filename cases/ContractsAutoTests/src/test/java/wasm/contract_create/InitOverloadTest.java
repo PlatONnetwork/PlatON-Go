@@ -1,16 +1,13 @@
 package wasm.contract_create;
 
-import evm.beforetest.ContractPrepareTest;
+import com.platon.rlp.datatypes.Uint64;
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.CreateContract;
 import network.platon.contracts.wasm.InitOverload;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple2;
 import wasm.beforetest.WASMContractPrepareTest;
-
-import java.math.BigInteger;
 
 /**
  * @title 创建合约带空init函数测试
@@ -35,11 +32,11 @@ public class InitOverloadTest extends WASMContractPrepareTest {
             TransactionReceipt transactionReceipt = initOverload.add_vector(name).send();
             collector.logStepPass("InitOverload add_vector successfully hash:" + transactionReceipt.getTransactionHash());
 
-            Byte idx = 0;
+            Uint8 idx = Uint8.of(0);
             String chainName = initOverload.get_vector(idx).send();
             collector.assertEqual(chainName,name);
 
-            Long size = initOverload.get_vector_size().send();
+            Uint64 size = initOverload.get_vector_size().send();
             collector.logStepPass("vector size is:"+size);
         } catch (Exception e) {
             collector.logStepFail("InitOverloadTest failure,exception msg:" , e.getMessage());

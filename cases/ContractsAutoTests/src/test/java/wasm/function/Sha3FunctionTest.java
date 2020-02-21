@@ -1,5 +1,6 @@
 package wasm.function;
 
+import com.platon.rlp.datatypes.Uint32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.Sha3Function;
@@ -17,7 +18,7 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class Sha3FunctionTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "wasm.SpecialFunctionsA验证链上函数platon_sha3",sourcePrefix = "wasm")
+            author = "liweic", showName = "wasm.Sha3FunctionTest验证链上函数platon_sha3",sourcePrefix = "wasm")
     public void Sha3function() {
 
         try {
@@ -27,9 +28,9 @@ public class Sha3FunctionTest extends WASMContractPrepareTest {
             String transactionHash = shafunction.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CallerFunctionTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
-            Integer sha3 = shafunction.Sha3Result().send();
-            collector.logStepPass("sha3函数返回值:" + sha3);
-            collector.assertEqual(sha3, new Integer("114259850"));
+            Uint32 sha3 = shafunction.Sha3Result().send();
+            collector.logStepPass("sha3函数返回值:" + sha3.value);
+            collector.assertEqual(sha3.value, 114259850);
 
 
         } catch (Exception e) {

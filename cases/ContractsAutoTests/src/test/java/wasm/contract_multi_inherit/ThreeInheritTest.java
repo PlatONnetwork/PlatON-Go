@@ -1,9 +1,9 @@
 package wasm.contract_multi_inherit;
 
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ThreeInherit;
-import network.platon.contracts.wasm.TwoInherit;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
@@ -62,11 +62,11 @@ public class ThreeInheritTest extends WASMContractPrepareTest {
             collector.logStepPass("ThreeInheritTest call add_my_message successfully hash:" + transactionReceipt.getTransactionHash());
 
             //查询vector中对象数量
-            Byte size = threeInherit.get_greate_sub_my_message_size().send();
+            Uint8 size = threeInherit.get_greate_sub_my_message_size().send();
             collector.logStepPass("vector中sub_my_message 数量为："+size);
 
             //查询消息头信息
-            Byte idx = 0;
+            Uint8 idx = Uint8.of(0);
             String chainHead = threeInherit.get_greate_sub_my_message_head(idx).send();
             collector.logStepPass("ThreeInheritTest call get_sub_my_message_head successfully hash:" + transactionReceipt.getTransactionHash());
             collector.assertEqual(chainHead,head);

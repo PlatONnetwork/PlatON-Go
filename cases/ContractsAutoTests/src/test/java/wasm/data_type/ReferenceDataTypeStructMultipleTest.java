@@ -1,5 +1,7 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Uint32;
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeStructContract;
@@ -56,7 +58,7 @@ public class ReferenceDataTypeStructMultipleTest extends WASMContractPrepareTest
         try {
 
             //1、包含(引用类型及基本类型)struct类型赋值
-            TransactionReceipt  transactionReceipt = referenceDataTypeStructMultipleContract.setGroupValue(myGroupName,Long.parseLong(myGroupId)).send();
+            TransactionReceipt  transactionReceipt = referenceDataTypeStructMultipleContract.setGroupValue(myGroupName,Uint64.of(myGroupId)).send();
             collector.logStepPass("referenceDataTypeStructMultipleContract 【验证struct类型包含引用类型及基本类型赋值】 successfully hash:" + transactionReceipt.getTransactionHash());
             //2、验证：验证struct结构体 groupName取值
             String actualGroupName = referenceDataTypeStructMultipleContract.getGroupName().send();
@@ -67,7 +69,7 @@ public class ReferenceDataTypeStructMultipleTest extends WASMContractPrepareTest
             TransactionReceipt  transactionReceipt1 = referenceDataTypeStructMultipleContract.setGroupArrayValue(oneValue,twoValue).send();
             collector.logStepPass("referenceDataTypeStructMultipleContract 【验证struct类型数组赋值】 successfully hash:" + transactionReceipt1.getTransactionHash());
             //4、验证：验证struct结构体 getGroupArrayIndexValue取值
-            String actualArrayValue = referenceDataTypeStructMultipleContract.getGroupArrayIndexValue(Integer.parseInt(arrayIndex)).send();
+            String actualArrayValue = referenceDataTypeStructMultipleContract.getGroupArrayIndexValue(Uint32.of(arrayIndex)).send();
             collector.logStepPass("referenceDataTypeStructMultipleContract 【验证struct结构体数组取值】 执行getGroupArrayIndexValue() successfully actualArrayValue:" + actualArrayValue);
              collector.assertEqual(actualArrayValue,twoValue, "checkout  execute success.");
         } catch (Exception e) {

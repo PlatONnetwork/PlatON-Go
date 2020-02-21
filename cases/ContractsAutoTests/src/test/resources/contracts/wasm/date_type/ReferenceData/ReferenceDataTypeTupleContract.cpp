@@ -10,38 +10,71 @@ using namespace platon;
  * 一个确定的tuple类型的成员数目是固定的，不能进行添加和删除等操作。
  *
  * 测试验证功能点：
- * 定义tuple类型、初始化、取值
- *
+ * 1、定义tuple类型、初始化、取值
+ * 2、定义包含引用类型
  * */
-extern char const tuple_a[] = "tuple_a";
-extern char const tuple_b[] = "tuple_b";
+
+struct person{
+    public:
+       std::string name;
+       uint64_t age;
+       person(){}
+       person(const std::string &my_name,uint64_t &my_age):name(my_name),age(my_age){}
+       PLATON_SERIALIZE(person,(name)(age))
+};
 
 CONTRACT ReferenceDataTypeTupleContract : public platon::Contract{
 
     private:
-       platon::StorageType<tuple_a,std::tuple<std::string,uint8_t,std::vector<string>>> tuple_a;
-       platon::StorageType<tuple_b,std::tuple<bool,std::string,uint8_t>> tuple_b;
-
+       platon::StorageType<"tuple_a"_n,std::tuple<std::string,uint8_t,std::vector<string>>> storage_tuple_one;
+       platon::StorageType<"tuple_b"_n,std::tuple<std::string,uint8_t>> storage_tuple_two;
+       platon::StorageType<"tuple_c"_n,std::tuple<std::string,person,std::array<std::string,10>>> storage_tuple_three;
+       platon::StorageType<"struct_p"_n,person> storage_struct_person;
     public:
         ACTION void init(){}
          /**
          * 1、定义类型
          *    赋值/取值
          **/
+         //1)、元组初始化赋值方式一
+        ACTION void setInitTupleModeOne(){
+            storage_tuple_one.self() = {"Lucy",2,{"1","2","3"}};
+        }
+        //2)、tuple根据索引取值
+        CONST std::string getTupleValueIndex1(){
+            return get<0>(storage_tuple_one.self());
+        }
+        CONST uint8_t getTupleValueIndex2(){
+            return get<1>(storage_tuple_one.self());
+        }
 
-         //1)、初始化赋值
-        ACTION void setInitTuple(){
-            tuple_a.self() = {"test",2,{"1","2","3"}};
+         //3)、元组初始化赋值方式二(使用make_tuple函数)
+        ACTION void setInitTupleModeTwo(const std::string &a,const uint8_t &b){
+            storage_tuple_two.self() = make_tuple(a,b);
         }
-        //2)、生成tuple对象，使用make_tuple函数
-        ACTION void setTupleObject(){
-            auto tupleObj = make_tuple(true,"1",1);//此对象类似于std::tuple<bool,std::string,uint8_t>
-            tuple_b.self() = tupleObj;
+        CONST std::string getTupleValueIndex3(){
+            return get<0>(storage_tuple_two.self());
         }
-        //3)、tuple根据索引取值
-        CONST std::string getTupleValueIndex(){
-            return get<0>(tuple_a.self());
+
+        //4)、定义包含引用类型
+        ACTION void setInitTupleModeThree(const std::string &name,const uint64_t &age){
+           std::string str = "Lili";
+           std::array<std::string,10> array;
+           array[0] = "a";
+           array[1] = "b";
+           array[2] = "c";
+           storage_struct_person.self().name = name;
+           storage_struct_person.self().age = age;
+           storage_tuple_three.self() = make_tuple(str,storage_struct_person.self(),array);
         }
+         CONST person getTupleValueIndex4(){
+            return get<1>(storage_tuple_three.self());
+         }
+
+
+
+
 };
 
-PLATON_DISPATCH(ReferenceDataTypeTupleContract, (init)(setInitTuple)(setTupleObject)(getTupleValueIndex))
+PLATON_DISPATCH(ReferenceDataTypeTupleContract,(init)(setInitTupleModeOne)(getTupleValueIndex1)
+(getTupleValueIndex2)(setInitTupleModeTwo)(getTupleValueIndex3)(setInitTupleModeThree)(getTupleValueIndex4))

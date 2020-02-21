@@ -19,7 +19,7 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class MemoryFunction_1Test extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "wasm.SpecialFunctionsA验证内存实现函数malloc",sourcePrefix = "wasm")
+            author = "liweic", showName = "wasm.MemoryFunction_1Test验证内存实现函数malloc",sourcePrefix = "wasm")
     public void Memoryfunction1() {
 
         try {

@@ -1,8 +1,10 @@
 package wasm.contract_multi_inherit;
 
+import com.platon.rlp.datatypes.Uint32;
+import com.platon.rlp.datatypes.Uint64;
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.OneInherit;
 import network.platon.contracts.wasm.OneInheritWithMultiDataType;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -23,8 +25,8 @@ public class OneInheritWithMultiDataTypeTest extends WASMContractPrepareTest {
         String head = "myHead";
         String body = "myBody";
         String end = "myEnd";
-        int age = 20;
-        Long money = 100000L;
+        Uint32 age = Uint32.of(20);
+        Uint64 money = Uint64.of(100000L);
 
         try {
             prepare();
@@ -47,11 +49,11 @@ public class OneInheritWithMultiDataTypeTest extends WASMContractPrepareTest {
             collector.logStepPass("OneInheritWithMultiDataTypeTest call add_my_message successfully hash:" + transactionReceipt.getTransactionHash());
 
             //查询vector中对象数量
-            Byte size = oneInheritWithMultiDataType.get_my_message_size().send();
+            Uint8 size = oneInheritWithMultiDataType.get_my_message_size().send();
             collector.logStepPass("vector中my_message 数量为："+size);
 
             //查询消息头信息
-            Byte idx = 0;
+            Uint8 idx = Uint8.of(0);
             String chainHead = oneInheritWithMultiDataType.get_my_message_head(idx).send();
             collector.logStepPass("OneInheritWithMultiDataTypeTest call get_my_message_head successfully hash:" + transactionReceipt.getTransactionHash());
             collector.assertEqual(chainHead,head);
@@ -62,14 +64,14 @@ public class OneInheritWithMultiDataTypeTest extends WASMContractPrepareTest {
             collector.assertEqual(chainBody,body);
 
             //查询age信息
-            int chainAge = oneInheritWithMultiDataType.get_my_message_age(idx).send();
+            Uint32 chainAge = oneInheritWithMultiDataType.get_my_message_age(idx).send();
             collector.logStepPass("OneInheritWithMultiDataTypeTest call get_my_message_age successfully hash:" + transactionReceipt.getTransactionHash());
             collector.assertEqual(chainAge,age);
 
             //查询money信息
-            Long chainMoney = oneInheritWithMultiDataType.get_my_message_money(idx).send();
+            Uint64 chainMoney = oneInheritWithMultiDataType.get_my_message_money(idx).send();
             collector.logStepPass("OneInheritWithMultiDataTypeTest call get_my_message_money successfully hash:" + transactionReceipt.getTransactionHash());
-            collector.assertEqual(chainMoney.longValue(),money.longValue());
+            collector.assertEqual(chainMoney,money);
 
         } catch (Exception e) {
             collector.logStepFail("OneInheritWithMultiDataTypeTest failure,exception msg:" , e.getMessage());

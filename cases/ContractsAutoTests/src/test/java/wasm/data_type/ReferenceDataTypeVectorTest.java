@@ -1,5 +1,6 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeStructContract;
@@ -49,8 +50,8 @@ public class ReferenceDataTypeVectorTest extends WASMContractPrepareTest {
             collector.logStepPass("referenceDataTypeVectorContract 【验证vector类型根据索引取值】 执行getClothesColorIndex() successfully actualValue:" + actualValue);
             collector.assertEqual(actualValue,"yellow", "checkout execute success.");
             //4、验证：vector类型获取容器大小
-            Long expectValue = Long.parseLong("2");
-            Long actualVectorLength = referenceDataTypeVectorContract.getClothesColorLength().send();
+            Uint64 expectValue = Uint64.of("2");
+            Uint64 actualVectorLength = referenceDataTypeVectorContract.getClothesColorLength().send();
             collector.logStepPass("referenceDataTypeVectorContract 【验证vector类型根据索引取值】 执行getClothesColorLength() successfully actualValue:" + actualValue);
             collector.assertEqual(actualVectorLength,expectValue, "checkout execute success.");
         } catch (Exception e) {

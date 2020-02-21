@@ -42,8 +42,8 @@ public class ReferenceDataTypeLinklistTest extends WASMContractPrepareTest {
             TransactionReceipt  transactionReceipt1 = referenceDataTypeLinkedlistContract.addListNode().send();
             collector.logStepPass("referenceDataTypeLinkedlistContract 【验证链表新增结点】 执行addListNode() successfully hash:" + transactionReceipt1.getTransactionHash());
             //3、验证：获取结点指针地址
-            Long actualAdrr = referenceDataTypeLinkedlistContract.getListNode().send();
-            collector.logStepPass("referenceDataTypeLinkedlistContract 【验证获取结点指针地址】 执行getListNode() successfully actualAdrr:" + actualAdrr);
+         //   Long actualAdrr = referenceDataTypeLinkedlistContract.getListNode().send();
+          //  collector.logStepPass("referenceDataTypeLinkedlistContract 【验证获取结点指针地址】 执行getListNode() successfully actualAdrr:" + actualAdrr);
             //collector.assertEqual(actualMapLength,expectMapLength, "checkout  execute success.");
 
         } catch (Exception e) {

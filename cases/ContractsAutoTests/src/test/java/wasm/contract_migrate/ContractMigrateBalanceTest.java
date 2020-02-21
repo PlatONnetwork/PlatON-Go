@@ -1,5 +1,6 @@
 package wasm.contract_migrate;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
@@ -36,7 +37,7 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
             author = "yuanwenjun", showName = "wasm.contract_migrate",sourcePrefix = "wasm")
     public void testMigrateContractBalance() {
 
-        Long transfer_value = 100000L;
+        Uint64 transfer_value = Uint64.of(100000L);
         BigInteger origin_contract_value = BigInteger.valueOf(10000);
 
         try {
@@ -55,7 +56,7 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
             String code = WasmFunctionEncoder.encodeConstructor(contractMigratev1.getContractBinary(), Arrays.asList());
             byte[] data = Numeric.hexStringToByteArray(code);
 
-            TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(data,transfer_value, 90000000L).send();
+            TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(data,transfer_value, Uint64.of(90000000L)).send();
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
             
             BigInteger originAfterMigrateBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
@@ -66,7 +67,7 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
             collector.logStepPass("new Contract Address is:"+newContractAddress);
             BigInteger newMigrateBalance = web3j.platonGetBalance(newContractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("new contract balance is: " + newMigrateBalance);
-            collector.assertEqual(newMigrateBalance, origin_contract_value.add(BigInteger.valueOf(transfer_value)), "checkout new contract balance");
+            collector.assertEqual(newMigrateBalance, origin_contract_value.add(transfer_value.getValue()), "checkout new contract balance");
 
         } catch (Exception e) {
             collector.logStepFail("ContractDistoryTest failure,exception msg:" , e.getMessage());

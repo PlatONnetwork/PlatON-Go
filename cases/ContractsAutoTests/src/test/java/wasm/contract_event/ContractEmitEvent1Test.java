@@ -1,11 +1,9 @@
 package wasm.contract_event;
 
+import com.platon.rlp.datatypes.Uint32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.EventCallContract;
-import network.platon.contracts.wasm.ContractEmitEvent;
 import network.platon.contracts.wasm.ContractEmitEvent1;
-import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
@@ -25,7 +23,7 @@ public class ContractEmitEvent1Test extends WASMContractPrepareTest {
     public void testZeroEventContract() {
 
         String name = "hudenian";
-        Integer value = 1;
+        Uint32 value = Uint32.of(1L);
         try {
             prepare();
             ContractEmitEvent1 contractEmitEvent1 = ContractEmitEvent1.deploy(web3j, transactionManager, provider).send();
