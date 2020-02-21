@@ -32,7 +32,7 @@ public class InitWithVectorTest extends WASMContractPrepareTest {
 
             Uint8 idx = Uint8.of(0);
             Uint64 chainAge = initWithVector.get_vector(idx).send();
-            collector.assertEqual(chainAge,age);
+            collector.assertEqual(chainAge.value,age.value);
 
         } catch (Exception e) {
             collector.logStepFail("InitWithVectorTest failure,exception msg:" , e.getMessage());
