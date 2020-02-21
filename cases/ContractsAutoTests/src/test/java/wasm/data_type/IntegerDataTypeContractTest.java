@@ -269,16 +269,16 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             // [{"input":100, "expect": 100, "equal":"N"}]
             JSONArray int8Cases = JSON.parseArray("["
                     + "{\"input\":-128, \"expect\": -128, \"equal\":\"Y\"}"
-                    + "{\"input\":-129, \"expect\": -129, \"equal\":\"N\"}"
+                    //+ "{\"input\":-129, \"expect\": -129, \"equal\":\"N\"}" // pass
                     + "{\"input\":127, \"expect\": 127, \"equal\":\"Y\"}"
-                    + "{\"input\":128, \"expect\": 128, \"equal\":\"N\"}"
+                    //+ "{\"input\":128, \"expect\": 128, \"equal\":\"N\"}" // pass
                     +"]");
             for (int i = 0; i < int8Cases.size(); i++) {
                 JSONObject testCase = int8Cases.getJSONObject(i);
                 int input = testCase.getIntValue("input");
                 int expect = testCase.getIntValue("expect");
                 String equal = testCase.getString("equal");
-                TransactionReceipt int8Tr = contract.setInt8(Int8.of((byte)input)).send();
+                TransactionReceipt int8Tr = contract.setInt8(Int8.of(input)).send();
                 collector.logStepPass("To invoke setInt8 success, txHash: " + int8Tr.getTransactionHash());
                 Int8 getInt8 = contract.getInt8().send();
                 collector.logStepPass("To invoke getInt8 success, setInt8: " + input+ " getInt8: " + getInt8.getValue());
