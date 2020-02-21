@@ -1,5 +1,6 @@
 package wasm.contract_cross_call;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractCrossCallStorageString;
@@ -63,7 +64,7 @@ public class ContractCrossCallBalanceTest extends WASMContractPrepareTest {
             long value = 100l;
 
             // cross call contract start
-            TransactionReceipt receipt = crossCall.call_set_string(strcAddr, "", value, 60000000l).send();
+            TransactionReceipt receipt = crossCall.call_set_string(strcAddr, "", Uint64.of(value), Uint64.of(60000000l)).send();
             collector.logStepPass("cross_call_storage_str call_add_message successfully txHash:" + receipt.getTransactionHash());
 
 

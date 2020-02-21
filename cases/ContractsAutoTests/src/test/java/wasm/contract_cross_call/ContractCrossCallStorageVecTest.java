@@ -1,5 +1,6 @@
 package wasm.contract_cross_call;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractCrossCallStorageVector;
@@ -39,13 +40,13 @@ public class ContractCrossCallStorageVecTest extends WASMContractPrepareTest {
 
 
             // check arr size 1st
-            Long storageVecLen = storage_vec.get_vector_size().send();
+            Uint64 storageVecLen = storage_vec.get_vector_size().send();
             System.out.println("the msg count in arr of  storage_vec contract:" + storageVecLen);
-            collector.assertEqual(storageVecLen.longValue(), 0l);
+            collector.assertEqual(storageVecLen.getValue().longValue(), 0l);
 
-            Long crossCallVecLen = crossCall.get_vector_size().send();
+            Uint64 crossCallVecLen = crossCall.get_vector_size().send();
             System.out.println("the msg count in arr of crossCall contract:" + crossCallVecLen);
-            collector.assertEqual(crossCallVecLen.longValue(), 0l);
+            collector.assertEqual(crossCallVecLen.getValue().longValue(), 0l);
 
 
             // cross call contract start
@@ -55,18 +56,18 @@ public class ContractCrossCallStorageVecTest extends WASMContractPrepareTest {
             myMessage.body = "Gavin Body";
             myMessage.end = "Gavin End";
 
-            TransactionReceipt receipt = crossCall.call_add_message(storage_vec_Addr, myMessage, 0l, 60000000l).send();
+            TransactionReceipt receipt = crossCall.call_add_message(storage_vec_Addr, myMessage, Uint64.of(0), Uint64.of(60000000l)).send();
             collector.logStepPass("ContractCrossCall call_add_message successfully txHash:" + receipt.getTransactionHash());
 
 
             // check arr size 2nd
             storageVecLen = storage_vec.get_vector_size().send();
             System.out.println("the msg count in arr of  storage_vec contract:" + storageVecLen);
-            collector.assertEqual(storageVecLen.longValue(), 1l);
+            collector.assertEqual(storageVecLen.getValue().longValue(), 1l);
 
             crossCallVecLen = crossCall.get_vector_size().send();
             System.out.println("the msg count in arr of crossCall contract:" + crossCallVecLen);
-            collector.assertEqual(crossCallVecLen.longValue(), 0l);
+            collector.assertEqual(crossCallVecLen.getValue().longValue(), 0l);
 
         } catch (Exception e) {
             collector.logStepFail("Failed to CrossCall Contract,exception msg:" , e.getMessage());

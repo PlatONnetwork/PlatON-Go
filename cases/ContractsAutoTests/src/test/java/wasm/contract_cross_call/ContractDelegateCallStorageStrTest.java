@@ -1,5 +1,6 @@
 package wasm.contract_cross_call;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractDelegateCallStorageString;
@@ -45,7 +46,7 @@ public class ContractDelegateCallStorageStrTest extends WASMContractPrepareTest 
 
             String msg = "Gavin";
 
-            TransactionReceipt receipt = delegateCall.delegate_call_set_string(strcAddr, msg, 60000000l).send();
+            TransactionReceipt receipt = delegateCall.delegate_call_set_string(strcAddr, msg, Uint64.of(60000000l)).send();
             collector.logStepPass("cross_delegate_call_storage_str call_add_message successfully txHash:" + receipt.getTransactionHash());
 
 

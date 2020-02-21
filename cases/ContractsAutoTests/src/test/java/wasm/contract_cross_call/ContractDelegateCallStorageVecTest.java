@@ -1,5 +1,6 @@
 package wasm.contract_cross_call;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractDelegateCallStorageVector;
@@ -35,13 +36,13 @@ public class ContractDelegateCallStorageVecTest extends WASMContractPrepareTest 
 
 
             // check arr size 1st
-            Long vecLen = target.get_vector_size().send();
+            Uint64 vecLen = target.get_vector_size().send();
             System.out.println("the msg count in arr of  storage_vec contract:" + vecLen);
-            collector.assertEqual(vecLen.longValue(), 0l);
+            collector.assertEqual(vecLen.getValue().longValue(), 0l);
 
-            Long delegateCallVecLen = delegateCall.get_vector_size().send();
+            Uint64 delegateCallVecLen = delegateCall.get_vector_size().send();
             System.out.println("the msg count in arr of delegateCall contract:" + delegateCallVecLen);
-            collector.assertEqual(delegateCallVecLen.longValue(), 0l);
+            collector.assertEqual(delegateCallVecLen.getValue().longValue(), 0l);
 
             // delegate call contract start
             ContractDelegateCallStorageVector.My_message myMessage = new ContractDelegateCallStorageVector.My_message();
@@ -50,18 +51,18 @@ public class ContractDelegateCallStorageVecTest extends WASMContractPrepareTest 
             myMessage.body = "Gavin Body";
             myMessage.end = "Gavin End";
 
-            TransactionReceipt receipt = delegateCall.delegate_call_add_message(storage_Addr, myMessage, 60000000l).send();
+            TransactionReceipt receipt = delegateCall.delegate_call_add_message(storage_Addr, myMessage, Uint64.of(60000000l)).send();
             collector.logStepPass("ContractDelegateCall call_add_message successfully txHash:" + receipt.getTransactionHash());
 
 
             // check arr size 2nd
             vecLen = target.get_vector_size().send();
             System.out.println("the msg count in arr of  storage_vec contract:" + vecLen);
-            collector.assertEqual(vecLen.longValue(), 0l);
+            collector.assertEqual(vecLen.getValue().longValue(), 0l);
 
             delegateCallVecLen = delegateCall.get_vector_size().send();
             System.out.println("the msg count in arr of delegateCall contract:" + delegateCallVecLen);
-            collector.assertEqual(delegateCallVecLen.longValue(), 1l);
+            collector.assertEqual(delegateCallVecLen.getValue().longValue(), 1l);
 
         } catch (Exception e) {
             collector.logStepFail("Failed to DelegateCall Contract,exception msg:" , e.getMessage());
