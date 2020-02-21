@@ -8,6 +8,8 @@ import network.platon.contracts.wasm.OverrideContract;
 import org.junit.Test;
 import wasm.beforetest.WASMContractPrepareTest;
 
+import java.math.BigInteger;
+
 /**
  * @author zjsunzone
  *
@@ -33,11 +35,11 @@ public class OverrideContractTest extends WASMContractPrepareTest {
             // 1. input = 1, get: 100, input == 2, get: 10000
             Uint32 area01 = contract.getArea(Uint64.of(1)).send();
             collector.logStepPass("To invoke getArea success, area: " + area01.getValue().toString());
-            collector.assertEqual(area01, 100);
+            collector.assertEqual(area01.getValue(), BigInteger.valueOf(100));
 
             Uint32 area02 = contract.getArea(Uint64.of(2)).send();
             collector.logStepPass("To invoke getArea success, area2: " + area02.getValue().toString());
-            collector.assertEqual(area02, 10000);
+            collector.assertEqual(area02.getValue(), BigInteger.valueOf(10000));
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
