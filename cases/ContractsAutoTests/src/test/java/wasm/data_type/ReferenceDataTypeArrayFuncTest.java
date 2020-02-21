@@ -35,7 +35,7 @@ public class ReferenceDataTypeArrayFuncTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qudong", showName = "wasm.referenceDataTypeArrayTest验证数组属性/函数",sourcePrefix = "wasm")
+            author = "qudong", showName = "wasm.referenceDataTypeArrayTest验证数组属性及函数",sourcePrefix = "wasm")
     public void testReferenceDataTypeArrayFunc() {
 
          //部署合约
