@@ -969,7 +969,12 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		if total.Cmp(realSub) == 0 {
 			// When the entrusted information is deleted, the entrusted proceeds need to be issued automatically
 			issueIncome = issueIncome.Add(issueIncome, del.CumulativeIncome)
-			rm.ReturnDelegateReward(delAddr, del.CumulativeIncome, state)
+			if err := rm.ReturnDelegateReward(delAddr, del.CumulativeIncome, state); err != nil {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: return delegate reward is failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
+					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
+				return nil, common.InternalError
+			}
 			log.Debug("Successful ReturnDelegateReward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.TerminalString(),
 				"delAddr", delAddr.Hex(), "cumulativeIncome", issueIncome)
 			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
@@ -2062,7 +2067,9 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		"needRemove", needRemove, "current can.Status", can.Status, "need to superpose status", changeStatus)
 
 	if needRemove {
-		rm.ReturnDelegateReward(can.BenefitAddress, can.CurrentEpochDelegateReward, state)
+		if err := rm.ReturnDelegateReward(can.BenefitAddress, can.CurrentEpochDelegateReward, state); err != nil {
+			log.Error("Call SlashCandidates:return delegateReward", "err", err)
+		}
 		can.CleanCurrentEpochDelegateReward()
 	}
 
