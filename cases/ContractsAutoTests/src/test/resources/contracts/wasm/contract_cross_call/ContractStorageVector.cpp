@@ -1,5 +1,6 @@
 #include <platon/platon.hpp>
 #include <string>
+//#include <Contract_hello.hpp>
 using namespace platon;
 
 
@@ -22,26 +23,26 @@ class my_message : public message {
       PLATON_SERIALIZE_DERIVED(my_message, message, (body)(end))
 };
 
-CONTRACT target : public platon::Contract{
+CONTRACT storage_vector : public platon::Contract{
    public:
-      
+
 
      ACTION void init(){}
       
       ACTION std::vector<my_message> add_message(const my_message &one_message){
-          
-          DEBUG("target add_message");
+
+          DEBUG("storage_vector add_message");
           arr.self().push_back(one_message);
           return arr.self();
       }
       CONST std::vector<my_message> get_message(const std::string &name){
-          
-          DEBUG("target get_message");
+
+          DEBUG("storage_vector get_message");
           return arr.self();
       }
 
       CONST uint64_t get_vector_size(){
-          DEBUG("target get_vector_size");
+          DEBUG("storage_vector get_vector_size");
           return arr.self().size();
       }
 
@@ -50,4 +51,4 @@ CONTRACT target : public platon::Contract{
       platon::StorageType<"info_arr"_n, std::vector<my_message>> arr;
 };
 
-PLATON_DISPATCH(target, (init)(add_message)(get_message)(get_vector_size))
+PLATON_DISPATCH(storage_vector, (init)(add_message)(get_message)(get_vector_size))

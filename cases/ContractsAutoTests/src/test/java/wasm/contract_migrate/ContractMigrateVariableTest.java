@@ -67,10 +67,10 @@ public class ContractMigrateVariableTest extends WASMContractPrepareTest {
             ContractMigrate_new new_contractMigrate = ContractMigrate_new.load(newContractAddress,web3j,credentials,provider);
             Uint8 newContractval = new_contractMigrate.getUint8New().send();
             collector.logStepPass("new Contract origin variable value is:" + newContractval);
-            collector.assertEqual(newContractval, newval, "checkout old variable of new contract value");
+            collector.assertEqual(newContractval.value.intValue(), Integer.valueOf(newval).intValue(), "checkout old variable of new contract value");
             Uint16 newVar = new_contractMigrate.getUint16().send();
             collector.logStepPass("new Contract new variable value is:" + newVar);
-            collector.assertEqual(newVar, newvar, "checkout new variable of new contract value");
+            collector.assertEqual(newVar.value.intValue(), Integer.valueOf(newvar).intValue(), "checkout new variable of new contract value");
         } catch (Exception e) {
             collector.logStepFail("ContractDistoryTest failure,exception msg:" , e.getMessage());
             e.printStackTrace();

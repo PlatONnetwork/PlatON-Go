@@ -50,13 +50,15 @@ func TestUpdateChainState(t *testing.T) {
 	node.engine.updateChainStateHook = node.engine.bridge.UpdateChainState
 
 	result := make(chan *types.Block, 1)
+	complete := make(chan struct{}, 1)
 	var commit, lock, qc *types.Block
 
 	parent := node.chain.Genesis()
 	for i := 0; i < 3; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, node)
 		assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		node.engine.OnSeal(block, result, nil)
+		node.engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		// test newChainState
 		select {
@@ -123,13 +125,15 @@ func TestUpdateChainState(t *testing.T) {
 
 func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 	result := make(chan *types.Block, 1)
+	complete := make(chan struct{}, 1)
 	var appendQC *types.Block
 	node.engine.state.SetExecuting(1, true) // lockBlock
 
 	// base lock seal duplicate qc
 	block := NewBlockWithSign(lock.Hash(), lock.NumberU64()+1, node)
 	assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-	node.engine.OnSeal(block, result, nil)
+	node.engine.OnSeal(block, result, nil, complete)
+	<-complete
 
 	// test addQCState
 	select {
@@ -165,6 +169,7 @@ func TestRecordCbftMsg(t *testing.T) {
 	node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
 
 	result := make(chan *types.Block, 1)
+	complete := make(chan struct{}, 1)
 	parent := node.chain.Genesis()
 
 	epoch := node.engine.state.Epoch()
@@ -175,7 +180,8 @@ func TestRecordCbftMsg(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, node)
 		assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		node.engine.OnSeal(block, result, nil)
+		node.engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		select {
 		case b := <-result:

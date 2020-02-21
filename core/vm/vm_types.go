@@ -1,6 +1,9 @@
 package vm
 
-const InterpTypeLen = 4
+const (
+	InterpTypeLen = 4
+	WasmTopicNum  = 4
+)
 
 // vm interpreter types
 type InterpType [InterpTypeLen]byte

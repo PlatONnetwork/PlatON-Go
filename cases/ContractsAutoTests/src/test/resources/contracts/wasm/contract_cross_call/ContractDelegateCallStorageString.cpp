@@ -5,12 +5,12 @@
 using namespace platon;
 
 
-CONTRACT cross_delegate_call : public platon::Contract {
+CONTRACT delegate_call_storage_str : public platon::Contract {
      public:
 
      ACTION void init(){}
 
-     ACTION uint64_t delegate_call_add_message(const std::string &target_address, std::string &name, uint64_t gas) {
+     ACTION uint64_t delegate_call_set_string(const std::string &target_address, std::string &name, uint64_t gas) {
          
          DEBUG("Delegate call contract start", "address", target_address, "name", name);
          platon::bytes params = platon::cross_call_args("set_string", name);
@@ -25,13 +25,12 @@ CONTRACT cross_delegate_call : public platon::Contract {
 
       CONST const std::string get_string(){
           
-          DEBUG("delegate_call get_string", "name:", str.self());
+          platon::StorageType<"str"_n, std::string> str; // Must use local definitions for manipulating the corresponding keys in th
           return str.self();
       }
 
-   private:
-      platon::StorageType<"str"_n, std::string> str;
+
 
 };
 
-PLATON_DISPATCH(cross_delegate_call, (init)(delegate_call_add_message)(get_string))
+PLATON_DISPATCH(delegate_call_storage_str, (init)(delegate_call_set_string)(get_string))

@@ -1292,6 +1292,11 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 			panic(err)
 		}
 
+		topicCount, err := rlp.CountValues(content)
+		if topicCount > WasmTopicNum {
+			panic("wasm event indexed count too large")
+		}
+
 		decodeTopics := func(b []byte) ([]byte, []byte, error) {
 			member, rest, err := rlp.SplitString(b)
 			if nil != err {
@@ -1306,9 +1311,14 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 				panic(err)
 			}
 
-			topics = append(topics, common.BytesToHash(crypto.Keccak256(mem)))
+			if len(mem) > common.HashLength {
+				panic("wasm event indexed content too long")
+			}
+
+			topics = append(topics, common.BytesToHash(mem))
 			content = tail
 		}
+
 	}
 
 	input := make([]byte, argsLen)
