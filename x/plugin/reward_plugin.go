@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -219,11 +220,19 @@ func (rmp *RewardMgrPlugin) AllocateStakingReward(blockNumber uint64, blockHash 
 	return verifierList, nil
 }
 
-func (rmp *RewardMgrPlugin) ReturnDelegateReward(address common.Address, amount *big.Int, state xcom.StateDB) {
+func (rmp *RewardMgrPlugin) ReturnDelegateReward(address common.Address, amount *big.Int, state xcom.StateDB) error {
 	if amount.Cmp(common.Big0) > 0 {
+
+		DelegateRewardPool := state.GetBalance(vm.DelegateRewardPoolAddr)
+
+		if DelegateRewardPool.Cmp(amount) < 0 {
+			return fmt.Errorf("DelegateRewardPool balance is not enougth,want %v have %v", amount, DelegateRewardPool)
+		}
+
 		state.SubBalance(vm.DelegateRewardPoolAddr, amount)
 		state.AddBalance(address, amount)
 	}
+	return nil
 }
 
 func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, blockNumber uint64, list []*staking.Candidate, state xcom.StateDB) error {
@@ -234,7 +243,9 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 		}
 		if verifier.DelegateTotal.Cmp(common.Big0) == 0 {
 			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
-			rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state)
+			if err := rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state); err != nil {
+				log.Error("HandleDelegatePerReward ReturnDelegateReward fail", "err", err, "blockNumber", blockNumber)
+			}
 		} else {
 
 			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, verifier.DelegateTotal)
@@ -297,7 +308,10 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 		log.Debug("WithdrawDelegateReward rewardsReceive", "rewardsReceive", rewardsReceive, "blockNum", blockNum)
 	}
 	if receiveReward.Cmp(common.Big0) > 0 {
-		rmp.ReturnDelegateReward(account, receiveReward, state)
+		if err := rmp.ReturnDelegateReward(account, receiveReward, state); err != nil {
+			log.Error("Call withdraw delegate reward ReturnDelegateReward fail", "err", err, "blockNum", blockNum)
+			return nil, common.InternalError
+		}
 	}
 	log.Debug("Call withdraw delegate reward: end", "account", account, "rewards", rewards, "blockNum", blockNum, "blockHash", blockHash, "receiveReward", receiveReward)
 
