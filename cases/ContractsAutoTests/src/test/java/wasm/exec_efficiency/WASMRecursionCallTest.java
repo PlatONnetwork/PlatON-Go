@@ -1,9 +1,10 @@
 package wasm.exec_efficiency;
 
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.RecursionCall;
+import network.platon.contracts.wasm.RecursionCall;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -20,12 +21,12 @@ import java.math.BigInteger;
 public class WASMRecursionCallTest extends WASMContractPrepareTest {
 
 
-    private BigInteger numberOfCalls;
+    private Uint64 numberOfCalls;
     private String contractAddress;
 
     @Before
     public void before() {
-        numberOfCalls = new BigInteger(driverService.param.get("numberOfCalls"));
+        numberOfCalls = Uint64.of(driverService.param.get("numberOfCalls"));
     }
 
     @Test
@@ -39,8 +40,13 @@ public class WASMRecursionCallTest extends WASMContractPrepareTest {
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
 
             TransactionReceipt transactionReceipt = RecursionCall.load(contractAddress, web3j, transactionManager, provider)
-                    .recursionCallTest(numberOfCalls).send();
+                    .call(numberOfCalls).send();
 
+            Uint64 sum = RecursionCall.load(contractAddress, web3j, transactionManager, provider)
+                    .get_sum().send();
+
+            collector.logStepPass("sum:" + sum);
+            collector.assertEqual(sum, numberOfCalls, "assert recursion call result");
             BigInteger gasUsed = transactionReceipt.getGasUsed();
             collector.logStepPass("gasUsed:" + gasUsed);
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());

@@ -7,6 +7,8 @@ import network.platon.contracts.wasm.Sha3Function;
 import org.junit.Test;
 import wasm.beforetest.WASMContractPrepareTest;
 
+import java.math.BigInteger;
+
 
 /**
  *
@@ -30,7 +32,7 @@ public class Sha3FunctionTest extends WASMContractPrepareTest {
 
             Uint32 sha3 = shafunction.Sha3Result().send();
             collector.logStepPass("sha3函数返回值:" + sha3.value);
-            collector.assertEqual(sha3.value, 114259850);
+            collector.assertEqual(sha3.value, new BigInteger("114259850"));
 
 
         } catch (Exception e) {
