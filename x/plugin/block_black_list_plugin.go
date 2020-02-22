@@ -3,8 +3,6 @@ package plugin
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -12,9 +10,9 @@ import (
 )
 
 const (
-	FORKHASH    = "0x03ec79dca652c9b54152b00ce78f3aecd9489802e76079954c7b4b2322aa5427"
-	FORKNUM     = 216746
-	FORKVERSION = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	FORKHASH    = "0x7560a7552584fd6f5e992ad34721694a5253aa218138e3a0c0a93619b3a30805"
+	FORKNUM     = 1000
+	FORKVERSION = uint32(0<<16 | 9<<8 | 0)
 )
 
 var BlockBlackListERROR = fmt.Errorf("the block is exist in BlackList,hash:%v", FORKHASH)
