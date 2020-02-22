@@ -69,8 +69,8 @@ func (b *CollectDeclareVersionPlugin) Confirmed(nodeId discover.NodeID, block *t
 	return nil
 }
 
-func IsForkBlock(blockNumber uint64) bool {
-	if blockNumber == FORKNUM+1 {
+func IsForkBlock(blockNumber uint64, parentHash string) bool {
+	if blockNumber == FORKNUM+1 && parentHash == FORKHASH {
 		return true
 	}
 	return false

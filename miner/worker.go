@@ -1114,7 +1114,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	startTime := time.Now()
 	var pending map[common.Address]types.Transactions
 
-	if plugin.IsForkBlock(header.Number.Uint64()) {
+	if plugin.IsForkBlock(header.Number.Uint64(), header.ParentHash.String()) {
 		list, err := plugin.StakingInstance().GetVerifierList(common.ZeroHash, header.Number.Uint64(), plugin.QueryStartNotIrr)
 		if err != nil {
 			log.Error("Failed to commitNewWork on worker: get  staking validator list failed", "blockNumber", header.Number, "err", err)
