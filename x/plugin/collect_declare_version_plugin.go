@@ -26,7 +26,7 @@ type CollectDeclareVersionPlugin struct {
 
 func (b *CollectDeclareVersionPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	if header.ParentHash.String() == FORKHASH && (header.Number.Uint64()-FORKNUM) == 1 {
-		if err := gov.AddActiveVersion(b.version, b.num, state); err != nil {
+		if err := gov.AddActiveVersion(b.version, header.Number.Uint64(), state); err != nil {
 			return err
 		}
 		log.Debug("CollectDeclareVersionPlugin begin ClearProcessingProposals")

@@ -1,7 +1,7 @@
 package plugin
 
 const (
-	FORKHASH    = "0xe01a99b5d742bca71acb656dd275a5d352afb58eb5f8839cf4563402c056837d"
-	FORKNUM     = 521528
+	FORKHASH    = "0x03ec79dca652c9b54152b00ce78f3aecd9489802e76079954c7b4b2322aa5427"
+	FORKNUM     = 216746
 	FORKVERSION = uint32(0<<16 | 9<<8 | 0)
 )
