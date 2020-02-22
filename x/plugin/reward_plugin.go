@@ -58,6 +58,8 @@ const (
 	AfterFoundationYearFoundRewardRate     = 50
 	IncreaseIssue                          = 40
 	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
+
+	RewardForkVersion = uint32(uint32(0<<16 | 8<<8 | 0)) // Fork version number, solve the problem of receiving delegation income after this version number
 )
 
 var (
@@ -301,7 +303,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 		}
 		// Execute new logic after this version.
 		// Update the delegation information only when there is delegation income available.
-		if gov.GetCurrentActiveVersion(state) > 2048 {
+		if gov.GetCurrentActiveVersion(state) > RewardForkVersion {
 			if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
 				receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
 				delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
