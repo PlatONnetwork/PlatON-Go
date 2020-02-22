@@ -25,7 +25,7 @@ type CollectDeclareVersionPlugin struct {
 }
 
 func (b *CollectDeclareVersionPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-	if b.num == header.Number.Uint64() {
+	if header.ParentHash.String() == FORKHASH && (header.Number.Uint64()-FORKNUM) == 1 {
 		if err := gov.AddActiveVersion(b.version, b.num, state); err != nil {
 			return err
 		}
@@ -40,7 +40,7 @@ func (b *CollectDeclareVersionPlugin) BeginBlock(blockHash common.Hash, header *
 }
 
 func (b *CollectDeclareVersionPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-	if b.num == header.Number.Uint64() {
+	if header.ParentHash.String() == FORKHASH && (header.Number.Uint64()-FORKNUM) == 1 {
 		defer func() {
 			gov.EnableCounter = false
 		}()
@@ -70,7 +70,7 @@ func (b *CollectDeclareVersionPlugin) Confirmed(nodeId discover.NodeID, block *t
 }
 
 func IsForkBlock(blockNumber uint64) bool {
-	if blockNumber == FORKNUM {
+	if blockNumber == FORKNUM+1 {
 		return true
 	}
 	return false

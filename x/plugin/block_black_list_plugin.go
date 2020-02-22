@@ -30,10 +30,8 @@ func NewBlockBlackListPlugin() *BlockBlackListPlugin {
 }
 
 func (b *BlockBlackListPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-	for _, value := range b.list {
-		if blockHash == value {
-			return BlockBlackListERROR
-		}
+	if header.ParentHash.String() == FORKHASH && (header.Number.Uint64()-FORKNUM) == 1 {
+		return BlockBlackListERROR
 	}
 	return nil
 }
