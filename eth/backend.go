@@ -579,7 +579,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.CollectDeclareVersionRule, xplugin.NewCollectDeclareVersionPlugin())
 
 	// set rule order
-	reactor.SetBeginRule([]int{xcom.BlockBlackListRule, xcom.StakingRule, xcom.SlashingRule, xcom.GovernanceRule})
+	reactor.SetBeginRule([]int{xcom.BlockBlackListRule, xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})
 	reactor.SetEndRule([]int{xcom.CollectDeclareVersionRule, xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
 
 }
