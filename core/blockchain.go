@@ -26,8 +26,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -1238,9 +1236,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {
 		log.Error("Failed to ProcessDirectly", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err)
-		if err != plugin.BlockBlackListERROR {
-			bc.reportBlock(block, receipts, err)
-		}
+		bc.reportBlock(block, receipts, err)
 		return nil, err
 	}
 	log.Debug("execute block time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
