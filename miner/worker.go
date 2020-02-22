@@ -24,6 +24,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -1110,7 +1112,22 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	// Fill the block with all available pending transactions.
 	startTime := time.Now()
-	pending, err := w.eth.TxPool().PendingLimited()
+	var pending map[common.Address]types.Transactions
+
+	if plugin.IsForkBlock(header.Number.Uint64()) {
+		list, err := plugin.StakingInstance().GetVerifierList(common.ZeroHash, header.Number.Uint64(), plugin.QueryStartNotIrr)
+		if err != nil {
+			log.Error("Failed to commitNewWork on worker: get  staking validator list failed", "blockNumber", header.Number, "err", err)
+			return
+		}
+		accounts := make(map[common.Address]struct{})
+		for _, value := range list {
+			accounts[value.StakingAddress] = struct{}{}
+		}
+		pending, err = w.eth.TxPool().PendingLimitedByAccounts(accounts)
+	} else {
+		pending, err = w.eth.TxPool().PendingLimited()
+	}
 
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
