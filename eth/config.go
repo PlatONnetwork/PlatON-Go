@@ -59,6 +59,9 @@ var DefaultConfig = Config{
 	DBGCTimeout:   time.Minute,
 	DBGCMpt:       true,
 	DBGCBlock:     10,
+	DBDisabledCache:false,
+	DBCacheEpoch: 10,
+
 	MinerGasPrice: big.NewInt(params.GVon),
 	MinerRecommit: 3 * time.Second,
 
@@ -122,6 +125,8 @@ type Config struct {
 	DBGCTimeout        time.Duration
 	DBGCMpt            bool
 	DBGCBlock          int
+	DBDisabledCache    bool
+	DBCacheEpoch       int
 
 	// Mining-related options
 	MinerExtraData []byte `toml:",omitempty"`
