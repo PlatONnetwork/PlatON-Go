@@ -10,7 +10,7 @@ using namespace platon;
 CONTRACT InsertSort : public platon::Contract {
 
     private:
-	    platon::StorageType<"array_int8"_n, std::array<int8_t,10>> array_int8;
+	    platon::StorageType<"arrayint"_n, std::array<int8_t,10>> arrayint;
     public:
         ACTION void init(){}
 
@@ -34,11 +34,11 @@ CONTRACT InsertSort : public platon::Contract {
         }
 
         ACTION void sort(std::array<int8_t, 10>& arr, int8_t length) {
-            array_int8.self() = insertSort(arr, length);
+            arrayint.self() = insertSort(arr, length);
         }
 
         CONST std::array<int8_t, 10> get_array() {
-            return array_int8.self();
+            return arrayint.self();
         }
 };
 PLATON_DISPATCH(InsertSort,(init)(sort)(get_array))

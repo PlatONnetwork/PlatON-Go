@@ -8,7 +8,7 @@ using namespace platon;
  **/
 CONTRACT SpaceComplexity : public platon::Contract {
     private:
-        platon::StorageType<"array_int8"_n, std::array<int8_t,10>> array_int8;
+        platon::StorageType<"arrayint"_n, std::array<int8_t,10>> arrayint;
     public:
         ACTION void init(){}
         std::array<int8_t, 10> quickSort(std::array<int8_t, 10>& array, int start, int last)
@@ -45,14 +45,12 @@ CONTRACT SpaceComplexity : public platon::Contract {
         }
 
         ACTION void sort(std::array<int8_t, 10>& arr, int8_t start, int8_t last) {
-            array_int8.self() = quickSort(arr, start, last);
+            arrayint.self() = quickSort(arr, start, last);
         }
 
         CONST std::array<int8_t, 10> get_array() {
-            return array_int8.self();
+            return arrayint.self();
         }
 
 };
 PLATON_DISPATCH(SpaceComplexity,(init)(sort)(get_array))
-
-
