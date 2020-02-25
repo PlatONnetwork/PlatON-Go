@@ -26,7 +26,7 @@ CONTRACT ContractDistory : public platon::Contract{
           return contract_ower.self();
       }
    private:
-      platon::StorageType<"string_storage"_n, std::string> contract_ower;
+      platon::StorageType<"sstorage"_n, std::string> contract_ower;
 };
 
 PLATON_DISPATCH(ContractDistory, (init)(distory_contract)(set_string)(get_string))
