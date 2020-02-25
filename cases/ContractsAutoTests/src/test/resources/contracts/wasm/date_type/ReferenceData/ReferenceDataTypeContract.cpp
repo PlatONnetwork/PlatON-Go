@@ -5,17 +5,12 @@
 using namespace std;
 using namespace platon;
 
-// 声明存储类型的映射 key.
-extern char const maddress[] = "map_address";
-extern char const mu256[] = "map_u256";
-extern char const mh256[] = "map_h256";
-
 CONTRACT ReferenceDataTypeContract: public platon::Contract{
 
 	private:
-       platon::StorageType<maddress, std::map<std::string, Address>> tmaddress;
-       platon::StorageType<mu256, std::map<std::string, u256>> tmu256;
-       platon::StorageType<mh256, std::map<std::string, h256>> tmh256;
+       platon::StorageType<"maddress"_n, std::map<std::string, Address>> tmaddress;
+       platon::StorageType<"mu255"_n, std::map<std::string, u256>> tmu256;
+       platon::StorageType<"mh255"_n, std::map<std::string, h256>> tmh256;
 
     public:
         ACTION void init(){}
