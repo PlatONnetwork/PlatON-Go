@@ -1,5 +1,7 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Uint64;
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeContract;
@@ -49,9 +51,9 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             String actValue2 = contract.getAddrFromMap(expectKey2).send();
             collector.logStepPass("To invoke getAddrFromMap success, value1: " + actValue1 + " value2:" + actValue2);
 
-            Byte mapSize = contract.sizeOfAddrMap().send();
-            collector.logStepPass("To invoke sizeOfAddrMap success, mapSize: " + mapSize.intValue());
-            collector.assertEqual(mapSize.intValue(), 2);
+            Uint8 mapSize = contract.sizeOfAddrMap().send();
+            collector.logStepPass("To invoke sizeOfAddrMap success, mapSize: " + mapSize.getValue().toString());
+            collector.assertEqual(mapSize.getValue().intValue(), 2);
             collector.assertEqual(prependHexPrefix(actValue1).toUpperCase(), prependHexPrefix(expectValue11).toUpperCase());
             collector.assertEqual(prependHexPrefix(actValue2).toUpperCase(), prependHexPrefix(expectValue2).toUpperCase());
 
@@ -83,21 +85,21 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             // test: u256
             String expectKey1 = "name";
             String expectValue11 = "100000";
-            TransactionReceipt tr1 = contract.setU256Map(expectKey1, Long.valueOf(expectValue11)).send();
+            TransactionReceipt tr1 = contract.setU256Map(expectKey1, Uint64.of(expectValue11)).send();
             collector.logStepPass("To invoke setU256Map success, txHash1: " + tr1.getTransactionHash());
 
             String expectKey2 = "name2";
             String expectValue2 = "200000";
-            TransactionReceipt mapTr2 = contract.setU256Map(expectKey2, Long.valueOf(expectValue2)).send();
+            TransactionReceipt mapTr2 = contract.setU256Map(expectKey2, Uint64.of(expectValue2)).send();
             collector.logStepPass("To invoke setU256Map success, txHash2: " + mapTr2.getTransactionHash());
 
             String actValue1 = contract.getU256FromMap(expectKey1).send();
             String actValue2 = contract.getU256FromMap(expectKey2).send();
             collector.logStepPass("To invoke getU256FromMap success, value1: " + actValue1 + " value2:" + actValue2);
 
-            Byte mapSize = contract.sizeOfU256Map().send();
-            collector.logStepPass("To invoke sizeOfU256Map success, mapSize: " + mapSize.intValue());
-            collector.assertEqual(mapSize.intValue(), 2);
+            Uint8 mapSize = contract.sizeOfU256Map().send();
+            collector.logStepPass("To invoke sizeOfU256Map success, mapSize: " + mapSize.getValue().toString());
+            collector.assertEqual(mapSize.getValue().intValue(), 2);
             collector.assertEqual(actValue1.toUpperCase(), expectValue11.toUpperCase());
             collector.assertEqual(actValue2.toUpperCase(), expectValue2.toUpperCase());
 
@@ -141,9 +143,9 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             String actValue2 = contract.getH256FromMap(expectKey2).send();
             collector.logStepPass("To invoke getH256FromMap success, value1: " + actValue1 + " value2:" + actValue2);
 
-            Byte mapSize = contract.sizeOfH256Map().send();
-            collector.logStepPass("To invoke sizeOfH256Map success, mapSize: " + mapSize.intValue());
-            collector.assertEqual(mapSize.intValue(), 2);
+            Uint8 mapSize = contract.sizeOfH256Map().send();
+            collector.logStepPass("To invoke sizeOfH256Map success, mapSize: " + mapSize.getValue().toString());
+            collector.assertEqual(mapSize.getValue().intValue(), 2);
             //collector.assertEqual(actValue1.toUpperCase(), expectValue11.toUpperCase());
             //collector.assertEqual(actValue2.toUpperCase(), expectValue2.toUpperCase());
 
