@@ -2,7 +2,6 @@ package network.platon.contracts.wasm;
 
 import com.platon.rlp.datatypes.Uint64;
 import com.platon.rlp.datatypes.Uint8;
-import java.util.Arrays;
 import org.web3j.abi.WasmFunctionEncoder;
 import org.web3j.abi.datatypes.WasmFunction;
 import org.web3j.crypto.Credentials;
@@ -12,6 +11,8 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.WasmContract;
 import org.web3j.tx.gas.GasProvider;
+
+import java.util.Arrays;
 
 /**
  * <p>Auto generated code.
@@ -29,7 +30,7 @@ public class ReferenceDataTypeContract extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_GETU256FROMMAP = "getU256FromMap";
+    public static final String FUNC_SETH256MAP = "setH256Map";
 
     public static final String FUNC_SETADDRESSMAP = "setAddressMap";
 
@@ -37,11 +38,11 @@ public class ReferenceDataTypeContract extends WasmContract {
 
     public static final String FUNC_SIZEOFADDRMAP = "sizeOfAddrMap";
 
+    public static final String FUNC_GETU256FROMMAP = "getU256FromMap";
+
     public static final String FUNC_SETU256MAP = "setU256Map";
 
     public static final String FUNC_SIZEOFU256MAP = "sizeOfU256Map";
-
-    public static final String FUNC_SETH256MAP = "setH256Map";
 
     public static final String FUNC_GETH256FROMMAP = "getH256FromMap";
 
@@ -55,9 +56,9 @@ public class ReferenceDataTypeContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> getU256FromMap(String key) {
-        final WasmFunction function = new WasmFunction(FUNC_GETU256FROMMAP, Arrays.asList(key), String.class);
-        return executeRemoteCall(function, String.class);
+    public RemoteCall<TransactionReceipt> setH256Map(String key, String value) {
+        final WasmFunction function = new WasmFunction(FUNC_SETH256MAP, Arrays.asList(key,value), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public static RemoteCall<ReferenceDataTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -85,6 +86,11 @@ public class ReferenceDataTypeContract extends WasmContract {
         return executeRemoteCall(function, Uint8.class);
     }
 
+    public RemoteCall<String> getU256FromMap(String key) {
+        final WasmFunction function = new WasmFunction(FUNC_GETU256FROMMAP, Arrays.asList(key), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public RemoteCall<TransactionReceipt> setU256Map(String key, Uint64 value) {
         final WasmFunction function = new WasmFunction(FUNC_SETU256MAP, Arrays.asList(key,value), Void.class);
         return executeRemoteCallTransaction(function);
@@ -93,11 +99,6 @@ public class ReferenceDataTypeContract extends WasmContract {
     public RemoteCall<Uint8> sizeOfU256Map() {
         final WasmFunction function = new WasmFunction(FUNC_SIZEOFU256MAP, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
-    }
-
-    public RemoteCall<TransactionReceipt> setH256Map(String key, String value) {
-        final WasmFunction function = new WasmFunction(FUNC_SETH256MAP, Arrays.asList(key,value), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<String> getH256FromMap(String key) {
