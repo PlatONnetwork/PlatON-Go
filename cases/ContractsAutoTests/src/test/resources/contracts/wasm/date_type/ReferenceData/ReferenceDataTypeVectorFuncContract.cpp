@@ -18,7 +18,7 @@ using namespace platon;
 CONTRACT ReferenceDataTypeVectorFuncContract : public platon::Contract{
 
     private:
-      platon::StorageType<"storage_vector_string"_n, std::vector<std::string>> storage_vector_string;
+      platon::StorageType<"vector1"_n, std::vector<std::string>> storage_vector_string;
     public:
     ACTION void init(){}
 

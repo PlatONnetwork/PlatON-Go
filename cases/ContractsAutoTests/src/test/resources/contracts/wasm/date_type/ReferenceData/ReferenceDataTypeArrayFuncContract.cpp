@@ -15,10 +15,10 @@ using namespace platon;
  *    5)、fill():将数组每个元素都固定填一个值
  * */
 
-CONTRACT ReferenceDataTypeArrayFuncContract : public platon::Contract{
+CONTRACT ReferenceDataTypeArrayFuncContract:public platon::Contract{
 
     private:
-       platon::StorageType<"storage_array_string"_n,std::array<std::string,10>> storage_array_string;
+       platon::StorageType<"arr"_n,std::array<std::string,10>> storage_array_string;
 
     public:
         ACTION void init(){}
