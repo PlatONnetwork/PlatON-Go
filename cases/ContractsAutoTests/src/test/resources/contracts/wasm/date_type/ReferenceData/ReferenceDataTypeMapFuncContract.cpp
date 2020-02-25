@@ -14,8 +14,8 @@ using namespace platon;
 CONTRACT ReferenceDataTypeMapFuncContract : public platon::Contract{
 
     private:
-       platon::StorageType<"storage_map_uint"_n,std::map<uint8_t,std::string>> storage_map_uint;
-       platon::StorageType<"storage_map_string"_n,std::map<std::string,std::string>> storage_map_string;
+       platon::StorageType<"map1"_n,std::map<uint8_t,std::string>> storage_map_uint;
+       platon::StorageType<"map2"_n,std::map<std::string,std::string>> storage_map_string;
 
 
     public:

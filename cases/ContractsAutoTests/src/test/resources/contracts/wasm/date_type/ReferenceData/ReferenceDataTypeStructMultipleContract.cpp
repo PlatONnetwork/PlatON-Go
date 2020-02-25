@@ -24,7 +24,7 @@ struct group{
 CONTRACT ReferenceDataTypeStructMultipleContract : public platon::Contract{
 
     private:
-      platon::StorageType<"storage_struct_group"_n,group> storage_struct_group;
+      platon::StorageType<"group"_n,group> storage_struct_group;
 
     public:
         ACTION void init(){}

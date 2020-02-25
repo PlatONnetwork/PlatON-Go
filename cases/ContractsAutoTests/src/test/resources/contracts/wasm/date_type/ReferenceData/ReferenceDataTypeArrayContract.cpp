@@ -25,11 +25,11 @@ using namespace platon;
 CONTRACT ReferenceDataTypeArrayContract : public platon::Contract{
 
     private:
-       platon::StorageType<"storage_array_string"_n,std::array<std::string,10>> storage_array_string;
-       platon::StorageType<"storage_array_uint8"_n,std::array<uint8_t,10>> storage_array_uint8;
-       //platon::StorageType<"storage_array_bool"_n,std::array<bool,5>> storage_array_bool;
-       platon::StorageType<"storage_array_bytes"_n,bytes> storage_array_bytes;
-       //platon::StorageType<"storage_array_peron"_n,std::array<Person,5>> storage_array_peron;
+       platon::StorageType<"a"_n,std::array<std::string,10>> storage_array_string;
+       platon::StorageType<"b"_n,std::array<uint8_t,10>> storage_array_uint8;
+       platon::StorageType<"c"_n,bytes> storage_array_bytes;
+      //platon::StorageType<"storage_array_peron"_n,std::array<Person,5>> storage_array_peron;
+      //platon::StorageType<"storage_array_bool"_n,std::array<bool,5>> storage_array_bool;
 
 
     public:
