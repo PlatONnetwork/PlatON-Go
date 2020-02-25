@@ -51,7 +51,7 @@ public class ReferenceDataTypeVectorFuncTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qudong", showName = "wasm.referenceDataTypeVectorFuncTest(verctor类型)属性/函数",sourcePrefix = "wasm")
+            author = "qudong", showName = "wasm.referenceDataTypeVectorFuncTest(verctor类型)属性函数",sourcePrefix = "wasm")
     public void testReferenceDataTypeVectorFunc() {
 
          //部署合约
