@@ -27,7 +27,7 @@ CONTRACT InitWithParams : public platon::Contract{
       }
 
    private:
-      platon::StorageType<"person_vector"_n, std::vector<Person>> info;
+      platon::StorageType<"pvector"_n, std::vector<Person>> info;
 };
 
 PLATON_DISPATCH(InitWithParams, (init)(add_person)(get_person))

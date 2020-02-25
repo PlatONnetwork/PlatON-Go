@@ -44,7 +44,7 @@ CONTRACT InitWithObjectParams : public platon::Contract{
       }
 
    private:
-      platon::StorageType<"contract_info"_n, std::vector<my_message>> info;
+      platon::StorageType<"cinfo"_n, std::vector<my_message>> info;
 };
 
 PLATON_DISPATCH(InitWithObjectParams, (init)(add_message)(get_message))
