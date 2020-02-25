@@ -47,7 +47,7 @@ CONTRACT cross_call_storage_type : public platon::Contract {
 
 
     private:
-       platon::StorageType<"info_arr"_n, std::vector<my_message>> arr;
+       platon::StorageType<"arr"_n, std::vector<my_message>> arr;
 };
 
 PLATON_DISPATCH(cross_call_storage_type, (init)(call_add_message)(get_vector_size))

@@ -12,10 +12,10 @@ CONTRACT call_ppos : public platon::Contract {
             platon::bytes  input = fromHex(in);
 
             if (platon_call(Address(target_addr), input, value, gas)) {
-                DEBUG("cross call contract cross_call_ppos_send success", "address", addr);
+                DEBUG("cross call contract cross_call_ppos_send success", "address", target_addr);
                 return 0;
             }
-            DEBUG("cross call contract cross_call_ppos_send fail", "address", addr);
+            DEBUG("cross call contract cross_call_ppos_send fail", "address", target_addr);
             return 1;
         }
 
@@ -23,7 +23,7 @@ CONTRACT call_ppos : public platon::Contract {
             platon::bytes  input = fromHex(in);
 
             if (platon_call(Address(target_addr), input, value, gas)) {
-                DEBUG("cross call contract cross_call_ppos_query success", "address", addr);
+                DEBUG("cross call contract cross_call_ppos_query success", "address", target_addr);
                 platon::bytes ret;
                 size_t len = platon_get_call_output_length();
                 ret.resize(len);
@@ -32,7 +32,7 @@ CONTRACT call_ppos : public platon::Contract {
                 DEBUG("cross call contract cross_call_ppos_query success", "hash", str);
                 return str;
             }
-            DEBUG("cross call contract cross_call_ppos_query fail", "address", addr);
+            DEBUG("cross call contract cross_call_ppos_query fail", "address", target_addr);
             return "";
         }
 

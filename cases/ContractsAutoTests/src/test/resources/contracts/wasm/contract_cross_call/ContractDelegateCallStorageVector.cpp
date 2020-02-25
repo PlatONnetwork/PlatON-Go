@@ -42,7 +42,7 @@ CONTRACT delegate_call_storage_vector : public platon::Contract {
         }
 
          CONST uint64_t get_vector_size(){
-             platon::StorageType<"info_arr"_n, std::vector<my_message>> arr; // Must use local definitions for manipulating the corresponding keys in the account space
+             platon::StorageType<"arr"_n, std::vector<my_message>> arr; // Must use local definitions for manipulating the corresponding keys in the account space
              return arr.self().size();
          }     
 

@@ -48,7 +48,7 @@ CONTRACT storage_vector : public platon::Contract{
 
 
    private:
-      platon::StorageType<"info_arr"_n, std::vector<my_message>> arr;
+      platon::StorageType<"arr"_n, std::vector<my_message>> arr;
 };
 
 PLATON_DISPATCH(storage_vector, (init)(add_message)(get_message)(get_vector_size))
