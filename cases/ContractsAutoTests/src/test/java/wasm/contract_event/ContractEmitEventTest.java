@@ -2,14 +2,9 @@ package wasm.contract_event;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.EventCallContract;
 import network.platon.contracts.wasm.ContractEmitEvent;
-import network.platon.contracts.wasm.ContractEmitEvent4;
-import network.platon.contracts.wasm.Contract_panic;
-import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.protocol.exceptions.TransactionException;
 import wasm.beforetest.WASMContractPrepareTest;
 
 import java.util.List;

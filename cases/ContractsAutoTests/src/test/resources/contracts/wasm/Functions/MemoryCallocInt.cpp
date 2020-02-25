@@ -7,7 +7,7 @@ using namespace platon;
 * @author liweic
 */
 
-CONTRACT MemoryFunction_3 : public platon::Contract{
+CONTRACT MemoryCallocInt : public platon::Contract{
 	public:
     ACTION void init(){}
 
@@ -27,4 +27,4 @@ CONTRACT MemoryFunction_3 : public platon::Contract{
     }
 };
 
-PLATON_DISPATCH(MemoryFunction_3, (init)(getcalloc))
+PLATON_DISPATCH(MemoryCallocInt, (init)(getcalloc))
