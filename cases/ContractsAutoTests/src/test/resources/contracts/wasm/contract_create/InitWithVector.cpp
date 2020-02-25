@@ -23,7 +23,7 @@ CONTRACT InitWithVector : public platon::Contract{
     }   
 
     private:
-    platon::StorageType<"age_vector"_n, std::vector<uint64_t>> ageVector;
+    platon::StorageType<"agevector"_n, std::vector<uint64_t>> ageVector;
 };
 
 PLATON_DISPATCH(InitWithVector, (init)(add_vector)(get_vector_size)(get_vector))

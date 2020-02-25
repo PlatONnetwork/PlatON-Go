@@ -36,8 +36,8 @@ CONTRACT ContractPanic : public platon::Contract{
       }
 
    private:
-      platon::StorageType<"string_storage"_n, std::string> stringstorage;
-      platon::StorageType<"string_storage1"_n, std::string> stringstorage1;
+      platon::StorageType<"sstorage"_n, std::string> stringstorage;
+      platon::StorageType<"sstorage1"_n, std::string> stringstorage1;
 };
 
 PLATON_DISPATCH(ContractPanic, (init)(panic_contract)(set_string_storage)(get_string_storage)(get_string_storage1))

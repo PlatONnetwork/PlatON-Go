@@ -26,8 +26,8 @@ CONTRACT ReferenceDataTypeMultiIndexContract : public platon::Contract{
     private:
        platon::db::MultiIndex<"student"_n,
                   Member,
-                  platon::db::IndexedBy<"index_name"_n,platon::db::IndexMemberFun<Member,std::string,&Member::Name,platon::db::IndexType::UniqueIndex>>,
-                  platon::db::IndexedBy<"index_age"_n,platon::db::IndexMemberFun<Member,uint8_t,&Member::Age,platon::db::IndexType::NormalIndex>>
+                  platon::db::IndexedBy<"indexname"_n,platon::db::IndexMemberFun<Member,std::string,&Member::Name,platon::db::IndexType::UniqueIndex>>,
+                  platon::db::IndexedBy<"indexage"_n,platon::db::IndexMemberFun<Member,uint8_t,&Member::Age,platon::db::IndexType::NormalIndex>>
                   >  member_student;
     public:
         ACTION void init(){}
@@ -44,13 +44,13 @@ CONTRACT ReferenceDataTypeMultiIndexContract : public platon::Contract{
          }
          //2)、验证：find（）多索引取值(查询年龄为10)
          CONST uint8_t getMultiIndexFind(const uint8_t &my_age){
-              auto iter = member_student.find<"index_age"_n>(my_age);
+              auto iter = member_student.find<"indexage"_n>(my_age);
               return iter->age;
           }
 
         //3)、验证：cbegin()多索引迭代器起始位置
          CONST bool getMultiIndexCbegin(){
-            auto iter = member_student.find<"index_age"_n>(uint8_t(10));
+            auto iter = member_student.find<"indexage"_n>(uint8_t(10));
             if(iter == member_student.cbegin()){
                 return true;
             }
@@ -59,7 +59,7 @@ CONTRACT ReferenceDataTypeMultiIndexContract : public platon::Contract{
 
       //4)、验证：erase()多索引删除数据
       ACTION void deleteMultiIndexErase(){
-          auto iter = member_student.find<"index_age"_n>(uint8_t(10));
+          auto iter = member_student.find<"indexage"_n>(uint8_t(10));
           member_student.erase(iter);
       }
 

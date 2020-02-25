@@ -36,7 +36,7 @@ CONTRACT ContractMigrate : public platon::Contract{
           return stringstorage.self();
       }
    private:
-      platon::StorageType<"string_storage"_n, std::string> stringstorage;
+      platon::StorageType<"sstorage"_n, std::string> stringstorage;
 };
 
 PLATON_DISPATCH(ContractMigrate, (init)(migrate_contract)(set_string)(get_string))

@@ -23,9 +23,9 @@ struct person{
 CONTRACT ReferenceDataTypeStructContract : public platon::Contract{
 
     private:
-       platon::StorageType<"storage_struct_person"_n,person> storage_struct_person;
-       platon::StorageType<"storage_string_name"_n,std::string> storage_string_name;
-       platon::StorageType<"storage_uint64_age"_n,uint64_t> storage_uint64_age;
+       platon::StorageType<"person"_n,person> storage_struct_person;
+       platon::StorageType<"name"_n,std::string> storage_string_name;
+       platon::StorageType<"age"_n,uint64_t> storage_uint64_age;
      //  platon::StorageType<"storage_struct_group"_n,group> storage_struct_group;
 
     public:

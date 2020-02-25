@@ -97,12 +97,12 @@ CONTRACT IntegerDataTypeContract_2: public platon::Contract
 		
 			
 	private:
-		platon::StorageType<"sint8"_n, int8_t> tInt8;
+		platon::StorageType<"sint24"_n, int8_t> tInt8;
 		platon::StorageType<"sint32"_n, int32_t> tInt32;
-		platon::StorageType<"sint64"_n, int64_t> tInt64;
-		platon::StorageType<"suint8"_n, uint8_t> tUint8;
+		platon::StorageType<"sint44"_n, int64_t> tInt64;
+		platon::StorageType<"suint"_n, uint8_t> tUint8;
 		platon::StorageType<"suint32"_n, uint32_t> tUint32;
-		platon::StorageType<"suint64"_n, uint64_t> tUint64;
+		platon::StorageType<"suint44"_n, uint64_t> tUint64;
 
 };
 

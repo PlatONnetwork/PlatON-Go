@@ -47,8 +47,8 @@ CONTRACT ContractMigrateTypes: public platon::Contract {
 
 	private:
 	  platon::StorageType<"message"_n, message> sMessage;
-		platon::StorageType<"vector_var"_n, std::vector<uint16_t>> sVector;
-		platon::StorageType<"map_var"_n,std::map<std::string,std::string>> sMap;
+		platon::StorageType<"vectorvar"_n, std::vector<uint16_t>> sVector;
+		platon::StorageType<"mapvar"_n,std::map<std::string,std::string>> sMap;
 		
 };
 

@@ -54,7 +54,7 @@ CONTRACT InitOverload : public platon::Contract{
 */    
 
     private:
-    platon::StorageType<"person_vector"_n, std::vector<person>> input_vector;
+    platon::StorageType<"pvector"_n, std::vector<person>> input_vector;
 };
 
 PLATON_DISPATCH(InitOverload, (init)(add_vector)(get_vector_size)(get_vector))

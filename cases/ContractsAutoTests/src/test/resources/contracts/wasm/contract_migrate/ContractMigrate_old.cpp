@@ -27,7 +27,7 @@ CONTRACT ContractMigrateOld: public platon::Contract {
 		}
 
 	private:
-	  platon::StorageType<"suint8"_n, uint8_t> tUint8;
+	  platon::StorageType<"suint"_n, uint8_t> tUint8;
 };
 
 PLATON_DISPATCH(ContractMigrateOld,(init)(migrate_contract)(setUint8)(getUint8))

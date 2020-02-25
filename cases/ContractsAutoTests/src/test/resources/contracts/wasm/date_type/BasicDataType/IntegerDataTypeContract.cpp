@@ -253,8 +253,8 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		platon::StorageType<"sstring"_n, std::string> tString;
 
 		platon::StorageType<"saddress"_n, Address> tAddress;
-		platon::StorageType<"su256"_n, u256> tU256;
-		platon::StorageType<"sh256"_n, h256> tH256;
+		platon::StorageType<"su255"_n, u256> tU256;
+		platon::StorageType<"sh255"_n, h256> tH256;
 
 
 };

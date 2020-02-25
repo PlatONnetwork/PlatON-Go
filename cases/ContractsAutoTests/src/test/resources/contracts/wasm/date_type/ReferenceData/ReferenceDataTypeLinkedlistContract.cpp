@@ -16,58 +16,56 @@ using namespace platon;
  * 2、链表取值
  * */
 
- struct listNode{
-     public:
-        std::string name;
-        listNode *nextPointer;
-        listNode(){}
-        listNode(const std::string &my_name,listNode *my_nextPointer):name(my_name),nextPointer(my_nextPointer){}
-        PLATON_SERIALIZE(listNode, (name))
- };
+ struct Edge{
+        public:
+           std::string nodeName;//结点数据
+           uint8_t nextNode;//下一个结点编号
+           Edge(){}
+           PLATON_SERIALIZE(Edge,(nodeName)(nextNode))
+};
 
 
-CONTRACT linkedListContractTest : public platon::Contract{
+CONTRACT ReferenceDataTypeLinkedlistContract : public platon::Contract{
 
     private:
-       platon::StorageType<"storage_listnode_a"_n,listNode> storage_listnode_a;
-       platon::StorageType<"storage_listnode_b"_n,listNode> storage_listnode_b;
-       platon::StorageType<"storage_listnode_c"_n,listNode> storage_listnode_c;
-       platon::StorageType<"storage_listnode_d"_n,listNode> storage_listnode_d;
-       //platon::StorageType<"storage_listnode_vector"_n, std::vector<listNode>> listnode_vector;
 
+     /*  platon::StorageType<"node_head"_n,listNode> storage_node_head;
+       platon::StorageType<"node_tmp"_n,listNode> storage_node_tmp;
+       platon::StorageType<"node_vector"_n, std::vector<listNode>> node_vector;
+       platon::StorageType<"storage_array_uint8"_n,std::array<uint8_t,10>> storage_array_uint8;*/
+       platon::StorageType<"array1"_n,std::array<std::vector<Edge>,10>> array_vector;
+      // platon::StorageType<"int8value"_n,int8_t> count;
     public:
         ACTION void init(){}
 
          /**
          * 1、定义链表类型
          **/
-         //1)、定义单向链表
-        ACTION void setListNode(){
-            //第一个结点
-            storage_listnode_a.self().name = "a";
-            //第二个结点
-            storage_listnode_b.self().name = "b";
-            storage_listnode_b.self().nextPointer = &storage_listnode_a.self();
-            //第三个结点
-            storage_listnode_c.self().name = "c";
-            storage_listnode_c.self().nextPointer = &storage_listnode_b.self();
-        }
-        //2)、增加节点
-     /*   ACTION void addListNodeVector(const std::string &my_name,listNode *my_nextPointer)){
-            listnode_vector.self().push_back(listNode(my_name,my_nextPointer));
-        }*/
-
-        ACTION void addListNode(){
-            for(int i = 0; i < 5; i++){
-                storage_listnode_d.self().name = "Lucy";
-                storage_listnode_d.self().nextPointer = &storage_listnode_d.self();
+         //1)、定义链表
+        //初始化链表
+        ACTION void insertNodeElement() {
+           //std::vector<Edge> edgeArray[10];
+           for (uint8_t i = 0;i < 10;i ++) {
+           	    //遍历所有结点
+           	    array_vector.self()[i].clear(); //清空其单链表
             }
+            Edge tmp; //准备一个Edge结构体
+            tmp.nextNode = 1; //下一结点编号为3
+            tmp.nodeName = "one"; //该边权值为38
+            array_vector.self()[0].push_back(tmp); //将该边加入结点1的单链表中
         }
 
-        CONST uint64_t getListNode(){
-           //nextPointer：是指针类型
-            return (uint64_t)storage_listnode_d.self().nextPointer;
+        CONST uint8_t getNodeElement(const uint8_t &arrayIndex,const uint8_t &vectorIndex){
+
+             return array_vector.self()[arrayIndex][vectorIndex].nextNode;
         }
+
+
+
+
+
+
 };
 
-PLATON_DISPATCH(linkedListContractTest,(init)(setListNode)(addListNode)(getListNode))
+PLATON_DISPATCH(ReferenceDataTypeLinkedlistContract,(init)
+(insertNodeElement)(getNodeElement))

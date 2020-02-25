@@ -32,7 +32,7 @@ CONTRACT ContractEmitEvent4 : public platon::Contract{
           return stringstorage.self();
       }
    private:
-      platon::StorageType<"string_storage"_n, std::string> stringstorage;
+      platon::StorageType<"sstorage"_n, std::string> stringstorage;
 };
 
 PLATON_DISPATCH(ContractEmitEvent4, (init)(four_emit_event4)(four_emit_event4_args4)(get_string))
