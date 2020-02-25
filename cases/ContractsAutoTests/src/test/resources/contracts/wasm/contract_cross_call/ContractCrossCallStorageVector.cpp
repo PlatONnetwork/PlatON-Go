@@ -29,7 +29,7 @@ CONTRACT cross_call_storage_type : public platon::Contract {
     public:
         ACTION void init(){}
 
-        ACTION uint64_t call_add_message(const std::string &target_address, const my_message &one_message, 
+        ACTION uint64_t call_add_message(const std::string &target_address, const my_message &one_message,
             uint64_t value, uint64_t gas) {
 
             platon::bytes params = platon::cross_call_args("add_message", one_message);
@@ -47,7 +47,7 @@ CONTRACT cross_call_storage_type : public platon::Contract {
 
 
     private:
-       platon::StorageType<"info_arr"_n, std::vector<my_message>> arr;
+       platon::StorageType<"arr"_n, std::vector<my_message>> arr;
 };
 
 PLATON_DISPATCH(cross_call_storage_type, (init)(call_add_message)(get_vector_size))
