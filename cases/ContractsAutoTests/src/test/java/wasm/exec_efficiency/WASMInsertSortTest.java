@@ -20,7 +20,7 @@ public class WASMInsertSortTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "wasm.exec_efficiency-空间复杂度", sourcePrefix = "wasm")
+            author = "qcxiao", showName = "wasm.exec_efficiency-插入排序", sourcePrefix = "wasm")
     public void test() {
         prepare();
         try {
