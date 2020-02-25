@@ -16,7 +16,7 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class OriginFunctionTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "wasm.SpecialFunctionsA验证链上函数platon_origin",sourcePrefix = "wasm")
+            author = "liweic", showName = "wasm.OriginFunctionTest验证链上函数platon_origin",sourcePrefix = "wasm")
     public void Originfunction() {
 
         try {

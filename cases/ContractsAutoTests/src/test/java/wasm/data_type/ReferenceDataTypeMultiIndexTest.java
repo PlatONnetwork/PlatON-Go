@@ -1,5 +1,6 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeArrayContract;
@@ -54,12 +55,12 @@ public class ReferenceDataTypeMultiIndexTest extends WASMContractPrepareTest {
         //调用合约方法
         try {
             //1、验证：多索引插入数据
-            TransactionReceipt  transactionReceipt = referenceDataTypeMultiIndexContract.addInitMultiIndex(my_name,Byte.parseByte(my_age),Byte.parseByte(my_sex)).send();
+            TransactionReceipt  transactionReceipt = referenceDataTypeMultiIndexContract.addInitMultiIndex(my_name,Uint8.of(my_age),Uint8.of(my_sex)).send();
             collector.logStepPass("referenceDataTypeMultiIndexContract 【验证多索引插入数据】 successfully hash:" + transactionReceipt.getTransactionHash());
             //2、验证：find（）多索引取值(查询年龄为10)
-            Byte  actualValueAge =  referenceDataTypeMultiIndexContract.getMultiIndexFind(Byte.parseByte(my_age)).send();
+            Uint8  actualValueAge =  referenceDataTypeMultiIndexContract.getMultiIndexFind(Uint8.of(my_age)).send();
             collector.logStepPass("referenceDataTypeMultiIndexContract 【验证find（）多索引取值(查询年龄为10)】 执行getMultiIndexFind() successfully actualValueAge:" + actualValueAge);
-            collector.assertEqual(actualValueAge,Byte.parseByte(my_age), "checkout  execute success.");
+            collector.assertEqual(actualValueAge,Uint8.of(my_age), "checkout  execute success.");
            //3、验证：cbegin()多索引迭代器起始位置
             Boolean actualSame= referenceDataTypeMultiIndexContract.getMultiIndexCbegin().send();
             collector.logStepPass("referenceDataTypeMultiIndexContract 【验证cbegin()多索引迭代器起始位置】 执行getMultiIndexCbegin() successfully actualSame:" + actualSame);
@@ -68,9 +69,9 @@ public class ReferenceDataTypeMultiIndexTest extends WASMContractPrepareTest {
             TransactionReceipt  transactionReceipt1 = referenceDataTypeMultiIndexContract.deleteMultiIndexErase().send();
             collector.logStepPass("referenceDataTypeMultiIndexContract 【验证erase()多索引删除数据】 successfully hash:" + transactionReceipt1.getTransactionHash());
             //查询删除数据
-            Byte  actualValueAge1 =  referenceDataTypeMultiIndexContract.getMultiIndexFind(Byte.parseByte(my_age)).send();
+            Uint8  actualValueAge1 =  referenceDataTypeMultiIndexContract.getMultiIndexFind(Uint8.of(my_age)).send();
             collector.logStepPass("referenceDataTypeMultiIndexContract 【验证find（）多索引取值(查询年龄为10)】 执行getMultiIndexFind() successfully actualValueAge1:" + actualValueAge1);
-            collector.assertEqual(actualValueAge1,Byte.parseByte(delete_age), "checkout  execute success.");
+            collector.assertEqual(actualValueAge1,Uint8.of(delete_age), "checkout  execute success.");
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeMultiIndexContract Calling Method fail.", e.toString());
             e.printStackTrace();

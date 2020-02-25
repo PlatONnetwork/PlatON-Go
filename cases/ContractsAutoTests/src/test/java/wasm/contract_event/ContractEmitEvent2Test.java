@@ -1,8 +1,8 @@
 package wasm.contract_event;
 
+import com.platon.rlp.datatypes.Uint32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.ContractEmitEvent1;
 import network.platon.contracts.wasm.ContractEmitEvent2;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -23,7 +23,7 @@ public class ContractEmitEvent2Test extends WASMContractPrepareTest {
     public void testTwoEventContract() {
 
         String name = "hudenian";
-        Integer value = 1;
+        Uint32 value = Uint32.of(1L);
         String nationality = "myNationality";
         try {
             prepare();

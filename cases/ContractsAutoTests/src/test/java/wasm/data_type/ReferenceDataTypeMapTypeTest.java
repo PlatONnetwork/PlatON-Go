@@ -1,5 +1,7 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Uint64;
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeMapTestContract;
@@ -65,9 +67,9 @@ public class ReferenceDataTypeMapTypeTest extends WASMContractPrepareTest {
             TransactionReceipt  transactionReceipt1 = referenceDataTypeMapTestContract.addMapString(key,value).send();
             collector.logStepPass("referenceDataTypeMapContract 【验证string类型map容器赋值】 执行storageType_map_string() successfully hash:" + transactionReceipt1.getTransactionHash());
             //3、验证：map容器数量
-            Long actualValueSize = referenceDataTypeMapTestContract.getMapStringSize().send();
+            Uint64 actualValueSize = referenceDataTypeMapTestContract.getMapStringSize().send();
             collector.logStepPass("referenceDataTypeMapContract 【验证map容器数量】 执行getMapStringSize() actualValueSize:" + actualValueSize);
-            collector.assertEqual(actualValueSize,Long.parseLong(mapSize), "checkout  execute success.");
+            collector.assertEqual(actualValueSize,Uint64.of(mapSize), "checkout  execute success.");
             //4、验证：map容器根据key获取值
             String actualValue = referenceDataTypeMapTestContract.getMapValueByString(key).send();
             collector.logStepPass("referenceDataTypeMapContract 【验证map容器根据key获取值】 执行getMapValueByString() actualValue:" + actualValue);
@@ -76,13 +78,13 @@ public class ReferenceDataTypeMapTypeTest extends WASMContractPrepareTest {
             //5、验证：person类型map容器赋值
             ReferenceDataTypeMapTestContract.Person person = new ReferenceDataTypeMapTestContract.Person();
             person.name = personName;
-            person.age  = Long.parseLong(personAge);
-            TransactionReceipt  transactionReceipt2 = referenceDataTypeMapTestContract.addMapByPerson(Byte.valueOf(keyPerson),person).send();
+            person.age  = Uint64.of(personAge);
+            TransactionReceipt  transactionReceipt2 = referenceDataTypeMapTestContract.addMapByPerson(Uint8.of(keyPerson),person).send();
             collector.logStepPass("referenceDataTypeMapContract 【验证person类型map容器赋值】 执行setMapByPerson() successfully hash:" + transactionReceipt2.getTransactionHash());
             //6、验证：map容器数量
-            Long actualPersonSize = referenceDataTypeMapTestContract.getMapByPersonSize().send();
+            Uint64 actualPersonSize = referenceDataTypeMapTestContract.getMapByPersonSize().send();
             collector.logStepPass("referenceDataTypeMapContract 【验证map容器数量】 执行getMapByPersonSize() actualPersonSize:" + actualPersonSize);
-            collector.assertEqual(actualPersonSize,Long.parseLong(mapPersonSize), "checkout  execute success.");
+            collector.assertEqual(actualPersonSize,Uint64.of(mapPersonSize), "checkout  execute success.");
 
             //7、验证：map容器根据key获取值Person
           /*String actualValueName = referenceDataTypeMapTestContract.getMapByPerson(Byte.valueOf(keyPerson)).send();

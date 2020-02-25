@@ -1,5 +1,6 @@
 package wasm.contract_multi_inherit;
 
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.OneInherit;
@@ -42,11 +43,11 @@ public class OneInheritTest extends WASMContractPrepareTest {
             collector.logStepPass("OneInheritTest call add_my_message successfully hash:" + transactionReceipt.getTransactionHash());
 
             //查询vector中对象数量
-            Byte size = oneInherit.get_my_message_size().send();
+            Uint8 size = oneInherit.get_my_message_size().send();
             collector.logStepPass("vector中my_message 数量为："+size);
 
             //查询消息头信息
-            Byte idx = 0;
+            Uint8 idx = Uint8.of(0);
             String chainHead = oneInherit.get_my_message_head(idx).send();
             collector.logStepPass("OneInheritTest call get_my_message_head successfully hash:" + transactionReceipt.getTransactionHash());
             collector.assertEqual(chainHead,head);

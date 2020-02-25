@@ -1,5 +1,6 @@
 package wasm.function;
 
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.CallValueFunction;
@@ -17,7 +18,7 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class CallValueFunctionTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "wasm.SpecialFunctionsA验证链上函数platon_call_value",sourcePrefix = "wasm")
+            author = "liweic", showName = "wasm.CallValueFunctionTest验证链上函数platon_call_value",sourcePrefix = "wasm")
     public void CallValuefunction() {
 
         try {
@@ -27,9 +28,9 @@ public class CallValueFunctionTest extends WASMContractPrepareTest {
             String transactionHash = callvalue.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CallerFunctionTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
-            Byte callval = callvalue.get_platon_call_value().send();
-            collector.logStepPass("getPlatONCallValue函数返回值:" + callval);
-            collector.assertEqual(callval.toString(), "0");
+            Uint8 callval = callvalue.get_platon_call_value().send();
+            collector.logStepPass("getPlatONCallValue函数返回值:" + callval.value);
+            collector.assertEqual(callval.value.toString(), "0");
 
 
         } catch (Exception e) {

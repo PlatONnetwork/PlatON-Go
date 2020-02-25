@@ -20,17 +20,17 @@ CONTRACT ContractEmitEvent : public platon::Contract{
  
       ACTION void zero_emit_event(std::string name){
            stringstorage.self() = name;
-           PLATON_EMIT_EVENT(transfer,name);
+           PLATON_EMIT_EVENT0(transfer,name);
       }
 
       ACTION void zero_emit_event_args2(std::string name){
            stringstorage.self() = name;
-           PLATON_EMIT_EVENT(transfer2,name,name);
+           PLATON_EMIT_EVENT0(transfer2,name,name);
       }
 
       ACTION void zero_emit_event_args3(std::string name,uint32_t value){
          stringstorage.self() = name;
-         PLATON_EMIT_EVENT(transfer3,name,name,value);
+         PLATON_EMIT_EVENT0(transfer3,name,name,value);
       }
 
       CONST std::string get_string(){

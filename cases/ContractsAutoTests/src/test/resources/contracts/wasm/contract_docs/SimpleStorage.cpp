@@ -24,7 +24,7 @@ CONTRACT SimpleStorage: public platon::Contract
 		}
 
 	private:
-		platon::StorageType<"suint64"_n, uint64_t> storedData;
+		platon::StorageType<"sstored"_n, uint64_t> storedData;
 };
 
 PLATON_DISPATCH(SimpleStorage,(init)(set)(get))

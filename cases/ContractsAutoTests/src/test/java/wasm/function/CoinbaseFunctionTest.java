@@ -17,7 +17,7 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class CoinbaseFunctionTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "wasm.SpecialFunctionsA验证链上函数platon_coinbase",sourcePrefix = "wasm")
+            author = "liweic", showName = "wasm.CoinbaseFunctionTest验证链上函数platon_coinbase",sourcePrefix = "wasm")
     public void Coinbasefunction() {
 
         try {

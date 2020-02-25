@@ -1,5 +1,7 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Uint32;
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitWithParams;
@@ -56,13 +58,13 @@ public class ReferenceDataTypeArrayTest extends WASMContractPrepareTest {
             TransactionReceipt  transactionReceipt = referenceDataTypeArrayContract.setInitArray().send();
             collector.logStepPass("ReferenceDataTypeArrayContract 【验证数组初始化赋值】 successfully hash:" + transactionReceipt.getTransactionHash());
             //2、验证：数组取值
-            String actualValue = referenceDataTypeArrayContract.getArrayStringIndex(Integer.parseInt(indexNo)).send();
+            String actualValue = referenceDataTypeArrayContract.getArrayStringIndex(Uint32.of(indexNo)).send();
             collector.logStepPass("ReferenceDataTypeArrayContract 【验证数组取值】 执行getArrayIndex() successfully actualValue:" + actualValue);
             collector.assertEqual(actualValue,expectIndexValue, "checkout  execute success.");
             //3、验证：获取数组容器大小
-            Byte actualArrayLength = referenceDataTypeArrayContract.getArrayUintSize().send();
+            Uint8 actualArrayLength = referenceDataTypeArrayContract.getArrayUintSize().send();
             collector.logStepPass("ReferenceDataTypeArrayContract 【验证获取数组容器大小】 执行getArraySize() successfully actualArrayLength:" + actualArrayLength);
-            collector.assertEqual(actualArrayLength,Byte.parseByte(expectArrayLength), "checkout  execute success.");
+            collector.assertEqual(actualArrayLength,Uint8.of(expectArrayLength), "checkout  execute success.");
             //4、验证：数组定义person类型
            /*ReferenceDataTypeArrayContract.Person person = new ReferenceDataTypeArrayContract.Person();
             person.name = "lucy";
@@ -76,7 +78,7 @@ public class ReferenceDataTypeArrayTest extends WASMContractPrepareTest {
            //5、验证：字节数组赋值&取值
             TransactionReceipt receipt = referenceDataTypeArrayContract.setBytesArray().send();
             collector.logStepPass("ReferenceDataTypeArrayContract 【验证字节数组赋值】 successfully hash:" + receipt.getTransactionHash());
-            Byte actualByteValue = referenceDataTypeArrayContract.getBytesArrayIndex(Integer.parseInt(indexByteNo)).send();
+            Uint8 actualByteValue = referenceDataTypeArrayContract.getBytesArrayIndex(Uint32.of(indexByteNo)).send();
             collector.logStepPass("ReferenceDataTypeArrayContract 【验证字节数组取值】 执行getBytesArrayIndex() successfully actualByteValue:" + actualByteValue);
             //collector.assertEqual(actualByteValue,expectByteValue, "checkout  execute success.");
         } catch (Exception e) {

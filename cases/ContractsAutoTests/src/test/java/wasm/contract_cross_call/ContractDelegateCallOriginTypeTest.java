@@ -1,5 +1,7 @@
 package wasm.contract_cross_call;
 
+
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractDelegateCallOriginType;
@@ -35,13 +37,13 @@ public class ContractDelegateCallOriginTypeTest extends WASMContractPrepareTest 
 
 
             // check vec size 1st
-            Long originVecSize = origin.get_vector_size().send();
+            Uint64 originVecSize = origin.get_vector_size().send();
             System.out.println("the msg count in arr of  storge_origin contract:" + originVecSize);
-            collector.assertEqual(originVecSize, 0l);
+            collector.assertEqual(originVecSize.getValue().longValue(), 0l);
 
-            Long delegateCallVecSize = crossCall.get_vector_size().send();
+            Uint64 delegateCallVecSize = crossCall.get_vector_size().send();
             System.out.println("the msg count in arr of delegate_call_origin_type contract:" + delegateCallVecSize);
-            collector.assertEqual(delegateCallVecSize, 0l);
+            collector.assertEqual(delegateCallVecSize.getValue().longValue(), 0l);
 
             // delegate call contract start
             ContractDelegateCallOriginType.My_message myMessage = new ContractDelegateCallOriginType.My_message();
@@ -51,18 +53,18 @@ public class ContractDelegateCallOriginTypeTest extends WASMContractPrepareTest 
             myMessage.end = "Gavin End";
 
             // cross call contract start
-            TransactionReceipt receipt = crossCall.delegate_call_add_message(originAddr, myMessage, 60000000l).send();
+            TransactionReceipt receipt = crossCall.delegate_call_add_message(originAddr, myMessage, Uint64.of(60000000l)).send();
             collector.logStepPass("delegate_call_origin_type call_add_message successfully txHash:" + receipt.getTransactionHash());
 
 
             // check arr size 2nd
             originVecSize = origin.get_vector_size().send();
             System.out.println("the msg count in arr of  storge_origin contract:" + originVecSize);
-            collector.assertEqual(originVecSize, 0l);
+            collector.assertEqual(originVecSize.getValue().longValue(), 0l);
 
             delegateCallVecSize = crossCall.get_vector_size().send();
             System.out.println("the msg count in arr of delegate_call_origin_type contract:" + delegateCallVecSize);
-            collector.assertEqual(delegateCallVecSize, 1l);
+            collector.assertEqual(delegateCallVecSize.getValue().longValue(), 1l);
 
         } catch (Exception e) {
             collector.logStepFail("Failed to call delegate_call_origin_type Contract,exception msg:" , e.getMessage());

@@ -1,5 +1,6 @@
 package wasm.contract_migrate;
 
+import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractMigrate_v1;
@@ -50,7 +51,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             byte[] data = Numeric.hexStringToByteArray(code);
 
             //合约升级
-            TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(data,0L, 90000000L).send();
+            TransactionReceipt transactionReceipt = contractMigratev1.migrate_contract(data, Uint64.of(0L), Uint64.of(90000000L)).send();
             collector.logStepPass("Contract Migrate V1  successfully hash:" + transactionReceipt.getTransactionHash());
 
             //获取升级后的合约地址(需要通过事件获取)

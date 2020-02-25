@@ -1,5 +1,6 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Uint32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeArrayContract;
@@ -34,7 +35,7 @@ public class ReferenceDataTypeArrayFuncTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qudong", showName = "wasm.referenceDataTypeArrayTest验证数组属性/函数",sourcePrefix = "wasm")
+            author = "qudong", showName = "wasm.referenceDataTypeArrayTest验证数组属性及函数",sourcePrefix = "wasm")
     public void testReferenceDataTypeArrayFunc() {
 
          //部署合约
@@ -61,7 +62,7 @@ public class ReferenceDataTypeArrayFuncTest extends WASMContractPrepareTest {
             collector.logStepPass("referenceDataTypeArrayFuncContract 【验证：数组属性empty()】 执行getArrayIsEmpty() successfully actualValue:" + actualValue);
             collector.assertEqual(actualValue,false, "checkout  execute success.");
             //3、验证：数组属性at()
-            String actualStringValue = referenceDataTypeArrayFuncContract.getArrayValueIndex(Integer.parseInt(indexValue)).send();
+            String actualStringValue = referenceDataTypeArrayFuncContract.getArrayValueIndex(Uint32.of(indexValue)).send();
             collector.logStepPass("referenceDataTypeArrayFuncContract 【验证：数组属性at()】 执行getArrayValueIndex() successfully actualStringValue:" + actualStringValue);
             collector.assertEqual(actualStringValue,expectIndexValue, "checkout  execute success.");
             //4、验证：数组属性front()
@@ -72,7 +73,7 @@ public class ReferenceDataTypeArrayFuncTest extends WASMContractPrepareTest {
             TransactionReceipt  transactionReceipt1 = referenceDataTypeArrayFuncContract.setArrayFill(fillValue).send();
             collector.logStepPass("referenceDataTypeArrayFuncContract 【验证：数组属性fill()】 successfully hash:" + transactionReceipt1.getTransactionHash());
             //取值验证
-            String actualStringValue2 = referenceDataTypeArrayFuncContract.getArrayValueIndex(Integer.parseInt(expectFill)).send();
+            String actualStringValue2 = referenceDataTypeArrayFuncContract.getArrayValueIndex(Uint32.of(expectFill)).send();
             collector.logStepPass("referenceDataTypeArrayFuncContract 【验证：数组属性at()】 执行getArrayValueIndex() successfully actualStringValue2:" + actualStringValue2);
             collector.assertEqual(actualStringValue2,fillValue, "checkout  execute success.");
         } catch (Exception e) {
