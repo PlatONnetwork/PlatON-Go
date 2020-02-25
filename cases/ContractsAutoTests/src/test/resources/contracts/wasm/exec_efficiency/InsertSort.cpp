@@ -14,23 +14,21 @@ CONTRACT InsertSort : public platon::Contract {
     public:
         ACTION void init(){}
 
-        void swap(int &a, int &b)
+        std::array<int8_t, 10> insertSort(std::array<int8_t,10>& arr, int n)
         {
-        	int temp = a;
-        	a = b;
-        	b = temp;
-        }
-
-        void insertSort(std::array<int8_t,10>& a, int length)
-        {
-        	for (int i = 1; i < length; i++)
-        	{
-        		for (int j = i - 1; j >= 0 && a[j + 1] < a[j]; j--)
-        		{
-        			swap(a[j], a[j + 1]);
-        		}
-        	}
-
+        	int i,j,key;
+            for(i = 1; i < n; i++)
+            {
+                key = arr[i];
+                j = i - 1;
+                while(j >= 0 && arr[j] > key)
+                {
+                    arr[j+1] = arr[j];
+                    j--;
+                }
+                arr[j+1] = key;
+            }
+            return arr;
         }
 
         ACTION void sort(std::array<int8_t, 10>& arr, int8_t length) {
