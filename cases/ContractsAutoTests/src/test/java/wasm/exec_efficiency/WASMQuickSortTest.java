@@ -32,7 +32,7 @@ public class WASMQuickSortTest extends WASMContractPrepareTest {
 
             Int64[] arr = new Int64[numberOfCalls];
 
-            int min = -100, max = 200;
+            int min = -100000, max = 200000;
 
             for (int i = 0; i < numberOfCalls; i++) {
                 arr[i] = Int64.of(min + (int) (Math.random() * (max - min + 1)));
