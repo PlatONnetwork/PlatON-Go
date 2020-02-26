@@ -45,7 +45,6 @@ def test_stak(global_test_env):
     client2.staking.create_staking(0, address2, address2)
 
 def test_00(global_test_env):
-
     node1 = global_test_env.get_all_nodes()[0]
     node2 = global_test_env.get_all_nodes()[1]
     client1 = Client(global_test_env, node1, StakingConfig("external_id", "node_name221", "website", "details"))

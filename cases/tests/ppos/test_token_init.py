@@ -98,6 +98,20 @@ def test_IT_SD_004_to_006(client_consensus, value):
     assert balance == value, "ErrMsg:Transfer amount {}".format(balance)
 
 
+def test_ttttt(client_consensus):
+    # transfer_amount = client_consensus.node.web3.toWei(100000, 'ether')
+    # result = client_consensus.economic.account.sendTransaction(client_consensus.node.web3, '', '0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD', '0x58235424849ee4c3f3a62c56fcb82b34117e67b6', client_consensus.node.web3.platon.gasPrice,
+    #                                                  21000, transfer_amount)
+    # balance = client_consensus.node.eth.getBalance(client_consensus.node.web3.toChecksumAddress('0x58235424849ee4c3f3a62c56fcb82b34117e67b6'))
+    # print(balance)
+    result = client_consensus.ppos.getRestrictingInfo('0x58235424849ee4c3f3a62c56fcb82b34117e67b6')
+    print(result)
+    result = client_consensus.ppos.getCandidateInfo('0ee7ad2655ad3e00095414bf10406fed2c19d5b3aa514b95321bbe3c6caebd7b190683d77c874da302555c4dc4978f45b16bd62eb370b62c84544ba971b39bdd')
+    print(result)
+
+
+
+
 @pytest.mark.P1
 @pytest.mark.parametrize('value', [2000, 1000])
 def test_IT_SD_002_003(global_test_env, value):
@@ -439,6 +453,59 @@ def test_AL_IE_002(clients_new_node):
     reward = int(blocknumber * Decimal(str(block_reward)))
     assert benifit_balance3 == staking_reward + reward, "ErrMsg:benifit_balance: {}".format(benifit_balance3)
 
+
+@pytest.mark.P1
+def test_AL_IE_002_01(client_new_node):
+    client = client_new_node
+    economic = client.economic
+    node = client.node
+    log.info("Node ID：{}".format(node.node_id))
+    log.info("Current connection node： {}".format(node.node_mark))
+    address, _ = client.economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
+    address_balance = node.eth.getBalance(address)
+    print("Account {} balance：{}".format(address, address_balance))
+    first_balance1 = node.eth.getBalance('0x1000000000000000000000000000000000000001')
+    first_balance2 = node.eth.getBalance('0x1000000000000000000000000000000000000002')
+    first_balance4 = node.eth.getBalance('0x1000000000000000000000000000000000000004')
+    first_balance5 = node.eth.getBalance('0x1000000000000000000000000000000000000005')
+    first_balance6 = node.eth.getBalance('0x1000000000000000000000000000000000000006')
+    log.info("Balance of Restriction plan : {}".format(first_balance1))
+    log.info("Balance of Staking : {}".format(first_balance2))
+    log.info("Balance of punishment : {}".format(first_balance4))
+    log.info("Balance of pip : {}".format(first_balance5))
+    log.info("Balance of Entrust reward pool : {}".format(first_balance6))
+    # Transfer to the incentive pool
+    log.info("Transfer amount：{}".format(node.web3.toWei(1000, 'ether')))
+    result = client.economic.account.sendTransaction(node.web3, '', address, '0x1000000000000000000000000000000000000001',
+                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
+    assert result is not None, "ErrMsg:Transfer result {}".format(result)
+    result = client.economic.account.sendTransaction(node.web3, '', address, '0x1000000000000000000000000000000000000002',
+                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
+    assert result is not None, "ErrMsg:Transfer result {}".format(result)
+    result = client.economic.account.sendTransaction(node.web3, '', address, '0x1000000000000000000000000000000000000004',
+                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
+    assert result is not None, "ErrMsg:Transfer result {}".format(result)
+    result = client.economic.account.sendTransaction(node.web3, '', address, '0x1000000000000000000000000000000000000005',
+                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
+    assert result is not None, "ErrMsg:Transfer result {}".format(result)
+    result = client.economic.account.sendTransaction(node.web3, '', address, '0x1000000000000000000000000000000000000006',
+                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
+    assert result is not None, "ErrMsg:Transfer result {}".format(result)
+    second_balance1 = node.eth.getBalance('0x1000000000000000000000000000000000000001')
+    second_balance2 = node.eth.getBalance('0x1000000000000000000000000000000000000002')
+    second_balance4 = node.eth.getBalance('0x1000000000000000000000000000000000000004')
+    second_balance5 = node.eth.getBalance('0x1000000000000000000000000000000000000005')
+    second_balance6 = node.eth.getBalance('0x1000000000000000000000000000000000000006')
+    log.info("Balance of Restriction plan : {}".format(second_balance1))
+    log.info("Balance of Staking : {}".format(second_balance2))
+    log.info("Balance of punishment : {}".format(second_balance4))
+    log.info("Balance of pip : {}".format(second_balance5))
+    log.info("Balance of Entrust reward pool : {}".format(second_balance6))
+    assert second_balance1 - first_balance1 == node.web3.toWei(1000, 'ether')
+    assert second_balance2 - first_balance2 == node.web3.toWei(1000, 'ether')
+    assert second_balance4 - first_balance4 == node.web3.toWei(1000, 'ether')
+    assert second_balance5 - first_balance5 == node.web3.toWei(1000, 'ether')
+    assert second_balance6 - first_balance6 == node.web3.toWei(1000, 'ether')
 
 @pytest.mark.P1
 def test_AL_IE_003(clients_new_node):
@@ -1369,3 +1436,4 @@ def AL_FI_007(client_consensus):
         staking_reward)
     assert average_interval == chain_time_interval, "ErrMsg:Block interval in the last settlement cycle {}".format(
         average_interval)
+
