@@ -1137,7 +1137,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		list, err := plugin.StakingInstance().GetVerifierList(common.ZeroHash, header.Number.Uint64(), plugin.QueryStartNotIrr)
 		if err != nil {
 			log.Error("Failed to commitNewWork on worker: get  staking validator list failed", "blockNumber", header.Number, "err", err)
-			return
+			return err
 		}
 		accounts := make(map[common.Address]struct{})
 		for _, value := range list {
