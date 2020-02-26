@@ -34,6 +34,7 @@ const (
 	// todo: pre value: 53000
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
 	TxDataZeroGas         uint64 = 4     // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
+	TxDataZeroWasmDeployGas uint64 = 1   // Per byte of data attached to a transaction that equals zero for wasm deploying. NOTE: Not payable on data of calls between transactions.
 	QuadCoeffDiv          uint64 = 512   // Divisor for the quadratic particle of the memory cost equation.
 	LogDataGas            uint64 = 8     // Per byte in a LOG* operation's data.
 	CallStipend           uint64 = 2300  // Free gas given at beginning of call.
@@ -59,6 +60,7 @@ const (
 	EpochDuration           uint64 = 30000 // Duration between proof-of-work epochs.
 	CallGas                 uint64 = 40    // Once per CALL operation & message call transaction.
 	CreateDataGas           uint64 = 20    //
+	CreateWasmDataGas       uint64 = 4
 	CallCreateDepth         uint64 = 1024  // Maximum depth of call/create stack.
 	ExpGas                  uint64 = 10    // Once per EXP instruction
 	LogGas                  uint64 = 375   // Per LOG* operation.
@@ -71,6 +73,7 @@ const (
 	SuicideRefundGas        uint64 = 24000 // Refunded following a suicide operation.
 	MemoryGas               uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas        uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
+	TxDataNonZeroWasmDeployGas uint64 = 4  // Per byte of data attached to a transaction that is not equal to zero for wasm deploying. NOTE: Not payable on data of calls between transactions.
 	SelfdestructGas         uint64 = 5000  // Cost of SELFDESTRUCT post EIP 150 (Tangerine)
 	CreateBySelfdestructGas uint64 = 25000 // CreateBySelfdestructGas is used when the refunded account is one that does not exist. This logic is similar to call.Introduced in Tangerine Whistle (Eip 150)
 	// todo: MAX CODE SIZE. pre value : 24576

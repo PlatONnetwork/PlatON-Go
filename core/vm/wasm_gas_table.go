@@ -64,7 +64,7 @@ func init() {
 	WasmGasCostTable[I64Store32] = 3
 
 	WasmGasCostTable[CurrentMemory] = 3
-	WasmGasCostTable[GrowMemory] = 64 * 1024
+	WasmGasCostTable[GrowMemory] = 1024
 
 	WasmGasCostTable[I32Const] = 0
 	WasmGasCostTable[I64Const] = 0
