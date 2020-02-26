@@ -26,15 +26,15 @@ public class ReferenceDataTypeArrayFuncContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GETARRAYISEMPTY = "getArrayIsEmpty";
+
     public static final String FUNC_GETARRAYFIRSTVALUE = "getArrayFirstValue";
 
     public static final String FUNC_SETINITARRAYDATE = "setInitArrayDate";
 
-    public static final String FUNC_GETARRAYISEMPTY = "getArrayIsEmpty";
+    public static final String FUNC_SETARRAYFILL = "setArrayFill";
 
     public static final String FUNC_GETARRAYVALUEINDEX = "getArrayValueIndex";
-
-    public static final String FUNC_SETARRAYFILL = "setArrayFill";
 
     protected ReferenceDataTypeArrayFuncContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -44,23 +44,13 @@ public class ReferenceDataTypeArrayFuncContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> getArrayFirstValue() {
-        final WasmFunction function = new WasmFunction(FUNC_GETARRAYFIRSTVALUE, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<TransactionReceipt> setInitArrayDate() {
-        final WasmFunction function = new WasmFunction(FUNC_SETINITARRAYDATE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public RemoteCall<Boolean> getArrayIsEmpty() {
         final WasmFunction function = new WasmFunction(FUNC_GETARRAYISEMPTY, Arrays.asList(), Boolean.class);
         return executeRemoteCall(function, Boolean.class);
     }
 
-    public RemoteCall<String> getArrayValueIndex(Uint32 index) {
-        final WasmFunction function = new WasmFunction(FUNC_GETARRAYVALUEINDEX, Arrays.asList(index), String.class);
+    public RemoteCall<String> getArrayFirstValue() {
+        final WasmFunction function = new WasmFunction(FUNC_GETARRAYFIRSTVALUE, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
     }
 
@@ -74,9 +64,19 @@ public class ReferenceDataTypeArrayFuncContract extends WasmContract {
         return deployRemoteCall(ReferenceDataTypeArrayFuncContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
+    public RemoteCall<TransactionReceipt> setInitArrayDate() {
+        final WasmFunction function = new WasmFunction(FUNC_SETINITARRAYDATE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
     public RemoteCall<TransactionReceipt> setArrayFill(String str) {
         final WasmFunction function = new WasmFunction(FUNC_SETARRAYFILL, Arrays.asList(str), Void.class);
         return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<String> getArrayValueIndex(Uint32 index) {
+        final WasmFunction function = new WasmFunction(FUNC_GETARRAYVALUEINDEX, Arrays.asList(index), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static ReferenceDataTypeArrayFuncContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

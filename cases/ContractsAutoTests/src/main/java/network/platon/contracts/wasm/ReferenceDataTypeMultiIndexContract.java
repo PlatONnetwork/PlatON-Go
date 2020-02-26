@@ -26,9 +26,9 @@ public class ReferenceDataTypeMultiIndexContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_DELETEMULTIINDEXERASE = "deleteMultiIndexErase";
-
     public static final String FUNC_GETMULTIINDEXCBEGIN = "getMultiIndexCbegin";
+
+    public static final String FUNC_DELETEMULTIINDEXERASE = "deleteMultiIndexErase";
 
     public static final String FUNC_ADDINITMULTIINDEX = "addInitMultiIndex";
 
@@ -42,14 +42,14 @@ public class ReferenceDataTypeMultiIndexContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> deleteMultiIndexErase() {
-        final WasmFunction function = new WasmFunction(FUNC_DELETEMULTIINDEXERASE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public RemoteCall<Boolean> getMultiIndexCbegin() {
         final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXCBEGIN, Arrays.asList(), Boolean.class);
         return executeRemoteCall(function, Boolean.class);
+    }
+
+    public RemoteCall<TransactionReceipt> deleteMultiIndexErase() {
+        final WasmFunction function = new WasmFunction(FUNC_DELETEMULTIINDEXERASE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public static RemoteCall<ReferenceDataTypeMultiIndexContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
