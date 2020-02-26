@@ -34,7 +34,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	canMu.Released = big.NewInt(10000)
 	canMu.RewardPer = rewardPer
 	canMu.DelegateTotal = delegateTotal
-	canMu.CurrentEpochDelegateReward = delegateTotal
+	canMu.CurrentEpochDelegateReward = new(big.Int)
 
 	var canBase staking.CandidateBase
 	privateKey, err := crypto.GenerateKey()
@@ -124,7 +124,6 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 	contact.Plugin.SetCurrentNodeID(can.NodeId)
 
 	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
-	chain.StateDB.AddBalance(vm.RewardManagerPoolAddr, big.NewInt(100000000000000))
 
 	for i := 0; i < int(xutil.CalcBlocksEachEpoch()); i++ {
 		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {

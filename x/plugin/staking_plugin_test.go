@@ -1668,6 +1668,9 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	// Delegate
 	del, err := delegate(state, blockHash, blockNumber, can, 0, index, t)
 
+	delegateRewardPoolBalance, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
+	state.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Mul(new(big.Int).Set(delegateRewardPoolBalance), new(big.Int).Set(delegateRewardPoolBalance)))
+
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to delegate: %v", err)) {
 		return
 	}
