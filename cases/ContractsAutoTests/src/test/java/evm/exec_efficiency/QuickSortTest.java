@@ -3,12 +3,15 @@ package evm.exec_efficiency;
 import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.SpaceComplexity;
+import network.platon.contracts.QuickSort;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 /**
  * @title QuickSortTest
@@ -28,29 +31,30 @@ public class QuickSortTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "exec_efficiency.SpaceComplexityTest-空间复杂度", sourcePrefix = "evm")
+            author = "zjsunzone", showName = "exec_efficiency.QuickSort-快速排序", sourcePrefix = "evm")
     public void test() {
         prepare();
         try {
-            SpaceComplexity spaceComplexity = SpaceComplexity.deploy(web3j, transactionManager, provider).send();
-            contractAddress = spaceComplexity.getContractAddress();
-            collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
 
-            TransactionReceipt transactionReceipt = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider)
-                    .testStorage(numberOfCalls).send();
+            // prepare array
+            List<BigInteger> array = new ArrayList<>();
+            Random r = new Random();
+            for (int i = 0; i < numberOfCalls.intValue(); i++) {
+                int val = r.nextInt(1000);
+                array.add(BigInteger.valueOf(val));
+            }
+
+            QuickSort contract = QuickSort.deploy(web3j, transactionManager, provider, array).send();
+            contractAddress = contract.getContractAddress();
+            collector.logStepPass("QuickSort contract deploy successful. contractAddress:" + contractAddress);
+
+            TransactionReceipt transactionReceipt = contract.sort(BigInteger.ZERO, BigInteger.valueOf(array.size() - 1)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
-            collector.logStepPass("gasUsed:" + gasUsed);
-            collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
-            collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
+            collector.logStepPass("QuickSort gasUsed:" + gasUsed);
+            collector.logStepPass("QuickSort contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
+            collector.logStepPass("QuickSort currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            String name = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider).name().send();
-
-            if (numberOfCalls.mod(BigInteger.valueOf(2)) == BigInteger.ZERO) {
-                collector.assertEqual(name, "QCXIAO");
-            } else {
-                collector.assertEqual(name, "qcxiao");
-            }
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());
