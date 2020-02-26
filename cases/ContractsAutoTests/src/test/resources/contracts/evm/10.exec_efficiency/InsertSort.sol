@@ -5,7 +5,7 @@ pragma solidity ^0.5.13;
  **/
 contract InsertSort{
 
-    function OuputArrays(int[] memory arr, uint n) public view returns(int[] memory){
+    function OuputArrays(int[] memory arr, uint n) public payable returns(int[] memory){
         uint i;
         uint k;
         uint j;
