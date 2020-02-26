@@ -40,7 +40,7 @@ public class QuickSortTest extends ContractPrepareTest {
             List<BigInteger> array = new ArrayList<>();
             Random r = new Random();
             for (int i = 0; i < numberOfCalls.intValue(); i++) {
-                int val = r.nextInt(100);
+                int val = r.nextInt(1000);
                 array.add(BigInteger.valueOf(val));
             }
 
