@@ -14,14 +14,7 @@ using namespace platon;
  *
  * */
 
-/*class Person{
-    public:
-       std::string name;
-       uint64_t age;
-       Person(){}
-       Person(const std::string &my_name,uint64_t &my_age):name(my_name),age(my_age){}
-       PLATON_SERIALIZE(Person,(name)(age))
-};*/
+
 CONTRACT ReferenceDataTypeArrayContract : public platon::Contract{
 
     private:
@@ -30,7 +23,6 @@ CONTRACT ReferenceDataTypeArrayContract : public platon::Contract{
        platon::StorageType<"c"_n,bytes> storage_array_bytes;
       //platon::StorageType<"storage_array_peron"_n,std::array<Person,5>> storage_array_peron;
       //platon::StorageType<"storage_array_bool"_n,std::array<bool,5>> storage_array_bool;
-
 
     public:
         ACTION void init(){}
@@ -58,33 +50,19 @@ CONTRACT ReferenceDataTypeArrayContract : public platon::Contract{
              return storage_array_uint8.self().size();
          }
 
-        //4)、验证数组定义person类型
-      /* ACTION void setArrayPerson(const Person &person){
-              storage_array_peron.self()[0] = person;
-        }
-        CONST std::string getArrayPersonNameIndex(){
-              return storage_array_peron.self()[0].name;
-        }*/
-
-        //5)、定长array:验证定长数组赋值超出存储空间、赋值错误类型值
-      /*   ACTION void setArrayOver(){
-               storage_array_bool.self() = {true,false};//正常
-               //storage_array_bool.self() = {1,2,3};//异常，赋值错误类型值
-               //storage_array_bool.self() = {true,false,true,false,true,false,true,false};//异常，赋值超过存储空间
-         }*/
-
       /**
         * 2、字节数组bytes
         **/
          ACTION void setBytesArray(){
              storage_array_bytes.self() = {1,2,3,4,5};
          }
-
          CONST uint8_t getBytesArrayIndex(const uint32_t &index){
               return storage_array_bytes.self()[index];
          }
 };
 
-PLATON_DISPATCH(ReferenceDataTypeArrayContract,(init)(setInitArray)(getArrayStringIndex)(getArrayUintSize)
-               (setBytesArray)(getBytesArrayIndex))
+PLATON_DISPATCH(ReferenceDataTypeArrayContract,(init)(setInitArray)
+(getArrayStringIndex)(getArrayUintSize)
+(setBytesArray)(getBytesArrayIndex)
+)
 

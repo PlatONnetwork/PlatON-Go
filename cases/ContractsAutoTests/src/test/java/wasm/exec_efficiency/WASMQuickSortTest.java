@@ -1,21 +1,22 @@
 package wasm.exec_efficiency;
 
-import com.platon.rlp.datatypes.Int8;
+import com.platon.rlp.datatypes.Int64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.SpaceComplexity;
+import network.platon.contracts.wasm.QuickSort;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
 import java.math.BigInteger;
+import java.util.Arrays;
 
 /**
- * @title SpaceComplexityTest
- * @description 空间复杂度场景测试
+ * @title WASMQuickSortTest
+ * @description 快排
  * @author qcxiao
  * @updateTime 2019/12/28 14:39
  */
-public class WASMSpaceComplexityTest extends WASMContractPrepareTest {
+public class WASMQuickSortTest extends WASMContractPrepareTest {
     private String contractAddress;
 
     @Test
@@ -24,26 +25,31 @@ public class WASMSpaceComplexityTest extends WASMContractPrepareTest {
     public void test() {
         prepare();
         try {
-            SpaceComplexity spaceComplexity = SpaceComplexity.deploy(web3j, transactionManager, provider).send();
-            contractAddress = spaceComplexity.getContractAddress();
+            Integer numberOfCalls = Integer.valueOf(driverService.param.get("numberOfCalls"));
+            QuickSort quickSort = QuickSort.deploy(web3j, transactionManager, provider).send();
+            contractAddress = quickSort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
 
-            Int8[] arr = new Int8[]{Int8.of((byte) 1), Int8.of((byte) -1), Int8.of((byte) 5),
-                    Int8.of((byte) 8), Int8.of((byte) 10), Int8.of((byte) 11), Int8.of((byte) 20),
-                    Int8.of((byte) 30), Int8.of((byte) 32), Int8.of((byte) 127)};
-            TransactionReceipt transactionReceipt = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider)
-                    .sort(arr, Int8.of((byte) 0), Int8.of((byte) 9)).send();
+            Int64[] arr = new Int64[numberOfCalls];
+
+            int min = -100, max = 200;
+
+            for (int i = 0; i < numberOfCalls; i++) {
+                arr[i] = Int64.of(min + (int) (Math.random() * (max - min + 1)));
+            }
+
+            collector.logStepPass("before sort:" + Arrays.toString(arr));
+            TransactionReceipt transactionReceipt = QuickSort.load(contractAddress, web3j, transactionManager, provider)
+                    .sort(arr, Int64.of(0), Int64.of(numberOfCalls - 1)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
             collector.logStepPass("gasUsed:" + gasUsed);
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            Int8[] generationArr = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider).get_array().send();
+            Int64[] generationArr = QuickSort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
 
-            for (Int8 ele : generationArr) {
-                System.out.print(ele.value + ",");
-            }
+            collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());
