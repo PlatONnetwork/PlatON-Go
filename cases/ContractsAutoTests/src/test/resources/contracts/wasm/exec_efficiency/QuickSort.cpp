@@ -1,21 +1,24 @@
+
 #include <platon/platon.hpp>
 #include <string>
 using namespace platon;
 
+
 /**
- * 执行效率-空间复杂度
+ * 执行效率-快速排序
  * @author qcxiao
  **/
+
 CONTRACT QuickSort : public platon::Contract {
     private:
-        platon::StorageType<"vector1"_n, std::vector<clothes>> vector_clothes;
+        platon::StorageType<"vector1"_n, std::vector<int64_t>> vector_clothes;
     public:
         ACTION void init(){}
-        std::vector<clothes> quickSort(std::vector<clothes>& array, int start, int last)
+        std::vector<int64_t> quickSort(std::vector<int64_t>& array, long start, long last)
         {
-            int i = start;
-            int j = last;
-            int temp = array[i];
+            long i = start;
+            long j = last;
+            long temp = array[i];
             if (i < j)
             {
                 while (i < j)
@@ -44,13 +47,14 @@ CONTRACT QuickSort : public platon::Contract {
             return array;
         }
 
-        ACTION void sort(std::vector<clothes>& arr, int8_t start, int8_t last) {
+        ACTION void sort(std::vector<int64_t>& arr, int64_t start, int64_t last) {
             vector_clothes.self() = quickSort(arr, start, last);
         }
 
-        CONST std::vector<clothes> get_array() {
+        CONST std::vector<int64_t> get_array() {
             return vector_clothes.self();
         }
 
 };
-PLATON_DISPATCH(SpaceComplexity,(init)(sort)(get_array))
+PLATON_DISPATCH(QuickSort,(init)(sort)(get_array))
+
