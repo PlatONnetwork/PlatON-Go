@@ -19,6 +19,7 @@ public class DataChangeUtil {
      * @return  转换后的byte数组结果
      */
     public static byte[] hexToByteArray(String inHex){
+        if(inHex.startsWith("0x"))inHex = inHex.substring(2);
         int hexlen = inHex.length();
         byte[] result;
         if (hexlen % 2 == 1){
