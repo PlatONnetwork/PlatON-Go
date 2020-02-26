@@ -25,11 +25,14 @@ public class CoinbaseFunctionTest extends WASMContractPrepareTest {
             CoinbaseFunction coinbase = CoinbaseFunction.deploy(web3j, transactionManager, provider).send();
             String contractAddress = coinbase.getContractAddress();
             String transactionHash = coinbase.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("CallerFunctionTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("CoinbaseFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
 
             String coinbaseaddr = coinbase.get_platon_coinbase().send();
             collector.logStepPass("getPlatONConibase函数返回值:" + coinbaseaddr);
-            collector.assertEqual(coinbaseaddr, "0x1000000000000000000000000000000000000003");
+
+            String coinaddr = "0x0000000000000000000000000000000000000000";
+            boolean iscoinbase = coinbaseaddr.equals(coinaddr);
+            collector.assertEqual(!iscoinbase ,true);
 
 
         } catch (Exception e) {

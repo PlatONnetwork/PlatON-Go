@@ -42,9 +42,9 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
 
     public static final WasmEvent TRANSFER_EVENT = new WasmEvent("transfer", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(Uint32.class) , new WasmEventParameter(List.class, 
             new com.platon.rlp.ParameterizedTypeImpl(
-            new java.lang.reflect.Type[] {String.class},
-            List.class,
-            List.class))));
+            new java.lang.reflect.Type[] {java.lang.String.class}, 
+            java.util.List.class, 
+            java.util.List.class))));
     ;
 
     protected ContractEmitEvent1ComplexParam(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -61,9 +61,9 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
-        List<WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
         ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
-        for (WasmEventValuesWithLog eventValues : valueList) {
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
             TransferEventResponse typedResponse = new TransferEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
@@ -78,7 +78,7 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, TransferEventResponse>() {
             @Override
             public TransferEventResponse call(Log log) {
-                WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER_EVENT, log);
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER_EVENT, log);
                 TransferEventResponse typedResponse = new TransferEventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);

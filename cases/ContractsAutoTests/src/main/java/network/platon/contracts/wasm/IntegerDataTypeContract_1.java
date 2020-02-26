@@ -38,9 +38,9 @@ public class IntegerDataTypeContract_1 extends WasmContract {
 
     public static final String FUNC_INT64 = "int64";
 
-    public static final String FUNC_U256T = "u256t";
-
     public static final String FUNC_UINT8T = "uint8t";
+
+    public static final String FUNC_U256T = "u256t";
 
     public static final String FUNC_UINT32T = "uint32t";
 
@@ -84,14 +84,14 @@ public class IntegerDataTypeContract_1 extends WasmContract {
         return executeRemoteCall(function, Int64.class);
     }
 
-    public RemoteCall<String> u256t(Uint64 input) {
-        final WasmFunction function = new WasmFunction(FUNC_U256T, Arrays.asList(input), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
     public RemoteCall<Uint8> uint8t(Uint8 input) {
         final WasmFunction function = new WasmFunction(FUNC_UINT8T, Arrays.asList(input), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
+    }
+
+    public RemoteCall<String> u256t(Uint64 input) {
+        final WasmFunction function = new WasmFunction(FUNC_U256T, Arrays.asList(input), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<Uint32> uint32t(Uint32 input) {

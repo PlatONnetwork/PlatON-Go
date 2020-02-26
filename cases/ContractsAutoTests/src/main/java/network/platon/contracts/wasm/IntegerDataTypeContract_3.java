@@ -71,11 +71,6 @@ public class IntegerDataTypeContract_3 extends WasmContract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<Int8> getChar() {
-        final WasmFunction function = new WasmFunction(FUNC_GETCHAR, Arrays.asList(), Int8.class);
-        return executeRemoteCall(function, Int8.class);
-    }
-
     public static RemoteCall<IntegerDataTypeContract_3> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_3.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -84,6 +79,11 @@ public class IntegerDataTypeContract_3 extends WasmContract {
     public static RemoteCall<IntegerDataTypeContract_3> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_3.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public RemoteCall<Int8> getChar() {
+        final WasmFunction function = new WasmFunction(FUNC_GETCHAR, Arrays.asList(), Int8.class);
+        return executeRemoteCall(function, Int8.class);
     }
 
     public static IntegerDataTypeContract_3 load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

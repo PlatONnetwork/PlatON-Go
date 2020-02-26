@@ -21,8 +21,8 @@ CONTRACT MemoryReallocInt : public platon::Contract{
 
        int *p_new=(int *)realloc(p, 10*sizeof(int));
        *p_new = 100;
-       free(p_new);
        int temp = *p_new;
+       free(p_new);
        return temp;
     }
 };

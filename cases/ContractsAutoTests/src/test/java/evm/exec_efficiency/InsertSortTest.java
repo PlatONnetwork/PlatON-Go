@@ -1,28 +1,38 @@
-package wasm.exec_efficiency;
+package evm.exec_efficiency;
 
-import com.platon.rlp.datatypes.Int64;
-import com.platon.rlp.datatypes.Int8;
+
+import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.InsertSort;
+import network.platon.contracts.InsertSort;
+import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+
 import java.math.BigInteger;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
- * @title WASMInsertSortTest
- * @description 执行效率 - 插入排序
- * @author qcxiao
- * @updateTime 2020/2/25 11:38
- */
-public class WASMInsertSortTest extends WASMContractPrepareTest {
+ * @title 插入排序
+ * @description:
+ * @author: liweic
+ * @create: 2020/02/26
+ **/
+public class InsertSortTest extends ContractPrepareTest {
+
+    private BigInteger numberOfCalls;
     private String contractAddress;
+
+    @Before
+    public void before() {
+        numberOfCalls = new BigInteger(driverService.param.get("numberOfCalls"));
+    }
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "wasm.exec_efficiency-插入排序", sourcePrefix = "wasm")
+            author = "liweic", showName = "exec_efficiency.InsertSortTest-插入排序", sourcePrefix = "evm")
     public void test() {
         prepare();
         try {
@@ -33,25 +43,24 @@ public class WASMInsertSortTest extends WASMContractPrepareTest {
             contractAddress = insertSort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
 
-            Int64[] arr = new Int64[numberOfCalls];
+            List<BigInteger> array = new ArrayList<>(numberOfCalls);
 
             int min = -1000, max = 2000;
 
             for (int i = 0; i < numberOfCalls; i++) {
-                arr[i] = Int64.of(min + (int) (Math.random() * (max - min + 1)));
+                BigInteger a = BigInteger.valueOf(min + (int) (Math.random() * 3001));
+                array.add(a);
             }
 
-            TransactionReceipt transactionReceipt = InsertSort.load(contractAddress, web3j, transactionManager, provider)
-                    .sort(arr, Int64.of(arr.length)).send();
+            BigInteger n = BigInteger.valueOf(array.size());
+            TransactionReceipt transactionReceipt = insertSort.OuputArrays(array, n, new BigInteger("1000")).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
             collector.logStepPass("gasUsed:" + gasUsed);
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            Int64[] generationArr = InsertSort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
 
-            //collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());
@@ -59,3 +68,4 @@ public class WASMInsertSortTest extends WASMContractPrepareTest {
     }
 
 }
+
