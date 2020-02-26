@@ -1,7 +1,10 @@
 package network.platon.utils;
 
 
+import com.platon.rlp.RLPCodec;
+import com.platon.rlp.RLPList;
 import org.apache.commons.lang.StringUtils;
+import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 
@@ -115,6 +118,23 @@ public class DataChangeUtil {
         System.arraycopy(byteValue, 0, byteValueLen, 0, byteValue.length);
         return byteValueLen;
     }
+
+
+    /**
+     * ppos系统约data字段rlp解码处理
+     * 系统合约的最外层是一个RLPList
+     * RlpList里面放实际的RLP编码值
+     *
+     * @param hexRlp
+     * @return
+     */
+    public static String decodeSystemContractRlp(String hexRlp) {
+        byte[] data = Numeric.hexStringToByteArray(hexRlp);
+        RLPList rlpList = RLPCodec.decode(data,RLPList.class);
+        return RLPCodec.decode(rlpList.get(0),String.class);
+    }
+
+
 
 
     public static void main(String[] args) {
