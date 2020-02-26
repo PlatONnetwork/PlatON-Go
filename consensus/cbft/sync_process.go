@@ -538,7 +538,8 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	}
 	// get previous viewChangeQC from wal db
 	if isPreviousView() {
-		if qc, err := cbft.bridge.GetViewChangeQC(msg.Epoch, msg.ViewNumber); err == nil && qc != nil {
+		if qc, err := cbft.bridge.GetViewChangeQC(msg.Epoch, msg.ViewNumber+1); err == nil && qc != nil {
+			cbft.log.Debug("Send previous view change qc", "qc", qc.String())
 			cbft.network.Send(id, &protocols.ViewChangeQuorumCert{
 				ViewChangeQC: qc,
 			})

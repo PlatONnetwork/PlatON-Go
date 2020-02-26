@@ -36,6 +36,7 @@ const (
 	RestrictingRule
 	RewardRule
 	GovernanceRule
+	CollectDeclareVersionRule
 )
 
 const (
@@ -150,10 +151,10 @@ func ResetEconomicDefaultConfig(newEc *EconomicModel) {
 }
 
 const (
-	DefaultMainNet = iota // PlatON default main net flag
-	DefaultTestNet        // PlatON default test net flag
-	DefaultDemoNet        // PlatON default demo net flag
-	DefaultUnitTestNet    // PlatON default unit test flag
+	DefaultMainNet     = iota // PlatON default main net flag
+	DefaultTestNet            // PlatON default test net flag
+	DefaultDemoNet            // PlatON default demo net flag
+	DefaultUnitTestNet        // PlatON default unit test flag
 )
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
