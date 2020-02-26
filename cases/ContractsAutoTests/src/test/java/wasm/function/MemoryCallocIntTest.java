@@ -29,7 +29,7 @@ public class MemoryCallocIntTest extends WASMContractPrepareTest {
 
             Int32 callocint = mci.getcalloc().send();
             collector.logStepPass("calloc函数返回值:" + callocint.value);
-            collector.assertEqual(callocint.value, 10);
+            collector.assertEqual(callocint.value, 2500);
 
         } catch (Exception e) {
             collector.logStepFail("MemoryCallocInt failure,exception msg:" , e.getMessage());
