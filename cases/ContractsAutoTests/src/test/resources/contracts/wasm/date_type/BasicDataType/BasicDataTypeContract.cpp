@@ -11,7 +11,6 @@ using namespace platon;
  * 4、字符串类型
  * 5、浮点类型(float、double)
  * 6、地址类型
- * 7、枚举类型
  * */
 
 
@@ -22,8 +21,8 @@ CONTRACT BasicDataTypeContract : public platon::Contract{
        platon::StorageType<"boolkey"_n,bool> bool_v;
        platon::StorageType<"strkey"_n,std::string> string_v;
        platon::StorageType<"addrkey"_n,Address> address_v;
-      // platon::StorageType<"floatkey"_n,float> float_v;
-      // platon::StorageType<"doublekey"_n,double> double_v;
+       platon::StorageType<"floatkey"_n,float> float_v;
+       platon::StorageType<"doublekey"_n,double> double_v;
 
     public:
        ACTION void init(){
@@ -95,7 +94,8 @@ CONTRACT BasicDataTypeContract : public platon::Contract{
 };
 
 PLATON_DISPATCH(BasicDataTypeContract,(init)
-(set_bool)(get_bool)(set_byte)(get_byte)
+(set_bool)(get_bool)
+(set_byte)(get_byte)
 (set_string)(get_string)(get_string_length)
 (set_address)(get_address)
 (set_float)(get_float)(set_double)(get_double)
