@@ -38,11 +38,6 @@ public class ContractDelegateCallOriginType extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> delegate_call_add_message(String target_address, My_message one_message, Uint64 gas) {
-        final WasmFunction function = new WasmFunction(FUNC_DELEGATE_CALL_ADD_MESSAGE, Arrays.asList(target_address,one_message,gas), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public static RemoteCall<ContractDelegateCallOriginType> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractDelegateCallOriginType.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -51,6 +46,11 @@ public class ContractDelegateCallOriginType extends WasmContract {
     public static RemoteCall<ContractDelegateCallOriginType> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractDelegateCallOriginType.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public RemoteCall<TransactionReceipt> delegate_call_add_message(String target_address, My_message one_message, Uint64 gas) {
+        final WasmFunction function = new WasmFunction(FUNC_DELEGATE_CALL_ADD_MESSAGE, Arrays.asList(target_address,one_message,gas), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<Uint64> get_vector_size() {

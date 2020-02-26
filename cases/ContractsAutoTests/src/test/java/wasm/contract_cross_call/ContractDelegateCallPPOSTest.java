@@ -1,9 +1,10 @@
 package wasm.contract_cross_call;
 
+import com.google.gson.Gson;
 import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.ContractCallPPOS;
+import network.platon.contracts.wasm.ContractDelegateCallPPOS;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -22,10 +23,20 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
     private String delegateRewardPoolAddr = "0x1000000000000000000000000000000000000006";
 
+
+    private Gson gson = new Gson();
+
+    // {"Code":305001,"Ret": xxx}
+    class pposResult {
+        public  int Code;
+        public  Object Ret;
+    }
+
+
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_cross_call_ppos_RestrictingPlan",sourcePrefix = "wasm")
-    public void testCrossCallPPOS4Restricting() {
+            author = "xujiacan", showName = "wasm.contract_delegate_call_ppos_RestrictingPlan",sourcePrefix = "wasm")
+    public void testDelegateCallPPOS4Restricting() {
         try {
 
             prepare();
@@ -34,7 +45,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
 
 
             /**
@@ -46,34 +57,35 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              */
             String createRestrictingPlanInput = "0xf85483820fa09594c9e1c2b330cf7e759f2493c5c754b34d98b07f93b838f7ca01880de0b6b3a7640000ca02880de0b6b3a7640000ca03880de0b6b3a7640000ca04880de0b6b3a7640000ca05880de0b6b3a7640000";
 
-            TransactionReceipt createRestrictingPlanReceipt =  ppos.cross_call_ppos_send(restrictingContractAddr, createRestrictingPlanInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            TransactionReceipt createRestrictingPlanReceipt =  ppos.delegate_call_ppos_send(restrictingContractAddr, createRestrictingPlanInput, Uint64.of(60000000l)).send();
 
             String  createRestrictingPlanDataHex = createRestrictingPlanReceipt.getLogs().get(0).getData();
-            byte[] createRestrictingPlanDataByte = DataChangeUtil.hexToByteArray(createRestrictingPlanDataHex);
-            String createRestrictingPlanDataStr = new String(createRestrictingPlanDataByte);
-            String createRestrictingPlanExpectData = "304004";
+            String createRestrictingPlanDataStr = DataChangeUtil.decodeSystemContractRlp(createRestrictingPlanDataHex);
+            String createRestrictingPlanExpectData = "0";
 
-            collector.logStepPass("cross_call_ppos createRestrictingPlan successfully data:" + createRestrictingPlanDataStr);
+            collector.logStepPass("delegate_call_ppos createRestrictingPlan successfully txHash:" + createRestrictingPlanReceipt.getTransactionHash());
             collector.assertEqual(createRestrictingPlanDataStr, createRestrictingPlanExpectData);
 
 
             /**
-             *  查询 节点是否有多签过
+             *  查询 账户的锁仓计划
              *
              *  account： 0xc9E1C2B330Cf7e759F2493c5C754b34d98B07f93
              *
-             *  304005
+             *
              */
 
             String getRestrictingInfoInput = "0xda838210049594c9e1c2b330cf7e759f2493c5c754b34d98b07f93";
-            String getRestrictingInfoHexStr =  ppos.cross_call_ppos_query(restrictingContractAddr, getRestrictingInfoInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            String getRestrictingInfoHexStr =  ppos.delegate_call_ppos_query(restrictingContractAddr, getRestrictingInfoInput, Uint64.of(60000000l)).send();
             byte[] getRestrictingInfoByte =  DataChangeUtil.hexToByteArray(getRestrictingInfoHexStr);
             String getRestrictingInfoStr = new String(getRestrictingInfoByte);
             collector.logStepPass("Str:" + getRestrictingInfoStr);
+            ContractCrossCallPPOSTest.pposResult res =  gson.fromJson(getRestrictingInfoStr, ContractCrossCallPPOSTest.pposResult.class);
+            collector.assertEqual(res.Code, 0, "查询账户的锁仓计划 result == expect res: {\"Code\":0,\"Ret\": xxxx }");
 
 
         } catch (Exception e) {
-            collector.logStepFail("Failed to call cross_call_ppos Contract,exception msg:" , e.getMessage());
+            collector.logStepFail("Failed to delegateCall delegate_call_ppos Contract,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -81,8 +93,8 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_cross_call_ppos_Staking",sourcePrefix = "wasm")
-    public void testCrossCallPPOS4Staking() {
+            author = "xujiacan", showName = "wasm.contract_delegate_call_ppos_Staking",sourcePrefix = "wasm")
+    public void testDelegateCallPPOS4Staking() {
         try {
 
             prepare();
@@ -91,7 +103,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
 
 
             /**
@@ -113,14 +125,13 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              */
             String createStakingInput = "0xf901b1838203e881809594d87e10f8efd2c32f5e88b7c279953aef6ee58902b842b840ced880d4769331f47af07a8d1b79de1e40c95a37ea1890bb9d3f0da8349e1a7c0ea4cadbb9c5bf185b051061eef8e5eadca251c24e1db1d9faf0fb24cbd06f9a93927873737373646464646666666667676767678d8c476176696e2c204368696e619a9968747470733a2f2f7777772e476176696e2e6e6574776f726b9190476176696e207375706572206e6f64658b8ad3c21bcecceda1000000838213888483010000b843b841a6b8f5e2de519991b567b7c9af9cdf6adb331be5c4b79d26ba0dcd1fb2fbab7a276a36944765997f4d18d6135b515d9de7cceb2d7af4338f4fedb6acdc050f8001b862b860e5c3fcd6ce33c06aae22113977396c295728b8c01e0bc9188d2f3ffe52ea97b465639731f3cd4956a26e3e35f96e2a10646f28a352c6453be54dda05b703c31f0fbda3abc55a75151788338917f5a60b26f92bd15cdaf0dc00779a62056f3a00b842b84046e9c92915ad2b423e9eea33482d2615f6a17a15a6fa3b99e3e83bc394700d14c7ace638b34be70e6903724ca217b3cf4ff85db6f38e83f06de95de2c0370916";
 
-            TransactionReceipt createStakingReceipt =  ppos.cross_call_ppos_send(stakingContractAddr, createStakingInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            TransactionReceipt createStakingReceipt =  ppos.delegate_call_ppos_send(stakingContractAddr, createStakingInput, Uint64.of(60000000l)).send();
 
             String  createStakingDataHex = createStakingReceipt.getLogs().get(0).getData();
-            byte[] createStakingDataByte = DataChangeUtil.hexToByteArray(createStakingDataHex);
-            String createStakingDataStr = new String(createStakingDataByte);
-            String createStakingExpectData = "301111";
+            String createStakingDataStr = DataChangeUtil.decodeSystemContractRlp(createStakingDataHex);
+            String createStakingExpectData = "301005";
 
-            collector.logStepPass("cross_call_ppos createStaking successfully data:" + createStakingDataStr);
+            collector.logStepPass("delegate_call_ppos createStaking successfully txHash:" + createStakingReceipt.getTransactionHash());
             collector.assertEqual(createStakingDataStr, createStakingExpectData);
 
 
@@ -129,18 +140,18 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              *
              *  nodeId： ced880d4769331f47af07a8d1b79de1e40c95a37ea1890bb9d3f0da8349e1a7c0ea4cadbb9c5bf185b051061eef8e5eadca251c24e1db1d9faf0fb24cbd06f9a
              *
-             * 301204
+             *
              */
 
             String getCandidateInfoInput = "0xf84883820451b842b840ced880d4769331f47af07a8d1b79de1e40c95a37ea1890bb9d3f0da8349e1a7c0ea4cadbb9c5bf185b051061eef8e5eadca251c24e1db1d9faf0fb24cbd06f9a";
-            String getCandidateInfoHexStr =  ppos.cross_call_ppos_query(stakingContractAddr, getCandidateInfoInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            String getCandidateInfoHexStr =  ppos.delegate_call_ppos_query(stakingContractAddr, getCandidateInfoInput, Uint64.of(60000000l)).send();
             byte[] getCandidateInfoByte =  DataChangeUtil.hexToByteArray(getCandidateInfoHexStr);
             String getCandidateInfoStr = new String(getCandidateInfoByte);
-            collector.logStepPass("Str:" + getCandidateInfoStr);
-
+            ContractCrossCallPPOSTest.pposResult res =  gson.fromJson(getCandidateInfoStr, ContractCrossCallPPOSTest.pposResult.class);
+            collector.assertEqual(res.Code, 301204, "查询候选人详情 result == expect res: {\"Code\":301204,\"Ret\":\"Query candidate info failed:Candidate info is not found\"}");
 
         } catch (Exception e) {
-            collector.logStepFail("Failed to call cross_call_ppos Contract,exception msg:" , e.getMessage());
+            collector.logStepFail("Failed to delegateCall delegate_call_ppos Contract,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -149,8 +160,8 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_cross_call_ppos_Slashing",sourcePrefix = "wasm")
-    public void testCrossCallPPOS4Slashing() {
+            author = "xujiacan", showName = "wasm.contract_delegate_call_ppos_Slashing",sourcePrefix = "wasm")
+    public void testDelegateCallPPOS4Slashing() {
         try {
 
             prepare();
@@ -159,7 +170,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
 
 
             /**
@@ -201,19 +212,18 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              */
             String reportDuplicateSignInput = "0xf907e683820bb801b907deb907db7b0a20202020202020202020227072657061726541223a207b0a20202020202020202020202265706f6368223a20312c0a202020202020202020202022766965774e756d626572223a20312c0a202020202020202020202022626c6f636b48617368223a2022307862623664346238336166383636373932396139636234393138626266373930613937626231333637373533353337363533383864306164643334333763646536222c0a202020202020202020202022626c6f636b4e756d626572223a20312c0a202020202020202020202022626c6f636b496e646578223a20312c0a202020202020202020202022626c6f636b44617461223a2022307834356232306335626135393562653235343934336161353763633830353632653834663166623362616662663461343134653330353730633933613339353739222c0a20202020202020202020202276616c69646174654e6f6465223a207b0a20202020202020202020202022696e646578223a20302c0a2020202020202020202020202261646472657373223a2022307831393536363763646566636164393463353231626466663062663835303739373631653066386633222c0a202020202020202020202020226e6f64654964223a20223531633035353963303635343030313531333737643731616364376131373238326137633861626366656664623131393932646365636166646531356531303062386533316531613565373438333461303437393264303136663136366338306239393233343233666532383035373065383133316465626635393164343833222c0a20202020202020202020202022626c735075624b6579223a2022373532666534313962626463326432323232303039653435306632393332363537626263323337303032386433393662613535366134393433396665316363313139303333353464636236646163353532613132346530623364623064393065646364333334643761616264613063336631616465313263613232333732663837363231326163343536643534396462626430346432633863386662336533333736303231356531313462346436303331336331343266376238626266643837220a20202020202020202020207d2c0a2020202020202020202020227369676e6174757265223a202230783336303135666565313532353334383765383132356238363530353337376438353430623161393564316136623133663731346261613535623132626430366563376435373535613938323330636463383838353834373061666138636230303030303030303030303030303030303030303030303030303030303030303030220a202020202020202020207d2c0a20202020202020202020227072657061726542223a207b0a20202020202020202020202265706f6368223a20312c0a202020202020202020202022766965774e756d626572223a20312c0a202020202020202020202022626c6f636b48617368223a2022307866343663343566376562623461393939646430333062396637393931393862373835363534323933646265343161613765393039323233616630653863346261222c0a202020202020202020202022626c6f636b4e756d626572223a20312c0a202020202020202020202022626c6f636b496e646578223a20312c0a202020202020202020202022626c6f636b44617461223a2022307864363330653936643132376635353331393339326632306434666439313765336537636261313961643336366330333162396466663035653035366439343230222c0a20202020202020202020202276616c69646174654e6f6465223a207b0a20202020202020202020202022696e646578223a20302c0a2020202020202020202020202261646472657373223a2022307831393536363763646566636164393463353231626466663062663835303739373631653066386633222c0a202020202020202020202020226e6f64654964223a20223531633035353963303635343030313531333737643731616364376131373238326137633861626366656664623131393932646365636166646531356531303062386533316531613565373438333461303437393264303136663136366338306239393233343233666532383035373065383133316465626635393164343833222c0a20202020202020202020202022626c735075624b6579223a2022373532666534313962626463326432323232303039653435306632393332363537626263323337303032386433393662613535366134393433396665316363313139303333353464636236646163353532613132346530623364623064393065646364333334643761616264613063336631616465313263613232333732663837363231326163343536643534396462626430346432633863386662336533333736303231356531313462346436303331336331343266376238626266643837220a20202020202020202020207d2c0a2020202020202020202020227369676e6174757265223a202230783738333839326239623736366639663463326131643435623166643533636139656135366138326533386139393839333965646331376263376664373536323637643363313435633033626336633134313233303263663539303634356438323030303030303030303030303030303030303030303030303030303030303030220a202020202020202020207d0a2020202020202020207d";
 
-            TransactionReceipt reportDuplicateSignReceipt =  ppos.cross_call_ppos_send(slashingContractAddr, reportDuplicateSignInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            TransactionReceipt reportDuplicateSignReceipt =  ppos.delegate_call_ppos_send(slashingContractAddr, reportDuplicateSignInput, Uint64.of(60000000l)).send();
 
             String reportDuplicateSignDataHex = reportDuplicateSignReceipt.getLogs().get(0).getData();
-            byte[] reportDuplicateSignDataByte = DataChangeUtil.hexToByteArray(reportDuplicateSignDataHex);
-            String reportDuplicateSignDataStr = new String(reportDuplicateSignDataByte);
-            String reportDuplicateSignExpectData = "303004";
+            String reportDuplicateSignDataStr = DataChangeUtil.decodeSystemContractRlp(reportDuplicateSignDataHex);
+            String reportDuplicateSignExpectData = "303003";
 
-            collector.logStepPass("cross_call_ppos reportDuplicateSign successfully data:" + reportDuplicateSignDataStr);
+            collector.logStepPass("delegate_call_ppos reportDuplicateSign successfully txHash:" + reportDuplicateSignReceipt.getTransactionHash());
             collector.assertEqual(reportDuplicateSignDataStr, reportDuplicateSignExpectData);
 
 
             /**
-             *  查询 候选人详情
+             *  查询 节点是否有多签过
              *
              * dupType: 1
              * addr: 0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257
@@ -223,14 +233,14 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              */
 
             String checkDuplicateSignInput = "0xdc83820bb90195949e3e0f0f366b26b965f3aa3ed67603fb480b125701";
-            String checkDuplicateSignHexStr =  ppos.cross_call_ppos_query(slashingContractAddr, checkDuplicateSignInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            String checkDuplicateSignHexStr =  ppos.delegate_call_ppos_query(slashingContractAddr, checkDuplicateSignInput, Uint64.of(60000000l)).send();
             byte[] checkDuplicateSignByte =  DataChangeUtil.hexToByteArray(checkDuplicateSignHexStr);
             String checkDuplicateSignStr = new String(checkDuplicateSignByte);
-            collector.logStepPass("Str:" + checkDuplicateSignStr);
-
+            ContractCrossCallPPOSTest.pposResult res =  gson.fromJson(checkDuplicateSignStr, ContractCrossCallPPOSTest.pposResult.class);
+            collector.assertEqual(res.Code, 0, "查询节点是否有多签过 result == expect res: {\"Code\":0,\"Ret\":\"\"}");
 
         } catch (Exception e) {
-            collector.logStepFail("Failed to call cross_call_ppos Contract,exception msg:" , e.getMessage());
+            collector.logStepFail("Failed to delegateCall delegate_call_ppos Contract,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -238,8 +248,8 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_cross_call_ppos_Governance",sourcePrefix = "wasm")
-    public void testCrossCallPPOS4Governance() {
+            author = "xujiacan", showName = "wasm.contract_delegate_call_ppos_Governance",sourcePrefix = "wasm")
+    public void testDelegateCallPPOS4Governance() {
         try {
 
             prepare();
@@ -248,7 +258,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
 
 
             /**
@@ -259,14 +269,13 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              */
             String submitTextInput = "0xf851838207d0b842b840ced880d4769331f47af07a8d1b79de1e40c95a37ea1890bb9d3f0da8349e1a7c0ea4cadbb9c5bf185b051061eef8e5eadca251c24e1db1d9faf0fb24cbd06f9a88877465787455726c";
 
-            TransactionReceipt submitTextReceipt =  ppos.cross_call_ppos_send(govContractAddr, submitTextInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            TransactionReceipt submitTextReceipt =  ppos.delegate_call_ppos_send(govContractAddr, submitTextInput, Uint64.of(60000000l)).send();
 
             String submitTextDataHex = submitTextReceipt.getLogs().get(0).getData();
-            byte[] submitTextDataByte = DataChangeUtil.hexToByteArray(submitTextDataHex);
-            String submitTextDataStr = new String(submitTextDataByte);
+            String submitTextDataStr =DataChangeUtil.decodeSystemContractRlp(submitTextDataHex);
             String submitTextExpectData = "302022";
 
-            collector.logStepPass("cross_call_ppos submitText successfully data:" + submitTextDataStr);
+            collector.logStepPass("delegate_call_ppos submitText successfully txHash:" + submitTextReceipt.getTransactionHash());
             collector.assertEqual(submitTextDataStr, submitTextExpectData);
 
 
@@ -275,18 +284,18 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              *
              * proposalID: 0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e
              *
-             * 302006
+             *
              */
 
             String getProposalInput = "0xe683820834a1a012c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e";
-            String getProposalHexStr =  ppos.cross_call_ppos_query(govContractAddr, getProposalInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            String getProposalHexStr =  ppos.delegate_call_ppos_query(govContractAddr, getProposalInput, Uint64.of(60000000l)).send();
             byte[] getProposalByte =  DataChangeUtil.hexToByteArray(getProposalHexStr);
             String getProposalStr = new String(getProposalByte);
-            collector.logStepPass("Str:" + getProposalStr);
-
+            ContractCrossCallPPOSTest.pposResult res =  gson.fromJson(getProposalStr, ContractCrossCallPPOSTest.pposResult.class);
+            collector.assertEqual(res.Code, 302006, "查询提案 result == expect res: {\"Code\":302006,\"Ret\":\"proposal not found\"}");
 
         } catch (Exception e) {
-            collector.logStepFail("Failed to call cross_call_ppos Contract,exception msg:" , e.getMessage());
+            collector.logStepFail("Failed to delegateCall delegate_call_ppos Contract,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
@@ -295,8 +304,8 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "xujiacan", showName = "wasm.contract_cross_call_ppos_DelegateReward",sourcePrefix = "wasm")
-    public void testCrossCallPPOS4DelegateReward() {
+            author = "xujiacan", showName = "wasm.contract_delegate_call_ppos_DelegateReward",sourcePrefix = "wasm")
+    public void testDelegateCallPPOS4DelegateReward() {
         try {
 
             prepare();
@@ -305,7 +314,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
 
 
             /**
@@ -314,14 +323,13 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              */
             String withdrawDelegateRewardInput = "0xc483821388";
 
-            TransactionReceipt withdrawDelegateRewardReceipt =  ppos.cross_call_ppos_send(delegateRewardPoolAddr, withdrawDelegateRewardInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            TransactionReceipt withdrawDelegateRewardReceipt =  ppos.delegate_call_ppos_send(delegateRewardPoolAddr, withdrawDelegateRewardInput, Uint64.of(60000000l)).send();
 
             String withdrawDelegateRewardDataHex = withdrawDelegateRewardReceipt.getLogs().get(0).getData();
-            byte[] withdrawDelegateRewardDataByte = DataChangeUtil.hexToByteArray(withdrawDelegateRewardDataHex);
-            String withdrawDelegateRewardDataStr = new String(withdrawDelegateRewardDataByte);
+            String withdrawDelegateRewardDataStr = DataChangeUtil.decodeSystemContractRlp(withdrawDelegateRewardDataHex);
             String withdrawDelegateRewardExpectData = "305001";
 
-            collector.logStepPass("cross_call_ppos withdrawDelegateReward successfully data:" + withdrawDelegateRewardDataStr);
+            collector.logStepPass("delegate_call_ppos withdrawDelegateReward successfully txHash:" + withdrawDelegateRewardReceipt.getTransactionHash());
             collector.assertEqual(withdrawDelegateRewardDataStr, withdrawDelegateRewardExpectData);
 
 
@@ -334,20 +342,18 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              * "db18af9be2af9dff2347c3d06db4b1bada0598d099a210275251b68fa7b5a863d47fcdd382cc4b3ea01e5b55e9dd0bdbce654133b7f58928ce74629d5e68b974",
              * "1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"]
              *
-             * 305001
              *
              *
              */
-
             String getDelegateRewardInput = "0xf8a2838213ec959412c171900f010b17e969702efa044d077e868082b886f884b840db18af9be2af9dff2347c3d06db4b1bada0598d099a210275251b68fa7b5a863d47fcdd382cc4b3ea01e5b55e9dd0bdbce654133b7f58928ce74629d5e68b974b8401f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429";
-            String getDelegateRewardHexStr =  ppos.cross_call_ppos_query(delegateRewardPoolAddr, getDelegateRewardInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            String getDelegateRewardHexStr =  ppos.delegate_call_ppos_query(delegateRewardPoolAddr, getDelegateRewardInput, Uint64.of(60000000l)).send();
             byte[] getDelegateRewardByte =  DataChangeUtil.hexToByteArray(getDelegateRewardHexStr);
             String getDelegateRewardStr = new String(getDelegateRewardByte);
-            collector.logStepPass("Str:" + getDelegateRewardStr);
-
+            ContractCrossCallPPOSTest.pposResult res =  gson.fromJson(getDelegateRewardStr, ContractCrossCallPPOSTest.pposResult.class);
+            collector.assertEqual(res.Code, 305001, "查询候选人详情 result == expect res: {\"Code\":305001,\"Ret\":\"delegation info not found\"}");
 
         } catch (Exception e) {
-            collector.logStepFail("Failed to call cross_call_ppos Contract,exception msg:" , e.getMessage());
+            collector.logStepFail("Failed to delegateCall delegate_call_ppos Contract,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

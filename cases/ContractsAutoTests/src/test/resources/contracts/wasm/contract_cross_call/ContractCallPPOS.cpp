@@ -29,7 +29,7 @@ CONTRACT call_ppos : public platon::Contract {
                 ret.resize(len);
                 platon_get_call_output(ret.data());
                 std::string str = toHex(ret);
-                DEBUG("cross call contract cross_call_ppos_query success", "hash", str);
+                DEBUG("cross call contract cross_call_ppos_query success", "ret", str);
                 return str;
             }
             DEBUG("cross call contract cross_call_ppos_query fail", "address", target_addr);
