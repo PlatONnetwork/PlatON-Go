@@ -27,9 +27,9 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_SETINITTUPLEMODETWO = "setInitTupleModeTwo";
-
     public static final String FUNC_SETINITTUPLEMODEONE = "setInitTupleModeOne";
+
+    public static final String FUNC_SETINITTUPLEMODETWO = "setInitTupleModeTwo";
 
     public static final String FUNC_GETTUPLEVALUEINDEX1 = "getTupleValueIndex1";
 
@@ -49,11 +49,6 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> setInitTupleModeTwo(String a, Uint8 b) {
-        final WasmFunction function = new WasmFunction(FUNC_SETINITTUPLEMODETWO, Arrays.asList(a,b), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public static RemoteCall<ReferenceDataTypeTupleContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ReferenceDataTypeTupleContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -66,6 +61,11 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
 
     public RemoteCall<TransactionReceipt> setInitTupleModeOne() {
         final WasmFunction function = new WasmFunction(FUNC_SETINITTUPLEMODEONE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setInitTupleModeTwo(String a, Uint8 b) {
+        final WasmFunction function = new WasmFunction(FUNC_SETINITTUPLEMODETWO, Arrays.asList(a,b), Void.class);
         return executeRemoteCallTransaction(function);
     }
 

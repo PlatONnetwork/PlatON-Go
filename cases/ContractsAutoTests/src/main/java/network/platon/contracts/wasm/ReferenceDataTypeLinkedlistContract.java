@@ -38,6 +38,11 @@ public class ReferenceDataTypeLinkedlistContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> insertNodeElement() {
+        final WasmFunction function = new WasmFunction(FUNC_INSERTNODEELEMENT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
     public static RemoteCall<ReferenceDataTypeLinkedlistContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ReferenceDataTypeLinkedlistContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -46,11 +51,6 @@ public class ReferenceDataTypeLinkedlistContract extends WasmContract {
     public static RemoteCall<ReferenceDataTypeLinkedlistContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ReferenceDataTypeLinkedlistContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public RemoteCall<TransactionReceipt> insertNodeElement() {
-        final WasmFunction function = new WasmFunction(FUNC_INSERTNODEELEMENT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<Uint8> getNodeElement(Uint8 arrayIndex, Uint8 vectorIndex) {

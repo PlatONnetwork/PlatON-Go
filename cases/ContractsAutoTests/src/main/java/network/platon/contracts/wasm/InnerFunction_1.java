@@ -31,9 +31,9 @@ public class InnerFunction_1 extends WasmContract {
 
     public static final String FUNC_BLOCK_HASH = "block_hash";
 
-    public static final String FUNC_COINBASE = "coinbase";
-
     public static final String FUNC_BALANCEOF = "balanceOf";
+
+    public static final String FUNC_COINBASE = "coinbase";
 
     protected InnerFunction_1(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -68,13 +68,13 @@ public class InnerFunction_1 extends WasmContract {
         return executeRemoteCall(function, String.class);
     }
 
-    public RemoteCall<String> coinbase() {
-        final WasmFunction function = new WasmFunction(FUNC_COINBASE, Arrays.asList(), String.class);
+    public RemoteCall<String> balanceOf(String addr) {
+        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(addr), String.class);
         return executeRemoteCall(function, String.class);
     }
 
-    public RemoteCall<String> balanceOf(String addr) {
-        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(addr), String.class);
+    public RemoteCall<String> coinbase() {
+        final WasmFunction function = new WasmFunction(FUNC_COINBASE, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
     }
 

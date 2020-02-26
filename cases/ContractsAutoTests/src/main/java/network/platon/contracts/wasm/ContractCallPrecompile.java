@@ -51,6 +51,11 @@ public class ContractCallPrecompile extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<String> cross_call_ecrecover(String in, Uint64 value, Uint64 gas) {
+        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_ECRECOVER, Arrays.asList(in,value,gas), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public static RemoteCall<ContractCallPrecompile> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractCallPrecompile.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -59,11 +64,6 @@ public class ContractCallPrecompile extends WasmContract {
     public static RemoteCall<ContractCallPrecompile> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractCallPrecompile.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public RemoteCall<String> cross_call_ecrecover(String in, Uint64 value, Uint64 gas) {
-        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_ECRECOVER, Arrays.asList(in,value,gas), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<String> cross_call_bn256Pairing(String in, Uint64 value, Uint64 gas) {

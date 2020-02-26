@@ -41,16 +41,6 @@ public class InitOverload extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static RemoteCall<InitOverload> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(InitOverload.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<InitOverload> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(InitOverload.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
     public RemoteCall<TransactionReceipt> add_vector(String one_name) {
         final WasmFunction function = new WasmFunction(FUNC_ADD_VECTOR, Arrays.asList(one_name), Void.class);
         return executeRemoteCallTransaction(function);
@@ -59,6 +49,16 @@ public class InitOverload extends WasmContract {
     public RemoteCall<Uint64> get_vector_size() {
         final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR_SIZE, Arrays.asList(), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
+    }
+
+    public static RemoteCall<InitOverload> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(InitOverload.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<InitOverload> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(InitOverload.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
     public RemoteCall<String> get_vector(Uint8 index) {
