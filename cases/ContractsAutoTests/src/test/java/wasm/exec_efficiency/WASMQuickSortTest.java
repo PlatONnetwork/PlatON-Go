@@ -10,12 +10,12 @@ import wasm.beforetest.WASMContractPrepareTest;
 import java.math.BigInteger;
 
 /**
- * @title SpaceComplexityTest
- * @description 空间复杂度场景测试
+ * @title WASMQuickSortTest
+ * @description 快排
  * @author qcxiao
  * @updateTime 2019/12/28 14:39
  */
-public class WASMSpaceComplexityTest extends WASMContractPrepareTest {
+public class WASMQuickSortTest extends WASMContractPrepareTest {
     private String contractAddress;
 
     @Test
