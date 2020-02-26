@@ -6,12 +6,12 @@ using namespace platon;
  * 执行效率-空间复杂度
  * @author qcxiao
  **/
-CONTRACT SpaceComplexity : public platon::Contract {
+CONTRACT QuickSort : public platon::Contract {
     private:
-        platon::StorageType<"arrayint"_n, std::array<int8_t,10>> arrayint;
+        platon::StorageType<"vector1"_n, std::vector<clothes>> vector_clothes;
     public:
         ACTION void init(){}
-        std::array<int8_t, 10> quickSort(std::array<int8_t, 10>& array, int start, int last)
+        std::vector<clothes> quickSort(std::vector<clothes>& array, int start, int last)
         {
             int i = start;
             int j = last;
@@ -44,12 +44,12 @@ CONTRACT SpaceComplexity : public platon::Contract {
             return array;
         }
 
-        ACTION void sort(std::array<int8_t, 10>& arr, int8_t start, int8_t last) {
-            arrayint.self() = quickSort(arr, start, last);
+        ACTION void sort(std::vector<clothes>& arr, int8_t start, int8_t last) {
+            vector_clothes.self() = quickSort(arr, start, last);
         }
 
-        CONST std::array<int8_t, 10> get_array() {
-            return arrayint.self();
+        CONST std::vector<clothes> get_array() {
+            return vector_clothes.self();
         }
 
 };
