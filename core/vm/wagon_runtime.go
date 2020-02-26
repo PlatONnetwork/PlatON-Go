@@ -1233,7 +1233,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	// be stored due to not enough gas set an error and let it be handled
 	// by the error checking condition below.
 	if err == nil && !maxCodeSizeExceeded {
-		createDataGas := uint64(len(ret)) * params.CreateDataGas
+		createDataGas := uint64(len(ret)) * params.CreateWasmDataGas
 		if contract.UseGas(createDataGas) {
 			ctx.evm.StateDB.SetCode(newContract, ret)
 		} else {
