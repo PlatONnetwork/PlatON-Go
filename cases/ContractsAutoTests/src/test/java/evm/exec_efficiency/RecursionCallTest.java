@@ -36,6 +36,7 @@ public class RecursionCallTest extends ContractPrepareTest {
             RecursionCall recursionCall = RecursionCall.deploy(web3j, transactionManager, provider).send();
             contractAddress = recursionCall.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
+            collector.logStepPass("deploy gas used:" + recursionCall.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = RecursionCall.load(contractAddress, web3j, transactionManager, provider)
                     .recursionCallTest(numberOfCalls).send();
