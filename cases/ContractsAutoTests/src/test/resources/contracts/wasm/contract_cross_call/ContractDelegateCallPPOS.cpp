@@ -12,10 +12,10 @@ CONTRACT delegate_call_ppos : public platon::Contract {
             platon::bytes  input = fromHex(in);
 
             if (platon_delegate_call(Address(target_addr), input, gas)) {
-                DEBUG("delegate call contract delegate_call_ppos_send success", "address", addr);
+                DEBUG("delegate call contract delegate_call_ppos_send success", "address", target_addr);
                 return 0;
             }
-            DEBUG("delegate call contract delegate_call_ppos_send fail", "address", addr);
+            DEBUG("delegate call contract delegate_call_ppos_send fail", "address", target_addr);
             return 1;
         }
 
@@ -23,19 +23,19 @@ CONTRACT delegate_call_ppos : public platon::Contract {
             platon::bytes  input = fromHex(in);
 
             if (platon_delegate_call(Address(target_addr), input, gas)) {
-                DEBUG("delegate call contract delegate_call_ppos_query success", "address", addr);
+                DEBUG("delegate call contract delegate_call_ppos_query success", "address", target_addr);
                 platon::bytes ret;
                 size_t len = platon_get_call_output_length();
                 ret.resize(len);
                 platon_get_call_output(ret.data());
                 std::string str = toHex(ret);
-                DEBUG("delegate call contract delegate_call_ppos_query success", "hash", str);
+                DEBUG("delegate call contract delegate_call_ppos_query success", "ret", str);
                 return str;
             }
-            DEBUG("delegate call contract delegate_call_ppos_query fail", "address", addr);
+            DEBUG("delegate call contract delegate_call_ppos_query fail", "address", target_addr);
             return "";
         }
 
 };
 
-PLATON_DISPATCH(delegate_call_ppos, (init)(cross_call_ppos_send)(cross_call_ppos_query))
+PLATON_DISPATCH(delegate_call_ppos, (init)(delegate_call_ppos_send)(delegate_call_ppos_query))
