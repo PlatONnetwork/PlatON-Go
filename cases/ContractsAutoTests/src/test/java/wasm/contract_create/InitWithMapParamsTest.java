@@ -65,7 +65,7 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
             collector.assertEqual(maps.get("key1").toString(), mapmap.get("map1").get("key1").toString());
             collector.assertEqual(maps.get("key2").toString(), mapmap.get("map1").get("key2").toString());
 
-            //调用map嵌套map
+            //调用map嵌套list
             tx = initWithMapParams.add_map_list(inMaplist).send();
             collector.logStepPass("InitWithMapParamsTest call add_map_list successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
 
