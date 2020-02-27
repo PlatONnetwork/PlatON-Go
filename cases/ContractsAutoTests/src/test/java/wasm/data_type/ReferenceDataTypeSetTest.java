@@ -47,7 +47,6 @@ public class ReferenceDataTypeSetTest extends WASMContractPrepareTest {
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "qudong", showName = "wasm.referenceDataTypeSetTest(set类型)属性函数",sourcePrefix = "wasm")
     public void testReferenceDataTypeSet() {
-
          //部署合约
         ReferenceDataTypeSetContract referenceDataTypeSetContract = null;
         try {
