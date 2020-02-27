@@ -36,6 +36,7 @@ public class GetterTest extends ContractPrepareTest {
             String contractAddress = getter.getContractAddress();
             TransactionReceipt tx = getter.getTransactionReceipt().get();
             collector.logStepPass("getter deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("getter deploy gasUsed:" + getter.getTransactionReceipt().get().getGasUsed());
 
             //验证编译器创建的getter函数
             BigInteger data = getter.data().send();

@@ -40,6 +40,7 @@ public class ABIFunctionsTest extends ContractPrepareTest {
             String contractAddress = abiFunctions.getContractAddress();
             TransactionReceipt tx = abiFunctions.getTransactionReceipt().get();
             collector.logStepPass("ABIFunctionsTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("ABIFunctionsTest deploy gasUsed:" + abiFunctions.getTransactionReceipt().get().getGasUsed());
 
             //验证abi.encodeWithSignature函数
             byte[] resultA = abiFunctions.getEncodeWithSignature().send();

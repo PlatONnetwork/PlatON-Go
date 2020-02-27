@@ -35,6 +35,7 @@ public class InternalCallTest extends ContractPrepareTest {
             String contractAddress = intercall.getContractAddress();
             TransactionReceipt tx = intercall.getTransactionReceipt().get();
             collector.logStepPass("intercall deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("intercall deploy gasUsed:" + intercall.getTransactionReceipt().get().getGasUsed());
 
             //验证函数内部调用
             BigInteger result = intercall.getResult().send();

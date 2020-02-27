@@ -35,6 +35,7 @@ public class VisibilityTest extends ContractPrepareTest {
             String contractAddress = visibility.getContractAddress();
             TransactionReceipt tx = visibility.getTransactionReceipt().get();
             collector.logStepPass("Visibility deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("Visibility deploy gasUsed:" + visibility.getTransactionReceipt().get().getGasUsed());
 
             //验证public可见性
             BigInteger pubdata = visibility.fpub(new BigInteger("10")).send();

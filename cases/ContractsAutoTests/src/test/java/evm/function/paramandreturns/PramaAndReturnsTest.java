@@ -46,6 +46,7 @@ public class PramaAndReturnsTest extends ContractPrepareTest {
             String contractAddress = pramaAndReturns.getContractAddress();
             TransactionReceipt tx = pramaAndReturns.getTransactionReceipt().get();
             collector.logStepPass("pramaAndReturnstest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("pramaAndReturnstest deploy gasUsed:" + pramaAndReturns.getTransactionReceipt().get().getGasUsed());
 
             BigInteger resultA = pramaAndReturns.InputParam(new BigInteger(a)).send();
             collector.logStepPass("InputParam函数返回值：" + resultA);

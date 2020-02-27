@@ -35,6 +35,7 @@ public class InterTest extends ContractPrepareTest {
             String contractAddress = intercall.getContractAddress();
             TransactionReceipt tx = intercall.getTransactionReceipt().get();
             collector.logStepPass("Inter deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("Inter deploy gasUsed:" + intercall.getTransactionReceipt().get().getGasUsed());
 
             //验证继承合约可以调用父合约的内部方法
             BigInteger interdata = intercall.g().send();

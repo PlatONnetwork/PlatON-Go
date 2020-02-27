@@ -41,8 +41,10 @@ public class DeleteDemoTest extends ContractPrepareTest {
             String contractAddress = deletedemo.getContractAddress();
             TransactionReceipt tx = deletedemo.getTransactionReceipt().get();
             collector.logStepPass("DeleteDemo deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("DeleteDemo deploy gasUsed:" + deletedemo.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt result = deletedemo.deleteAttr().send();
+            collector.logStepPass("打印result交易Hash：" + result.getTransactionHash());
 
             //验证delete bool
             boolean delb = deletedemo.getbool().send();
