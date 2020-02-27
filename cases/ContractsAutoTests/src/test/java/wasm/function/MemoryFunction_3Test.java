@@ -27,6 +27,7 @@ public class MemoryFunction_3Test extends WASMContractPrepareTest {
             String contractAddress = memory3.getContractAddress();
             String transactionHash = memory3.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("MemoryFunction_3 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("MemoryFunction_3 deploy gasUsed:" + memory3.getTransactionReceipt().get().getGasUsed());
 
             String calloc = memory3.getcalloc().send();
             collector.logStepPass("calloc函数返回值:" + calloc);

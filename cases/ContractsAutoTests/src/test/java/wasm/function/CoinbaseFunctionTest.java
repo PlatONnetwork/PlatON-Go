@@ -26,6 +26,7 @@ public class CoinbaseFunctionTest extends WASMContractPrepareTest {
             String contractAddress = coinbase.getContractAddress();
             String transactionHash = coinbase.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CoinbaseFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("CoinbaseFunction deploy gasUsed:" + coinbase.getTransactionReceipt().get().getGasUsed());
 
             String coinbaseaddr = coinbase.get_platon_coinbase().send();
             collector.logStepPass("getPlatONConibase函数返回值:" + coinbaseaddr);

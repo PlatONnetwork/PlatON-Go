@@ -29,6 +29,7 @@ public class Sha3FunctionTest extends WASMContractPrepareTest {
             String contractAddress = shafunction.getContractAddress();
             String transactionHash = shafunction.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CallerFunctionTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("CallerFunctionTest deploy gasUsed:" + shafunction.getTransactionReceipt().get().getGasUsed());
 
             Uint32 sha3 = shafunction.Sha3Result().send();
             collector.logStepPass("sha3函数返回值:" + sha3.value);

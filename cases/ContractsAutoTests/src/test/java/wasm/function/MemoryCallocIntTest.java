@@ -26,6 +26,7 @@ public class MemoryCallocIntTest extends WASMContractPrepareTest {
             String contractAddress = mci.getContractAddress();
             String transactionHash = mci.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("MemoryCallocInt issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("MemoryCallocInt deploy gasUsed:" + mci.getTransactionReceipt().get().getGasUsed());
 
             Int32 callocint = mci.getcalloc().send();
             collector.logStepPass("calloc函数返回值:" + callocint.value);

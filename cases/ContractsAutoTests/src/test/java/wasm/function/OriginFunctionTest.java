@@ -25,6 +25,7 @@ public class OriginFunctionTest extends WASMContractPrepareTest {
             String contractAddress = origin.getContractAddress();
             String transactionHash = origin.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("OriginFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("OriginFunction deploy gasUsed:" + origin.getTransactionReceipt().get().getGasUsed());
 
             String originaddr = origin.get_platon_origin().send();
             collector.logStepPass("getPlatONOrigin函数返回值:" + originaddr);

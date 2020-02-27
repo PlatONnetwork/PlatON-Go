@@ -28,6 +28,7 @@ public class MemoryFunction_1Test extends WASMContractPrepareTest {
             String contractAddress = memory1.getContractAddress();
             String transactionHash = memory1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("MemoryFunction_1 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("MemoryFunction_1 deploy gasUsed:" + memory1.getTransactionReceipt().get().getGasUsed());
 
             String malloc = memory1.getmalloc().send();
             collector.logStepPass("malloc函数返回值:" + malloc);

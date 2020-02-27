@@ -26,6 +26,7 @@ public class MemoryReallocIntTest extends WASMContractPrepareTest {
             String contractAddress = mri.getContractAddress();
             String transactionHash = mri.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("MemoryReallocInt issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("MemoryReallocInt deploy gasUsed:" + mri.getTransactionReceipt().get().getGasUsed());
 
             Int32 reallocint = mri.getrealloc().send();
             collector.logStepPass("realloc函数返回值:" + reallocint.value);
