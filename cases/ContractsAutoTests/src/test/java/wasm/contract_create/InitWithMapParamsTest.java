@@ -9,7 +9,9 @@ import org.web3j.tx.gas.ContractGasProvider;
 import wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,7 +23,7 @@ import java.util.Map;
 public class InitWithMapParamsTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "wasm.contract_create创建合约init入参包含map",sourcePrefix = "wasm")
+            author = "hudenian", showName = "wasm.contract_create创建合约init入参包含map及嵌套测试",sourcePrefix = "wasm")
     public void testMapParams() {
 
         //单个map测试
@@ -29,9 +31,17 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
         maps.put("key1","value1");
         maps.put("key2","value2");
 
+        //单个list
+        List<String> list = new ArrayList<>();
+        list.add("list1");
+
         //map嵌套map测试
         Map<String, Map<String, String>> inMapmap = new HashMap<String, Map<String, String>>();
         inMapmap.put("map1",maps);
+
+        //map嵌套list测试
+        Map<String, List<String>> inMaplist = new HashMap<String, List<String>>();
+        inMaplist.put("keyList",list);
 
         try {
             prepare();
@@ -54,6 +64,13 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
             Map<String, Map<String, String>> mapmap = initWithMapParams.get_map_map().send();
             collector.assertEqual(maps.get("key1").toString(), mapmap.get("map1").get("key1").toString());
             collector.assertEqual(maps.get("key2").toString(), mapmap.get("map1").get("key2").toString());
+
+            //调用map嵌套map
+            tx = initWithMapParams.add_map_list(inMaplist).send();
+            collector.logStepPass("InitWithMapParamsTest call add_map_list successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            Map<String, List<String>> maplist = initWithMapParams.get_map_list().send();
+            collector.assertEqual(list.get(0), maplist.get("keyList").get(0));
 
 
         } catch (Exception e) {
