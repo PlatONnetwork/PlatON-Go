@@ -29,6 +29,7 @@ public class WASMQuickSortTest extends WASMContractPrepareTest {
             QuickSort quickSort = QuickSort.deploy(web3j, transactionManager, provider).send();
             contractAddress = quickSort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
+            collector.logStepPass("deploy gas used:" + quickSort.getTransactionReceipt().get().getGasUsed());
 
             Int64[] arr = new Int64[numberOfCalls];
 
