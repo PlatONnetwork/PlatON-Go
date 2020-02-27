@@ -28,7 +28,7 @@ public class ReferenceDataTypeVectorTest extends WASMContractPrepareTest {
             String contractAddress = referenceDataTypeVectorContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeVectorContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeVectorContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeVectorContract deploy fail.", e.toString());

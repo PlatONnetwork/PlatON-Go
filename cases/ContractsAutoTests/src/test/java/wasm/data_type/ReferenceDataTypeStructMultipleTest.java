@@ -48,7 +48,7 @@ public class ReferenceDataTypeStructMultipleTest extends WASMContractPrepareTest
             String contractAddress = referenceDataTypeStructMultipleContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeStructMultipleContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeStructMultipleContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeStructMultipleContract deploy fail.", e.toString());

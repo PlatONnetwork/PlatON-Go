@@ -28,7 +28,7 @@ public class ReferenceDataTypeLinklistTest extends WASMContractPrepareTest {
             String contractAddress = referenceDataTypeLinkedlistContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeLinkedlistContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeLinkedlistContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeLinkedlistContract deploy fail.", e.toString());
