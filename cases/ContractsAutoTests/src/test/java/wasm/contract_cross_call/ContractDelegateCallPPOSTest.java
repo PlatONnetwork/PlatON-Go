@@ -46,7 +46,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
-
+            collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
              *  锁仓
@@ -79,7 +79,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
             String getRestrictingInfoHexStr =  ppos.delegate_call_ppos_query(restrictingContractAddr, getRestrictingInfoInput, Uint64.of(60000000l)).send();
             byte[] getRestrictingInfoByte =  DataChangeUtil.hexToByteArray(getRestrictingInfoHexStr);
             String getRestrictingInfoStr = new String(getRestrictingInfoByte);
-            collector.logStepPass("Str:" + getRestrictingInfoStr);
+            collector.logStepPass("获取锁仓计划:" + getRestrictingInfoStr);
             ContractCrossCallPPOSTest.pposResult res =  gson.fromJson(getRestrictingInfoStr, ContractCrossCallPPOSTest.pposResult.class);
             collector.assertEqual(res.Code, 0, "查询账户的锁仓计划 result == expect res: {\"Code\":0,\"Ret\": xxxx }");
 
@@ -104,7 +104,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
-
+            collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
              *  质押
@@ -171,7 +171,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
-
+            collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
              *  举报
@@ -259,7 +259,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
-
+            collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
              *  提交文本提案
@@ -315,7 +315,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
-
+            collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
              *  提取委托奖励

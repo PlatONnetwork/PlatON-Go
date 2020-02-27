@@ -27,27 +27,29 @@ public class ContractCrossCallBalanceTest extends WASMContractPrepareTest {
 
             // deploy the target contract which the name is `storge_str`, first
             ContractStorageString strc = ContractStorageString.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy storge_str contract:" + strc.getTransactionReceipt().get().getGasUsed());
 
             String strcAddr = strc.getContractAddress();
             String strcTxHash = strc.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("storge_str issued sucessfully, contractAddress:" + strcAddr + ", txHash:" + strcTxHash);
+            collector.logStepPass("storge_str deployed sucessfully, contractAddress:" + strcAddr + ", txHash:" + strcTxHash);
 
 
             // deploy the cross_call_storage_str  contract second
             ContractCrossCallStorageString crossCall = ContractCrossCallStorageString.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy cross_call_storage_str contract:" + crossCall.getTransactionReceipt().get().getGasUsed());
 
             String crossCallAddr = crossCall.getContractAddress();
             String crossCallTxHash = crossCall.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("cross_call_storage_str issued sucessfully, contractAddress:" + crossCallAddr + ", txHash:" + crossCallTxHash);
+            collector.logStepPass("cross_call_storage_str deployed sucessfully, contractAddress:" + crossCallAddr + ", txHash:" + crossCallTxHash);
 
 
             // check contract balance 1st
             BigInteger strBalance = web3j.platonGetBalance(strcAddr, DefaultBlockParameterName.LATEST).send().getBalance();
-            System.out.println("check contract balance 1st: the storage_str contract balance is:" + strBalance.toString());
+            collector.logStepPass("check contract balance 1st: the storage_str contract balance is:" + strBalance.toString());
             collector.assertEqual(strBalance.longValue(), 0l);
 
             BigInteger crosscallBalance = web3j.platonGetBalance(crossCallAddr, DefaultBlockParameterName.LATEST).send().getBalance();
-            System.out.println("check contract balance 1st: the cross_call_balance contract balance is:" + crosscallBalance.toString());
+            collector.logStepPass("check contract balance 1st: the cross_call_balance contract balance is:" + crosscallBalance.toString());
             collector.assertEqual(crosscallBalance.longValue(), 0l);
 
             String transferMoneyStr = "1000";
@@ -57,7 +59,7 @@ public class ContractCrossCallBalanceTest extends WASMContractPrepareTest {
             transfer.sendFunds(crossCallAddr, new BigDecimal(transferMoneyStr), Convert.Unit.VON).send();
 
             crosscallBalance = web3j.platonGetBalance(crossCallAddr, DefaultBlockParameterName.LATEST).send().getBalance();
-            System.out.println("after transfer balance to crosscall contract: the cross_call_balance contract balance is:" + crosscallBalance.toString());
+            collector.logStepPass("after transfer balance to crosscall contract: the cross_call_balance contract balance is:" + crosscallBalance.toString());
             collector.assertEqual(crosscallBalance.longValue(), transferMoneyL);
 
 
@@ -70,11 +72,11 @@ public class ContractCrossCallBalanceTest extends WASMContractPrepareTest {
 
             // check contract balance 2nd
             strBalance = web3j.platonGetBalance(strcAddr, DefaultBlockParameterName.LATEST).send().getBalance();
-            System.out.println("check contract balance 2nd: the storage_str contract balance is:" + strBalance.toString());
+            collector.logStepPass("check contract balance 2nd: the storage_str contract balance is:" + strBalance.toString());
             collector.assertEqual(strBalance.longValue(), value);
 
             crosscallBalance = web3j.platonGetBalance(crossCallAddr, DefaultBlockParameterName.LATEST).send().getBalance();
-            System.out.println("check contract balance 2nd: the cross_call_balance contract balance is:" + crosscallBalance.toString());
+            collector.logStepPass("check contract balance 2nd: the cross_call_balance contract balance is:" + crosscallBalance.toString());
             collector.assertEqual(crosscallBalance.longValue(), transferMoneyL-value);
 
         } catch (Exception e) {
