@@ -43,6 +43,7 @@ public class UserLibUseMappingTest extends ContractPrepareTest {
             TransactionReceipt tx = userMapping.getTransactionReceipt().get();
 
             collector.logStepPass("UserLibUseMappingTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + userMapping.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = userMapping.setOutUser(new BigInteger(age),new BigInteger(id)).send();
 

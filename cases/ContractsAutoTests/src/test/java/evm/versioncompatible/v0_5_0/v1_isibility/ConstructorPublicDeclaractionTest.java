@@ -49,6 +49,7 @@ public class ConstructorPublicDeclaractionTest extends ContractPrepareTest {
             collector.logStepPass("链上函数的初始值为："+initValue);
 
             collector.logStepPass("FunctionDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + constructorPublicDeclaraction.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt =constructorPublicDeclaraction.update(new BigInteger(addValue)).send();
 

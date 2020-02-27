@@ -36,6 +36,7 @@ public class IfErrorTest extends ContractPrepareTest {
             TransactionReceipt tx = ifError.getTransactionReceipt().get();
 
             collector.logStepPass("IfErrorTest if控制结构返回的结构体如果是指针需要提前初始化");
+            collector.logStepPass("deploy gas used:" + ifError.getTransactionReceipt().get().getGasUsed());
 
             //1.if控制结构验证 ifControlValue
             Boolean ifFlg = ifError.getIfControlRes().send();

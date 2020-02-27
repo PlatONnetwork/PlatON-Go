@@ -42,6 +42,7 @@ public class FallbackDeclaractionTest extends ContractPrepareTest {
             collector.logStepPass("链上函数的初始值为："+initValue);
 
             collector.logStepPass("FallbackDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + fallbackDeclaraction.getTransactionReceipt().get().getGasUsed());
 
             //调用不存在函数，将触发回退函数，导致A修改成111
             TransactionReceipt transactionReceipt = fallbackDeclaraction.callNonExistFunc().send();

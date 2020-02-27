@@ -42,6 +42,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.LAT, GAS_PRICE, GAS_LIMIT).send();
@@ -70,6 +71,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(30.00), Convert.Unit.VON, GAS_PRICE, GAS_LIMIT).send();
@@ -98,6 +100,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.KVON, GAS_PRICE, GAS_LIMIT).send();
@@ -126,6 +129,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.MVON, GAS_PRICE, GAS_LIMIT).send();
@@ -154,6 +158,8 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
+
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.GVON, GAS_PRICE, GAS_LIMIT).send();
@@ -182,6 +188,8 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
+
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.SZABO, GAS_PRICE, GAS_LIMIT).send();
@@ -210,6 +218,8 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
+
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.FINNEY, GAS_PRICE, GAS_LIMIT).send();
@@ -238,6 +248,8 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
+
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.LAT, GAS_PRICE, GAS_LIMIT).send();
@@ -266,6 +278,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.KLAT, GAS_PRICE, GAS_LIMIT).send();
@@ -294,6 +307,8 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
+
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.MLAT, GAS_PRICE, GAS_LIMIT).send();
@@ -322,6 +337,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000001), Convert.Unit.GLAT, GAS_PRICE, GAS_LIMIT).send();

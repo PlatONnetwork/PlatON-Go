@@ -42,6 +42,7 @@ public class GetLibraryAddressTest extends ContractPrepareTest {
             TransactionReceipt tx = getLibraryAddress.getTransactionReceipt().get();
 
             collector.logStepPass("GetLibraryAddressTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + getLibraryAddress.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = getLibraryAddress.setUserLibAddress().send();
 

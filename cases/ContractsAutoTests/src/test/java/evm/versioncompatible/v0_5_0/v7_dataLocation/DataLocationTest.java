@@ -48,6 +48,7 @@ public class DataLocationTest extends ContractPrepareTest {
             TransactionReceipt tx = dataLocation.getTransactionReceipt().get();
 
             collector.logStepPass("FunctionDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + dataLocation.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = dataLocation.savePerson(new BigInteger(id),name,new BigInteger(age)).send();
 

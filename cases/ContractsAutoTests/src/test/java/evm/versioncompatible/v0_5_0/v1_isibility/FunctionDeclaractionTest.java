@@ -47,6 +47,7 @@ public class FunctionDeclaractionTest extends ContractPrepareTest {
             collector.logStepPass("链上函数的初始值为："+initValue);
 
             collector.logStepPass("FunctionDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + functionDeclaraction.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt =functionDeclaraction.update_public(new BigInteger(addValue)).send();
 
@@ -79,6 +80,7 @@ public class FunctionDeclaractionTest extends ContractPrepareTest {
             collector.logStepPass("执行update_external前balance值为："+initValue);
 
             collector.logStepPass("FunctionDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + functionDeclaraction.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt =functionDeclaraction.update_external(new BigInteger(addValue)).send();
 

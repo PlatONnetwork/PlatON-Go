@@ -30,6 +30,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + eventCallContract.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = eventCallContract.testMinus(new BigInteger("-12")).send();
             List<EventIndexedContract.MinusEventEventResponse> str=eventCallContract.getMinusEventEvents(receipt);
             BigInteger s=str.get(0).minus;
@@ -54,6 +55,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String contractAddress = eventTypeContract.getContractAddress();
             String transactionHash = eventTypeContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + eventTypeContract.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = eventTypeContract.testOneDimensionalArray().send();
             List<EventIndexedContract.OneDimensionalArrayEventEventResponse> one = eventTypeContract.getOneDimensionalArrayEventEvents(receipt);
             byte[] data = one.get(0).array;
@@ -76,6 +78,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + eventCallContract.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = eventCallContract.testTwoDimensionalArray().send();
             try {
                 eventCallContract.getTwoDimensionalArrayEventEvents(receipt);
@@ -98,6 +101,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + eventCallContract.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = eventCallContract.testStr().send();
             List<EventIndexedContract.StringEventEventResponse> str=eventCallContract.getStringEventEvents(receipt);
             byte[] s=str.get(0).str;
@@ -119,6 +123,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + eventCallContract.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = eventCallContract.testEnum().send();
             List<EventIndexedContract.EnumEventEventResponse> str=eventCallContract.getEnumEventEvents(receipt);
             BigInteger s=str.get(0).choices;
@@ -140,6 +145,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + eventCallContract.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = eventCallContract.testComplex().send();
             List<EventIndexedContract.ComplexIndexedEventEventResponse> str=eventCallContract.getComplexIndexedEventEvents(receipt);
             String strIndex=DataChangeUtil.bytesToHex(str.get(0).str);
@@ -167,6 +173,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventIndexedContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + eventCallContract.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = eventCallContract.testAnonymousIndexed().send();
             System.out.println(JSONObject.toJSONString(receipt.getLogs().get(0).getTopics()));
             String u1Topic=receipt.getLogs().get(0).getTopics().get(0);

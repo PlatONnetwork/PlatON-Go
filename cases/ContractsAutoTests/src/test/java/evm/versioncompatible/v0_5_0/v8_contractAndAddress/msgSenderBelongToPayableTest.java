@@ -36,6 +36,7 @@ public class msgSenderBelongToPayableTest extends ContractPrepareTest {
             TransactionReceipt tx = msgSenderBelongToPayable.getTransactionReceipt().get();
 
             collector.logStepPass("FunctionDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + msgSenderBelongToPayable.getTransactionReceipt().get().getGasUsed());
 
             String contractAddr = msgSenderBelongToPayable.getContractAddr().send();
 

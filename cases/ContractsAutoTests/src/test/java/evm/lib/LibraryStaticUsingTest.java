@@ -29,6 +29,7 @@ public class LibraryStaticUsingTest extends ContractPrepareTest {
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("LibraryStaticUsing issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + using.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = using.register(new BigInteger("12")).send();
             List<LibraryStaticUsing.ResultEventResponse> eventData = using.getResultEvents(receipt);
             String data = eventData.get(0).log.getData();

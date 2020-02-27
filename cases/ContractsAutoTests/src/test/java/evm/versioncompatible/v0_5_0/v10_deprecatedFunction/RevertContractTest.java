@@ -44,6 +44,7 @@ public class RevertContractTest extends ContractPrepareTest {
             TransactionReceipt tx = revertContract.getTransactionReceipt().get();
 
             collector.logStepPass("RevertContractTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + revertContract.getTransactionReceipt().get().getGasUsed());
 
             tx = revertContract.toSenderAmount(new BigInteger(first),new BigInteger(second)).send();
 

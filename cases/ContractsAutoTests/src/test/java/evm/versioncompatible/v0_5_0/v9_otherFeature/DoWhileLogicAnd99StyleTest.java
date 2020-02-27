@@ -45,6 +45,7 @@ public class DoWhileLogicAnd99StyleTest extends ContractPrepareTest {
             TransactionReceipt tx = doWhileLogicAnd99Style.getTransactionReceipt().get();
 
             collector.logStepPass("DoWhileLogicAnd99StyleTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + doWhileLogicAnd99Style.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = doWhileLogicAnd99Style.dowhile(new BigInteger(doWhileStart)).send();
 

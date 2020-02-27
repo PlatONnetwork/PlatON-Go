@@ -45,6 +45,7 @@ public class ConstructorInternalDeclaractionTest extends ContractPrepareTest {
             TransactionReceipt tx = constructorInternalDeclaractionSub.getTransactionReceipt().get();
 
             collector.logStepPass("ConstructorInternalDeclaractionSub deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + constructorInternalDeclaractionSub.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt =constructorInternalDeclaractionSub.update(new BigInteger(addValue)).send();
 

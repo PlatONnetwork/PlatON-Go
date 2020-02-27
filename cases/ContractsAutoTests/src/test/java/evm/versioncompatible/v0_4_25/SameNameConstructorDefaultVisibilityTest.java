@@ -114,6 +114,7 @@ public class SameNameConstructorDefaultVisibilityTest extends ContractPrepareTes
         String contractAddress = visibility.getContractAddress();
         String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
         collector.logStepPass("SameNameConstructorDefaultVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+        collector.logStepPass("deploy gas used:" + visibility.getTransactionReceipt().get().getGasUsed());
         return visibility.SameNameConstructorVisibility(constructorValue).send();
     }
 }

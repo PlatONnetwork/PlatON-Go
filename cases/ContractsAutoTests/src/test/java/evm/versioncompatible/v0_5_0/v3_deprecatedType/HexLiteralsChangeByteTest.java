@@ -37,6 +37,7 @@ public class HexLiteralsChangeByteTest extends ContractPrepareTest {
             TransactionReceipt tx = hexLiteralsChangeByte.getTransactionReceipt().get();
 
             collector.logStepPass("FunctionDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + hexLiteralsChangeByte.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = hexLiteralsChangeByte.testChange(new BigInteger("1")).send();
 
