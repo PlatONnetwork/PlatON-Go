@@ -35,6 +35,7 @@ public class PayableTest extends ContractPrepareTest {
             String contractAddress = payable.getContractAddress();
             TransactionReceipt tx = payable.getTransactionReceipt().get();
             collector.logStepPass("paybale deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("paybale deploy gasUsed:" + payable.getTransactionReceipt().get().getGasUsed());
 
             //验证payable声明
             BigInteger payablepremoney = payable.getBalances("0x8a9B36694F1eeeb500c84A19bB34137B05162EC4").send();

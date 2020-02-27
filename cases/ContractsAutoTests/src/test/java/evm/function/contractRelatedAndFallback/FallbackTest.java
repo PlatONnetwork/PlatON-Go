@@ -35,12 +35,15 @@ public class FallbackTest extends ContractPrepareTest {
             String contractAddress = fallback.getContractAddress();
             TransactionReceipt tx = fallback.getTransactionReceipt().get();
             collector.logStepPass("FallBack deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("FallBack deploy gasUsed:" + fallback.getTransactionReceipt().get().getGasUsed());
 
             //验证this和回退函数
             BigInteger a = fallback.getA().send();
             collector.logStepPass("回退函数调用前a的值：" + a);
 
             TransactionReceipt functionnotexist = fallback.CallFunctionNotExist().send();
+            collector.logStepPass("打印fallback交易hash：" + functionnotexist.getTransactionHash());
+
             BigInteger falla = fallback.getA().send();
             collector.logStepPass("回退函数调用后a的值：" + falla);
             collector.assertEqual(new BigInteger("100"),falla);

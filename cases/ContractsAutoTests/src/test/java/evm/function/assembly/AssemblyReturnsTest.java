@@ -41,6 +41,7 @@ public class AssemblyReturnsTest extends ContractPrepareTest {
             String contractAddress = assemblyreturns.getContractAddress();
             TransactionReceipt tx = assemblyreturns.getTransactionReceipt().get();
             collector.logStepPass("AssemblyReturns deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("AssemblyReturns deploy gasUsed:" + assemblyreturns.getTransactionReceipt().get().getGasUsed());
 
             //验证AssemblyReturns
             Tuple5 result = assemblyreturns.f().send();
