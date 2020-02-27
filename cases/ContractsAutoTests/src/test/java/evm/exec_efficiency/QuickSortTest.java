@@ -48,19 +48,18 @@ public class QuickSortTest extends ContractPrepareTest {
                 } else {
                     array.add(BigInteger.valueOf(val));
                 }
-
             }
 
             QuickSort contract = QuickSort.deploy(web3j, transactionManager, provider).send();
             contractAddress = contract.getContractAddress();
-            collector.logStepPass("QuickSort contract deploy successful. contractAddress:" + contractAddress);
+            collector.logStepPass("QuickSort contract deploy successful. contractAddress:" + contractAddress + " hash:" + contract.getTransactionReceipt().get().getTransactionHash());
             collector.logStepPass("QuickSort contract deploy successful. gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             TransactionReceipt transactionReceipt = contract.sort(array, BigInteger.ZERO, BigInteger.valueOf(array.size() - 1)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
-            collector.logStepPass("QuickSort sort success, gasUsed:" + gasUsed);
-            collector.logStepPass("QuickSort contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
+            collector.logStepPass("QuickSort sort successful, gasUsed:" + gasUsed);
+            collector.logStepPass("QuickSort sort successful. hash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("QuickSort currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
             List<BigInteger> afterArray = new ArrayList<>();
