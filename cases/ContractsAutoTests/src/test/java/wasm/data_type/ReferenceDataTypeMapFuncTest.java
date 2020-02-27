@@ -56,7 +56,7 @@ public class ReferenceDataTypeMapFuncTest extends WASMContractPrepareTest {
             String contractAddress = referenceDataTypeMapFuncContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeMapFuncContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeMapFuncContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeMapFuncContract deploy fail.", e.toString());

@@ -5,6 +5,8 @@ pragma solidity ^0.5.13;
  **/
 contract InsertSort{
 
+    int[] result_arr;
+
     function OuputArrays(int[] memory arr, uint n) public payable returns(int[] memory){
         uint i;
         uint k;
@@ -21,6 +23,12 @@ contract InsertSort{
             }
             arr[j]=temp;
         }
+        result_arr = arr;
         return arr;
     }
+
+    function get_arr() public view returns(int[] memory){
+        return result_arr;
+    }
+
 }

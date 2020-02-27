@@ -34,7 +34,7 @@ public class InheritContractOverloadComplexTest extends ContractPrepareTest {
             String contractAddress = inheritContractOverloadChild.getContractAddress();
             TransactionReceipt tx =  inheritContractOverloadChild.getTransactionReceipt().get();
             collector.logStepPass("InheritContractOverload issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("InheritContractOverload deploy fail.", e.toString());

@@ -46,7 +46,7 @@ public class ReferenceDataTypeMultiIndexTest extends WASMContractPrepareTest {
             String contractAddress = referenceDataTypeMultiIndexContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeMultiIndexContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeMultiIndexContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeMultiIndexContract deploy fail.", e.toString());

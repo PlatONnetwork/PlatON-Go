@@ -34,7 +34,7 @@ public class ReferenceDataTypeStructDeleteContractTest extends ContractPrepareTe
             String contractAddress = referenceDataTypeStructDelete.getContractAddress();
             TransactionReceipt tx =  referenceDataTypeStructDelete.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeStructDelete issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeStructDelete deploy fail.", e.toString());

@@ -34,7 +34,7 @@ public class BasicDataTypeContractTest extends ContractPrepareTest {
             String contractAddress = basicDataTypeContract.getContractAddress();
             TransactionReceipt tx =  basicDataTypeContract.getTransactionReceipt().get();
             collector.logStepPass("BasicDataTypeContract issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("BasicDataTypeContract deploy fail.", e.toString());
