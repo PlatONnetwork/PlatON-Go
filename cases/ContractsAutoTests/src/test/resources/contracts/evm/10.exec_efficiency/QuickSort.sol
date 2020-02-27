@@ -15,9 +15,10 @@ contract QuickSort {
     
     function sort(int256[] _arr, uint256 low, uint256 high) public {
         quick_sort(_arr, low, high);
-        for(uint256 i = 0; i < _arr.length; i++){
+        arr = _arr;
+        /*for(uint256 i = 0; i < _arr.length; i++){
             arr.push(_arr[i]);
-        }
+        }*/
     }
 
     function quick_sort(int256[] _arr, uint256 low, uint256 high) internal {
@@ -53,5 +54,9 @@ contract QuickSort {
         }
         _arr[i] = temp;
         return i;
+    }
+    
+    function show() constant public returns(int256[]){
+        return arr;
     }
 }
