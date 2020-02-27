@@ -23,9 +23,17 @@ CONTRACT InitWithParams : public platon::Contract{
           return mapmap.self();
       }
 
+      ACTION void add_map_list(const std::map<std::string,std::list<std::string>>  &inMaplist){
+          maplist.self() = inMaplist;
+      }
+      CONST std::map<std::string,std::list<std::string>> get_map_list(){
+          return maplist.self();
+      }
+
    private:
       platon::StorageType<"strmap"_n, std::map<std::string,std::string>> strmap;
       platon::StorageType<"mapmap"_n, std::map<std::string,std::map<std::string,std::string>>> mapmap;
+      platon::StorageType<"maplist"_n, std::map<std::string,std::list<std::string>>> maplist;
 };
 
-PLATON_DISPATCH(InitWithParams, (init)(add_map)(get_map)(add_map_map)(get_map_map))
+PLATON_DISPATCH(InitWithParams, (init)(add_map)(get_map)(add_map_map)(get_map_map)(add_map_list)(get_map_list))
