@@ -12,18 +12,21 @@ CONTRACT MemoryCallocInt : public platon::Contract{
     ACTION void init(){}
 
 	CONST int getcalloc(){
-        int *p = (int*)calloc(5, sizeof(int));
-        free(p);
+        int *p1 = (int*)calloc(5, sizeof(int));
+        *p1 = 10;
+        free(p1);
         int *p2 = (int*)calloc(10, 5*sizeof(int));
+        *p2 = 50;
         free(p2);
         int *p3 = (int*)calloc(20, 10*sizeof(int));
+        *p3 = 200;
         free(p3);
 
         int *p4 = (int*)calloc(50, 50*sizeof(int));
-        *p4 = 10;
-        int *temp = p4;
+        *p4 = 2500;
+        int temp = *p4;
         free(p4);
-        return *temp;
+        return temp;
     }
 };
 

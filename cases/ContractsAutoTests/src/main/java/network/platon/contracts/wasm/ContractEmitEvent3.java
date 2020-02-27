@@ -93,11 +93,6 @@ public class ContractEmitEvent3 extends WasmContract {
         return transferEventObservable(filter);
     }
 
-    public RemoteCall<TransactionReceipt> three_emit_event3_args4(String name, String nationality, String city, Uint32 value1, Uint32 value2, String name1, String name2) {
-        final WasmFunction function = new WasmFunction(FUNC_THREE_EMIT_EVENT3_ARGS4, Arrays.asList(name,nationality,city,value1,value2,name1,name2), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER2_EVENT, transactionReceipt);
         ArrayList<Transfer2EventResponse> responses = new ArrayList<Transfer2EventResponse>(valueList.size());
@@ -139,6 +134,11 @@ public class ContractEmitEvent3 extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER2_EVENT));
         return transfer2EventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> three_emit_event3_args4(String name, String nationality, String city, Uint32 value1, Uint32 value2, String name1, String name2) {
+        final WasmFunction function = new WasmFunction(FUNC_THREE_EMIT_EVENT3_ARGS4, Arrays.asList(name,nationality,city,value1,value2,name1,name2), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public static RemoteCall<ContractEmitEvent3> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

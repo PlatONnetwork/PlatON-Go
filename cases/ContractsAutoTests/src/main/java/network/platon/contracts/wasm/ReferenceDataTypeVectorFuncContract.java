@@ -28,11 +28,11 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
 
     public static final String FUNC_INSERTVECTORVALUE = "insertVectorValue";
 
+    public static final String FUNC_INSERTVECTORMANGVALUE = "insertVectorMangValue";
+
     public static final String FUNC_FINDVECTORAT = "findVectorAt";
 
     public static final String FUNC_FINDVECTOREMPTY = "findVectorEmpty";
-
-    public static final String FUNC_INSERTVECTORMANGVALUE = "insertVectorMangValue";
 
     public static final String FUNC_GETVECTORLENGTH = "getVectorLength";
 
@@ -69,6 +69,11 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
         return deployRemoteCall(ReferenceDataTypeVectorFuncContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
+    public RemoteCall<TransactionReceipt> insertVectorMangValue(Uint64 num, String my_value) {
+        final WasmFunction function = new WasmFunction(FUNC_INSERTVECTORMANGVALUE, Arrays.asList(num,my_value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
     public RemoteCall<String> findVectorAt(Uint64 index) {
         final WasmFunction function = new WasmFunction(FUNC_FINDVECTORAT, Arrays.asList(index), String.class);
         return executeRemoteCall(function, String.class);
@@ -77,11 +82,6 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
     public RemoteCall<Boolean> findVectorEmpty() {
         final WasmFunction function = new WasmFunction(FUNC_FINDVECTOREMPTY, Arrays.asList(), Boolean.class);
         return executeRemoteCall(function, Boolean.class);
-    }
-
-    public RemoteCall<TransactionReceipt> insertVectorMangValue(Uint64 num, String my_value) {
-        final WasmFunction function = new WasmFunction(FUNC_INSERTVECTORMANGVALUE, Arrays.asList(num,my_value), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<Uint64> getVectorLength() {
