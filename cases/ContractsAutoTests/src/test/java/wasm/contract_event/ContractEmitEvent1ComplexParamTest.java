@@ -36,6 +36,7 @@ public class ContractEmitEvent1ComplexParamTest extends WASMContractPrepareTest 
             String contractAddress = contractEmitEvent1.getContractAddress();
             String transactionHash = contractEmitEvent1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractEmitEvent1ComplexParamTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractEmitEvent1.getTransactionReceipt().get().getGasUsed());
 
             //调用包含1个主题事件的合约传一个list
             TransactionReceipt transactionReceipt = contractEmitEvent1.one_emit_event1(name,value,stringList).send();

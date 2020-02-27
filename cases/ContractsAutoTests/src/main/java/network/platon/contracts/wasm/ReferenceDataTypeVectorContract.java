@@ -28,9 +28,9 @@ public class ReferenceDataTypeVectorContract extends WasmContract {
 
     public static final String FUNC_SETCLOTHESCOLORONE = "setClothesColorOne";
 
-    public static final String FUNC_GETCLOTHESCOLORLENGTH = "getClothesColorLength";
-
     public static final String FUNC_SETCLOTHESCOLORTWO = "setClothesColorTwo";
+
+    public static final String FUNC_GETCLOTHESCOLORLENGTH = "getClothesColorLength";
 
     public static final String FUNC_GETCLOTHESCOLORINDEX = "getClothesColorIndex";
 
@@ -40,11 +40,6 @@ public class ReferenceDataTypeVectorContract extends WasmContract {
 
     protected ReferenceDataTypeVectorContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> setClothesColorOne(Clothes myClothes) {
-        final WasmFunction function = new WasmFunction(FUNC_SETCLOTHESCOLORONE, Arrays.asList(myClothes), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public static RemoteCall<ReferenceDataTypeVectorContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -57,14 +52,19 @@ public class ReferenceDataTypeVectorContract extends WasmContract {
         return deployRemoteCall(ReferenceDataTypeVectorContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
-    public RemoteCall<Uint64> getClothesColorLength() {
-        final WasmFunction function = new WasmFunction(FUNC_GETCLOTHESCOLORLENGTH, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
+    public RemoteCall<TransactionReceipt> setClothesColorOne(Clothes myClothes) {
+        final WasmFunction function = new WasmFunction(FUNC_SETCLOTHESCOLORONE, Arrays.asList(myClothes), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<TransactionReceipt> setClothesColorTwo(String my_color) {
         final WasmFunction function = new WasmFunction(FUNC_SETCLOTHESCOLORTWO, Arrays.asList(my_color), Void.class);
         return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<Uint64> getClothesColorLength() {
+        final WasmFunction function = new WasmFunction(FUNC_GETCLOTHESCOLORLENGTH, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<String> getClothesColorIndex() {

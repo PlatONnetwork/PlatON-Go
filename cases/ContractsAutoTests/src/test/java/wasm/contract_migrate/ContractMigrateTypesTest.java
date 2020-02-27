@@ -38,6 +38,7 @@ public class ContractMigrateTypesTest extends WASMContractPrepareTest {
             String contractAddress = contractMigrateTypes.getContractAddress();
             String transactionHash = contractMigrateTypes.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("contractMigrateTypes issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractMigrateTypes.getTransactionReceipt().get().getGasUsed());
 
             String structvalue = "testvalue";
             ContractMigrate_types.Message msg = new ContractMigrate_types.Message();

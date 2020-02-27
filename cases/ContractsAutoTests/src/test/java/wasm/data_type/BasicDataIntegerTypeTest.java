@@ -60,7 +60,7 @@ public class BasicDataIntegerTypeTest extends WASMContractPrepareTest {
             String contractAddress = basicDataIntegerTypeContract.getContractAddress();
             TransactionReceipt tx = basicDataIntegerTypeContract.getTransactionReceipt().get();
             collector.logStepPass("basicDataIntegerTypeContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("basicDataIntegerTypeContract deploy fail.", e.toString());

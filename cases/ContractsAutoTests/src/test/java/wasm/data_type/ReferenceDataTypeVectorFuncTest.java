@@ -62,7 +62,7 @@ public class ReferenceDataTypeVectorFuncTest extends WASMContractPrepareTest {
             String contractAddress = referenceDataTypeVectorFuncContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeVectorFuncContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeVectorFuncContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeVectorFuncContract deploy fail.", e.toString());

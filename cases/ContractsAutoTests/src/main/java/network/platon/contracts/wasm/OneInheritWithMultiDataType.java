@@ -48,6 +48,16 @@ public class OneInheritWithMultiDataType extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public static RemoteCall<OneInheritWithMultiDataType> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(OneInheritWithMultiDataType.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<OneInheritWithMultiDataType> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(OneInheritWithMultiDataType.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
     public RemoteCall<TransactionReceipt> add_my_message(My_message one_message) {
         final WasmFunction function = new WasmFunction(FUNC_ADD_MY_MESSAGE, Arrays.asList(one_message), Void.class);
         return executeRemoteCallTransaction(function);
@@ -61,16 +71,6 @@ public class OneInheritWithMultiDataType extends WasmContract {
     public RemoteCall<Uint64> get_my_message_money(Uint8 index) {
         final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_MONEY, Arrays.asList(index), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
-    }
-
-    public static RemoteCall<OneInheritWithMultiDataType> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(OneInheritWithMultiDataType.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<OneInheritWithMultiDataType> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(OneInheritWithMultiDataType.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
     public RemoteCall<Uint8> get_my_message_size() {

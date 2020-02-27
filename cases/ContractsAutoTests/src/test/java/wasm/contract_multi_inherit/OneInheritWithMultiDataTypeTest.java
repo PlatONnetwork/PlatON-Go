@@ -34,6 +34,7 @@ public class OneInheritWithMultiDataTypeTest extends WASMContractPrepareTest {
             String contractAddress = oneInheritWithMultiDataType.getContractAddress();
             String transactionHash = oneInheritWithMultiDataType.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("oneInheritWithMultiDataType issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + oneInheritWithMultiDataType.getTransactionReceipt().get().getGasUsed());
 
             OneInheritWithMultiDataType.My_message my_message = new OneInheritWithMultiDataType.My_message();
             OneInheritWithMultiDataType.Message message = new OneInheritWithMultiDataType.Message();

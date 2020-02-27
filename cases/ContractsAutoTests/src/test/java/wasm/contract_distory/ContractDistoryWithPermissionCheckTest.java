@@ -27,6 +27,7 @@ public class ContractDistoryWithPermissionCheckTest extends WASMContractPrepareT
             String contractAddress = ontractDistoryWithPermissionCheck.getContractAddress();
             String transactionHash = ontractDistoryWithPermissionCheck.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractDistoryWithPermissionCheck issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + ontractDistoryWithPermissionCheck.getTransactionReceipt().get().getGasUsed());
 
             //合约设置值
             TransactionReceipt transactionReceipt = ontractDistoryWithPermissionCheck.set_string(name).send();

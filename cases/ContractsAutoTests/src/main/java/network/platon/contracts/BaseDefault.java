@@ -18,10 +18,10 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.7.5.0.
+ * <p>Generated with web3j version 0.7.5.8-SNAPSHOT.
  */
 public class BaseDefault extends Contract {
-    private static final String BINARY = "6080604052348015600f57600080fd5b50604051602080607b83398101806040528101908080519060200190929190505050806000819055505060358060466000396000f3006080604052600080fd00a165627a7a72305820d63f8395ef74c1163817ccd6612657cf8862e01826d4a37e72dfa2e4c45140360029";
+    private static final String BINARY = "6080604052348015600f57600080fd5b50604051602080607b83398101806040528101908080519060200190929190505050806000819055505060358060466000396000f3006080604052600080fd00a165627a7a72305820c9a8f47133092fc4dac5e7bf6dc356864422671e16e82e221e29562763cb8c440029";
 
     @Deprecated
     protected BaseDefault(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {

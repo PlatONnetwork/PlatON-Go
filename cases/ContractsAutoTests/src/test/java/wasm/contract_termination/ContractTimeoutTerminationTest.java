@@ -31,6 +31,7 @@ public class ContractTimeoutTerminationTest extends WASMContractPrepareTest {
             String contractAddress = contractTimeoutTermination.getContractAddress();
             String transactionHash = contractTimeoutTermination.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractTermination issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractTimeoutTermination.getTransactionReceipt().get().getGasUsed());
 
             //传正常的值
             TransactionReceipt transactionReceipt = contractTimeoutTermination.forfunction(nomalName,nomalValue).send();
