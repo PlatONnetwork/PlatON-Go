@@ -51,6 +51,7 @@ public class ControlTest extends ContractPrepareTest {
             TransactionReceipt tx = control.getTransactionReceipt().get();
 
             collector.logStepPass("ControlTest 常用控制结构功能测试");
+            collector.logStepPass("deploy gas used:" + control.getTransactionReceipt().get().getGasUsed());
 
             //1.if控制结构验证 ifControlValue
             TransactionReceipt transactionReceipt = control.ifControl(new BigInteger(ifControlValue)).send();

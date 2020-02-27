@@ -35,6 +35,7 @@ public class SameNameConstructorPublicVisibilityTest extends ContractPrepareTest
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SameNameConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + visibility.getTransactionReceipt().get().getGasUsed());
             Tuple6<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> result = visibility.discardLiteralsAndSuffixes().send();
             Tuple6<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> expect =
                     new Tuple6(new BigInteger("10000000000"), new BigInteger("31536000"), new BigInteger("255000000000000000000"),

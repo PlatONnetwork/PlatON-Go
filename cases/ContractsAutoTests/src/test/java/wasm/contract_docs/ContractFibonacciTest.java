@@ -32,8 +32,10 @@ public class ContractFibonacciTest extends WASMContractPrepareTest {
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("Fibonacci deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("Fibonacci deploy successfully. gasUsed: " + contract.getTransactionReceipt().get().getGasUsed().toString());
             Long number = Long.valueOf(5);
             TransactionReceipt tr = contract.fibonacci_notify(Uint64.of(number)).send();
+            collector.logStepPass("Fibonacci notify successfully, hash: " + tr.getTransactionHash());
             Fibonacci.NotifyEventResponse eventResponse = contract.getNotifyEvents(tr).get(0);
 
             collector.logStepPass("To invoke fibonacci_notify success, args0: " + eventResponse.arg1.value

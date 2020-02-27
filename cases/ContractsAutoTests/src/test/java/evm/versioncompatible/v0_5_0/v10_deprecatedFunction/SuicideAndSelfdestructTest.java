@@ -36,6 +36,7 @@ public class SuicideAndSelfdestructTest extends ContractPrepareTest {
             TransactionReceipt tx = suicideAndSelfdestruct.getTransactionReceipt().get();
 
             collector.logStepPass("SuicideAndSelfdestructTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + suicideAndSelfdestruct.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = suicideAndSelfdestruct.increment().send();
 

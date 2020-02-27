@@ -48,6 +48,7 @@ public class StringmappingSupportTest extends ContractPrepareTest {
             TransactionReceipt tx = stringmappingSupport.getTransactionReceipt().get();
 
             collector.logStepPass("StringmappingSupportTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + stringmappingSupport.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = stringmappingSupport.setStringmapValue(strKey,strValue).send();
 
@@ -80,6 +81,7 @@ public class StringmappingSupportTest extends ContractPrepareTest {
             TransactionReceipt tx = stringmappingSupport.getTransactionReceipt().get();
 
             collector.logStepPass("StringmappingSupportTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + stringmappingSupport.getTransactionReceipt().get().getGasUsed());
 
             byte[] byte9Key = DataChangeUtil.stringToBytesN(strKey,9);
             TransactionReceipt transactionReceipt = stringmappingSupport.setByte32mapValue(byte9Key,strValue).send();

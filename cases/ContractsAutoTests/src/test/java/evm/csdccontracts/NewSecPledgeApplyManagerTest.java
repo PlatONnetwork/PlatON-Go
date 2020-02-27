@@ -42,6 +42,7 @@ public class NewSecPledgeApplyManagerTest extends ContractPrepareTest {
             String callerContractAddress = newSecPledgeApplyManager.getContractAddress();
             TransactionReceipt tx = newSecPledgeApplyManager.getTransactionReceipt().get();
             collector.logStepPass("NewSecPledgeApplyManager deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + newSecPledgeApplyManager.getTransactionReceipt().get().getGasUsed());
 
             Date start = new Date();
 

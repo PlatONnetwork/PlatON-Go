@@ -29,6 +29,7 @@ public class RevertHandleTest extends ContractPrepareTest {
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RevertHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + handle.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt =handle.revertCheck(new BigInteger("5")).send();
             collector.logStepPass("checkout revert normal,transactionHah="+receipt.getTransactionHash());
             try {
@@ -52,6 +53,7 @@ public class RevertHandleTest extends ContractPrepareTest {
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RevertHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + handle.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt =handle.revertReasonCheck(new BigInteger("5")).send();
             collector.logStepPass("checkout revert normal,transactionHah="+receipt.getTransactionHash());
             try {

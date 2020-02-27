@@ -30,6 +30,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
             String contractAddress = deprecatedFunctions.getContractAddress();
             String transactionHash = deprecatedFunctions.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("DeprecatedFunctions issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + deprecatedFunctions.getTransactionReceipt().get().getGasUsed());
             Tuple2<Boolean, byte[]> result = deprecatedFunctions.functionCheck().send();
             collector.assertEqual(result.getValue1(), Boolean.TRUE, "checkout deprecated function cast result");
 
@@ -49,6 +50,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
             String contractAddress = deprecatedFunctions.getContractAddress();
             String transactionHash = deprecatedFunctions.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("DeprecatedFunctions issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + deprecatedFunctions.getTransactionReceipt().get().getGasUsed());
             try {
                 deprecatedFunctions.throwCheck(false).send();
             } catch (ContractCallException e) {
@@ -72,6 +74,7 @@ public class DeprecatedFunctionsTest extends ContractPrepareTest {
             String contractAddress = deprecatedFunctions.getContractAddress();
             String transactionHash = deprecatedFunctions.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("DeprecatedFunctions issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + deprecatedFunctions.getTransactionReceipt().get().getGasUsed());
             deprecatedFunctions.kill().send();
             try {
                 deprecatedFunctions.functionCheck().send();

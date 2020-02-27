@@ -31,6 +31,7 @@ public class StorageLocationTest extends ContractPrepareTest {
             String contractAddress = storageLocation.getContractAddress();
             String transactionHash = storageLocation.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("StorageLocation issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + storageLocation.getTransactionReceipt().get().getGasUsed());
             byte[] result = storageLocation.storageLocaltionCheck(test).send();
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(test), "checkout array storage location result");
         } catch (Exception e) {
@@ -49,6 +50,7 @@ public class StorageLocationTest extends ContractPrepareTest {
             String contractAddress = storageLocation.getContractAddress();
             String transactionHash = storageLocation.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("StorageLocation issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + storageLocation.getTransactionReceipt().get().getGasUsed());
             byte[] result = storageLocation.transfer(test).send();
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(test), "checkout external declare function array location result");
         } catch (Exception e) {

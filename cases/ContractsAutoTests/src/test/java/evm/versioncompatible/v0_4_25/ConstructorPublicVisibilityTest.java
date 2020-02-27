@@ -41,6 +41,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + visibility.getTransactionReceipt().get().getGasUsed());
             BigInteger constantCheck = visibility.constantCheck().send();
             collector.assertEqual(constantCheck, constructorValue, "checkout allows constant to be used as a modifier for state variability");
         } catch (Exception e) {
@@ -61,6 +62,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             BigInteger result = visibility.namedReturn(new BigInteger("12"),new BigInteger("23")).send();
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + visibility.getTransactionReceipt().get().getGasUsed());
             collector.assertEqual(result, new BigInteger("35"), "checkout allows you to define function types with named return values");
         } catch (Exception e) {
             collector.logStepFail("ConstructorPublicVisibilityTest testNamedReturn failure,exception msg:" , e.getMessage());
@@ -81,6 +83,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             Tuple2<BigInteger,BigInteger> result = visibility.grammarCheck().send();
             Tuple2<BigInteger,BigInteger> checkResult=new Tuple2<>(new BigInteger("0"),new BigInteger("0"));
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + visibility.getTransactionReceipt().get().getGasUsed());
             collector.assertEqual(result, checkResult, "checkout discard syntax validation ");
         } catch (Exception e) {
             collector.logStepFail("ConstructorPublicVisibilityTest testGrammarCheck failure,exception msg:" , e.getMessage());
@@ -100,6 +103,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             BigInteger result = visibility.abstractFunction().send();
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + visibility.getTransactionReceipt().get().getGasUsed());
             collector.assertEqual(result, constructorValue.add(new BigInteger("123")), "checkout allows unimplemented functions are validated with a modifier");
         } catch (Exception e) {
             collector.logStepFail("ConstructorPublicVisibilityTest testAbstractFunction failure,exception msg:" , e.getMessage());
@@ -119,6 +123,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             BigInteger result = visibility.show().send();
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + visibility.getTransactionReceipt().get().getGasUsed());
             collector.assertEqual(result, new BigInteger("0"), "checkout msg.value is allowed to be used in non-payable functions and in the modifier for this function");
         } catch (Exception e) {
             collector.logStepFail("ConstructorPublicVisibilityTest testShow failure,exception msg:" , e.getMessage());

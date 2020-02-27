@@ -37,6 +37,7 @@ public class PrecompiledTest extends ContractPrepareTest {
             String contractAddress = precompiled.getContractAddress();
             TransactionReceipt tx = precompiled.getTransactionReceipt().get();
             collector.logStepPass("PrecompiledTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + precompiled.getTransactionReceipt().get().getGasUsed());
 
             byte[] bytes = "hu".getBytes();
 

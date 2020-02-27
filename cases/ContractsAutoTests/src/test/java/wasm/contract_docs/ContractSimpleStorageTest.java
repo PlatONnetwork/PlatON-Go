@@ -31,6 +31,7 @@ public class ContractSimpleStorageTest extends WASMContractPrepareTest {
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SimpleStorage issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("SimpleStorage deploy successfully. gasUsed: " + contract.getTransactionReceipt().get().getGasUsed().toString());
 
             TransactionReceipt tr = contract.set(Uint64.of(10000)).send();
             collector.logStepPass("To invoke set success, txHash: " + tr.getTransactionHash());

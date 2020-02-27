@@ -34,6 +34,7 @@ public class ShortCircuitErrorTest extends ContractPrepareTest {
             TransactionReceipt tx = shortCircuitError.getTransactionReceipt().get();
 
             collector.logStepPass("ShortCircuitError deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + shortCircuitError.getTransactionReceipt().get().getGasUsed());
 
 
             Boolean fFlg = shortCircuitError.getF().send();
