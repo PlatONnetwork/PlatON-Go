@@ -42,6 +42,16 @@ public class InitWithVector extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public static RemoteCall<InitWithVector> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Uint16 age) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(age));
+        return deployRemoteCall(InitWithVector.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<InitWithVector> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Uint16 age) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(age));
+        return deployRemoteCall(InitWithVector.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
     public RemoteCall<TransactionReceipt> add_vector(Uint64 one_age) {
         final WasmFunction function = new WasmFunction(FUNC_ADD_VECTOR, Arrays.asList(one_age), Void.class);
         return executeRemoteCallTransaction(function);
@@ -55,16 +65,6 @@ public class InitWithVector extends WasmContract {
     public RemoteCall<Uint64> get_vector(Uint8 index) {
         final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR, Arrays.asList(index), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
-    }
-
-    public static RemoteCall<InitWithVector> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Uint16 age) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(age));
-        return deployRemoteCall(InitWithVector.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<InitWithVector> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Uint16 age) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(age));
-        return deployRemoteCall(InitWithVector.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
     public static InitWithVector load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

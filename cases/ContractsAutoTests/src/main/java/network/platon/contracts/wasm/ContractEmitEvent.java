@@ -92,11 +92,6 @@ public class ContractEmitEvent extends WasmContract {
         return transferEventObservable(filter);
     }
 
-    public RemoteCall<TransactionReceipt> zero_emit_event(String name) {
-        final WasmFunction function = new WasmFunction(FUNC_ZERO_EMIT_EVENT, Arrays.asList(name), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER2_EVENT, transactionReceipt);
         ArrayList<Transfer2EventResponse> responses = new ArrayList<Transfer2EventResponse>(valueList.size());
@@ -128,6 +123,11 @@ public class ContractEmitEvent extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER2_EVENT));
         return transfer2EventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> zero_emit_event(String name) {
+        final WasmFunction function = new WasmFunction(FUNC_ZERO_EMIT_EVENT, Arrays.asList(name), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public List<Transfer3EventResponse> getTransfer3Events(TransactionReceipt transactionReceipt) {
