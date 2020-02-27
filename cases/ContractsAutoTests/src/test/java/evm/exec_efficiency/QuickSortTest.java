@@ -41,7 +41,14 @@ public class QuickSortTest extends ContractPrepareTest {
             Random r = new Random();
             for (int i = 0; i < numberOfCalls.intValue(); i++) {
                 int val = r.nextInt(2000);
-                array.add(BigInteger.valueOf(val));
+                if(i % 2 == 0){
+                    String nfval = "-" + val;
+                    int nval = Integer.parseInt(nfval);
+                    array.add(BigInteger.valueOf(nval));
+                } else {
+                    array.add(BigInteger.valueOf(val));
+                }
+
             }
 
             QuickSort contract = QuickSort.deploy(web3j, transactionManager, provider).send();
