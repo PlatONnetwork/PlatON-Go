@@ -46,6 +46,24 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
+
+            /**
+             *  查询 账户的锁仓计划
+             *
+             *  account： 0xc9E1C2B330Cf7e759F2493c5C754b34d98B07f93
+             *
+             *
+             */
+
+            String getRestrictingInfoInput = "0xda838210049594c9e1c2b330cf7e759f2493c5c754b34d98b07f93";
+            String getRestrictingInfoHexStr =  ppos.cross_call_ppos_query(restrictingContractAddr, getRestrictingInfoInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            byte[] getRestrictingInfoByte =  DataChangeUtil.hexToByteArray(getRestrictingInfoHexStr);
+            String getRestrictingInfoStr = new String(getRestrictingInfoByte);
+            collector.logStepPass("获取锁仓计划:" + getRestrictingInfoStr);
+            pposResult res =  gson.fromJson(getRestrictingInfoStr, pposResult.class);
+
+            int  firstCode = res.Code;
 
 
             /**
@@ -75,13 +93,13 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
              *
              */
 
-            String getRestrictingInfoInput = "0xda838210049594c9e1c2b330cf7e759f2493c5c754b34d98b07f93";
-            String getRestrictingInfoHexStr =  ppos.cross_call_ppos_query(restrictingContractAddr, getRestrictingInfoInput, Uint64.of(0), Uint64.of(60000000l)).send();
-            byte[] getRestrictingInfoByte =  DataChangeUtil.hexToByteArray(getRestrictingInfoHexStr);
-            String getRestrictingInfoStr = new String(getRestrictingInfoByte);
-            collector.logStepPass("Str:" + getRestrictingInfoStr);
-            pposResult res =  gson.fromJson(getRestrictingInfoStr, pposResult.class);
-            collector.assertEqual(res.Code, 304005, "查询账户的锁仓计划 result == expect res: {\"Code\":304005,\"Ret\":\"account is not found on restricting contract\"}");
+            getRestrictingInfoInput = "0xda838210049594c9e1c2b330cf7e759f2493c5c754b34d98b07f93";
+            getRestrictingInfoHexStr =  ppos.cross_call_ppos_query(restrictingContractAddr, getRestrictingInfoInput, Uint64.of(0), Uint64.of(60000000l)).send();
+            getRestrictingInfoByte =  DataChangeUtil.hexToByteArray(getRestrictingInfoHexStr);
+            getRestrictingInfoStr = new String(getRestrictingInfoByte);
+            collector.logStepPass("获取锁仓计划:" + getRestrictingInfoStr);
+            res =  gson.fromJson(getRestrictingInfoStr, pposResult.class);
+            collector.assertEqual(res.Code, firstCode);
 
 
         } catch (Exception e) {
@@ -104,7 +122,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
-
+            collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
              *  质押
@@ -171,7 +189,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
-
+            collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
              *  举报
@@ -259,7 +277,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
-
+            collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
              *  提交文本提案
@@ -315,7 +333,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
             // 部署
             ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
-
+            collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
              *  提取委托奖励
@@ -336,7 +354,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
             /**
              *  查询 账户在各节点未提取委托奖励
              *
-             " Addr": "0x12c171900f010b17e969702efa044d077e868082"
+             " Addr": "0x12c171900f010b17e969702efa044d077e868082"z
              *
              * NodeIDs": [
              * "db18af9be2af9dff2347c3d06db4b1bada0598d099a210275251b68fa7b5a863d47fcdd382cc4b3ea01e5b55e9dd0bdbce654133b7f58928ce74629d5e68b974",

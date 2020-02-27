@@ -21,27 +21,30 @@ public class ContractDelegateCallStorageStrTest extends WASMContractPrepareTest 
 
             // deploy the target contract which the name is `storge_str`, first
             ContractStorageString strc = ContractStorageString.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy storge_str contract:" + strc.getTransactionReceipt().get().getGasUsed());
+
 
             String strcAddr = strc.getContractAddress();
             String helloTxHash = strc.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("storge_str issued sucessfully, contractAddress:" + strcAddr + ", txHash:" + helloTxHash);
+            collector.logStepPass("storge_str deployed sucessfully, contractAddress:" + strcAddr + ", txHash:" + helloTxHash);
 
 
             // deploy the delegate_call  contract second
             ContractDelegateCallStorageString delegateCall = ContractDelegateCallStorageString.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy delegate_call_storge_str contract:" + delegateCall.getTransactionReceipt().get().getGasUsed());
 
             String delegateCallAddr = delegateCall.getContractAddress();
             String delegateCallTxHash = delegateCall.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("cross_delegate_call_storage_str issued sucessfully, contractAddress:" + delegateCallAddr + ", txHash:" + delegateCallTxHash);
+            collector.logStepPass("cross_delegate_call_storage_str deployed sucessfully, contractAddress:" + delegateCallAddr + ", txHash:" + delegateCallTxHash);
 
 
             // check arr size 1st
             String strcStr = strc.get_string().send();
-            System.out.println("the msg count in arr of  storge_str contract:" + strcStr);
+            collector.logStepPass("the msg count in arr of  storge_str contract:" + strcStr);
             collector.assertEqual(strcStr, "");
 
             String delegateCallStr = delegateCall.get_string().send();
-            System.out.println("the msg count in arr of cross_delegate_call_storage_str contract:" + delegateCallStr);
+            collector.logStepPass("the msg count in arr of cross_delegate_call_storage_str contract:" + delegateCallStr);
             collector.assertEqual(delegateCallStr, "");
 
             String msg = "Gavin";
@@ -52,11 +55,11 @@ public class ContractDelegateCallStorageStrTest extends WASMContractPrepareTest 
 
             // check arr size 2nd
             strcStr = strc.get_string().send();
-            System.out.println("the msg count in arr of  storge_str contract:" + strcStr);
+            collector.logStepPass("the msg count in arr of  storge_str contract:" + strcStr);
             collector.assertEqual(strcStr, "");
 
             delegateCallStr = delegateCall.get_string().send();
-            System.out.println("the msg count in arr of cross_delegate_call_storage_str contract:" + delegateCallStr);
+            collector.logStepPass("the msg count in arr of cross_delegate_call_storage_str contract:" + delegateCallStr);
             collector.assertEqual(delegateCallStr, msg);
 
         } catch (Exception e) {

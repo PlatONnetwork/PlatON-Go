@@ -21,27 +21,29 @@ public class ContractCrossCallStorageStrTest extends WASMContractPrepareTest {
 
             // deploy the target contract which the name is `storge_str`, first
             ContractStorageString strc = ContractStorageString.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy storge_str contract:" + strc.getTransactionReceipt().get().getGasUsed());
 
             String strcAddr = strc.getContractAddress();
             String strcTxHash = strc.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("storge_str issued sucessfully, contractAddress:" + strcAddr + ", txHash:" + strcTxHash);
+            collector.logStepPass("storge_str deployed sucessfully, contractAddress:" + strcAddr + ", txHash:" + strcTxHash);
 
 
             // deploy the cross_call_storage_str  contract second
             ContractCrossCallStorageString crossCall = ContractCrossCallStorageString.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy cross_call_storage_str contract:" + crossCall.getTransactionReceipt().get().getGasUsed());
 
             String crossCallAddr = crossCall.getContractAddress();
             String crossCallTxHash = crossCall.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("cross_call_storage_str issued sucessfully, contractAddress:" + crossCallAddr + ", txHash:" + crossCallTxHash);
+            collector.logStepPass("cross_call_storage_str deployed sucessfully, contractAddress:" + crossCallAddr + ", txHash:" + crossCallTxHash);
 
 
             // check str value 1st
             String strcStr = strc.get_string().send();
-            System.out.println("the msg count in arr of  storge_str contract:" + strcStr);
+            collector.logStepPass("the msg count in arr of  storge_str contract:" + strcStr);
             collector.assertEqual(strcStr, "");
 
             String crossCallStr = crossCall.get_string().send();
-            System.out.println("the msg count in arr of cross_call_storage_str contract:" + crossCallStr);
+            collector.logStepPass("the msg count in arr of cross_call_storage_str contract:" + crossCallStr);
             collector.assertEqual(crossCallStr, "");
 
             String msg = "Gavin";
@@ -53,11 +55,11 @@ public class ContractCrossCallStorageStrTest extends WASMContractPrepareTest {
 
             // check str value 2nd
             strcStr = strc.get_string().send();
-            System.out.println("the msg count in arr of  storge_str contract:" + strcStr);
+            collector.logStepPass("the msg count in arr of  storge_str contract:" + strcStr);
             collector.assertEqual(strcStr, msg);
 
             crossCallStr = crossCall.get_string().send();
-            System.out.println("the msg count in arr of cross_call_storage_str contract:" + crossCallStr);
+            collector.logStepPass("the msg count in arr of cross_call_storage_str contract:" + crossCallStr);
             collector.assertEqual(crossCallStr, "");
 
         } catch (Exception e) {
