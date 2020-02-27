@@ -34,7 +34,11 @@ public class ContractCrossCallPrecompileContractsTest extends WASMContractPrepar
             String input = "0xe281eaa11e6e37e6f53aade5d6c5b7201ef1c66162ec42ccc3215a0c4349350d000000000000000000000000000000000000000000000000000000000000001b55b60cadd4b4a3ea4fc368ef338f97e12e7328dd6e9e969a3fd8e5c10be855fe2b42cee2585a16ea537efcb88009c1aeac693c28b59aa6bbff0baf22730338f6";
 
             ContractCallPrecompile precompile =  ContractCallPrecompile.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy cross_call_precompile contract:" + precompile.getTransactionReceipt().get().getGasUsed());
+            collector.logStepPass("cross_call_precompile deployed sucessfully, contractAddress:" + precompile.getContractAddress() + ", txHash:" + precompile.getTransactionReceipt().get().getTransactionHash());
+
             String addr =  precompile.cross_call_ecrecover(input, Uint64.of(0), Uint64.of(60000000l)).send();
+
             collector.logStepPass("cross_call_precompile cross_call_ecrecover successfully addr:" + addr);
 
             // 测试跨合约调 sha256hash 预编译合约

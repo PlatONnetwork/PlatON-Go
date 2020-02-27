@@ -75,6 +75,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
+			log.Error("Failed to execute tx on StateProcessor", "blockNumber", block.Number(),
+				"blockHash", block.Hash().TerminalString(), "txHash", tx.Hash().String(), "err", err)
 			return nil, nil, 0, err
 		}
 		receipts = append(receipts, receipt)
@@ -85,7 +87,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		// EndBlocker()
 		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
 			log.Error("Failed to call EndBlocker on StateProcessor", "blockNumber", block.Number(),
-				"blockHash", block.Hash(), "err", err)
+				"blockHash", block.Hash().TerminalString(), "err", err)
 			return nil, nil, 0, err
 		}
 	}
@@ -114,6 +116,8 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
+
+	log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
 
 	// Apply the transaction to the current state (included in the env)
 	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)

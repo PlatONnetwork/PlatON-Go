@@ -20,27 +20,31 @@ public class ContractCrossCallOriginTypeTest extends WASMContractPrepareTest {
 
             // deploy the target contract which the name is `storge_origin`, first
             ContractOriginType origin = ContractOriginType.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy storge_origin contract:" + origin.getTransactionReceipt().get().getGasUsed());
+
 
             String originAddr = origin.getContractAddress();
             String originTxHash = origin.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("storge_str issued sucessfully, contractAddress:" + originAddr + ", txHash:" + originTxHash);
+            collector.logStepPass("storge_str deployed sucessfully, contractAddress:" + originAddr + ", txHash:" + originTxHash);
 
 
             // deploy the cross_call_origin_type  contract second
             ContractCrossCallOriginType crossCall = ContractCrossCallOriginType.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy cross_call_origin_type contract:" + crossCall.getTransactionReceipt().get().getGasUsed());
+
 
             String crossCallAddr = crossCall.getContractAddress();
             String crossCallTxHash = crossCall.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("cross_call_origin_type issued sucessfully, contractAddress:" + crossCallAddr + ", txHash:" + crossCallTxHash);
+            collector.logStepPass("cross_call_origin_type deployed sucessfully, contractAddress:" + crossCallAddr + ", txHash:" + crossCallTxHash);
 
 
             // check vec size 1st
             Uint64 originVecSize = origin.get_vector_size().send();
-            System.out.println("the msg count in arr of  storge_origin contract:" + originVecSize);
+            collector.logStepPass("the msg count in arr of  storge_origin contract:" + originVecSize);
             collector.assertEqual(originVecSize.getValue().longValue(), 0l);
 
             Uint64 crossCallVecSize = crossCall.get_vector_size().send();
-            System.out.println("the msg count in arr of cross_call_origin_type contract:" + crossCallVecSize);
+            collector.logStepPass("the msg count in arr of cross_call_origin_type contract:" + crossCallVecSize);
             collector.assertEqual(crossCallVecSize.getValue().longValue(), 0l);
 
             // delegate call contract start
@@ -57,11 +61,11 @@ public class ContractCrossCallOriginTypeTest extends WASMContractPrepareTest {
 
             // check arr size 2nd
             originVecSize = origin.get_vector_size().send();
-            System.out.println("the msg count in arr of  storge_origin contract:" + originVecSize);
+            collector.logStepPass("the msg count in arr of  storge_origin contract:" + originVecSize);
             collector.assertEqual(originVecSize.getValue().longValue(), 1l);
 
             crossCallVecSize = crossCall.get_vector_size().send();
-            System.out.println("the msg count in arr of cross_call_origin_type contract:" + crossCallVecSize);
+            collector.logStepPass("the msg count in arr of cross_call_origin_type contract:" + crossCallVecSize);
             collector.assertEqual(crossCallVecSize.getValue().longValue(), 0l);
 
         } catch (Exception e) {
