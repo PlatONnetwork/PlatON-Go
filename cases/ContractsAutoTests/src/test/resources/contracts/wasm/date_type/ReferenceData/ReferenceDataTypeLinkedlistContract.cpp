@@ -28,44 +28,60 @@ using namespace platon;
 CONTRACT ReferenceDataTypeLinkedlistContract : public platon::Contract{
 
     private:
-
      /*  platon::StorageType<"node_head"_n,listNode> storage_node_head;
        platon::StorageType<"node_tmp"_n,listNode> storage_node_tmp;
        platon::StorageType<"node_vector"_n, std::vector<listNode>> node_vector;
        platon::StorageType<"storage_array_uint8"_n,std::array<uint8_t,10>> storage_array_uint8;*/
+       //每一个结点都建立一个单链表来保存与其相邻的边权值和结点的信息
        platon::StorageType<"array1"_n,std::array<std::vector<Edge>,10>> array_vector;
-      // platon::StorageType<"int8value"_n,int8_t> count;
+       platon::StorageType<"intvalue"_n,int8_t> count_int;
+       platon::StorageType<"vector1"_n, std::vector<std::string>> vector_string;
     public:
         ACTION void init(){}
 
-         /**
+        /**
          * 1、定义链表类型
          **/
-         //1)、定义链表
-        //初始化链表
-        ACTION void insertNodeElement() {
-           //std::vector<Edge> edgeArray[10];
-           for (uint8_t i = 0;i < 10;i ++) {
-           	    //遍历所有结点
-           	    array_vector.self()[i].clear(); //清空其单链表
+         //1)、链表新增元素
+        ACTION void insertNodeElement(const std::string &nodeData) {
+            if(array_vector.self().size() == 0){
+                count_int.self() = 0;
+            }else{
+                count_int.self() = count_int.self() + 1;
             }
             Edge tmp; //准备一个Edge结构体
-            tmp.nextNode = 1; //下一结点编号为3
-            tmp.nodeName = "one"; //该边权值为38
-            array_vector.self()[0].push_back(tmp); //将该边加入结点1的单链表中
+            tmp.nextNode = count_int.self(); //下一结点编号
+            tmp.nodeName = nodeData; //该结点数据
+            array_vector.self()[0].push_back(tmp); //将改元素添加到结点的单链表中(Vector)
         }
 
-        CONST uint8_t getNodeElement(const uint8_t &arrayIndex,const uint8_t &vectorIndex){
-
+        //查询指定元素
+        CONST uint8_t getNodeElementIndex(const uint8_t &arrayIndex,const uint8_t &vectorIndex){
              return array_vector.self()[arrayIndex][vectorIndex].nextNode;
         }
 
-
-
-
-
+        //清除数据
+        ACTION void clearNodeElement(){
+              for (uint8_t i = 0;i < array_vector.self().size();i ++) {
+                   //遍历所有结点
+                   array_vector.self()[i].clear(); //清空其单链表
+              }
+        }
+        //查询某个结点的所有邻接信息
+         CONST std::vector<std::string> findNodeElement(const uint8_t &index){
+              for (int i = 0;i < array_vector.self()[index].size(); i ++) {
+              	//对所有与结点index相邻的边进行遍历，
+              	uint8_t nextNode = array_vector.self()[index][i].nextNode; //结点编号
+              	std::string nodeName = array_vector.self()[index][i].nodeName; //结点数据
+              	DEBUG("ReferenceDataTypeLinkedlistContract", "查询某个结点的所有邻接信息nextNode：", nextNode);
+              	DEBUG("ReferenceDataTypeLinkedlistContract", "查询某个结点的所有邻接信息nodeName：", nodeName);
+                vector_string.self().push_back(nodeName);
+               }
+               return vector_string.self();
+         }
 
 };
 
 PLATON_DISPATCH(ReferenceDataTypeLinkedlistContract,(init)
-(insertNodeElement)(getNodeElement))
+(insertNodeElement)(getNodeElementIndex)(clearNodeElement)
+(findNodeElement))
