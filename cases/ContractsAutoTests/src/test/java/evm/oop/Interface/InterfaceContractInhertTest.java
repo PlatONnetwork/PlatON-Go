@@ -43,7 +43,7 @@ public class InterfaceContractInhertTest extends ContractPrepareTest {
             String contractAddress = interfaceInheritMultiple.getContractAddress();
             TransactionReceipt tx = interfaceInheritMultiple.getTransactionReceipt().get();
             collector.logStepPass("interfaceContract issued successfully.contractAddress:" + contractAddress
-                                           + ", hash:" + tx.getTransactionHash());
+                                           + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("interfaceContract deploy fail.", e.toString());

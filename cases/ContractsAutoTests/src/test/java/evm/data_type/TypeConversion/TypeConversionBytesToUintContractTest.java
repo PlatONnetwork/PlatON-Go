@@ -34,7 +34,7 @@ public class TypeConversionBytesToUintContractTest extends ContractPrepareTest {
             String contractAddress = typeConversionBytesToUintContract.getContractAddress();
             TransactionReceipt tx =  typeConversionBytesToUintContract.getTransactionReceipt().get();
             collector.logStepPass("typeConversion issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("typeConversion deploy fail.", e.toString());

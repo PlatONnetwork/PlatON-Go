@@ -36,7 +36,7 @@ public class TypeConversionContractTest extends ContractPrepareTest {
             String contractAddress = typeConversionContractTest.getContractAddress();
             TransactionReceipt tx =  typeConversionContractTest.getTransactionReceipt().get();
             collector.logStepPass("typeConversion issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("typeConversion deploy fail.", e.toString());
