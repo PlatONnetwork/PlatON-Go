@@ -1,4 +1,4 @@
-pragma solidity ^0.4.12;
+ solidity ^0.4.11;
 
 /**
  * 快速排序
@@ -7,16 +7,16 @@ pragma solidity ^0.4.12;
  */
 contract QuickSort {
 
-    uint256[] public arr;
-    uint256 public p;
+    int256[] public arr;
     
-    function QuickSort(uint256[] _arr){
+    function QuickSort(){
+        
+    }
+    
+    function sort(int256[] _arr, uint256 low, uint256 high) public {
         for(uint256 i = 0; i < _arr.length; i++){
             arr.push(_arr[i]);
         }
-    }
-    
-    function sort(uint256 low, uint256 high) public {
         quick_sort(low, high);
     }
 
@@ -27,12 +27,11 @@ contract QuickSort {
                 quick_sort(low, i-1);
             }
             quick_sort(i+1, high);
-            p = i;
         }
     }
     
     function partition(uint256 low, uint256 high) internal returns (uint256) {
-        uint256 temp = arr[low];
+        int256 temp = arr[low];
         uint i = low;
         uint j = high;
         while(i != j) {

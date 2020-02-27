@@ -56,9 +56,9 @@ public class InitWithSetParams extends WasmContract {
     public RemoteCall<Set> get_set() {
         final WasmFunction function = new WasmFunction(FUNC_GET_SET, Arrays.asList(), Set.class, 
                 new com.platon.rlp.ParameterizedTypeImpl(
-                new java.lang.reflect.Type[] {String.class},
-                Set.class,
-                Set.class));
+                new java.lang.reflect.Type[] {java.lang.String.class}, 
+                java.util.Set.class, 
+                java.util.Set.class));
         return executeRemoteCall(function, Set.class);
     }
 

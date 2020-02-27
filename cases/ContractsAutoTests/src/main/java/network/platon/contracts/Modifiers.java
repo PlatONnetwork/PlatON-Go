@@ -22,14 +22,14 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.7.5.0.
+ * <p>Generated with web3j version 0.7.5.8-SNAPSHOT.
  */
 public class Modifiers extends Contract {
-    private static final String BINARY = "6080604052600a600055348015601457600080fd5b5060c1806100236000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806366e41cb71460375780636b59084d146053575b600080fd5b603d605b565b6040518082815260200191505060405180910390f35b60596064565b005b60008054905090565b6000546000819050600080549050600c600081905550506000549050600b600081905550505056fea265627a7a7231582063428bf9e88da03de281bbf0b8837d179113495b03fda031d4bb180f688ff1bf64736f6c634300050d0032";
-
-    public static final String FUNC_TEST1 = "test1";
+    private static final String BINARY = "6080604052600a600055348015601457600080fd5b5060b8806100236000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806366e41cb71460375780636b59084d146053575b600080fd5b603d605b565b6040518082815260200191505060405180910390f35b60596064565b005b60008054905090565b6000546000819050600080549050600c600081905550506000549050600b600081905550505056fea165627a7a72305820f3c6788a4c8291479f2769aefadca3d92edf84d4ee435a6ec799fb0f23ad3be10029";
 
     public static final String FUNC_TEST2 = "test2";
+
+    public static final String FUNC_TEST1 = "test1";
 
     @Deprecated
     protected Modifiers(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
@@ -49,19 +49,19 @@ public class Modifiers extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<BigInteger> test2() {
+        final Function function = new Function(FUNC_TEST2, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
+    }
+
     public RemoteCall<TransactionReceipt> test1() {
         final Function function = new Function(
                 FUNC_TEST1, 
                 Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<BigInteger> test2() {
-        final Function function = new Function(FUNC_TEST2, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
-        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public static RemoteCall<Modifiers> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

@@ -36,9 +36,9 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_STRING = "get_string";
-
     public static final String FUNC_ONE_EMIT_EVENT1 = "one_emit_event1";
+
+    public static final String FUNC_GET_STRING = "get_string";
 
     public static final WasmEvent TRANSFER_EVENT = new WasmEvent("transfer", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(Uint32.class) , new WasmEventParameter(List.class, 
             new com.platon.rlp.ParameterizedTypeImpl(
@@ -53,11 +53,6 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
 
     protected ContractEmitEvent1ComplexParam(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
@@ -108,6 +103,11 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
     public RemoteCall<TransactionReceipt> one_emit_event1(String name, Uint32 value, List<String> inList) {
         final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1, Arrays.asList(name,value,inList), Void.class);
         return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static ContractEmitEvent1ComplexParam load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

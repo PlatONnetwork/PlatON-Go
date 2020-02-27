@@ -1,6 +1,7 @@
 package network.platon.contracts.wasm;
 
 import com.platon.rlp.datatypes.Int32;
+import java.util.Arrays;
 import org.web3j.abi.WasmFunctionEncoder;
 import org.web3j.abi.datatypes.WasmFunction;
 import org.web3j.crypto.Credentials;
@@ -9,8 +10,6 @@ import org.web3j.protocol.core.RemoteCall;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.WasmContract;
 import org.web3j.tx.gas.GasProvider;
-
-import java.util.Arrays;
 
 /**
  * <p>Auto generated code.

@@ -38,6 +38,8 @@ public class BasicDataTypeContract extends WasmContract {
 
     public static final String FUNC_GET_STRING_LENGTH = "get_string_length";
 
+    public static final String FUNC_SET_ADDRESS = "set_address";
+
     public static final String FUNC_GET_STRING = "get_string";
 
     public static final String FUNC_SET_FLOAT = "set_float";
@@ -47,8 +49,6 @@ public class BasicDataTypeContract extends WasmContract {
     public static final String FUNC_SET_DOUBLE = "set_double";
 
     public static final String FUNC_GET_DOUBLE = "get_double";
-
-    public static final String FUNC_SET_ADDRESS = "set_address";
 
     public static final String FUNC_GET_ADDRESS = "get_address";
 
@@ -100,6 +100,11 @@ public class BasicDataTypeContract extends WasmContract {
         return deployRemoteCall(BasicDataTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
+    public RemoteCall<TransactionReceipt> set_address() {
+        final WasmFunction function = new WasmFunction(FUNC_SET_ADDRESS, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
     public RemoteCall<String> get_string() {
         final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
@@ -123,11 +128,6 @@ public class BasicDataTypeContract extends WasmContract {
     public RemoteCall<Double> get_double() {
         final WasmFunction function = new WasmFunction(FUNC_GET_DOUBLE, Arrays.asList(), Double.class);
         return executeRemoteCall(function, Double.class);
-    }
-
-    public RemoteCall<TransactionReceipt> set_address() {
-        final WasmFunction function = new WasmFunction(FUNC_SET_ADDRESS, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<String> get_address() {
