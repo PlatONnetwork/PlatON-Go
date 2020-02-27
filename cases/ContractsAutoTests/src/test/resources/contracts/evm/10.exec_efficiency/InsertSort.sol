@@ -23,7 +23,6 @@ contract InsertSort{
             }
             arr[j]=temp;
         }
-
         result_arr = arr;
         return arr;
     }
