@@ -62,11 +62,7 @@ public class QuickSortTest extends ContractPrepareTest {
             collector.logStepPass("QuickSort sort successful. hash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("QuickSort currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            List<BigInteger> afterArray = new ArrayList<>();
-            for (int i = 0; i < array.size(); i++) {
-                BigInteger ele = contract.arr(BigInteger.valueOf(i)).send();
-                afterArray.add(ele);
-            }
+            List<BigInteger> afterArray = contract.show().send();
             collector.logStepPass("QuickSort sort before:" + Arrays.toString(array.toArray()));
             collector.logStepPass("QuickSort sort after :" + Arrays.toString(afterArray.toArray()));
         } catch (Exception e) {
