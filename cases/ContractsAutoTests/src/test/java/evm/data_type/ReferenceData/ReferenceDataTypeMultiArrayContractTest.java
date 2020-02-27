@@ -35,7 +35,7 @@ public class ReferenceDataTypeMultiArrayContractTest extends ContractPrepareTest
             String contractAddress = referenceDataTypeArrayContract.getContractAddress();
             TransactionReceipt tx =  referenceDataTypeArrayContract.getTransactionReceipt().get();
             collector.logStepPass("ReferenceDataTypeArrayContract issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("ReferenceDataTypeArrayContract deploy fail.", e.toString());

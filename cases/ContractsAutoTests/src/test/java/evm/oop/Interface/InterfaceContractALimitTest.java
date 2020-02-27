@@ -40,7 +40,7 @@ public class InterfaceContractALimitTest extends ContractPrepareTest {
             TransactionReceipt tx = interfaceContractParentTest.getTransactionReceipt().get();
 
             collector.logStepPass("InterfaceContractParentTest issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
 
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
 

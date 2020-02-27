@@ -35,7 +35,7 @@ public class ContractArrayTest extends ContractPrepareTest {
 
             String contractAddress = contractarray.getContractAddress();
             TransactionReceipt tx = contractarray.getTransactionReceipt().get();
-            collector.logStepPass("ContractArray deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("ContractArray deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
 
             //验证合约数组
             TransactionReceipt resultA = contractarray.f().send();

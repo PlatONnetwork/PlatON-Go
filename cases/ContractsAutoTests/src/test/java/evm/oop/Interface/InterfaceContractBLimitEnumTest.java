@@ -35,7 +35,7 @@ public class InterfaceContractBLimitEnumTest extends ContractPrepareTest {
             TransactionReceipt tx = interfaceContractEnumTest.getTransactionReceipt().get();
 
             collector.logStepPass("InterfaceContractEnumTest issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
 
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
 

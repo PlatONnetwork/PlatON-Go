@@ -35,7 +35,7 @@ public class StructDataTypeTest extends ContractPrepareTest {
             String contractAddress = structDataType.getContractAddress();
             TransactionReceipt tx =  structDataType.getTransactionReceipt().get();
             collector.logStepPass("StructDataType issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
 
             //调用合约
