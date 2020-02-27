@@ -49,7 +49,7 @@ public class ContractMigrateVariableTest extends WASMContractPrepareTest {
             String contractAddress = contractMigrateOld.getContractAddress();
             String transactionHash = contractMigrateOld.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractMigrateVariableTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
-            //contractMigrateOld.setUint8(new Byte((byte)13)).send();
+            collector.logStepPass("deploy gas used:" + contractMigrateOld.getTransactionReceipt().get().getGasUsed());
 
             Uint8 varval = contractMigrateOld.getUint8().send();
             collector.logStepPass("ContractMigrateVariableTest old contract variable value:" + varval);

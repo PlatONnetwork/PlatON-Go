@@ -31,6 +31,7 @@ public class ContractAssertTest extends WASMContractPrepareTest {
             String contractAddress = contractTermination.getContractAddress();
             String transactionHash = contractTermination.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractTermination issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractTermination.getTransactionReceipt().get().getGasUsed());
 
             //调用包含platon_assert的合约,传正常的值
             TransactionReceipt transactionReceipt = contractTermination.transfer_assert(nomalName,nomalValue).send();

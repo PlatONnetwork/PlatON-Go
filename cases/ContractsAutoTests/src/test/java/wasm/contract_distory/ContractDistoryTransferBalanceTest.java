@@ -33,6 +33,7 @@ public class ContractDistoryTransferBalanceTest extends WASMContractPrepareTest 
             String contractAddress = contractDistory.getContractAddress();
             String transactionHash = contractDistory.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractDistory issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractDistory.getTransactionReceipt().get().getGasUsed());
 
             //合约销毁前往合约转账
             Transfer transfer = new Transfer(web3j, transactionManager);

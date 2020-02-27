@@ -32,6 +32,7 @@ public class TwoInheritTest extends WASMContractPrepareTest {
             String contractAddress = twoInherit.getContractAddress();
             String transactionHash = twoInherit.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("twoInherit issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + twoInherit.getTransactionReceipt().get().getGasUsed());
 
             //基类
             TwoInherit.Message message = new TwoInherit.Message();

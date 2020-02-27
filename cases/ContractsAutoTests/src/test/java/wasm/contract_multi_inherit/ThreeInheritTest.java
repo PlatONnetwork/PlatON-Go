@@ -34,6 +34,7 @@ public class ThreeInheritTest extends WASMContractPrepareTest {
             String contractAddress = threeInherit.getContractAddress();
             String transactionHash = threeInherit.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ThreeInherit issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + threeInherit.getTransactionReceipt().get().getGasUsed());
 
             //基类
             ThreeInherit.Message message = new ThreeInherit.Message();
