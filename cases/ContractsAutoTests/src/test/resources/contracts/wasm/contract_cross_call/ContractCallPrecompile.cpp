@@ -8,57 +8,24 @@ CONTRACT call_precompile : public platon::Contract {
     public:
         ACTION void init(){}
 
-/*
-        ACTION uint64_t cross_call_ecrecover (std::string &msg_hash, std::string &v, std::string &r, std::string &s, uint64_t value, uint64_t gas) {
 
-            // uint256[4] memory input;
-            // input[0] = uint256(msgh);
-            // input[1] = v;
-            // input[2] = uint256(r);
-            // input[3] = uint256(s);
-            //
-            //
-            //
-            // dataHash: "0xe281eaa11e6e37e6f53aade5d6c5b7201ef1c66162ec42ccc3215a0c4349350d", this hash is not txHash
-            //V = 27
-            //R = "0x55b60cadd4b4a3ea4fc368ef338f97e12e7328dd6e9e969a3fd8e5c10be855fe"
-            //S = "0x2b42cee2585a16ea537efcb88009c1aeac693c28b59aa6bbff0baf22730338f6"
-            //address: "0x8a9B36694F1eeeb500c84A19bB34137B05162EC5"
-            h256[4] in;
-            in[0] = h256(msg_hash);
-            in[1] = h256(v);
-            in[2] = h256(r);
-            in[3] = h256(s);
+        CONST const std::string  cross_call_ecrecover (platon::bytes msgh, uint8_t v, platon::bytes r, platon::bytes s, uint64_t value, uint64_t gas) {
 
-            // platon::bytes  input = fromHex(in);
+                    // uint8_t to bytes32
+                    std::vector<byte> vbytes;
+                    vbytes.resize(32);
+                    memset(vbytes.data(), 0, 32);
+                    vbytes[31] = v;
 
-            std::string addr = "0x01"
+                    // v append to msgh
+                    std::copy(vbytes.begin(), vbytes.end(), std::back_inserter(msgh));
 
-            if (platon_call(Address(addr), in.toBytes(), value, gas)) {
-                DEBUG("cross call contract success", "address", addr);
-            } else {
-                DEBUG("cross call contract fail", "address", addr);
-            }
-        }
-*/
+                    // append r
+                    std::copy(r.begin(), r.end(), std::back_inserter(msgh));
+                    // append s
+                    std::copy(s.begin(), s.end(), std::back_inserter(msgh));
 
-        CONST const std::string  cross_call_ecrecover (std::string &in, uint64_t value, uint64_t gas) {
-
-                    // uint256[4] memory input;
-                    // input[0] = uint256(msgh);
-                    // input[1] = v;
-                    // input[2] = uint256(r);
-                    // input[3] = uint256(s);
-                    //
-                    //
-                    //
-                    // dataHash: "0xe281eaa11e6e37e6f53aade5d6c5b7201ef1c66162ec42ccc3215a0c4349350d", this hash is not txHash
-                    //V = 27
-                    //R = "0x55b60cadd4b4a3ea4fc368ef338f97e12e7328dd6e9e969a3fd8e5c10be855fe"
-                    //S = "0x2b42cee2585a16ea537efcb88009c1aeac693c28b59aa6bbff0baf22730338f6"
-                    //address: "0x8a9B36694F1eeeb500c84A19bB34137B05162EC5"
-
-                    platon::bytes  input = fromHex(in);
+                    platon::bytes input = msgh;
 
                     std::string addr = "0x0000000000000000000000000000000000000001";
 
@@ -73,16 +40,11 @@ CONTRACT call_precompile : public platon::Contract {
 
                       std::string str = toHex(ret);
 
-                      //  Address as = Address("0000000000000000000000008a9b36694f1eeeb500c84a19bb34137b05162ec5");
-                       Address bs = Address(ret);
-
-                       // std::string str =  acc.toString(); // toHex(ret);
                       DEBUG("cross call contract ecrecover success", "acc", str);
-                       // DEBUG("cross call contract success", "as", as.toString());
-                        DEBUG("cross call contract ecrecover success", "bs", bs.toString());
-                       // return  str;
-                       return str;
+
+                      return str;
                     }
+
                     DEBUG("cross call contract ecrecover fail", "address", addr);
                     return "";
                 }
@@ -138,6 +100,7 @@ CONTRACT call_precompile : public platon::Contract {
                      return "";
                  }
 
+
                  CONST const std::string  cross_call_dataCopy (std::string &in, uint64_t value, uint64_t gas) {
 
 
@@ -162,10 +125,30 @@ CONTRACT call_precompile : public platon::Contract {
                      return "";
                  }
 
-                 CONST const std::string  cross_call_bigModExp (std::string &in, uint64_t value, uint64_t gas) {
+                 CONST const std::string  cross_call_bigModExp (platon::bytes base, platon::bytes exponent, platon::bytes modulus, uint64_t value, uint64_t gas) {
 
 
-                     platon::bytes  input = fromHex(in);
+                      // uint8_t to bytes32
+                      std::vector<byte> len;
+                      len.resize(32);
+                      memset(len.data(), 0, 32);
+
+                      uint8_t l = 32;
+                      len[31] = l;
+
+                      platon::bytes input;
+
+                      // [32]byte(baseLen) + [32]byte(expLen) + [32]byte(modLen)
+                      std::copy(len.begin(), len.end(), std::back_inserter(input));
+                      std::copy(len.begin(), len.end(), std::back_inserter(input));
+                      std::copy(len.begin(), len.end(), std::back_inserter(input));
+
+                      // append base
+                      std::copy(base.begin(), base.end(), std::back_inserter(input));
+                      // append exponent
+                      std::copy(exponent.begin(), exponent.end(), std::back_inserter(input));
+                      // append modulus
+                      std::copy(modulus.begin(), modulus.end(), std::back_inserter(input));
 
                      std::string addr = "0x0000000000000000000000000000000000000005";
 
@@ -186,10 +169,16 @@ CONTRACT call_precompile : public platon::Contract {
                      return "";
                  }
 
-                 CONST const std::string  cross_call_bn256Add (std::string &in, uint64_t value, uint64_t gas) {
+                 CONST const std::string  cross_call_bn256Add (platon::bytes ax, platon::bytes ay, platon::bytes bx, platon::bytes by, uint64_t value, uint64_t gas) {
 
 
-                     platon::bytes  input = fromHex(in);
+                     platon::bytes input;
+
+                     // ax + ay + bx + by
+                     std::copy(ax.begin(), ax.end(), std::back_inserter(input));
+                     std::copy(ay.begin(), ay.end(), std::back_inserter(input));
+                     std::copy(bx.begin(), bx.end(), std::back_inserter(input));
+                     std::copy(by.begin(), by.end(), std::back_inserter(input));
 
                      std::string addr = "0x0000000000000000000000000000000000000006";
 
@@ -212,10 +201,15 @@ CONTRACT call_precompile : public platon::Contract {
 
 
 
-                 CONST const std::string  cross_call_bn256ScalarMul (std::string &in, uint64_t value, uint64_t gas) {
+                 CONST const std::string  cross_call_bn256ScalarMul (platon::bytes x, platon::bytes y, platon::bytes scalar, uint64_t value, uint64_t gas) {
 
 
-                     platon::bytes  input = fromHex(in);
+                    platon::bytes input;
+
+                     // x + y + scalar
+                     std::copy(x.begin(), x.end(), std::back_inserter(input));
+                     std::copy(y.begin(), y.end(), std::back_inserter(input));
+                     std::copy(scalar.begin(), scalar.end(), std::back_inserter(input));
 
                      std::string addr = "0x0000000000000000000000000000000000000007";
 

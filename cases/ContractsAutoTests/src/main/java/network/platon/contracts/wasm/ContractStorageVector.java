@@ -45,6 +45,11 @@ public class ContractStorageVector extends WasmContract {
         return executeRemoteCallTransaction(function);
     }
 
+    public RemoteCall<My_message[]> get_message(String name) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_MESSAGE, Arrays.asList(name), My_message[].class);
+        return executeRemoteCall(function, My_message[].class);
+    }
+
     public static RemoteCall<ContractStorageVector> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractStorageVector.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -53,11 +58,6 @@ public class ContractStorageVector extends WasmContract {
     public static RemoteCall<ContractStorageVector> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractStorageVector.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public RemoteCall<My_message[]> get_message(String name) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_MESSAGE, Arrays.asList(name), My_message[].class);
-        return executeRemoteCall(function, My_message[].class);
     }
 
     public RemoteCall<Uint64> get_vector_size() {
