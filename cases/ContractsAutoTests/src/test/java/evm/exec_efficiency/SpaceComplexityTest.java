@@ -34,6 +34,7 @@ public class SpaceComplexityTest extends ContractPrepareTest {
             SpaceComplexity spaceComplexity = SpaceComplexity.deploy(web3j, transactionManager, provider).send();
             contractAddress = spaceComplexity.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
+            collector.logStepPass("deploy gas used:" + spaceComplexity.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider)
                     .testStorage(numberOfCalls).send();
