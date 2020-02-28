@@ -35,9 +35,9 @@ public class BasicDataIntegerTypeContract extends WasmContract {
 
     public static final String FUNC_SET_UINT8 = "set_uint8";
 
-    public static final String FUNC_GET_UINT8 = "get_uint8";
-
     public static final String FUNC_SET_UINT64 = "set_uint64";
+
+    public static final String FUNC_GET_UINT8 = "get_uint8";
 
     public static final String FUNC_SET_UINT16 = "set_uint16";
 
@@ -90,14 +90,14 @@ public class BasicDataIntegerTypeContract extends WasmContract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<Uint8> get_uint8() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_UINT8, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
-    }
-
     public RemoteCall<TransactionReceipt> set_uint64(Uint64 value) {
         final WasmFunction function = new WasmFunction(FUNC_SET_UINT64, Arrays.asList(value), Void.class);
         return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<Uint8> get_uint8() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_UINT8, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> set_uint16(Uint16 value) {

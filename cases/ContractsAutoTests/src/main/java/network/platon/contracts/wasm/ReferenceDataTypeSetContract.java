@@ -31,9 +31,9 @@ public class ReferenceDataTypeSetContract extends WasmContract {
 
     public static final String FUNC_ITERATOR_SET = "iterator_set";
 
-    public static final String FUNC_INSERT_SET = "insert_set";
-
     public static final String FUNC_INIT_SET = "init_set";
+
+    public static final String FUNC_INSERT_SET = "insert_set";
 
     public static final String FUNC_ERASE_SET = "erase_set";
 
@@ -61,11 +61,6 @@ public class ReferenceDataTypeSetContract extends WasmContract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> insert_set(Uint8 value) {
-        final WasmFunction function = new WasmFunction(FUNC_INSERT_SET, Arrays.asList(value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public static RemoteCall<ReferenceDataTypeSetContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ReferenceDataTypeSetContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -78,6 +73,11 @@ public class ReferenceDataTypeSetContract extends WasmContract {
 
     public RemoteCall<TransactionReceipt> init_set() {
         final WasmFunction function = new WasmFunction(FUNC_INIT_SET, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> insert_set(Uint8 value) {
+        final WasmFunction function = new WasmFunction(FUNC_INSERT_SET, Arrays.asList(value), Void.class);
         return executeRemoteCallTransaction(function);
     }
 

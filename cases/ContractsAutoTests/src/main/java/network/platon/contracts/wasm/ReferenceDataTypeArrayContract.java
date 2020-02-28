@@ -55,11 +55,6 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
         return executeRemoteCall(function, Uint8.class);
     }
 
-    public RemoteCall<TransactionReceipt> setInitArray() {
-        final WasmFunction function = new WasmFunction(FUNC_SETINITARRAY, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public static RemoteCall<ReferenceDataTypeArrayContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ReferenceDataTypeArrayContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -68,6 +63,11 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
     public static RemoteCall<ReferenceDataTypeArrayContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ReferenceDataTypeArrayContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public RemoteCall<TransactionReceipt> setInitArray() {
+        final WasmFunction function = new WasmFunction(FUNC_SETINITARRAY, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<TransactionReceipt> setBytesArray() {
