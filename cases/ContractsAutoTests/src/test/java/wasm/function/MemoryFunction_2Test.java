@@ -28,6 +28,7 @@ public class MemoryFunction_2Test extends WASMContractPrepareTest {
             String contractAddress = memory2.getContractAddress();
             String transactionHash = memory2.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("MemoryFunction_2 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("MemoryFunction_2 deploy gasUsed:" + memory2.getTransactionReceipt().get().getGasUsed());
 
             String realloc = memory2.getrealloc().send();
             collector.logStepPass("realloc函数返回值:" + realloc);

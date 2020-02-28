@@ -5,10 +5,10 @@ import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.Selector;
+import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import network.platon.utils.DataChangeUtil;
 
 
 /**
@@ -34,6 +34,7 @@ public class SelectorTest extends ContractPrepareTest {
             String contractAddress = selector.getContractAddress();
             TransactionReceipt tx = selector.getTransactionReceipt().get();
             collector.logStepPass("Selector deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("Selector deploy gasUsed:" + selector.getTransactionReceipt().get().getGasUsed());
 
             //验证payable声明
             byte[] result = selector.f().send();

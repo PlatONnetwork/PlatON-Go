@@ -36,6 +36,7 @@ public class AddressFunctionsTest extends ContractPrepareTest {
             String contractAddress = addressfunctions.getContractAddress();
             TransactionReceipt tx = addressfunctions.getTransactionReceipt().get();
             collector.logStepPass("Addressfunctions deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("Addressfunctions deploy gasUsed:" + addressfunctions.getTransactionReceipt().get().getGasUsed());
 
             //验证balance(地址账户)函数
             BigInteger money = addressfunctions.getBalance("0x03f0e0a226f081a5daecfda222cafc959ed7b800").send();
@@ -54,6 +55,7 @@ public class AddressFunctionsTest extends ContractPrepareTest {
             BigInteger addresspremoney = addressfunctions.getBalance("0x8a9B36694F1eeeb500c84A19bB34137B05162EC1").send();
             collector.logStepPass("转账前余额：" + addresspremoney);
             TransactionReceipt result = addressfunctions.transfer("0x8a9B36694F1eeeb500c84A19bB34137B05162EC1",new BigInteger(amount)).send();
+            collector.logStepPass("transfer转账结果交易Hash：" + result.getTransactionHash());
             BigInteger addressaftermoney = addressfunctions.getBalance("0x8a9B36694F1eeeb500c84A19bB34137B05162EC1").send();
             collector.logStepPass("转账后余额：" + addressaftermoney);
             int a = Integer.valueOf(addressaftermoney.toString());
@@ -66,6 +68,7 @@ public class AddressFunctionsTest extends ContractPrepareTest {
             BigInteger sendbefore = addressfunctions.getBalance("0x8a9B36694F1eeeb500c84A19bB34137B05162EC7").send();
             collector.logStepPass("转账前余额：" + sendbefore);
             TransactionReceipt result2 = addressfunctions.send("0x8a9B36694F1eeeb500c84A19bB34137B05162EC7",new BigInteger("10000")).send();
+            collector.logStepPass("send转账结果交易Hash：" + result2.getTransactionHash());
             BigInteger addressaftersend = addressfunctions.getBalance("0x8a9B36694F1eeeb500c84A19bB34137B05162EC7").send();
             collector.logStepPass("转账后余额：" + addressaftersend);
             int c = Integer.valueOf(addressaftersend.toString());

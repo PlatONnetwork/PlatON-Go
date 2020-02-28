@@ -38,9 +38,11 @@ public class ModifiersTest extends ContractPrepareTest {
             String contractAddress = modifiers.getContractAddress();
             TransactionReceipt tx = modifiers.getTransactionReceipt().get();
             collector.logStepPass("modifiers deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("modifiers deploy gasUsed:" + modifiers.getTransactionReceipt().get().getGasUsed());
 
             //验证多修饰器函数调用
             TransactionReceipt result = modifiers.test1().send();
+            collector.logStepPass("交易hash：" + result.getTransactionHash());
 
             BigInteger a = modifiers.test2().send();
             collector.logStepPass("modifiers函数返回值：" + a);

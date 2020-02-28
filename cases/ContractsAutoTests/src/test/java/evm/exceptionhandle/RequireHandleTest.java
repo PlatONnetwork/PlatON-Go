@@ -34,6 +34,7 @@ public class RequireHandleTest extends ContractPrepareTest {
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + handle.getTransactionReceipt().get().getGasUsed());
             try {
                 handle.functionCallException(new BigInteger("1000")).send();
             } catch (TransactionException e) {
@@ -55,6 +56,7 @@ public class RequireHandleTest extends ContractPrepareTest {
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + handle.getTransactionReceipt().get().getGasUsed());
             try {
                 handle.newContractException().send();
             } catch (TransactionException e) {

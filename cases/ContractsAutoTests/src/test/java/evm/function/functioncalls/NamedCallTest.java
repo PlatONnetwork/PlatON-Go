@@ -37,6 +37,7 @@ public class NamedCallTest extends ContractPrepareTest {
             String contractAddress = namedcall.getContractAddress();
             TransactionReceipt tx = namedcall.getTransactionReceipt().get();
             collector.logStepPass("namedcall deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("namedcall deploy gasUsed:" + namedcall.getTransactionReceipt().get().getGasUsed());
 
             //交换传入值的顺序并返回
             Tuple2 result = namedcall.exchange(new BigInteger("1"),new BigInteger("2")).send();

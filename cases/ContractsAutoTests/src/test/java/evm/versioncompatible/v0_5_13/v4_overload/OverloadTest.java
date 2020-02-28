@@ -37,6 +37,7 @@ public class OverloadTest extends ContractPrepareTest {
             TransactionReceipt tx = overload.getTransactionReceipt().get();
 
             collector.logStepPass("OverloadTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + overload.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = overload.g().send();
 

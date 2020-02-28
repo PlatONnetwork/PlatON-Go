@@ -41,7 +41,7 @@ public class ReferenceDataTypeStructTest extends WASMContractPrepareTest {
             String contractAddress = referenceDataTypeStructContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeStructContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeStructContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeStructContract deploy fail.", e.toString());

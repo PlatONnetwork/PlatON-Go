@@ -62,6 +62,7 @@ public class PlatonInnerTest extends ContractPrepareTest {
             String contractAddress = platonInner.getContractAddress();
             TransactionReceipt tx = platonInner.getTransactionReceipt().get();
             collector.logStepPass("PlatonInnerTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + platonInner.getTransactionReceipt().get().getGasUsed());
 
             tx = platonInner.assemblyCallppos(DataChangeUtil.hexToByteArray(input),addr).send();
             collector.logStepPass("PlatonInnerTest call "+addr+" and code is:"+code+" createRestrictingPlan successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());

@@ -37,6 +37,7 @@ public class InterfaceEnableStructAndenumImplTest extends ContractPrepareTest {
             TransactionReceipt tx = interfaceEnableStructAndenumImpl.getTransactionReceipt().get();
 
             collector.logStepPass("interfaceEnableStructAndenumImpl deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + interfaceEnableStructAndenumImpl.getTransactionReceipt().get().getGasUsed());
 
             BigInteger gender = interfaceEnableStructAndenumImpl.getProductCondition().send();
 

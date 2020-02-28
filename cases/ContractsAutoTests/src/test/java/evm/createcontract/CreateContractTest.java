@@ -26,6 +26,7 @@ public class CreateContractTest extends ContractPrepareTest {
             String contractAddress = createContract.getContractAddress();
             String transactionHash = createContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CreateContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + createContract.getTransactionReceipt().get().getGasUsed());
             Tuple2<BigInteger, BigInteger> result = createContract.getTargetCreateContractData().send();
             Tuple2<BigInteger, BigInteger> expect = new Tuple2<>(new BigInteger("1000"),new BigInteger("0"));
             collector.assertEqual(result, expect, "checkout new contract param");

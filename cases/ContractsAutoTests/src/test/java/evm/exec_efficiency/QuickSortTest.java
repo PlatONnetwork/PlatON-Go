@@ -10,6 +10,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -35,26 +36,35 @@ public class QuickSortTest extends ContractPrepareTest {
     public void test() {
         prepare();
         try {
-
             // prepare array
             List<BigInteger> array = new ArrayList<>();
             Random r = new Random();
             for (int i = 0; i < numberOfCalls.intValue(); i++) {
-                int val = r.nextInt(1000);
-                array.add(BigInteger.valueOf(val));
+                int val = r.nextInt(2000);
+                if(i % 2 == 0){
+                    String nfval = "-" + val;
+                    int nval = Integer.parseInt(nfval);
+                    array.add(BigInteger.valueOf(nval));
+                } else {
+                    array.add(BigInteger.valueOf(val));
+                }
             }
 
-            QuickSort contract = QuickSort.deploy(web3j, transactionManager, provider, array).send();
+            QuickSort contract = QuickSort.deploy(web3j, transactionManager, provider).send();
             contractAddress = contract.getContractAddress();
-            collector.logStepPass("QuickSort contract deploy successful. contractAddress:" + contractAddress);
+            collector.logStepPass("QuickSort contract deploy successful. contractAddress:" + contractAddress + " hash:" + contract.getTransactionReceipt().get().getTransactionHash());
+            collector.logStepPass("QuickSort contract deploy successful. gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
-            TransactionReceipt transactionReceipt = contract.sort(BigInteger.ZERO, BigInteger.valueOf(array.size() - 1)).send();
+            TransactionReceipt transactionReceipt = contract.sort(array, BigInteger.ZERO, BigInteger.valueOf(array.size() - 1)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
-            collector.logStepPass("QuickSort gasUsed:" + gasUsed);
-            collector.logStepPass("QuickSort contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
+            collector.logStepPass("QuickSort sort successful, gasUsed:" + gasUsed);
+            collector.logStepPass("QuickSort sort successful. hash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("QuickSort currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
+            List<BigInteger> afterArray = contract.show().send();
+            collector.logStepPass("QuickSort sort before:" + Arrays.toString(array.toArray()));
+            collector.logStepPass("QuickSort sort after :" + Arrays.toString(afterArray.toArray()));
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());

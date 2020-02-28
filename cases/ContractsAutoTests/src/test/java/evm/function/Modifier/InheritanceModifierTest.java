@@ -38,6 +38,7 @@ public class InheritanceModifierTest extends ContractPrepareTest {
             String contractAddress = inheritanceModifier.getContractAddress();
             TransactionReceipt tx = inheritanceModifier.getTransactionReceipt().get();
             collector.logStepPass("InheritanceModifier deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("InheritanceModifier deploy gasUsed:" + inheritanceModifier.getTransactionReceipt().get().getGasUsed());
 
             //验证单修饰器函数调用
             BigInteger result = inheritanceModifier.getA().send();

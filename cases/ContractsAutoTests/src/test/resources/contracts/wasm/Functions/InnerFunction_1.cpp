@@ -26,8 +26,8 @@ CONTRACT InnerFunction_1:public platon::Contract{
 		}
 			
 		/// 获取当前旷工地址
-		CONST std::string coinbase() {
-			return platon_coinbase().toString();		
+		CONST Address coinbase() {
+			return platon_coinbase();		
 		}
 
 		/// 获取指定地址的余额(bug)

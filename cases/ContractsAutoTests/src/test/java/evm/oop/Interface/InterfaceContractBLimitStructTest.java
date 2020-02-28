@@ -35,7 +35,7 @@ public class InterfaceContractBLimitStructTest extends ContractPrepareTest {
             TransactionReceipt tx = interfaceContractStructTest.getTransactionReceipt().get();
 
             collector.logStepPass("InterfaceContractStructTest issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
 
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
 

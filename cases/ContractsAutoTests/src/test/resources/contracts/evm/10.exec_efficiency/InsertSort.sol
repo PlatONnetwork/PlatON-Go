@@ -3,7 +3,10 @@ pragma solidity ^0.5.13;
 /**
  * EVM 插入排序算法复杂度验证
  **/
+
 contract InsertSort{
+
+    int[] result_arr;
 
     function OuputArrays(int[] memory arr, uint n) public payable returns(int[] memory){
         uint i;
@@ -21,6 +24,13 @@ contract InsertSort{
             }
             arr[j]=temp;
         }
+
+        result_arr = arr;
         return arr;
     }
+
+    function get_arr() public view returns(int[] memory){
+        return result_arr;
+    }
+
 }

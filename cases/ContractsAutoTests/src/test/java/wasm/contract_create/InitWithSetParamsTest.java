@@ -31,6 +31,7 @@ public class InitWithSetParamsTest extends WASMContractPrepareTest {
             String contractAddress = initWithSetParams.getContractAddress();
             String transactionHash = initWithSetParams.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithSetParamsTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + initWithSetParams.getTransactionReceipt().get().getGasUsed());
 
             //查询包含map对象
             Set chainSet = initWithSetParams.get_set().send();

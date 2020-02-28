@@ -42,6 +42,7 @@ public class DecimalLiteralsChangeByteDeprecatedTypeTest extends ContractPrepare
             TransactionReceipt tx = decimalLiteralsChangeByte.getTransactionReceipt().get();
 
             collector.logStepPass("FunctionDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + decimalLiteralsChangeByte.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = decimalLiteralsChangeByte.testChange(new BigInteger(initValue)).send();
 

@@ -36,6 +36,7 @@ public class ForErrorTest extends ContractPrepareTest {
             TransactionReceipt tx = forError.getTransactionReceipt().get();
 
             collector.logStepPass("ForErrorTest for控制结构返回的结构体如果是指针需要提前初始化");
+            collector.logStepPass("deploy gas used:" + forError.getTransactionReceipt().get().getGasUsed());
 
             //1.for控制结构验证
             Boolean forFlg = forError.getForControlRes().send();

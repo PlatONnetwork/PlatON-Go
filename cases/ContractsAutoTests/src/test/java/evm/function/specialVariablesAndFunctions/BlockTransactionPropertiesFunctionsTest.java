@@ -10,10 +10,10 @@ import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
-import java.util.List;
-import java.util.ArrayList;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * @title 验证区块和交易函数
@@ -52,6 +52,7 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             String contractAddress = blockTransactionPropertiesFunctions.getContractAddress();
             TransactionReceipt tx = blockTransactionPropertiesFunctions.getTransactionReceipt().get();
             collector.logStepPass("BlockTransactionPropertiesFunctionsTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("BlockTransactionPropertiesFunctionsTest deploy gasUsed:" + blockTransactionPropertiesFunctions.getTransactionReceipt().get().getGasUsed());
 
             //验证block.number函数(获取块高)
             BigInteger PlatONBlocknumber = web3j.platonBlockNumber().send().getBlockNumber();

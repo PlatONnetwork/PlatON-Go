@@ -44,6 +44,7 @@ public class RequireContractTest extends ContractPrepareTest {
             TransactionReceipt tx = requireContract.getTransactionReceipt().get();
 
             collector.logStepPass("RequireContractTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + requireContract.getTransactionReceipt().get().getGasUsed());
 
             tx = requireContract.toSenderAmount(new BigInteger(first),new BigInteger(second)).send();
 

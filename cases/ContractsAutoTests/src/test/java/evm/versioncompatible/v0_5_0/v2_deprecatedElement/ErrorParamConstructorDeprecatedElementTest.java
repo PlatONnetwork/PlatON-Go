@@ -47,6 +47,7 @@ public class ErrorParamConstructorDeprecatedElementTest extends ContractPrepareT
             collector.logStepPass("链上函数的初始值为："+initValue);
 
             collector.logStepPass("FunctionDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + errorParamConstructor.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt =errorParamConstructor.update(new BigInteger(addValue)).send();
 

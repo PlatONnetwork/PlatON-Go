@@ -36,7 +36,7 @@ public class InheritContractPassParamTest extends ContractPrepareTest {
             String contractAddress = inheritContractSub1.getContractAddress();
             TransactionReceipt tx =  inheritContractSub1.getTransactionReceipt().get();
             collector.logStepPass("InheritContractASub issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
 
 

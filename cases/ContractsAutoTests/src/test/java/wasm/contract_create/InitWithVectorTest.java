@@ -29,6 +29,7 @@ public class InitWithVectorTest extends WASMContractPrepareTest {
             String contractAddress = initWithVector.getContractAddress();
             String transactionHash = initWithVector.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithVector issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + initWithVector.getTransactionReceipt().get().getGasUsed());
 
             Uint8 idx = Uint8.of(0);
             Uint64 chainAge = initWithVector.get_vector(idx).send();

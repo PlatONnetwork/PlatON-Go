@@ -1,6 +1,7 @@
 package wasm.contract_func;
 
 import com.platon.rlp.datatypes.Uint64;
+import com.platon.rlp.datatypes.WasmAddress;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InnerFunction;
@@ -12,7 +13,6 @@ import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigDecimal;
@@ -98,6 +98,10 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             //String bhash2 = web3j.platonGetBlockByNumber(new DefaultBlockParameterNumber(100), false).send().getBlock().getHash();
             //collector.assertEqual(prependHexPrefix(bhash2), prependHexPrefix(bhsh));
 
+            // test: coinbase
+            WasmAddress coinbase = innerFunction.coinbase().send();
+            collector.logStepPass("To invoke coinbase success, coinbase: " + coinbase.getAddress());
+
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
                 collector.logStepPass("InnerFunction_1 and could not call contract function");
@@ -123,10 +127,11 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
                     + " gasUsed:" + innerFunction.getTransactionReceipt().get().getGasUsed().toString());
 
 
-            // test: coinbase
-            String coinbase = innerFunction.origin().send();
-            collector.logStepPass("To invoke coinbase success. origin: " + Numeric.prependHexPrefix(coinbase));
-            collector.assertEqual(credentials.getAddress(), Numeric.prependHexPrefix(coinbase));
+            // test: origin
+            WasmAddress origin = innerFunction.origin().send();
+            collector.logStepPass("To invoke origin success. origin string: " + origin.toString());
+            collector.logStepPass("To invoke origin success. origin: " + origin.getAddress());
+            collector.assertEqual(credentials.getAddress(), origin.getAddress());
 
             // test: transfer
             String toAddress = "0x250b67c9f1baa47dafcd1cfd5ad7780bb7b9b196";
@@ -170,11 +175,6 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             TransactionReceipt destoryTr = innerFunction.destroy(receiveAddr).send();
             BigInteger receiveBalance = web3j.platonGetBalance(receiveAddr, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("To invoke destory success, receiveBalance: " + receiveBalance);
-
-            // test: origin(without 0x)
-            String origin = innerFunction.origin().send();
-            collector.logStepPass("To invoke origin success. origin: " + Numeric.prependHexPrefix(origin));
-            collector.assertEqual(credentials.getAddress(), Numeric.prependHexPrefix(origin));
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){

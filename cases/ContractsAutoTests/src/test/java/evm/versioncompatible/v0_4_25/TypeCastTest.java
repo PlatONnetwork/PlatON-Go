@@ -32,6 +32,7 @@ public class TypeCastTest extends ContractPrepareTest {
             String contractAddress = typeCast.getContractAddress();
             String transactionHash = typeCast.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("TypeCast issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + typeCast.getTransactionReceipt().get().getGasUsed());
             Tuple3<BigInteger, byte[], byte[]> result = typeCast.typeCast().send();
             Tuple3<BigInteger, byte[], byte[]> expect =
                     new Tuple3(new BigInteger("18"), new byte[]{0,0,4,-46}, new byte[]{0,0,18,52});

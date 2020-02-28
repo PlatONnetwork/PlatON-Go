@@ -28,6 +28,7 @@ public class InitWithMapTest extends WASMContractPrepareTest {
             String contractAddress = initWithMap.getContractAddress();
             String transactionHash = initWithMap.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithMap issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + initWithMap.getTransactionReceipt().get().getGasUsed());
 
             Byte idx = 0;
             String chainMapValue = initWithMap.get_map(mapKey).send();

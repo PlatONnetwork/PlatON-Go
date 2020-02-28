@@ -33,6 +33,7 @@ public class ContractEmitEvent3Test extends WASMContractPrepareTest {
             String contractAddress = contractEmitEvent3.getContractAddress();
             String transactionHash = contractEmitEvent3.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("contractEmitEvent3 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractEmitEvent3.getTransactionReceipt().get().getGasUsed());
 
             //调用包含3个主题事件的合约
             TransactionReceipt transactionReceipt = contractEmitEvent3.three_emit_event3(name,nationality,city,value).send();

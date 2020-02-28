@@ -32,6 +32,7 @@ public class WASMInsertSortTest extends WASMContractPrepareTest {
             InsertSort insertSort = InsertSort.deploy(web3j, transactionManager, provider).send();
             contractAddress = insertSort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
+            collector.logStepPass("deploy gas used:" + insertSort.getTransactionReceipt().get().getGasUsed());
 
             Int64[] arr = new Int64[numberOfCalls];
 
@@ -41,6 +42,7 @@ public class WASMInsertSortTest extends WASMContractPrepareTest {
                 arr[i] = Int64.of(min + (int) (Math.random() * (max - min + 1)));
             }
 
+            collector.logStepPass("before sort:" + Arrays.toString(arr));
             TransactionReceipt transactionReceipt = InsertSort.load(contractAddress, web3j, transactionManager, provider)
                     .sort(arr, Int64.of(arr.length)).send();
 
@@ -51,7 +53,7 @@ public class WASMInsertSortTest extends WASMContractPrepareTest {
 
             Int64[] generationArr = InsertSort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
 
-            //collector.logStepPass("after sort:" + Arrays.toString(generationArr));
+            collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());

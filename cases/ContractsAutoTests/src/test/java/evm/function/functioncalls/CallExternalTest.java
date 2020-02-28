@@ -37,9 +37,11 @@ public class CallExternalTest extends ContractPrepareTest {
             String contractAddress = callexternal.getContractAddress();
             TransactionReceipt tx = callexternal.getTransactionReceipt().get();
             collector.logStepPass("callexternal deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("callexternal deploy gasUsed:" + callexternal.getTransactionReceipt().get().getGasUsed());
 
             //验证函数外部调用
             TransactionReceipt result = callexternal.getResult(new BigInteger("1")).send();
+            collector.logStepPass("打印交易Hash：" + result.getTransactionHash());
             collector.logStepPass("intercall函数返回值：" + result);
 
             List<CallExternal.ExternalCValueEventResponse> eventResult =callexternal.getExternalCValueEvents(result);

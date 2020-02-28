@@ -26,6 +26,7 @@ public class CallerFunctionTest extends WASMContractPrepareTest {
             String contractAddress = caller.getContractAddress();
             String transactionHash = caller.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CallerFunctionTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("CallerFunctionTest deploy gasUsed:" + caller.getTransactionReceipt().get().getGasUsed());
 
             String calleraddr =caller.get_platon_caller().send();
             collector.logStepPass("getPlatONCaller函数返回值:" + calleraddr);

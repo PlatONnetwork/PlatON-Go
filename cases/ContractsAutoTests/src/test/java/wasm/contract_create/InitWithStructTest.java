@@ -28,6 +28,7 @@ public class InitWithStructTest extends WASMContractPrepareTest {
             String contractAddress = initWithStruct.getContractAddress();
             String transactionHash = initWithStruct.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithStructTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + initWithStruct.getTransactionReceipt().get().getGasUsed());
 
             transactionHash =initWithStruct.add_vector(name,age).send().getTransactionHash();
             collector.logStepPass("InitWithStructTest invoke successfully  hash:" + transactionHash);

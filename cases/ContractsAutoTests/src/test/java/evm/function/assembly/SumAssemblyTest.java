@@ -38,6 +38,7 @@ public class SumAssemblyTest extends ContractPrepareTest {
             String contractAddress = sumassembly.getContractAddress();
             TransactionReceipt tx = sumassembly.getTransactionReceipt().get();
             collector.logStepPass("SumAssembly deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("SumAssembly deploy gasUsed:" + sumassembly.getTransactionReceipt().get().getGasUsed());
 
             //验证内联汇编操作指令
             BigInteger result = sumassembly.sum().send();

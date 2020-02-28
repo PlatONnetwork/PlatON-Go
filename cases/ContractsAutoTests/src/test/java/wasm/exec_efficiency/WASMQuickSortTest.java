@@ -29,6 +29,7 @@ public class WASMQuickSortTest extends WASMContractPrepareTest {
             QuickSort quickSort = QuickSort.deploy(web3j, transactionManager, provider).send();
             contractAddress = quickSort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
+            collector.logStepPass("deploy gas used:" + quickSort.getTransactionReceipt().get().getGasUsed());
 
             Int64[] arr = new Int64[numberOfCalls];
 
@@ -38,7 +39,7 @@ public class WASMQuickSortTest extends WASMContractPrepareTest {
                 arr[i] = Int64.of(min + (int) (Math.random() * (max - min + 1)));
             }
 
-            // collector.logStepPass("before sort:" + Arrays.toString(arr));
+            collector.logStepPass("before sort:" + Arrays.toString(arr));
             TransactionReceipt transactionReceipt = QuickSort.load(contractAddress, web3j, transactionManager, provider)
                     .sort(arr, Int64.of(0), Int64.of(arr.length)).send();
 
@@ -49,7 +50,7 @@ public class WASMQuickSortTest extends WASMContractPrepareTest {
 
             Int64[] generationArr = QuickSort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
 
-            // collector.logStepPass("after sort:" + Arrays.toString(generationArr));
+            collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());

@@ -62,14 +62,14 @@ CONTRACT IntegerDataTypeContract_1: public platon::Contract
 		CONST std::string u128t(uint64_t input)
 		{
 			u128 u = u128(input);
-			return to_string(u);
+			return std::to_string(u);
 		}		
 
 		/// u256
 		CONST std::string u256t(uint64_t input)
 		{
-			u256 u = u256(input);
-			return to_string(u);
+			u128 u = u128(input);
+			return std::to_string(u);
 		}
 
 

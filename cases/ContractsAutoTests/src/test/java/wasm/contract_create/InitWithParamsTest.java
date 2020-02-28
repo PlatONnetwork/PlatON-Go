@@ -27,6 +27,7 @@ public class InitWithParamsTest extends WASMContractPrepareTest {
             String contractAddress = initWithParams.getContractAddress();
             String transactionHash = initWithParams.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("initWithParams issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + initWithParams.getTransactionReceipt().get().getGasUsed());
 
             InitWithParams.Person person =  new InitWithParams.Person();
             person.name=addName;

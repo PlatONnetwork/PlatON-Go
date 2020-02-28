@@ -29,6 +29,7 @@ public class ContractPanicTest extends WASMContractPrepareTest {
             String contractAddress = contractPanic.getContractAddress();
             String transactionHash = contractPanic.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractPanic issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractPanic.getTransactionReceipt().get().getGasUsed());
 
             //调用包含platon_panic的合约
             TransactionReceipt transactionReceipt = contractPanic.panic_contract(name,value).send();

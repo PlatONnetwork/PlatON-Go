@@ -82,6 +82,7 @@ public class TokenTransferTest {
 
             collector.logStepPass("Token issued successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash() +
                     ", tokenName:" + token.name().send() + ", symbol:" + token.symbol().send());
+            collector.logStepPass("deploy gas used:" + token.getTransactionReceipt().get().getGasUsed());
             collector.assertEqual(tokenName, token.name().send(), "checkout tokenName");
 
             collector.logStepPass("5次循环调用...");
