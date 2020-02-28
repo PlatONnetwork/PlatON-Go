@@ -68,10 +68,10 @@ CONTRACT InnerFunction_2:public platon::Contract{
 		}
 		
 		/// 获取消息携带的value(fix) 
-		/// define: u256 platon_call_value();
+		/// define: u128 platon_call_value();
 		CONST std::string value() { 
-			u256 val = platon_call_value();
-			return to_string(val);		
+			u128 val = platon_call_value();
+			return std::to_string(val);		
 		}
 
 		/// sha3操作
@@ -122,10 +122,14 @@ CONTRACT InnerFunction_2:public platon::Contract{
 		std::string compile(){
 			return "compile";		
 		}
+
+		CONST Address addr(){
+			return Address("0x493301712671Ada506ba6Ca7891F436D29185821");		
+		}
 	
 };
 
 // (compile)(gas_price)(block_number)(gas_limit)(timestamp)(gas)(nonce)(block_hash)(coinbase)
-PLATON_DISPATCH(InnerFunction_2, (init)(transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin))
+PLATON_DISPATCH(InnerFunction_2, (init)(addr)(transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin))
 
 
