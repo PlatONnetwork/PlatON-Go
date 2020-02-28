@@ -112,9 +112,9 @@ CONTRACT InnerFunction_2:public platon::Contract{
 		
 		/// 消息的原始发送者origin
 		/// define: Address platon_origin();
-		CONST std::string origin() {
+		CONST Address origin() {
 			Address ori = platon::platon_origin();
-			return ori.toString();		
+			return ori;		
 		}
 
 		/// compile test
