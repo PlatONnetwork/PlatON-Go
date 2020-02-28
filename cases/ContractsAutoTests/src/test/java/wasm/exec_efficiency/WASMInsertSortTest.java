@@ -53,7 +53,7 @@ public class WASMInsertSortTest extends WASMContractPrepareTest {
 
             Int64[] generationArr = InsertSort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
 
-            //collector.logStepPass("after sort:" + Arrays.toString(generationArr));
+            collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());
