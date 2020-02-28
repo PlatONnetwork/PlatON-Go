@@ -9,7 +9,7 @@ CONTRACT ReferenceDataTypeContract: public platon::Contract{
 
 	private:
        platon::StorageType<"maddress"_n, std::map<std::string, Address>> tmaddress;
-       platon::StorageType<"mu255"_n, std::map<std::string, u256>> tmu256;
+       platon::StorageType<"mu255"_n, std::map<std::string, u128>> tmu256;
        platon::StorageType<"mh255"_n, std::map<std::string, h256>> tmh256;
 
     public:
@@ -39,7 +39,7 @@ CONTRACT ReferenceDataTypeContract: public platon::Contract{
 		// 针对u256类型的map进行设置
 		ACTION void setU256Map(const std::string& key, uint64_t value)
 		{
-			tmu256.self()[key] = u256(value);
+			tmu256.self()[key] = u128(value);
 			//tmu256.self()[key] = "compile error"; // expect: compile error.
 			//tmu256.self()[key] = 111;			   // expect: compile error.
 		}
@@ -47,7 +47,7 @@ CONTRACT ReferenceDataTypeContract: public platon::Contract{
 		// get value from map of address type.
 		CONST std::string getU256FromMap(const std::string& key) 		
 		{
-			return to_string(tmu256.self()[key]);
+			return std::to_string(tmu256.self()[key]);
 		}
 		
 		// get the length of map.
