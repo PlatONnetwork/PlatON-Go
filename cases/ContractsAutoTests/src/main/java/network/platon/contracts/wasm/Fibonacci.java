@@ -36,9 +36,9 @@ public class Fibonacci extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_FIBONACCI_NOTIFY = "fibonacci_notify";
-
     public static final String FUNC_FIBONACCI_CALL = "fibonacci_call";
+
+    public static final String FUNC_FIBONACCI_NOTIFY = "fibonacci_notify";
 
     public static final WasmEvent NOTIFY_EVENT = new WasmEvent("notify", Arrays.asList(), Arrays.asList(new WasmEventParameter(String.class) , new WasmEventParameter(Uint64.class) , new WasmEventParameter(Uint64.class)));
     ;
@@ -49,6 +49,11 @@ public class Fibonacci extends WasmContract {
 
     protected Fibonacci(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Uint64> fibonacci_call(Uint64 number) {
+        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_CALL, Arrays.asList(number), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public List<NotifyEventResponse> getNotifyEvents(TransactionReceipt transactionReceipt) {
@@ -99,11 +104,6 @@ public class Fibonacci extends WasmContract {
     public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number) {
         final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
         return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<Uint64> fibonacci_call(Uint64 number) {
-        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_CALL, Arrays.asList(number), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public static Fibonacci load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
