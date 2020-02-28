@@ -22,7 +22,7 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.7.5.8-SNAPSHOT.
+ * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
  */
 public class Selector extends Contract {
     private static final String BINARY = "608060405234801561001057600080fd5b50610103806100206000396000f3fe60806040526004361060265760003560e01c806326121ff014602b578063b8c9d365146091575b600080fd5b348015603657600080fd5b50603d6099565b60405180827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200191505060405180910390f35b609760cc565b005b60008060003073ffffffffffffffffffffffffffffffffffffffff1663b8c9d365915091508181905060e01b9250505090565b56fea265627a7a7231582096493a49904bb7181fb4015ad5c28898473ee71cb3741c2177301907eff8dea964736f6c634300050d0032";

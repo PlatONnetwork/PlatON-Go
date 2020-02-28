@@ -34,7 +34,7 @@ import rx.functions.Func1;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.7.5.8-SNAPSHOT.
+ * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
  */
 public class ERC20Interface extends Contract {
     private static final String BINARY = "";

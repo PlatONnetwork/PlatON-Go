@@ -20,7 +20,7 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.7.5.8-SNAPSHOT.
+ * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
  */
 public class InheritContractParentTwoClass extends Contract {
     private static final String BINARY = "6080604052348015600f57600080fd5b5060878061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063430fe9c114602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b6000600290509056fea265627a7a723158203c2536a89c0a2b0462e598c7f08d71bfec9181b4e5ad26e10bb77cc621d64ff364736f6c634300050d0032";
