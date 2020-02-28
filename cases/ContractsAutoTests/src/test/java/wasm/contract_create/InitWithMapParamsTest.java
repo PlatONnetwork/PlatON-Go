@@ -1,5 +1,6 @@
 package wasm.contract_create;
 
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitWithMapParams;
@@ -44,8 +45,14 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
         inMaplist.put("keyList",list);
 
         //map 需要添加的key与value
+        String key2 = "key2";
+        String value2 = "value2";
+
         String key3 = "key3";
         String value3 = "value3";
+
+        String key4 = "key4";
+        String value4 = "value4";
 
         try {
             prepare();
@@ -93,6 +100,19 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
             chainMap = initWithMapParams.get_map().send();
 
             collector.assertEqual(2,chainMap.size());
+
+            //map中查找不存在的key
+            String chainValue = initWithMapParams.find_element_bykey(key4).send();
+            collector.assertEqual("",chainValue);
+
+            //map中查找存在的key
+            chainValue = initWithMapParams.find_element_bykey(key2).send();
+            collector.assertEqual(value2,chainValue);
+
+            //map 查看大小
+            Uint8 mapSize = initWithMapParams.get_map_size().send();
+            collector.logStepPass("当前map中元素个数为："+mapSize.value);
+
 
         } catch (Exception e) {
             collector.logStepFail("InitWithMapParamsTest failure,exception msg:" , e.getMessage());

@@ -41,6 +41,19 @@ CONTRACT InitWithParams : public platon::Contract{
           strmap.self().erase(key);
       }
 
+      //map find value by key
+      CONST std::string find_element_bykey(std::string &key){
+          if(strmap.self().count(key)>0){
+                return strmap.self()[key];
+          }
+          return "";
+      }
+
+      //map size
+      CONST uint8_t get_map_size(){
+            return strmap.self().size();
+      }
+
 
    private:
       platon::StorageType<"strmap"_n, std::map<std::string,std::string>> strmap;
@@ -48,4 +61,4 @@ CONTRACT InitWithParams : public platon::Contract{
       platon::StorageType<"maplist"_n, std::map<std::string,std::list<std::string>>> maplist;
 };
 
-PLATON_DISPATCH(InitWithParams, (init)(add_map)(get_map)(add_map_map)(get_map_map)(add_map_list)(get_map_list)(add_map_element)(delete_map_element))
+PLATON_DISPATCH(InitWithParams, (init)(add_map)(get_map)(add_map_map)(get_map_map)(add_map_list)(get_map_list)(add_map_element)(delete_map_element)(find_element_bykey)(get_map_size))
