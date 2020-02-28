@@ -17,12 +17,13 @@ contract RecursionCall {
      * 10000~100000
      * 100000+
      **/
-    function recursionCallTest(uint n) public {
+    function recursionCallTest(uint n) public payable returns {
         if (total < n) {
             //业务逻辑（转账）
 
             ++total;
             recursionCallTest(n);
         }
+        return total;
     }
 }
