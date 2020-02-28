@@ -11,8 +11,8 @@ CONTRACT InnerFunction:public platon::Contract{
 		
 		/// 获取GasPrice
 		CONST std::string gas_price(){
-			u256 price = platon_gas_price();
-			return to_string(price);
+			u128 price = platon_gas_price();
+			return std::to_string(price);
 		}
 
 		/// 获取区块高度
