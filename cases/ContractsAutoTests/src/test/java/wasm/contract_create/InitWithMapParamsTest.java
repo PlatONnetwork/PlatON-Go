@@ -43,6 +43,10 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
         Map<String, List<String>> inMaplist = new HashMap<String, List<String>>();
         inMaplist.put("keyList",list);
 
+        //map 需要添加的key与value
+        String key3 = "key3";
+        String value3 = "value3";
+
         try {
             prepare();
             provider = new ContractGasProvider(BigInteger.valueOf(50000000004L), BigInteger.valueOf(90000000L));
@@ -74,6 +78,21 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
             Map<String, List<String>> maplist = initWithMapParams.get_map_list().send();
             collector.assertEqual(list.get(0), maplist.get("keyList").get(0));
 
+            //map中添加键值对
+            tx = initWithMapParams.add_map_element(key3,value3).send();
+            collector.logStepPass("InitWithMapParamsTest call add_map_element successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            chainMap = initWithMapParams.get_map().send();
+
+            collector.assertEqual(value3,chainMap.get("key3").toString());
+
+            //map中删除指定的key值
+            tx = initWithMapParams.delete_map_element(key3).send();
+            collector.logStepPass("InitWithMapParamsTest call delete_map_element successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            chainMap = initWithMapParams.get_map().send();
+
+            collector.assertEqual(2,chainMap.size());
 
         } catch (Exception e) {
             collector.logStepFail("InitWithMapParamsTest failure,exception msg:" , e.getMessage());
