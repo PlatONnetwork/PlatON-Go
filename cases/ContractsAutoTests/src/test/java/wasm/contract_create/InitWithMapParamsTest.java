@@ -54,6 +54,18 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
         String key4 = "key4";
         String value4 = "value4";
 
+        //需要被添加进map的map对象
+        String key5 = "key5";
+        String value5 = "value5";
+
+        String key6 = "key6";
+        String value6 = "value6";
+
+        Map<String,String> maps2 = new HashMap<String,String>();
+        maps2.put(key5,value5);
+        maps2.put(key6,value6);
+
+
         try {
             prepare();
             provider = new ContractGasProvider(BigInteger.valueOf(50000000004L), BigInteger.valueOf(90000000L));
@@ -113,6 +125,13 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
             Uint8 mapSize = initWithMapParams.get_map_size().send();
             collector.logStepPass("当前map中元素个数为："+mapSize.value);
 
+            //map中添加另一个map对象
+            tx = initWithMapParams.add_map(maps2).send();
+            collector.logStepPass("InitWithMapParamsTest call add_map successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            //查看新的map是否添加成功
+            String chainKey6 = initWithMapParams.find_element_bykey(key6).send();
+            collector.assertEqual(key6,chainKey6);
 
         } catch (Exception e) {
             collector.logStepFail("InitWithMapParamsTest failure,exception msg:" , e.getMessage());
