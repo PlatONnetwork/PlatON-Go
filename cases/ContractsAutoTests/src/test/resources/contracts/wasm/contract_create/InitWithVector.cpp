@@ -30,8 +30,10 @@ CONTRACT InitWithVector : public platon::Contract{
     ACTION void vector_insert_element(std::string &value,uint8_t index){
         if(index > strvector.self().size()){
             strvector.self().insert(strvector.self().end(),value);
+        }else{
+            strvector.self().insert(strvector.self().begin()+index,value);
         }
-        strvector.self().insert(strvector.self().begin()+index,value);
+
     }
     //pop_back 去掉数组的最后一个数据
     ACTION void vector_pop_back_element(){

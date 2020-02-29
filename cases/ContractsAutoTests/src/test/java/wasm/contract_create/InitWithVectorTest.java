@@ -29,6 +29,7 @@ public class InitWithVectorTest extends WASMContractPrepareTest {
         String vector2 = "vector2";
         String vector3 = "vector3";
         String vector4 = "vector4";
+        String vector5 = "vector5";
 
         try {
             prepare();
@@ -59,6 +60,31 @@ public class InitWithVectorTest extends WASMContractPrepareTest {
             //获取第二个元素(下标为1)
             String chainElement = initWithVector.get_vector_element_by_position(Uint8.of("1")).send();
             collector.assertEqual(vector2,chainElement);
+
+            //去掉最后一个元素
+            tx = initWithVector.vector_pop_back_element().send();
+            collector.logStepPass("InitWithVectorTest call vector_pop_back_element successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            //查看vector中元素个数
+            vectorSize = initWithVector.get_strvector_size().send();
+            collector.assertEqual("2",vectorSize.value.toString());
+
+            //在指定位置添加元素
+            tx = initWithVector.vector_insert_element(vector4,Uint8.of("2")).send();
+            collector.logStepPass("InitWithVectorTest call vector_insert_element successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            //查看vector中元素个数
+            vectorSize = initWithVector.get_strvector_size().send();
+            collector.assertEqual("3",vectorSize.value.toString());
+
+            //在指定位置添加元素(下标超过数组大小，则插入到最后面)
+            tx = initWithVector.vector_insert_element(vector4,Uint8.of("6")).send();
+            collector.logStepPass("InitWithVectorTest call vector_insert_element successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            //查看vector中元素个数
+            vectorSize = initWithVector.get_strvector_size().send();
+            collector.assertEqual("4",vectorSize.value.toString());
+
 
         } catch (Exception e) {
             collector.logStepFail("InitWithVectorTest failure,exception msg:" , e.getMessage());
