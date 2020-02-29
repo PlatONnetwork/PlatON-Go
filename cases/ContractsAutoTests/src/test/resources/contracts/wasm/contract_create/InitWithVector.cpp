@@ -48,10 +48,37 @@ CONTRACT InitWithVector : public platon::Contract{
         return strvector.self().at(index);
     }
 
+
+    //验证for 循环
+    ACTION void vectorFor(const std::vector<std::string> &inVector) {
+ 	  for(auto iter = inVector.begin(); iter != inVector.end(); iter++) {
+        DEBUG("InitWithVector", "setSet", *iter);
+      }
+      strvector.self() = inVector;
+    }
+
+    //验证switch语句
+    ACTION void vectorCase(const std::vector<std::string> &inVector) {
+        switch(inVector.size()){
+            case 1: str.self()="1";break;
+            case 2: str.self()="2";break;
+            case 3: str.self()="3";break;
+            case 4: str.self()="4";break;
+            case 5: str.self()="5";break;
+            default: str.self()="big than 5";break;
+        }
+    }
+
+    CONST std::string get_vectorCase_result(){
+        return str.self();
+    }
+
+
     private:
     platon::StorageType<"agevector"_n, std::vector<uint64_t>> ageVector;
     platon::StorageType<"strvector"_n, std::vector<std::string>> strvector;
+    platon::StorageType<"strvar"_n, std::string> str;
 };
 
 PLATON_DISPATCH(InitWithVector, (init)(add_vector)(get_vector_size)(get_vector)(vector_push_back_element)
-(vector_insert_element)(vector_pop_back_element)(get_strvector_size)(get_vector_element_by_position))
+(vector_insert_element)(vector_pop_back_element)(get_strvector_size)(get_vector_element_by_position)(vectorFor)(vectorCase)(get_vectorCase_result))

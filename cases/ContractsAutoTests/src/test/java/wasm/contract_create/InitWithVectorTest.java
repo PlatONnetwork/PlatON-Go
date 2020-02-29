@@ -85,6 +85,17 @@ public class InitWithVectorTest extends WASMContractPrepareTest {
             vectorSize = initWithVector.get_strvector_size().send();
             collector.assertEqual("4",vectorSize.value.toString());
 
+            //验证for循环
+            tx = initWithVector.vectorFor(new String[]{vector1,vector2,vector3,vector4,vector5}).send();
+            collector.logStepPass("InitWithVectorTest call vectorFor successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            //验证switch语句
+            tx = initWithVector.vectorCase(new String[]{vector1,vector2,vector3,vector4,vector5}).send();
+            collector.logStepPass("InitWithVectorTest call vectorCase successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            //查询switch调用结果
+            String caseResult = initWithVector.get_vectorCase_result().send();
+            collector.assertEqual("5",caseResult);
 
         } catch (Exception e) {
             collector.logStepFail("InitWithVectorTest failure,exception msg:" , e.getMessage());
