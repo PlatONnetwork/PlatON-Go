@@ -130,8 +130,8 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
             collector.logStepPass("InitWithMapParamsTest call add_map successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
 
             //查看新的map是否添加成功
-            String chainKey6 = initWithMapParams.find_element_bykey(key6).send();
-            collector.assertEqual(key6,chainKey6);
+            String chainValue6 = initWithMapParams.find_element_bykey(key6).send();
+            collector.assertEqual(value6,chainValue6);
 
         } catch (Exception e) {
             collector.logStepFail("InitWithMapParamsTest failure,exception msg:" , e.getMessage());
