@@ -30,13 +30,13 @@ public class IntegerDataTypeContract_4 extends WasmContract {
 
     public static final String FUNC_SETH256 = "setH256";
 
+    public static final String FUNC_GETH256 = "getH256";
+
     public static final String FUNC_SETADDRESS = "setAddress";
 
     public static final String FUNC_SETU256 = "setU256";
 
     public static final String FUNC_GETU256 = "getU256";
-
-    public static final String FUNC_GETH256 = "getH256";
 
     protected IntegerDataTypeContract_4(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -51,6 +51,16 @@ public class IntegerDataTypeContract_4 extends WasmContract {
         return executeRemoteCall(function, String.class);
     }
 
+    public RemoteCall<TransactionReceipt> setH256(String input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETH256, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<String> getH256() {
+        final WasmFunction function = new WasmFunction(FUNC_GETH256, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public static RemoteCall<IntegerDataTypeContract_4> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_4.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -59,11 +69,6 @@ public class IntegerDataTypeContract_4 extends WasmContract {
     public static RemoteCall<IntegerDataTypeContract_4> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_4.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public RemoteCall<TransactionReceipt> setH256(String input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETH256, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<TransactionReceipt> setAddress(String input) {
@@ -78,11 +83,6 @@ public class IntegerDataTypeContract_4 extends WasmContract {
 
     public RemoteCall<String> getU256() {
         final WasmFunction function = new WasmFunction(FUNC_GETU256, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<String> getH256() {
-        final WasmFunction function = new WasmFunction(FUNC_GETH256, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
     }
 

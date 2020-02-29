@@ -61,6 +61,21 @@ public class ContractEmitEvent extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> zero_emit_event(String name) {
+        final WasmFunction function = new WasmFunction(FUNC_ZERO_EMIT_EVENT, Arrays.asList(name), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public static RemoteCall<ContractEmitEvent> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(ContractEmitEvent.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<ContractEmitEvent> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(ContractEmitEvent.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
         ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
@@ -90,21 +105,6 @@ public class ContractEmitEvent extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
-    }
-
-    public RemoteCall<TransactionReceipt> zero_emit_event(String name) {
-        final WasmFunction function = new WasmFunction(FUNC_ZERO_EMIT_EVENT, Arrays.asList(name), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public static RemoteCall<ContractEmitEvent> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(ContractEmitEvent.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<ContractEmitEvent> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(ContractEmitEvent.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {

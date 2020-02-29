@@ -28,6 +28,8 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
 
     public static final String FUNC_FINDVECTORAT = "findVectorAt";
 
+    public static final String FUNC_FINDVECTORBACK = "findVectorBack";
+
     public static final String FUNC_INSERTVECTORVALUE = "insertVectorValue";
 
     public static final String FUNC_INSERTVECTORMANGVALUE = "insertVectorMangValue";
@@ -35,8 +37,6 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
     public static final String FUNC_GETVECTORLENGTH = "getVectorLength";
 
     public static final String FUNC_FINDVECTORFRONT = "findVectorFront";
-
-    public static final String FUNC_FINDVECTORBACK = "findVectorBack";
 
     public static final String FUNC_DELETEVECTORPOPBACK = "deleteVectorPopBack";
 
@@ -56,6 +56,11 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
 
     public RemoteCall<String> findVectorAt(Uint64 index) {
         final WasmFunction function = new WasmFunction(FUNC_FINDVECTORAT, Arrays.asList(index), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<String> findVectorBack() {
+        final WasmFunction function = new WasmFunction(FUNC_FINDVECTORBACK, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
     }
 
@@ -86,11 +91,6 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
 
     public RemoteCall<String> findVectorFront() {
         final WasmFunction function = new WasmFunction(FUNC_FINDVECTORFRONT, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<String> findVectorBack() {
-        final WasmFunction function = new WasmFunction(FUNC_FINDVECTORBACK, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
     }
 

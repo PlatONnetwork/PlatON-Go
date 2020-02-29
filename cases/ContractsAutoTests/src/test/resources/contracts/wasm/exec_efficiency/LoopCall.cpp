@@ -18,8 +18,8 @@ CONTRACT LoopCall : public platon::Contract {
                 sum += i;
             }
         }
-	CONST uint64_t get_sum() {
-	    return sum.self();
-	}
+        CONST uint64_t get_sum() {
+            return sum.self();
+        }
 };
 PLATON_DISPATCH(LoopCall,(init)(loopCallTest)(get_sum))
