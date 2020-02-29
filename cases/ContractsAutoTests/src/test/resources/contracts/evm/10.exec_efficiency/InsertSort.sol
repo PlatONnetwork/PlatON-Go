@@ -8,7 +8,7 @@ contract InsertSort{
 
     int[] result_arr;
 
-    function OuputArrays(int[] memory arr, uint n) public payable returns(int[] memory){
+    function OuputArrays(int[] memory arr, uint n) public payable{
         uint i;
         uint k;
         uint j;
@@ -26,7 +26,6 @@ contract InsertSort{
         }
 
         result_arr = arr;
-        return arr;
     }
 
     function get_arr() public view returns(int[] memory){
