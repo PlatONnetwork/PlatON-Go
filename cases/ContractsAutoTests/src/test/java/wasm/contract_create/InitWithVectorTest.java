@@ -7,6 +7,7 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitWithVector;
 import org.junit.Test;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -23,6 +24,12 @@ public class InitWithVectorTest extends WASMContractPrepareTest {
 
         Uint16 age = Uint16.of(20);
 
+        //vector中要添加的元素
+        String vector1 = "vector1";
+        String vector2 = "vector2";
+        String vector3 = "vector3";
+        String vector4 = "vector4";
+
         try {
             prepare();
             InitWithVector initWithVector = InitWithVector.deploy(web3j, transactionManager, provider,age).send();
@@ -34,6 +41,24 @@ public class InitWithVectorTest extends WASMContractPrepareTest {
             Uint8 idx = Uint8.of(0);
             Uint64 chainAge = initWithVector.get_vector(idx).send();
             collector.assertEqual(chainAge.value,age.value);
+
+            //vctor添加第一个元素
+            TransactionReceipt tx = initWithVector.vector_push_back_element(vector1).send();
+            collector.logStepPass("InitWithVectorTest call vector_push_back_element successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            //vctor添加第二、三个元素
+            tx = initWithVector.vector_push_back_element(vector2).send();
+            collector.logStepPass("InitWithVectorTest call vector_push_back_element successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            tx = initWithVector.vector_push_back_element(vector3).send();
+            collector.logStepPass("InitWithVectorTest call vector_push_back_element successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+
+            //查看vector中元素个数
+            Uint8 vectorSize = initWithVector.get_strvector_size().send();
+            collector.assertEqual("3",vectorSize.value.toString());
+
+            //获取第二个元素(下标为1)
+            String chainElement = initWithVector.get_vector_element_by_position(Uint8.of("1")).send();
+            collector.assertEqual(vector2,chainElement);
 
         } catch (Exception e) {
             collector.logStepFail("InitWithVectorTest failure,exception msg:" , e.getMessage());
