@@ -30,11 +30,11 @@ public class InitWithMapParams extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_ADD_MAP_ELEMENT = "add_map_element";
-
     public static final String FUNC_GET_MAP_MAP = "get_map_map";
 
     public static final String FUNC_DELETE_MAP_ELEMENT = "delete_map_element";
+
+    public static final String FUNC_ADD_MAP_ELEMENT = "add_map_element";
 
     public static final String FUNC_ADD_MAP = "add_map";
 
@@ -60,11 +60,6 @@ public class InitWithMapParams extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> add_map_element(String key, String value) {
-        final WasmFunction function = new WasmFunction(FUNC_ADD_MAP_ELEMENT, Arrays.asList(key,value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public RemoteCall<Map> get_map_map() {
         final WasmFunction function = new WasmFunction(FUNC_GET_MAP_MAP, Arrays.asList(), Map.class, 
                 new com.platon.rlp.ParameterizedTypeImpl(
@@ -80,6 +75,11 @@ public class InitWithMapParams extends WasmContract {
 
     public RemoteCall<TransactionReceipt> delete_map_element(String key) {
         final WasmFunction function = new WasmFunction(FUNC_DELETE_MAP_ELEMENT, Arrays.asList(key), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> add_map_element(String key, String value) {
+        final WasmFunction function = new WasmFunction(FUNC_ADD_MAP_ELEMENT, Arrays.asList(key,value), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
