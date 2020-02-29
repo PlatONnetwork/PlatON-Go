@@ -6,6 +6,7 @@ import java.util.Collections;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.RemoteCall;
@@ -18,13 +19,15 @@ import org.web3j.tx.gas.GasProvider;
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the
  * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
  *
  * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
  */
 public class RecursionCall extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060c28061001f6000396000f3fe608060405260043610601c5760003560e01c806357e98139146021575b600080fd5b604a60048036036020811015603557600080fd5b81019080803590602001909291905050506060565b6040518082815260200191505060405180910390f35b60008160005410156083576000808154600101919050819055506081826060565b505b600054905091905056fea265627a7a72315820b0ab0185b7531690b114598e2e5d5ccb80d31015347c84abe9508dfbd4dc468f64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610107806100206000396000f3fe60806040526004361060265760003560e01c8063191a62d414602b57806357e98139146053575b600080fd5b348015603657600080fd5b50603d6092565b6040518082815260200191505060405180910390f35b607c60048036036020811015606757600080fd5b8101908080359060200190929190505050609c565b6040518082815260200191505060405180910390f35b6000600154905090565b600081600054101560bf5760008081546001019190508190555060bd82609c565b505b600054600181905550600054905091905056fea265627a7a723158208053f2c14a4b1774121ad2303d5f2792581b9bf98027844a6c3a64c1f19ead0664736f6c634300050d0032";
+
+    public static final String FUNC_GET_TOTAL = "get_total";
 
     public static final String FUNC_RECURSIONCALLTEST = "recursionCallTest";
 
@@ -46,10 +49,17 @@ public class RecursionCall extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<BigInteger> get_total() {
+        final Function function = new Function(FUNC_GET_TOTAL,
+                Arrays.<Type>asList(),
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
+    }
+
     public RemoteCall<TransactionReceipt> recursionCallTest(BigInteger n, BigInteger weiValue) {
         final Function function = new Function(
-                FUNC_RECURSIONCALLTEST, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(n)), 
+                FUNC_RECURSIONCALLTEST,
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(n)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function, weiValue);
     }

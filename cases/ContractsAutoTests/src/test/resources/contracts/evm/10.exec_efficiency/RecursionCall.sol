@@ -3,7 +3,7 @@ pragma solidity ^0.5.13;
  * 递归调用验证
  *
  *
- * @author Albedo
+ * @author qcxiao
  * @dev 2019/12/19
  **/
 contract RecursionCall {
@@ -17,13 +17,17 @@ contract RecursionCall {
      * 10000~100000
      * 100000+
      **/
-    function recursionCallTest(uint n) public payable returns {
+    function recursionCallTest(uint n) public payable returns(uint) {
         if (total < n) {
             //业务逻辑（转账）
 
             ++total;
             recursionCallTest(n);
         }
+        return total;
+    }
+
+    function get_total() public view returns(uint){
         return total;
     }
 }
