@@ -1,5 +1,6 @@
 package wasm.contract_create;
 
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitWithArrayParams;
@@ -37,6 +38,17 @@ public class InitWithArrayParamsTest extends WASMContractPrepareTest {
             collector.assertEqual(chainArray[0].toString(),array[0].toString());
             collector.assertEqual(chainArray[1].toString(),array[1].toString());
             collector.assertEqual(chainArray[2].toString(),array[2].toString());
+
+            //查看数组大小
+            Uint8 arrarySize = initWithArrayParams.get_array_size().send();
+            collector.assertEqual("10",arrarySize.value.toString());
+
+            //查看数组是否包含指定的元素
+           boolean flg = initWithArrayParams.get_array_contain_element("array1").send();
+           collector.assertEqual(true,flg);
+
+           flg = initWithArrayParams.get_array_contain_element("array01").send();
+           collector.assertEqual(false,flg);
 
         } catch (Exception e) {
             collector.logStepFail("InitWithArrayParamsTest failure,exception msg:" , e.getMessage());
