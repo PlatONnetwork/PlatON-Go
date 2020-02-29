@@ -138,7 +138,9 @@ public class BasicDataIntegerTypeTest extends WASMContractPrepareTest {
             collector.assertEqual(actualUint64Value,uint64Value, "checkout  execute success.");
 
             //u128
-            String actualU128Value = basicDataIntegerTypeContract.get_u128(uint64Value).send();
+            TransactionReceipt  transactionReceipt8 = basicDataIntegerTypeContract.set_u128(uint64Value).send();
+            collector.logStepPass("basicDataIntegerTypeContract 【验证u128整型类型】 successfully hash:" + transactionReceipt8.getTransactionHash());
+            String actualU128Value = basicDataIntegerTypeContract.get_u128().send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证整数u128取值】 执行get_u128() successfully actualU128Value:" + actualU128Value);
             collector.assertEqual(actualU128Value,uint64ValueStr, "checkout  execute success.");
 
@@ -150,7 +152,6 @@ public class BasicDataIntegerTypeTest extends WASMContractPrepareTest {
             collector.assertEqual(actualU160Value,uint160ValueStr, "checkout  execute success.");
 
             //u256
-            //
             TransactionReceipt  transactionReceipt9 = basicDataIntegerTypeContract.set_u256(uint256Value).send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证u256整型有符号/无符号类型】 successfully hash:" + transactionReceipt9.getTransactionHash());
             String actualU256Value = basicDataIntegerTypeContract.get_u256().send();
