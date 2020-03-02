@@ -53,6 +53,25 @@ public class ContractTweetAccountTest extends WASMContractPrepareTest {
             String tweet = contract.getTweet(Uint64.of(0)).send();
             collector.logStepPass("Call getTweet, res: " + tweet);
 
+            TransactionReceipt tweet1TR = contract.tweet("Hello alice is alice.").send();
+            collector.logStepPass("Send tweet1, hash: " + tweet1TR.getTransactionHash() + " gasUsed: " + tweet1TR.getGasUsed().toString());
+
+            // call getTweet
+            String tweet1 = contract.getTweet(Uint64.of(1)).send();
+            collector.logStepPass("Call getTweet 1, res: " + tweet1);
+
+            // call last tweet
+            String lastTweet = contract.getLatestTweet().send();
+            collector.logStepPass("Call getLatestTweet, res " + lastTweet);
+
+            // call getNumberOfTweets
+            Uint64 numberOfTweets = contract.getNumberOfTweets().send();
+            collector.logStepPass("Call getNumberOfTweets, res: " + numberOfTweets.getValue().toString());
+
+            // adminRetri
+
+            // adminDelete...
+
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
                 collector.logStepPass("Fibonacci and could not call contract function");
