@@ -2,6 +2,7 @@ package vm
 
 import (
 	"context"
+	"hash/fnv"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -98,7 +99,7 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 
 	go func(ctx context.Context) {
 		<-ctx.Done()
-		// shutdown vm, change th vm.abort mark
+		// shutdown vm, change the vm.abort mark
 		engine.vm.Close()
 	}(engine.evm.Ctx)
 
@@ -170,12 +171,18 @@ func validateFunc(input []byte, deploy bool) error {
 	}
 }
 
+func fnNameHashUint() uint64 {
+	hash := fnv.New64()
+	hash.Write([]byte(initFn))
+	return hash.Sum64()
+}
+
 func validateDeployFunc(input []byte) error {
 	funcName, _, err := decodeFuncAndParams(input)
 	if nil != err {
 		return err
 	}
-	if funcName != initFn {
+	if funcName != fnNameHashUint() {
 		return errors.New("deploy contract must be call init func")
 	}
 	return nil
@@ -186,7 +193,7 @@ func validateCallFunc(input []byte) error {
 	if nil != err {
 		return err
 	}
-	if funcName == initFn {
+	if funcName == fnNameHashUint() {
 		return errors.New("init func can only be called when deploy contract")
 	}
 	return nil

@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"hash/fnv"
 	"io/ioutil"
 	"testing"
 
@@ -24,18 +25,24 @@ func TestReadWasmModule(t *testing.T) {
 
 func TestDecodeFuncAndParams(t *testing.T) {
 
+	hash := fnv.New64()
+	hash.Write([]byte("init"))
+	initUint64 := hash.Sum64()
+
 	params1 := struct {
-		FuncName string
+		FuncName uint64
 		Age      uint64
 	}{
-		FuncName: "init",
+		FuncName: initUint64,
 		Age:      16,
 	}
 
 	b1, _ := rlp.EncodeToBytes(params1)
 	name1, _, err := decodeFuncAndParams(b1)
 	assert.Nil(t, err)
-	assert.Equal(t, "init", name1)
+
+
+	assert.Equal(t, initUint64, name1)
 
 	type m struct {
 		Content string
@@ -54,6 +61,6 @@ func TestDecodeFuncAndParams(t *testing.T) {
 
 	name2, _, err := decodeFuncAndParams(b2)
 	assert.NotNil(t, err)
-	assert.NotEqual(t, "init", name2)
+	assert.NotEqual(t, initUint64, name2)
 
 }
