@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"hash/fnv"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -488,10 +489,14 @@ var testCase = []*Case{
 			Input: func() []byte {
 
 				code := readContractCode()
+
+				hash := fnv.New64()
+				hash.Write([]byte("init"))
+				initUint64 := hash.Sum64()
 				params := struct {
-					FuncName string
+					FuncName uint64
 				}{
-					FuncName: "init",
+					FuncName: initUint64,
 				}
 				input, err := rlp.EncodeToBytes(params)
 				if nil != err {
@@ -743,6 +748,7 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 
 	index := int64(entry.Index)
 	vm.RecoverPanic = true
+
 	_, err = vm.ExecCode(index)
 
 	if c.funcName != "platon_panic_test" {
@@ -757,7 +763,7 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 }
 
 func readContractCode() []byte {
-	buf, err := ioutil.ReadFile("./testdata/contract1.wasm")
+	buf, err := ioutil.ReadFile("./testdata/contract_hello.wasm")
 	if nil != err {
 		panic(err)
 	}
@@ -765,10 +771,13 @@ func readContractCode() []byte {
 }
 
 func deployContract(ctx *VMContext, addr1, addr2 common.Address, code []byte) {
+	hash := fnv.New64()
+	hash.Write([]byte("init"))
+	initUint64 := hash.Sum64()
 	params := struct {
-		FuncName string
+		FuncName uint64
 	}{
-		FuncName: "init",
+		FuncName: initUint64,
 	}
 	input, err := rlp.EncodeToBytes(params)
 	if nil != err {
@@ -808,11 +817,14 @@ func callContractInput() []byte {
 		End  string
 	}
 
+	hash := fnv.New64()
+	hash.Write([]byte("add_message"))
+	funcUint64 := hash.Sum64()
 	params := struct {
-		FuncName string
+		FuncName uint64
 		Msg      Message
 	}{
-		FuncName: "add_message",
+		FuncName: funcUint64,
 		Msg: Message{
 			M: M{
 				Head: "Gavin",
@@ -822,22 +834,6 @@ func callContractInput() []byte {
 		},
 	}
 
-	bparams, err := rlp.EncodeToBytes(params)
-	if nil != err {
-		panic(err)
-	}
-
-	return bparams
-}
-
-func queryContractInput() []byte {
-	params := struct {
-		FuncName string
-		Name     string
-	}{
-		FuncName: "get_message",
-		Name:     "Gavin",
-	}
 	bparams, err := rlp.EncodeToBytes(params)
 	if nil != err {
 		panic(err)
