@@ -2,7 +2,6 @@ package vm
 
 import (
 	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -695,7 +694,6 @@ func Address(proc *exec.Process, dst uint32) {
 // define: void sha3(char *src, size_t srcLen, char *dest, size_t destLen);
 func Sha3(proc *exec.Process, src uint32, srcLen uint32, dst uint32, dstLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-
 	checkGas(ctx, Sha3DataGas*uint64(srcLen))
 
 	data := make([]byte, srcLen)
@@ -834,7 +832,7 @@ func GetInputLength(proc *exec.Process) uint32 {
 
 func GetInput(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, ExternalDataGas*uint64(dst))
+	checkGas(ctx, ExternalDataGas*uint64(len(ctx.Input)))
 	_, err := proc.WriteAt(ctx.Input, int64(dst))
 	if err != nil {
 		panic(err)
@@ -849,7 +847,7 @@ func GetCallOutputLength(proc *exec.Process) uint32 {
 
 func GetCallOutput(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, ExternalDataGas*uint64(dst))
+	checkGas(ctx, ExternalDataGas*uint64(len(ctx.CallOut)))
 	_, err := proc.WriteAt(ctx.CallOut, int64(dst))
 	if err != nil {
 		panic(err)
@@ -1097,7 +1095,6 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 	if !ctx.evm.StateDB.HasSuicided(ctx.contract.Address()) {
 		ctx.evm.StateDB.AddRefund(params.SuicideRefundGas)
 	}
-
 	checkGas(ctx, gas)
 
 	balance := ctx.evm.StateDB.GetBalance(contractAddr)
