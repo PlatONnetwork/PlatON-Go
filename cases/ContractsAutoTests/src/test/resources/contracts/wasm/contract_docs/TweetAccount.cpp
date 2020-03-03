@@ -90,6 +90,16 @@ CONTRACT TweetAccount: public platon::Contract
 				platon_transfer(receiver, e);
 			}		
 		}
+		
+		CONST Address caddr(){
+			return platon_address();		
+		}
+	
+		CONST std::string caddrBalance(Address receiver){
+			//Address caddr = platon_address();
+			Energon e = platon_balance(receiver);
+			return std::to_string(e.Get());		
+		}
 			
 		ACTION void adminDeleteAccount(){
 			if(isAdmin()){
@@ -102,7 +112,8 @@ CONTRACT TweetAccount: public platon::Contract
 };
 
 PLATON_DISPATCH(TweetAccount,(init)(isAdmin)(tweet)(getTweet)(getLatestTweet)
-(getOwnerAddress)(getNumberOfTweets)(adminRetrieveDonations)(adminDeleteAccount))
+(getOwnerAddress)(getNumberOfTweets)(adminRetrieveDonations)(adminDeleteAccount)
+(caddr)(caddrBalance))
 
 
 

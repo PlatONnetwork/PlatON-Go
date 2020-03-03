@@ -7,8 +7,14 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.TweetAccount;
 import org.junit.Before;
 import org.junit.Test;
+import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tx.Transfer;
+import org.web3j.utils.Convert;
 import wasm.beforetest.WASMContractPrepareTest;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * @author zjsunzone
@@ -68,15 +74,40 @@ public class ContractTweetAccountTest extends WASMContractPrepareTest {
             Uint64 numberOfTweets = contract.getNumberOfTweets().send();
             collector.logStepPass("Call getNumberOfTweets, res: " + numberOfTweets.getValue().toString());
 
+            // call contract addr
+            WasmAddress caddr = contract.caddr().send();
+            collector.logStepPass("Call caddr, res: " + caddr.getAddress());
+
+            // transfer
+            Transfer t = new Transfer(web3j, transactionManager);
+            t.sendFunds(contractAddress, new BigDecimal(10), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
+
+            String caddrBalance = contract.caddrBalance(caddr).send();
+            collector.logStepPass("Call caddrBalance, res: " + caddrBalance);
+
             // adminRetri
+            WasmAddress receiver = new WasmAddress("0x03f0E0a226f081A5dAeCFdA222caFc959eD7B801");
+            BigInteger receiveBalanceBefore = web3j.platonGetBalance(receiver.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Call balance, before res: " + receiveBalanceBefore);
+            TransactionReceipt adminTr = contract.adminRetrieveDonations(new WasmAddress(credentials.getAddress())).send();
+            collector.logStepPass("Send adminRetrieveDonations, hash: " + adminTr.getTransactionHash() + " gasUsed: " + adminTr.getGasUsed().toString());
+            BigInteger receiveBalanceAfter = web3j.platonGetBalance(receiver.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Call balance, after res: " + receiveBalanceAfter);
 
             // adminDelete...
-
+            BigInteger ownerBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Owner balance, before res: " + ownerBalance);
+            TransactionReceipt adminDeleteTr = contract.adminDeleteAccount().send();
+            collector.logStepPass("Send adminDeleteAccount, hash: " + adminDeleteTr.getTransactionHash() + " gasUsed: " + adminDeleteTr.getGasUsed());
+            ownerBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Owner balance, after res: " + ownerBalance);
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("Fibonacci and could not call contract function");
+                collector.logStepPass("TweetAccount and could not call contract function");
             }else{
-                collector.logStepFail("Fibonacci failure,exception msg:" , e.getMessage());
+                collector.logStepFail("TweetAccount failure,exception msg:" , e.getMessage());
             }
             e.printStackTrace();
         }
