@@ -779,7 +779,7 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 
-	arr, err := stkc.Plugin.GetVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartIrr)
+	arr, err := stkc.Plugin.GetVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartNotIrr)
 
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return callResultHandler(stkc.Evm, "getVerifierList",
@@ -800,7 +800,7 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 
-	arr, err := stkc.Plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
+	arr, err := stkc.Plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartNotIrr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 
 		return callResultHandler(stkc.Evm, "getValidatorList",
