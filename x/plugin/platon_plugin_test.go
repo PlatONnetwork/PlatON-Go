@@ -282,7 +282,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state xcom.StateDB) {
 }
 
 func newPlugins() {
-	GovPluginInstance()
+	GovPluginInstance(big.NewInt(101))
 	StakingInstance()
 	SlashInstance()
 	RestrictingInstance()

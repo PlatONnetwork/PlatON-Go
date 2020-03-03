@@ -69,7 +69,7 @@ func setup(t *testing.T) func() {
 	stateDB = state
 	newPlugins()
 
-	govPlugin = GovPluginInstance()
+	govPlugin = GovPluginInstance(chainID)
 	stk = StakingInstance()
 
 	lastBlockHash = genesis.Hash()

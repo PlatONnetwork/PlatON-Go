@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"math"
+	"math/big"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -35,14 +36,15 @@ var (
 )
 
 type GovPlugin struct {
+	chainID *big.Int
 }
 
 var govp *GovPlugin
 
-func GovPluginInstance() *GovPlugin {
+func GovPluginInstance(chainId *big.Int) *GovPlugin {
 	govPluginOnce.Do(func() {
 		log.Info("Init Governance plugin ...")
-		govp = &GovPlugin{}
+		govp = &GovPlugin{chainID: chainId}
 	})
 	return govp
 }
@@ -116,7 +118,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 
-			if versionProposal.NewVersion == 2560 { // version = 0.10.0
+			if govPlugin.chainID == big.NewInt(101) && versionProposal.NewVersion == uint32(2560) { // version = 0.10.0
 				if err = gov.UpdateGovernParamValue(gov.ModuleSlashing, gov.KeyMaxEvidenceAge, "1", blockNumber, blockHash); err != nil {
 					log.Error("Version(0.10.0) proposal is active, but update slashing.maxEvidenceAge to 1 failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 					return err

@@ -260,7 +260,7 @@ var (
 )
 
 func newPlugins() {
-	plugin.GovPluginInstance()
+	plugin.GovPluginInstance(big.NewInt(101))
 	plugin.StakingInstance()
 	plugin.SlashInstance()
 	plugin.RestrictingInstance()
