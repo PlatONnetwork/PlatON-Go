@@ -1,5 +1,7 @@
 package wasm.data_type;
 
+import com.platon.rlp.datatypes.Int32;
+import com.platon.rlp.datatypes.Int64;
 import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -36,7 +38,6 @@ public class BasicDataTypeTest extends WASMContractPrepareTest {
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "qudong", showName = "wasm.basicDataTypeTest基本类型验证测试",sourcePrefix = "wasm")
     public void testBasicDataType() {
-
          //部署合约
         BasicDataTypeContract basicDataTypeContract = null;
         try {
@@ -100,6 +101,22 @@ public class BasicDataTypeTest extends WASMContractPrepareTest {
             Double actualDoubleValue = basicDataTypeContract.get_double().send();
             collector.logStepPass("basicDataTypeContract 【验证浮点类型(double)取值】 执行get_double() successfully actualDoubleValue:" + actualDoubleValue);
             collector.assertEqual(actualDoubleValue,doubleValue, "checkout  execute success.");
+
+            //long
+            Int32 longValue = Int32.of(50);
+            TransactionReceipt  transactionReceipt7 = basicDataTypeContract.set_long(longValue).send();
+            collector.logStepPass("basicDataIntegerTypeContract 【验证long整型类型】 successfully hash:" + transactionReceipt7.getTransactionHash());
+            Int32 actualLongValue = basicDataTypeContract.get_long().send();
+            collector.logStepPass("basicDataIntegerTypeContract 【验证整数long取值】 执行get_long() successfully actualLongValue:" + actualLongValue);
+            collector.assertEqual(actualLongValue,longValue, "checkout  execute success.");
+
+            //long long
+            Int64 longlongValue = Int64.of(100);
+            TransactionReceipt  transactionReceipt8 = basicDataTypeContract.set_long_long(longlongValue).send();
+            collector.logStepPass("basicDataIntegerTypeContract 【验证longlong整型类型】 successfully hash:" + transactionReceipt8.getTransactionHash());
+            Int64 actualLongLongValue = basicDataTypeContract.get_long_long().send();
+            collector.logStepPass("basicDataIntegerTypeContract 【验证整数longlong取值】 执行get_long_long() successfully actualLongLongValue:" + actualLongLongValue);
+            collector.assertEqual(actualLongLongValue,longlongValue, "checkout  execute success.");
 
         } catch (Exception e) {
             collector.logStepFail("basicDataTypeContract Calling Method fail.", e.toString());

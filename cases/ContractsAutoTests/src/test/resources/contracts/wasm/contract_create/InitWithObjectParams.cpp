@@ -21,16 +21,8 @@ class my_message : public message {
       PLATON_SERIALIZE_DERIVED(my_message, message, (body)(end))
 };
 
-//extern char const contract_info[] = "info";
-
-
-/**
- * deploy --wasm InitWithObjectParams.wasm --params {"my_message":{"head":"1","body":"2","end":"3"}}
- * call --addr 0x24722c85c9F26262751ab9f904B77e3a88C71730 --func get_message --params {"name":"1"}
- */
 CONTRACT InitWithObjectParams : public platon::Contract{
    public:
-      PLATON_EVENT1(InitWithObjectParams, std::string, std::string, uint32_t)
       ACTION void init(const my_message &one_message){
          info.self().push_back(one_message);
       }
