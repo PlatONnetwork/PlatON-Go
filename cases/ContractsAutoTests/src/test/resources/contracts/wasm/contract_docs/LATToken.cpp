@@ -79,15 +79,29 @@ class StandardToken: public Token
 		}
 
 		ACTION bool transferFrom(Address _from, Address _to, uint64_t _value) {
-			return true;		
+			// same as above. Replace this line with the following if you want to protect against
+			// wrapping uints.
+			Address sender = platon_caller();
+			if(balances.self()[_from] >= _value 
+				&& allowed.self()[_from][sender] >= _value && _value > 0){
+				balances.self()[_to] += _value;
+				balances.self()[_from] -= _value;
+				PLATON_EMIT_EVENT2(Transfer, _from, _to, _value);
+				return true;
+			} else {
+				return false;			
+			}
 		}
 
 		ACTION bool approve(Address _spender, uint64_t _value){
-			return false;		
+			Address sender = platon_caller();			
+			allowed.self()[sender][_spender] = _value;
+			PLATON_EMIT_EVENT2(Approval, sender, _spender, _value);
+			return true;		
 		}
 
 		CONST uint64_t allowance(Address _owner, Address _spender){
-			return 1000;		
+			return allowed.self()[_owner][_spender];		
 		}
 		
 };
