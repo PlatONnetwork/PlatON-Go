@@ -18,6 +18,7 @@ package gov
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -93,7 +94,7 @@ type Proposal interface {
 	GetEndVotingBlock() uint64
 	GetProposer() discover.NodeID
 	GetTallyResult() TallyResult
-	Verify(blockNumber uint64, blockHash common.Hash, state xcom.StateDB) error
+	Verify(blockNumber uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error
 	String() string
 }
 
@@ -135,7 +136,7 @@ func (tp *TextProposal) GetTallyResult() TallyResult {
 	return tp.Result
 }
 
-func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
+func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error {
 	if tp.ProposalType != Text {
 		return ProposalTypeError
 	}
@@ -210,7 +211,7 @@ func (vp *VersionProposal) GetActiveBlock() uint64 {
 	return vp.ActiveBlock
 }
 
-func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
+func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error {
 
 	if vp.ProposalType != Version {
 		return ProposalTypeError
@@ -313,7 +314,7 @@ func (cp *CancelProposal) GetTallyResult() TallyResult {
 	return cp.Result
 }
 
-func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
+func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error {
 	if cp.ProposalType != Cancel {
 		return ProposalTypeError
 	}
@@ -406,7 +407,7 @@ func (pp *ParamProposal) GetTallyResult() TallyResult {
 	return pp.Result
 }
 
-func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
+func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error {
 	if pp.ProposalType != Param {
 		return ProposalTypeError
 	}
@@ -453,7 +454,13 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 		return PreActiveVersionProposalExist
 	}
 
-	endVotingBlock := xutil.EstimateEndVotingBlockForParaProposal(submitBlock, xcom.ParamProposalVote_DurationSeconds())
+	var voteDuration = xcom.ParamProposalVote_DurationSeconds()
+	if chainID == big.NewInt(101) {
+		if GetCurrentActiveVersion(state) >= 2560 { // version 0.10.0
+			voteDuration = 24 * 3600 //24 hours
+		}
+	}
+	endVotingBlock := xutil.EstimateEndVotingBlockForParaProposal(submitBlock, voteDuration)
 	pp.EndVotingBlock = endVotingBlock
 
 	return nil
