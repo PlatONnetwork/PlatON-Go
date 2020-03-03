@@ -13,34 +13,41 @@ CONTRACT HeapSort : public platon::Contract {
     public:
         ACTION void init(){}
 
-        void MaxSort(std::vector<int64_t>& a, int i, int n)
+        void MaxSort(std::vector<int64_t>& a, int root, int n)
         {
-            int j = 2*i+1;
-            int temp = a[i];
-            while(j < n)
+            int parent = root;
+            int child = parent*2+1; // 左孩子
+            while( child < n )
             {
-                if(j+1 <n && a[j] < a[j+1])
-                    ++j;
-                if(temp > a[j])
-                    break;
-                else
+                if( (child+1) < n && a[child+1] > a[child] )
                 {
-                    a[i] = a[j];
-                    i = j;
-                    j = 2*i+1;
+                    ++child;
                 }
+                if( a[child] > a[parent] )
+                {
+                    std::swap(a[child],a[parent]);
+                    parent = child;
+                    child = parent*2+1;
+                }
+                else
+                    break;
             }
-            a[i] = temp;
         }
 
         std::vector<int64_t>& heapSort(std::vector<int64_t>& a, int n)
         {
-            for(int i= n/2-1;i>=0;i--)//从最后一个结点的父结点开始“向前遍历”
-                MaxSort(a,i,n);
-            for(int i=n-1;i>=1;i--)
+            assert(a);
+            for( int i = (n-2)/2; i >=0 ; i-- )
             {
-                MaxSort(a,0,i);
-            }//逆序
+                MaxSort(a,i,n);
+            }
+
+            int end = n-1;
+            while( end > 0 ){
+                std::swap(a[0],a[end]);
+                MaxSort(a,0,end); // end其实就是不算后面的一个元素，原因是最后一个节点已经是最大的
+                end--;
+            }
             return a;
         }
 
