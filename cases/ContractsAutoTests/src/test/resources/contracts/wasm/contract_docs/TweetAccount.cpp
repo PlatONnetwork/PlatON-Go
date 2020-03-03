@@ -83,7 +83,7 @@ CONTRACT TweetAccount: public platon::Contract
 			return _numberOfTweets.self();			
 		}
 		
-		ACTION void adminRetrieveDonations(Address receiver) {
+		ACTION void adminRetrieveDonations(const Address& receiver) {
 			if(isAdmin()){
 				Address caddr = platon_address();
 				Energon e = platon_balance(caddr);
