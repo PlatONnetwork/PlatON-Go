@@ -89,11 +89,11 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // submit a proposal
-func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
+func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB, chainID *big.Int) error {
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
 
 	//param check
-	if err := proposal.Verify(blockNumber, blockHash, state); err != nil {
+	if err := proposal.Verify(blockNumber, blockHash, state, chainID); err != nil {
 		if bizError, ok := err.(*common.BizError); ok {
 			return bizError
 		} else {

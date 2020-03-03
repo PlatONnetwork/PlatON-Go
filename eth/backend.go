@@ -249,7 +249,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//extra data for each block will be set by worker.go
 	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
-	reactor := core.NewBlockChainReactor(eth.EventMux())
+	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.chainConfig.ChainID)
 	node.GetCryptoHandler().SetPrivateKey(config.CbftConfig.NodePriKey)
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
@@ -574,7 +574,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
-	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
+	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance(reactor.GetChainID()))
 	reactor.RegisterPlugin(xcom.CollectDeclareVersionRule, xplugin.NewCollectDeclareVersionPlugin())
 
 	// set rule order

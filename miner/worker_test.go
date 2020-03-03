@@ -149,7 +149,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 	backend := newTestWorkerBackend(t, chainConfig, engine, blocks, event)
 
 	bftResultSub := event.Subscribe(cbfttypes.CbftResult{})
-	core.NewBlockChainReactor(event)
+	core.NewBlockChainReactor(event, chainConfig.ChainID)
 	w := newWorker(chainConfig, miningConfig, engine, backend, event, time.Second, params.GenesisGasLimit, nil, backend.chainCache)
 	go func() {
 
