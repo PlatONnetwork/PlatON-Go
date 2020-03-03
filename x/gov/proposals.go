@@ -455,7 +455,7 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 	}
 
 	var voteDuration = xcom.ParamProposalVote_DurationSeconds()
-	if chainID == big.NewInt(101) {
+	if chainID.Uint64() == uint64(101) {
 		if GetCurrentActiveVersion(state) >= uint32(2560) { // version 0.10.0
 			voteDuration = uint64(24 * 3600) //24 hours
 		}
