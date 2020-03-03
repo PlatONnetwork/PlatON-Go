@@ -455,7 +455,7 @@ def test_AL_IE_002(clients_new_node):
 
 
 @pytest.mark.P1
-def test_AL_IE_002_01(client_new_node):
+def IT_SD_008_001(client_new_node):
     client = client_new_node
     economic = client.economic
     node = client.node

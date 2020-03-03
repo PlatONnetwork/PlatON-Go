@@ -46,9 +46,9 @@ def test_stak(global_test_env):
 
 def test_00(global_test_env):
     node1 = global_test_env.get_all_nodes()[0]
-    node2 = global_test_env.get_all_nodes()[1]
+    # node2 = global_test_env.get_all_nodes()[1]
     client1 = Client(global_test_env, node1, StakingConfig("external_id", "node_name221", "website", "details"))
-    client2 = Client(global_test_env, node2, StakingConfig("external_id", "node_name222", "website", "details"))
+    # client2 = Client(global_test_env, node2, StakingConfig("external_id", "node_name222", "website", "details"))
 
     result = client1.ppos.getCandidateInfo(client1.node.node_id)
     print(result)
@@ -58,9 +58,9 @@ def test_00(global_test_env):
 def test_01(global_test_env):
 
     node1 = global_test_env.get_all_nodes()[0]
-    node2 = global_test_env.get_all_nodes()[1]
+    # node2 = global_test_env.get_all_nodes()[1]
     client1 = Client(global_test_env, node1, StakingConfig("external_id", "node_name221", "website", "details"))
-    client2 = Client(global_test_env, node2, StakingConfig("external_id", "node_name222", "website", "details"))
+    # client2 = Client(global_test_env, node2, StakingConfig("external_id", "node_name222", "website", "details"))
     tmp_current_block = client1.node.eth.blockNumber
     last_settlement_block = (math.ceil(tmp_current_block / 10750) - 1) * 10750
     settlement_block_info = client1.node.eth.getBlock(last_settlement_block)

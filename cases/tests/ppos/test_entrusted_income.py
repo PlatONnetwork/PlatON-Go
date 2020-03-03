@@ -3295,8 +3295,6 @@ def test_EI_BC_082(clients_new_node, reset_environment):
     blocknum = result['Ret']['StakingBlockNum']
     result = first_client.ppos.getDelegateInfo(blocknum, address, first_node.node_id)
     log.info("Commission information：{}".format(result))
-    info = result['Ret']
-    assert info['ReleasedHes'] == delegate_amount
     delegate_epoch, cumulative_income = get_dividend_information(first_client, first_node.node_id, address)
     assert delegate_epoch == 1, "ErrMsg: Last time delegate epoch {}".format(delegate_epoch)
     assert cumulative_income == 0, "ErrMsg: Last time cumulative income {}".format(cumulative_income)
