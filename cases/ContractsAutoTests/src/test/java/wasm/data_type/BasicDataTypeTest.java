@@ -38,7 +38,6 @@ public class BasicDataTypeTest extends WASMContractPrepareTest {
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "qudong", showName = "wasm.basicDataTypeTest基本类型验证测试",sourcePrefix = "wasm")
     public void testBasicDataType() {
-
          //部署合约
         BasicDataTypeContract basicDataTypeContract = null;
         try {
