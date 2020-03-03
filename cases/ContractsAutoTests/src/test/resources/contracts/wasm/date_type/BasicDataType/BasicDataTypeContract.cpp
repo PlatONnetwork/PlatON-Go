@@ -23,6 +23,8 @@ CONTRACT BasicDataTypeContract : public platon::Contract{
        platon::StorageType<"addrkey"_n,Address> address_v;
        platon::StorageType<"floatkey"_n,float> float_v;
        platon::StorageType<"doublekey"_n,double> double_v;
+       platon::StorageType<"long"_n,long> long_v;
+       platon::StorageType<"long2"_n,long long> long_long_v;
 
     public:
        ACTION void init(){
@@ -87,8 +89,25 @@ CONTRACT BasicDataTypeContract : public platon::Contract{
            address_v.self() = platon_caller();//获取交易发起者地址
       }
       CONST std::string get_address(){
-          return address_v.self().toString();
-      }
+         return address_v.self().toString();
+     }
+
+  /**
+   * 6、long类型
+   */
+   ACTION void set_long(const long &value){
+      long_v.self()=value;
+    }
+    CONST long get_long(){
+       return long_v.self();
+    }
+
+    ACTION void set_long_long(const long long &value){
+       long_long_v.self()=value;
+    }
+    CONST long long get_long_long(){
+       return long_long_v.self();
+    }
 
 
 };
@@ -99,4 +118,5 @@ PLATON_DISPATCH(BasicDataTypeContract,(init)
 (set_string)(get_string)(get_string_length)
 (set_address)(get_address)
 (set_float)(get_float)(set_double)(get_double)
+(set_long)(get_long)(set_long_long)(get_long_long)
 )

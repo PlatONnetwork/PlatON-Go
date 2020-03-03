@@ -113,6 +113,7 @@ CONTRACT BasicDataIntegerTypeContract : public platon::Contract{
    	  CONST int64_t get_int64(){
    	  	return int64_v.self();
    	  }
+
      /**
       *  3)、验证大位数整型赋值
       */
@@ -208,7 +209,6 @@ CONTRACT BasicDataIntegerTypeContract : public platon::Contract{
 PLATON_DISPATCH(BasicDataIntegerTypeContract,(init)(set_uint8)(get_uint8)(set_uint16)(get_uint16)(set_uint32)
 (get_uint32)(set_uint64)(get_uint64)(set_int8)(get_int8)(set_int16)(get_int16)(set_int32)(get_int32)
 (set_int64)(get_int64)(set_u128)(get_u128)
-
 //(set_u256)(get_u256)(set_u160)(get_u160)(set_bigint)(get_bigint)
 )
 //(set_u160)(get_u160)(set_u256)(get_u256)(set_bigint)(get_bigint))
