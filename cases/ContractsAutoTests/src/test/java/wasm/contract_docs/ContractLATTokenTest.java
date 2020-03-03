@@ -65,6 +65,7 @@ public class ContractLATTokenTest extends WASMContractPrepareTest {
 
             balance = contract.balanceOf(receiver).send();
             collector.logStepPass("Call balanceOf of LATToken, token after balance: " + balance.getValue());
+            collector.assertEqual(balance.getValue().longValue(), Long.valueOf(100000000));
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
