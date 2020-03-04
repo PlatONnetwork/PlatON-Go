@@ -27,15 +27,15 @@ public class InitOverloadWithString extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_STRING_SPLICE = "string_splice";
-
     public static final String FUNC_STRING_FIND = "string_find";
+
+    public static final String FUNC_STRING_COMPARE = "string_compare";
 
     public static final String FUNC_GET_STRING = "get_string";
 
     public static final String FUNC_STRING_LENGTH = "string_length";
 
-    public static final String FUNC_STRING_COMPARE = "string_compare";
+    public static final String FUNC_STRING_SPLICE = "string_splice";
 
     public static final String FUNC_STRING_REVERSE = "string_reverse";
 
@@ -45,16 +45,6 @@ public class InitOverloadWithString extends WasmContract {
 
     protected InitOverloadWithString(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<String> string_splice(String spliceStr) {
-        final WasmFunction function = new WasmFunction(FUNC_STRING_SPLICE, Arrays.asList(spliceStr), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Int8> string_find(String findStr) {
-        final WasmFunction function = new WasmFunction(FUNC_STRING_FIND, Arrays.asList(findStr), Int8.class);
-        return executeRemoteCall(function, Int8.class);
     }
 
     public static RemoteCall<InitOverloadWithString> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, String initStr) {
@@ -67,6 +57,16 @@ public class InitOverloadWithString extends WasmContract {
         return deployRemoteCall(InitOverloadWithString.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
     }
 
+    public RemoteCall<Int8> string_find(String findStr) {
+        final WasmFunction function = new WasmFunction(FUNC_STRING_FIND, Arrays.asList(findStr), Int8.class);
+        return executeRemoteCall(function, Int8.class);
+    }
+
+    public RemoteCall<Int8> string_compare(String strone, String strtwo) {
+        final WasmFunction function = new WasmFunction(FUNC_STRING_COMPARE, Arrays.asList(strone,strtwo), Int8.class);
+        return executeRemoteCall(function, Int8.class);
+    }
+
     public RemoteCall<String> get_string() {
         final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
@@ -77,9 +77,9 @@ public class InitOverloadWithString extends WasmContract {
         return executeRemoteCall(function, Uint8.class);
     }
 
-    public RemoteCall<Int8> string_compare(String strone, String strtwo) {
-        final WasmFunction function = new WasmFunction(FUNC_STRING_COMPARE, Arrays.asList(strone,strtwo), Int8.class);
-        return executeRemoteCall(function, Int8.class);
+    public RemoteCall<String> string_splice(String spliceStr) {
+        final WasmFunction function = new WasmFunction(FUNC_STRING_SPLICE, Arrays.asList(spliceStr), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> string_reverse(String reverseStr) {

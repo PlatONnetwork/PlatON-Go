@@ -26,13 +26,13 @@ public class ReferenceDataTypeVectorContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GETCLOTHESCOLORLENGTH = "getClothesColorLength";
+
     public static final String FUNC_SETCLOTHESCOLORONE = "setClothesColorOne";
 
     public static final String FUNC_SETCLOTHESCOLORTWO = "setClothesColorTwo";
 
     public static final String FUNC_GETCLOTHESCOLORINDEX = "getClothesColorIndex";
-
-    public static final String FUNC_GETCLOTHESCOLORLENGTH = "getClothesColorLength";
 
     protected ReferenceDataTypeVectorContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -40,6 +40,11 @@ public class ReferenceDataTypeVectorContract extends WasmContract {
 
     protected ReferenceDataTypeVectorContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Uint64> getClothesColorLength() {
+        final WasmFunction function = new WasmFunction(FUNC_GETCLOTHESCOLORLENGTH, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public static RemoteCall<ReferenceDataTypeVectorContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -65,11 +70,6 @@ public class ReferenceDataTypeVectorContract extends WasmContract {
     public RemoteCall<String> getClothesColorIndex() {
         final WasmFunction function = new WasmFunction(FUNC_GETCLOTHESCOLORINDEX, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Uint64> getClothesColorLength() {
-        final WasmFunction function = new WasmFunction(FUNC_GETCLOTHESCOLORLENGTH, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public static ReferenceDataTypeVectorContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
