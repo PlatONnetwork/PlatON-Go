@@ -1119,9 +1119,6 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 	for iter.Valid(); iter.Next(); {
 
-		// todo test
-		log.Debug("ElectNextVerifierList: iter", "key", hex.EncodeToString(iter.Key()))
-
 		addrSuffix := iter.Value()
 		canBase, err := sk.db.GetCanBaseStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
