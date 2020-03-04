@@ -38,11 +38,11 @@ public class LATToken extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_TRANSFERFROM = "transferFrom";
+
     public static final String FUNC_TRANSFER = "transfer";
 
     public static final String FUNC_BALANCEOF = "balanceOf";
-
-    public static final String FUNC_TRANSFERFROM = "transferFrom";
 
     public static final String FUNC_APPROVE = "approve";
 
@@ -72,8 +72,8 @@ public class LATToken extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> transfer(WasmAddress _to, Uint64 _value) {
-        final WasmFunction function = new WasmFunction(FUNC_TRANSFER, Arrays.asList(_to,_value), Void.class);
+    public RemoteCall<TransactionReceipt> transferFrom(WasmAddress _from, WasmAddress _to, Uint64 _value) {
+        final WasmFunction function = new WasmFunction(FUNC_TRANSFERFROM, Arrays.asList(_from,_to,_value), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
@@ -147,14 +147,14 @@ public class LATToken extends WasmContract {
         return approvalEventObservable(filter);
     }
 
+    public RemoteCall<TransactionReceipt> transfer(WasmAddress _to, Uint64 _value) {
+        final WasmFunction function = new WasmFunction(FUNC_TRANSFER, Arrays.asList(_to,_value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
     public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
         final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(_owner), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
-    }
-
-    public RemoteCall<TransactionReceipt> transferFrom(WasmAddress _from, WasmAddress _to, Uint64 _value) {
-        final WasmFunction function = new WasmFunction(FUNC_TRANSFERFROM, Arrays.asList(_from,_to,_value), Void.class);
-        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<TransactionReceipt> approve(WasmAddress _spender, Uint64 _value) {

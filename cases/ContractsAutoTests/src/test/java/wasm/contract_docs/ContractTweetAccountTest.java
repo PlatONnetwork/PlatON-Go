@@ -88,13 +88,13 @@ public class ContractTweetAccountTest extends WASMContractPrepareTest {
             collector.logStepPass("Call caddrBalance, res: " + caddrBalance);
 
             // adminRetri
-            /*WasmAddress receiver = new WasmAddress("0x03f0E0a226f081A5dAeCFdA222caFc959eD7B801");
+            WasmAddress receiver = new WasmAddress("0x03f0E0a226f081A5dAeCFdA222caFc959eD7B801");
             BigInteger receiveBalanceBefore = web3j.platonGetBalance(receiver.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Call balance, before res: " + receiveBalanceBefore);
             TransactionReceipt adminTr = contract.adminRetrieveDonations(new WasmAddress(credentials.getAddress())).send();
             collector.logStepPass("Send adminRetrieveDonations, hash: " + adminTr.getTransactionHash() + " gasUsed: " + adminTr.getGasUsed().toString());
             BigInteger receiveBalanceAfter = web3j.platonGetBalance(receiver.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
-            collector.logStepPass("Call balance, after res: " + receiveBalanceAfter);*/
+            collector.logStepPass("Call balance, after res: " + receiveBalanceAfter);
 
             // adminDelete...
             BigInteger ownerBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();

@@ -29,13 +29,13 @@ public class TweetAccount extends WasmContract {
 
     public static final String FUNC_GETOWNERADDRESS = "getOwnerAddress";
 
+    public static final String FUNC_GETLATESTTWEET = "getLatestTweet";
+
     public static final String FUNC_ISADMIN = "isAdmin";
 
     public static final String FUNC_TWEET = "tweet";
 
     public static final String FUNC_GETTWEET = "getTweet";
-
-    public static final String FUNC_GETLATESTTWEET = "getLatestTweet";
 
     public static final String FUNC_GETNUMBEROFTWEETS = "getNumberOfTweets";
 
@@ -60,6 +60,11 @@ public class TweetAccount extends WasmContract {
         return executeRemoteCall(function, WasmAddress.class);
     }
 
+    public RemoteCall<String> getLatestTweet() {
+        final WasmFunction function = new WasmFunction(FUNC_GETLATESTTWEET, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public static RemoteCall<TweetAccount> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(TweetAccount.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -82,11 +87,6 @@ public class TweetAccount extends WasmContract {
 
     public RemoteCall<String> getTweet(Uint64 tweetId) {
         final WasmFunction function = new WasmFunction(FUNC_GETTWEET, Arrays.asList(tweetId), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<String> getLatestTweet() {
-        final WasmFunction function = new WasmFunction(FUNC_GETLATESTTWEET, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
     }
 
