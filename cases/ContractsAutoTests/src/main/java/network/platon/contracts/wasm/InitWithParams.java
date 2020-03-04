@@ -25,9 +25,9 @@ public class InitWithParams extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_PERSON = "get_person";
-
     public static final String FUNC_ADD_PERSON = "add_person";
+
+    public static final String FUNC_GET_PERSON = "get_person";
 
     protected InitWithParams(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -35,11 +35,6 @@ public class InitWithParams extends WasmContract {
 
     protected InitWithParams(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<Person[]> get_person() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_PERSON, Arrays.asList(), Person[].class);
-        return executeRemoteCall(function, Person[].class);
     }
 
     public static RemoteCall<InitWithParams> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, String init_name) {
@@ -55,6 +50,11 @@ public class InitWithParams extends WasmContract {
     public RemoteCall<TransactionReceipt> add_person(Person one_person) {
         final WasmFunction function = new WasmFunction(FUNC_ADD_PERSON, Arrays.asList(one_person), Void.class);
         return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<Person[]> get_person() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_PERSON, Arrays.asList(), Person[].class);
+        return executeRemoteCall(function, Person[].class);
     }
 
     public static InitWithParams load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

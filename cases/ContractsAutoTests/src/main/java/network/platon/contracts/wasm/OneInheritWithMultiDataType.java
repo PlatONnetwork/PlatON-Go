@@ -28,11 +28,11 @@ public class OneInheritWithMultiDataType extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_MY_MESSAGE_HEAD = "get_my_message_head";
-
     public static final String FUNC_ADD_MY_MESSAGE = "add_my_message";
 
     public static final String FUNC_GET_MY_MESSAGE_SIZE = "get_my_message_size";
+
+    public static final String FUNC_GET_MY_MESSAGE_HEAD = "get_my_message_head";
 
     public static final String FUNC_GET_MY_MESSAGE_AGE = "get_my_message_age";
 
@@ -46,11 +46,6 @@ public class OneInheritWithMultiDataType extends WasmContract {
 
     protected OneInheritWithMultiDataType(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<String> get_my_message_head(Uint8 index) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_HEAD, Arrays.asList(index), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public static RemoteCall<OneInheritWithMultiDataType> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -71,6 +66,11 @@ public class OneInheritWithMultiDataType extends WasmContract {
     public RemoteCall<Uint8> get_my_message_size() {
         final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_SIZE, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
+    }
+
+    public RemoteCall<String> get_my_message_head(Uint8 index) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_HEAD, Arrays.asList(index), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<Uint32> get_my_message_age(Uint8 index) {

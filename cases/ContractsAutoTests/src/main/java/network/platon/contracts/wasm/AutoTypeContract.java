@@ -27,9 +27,9 @@ public class AutoTypeContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_ANTO_DOUBLE = "get_anto_double";
-
     public static final String FUNC_GET_ANTO_INT = "get_anto_int";
+
+    public static final String FUNC_GET_ANTO_DOUBLE = "get_anto_double";
 
     public static final String FUNC_GET_ANTO_MULTIPLE = "get_anto_multiple";
 
@@ -49,11 +49,6 @@ public class AutoTypeContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<Double> get_anto_double() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_DOUBLE, Arrays.asList(), Double.class);
-        return executeRemoteCall(function, Double.class);
-    }
-
     public static RemoteCall<AutoTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(AutoTypeContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -67,6 +62,11 @@ public class AutoTypeContract extends WasmContract {
     public RemoteCall<Int32> get_anto_int() {
         final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_INT, Arrays.asList(), Int32.class);
         return executeRemoteCall(function, Int32.class);
+    }
+
+    public RemoteCall<Double> get_anto_double() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_DOUBLE, Arrays.asList(), Double.class);
+        return executeRemoteCall(function, Double.class);
     }
 
     public RemoteCall<Int32> get_anto_multiple() {
