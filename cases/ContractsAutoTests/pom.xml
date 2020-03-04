@@ -19,7 +19,7 @@
         <dependency>
             <groupId>com.platon.client</groupId>
             <artifactId>core</artifactId>
-            <version>0.9.1.0-SNAPSHOT</version>
+            <version>0.9.1.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.platon.client</groupId>
