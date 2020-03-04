@@ -11,6 +11,8 @@ import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
 
+import java.util.List;
+
 /**
  * @author zjsunzone
  *
@@ -61,7 +63,15 @@ public class ContractLATTokenTest extends WASMContractPrepareTest {
             collector.logStepPass("Call balanceOf of LATToken, token before balance: " + balance.getValue());
             TransactionReceipt trasferTR = contract.transfer(receiver, Uint64.of(100000000)).send();
             collector.logStepPass("Send trasnsfer, hash: " + trasferTR.getTransactionHash() + " gasUsed: " + trasferTR.getGasUsed());
-            collector.logStepPass("Send transfer, logs: " + trasferTR.getLogs().size());
+
+            // parse logs
+            List<LATToken.TransferEventResponse> responses = contract.getTransferEvents(trasferTR);
+
+            collector.logStepPass("Send transfer, logs: " + trasferTR.getLogs().size()
+                    + " from: " + responses.get(0).topic1 + " to: " + responses.get(0).topic2 + " value: "
+                    + responses.get(0).arg1);
+
+
 
             balance = contract.balanceOf(receiver).send();
             collector.logStepPass("Call balanceOf of LATToken, token after balance: " + balance.getValue());
