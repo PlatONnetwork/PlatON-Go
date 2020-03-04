@@ -20,6 +20,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SafeMathMock issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + using.getTransactionReceipt().get().getGasUsed());
             BigInteger result = using.max(new BigInteger("12"), new BigInteger("13")).send();
             collector.assertEqual(result, new BigInteger("13"), "checkout library function");
         } catch (Exception e) {

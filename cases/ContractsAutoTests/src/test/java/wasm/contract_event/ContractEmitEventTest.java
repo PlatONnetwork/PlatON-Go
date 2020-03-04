@@ -2,14 +2,9 @@ package wasm.contract_event;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.EventCallContract;
 import network.platon.contracts.wasm.ContractEmitEvent;
-import network.platon.contracts.wasm.ContractEmitEvent4;
-import network.platon.contracts.wasm.Contract_panic;
-import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.protocol.exceptions.TransactionException;
 import wasm.beforetest.WASMContractPrepareTest;
 
 import java.util.List;
@@ -33,6 +28,7 @@ public class ContractEmitEventTest extends WASMContractPrepareTest {
             String contractAddress = contractEmitEvent.getContractAddress();
             String transactionHash = contractEmitEvent.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractEmitEvent issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractEmitEvent.getTransactionReceipt().get().getGasUsed());
 
             //调用包含零个主题事件的合约
             TransactionReceipt transactionReceipt = contractEmitEvent.zero_emit_event(name).send();

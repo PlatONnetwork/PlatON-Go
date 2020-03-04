@@ -6,8 +6,8 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.FunctionParam;
 import org.junit.Before;
 import org.junit.Test;
-
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+
 import java.math.BigInteger;
 
 
@@ -37,6 +37,7 @@ public class FunctionParamTest extends ContractPrepareTest {
             String contractAddress = functionparam.getContractAddress();
             TransactionReceipt tx = functionparam.getTransactionReceipt().get();
             collector.logStepPass("FunctionParam deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("FunctionParam deploy gasUsed:" + functionparam.getTransactionReceipt().get().getGasUsed());
 
             BigInteger t = functionparam.t().send();
             collector.logStepPass("FunctionParam函数返回值：" + t);

@@ -40,7 +40,7 @@ CONTRACT ReferenceDataTypeVectorContract : public platon::Contract{
     }
 
     private:
-    platon::StorageType<"vector_clothes"_n, std::vector<clothes>> vector_clothes;
+    platon::StorageType<"vector1"_n, std::vector<clothes>> vector_clothes;
 };
 
 PLATON_DISPATCH(ReferenceDataTypeVectorContract, (init)(setClothesColorOne)(setClothesColorTwo)(getClothesColorIndex)

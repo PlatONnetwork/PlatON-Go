@@ -26,14 +26,14 @@ CONTRACT InnerFunction_1:public platon::Contract{
 		}
 			
 		/// 获取当前旷工地址
-		CONST std::string coinbase() {
-			return platon_coinbase().toString();		
+		CONST Address coinbase() {
+			return platon_coinbase();		
 		}
 
 		/// 获取指定地址的余额(bug)
 		CONST std::string balanceOf(const std::string& addr) {
 			Energon e = platon_balance(Address(addr));
-			return to_string(e.Get());		
+			return std::to_string(e.Get());		
 		}
 		
 };

@@ -47,6 +47,7 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
             String contractAddress = contractMigratev1.getContractAddress();
             String transactionHash = contractMigratev1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractMigrateV1 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractMigratev1.getTransactionReceipt().get().getGasUsed());
             
             Transfer transfer = new Transfer(web3j, transactionManager);
             transfer.sendFunds(contractAddress, new BigDecimal(origin_contract_value), Convert.Unit.VON).send();

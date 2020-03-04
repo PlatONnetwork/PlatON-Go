@@ -44,6 +44,7 @@ public class AssertContractTest extends ContractPrepareTest {
             TransactionReceipt tx = assertContract.getTransactionReceipt().get();
 
             collector.logStepPass("AssertContract deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + assertContract.getTransactionReceipt().get().getGasUsed());
 
             tx = assertContract.toSenderAmount(new BigInteger(first),new BigInteger(second)).send();
 

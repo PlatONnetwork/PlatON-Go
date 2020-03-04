@@ -48,6 +48,7 @@ public class MathAndCryptographicFunctionsTest extends ContractPrepareTest {
             String contractAddress = mathAndCryptographicFunctions.getContractAddress();
             TransactionReceipt tx = mathAndCryptographicFunctions.getTransactionReceipt().get();
             collector.logStepPass("MathAndCryptographicFunctionsTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("MathAndCryptographicFunctionsTest deploy gasUsed:" + mathAndCryptographicFunctions.getTransactionReceipt().get().getGasUsed());
 
             //验证addmod函数
             BigInteger resultA = mathAndCryptographicFunctions.callAddMod().send();

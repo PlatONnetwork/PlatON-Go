@@ -29,6 +29,7 @@ public class EventCallContractTest extends ContractPrepareTest {
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + eventCallContract.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = eventCallContract.emitEvent().send();
             List<EventCallContract.IncrementEventResponse> emitEventData = eventCallContract.getIncrementEvents(receipt);
             String data = emitEventData.get(0).log.getData();

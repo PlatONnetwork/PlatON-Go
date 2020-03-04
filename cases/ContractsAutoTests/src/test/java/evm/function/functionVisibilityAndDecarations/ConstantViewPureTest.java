@@ -34,9 +34,11 @@ public class ConstantViewPureTest extends ContractPrepareTest {
             String contractAddress = constantviewpure.getContractAddress();
             TransactionReceipt tx = constantviewpure.getTransactionReceipt().get();
             collector.logStepPass("ConstantViewPure deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("ConstantViewPure deploy gasUsed:" + constantviewpure.getTransactionReceipt().get().getGasUsed());
 
 
             TransactionReceipt age = constantviewpure.constantViewPure().send();
+            collector.logStepPass("age交易Hash" + age.getTransactionHash());
             //验证constant声明
             BigInteger constantage = constantviewpure.getAgeByConstant().send();
             collector.logStepPass("constant声明函数后返回值：" + constantage);

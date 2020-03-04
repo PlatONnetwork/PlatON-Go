@@ -48,7 +48,7 @@ CONTRACT TwoInherit : public platon::Contract{
 
 
    private:
-      platon::StorageType<"sub_my_message_vector"_n, std::vector<sub_my_message>> info;
+      platon::StorageType<"svector"_n, std::vector<sub_my_message>> info;
 };
 
 PLATON_DISPATCH(TwoInherit, (init)(add_sub_my_message)(get_sub_my_message_size)(get_sub_my_message_head)(get_sub_my_message_from))

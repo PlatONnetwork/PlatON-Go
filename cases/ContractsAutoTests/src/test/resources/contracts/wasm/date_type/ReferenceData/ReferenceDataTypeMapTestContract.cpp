@@ -14,14 +14,14 @@ class Person{
 CONTRACT ReferenceDataTypeMapTestContract : public platon::Contract{
 
      private:
-       platon::StorageType<"storage_string_map"_n, std::map<std::string,std::string>> storage_string_map;
-       platon::StorageType<"storage_map_uint"_n,std::map<uint8_t,std::string>> storage_map_uint;
-       platon::StorageType<"a_storage_map_uint"_n,std::map<uint8_t,std::string>> a_storage_map_uint;
-       platon::StorageType<"storage_map_bool"_n,std::map<bool,std::string>> storage_map_bool;
-       platon::StorageType<"storage_map_string"_n,std::map<std::string,std::string>> storage_map_string;
-       platon::StorageType<"a_storage_map_string"_n, std::map<std::string,std::string>> a_storage_map_string;
-       platon::StorageType<"storage_map_person"_n,std::map<uint8_t,Person>> storage_map_person;
-       platon::StorageType<"storage_map_address"_n,std::map<Address,std::string>> storage_map_address;
+       platon::StorageType<"stringmap"_n, std::map<std::string,std::string>> storage_string_map;
+       platon::StorageType<"mapuint"_n,std::map<uint8_t,std::string>> storage_map_uint;
+       platon::StorageType<"amapuint"_n,std::map<uint8_t,std::string>> a_storage_map_uint;
+       platon::StorageType<"mapbool"_n,std::map<bool,std::string>> storage_map_bool;
+       platon::StorageType<"mapstring"_n,std::map<std::string,std::string>> storage_map_string;
+       platon::StorageType<"amapstring"_n, std::map<std::string,std::string>> a_storage_map_string;
+       platon::StorageType<"mapperson"_n,std::map<uint8_t,Person>> storage_map_person;
+       platon::StorageType<"mapaddress"_n,std::map<Address,std::string>> storage_map_address;
 
     public:
     ACTION void init(){}

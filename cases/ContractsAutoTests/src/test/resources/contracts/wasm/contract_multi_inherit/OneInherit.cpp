@@ -47,7 +47,7 @@ CONTRACT OneInherit : public platon::Contract{
 
 
    private:
-      platon::StorageType<"my_message_vector"_n, std::vector<my_message>> info;
+      platon::StorageType<"mymvector"_n, std::vector<my_message>> info;
 };
 
 PLATON_DISPATCH(OneInherit, (init)(add_my_message)(get_my_message_size)(get_my_message_head)(get_my_message_body))

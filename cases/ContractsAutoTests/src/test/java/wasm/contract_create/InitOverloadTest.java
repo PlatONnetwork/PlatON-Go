@@ -28,6 +28,7 @@ public class InitOverloadTest extends WASMContractPrepareTest {
             String contractAddress = initOverload.getContractAddress();
             String transactionHash = initOverload.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitOverload issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + initOverload.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = initOverload.add_vector(name).send();
             collector.logStepPass("InitOverload add_vector successfully hash:" + transactionReceipt.getTransactionHash());

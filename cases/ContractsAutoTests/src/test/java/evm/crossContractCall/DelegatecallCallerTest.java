@@ -34,6 +34,7 @@ public class DelegatecallCallerTest extends ContractPrepareTest {
             String callerContractAddress = delegatecallCaller.getContractAddress();
             TransactionReceipt tx = delegatecallCaller.getTransactionReceipt().get();
             collector.logStepPass("DelegatecallCaller deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + delegatecallCaller.getTransactionReceipt().get().getGasUsed());
 
 
             //被调用者合约地址
@@ -41,6 +42,7 @@ public class DelegatecallCallerTest extends ContractPrepareTest {
             String calleeContractAddress = delegatecallCallee.getContractAddress();
             TransactionReceipt tx1 = delegatecallCallee.getTransactionReceipt().get();
             collector.logStepPass("DelegatecallCallee deploy successfully.contractAddress:" + calleeContractAddress + ", hash:" + tx1.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + delegatecallCallee.getTransactionReceipt().get().getGasUsed());
 
             //查询调用者x值
             String callerX = delegatecallCaller.getCallerX().send().toString();

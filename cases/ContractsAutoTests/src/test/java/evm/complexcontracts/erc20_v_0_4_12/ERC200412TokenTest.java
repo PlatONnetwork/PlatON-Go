@@ -72,6 +72,7 @@ public class ERC200412TokenTest extends ContractPrepareTest {
                 TransactionReceipt tx = eRC200412Token.getTransactionReceipt().get();
 
                 collector.logStepPass("ERC200412Token deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+                collector.logStepPass("deploy gas used:" + eRC200412Token.getTransactionReceipt().get().getGasUsed());
 
                 //获取代币名称
                 String chainTokenName = eRC200412Token.name().send().toString();

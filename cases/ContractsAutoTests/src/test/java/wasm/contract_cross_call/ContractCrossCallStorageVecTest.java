@@ -25,27 +25,30 @@ public class ContractCrossCallStorageVecTest extends WASMContractPrepareTest {
 
             // deploy the target contract which the name is `storage_vec`, first
             ContractStorageVector storage_vec = ContractStorageVector.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy storage_vec contract:" + storage_vec.getTransactionReceipt().get().getGasUsed());
 
             String storage_vec_Addr = storage_vec.getContractAddress();
             String storage_vec_TxHash = storage_vec.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("ContractHello issued sucessfully, contractAddress:" + storage_vec_Addr + ", txHash:" + storage_vec_TxHash);
+            collector.logStepPass("ContractHello deployed sucessfully, contractAddress:" + storage_vec_Addr + ", txHash:" + storage_vec_TxHash);
 
 
             // deploy the cross_call  contract second
             ContractCrossCallStorageVector crossCall = ContractCrossCallStorageVector.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy cross_call_storage_vec contract:" + crossCall.getTransactionReceipt().get().getGasUsed());
+
 
             String crossCallAddr = crossCall.getContractAddress();
             String crossCallTxHash = crossCall.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("ContractCrossCall issued sucessfully, contractAddress:" + crossCallAddr + ", txHash:" + crossCallTxHash);
+            collector.logStepPass("ContractCrossCall deployed sucessfully, contractAddress:" + crossCallAddr + ", txHash:" + crossCallTxHash);
 
 
             // check arr size 1st
             Uint64 storageVecLen = storage_vec.get_vector_size().send();
-            System.out.println("the msg count in arr of  storage_vec contract:" + storageVecLen);
+            collector.logStepPass("the msg count in arr of  storage_vec contract:" + storageVecLen);
             collector.assertEqual(storageVecLen.getValue().longValue(), 0l);
 
             Uint64 crossCallVecLen = crossCall.get_vector_size().send();
-            System.out.println("the msg count in arr of crossCall contract:" + crossCallVecLen);
+            collector.logStepPass("the msg count in arr of crossCall contract:" + crossCallVecLen);
             collector.assertEqual(crossCallVecLen.getValue().longValue(), 0l);
 
 
@@ -62,11 +65,11 @@ public class ContractCrossCallStorageVecTest extends WASMContractPrepareTest {
 
             // check arr size 2nd
             storageVecLen = storage_vec.get_vector_size().send();
-            System.out.println("the msg count in arr of  storage_vec contract:" + storageVecLen);
+            collector.logStepPass("the msg count in arr of  storage_vec contract:" + storageVecLen);
             collector.assertEqual(storageVecLen.getValue().longValue(), 1l);
 
             crossCallVecLen = crossCall.get_vector_size().send();
-            System.out.println("the msg count in arr of crossCall contract:" + crossCallVecLen);
+            collector.logStepPass("the msg count in arr of crossCall contract:" + crossCallVecLen);
             collector.assertEqual(crossCallVecLen.getValue().longValue(), 0l);
 
         } catch (Exception e) {

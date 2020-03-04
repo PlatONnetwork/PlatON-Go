@@ -36,7 +36,7 @@ public class AbstractContractBInhertAllImpTest extends ContractPrepareTest {
             String contractAddress = abstractContractBSubclass.getContractAddress();
             TransactionReceipt tx = abstractContractBSubclass.getTransactionReceipt().get();
             collector.logStepPass("abstractContract issued successfully.contractAddress:" + contractAddress
-                                            + ", hash:" + tx.getTransactionHash());
+                                            + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
 
         } catch (Exception e) {

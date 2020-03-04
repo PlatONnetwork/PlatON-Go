@@ -1,9 +1,11 @@
 package wasm.contract_cross_call;
 
 import com.platon.rlp.datatypes.Uint64;
+import com.platon.rlp.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractCallPrecompile;
+import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import wasm.beforetest.WASMContractPrepareTest;
 
@@ -20,22 +22,39 @@ public class ContractCrossCallPrecompileContractsTest extends WASMContractPrepar
 
             // 测试跨合约调 ecrecover 预编译合约
             //
-            // uint256[4] memory input;
-            // input[0] = uint256(msgh);
-            // input[1] = v;
-            // input[2] = uint256(r);
-            // input[3] = uint256(s);
+            // 入参的规则为: bytes32(dataHash) + bytes32(v) + bytes32(r) + bytes32(s)
             //
             // dataHash: "0xe281eaa11e6e37e6f53aade5d6c5b7201ef1c66162ec42ccc3215a0c4349350d", this hash is not txHash
-            //V = 27
-            //R = "0x55b60cadd4b4a3ea4fc368ef338f97e12e7328dd6e9e969a3fd8e5c10be855fe"
-            //S = "0x2b42cee2585a16ea537efcb88009c1aeac693c28b59aa6bbff0baf22730338f6"
-            //address: "0x8a9B36694F1eeeb500c84A19bB34137B05162EC5"
-            String input = "0xe281eaa11e6e37e6f53aade5d6c5b7201ef1c66162ec42ccc3215a0c4349350d000000000000000000000000000000000000000000000000000000000000001b55b60cadd4b4a3ea4fc368ef338f97e12e7328dd6e9e969a3fd8e5c10be855fe2b42cee2585a16ea537efcb88009c1aeac693c28b59aa6bbff0baf22730338f6";
+            // V = 27
+            // R = "0x55b60cadd4b4a3ea4fc368ef338f97e12e7328dd6e9e969a3fd8e5c10be855fe"
+            // S = "0x2b42cee2585a16ea537efcb88009c1aeac693c28b59aa6bbff0baf22730338f6"
+            //
+            // 求出最终的hex应为 0000000000000000000000008a9b36694f1eeeb500c84a19bb34137b05162ec5
+            // 对应的address: "0x8a9B36694F1eeeb500c84A19bB34137B05162EC5"
+            String msghStr = "0xe281eaa11e6e37e6f53aade5d6c5b7201ef1c66162ec42ccc3215a0c4349350d";
+
+            byte[] msgh = DataChangeUtil.hexToByteArray(msghStr);
+
+
+            Uint8 v = Uint8.of("27");
+
+            String rStr = "0x55b60cadd4b4a3ea4fc368ef338f97e12e7328dd6e9e969a3fd8e5c10be855fe";
+            byte[] r = DataChangeUtil.hexToByteArray(rStr);
+
+            String sStr = "0x2b42cee2585a16ea537efcb88009c1aeac693c28b59aa6bbff0baf22730338f6";
+            byte[] s = DataChangeUtil.hexToByteArray(sStr);
+
+            String expectAddrStr = "0000000000000000000000008a9b36694f1eeeb500c84a19bb34137b05162ec5";
+
 
             ContractCallPrecompile precompile =  ContractCallPrecompile.deploy(web3j, transactionManager, provider).send();
-            String addr =  precompile.cross_call_ecrecover(input, Uint64.of(0), Uint64.of(60000000l)).send();
+            collector.logStepPass("gas used after deploy cross_call_precompile contract:" + precompile.getTransactionReceipt().get().getGasUsed());
+            collector.logStepPass("cross_call_precompile deployed sucessfully, contractAddress:" + precompile.getContractAddress() + ", txHash:" + precompile.getTransactionReceipt().get().getTransactionHash());
+
+            String addr =  precompile.cross_call_ecrecover(msgh, v, r, s, Uint64.of(0), Uint64.of(60000000l)).send();
+
             collector.logStepPass("cross_call_precompile cross_call_ecrecover successfully addr:" + addr);
+            collector.assertEqual(addr, expectAddrStr);
 
             // 测试跨合约调 sha256hash 预编译合约
             String sha3Str = "0x414243"; // hex(ABC)
@@ -72,9 +91,19 @@ public class ContractCrossCallPrecompileContractsTest extends WASMContractPrepar
             // mod = "0000000000000000000000000000000000000000000000000000000000000005"
             // 求得的 z 应该为: 0000000000000000000000000000000000000000000000000000000000000003
             //
-            String bigModExpStr = "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000005";
             String zExpectHash = "0000000000000000000000000000000000000000000000000000000000000003";
-            String zHash = precompile.cross_call_bigModExp(bigModExpStr,Uint64.of(0), Uint64.of(60000000l)).send();
+
+            String baseStr = "0000000000000000000000000000000000000000000000000000000000000020";
+            byte[] base = DataChangeUtil.hexToByteArray(baseStr);
+
+            String expStr = "0000000000000000000000000000000000000000000000000000000000000003";
+            byte[] exp = DataChangeUtil.hexToByteArray(expStr);
+
+            String modStr = "0000000000000000000000000000000000000000000000000000000000000005";
+            byte[] mod = DataChangeUtil.hexToByteArray(modStr);
+
+
+            String zHash = precompile.cross_call_bigModExp(base, exp, mod,Uint64.of(0), Uint64.of(60000000l)).send();
             collector.logStepPass("cross_call_precompile cross_call_bigModExp successfully zHash:" + zHash);
             collector.assertEqual(zHash, zExpectHash);
 
@@ -85,6 +114,7 @@ public class ContractCrossCallPrecompileContractsTest extends WASMContractPrepar
             // 其中入参的  ax, ay, bx, by 其中 (ax, ay) 为椭圆曲线 bn256 上的一个点A， (bx, by) 是椭圆曲线上的另外一个点B
             // 该函数就是 求两个点的 G点
             //
+            // input = ax + ay + bx + by
             //
             // 对于点A坐标取值:
             // ax:  10744596414106452074759370245733544594153395043370666422502510773307029471145 其十六进制为: 0x17c139df0efee0f766bc0204762b774362e4ded88953a39ce849a8a7fa163fa9
@@ -95,9 +125,22 @@ public class ContractCrossCallPrecompileContractsTest extends WASMContractPrepar
             // by: 3269329550605213075043232856820720631601935657990457502777101397807070461336  其十六进制为: 0x073a5ffcc6fc7a28c30723d6e58ce577356982d65b833a5a5c15bf9024b43d98
             //
             // 则，内置合约 bn256Add 的input入参为: ax+ay+bx+by = 0x17c139df0efee0f766bc0204762b774362e4ded88953a39ce849a8a7fa163fa901e0559bacb160664764a357af8a9fe70baa9258e0b959273ffc5718c6d4cc7c039730ea8dff1254c0fee9c0ea777d29a9c710b7e616683f194f18c43b43b869073a5ffcc6fc7a28c30723d6e58ce577356982d65b833a5a5c15bf9024b43d98
-            String bn256AddStr = "0x17c139df0efee0f766bc0204762b774362e4ded88953a39ce849a8a7fa163fa901e0559bacb160664764a357af8a9fe70baa9258e0b959273ffc5718c6d4cc7c039730ea8dff1254c0fee9c0ea777d29a9c710b7e616683f194f18c43b43b869073a5ffcc6fc7a28c30723d6e58ce577356982d65b833a5a5c15bf9024b43d98";
             String cExpect = "15bf2bb17880144b5d1cd2b1f46eff9d617bffd1ca57c37fb5a49bd84e53cf66049c797f9ce0d17083deb32b5e36f2ea2a212ee036598dd7624c168993d1355f";
-            String cCoordinate = precompile.cross_call_bn256Add(bn256AddStr,Uint64.of(0), Uint64.of(60000000l)).send();
+
+
+            String axStr = "0x17c139df0efee0f766bc0204762b774362e4ded88953a39ce849a8a7fa163fa9";
+            byte[] ax = DataChangeUtil.hexToByteArray(axStr);
+
+            String ayStr = "0x01e0559bacb160664764a357af8a9fe70baa9258e0b959273ffc5718c6d4cc7c";
+            byte[] ay = DataChangeUtil.hexToByteArray(ayStr);
+
+            String bxStr = "0x039730ea8dff1254c0fee9c0ea777d29a9c710b7e616683f194f18c43b43b869";
+            byte[] bx = DataChangeUtil.hexToByteArray(bxStr);
+
+            String byStr = "0x073a5ffcc6fc7a28c30723d6e58ce577356982d65b833a5a5c15bf9024b43d98";
+            byte[] by = DataChangeUtil.hexToByteArray(byStr);
+
+            String cCoordinate = precompile.cross_call_bn256Add(ax, ay, bx, by, Uint64.of(0), Uint64.of(60000000l)).send();
             collector.logStepPass("cross_call_precompile cross_call_bn256Add successfully c ponit coordinate:" + cCoordinate);
             collector.assertEqual(cCoordinate, cExpect);
 
@@ -107,6 +150,8 @@ public class ContractCrossCallPrecompileContractsTest extends WASMContractPrepar
             //
             // 主要是对 bn256 做 × 操作
             // 其中入参的 ax, ay, 和 系数 scalar 其中 (ax, ay) 为椭圆曲线 bn256 上的一个点A, scalar 为椭圆曲线的质数域中的 N×G， 即 A×NG == B 得到椭圆曲线上的另外一个点B的坐标(bx, by)
+            //
+            // input = ax + ay + scalar
             //
             // 对于点A坐标取值:
             // ax: 19823850254741169819033785099293761935467223354323761392354670518001715552183  其十六进制为: 0x2bd3e6d0f3b142924f5ca7b49ce5b9d54c4703d7ae5648e61d02268b1a0a9fb7
@@ -119,9 +164,18 @@ public class ContractCrossCallPrecompileContractsTest extends WASMContractPrepar
             // by: 1405615944858121891163559530323310827496899969303520166098610312148921359100  其十六进制为: 0x031b8ce914eba3a9ffb989f9cdd5b0f01943074bf4f0f315690ec3cec6981afc
             //
             // 则，内置合约 bn256ScalarMul 的input入参为: ax+ay+scalar = 0x2bd3e6d0f3b142924f5ca7b49ce5b9d54c4703d7ae5648e61d02268b1a0a9fb721611ce0a6af85915e2f1d70300909ce2e49dfad4a4619c8390cae66cefdb20400000000000000000000000000000000000000000000000011138ce750fa15c2
-            String bn256MulStr = "0x2bd3e6d0f3b142924f5ca7b49ce5b9d54c4703d7ae5648e61d02268b1a0a9fb721611ce0a6af85915e2f1d70300909ce2e49dfad4a4619c8390cae66cefdb20400000000000000000000000000000000000000000000000011138ce750fa15c2";
             String bExpect = "070a8d6a982153cae4be29d434e8faef8a47b274a053f5a4ee2a6c9c13c31e5c031b8ce914eba3a9ffb989f9cdd5b0f01943074bf4f0f315690ec3cec6981afc";
-            String bCoordinate = precompile.cross_call_bn256ScalarMul(bn256MulStr,Uint64.of(0), Uint64.of(60000000l)).send();
+
+            String xStr = "0x2bd3e6d0f3b142924f5ca7b49ce5b9d54c4703d7ae5648e61d02268b1a0a9fb7";
+            byte[] x = DataChangeUtil.hexToByteArray(xStr);
+
+            String yStr = "0x21611ce0a6af85915e2f1d70300909ce2e49dfad4a4619c8390cae66cefdb204";
+            byte[] y = DataChangeUtil.hexToByteArray(yStr);
+
+            String scalarStr = "0x00000000000000000000000000000000000000000000000011138ce750fa15c2";
+            byte[] scalar = DataChangeUtil.hexToByteArray(scalarStr);
+
+            String bCoordinate = precompile.cross_call_bn256ScalarMul(x, y, scalar, Uint64.of(0), Uint64.of(60000000l)).send();
             collector.logStepPass("cross_call_precompile cross_call_bn256ScalarMul successfully b ponit coordinate:" + bCoordinate);
             collector.assertEqual(bCoordinate, bExpect);
 

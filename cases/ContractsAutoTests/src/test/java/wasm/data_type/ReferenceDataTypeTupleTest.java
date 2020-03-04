@@ -50,7 +50,7 @@ public class ReferenceDataTypeTupleTest extends WASMContractPrepareTest {
             String contractAddress = referenceDataTypeTupleContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeTupleContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeTupleContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeTupleContract deploy fail.", e.toString());

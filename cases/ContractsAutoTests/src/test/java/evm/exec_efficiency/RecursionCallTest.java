@@ -8,6 +8,8 @@ import network.platon.contracts.RecursionCall;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.utils.Convert;
+
 import java.math.BigInteger;
 
 /**
@@ -36,14 +38,16 @@ public class RecursionCallTest extends ContractPrepareTest {
             RecursionCall recursionCall = RecursionCall.deploy(web3j, transactionManager, provider).send();
             contractAddress = recursionCall.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
+            collector.logStepPass("deploy gas used:" + recursionCall.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = RecursionCall.load(contractAddress, web3j, transactionManager, provider)
-                    .recursionCallTest(numberOfCalls).send();
+                    .recursionCallTest(numberOfCalls, new BigInteger("0")).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
             collector.logStepPass("gasUsed:" + gasUsed);
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
+            collector.logStepPass("get result value:" + RecursionCall.load(contractAddress, web3j, transactionManager, provider).get_total().send());
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());

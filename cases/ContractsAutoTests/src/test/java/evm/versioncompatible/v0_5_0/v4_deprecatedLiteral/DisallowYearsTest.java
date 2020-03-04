@@ -40,6 +40,7 @@ public class DisallowYearsTest extends ContractPrepareTest {
             TransactionReceipt tx = disallowYears.getTransactionReceipt().get();
 
             collector.logStepPass("FunctionDeclaraction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + disallowYears.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt transactionReceipt = disallowYears.testyear(new BigInteger("10"),new BigInteger("1")).send();
 

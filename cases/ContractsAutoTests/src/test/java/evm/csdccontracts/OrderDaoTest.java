@@ -41,6 +41,7 @@ public class OrderDaoTest extends ContractPrepareTest {
             String callerContractAddress = orderDao.getContractAddress();
             TransactionReceipt tx = orderDao.getTransactionReceipt().get();
             collector.logStepPass("OrderDao deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + orderDao.getTransactionReceipt().get().getGasUsed());
 
             Date start = new Date();
 

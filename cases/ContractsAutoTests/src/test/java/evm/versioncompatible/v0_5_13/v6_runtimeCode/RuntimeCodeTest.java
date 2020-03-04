@@ -37,6 +37,7 @@ public class RuntimeCodeTest extends ContractPrepareTest {
             TransactionReceipt tx = runtimeCode.getTransactionReceipt().get();
 
             collector.logStepPass("RuntimeCodeTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + runtimeCode.getTransactionReceipt().get().getGasUsed());
 
             byte[] runtimeCodeByteArr = runtimeCode.getContractName().send();
 

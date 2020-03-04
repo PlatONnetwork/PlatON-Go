@@ -43,6 +43,7 @@ public class WithBackCallerTest extends ContractPrepareTest {
             String callerContractAddress = withBackCaller.getContractAddress();
             TransactionReceipt tx = withBackCaller.getTransactionReceipt().get();
             collector.logStepPass("WithBackCaller deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + withBackCaller.getTransactionReceipt().get().getGasUsed());
 
 
             //被调用者合约地址
@@ -50,6 +51,7 @@ public class WithBackCallerTest extends ContractPrepareTest {
             String calleeContractAddress = withBackCallee.getContractAddress();
             TransactionReceipt tx1 = withBackCallee.getTransactionReceipt().get();
             collector.logStepPass("WithBackCallee deploy successfully.contractAddress:" + calleeContractAddress + ", hash:" + tx1.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + withBackCallee.getTransactionReceipt().get().getGasUsed());
 
             //数值类型跨合约调用
             TransactionReceipt tx2 = withBackCaller.callDoublelTest(calleeContractAddress,new BigInteger(doubleValue)).send();

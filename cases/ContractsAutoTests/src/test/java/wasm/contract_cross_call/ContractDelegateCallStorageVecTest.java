@@ -21,27 +21,30 @@ public class ContractDelegateCallStorageVecTest extends WASMContractPrepareTest 
 
             // deploy the target contract which the name is `storage_vec`, first
             ContractStorageVector target = ContractStorageVector.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy storage_vec contract:" + target.getTransactionReceipt().get().getGasUsed());
+
 
             String storage_Addr = target.getContractAddress();
             String sotrage_vec_TxHash = target.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("ContractTarget issued sucessfully, contractAddress:" + storage_Addr + ", txHash:" + sotrage_vec_TxHash);
+            collector.logStepPass("ContractTarget deployed sucessfully, contractAddress:" + storage_Addr + ", txHash:" + sotrage_vec_TxHash);
 
 
             // deploy the delegate_call  contract second
             ContractDelegateCallStorageVector delegateCall = ContractDelegateCallStorageVector.deploy(web3j, transactionManager, provider).send();
+            collector.logStepPass("gas used after deploy delegate_call_storage_vec contract:" + delegateCall.getTransactionReceipt().get().getGasUsed());
 
             String delegateCallAddr = delegateCall.getContractAddress();
             String delegateCallTxHash = delegateCall.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("ContractDelegateCall issued sucessfully, contractAddress:" + delegateCallAddr + ", txHash:" + delegateCallTxHash);
+            collector.logStepPass("ContractDelegateCall deployed sucessfully, contractAddress:" + delegateCallAddr + ", txHash:" + delegateCallTxHash);
 
 
             // check arr size 1st
             Uint64 vecLen = target.get_vector_size().send();
-            System.out.println("the msg count in arr of  storage_vec contract:" + vecLen);
+            collector.logStepPass("the msg count in arr of  storage_vec contract:" + vecLen);
             collector.assertEqual(vecLen.getValue().longValue(), 0l);
 
             Uint64 delegateCallVecLen = delegateCall.get_vector_size().send();
-            System.out.println("the msg count in arr of delegateCall contract:" + delegateCallVecLen);
+            collector.logStepPass("the msg count in arr of delegateCall contract:" + delegateCallVecLen);
             collector.assertEqual(delegateCallVecLen.getValue().longValue(), 0l);
 
             // delegate call contract start
@@ -57,11 +60,11 @@ public class ContractDelegateCallStorageVecTest extends WASMContractPrepareTest 
 
             // check arr size 2nd
             vecLen = target.get_vector_size().send();
-            System.out.println("the msg count in arr of  storage_vec contract:" + vecLen);
+            collector.logStepPass("the msg count in arr of  storage_vec contract:" + vecLen);
             collector.assertEqual(vecLen.getValue().longValue(), 0l);
 
             delegateCallVecLen = delegateCall.get_vector_size().send();
-            System.out.println("the msg count in arr of delegateCall contract:" + delegateCallVecLen);
+            collector.logStepPass("the msg count in arr of delegateCall contract:" + delegateCallVecLen);
             collector.assertEqual(delegateCallVecLen.getValue().longValue(), 1l);
 
         } catch (Exception e) {

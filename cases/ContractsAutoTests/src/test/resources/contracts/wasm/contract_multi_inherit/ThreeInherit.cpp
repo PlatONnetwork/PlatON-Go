@@ -54,7 +54,7 @@ CONTRACT ThreeInherit : public platon::Contract{
 
 
    private:
-      platon::StorageType<"greate_sub_my_message_vector"_n, std::vector<greate_sub_my_message>> info;
+      platon::StorageType<"gsmvector"_n, std::vector<greate_sub_my_message>> info;
 };
 
 PLATON_DISPATCH(ThreeInherit, (init)(add_greate_sub_my_message)(get_greate_sub_my_message_size)(get_greate_sub_my_message_head)(get_greate_sub_my_message_desc))

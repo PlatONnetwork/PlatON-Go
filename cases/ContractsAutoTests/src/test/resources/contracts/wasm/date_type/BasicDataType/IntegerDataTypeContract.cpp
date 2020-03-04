@@ -222,12 +222,12 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		/// set value for u256.
 		ACTION void setU256(uint64_t input)
 		{
-			tU256.self() = u256(input);
+			tU256.self() = u128(input);
 		}
 		
 		CONST std::string getU256()
 		{
-			return to_string(tU256.self());
+			return std::to_string(tU256.self());
 		}
 
 		/// set value for h256.
@@ -253,7 +253,7 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		platon::StorageType<"sstring"_n, std::string> tString;
 
 		platon::StorageType<"saddress"_n, Address> tAddress;
-		platon::StorageType<"su255"_n, u256> tU256;
+		platon::StorageType<"su255"_n, u128> tU256;
 		platon::StorageType<"sh255"_n, h256> tH256;
 
 

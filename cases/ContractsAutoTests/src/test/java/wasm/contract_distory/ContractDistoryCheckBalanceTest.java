@@ -28,6 +28,7 @@ public class ContractDistoryCheckBalanceTest extends WASMContractPrepareTest {
             String contractAddress = contractDistory.getContractAddress();
             String transactionHash = contractDistory.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractDistory issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractDistory.getTransactionReceipt().get().getGasUsed());
 
             //合约销毁
             TransactionReceipt transactionReceipt = contractDistory.distory_contract().send();

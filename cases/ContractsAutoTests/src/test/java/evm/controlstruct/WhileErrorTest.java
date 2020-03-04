@@ -36,6 +36,7 @@ public class WhileErrorTest extends ContractPrepareTest {
             TransactionReceipt tx = whileError.getTransactionReceipt().get();
 
             collector.logStepPass("WhileErrorTest for控制结构返回的结构体如果是指针类型需要提前初始化");
+            collector.logStepPass("deploy gas used:" + whileError.getTransactionReceipt().get().getGasUsed());
 
             //1.while控制结构验证
             Boolean whileFlg = whileError.getWhileControlRes().send();

@@ -24,7 +24,7 @@ CONTRACT ContractTimeoutTermination : public platon::Contract{
       }
 
    private:
-      platon::StorageType<"string_storage"_n, std::string> stringstorage;
+      platon::StorageType<"sstorage"_n, std::string> stringstorage;
 };
 
 PLATON_DISPATCH(ContractTimeoutTermination, (init)(forfunction)(get_string_storage))

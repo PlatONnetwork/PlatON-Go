@@ -26,10 +26,10 @@ struct person{
 CONTRACT ReferenceDataTypeTupleContract : public platon::Contract{
 
     private:
-       platon::StorageType<"tuple_a"_n,std::tuple<std::string,uint8_t,std::vector<string>>> storage_tuple_one;
-       platon::StorageType<"tuple_b"_n,std::tuple<std::string,uint8_t>> storage_tuple_two;
-       platon::StorageType<"tuple_c"_n,std::tuple<std::string,person,std::array<std::string,10>>> storage_tuple_three;
-       platon::StorageType<"struct_p"_n,person> storage_struct_person;
+       platon::StorageType<"tuple1"_n,std::tuple<std::string,uint8_t,std::vector<string>>> storage_tuple_one;
+       platon::StorageType<"tuple2"_n,std::tuple<std::string,uint8_t>> storage_tuple_two;
+       platon::StorageType<"tuple3"_n,std::tuple<std::string,person,std::array<std::string,10>>> storage_tuple_three;
+       platon::StorageType<"struct4"_n,person> storage_struct_person;
     public:
         ACTION void init(){}
          /**

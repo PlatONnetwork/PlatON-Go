@@ -34,7 +34,7 @@ public class RecursiveStorageMemoryComplexTest extends ContractPrepareTest {
             String contractAddress = recursiveStorageMemoryComplex.getContractAddress();
             TransactionReceipt tx =  recursiveStorageMemoryComplex.getTransactionReceipt().get();
             collector.logStepPass("RecursiveStorageMemoryComplex issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
 
             //调用合约

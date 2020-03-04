@@ -40,6 +40,7 @@ public class ChainFunctionTest extends ContractPrepareTest {
             TransactionReceipt tx = chainFunction.getTransactionReceipt().get();
 
             collector.logStepPass("ChainFunction deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + chainFunction.getTransactionReceipt().get().getGasUsed());
 
             String  msgSender = chainFunction.deceased(isDeceased,new BigInteger(less9)).send();
 

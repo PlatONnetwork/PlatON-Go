@@ -29,6 +29,7 @@ public class SpecialFunctionsBTest extends WASMContractPrepareTest {
             String contractAddress = specialfunctionsb.getContractAddress();
             String transactionHash = specialfunctionsb.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SpecialFunctionsBTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("SpecialFunctionsBTest deploy gasUsed:" + specialfunctionsb.getTransactionReceipt().get().getGasUsed());
 
             Uint64 gas =specialfunctionsb.getPlatONGas().send();
             collector.logStepPass("getPlatONGas函数返回值:" + gas.value);

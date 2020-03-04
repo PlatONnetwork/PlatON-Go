@@ -11,41 +11,20 @@ using namespace platon;
  * 4、字符串类型
  * 5、浮点类型(float、double)
  * 6、地址类型
- * 7、枚举类型
- *
- *
  * */
 
-/*class clothes{
-       public:
-         //原生写法
-         //enum color {red, orange, yellow, green};
-         //改成这样吗？
-         enum color { red, green, blue } colors;
-         clothes(){}
-         PLATON_SERIALIZE(clothes, (colors))
-};*/
-extern char const storage_byte[] = "byte_storage";
-extern char const storage_bool[] = "bool_storage";
-extern char const storage_string[] = "string_storage";
-extern char const storage_float[] = "float_storage";
-extern char const storage_double[] = "double_storage";
-extern char const storage_enum[] = "enum_storage";
-extern char const storage_address[] = "address_storage";
 
 CONTRACT BasicDataTypeContract : public platon::Contract{
 
     private:
-       platon:: StorageType<storage_byte,byte> storage_byte;
-       platon:: StorageType<storage_bool,bool> a_storage_bool;
-       platon:: StorageType<storage_bool,bool> b_storage_bool;
-       platon:: StorageType<storage_string,std::string> a_storage_string;
-       platon:: StorageType<storage_string,std::string> b_storage_string;
-       platon:: StorageType<storage_string,std::string> c_storage_string;
-       platon:: StorageType<storage_address,Address> storage_address;
-       platon:: StorageType<storage_float,float> storage_float;
-       platon:: StorageType<storage_double,double> storage_double;
-       //platon:: StorageType<storage_enum,clothes> storage_enum_clothes;
+       platon::StorageType<"bytekey"_n,byte> byte_v;
+       platon::StorageType<"boolkey"_n,bool> bool_v;
+       platon::StorageType<"strkey"_n,std::string> string_v;
+       platon::StorageType<"addrkey"_n,Address> address_v;
+       platon::StorageType<"floatkey"_n,float> float_v;
+       platon::StorageType<"doublekey"_n,double> double_v;
+       platon::StorageType<"long"_n,long> long_v;
+       platon::StorageType<"long2"_n,long long> long_long_v;
 
     public:
        ACTION void init(){
@@ -53,75 +32,91 @@ CONTRACT BasicDataTypeContract : public platon::Contract{
       /**
        * 1、布尔型(bool)
        *   取值常量true、false
-       *
        **/
-      ACTION void setBool(){
-          a_storage_bool.self() = true;
-          b_storage_bool.self() = false;
+      ACTION void set_bool(const bool &value){
+          bool_v.self() = value;
       }
-
-       CONST bool getBool(){
-           return a_storage_bool.self();
-       }
+      CONST bool get_bool(){
+          return bool_v.self();
+      }
 
       /**
        * 2、字节类型（byte）
        *   byte相当于uint8_t
        **/
-      ACTION void setByte(){
-          storage_byte.self() = 100;//正常
+     ACTION void set_byte(const byte &value){
+          byte_v.self() = value;
+      }
+      CONST byte get_byte(){
+          return byte_v.self();
       }
 
       /**
        * 3、字符串(string)
-       *    字符串赋值、拼接、字符串.size()
+       *    字符串赋值、字符串.size()
        **/
-       ACTION void setString(std::string &str){
-           a_storage_string.self() = str;
+       ACTION void set_string(const std::string &value){
+           string_v.self() = value;
+       }
+       CONST std::string get_string(){
+           return string_v.self();
+       }
+       CONST uint8_t get_string_length(){
+           return string_v.self().size();
        }
 
-       CONST std::string getString(){
-           return a_storage_string.self();
-       }
-
-       CONST uint8_t getStringLength(){
-           return a_storage_string.self().size();
-       }
      /**
       * 4、浮点类型(float、double)
-      *  浮点型暂时不支持，后续测试
       **/
-     /* ACTION void setFloat(){
-          storage_float.self() = 1.0;
-          storage_double.self() = 2.56;
-       }*/
-
-     /* CONST float getFloat(){
-          return storage_float.self();
-      }*/
+      ACTION void set_float(const float &value){
+          float_v.self() = value;
+       }
+      CONST float get_float(){
+          return float_v.self();
+      }
+      ACTION void set_double(const double &value){
+          double_v.self() = value;
+      }
+      CONST double get_double(){
+           return double_v.self();
+       }
 
       /**
        * 5、地址类型(Address)
        * 
        **/
-      ACTION void setContractCallAddress(){
-           storage_address.self() = platon_caller();//获取交易发起者地址
+      ACTION void set_address(){
+           address_v.self() = platon_caller();//获取交易发起者地址
       }
+      CONST std::string get_address(){
+         return address_v.self().toString();
+     }
 
-      CONST std::string getContractCallAddress(){
-          return storage_address.self().toString();
-      }
+  /**
+   * 6、long类型
+   */
+   ACTION void set_long(const long &value){
+      long_v.self()=value;
+    }
+    CONST long get_long(){
+       return long_v.self();
+    }
 
-      /**
-       * 6、枚举(enum)
-       **/
-      /* ACTION void setEnum(){
-            storage_enum_clothes.self().colors = yellow;
-        }
-        ACTION colors getEnum(){
-            return  storage_enum_clothes.self().colors;
-        }*/
+    ACTION void set_long_long(const long long &value){
+       long_long_v.self()=value;
+    }
+    CONST long long get_long_long(){
+       return long_long_v.self();
+    }
+
+
 };
 
-PLATON_DISPATCH(BasicDataTypeContract,(init)(setBool)(getBool)(setByte)(setString)(getString)(getStringLength)
-               (setContractCallAddress)(getContractCallAddress))
+PLATON_DISPATCH(BasicDataTypeContract,(init)
+(set_bool)(get_bool)
+(set_byte)(get_byte)
+(set_string)(get_string)(get_string_length)
+(set_address)(get_address)
+(set_float)(get_float)(set_double)(get_double)
+(set_long)(get_long)(set_long_long)(get_long_long)
+)

@@ -29,6 +29,7 @@ public class ConstructorInternalVisibilityTest extends ContractPrepareTest {
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ConstructorInternalVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + visibility.getTransactionReceipt().get().getGasUsed());
             BigInteger outI = visibility.getOutI().send();
             collector.assertEqual(outI, constructorValue, "checkout constructor initial param");
         } catch (Exception e) {

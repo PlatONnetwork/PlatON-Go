@@ -37,6 +37,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             String contractAddress = contractMigratev1.getContractAddress();
             String transactionHash = contractMigratev1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractMigrateV1 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + contractMigratev1.getTransactionReceipt().get().getGasUsed());
 
             //设置值
             transactionHash = contractMigratev1.set_string(name).send().getTransactionHash();

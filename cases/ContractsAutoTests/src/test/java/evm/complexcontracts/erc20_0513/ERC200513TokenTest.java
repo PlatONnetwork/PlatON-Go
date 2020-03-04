@@ -72,6 +72,7 @@ public class ERC200513TokenTest extends ContractPrepareTest {
                 TransactionReceipt tx = eRC200513Token.getTransactionReceipt().get();
 
                 collector.logStepPass("ERC200513Token deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+                collector.logStepPass("deploy gas used:" + eRC200513Token.getTransactionReceipt().get().getGasUsed());
 
                 //获取代币名称
                 String chainTokenName = eRC200513Token.getName().send().toString();

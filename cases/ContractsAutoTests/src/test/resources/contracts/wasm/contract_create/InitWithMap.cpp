@@ -20,7 +20,7 @@ CONTRACT InitWithMap : public platon::Contract{
     }   
 
     private:
-    platon::StorageType<"init_map"_n, std::map<std::string,std::string>> maps;
+    platon::StorageType<"initmap"_n, std::map<std::string,std::string>> maps;
 };
 
 PLATON_DISPATCH(InitWithMap, (init)(set_map)(get_map))

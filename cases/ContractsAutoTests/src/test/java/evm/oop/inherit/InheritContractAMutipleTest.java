@@ -37,7 +37,7 @@ public class InheritContractAMutipleTest extends ContractPrepareTest {
             String contractAddress = inheritContractMutipleTest1.getContractAddress();
             TransactionReceipt tx =  inheritContractMutipleTest1.getTransactionReceipt().get();
             collector.logStepPass("InheritContractMutipleTest1 issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash());
+                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
 
 

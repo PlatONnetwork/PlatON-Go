@@ -1,5 +1,6 @@
 package wasm.exec_efficiency;
 
+import com.platon.rlp.datatypes.Int64;
 import com.platon.rlp.datatypes.Int8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -8,6 +9,7 @@ import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import wasm.beforetest.WASMContractPrepareTest;
 import java.math.BigInteger;
+import java.util.Arrays;
 
 /**
  * @title WASMInsertSortTest
@@ -24,26 +26,34 @@ public class WASMInsertSortTest extends WASMContractPrepareTest {
     public void test() {
         prepare();
         try {
+
+            Integer numberOfCalls = Integer.valueOf(driverService.param.get("numberOfCalls"));
+
             InsertSort insertSort = InsertSort.deploy(web3j, transactionManager, provider).send();
             contractAddress = insertSort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
+            collector.logStepPass("deploy gas used:" + insertSort.getTransactionReceipt().get().getGasUsed());
 
-            Int8[] arr = new Int8[]{Int8.of((byte) 1), Int8.of((byte) -1), Int8.of((byte) 5),
-                    Int8.of((byte) 8), Int8.of((byte) 10), Int8.of((byte) 11), Int8.of((byte) 20),
-                    Int8.of((byte) 30), Int8.of((byte) 32), Int8.of((byte) 127)};
+            Int64[] arr = new Int64[numberOfCalls];
+
+            int min = -1000, max = 2000;
+
+            for (int i = 0; i < numberOfCalls; i++) {
+                arr[i] = Int64.of(min + (int) (Math.random() * (max - min + 1)));
+            }
+
+            collector.logStepPass("before sort:" + Arrays.toString(arr));
             TransactionReceipt transactionReceipt = InsertSort.load(contractAddress, web3j, transactionManager, provider)
-                    .sort(arr, Int8.of((byte) arr.length)).send();
+                    .sort(arr, Int64.of(arr.length)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
             collector.logStepPass("gasUsed:" + gasUsed);
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            Int8[] generationArr = InsertSort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
+            Int64[] generationArr = InsertSort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
 
-            for (Int8 ele : generationArr) {
-                System.out.print(ele.value + ",");
-            }
+            collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());

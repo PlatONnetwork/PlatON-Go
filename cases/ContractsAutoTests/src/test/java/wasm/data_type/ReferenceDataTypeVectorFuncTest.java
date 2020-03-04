@@ -51,7 +51,7 @@ public class ReferenceDataTypeVectorFuncTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qudong", showName = "wasm.referenceDataTypeVectorFuncTest(verctor类型)属性/函数",sourcePrefix = "wasm")
+            author = "qudong", showName = "wasm.referenceDataTypeVectorFuncTest(verctor类型)属性函数",sourcePrefix = "wasm")
     public void testReferenceDataTypeVectorFunc() {
 
          //部署合约
@@ -62,7 +62,7 @@ public class ReferenceDataTypeVectorFuncTest extends WASMContractPrepareTest {
             String contractAddress = referenceDataTypeVectorFuncContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeVectorFuncContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeVectorFuncContract issued successfully.contractAddress:" + contractAddress
-                                  + ", hash:" + tx.getTransactionHash());
+                                  + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
         } catch (Exception e) {
             collector.logStepFail("referenceDataTypeVectorFuncContract deploy fail.", e.toString());

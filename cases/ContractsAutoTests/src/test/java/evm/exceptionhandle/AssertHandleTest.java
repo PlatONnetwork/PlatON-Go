@@ -35,6 +35,7 @@ public class AssertHandleTest extends ContractPrepareTest {
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("AssertHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + handle.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = handle.intChangeException(new BigInteger("2")).send();
             collector.logStepPass("checkout integer contains enums,transactionHah="+receipt.getTransactionHash());
             try {
@@ -63,6 +64,7 @@ public class AssertHandleTest extends ContractPrepareTest {
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("AssertHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + handle.getTransactionReceipt().get().getGasUsed());
             TransactionReceipt receipt = handle.paramException(new BigInteger("5")).send();
             collector.logStepPass("checkout normal,transactionHash="+receipt.getTransactionHash());
             try {

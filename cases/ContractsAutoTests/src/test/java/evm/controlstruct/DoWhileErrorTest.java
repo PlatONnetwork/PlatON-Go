@@ -36,6 +36,7 @@ public class DoWhileErrorTest extends ContractPrepareTest {
             TransactionReceipt tx = doWhileError.getTransactionReceipt().get();
 
             collector.logStepPass("DoWhileErrorTest dowhile控制结构返回的结构体如果是指针需要提前初始化");
+            collector.logStepPass("deploy gas used:" + doWhileError.getTransactionReceipt().get().getGasUsed());
 
             //1.if控制结构验证 ifControlValue
             Boolean doWhileFlg = doWhileError.getDoWhileControlRes().send();

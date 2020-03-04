@@ -34,8 +34,10 @@ public class SelfdestructFunctionsTest extends ContractPrepareTest {
             String contractAddress = selfdestructFunctions.getContractAddress();
             TransactionReceipt tx = selfdestructFunctions.getTransactionReceipt().get();
             collector.logStepPass("SelfdestructFunctionsTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("SelfdestructFunctionsTest deploy gasUsed:" + selfdestructFunctions.getTransactionReceipt().get().getGasUsed());
 
             TransactionReceipt increaseCount = selfdestructFunctions.increment().send();
+            collector.logStepPass("交易Hash：" + increaseCount.getTransactionHash());
             BigInteger resultCount = selfdestructFunctions.getCount().send();
             collector.logStepPass("getCount函数返回值：" + resultCount);
             collector.assertEqual("5",resultCount.toString());
@@ -43,6 +45,7 @@ public class SelfdestructFunctionsTest extends ContractPrepareTest {
 
             //调用自杀函数
             TransactionReceipt selfkill = selfdestructFunctions.selfKill().send();
+            collector.logStepPass("自杀函数交易Hash：" + selfkill.getTransactionHash());
 
             collector.logStepPass("Selfdestruct successful.transactionHash:" + selfkill.getTransactionHash());
             collector.logStepPass( "currentBlockNumber:" + selfkill.getBlockNumber());

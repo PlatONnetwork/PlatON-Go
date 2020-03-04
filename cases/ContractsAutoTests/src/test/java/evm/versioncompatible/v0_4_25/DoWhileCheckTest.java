@@ -32,6 +32,7 @@ public class DoWhileCheckTest extends ContractPrepareTest {
             String transactionHash = doWhileCheck.getTransactionReceipt().get().getTransactionHash();
             Transfer.sendFunds(web3j,credentials,String.valueOf(chainId),contractAddress, BigDecimal.valueOf(300.00), Convert.Unit.GLAT);
             collector.logStepPass("DoWhileCheck issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("deploy gas used:" + doWhileCheck.getTransactionReceipt().get().getGasUsed());
             Tuple2<BigInteger, BigInteger> result = doWhileCheck.doWhileCheck().send();
             Tuple2<BigInteger, BigInteger> expect =new Tuple2(new BigInteger("21"),new BigInteger("14")) ;
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expect), "checkout continue bug and scope is not clear");

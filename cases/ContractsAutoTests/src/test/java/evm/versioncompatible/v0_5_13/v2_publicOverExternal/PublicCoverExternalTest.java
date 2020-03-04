@@ -34,6 +34,7 @@ public class PublicCoverExternalTest extends ContractPrepareTest {
             TransactionReceipt tx = personPublic.getTransactionReceipt().get();
 
             collector.logStepPass("PublicCoverExternalTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + personPublic.getTransactionReceipt().get().getGasUsed());
 
             String birthDay = personPublic.birthDay().send().toString();
 

@@ -36,6 +36,7 @@ public class TypeNameTest extends ContractPrepareTest {
             TransactionReceipt tx = typeName.getTransactionReceipt().get();
 
             collector.logStepPass("RuntimeCodeTest deploy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
+            collector.logStepPass("deploy gas used:" + typeName.getTransactionReceipt().get().getGasUsed());
 
             String contractNameStr = typeName.name().send().toString();
 
