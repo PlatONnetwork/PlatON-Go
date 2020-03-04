@@ -66,11 +66,11 @@ CONTRACT TweetRegistry: public platon::Contract
 			return _accountNameToAddress.self()[name];		
 		}
 		
-		CONST std::string getNameOfAddress(Address addr) {
+		CONST std::string getNameOfAddress(const Address& addr) {
 			return _addressToAccountName.self()[addr];		
 		}
 
-		CONST Address getAddressOfId(u128 id) {
+		CONST Address getAddressOfId(const u128& id) {
 			return _accountIdToAccountAddress.self()[id];		
 		}
 
