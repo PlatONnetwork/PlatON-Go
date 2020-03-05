@@ -53,7 +53,7 @@ var DefaultConfig = Config{
 	DBDisabledGC:      false,
 	DBGCInterval:      86400,
 	DBGCTimeout:       time.Minute,
-	DBGCMpt:           true,
+	DBGCMpt:           false/*true*/,
 	DBGCBlock:         10,
 	VMWasmType:        "wagon",
 	VmTimeoutDuration: 0, // default 0 ms for vm exec timeout
