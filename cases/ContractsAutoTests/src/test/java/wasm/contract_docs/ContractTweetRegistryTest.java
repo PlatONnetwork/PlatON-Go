@@ -1,11 +1,19 @@
 package wasm.contract_docs;
 
+import com.platon.rlp.datatypes.WasmAddress;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.wasm.TweetAccount;
+import network.platon.contracts.wasm.TweetRegistry;
 import org.junit.Before;
 import org.junit.Test;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tx.Transfer;
+import org.web3j.utils.Convert;
 import wasm.beforetest.WASMContractPrepareTest;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * @author zjsunzone
@@ -26,12 +34,90 @@ public class ContractTweetRegistryTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            TweetAccount contract = TweetAccount.deploy(web3j, transactionManager, provider).send();
+            TweetRegistry contract = TweetRegistry.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-            collector.logStepPass("TweetAccount deploy successfully. contractAddress:" + contractAddress + ", hash:" + transactionHash);
-            collector.logStepPass("TweetAccount deploy successfully. gasUsed: " + contract.getTransactionReceipt().get().getGasUsed().toString());
+            collector.logStepPass("TweetRegistry deploy successfully. contractAddress:" + contractAddress + ", hash:" + transactionHash);
+            collector.logStepPass("TweetRegistry deploy successfully. gasUsed: " + contract.getTransactionReceipt().get().getGasUsed().toString());
 
+            // registry
+            String addr = credentials.getAddress();
+            TransactionReceipt registrTr = contract.registry("bob", new WasmAddress(addr)).send();
+            collector.logStepPass("Send registry, hash: " + registrTr.getTransactionHash() + " gasUsed: " + registrTr.getGasUsed());
+
+            // getNumberOfAccounts
+            BigInteger numberOfAccounts = contract.getNumberOfAccounts().send();
+            collector.logStepPass("Call getNumberOfAccounts, result: " + numberOfAccounts);
+
+            // getAddressOfName
+            WasmAddress addressOfName = contract.getAddressOfName("bob").send();
+            collector.logStepPass("Call getAddressOfName, result: " + addressOfName);
+            collector.assertEqual(addressOfName.getAddress(), addr);
+
+            // getNameOfAddress
+            String nameOfAddress = contract.getNameOfAddress(new WasmAddress(addr)).send();
+            collector.logStepPass("Call getNameOfAddress, result: " + nameOfAddress);
+            collector.assertEqual(nameOfAddress, "bob");
+
+            // getAddressOfId
+            WasmAddress addressOfId = contract.getAddressOfId(BigInteger.ZERO).send();
+            collector.logStepPass("Call getAddressOfId, result: " + addressOfId.getAddress());
+            collector.assertEqual(addressOfId.getAddress(), addr);
+
+            // unregister
+            /*TransactionReceipt unregistterTr = contract.unregister().send();
+            collector.logStepPass("Send unregister, txHash: " + unregistterTr.getTransactionHash() +
+                    " gasUsed: " + unregistterTr.getGasUsed());
+            nameOfAddress = contract.getNameOfAddress(new WasmAddress(addr)).send();
+            collector.logStepPass("Call getNameOfAddress after unregister, result: " + nameOfAddress);
+            collector.assertEqual(nameOfAddress, "");*/
+
+            // adminUnregister
+            TransactionReceipt adminUnregisterTr = contract.adminUnregister("bob").send();
+            collector.logStepPass("Send adminUnregister, txHash: " + adminUnregisterTr.getTransactionHash() +
+                    " gasUsed: " + adminUnregisterTr.getGasUsed());
+            nameOfAddress = contract.getNameOfAddress(new WasmAddress(addr)).send();
+            collector.logStepPass("Call getNameOfAddress after unregister, result: " + nameOfAddress);
+            collector.assertEqual(nameOfAddress, "");
+
+            // adminSetRegistrationDisable
+            boolean disabled = contract.getRegistrationDisabled().send();
+            collector.logStepPass("Call getRegistrationDisabled, before result " + disabled);
+            TransactionReceipt disableTr = contract.adminSetRegistrationDisable(false).send();
+            collector.logStepPass("Send adminDeleteRegistry, hash: " + disableTr.getTransactionHash() +
+                    "gasUsed: " + disableTr.getGasUsed());
+            disabled = contract.getRegistrationDisabled().send();
+            collector.logStepPass("Call getRegistrationDisabled, after result " + disabled);
+
+            // transfer to contract
+            Transfer t = new Transfer(web3j, transactionManager);
+            t.sendFunds(contractAddress, new BigDecimal(1), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Transfer to contract , before balance: " + cbalance);
+
+            // adminRetrieveDonations
+            TransactionReceipt retrieveTr = contract.adminRetrieveDonations().send();
+            collector.logStepPass("Send adminRetrieveDonations, hash: " + retrieveTr.getTransactionHash() +
+                    "gasUsed: " + retrieveTr.getGasUsed());
+
+            cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Transfer to contract , after balance: " + cbalance);
+            collector.assertEqual(cbalance, BigInteger.ZERO);
+
+            //
+            // transfer to contract
+            t.sendFunds(contractAddress, new BigDecimal(1), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("02-Transfer to contract , before balance: " + cbalance);
+
+            // adminDeleteRegistry
+            TransactionReceipt deleteTR = contract.adminDeleteRegistry().send();
+            collector.logStepPass("Send adminDeleteRegistry, hash: " + deleteTR.getTransactionHash() +
+                    "gasUsed: " + deleteTR.getGasUsed());
+
+            cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("02-Transfer to contract , after balance: " + cbalance);
+            collector.assertEqual(cbalance, BigInteger.ZERO);
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
