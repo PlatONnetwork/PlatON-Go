@@ -3,7 +3,6 @@ package evm.complexcontracts;
 import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.Crowdsale;
 import network.platon.contracts.Guessing;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,7 +10,6 @@ import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
