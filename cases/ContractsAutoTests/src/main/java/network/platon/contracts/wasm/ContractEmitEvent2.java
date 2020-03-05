@@ -56,16 +56,6 @@ public class ContractEmitEvent2 extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> two_emit_event2_args4(String name, String nationality, Uint32 value1, Uint32 value2, String name1, String name2) {
-        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2_ARGS4, Arrays.asList(name,nationality,value1,value2,name1,name2), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> two_emit_event2(String name, String nationality, Uint32 value) {
-        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2, Arrays.asList(name,nationality,value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
         ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
@@ -99,6 +89,16 @@ public class ContractEmitEvent2 extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> two_emit_event2_args4(String name, String nationality, Uint32 value1, Uint32 value2, String name1, String name2) {
+        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2_ARGS4, Arrays.asList(name,nationality,value1,value2,name1,name2), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> two_emit_event2(String name, String nationality, Uint32 value) {
+        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2, Arrays.asList(name,nationality,value), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
