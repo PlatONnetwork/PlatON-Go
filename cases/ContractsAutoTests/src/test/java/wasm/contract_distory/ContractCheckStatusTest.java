@@ -21,6 +21,7 @@ public class ContractCheckStatusTest extends WASMContractPrepareTest {
 
         String nameOne = "valueOne";
         String nameTwo = "valueTwo";
+        String nameThree = "nameThree";
         try {
             prepare();
             //合约第一次部署
@@ -59,9 +60,13 @@ public class ContractCheckStatusTest extends WASMContractPrepareTest {
             collector.logStepPass("ContractDistory distory_contract successfully hash:" + transactionReceipt.getTransactionHash());
 
             //验证第一个合约销毁对第二个合约没有影响
-            chainNameTwo = contractDistoryTwo.get_string().send();
+            transactionReceipt = contractDistoryTwo.set_string(nameThree).send();
+            collector.logStepPass("contractDistoryTwo set_string successfully hash:" + transactionReceipt.getTransactionHash());
+
+
+            String chainNameThree = contractDistoryTwo.get_string().send();
             collector.logStepPass("contractDistoryTwo get_string successfully hash:" + transactionReceipt.getTransactionHash());
-            collector.assertEqual(chainNameTwo,nameTwo);
+            collector.assertEqual(chainNameThree,nameThree);
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
