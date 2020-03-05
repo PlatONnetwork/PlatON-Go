@@ -66,7 +66,7 @@ public class GuessingTest extends ContractPrepareTest {
             collector.assertEqual("10000000000000000000",contractBalance);
 
             balance = guessing.balance().send().toString();
-            collector.logStepPass("发起竞猜前奖池总金额为："+balance);
+            collector.logStepPass("发起第一次竞猜前奖池总金额为："+balance);
 
             //发起竞猜(客户端发起的单位是von与 lat差10^18次方)
             tx = guessing.guessingWithLat(new BigInteger("10000000000000000000")).send();
@@ -78,7 +78,7 @@ public class GuessingTest extends ContractPrepareTest {
 
             //查询总奖池
             balance = guessing.balance().send().toString();
-            collector.logStepPass("发起竞猜后奖池总金额为："+balance);
+            collector.logStepPass("发起第二次竞猜后奖池总金额为："+balance);
 
             contractBalance = guessing.getBalanceOf().send().toString();
 
