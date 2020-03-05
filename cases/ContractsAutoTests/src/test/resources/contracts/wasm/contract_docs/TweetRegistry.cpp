@@ -103,6 +103,10 @@ CONTRACT TweetRegistry: public platon::Contract
 			}	
 			return false;	
 		}
+
+		CONST bool getRegistrationDisabled() {
+			return _registrationDisabled.self();		
+		}
 		
 		ACTION void adminSetAccountAdministrator(const Address& accountAdmin) {
 			Address sender = platon_caller();
@@ -133,7 +137,7 @@ CONTRACT TweetRegistry: public platon::Contract
 
 PLATON_DISPATCH(TweetRegistry,(init)(registry)(getNumberOfAccounts)(getAddressOfName)
 (getNameOfAddress)(getAddressOfId)(unregister)(adminUnregister)(adminSetRegistrationDisable)
-(adminSetAccountAdministrator)(adminRetrieveDonations)(adminDeleteRegistry))
+(adminSetAccountAdministrator)(adminRetrieveDonations)(adminDeleteRegistry)(getRegistrationDisabled))
 
 
 
