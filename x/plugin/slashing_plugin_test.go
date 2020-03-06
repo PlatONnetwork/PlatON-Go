@@ -382,7 +382,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		snapshotdb.Instance().Clear()
 	}()
 	si.SetDecodeEvidenceFun(evidence.NewEvidence)
-	GovPluginInstance()
+	GovPluginInstance(big.NewInt(101))
 	normalData := `{
           "prepareA": {
            "epoch": 1,

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/big"
 	"testing"
 
 	//"github.com/PlatONnetwork/PlatON-Go/log"
@@ -295,7 +296,7 @@ func setup(t *testing.T) *mock.Chain {
 
 	chain, _ := newChain()
 	newPlugins()
-	govPlugin = plugin.GovPluginInstance()
+	govPlugin = plugin.GovPluginInstance(big.NewInt(1010))
 	gc.Plugin = govPlugin
 	build_staking_data_new(chain)
 

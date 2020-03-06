@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -258,7 +260,7 @@ var (
 )
 
 func newPlugins() {
-	plugin.GovPluginInstance()
+	plugin.GovPluginInstance(big.NewInt(101))
 	plugin.StakingInstance()
 	plugin.SlashInstance()
 	plugin.RestrictingInstance()
@@ -309,7 +311,8 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB
 		state, _, _ = newChainState()
 	}
 	evm := &EVM{
-		StateDB: state,
+		StateDB:     state,
+		chainConfig: &params.ChainConfig{ChainID: big.NewInt(101)},
 	}
 	context := Context{
 		BlockNumber: blockNumber,
