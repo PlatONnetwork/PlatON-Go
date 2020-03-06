@@ -182,7 +182,19 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			return u128(0);		
 		}
 		
-
+		u128 tokensToEthereum(u128 _tokens) {
+			return _tokens;		
+		}
+		
+		u128 sqrt(u128 x) {
+			u128 z = (x + u128(1)) / u128(2);
+			u128 y = x;
+			while(z < y){
+				y = z;
+				z = (x / z + z) / u128(2);			
+			}
+			return y;			
+		}
 
 
 
