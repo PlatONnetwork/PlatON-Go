@@ -56,7 +56,7 @@ var (
 	/*endVotingBlock uint64
 	activeBlock    uint64*/
 	stateDB xcom.StateDB
-	chainID = big.NewInt(101)
+	chainID = big.NewInt(100)
 
 //	stk            *StakingPlugin
 )
@@ -69,7 +69,8 @@ func setup(t *testing.T) func() {
 	stateDB = state
 	newPlugins()
 
-	govPlugin = GovPluginInstance(chainID)
+	GovPluginInstance().SetChainID(chainID)
+	govPlugin = GovPluginInstance()
 	stk = StakingInstance()
 
 	lastBlockHash = genesis.Hash()

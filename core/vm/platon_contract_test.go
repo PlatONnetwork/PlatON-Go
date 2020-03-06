@@ -260,7 +260,7 @@ var (
 )
 
 func newPlugins() {
-	plugin.GovPluginInstance(big.NewInt(101))
+	plugin.GovPluginInstance()
 	plugin.StakingInstance()
 	plugin.SlashInstance()
 	plugin.RestrictingInstance()
@@ -312,7 +312,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB
 	}
 	evm := &EVM{
 		StateDB:     state,
-		chainConfig: &params.ChainConfig{ChainID: big.NewInt(101)},
+		chainConfig: &params.ChainConfig{},
 	}
 	context := Context{
 		BlockNumber: blockNumber,
