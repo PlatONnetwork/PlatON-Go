@@ -56,7 +56,7 @@ var (
 	/*endVotingBlock uint64
 	activeBlock    uint64*/
 	stateDB xcom.StateDB
-	chainID = big.NewInt(100)
+	chainID = big.NewInt(101)
 
 //	stk            *StakingPlugin
 )
@@ -1285,6 +1285,7 @@ func TestGovPlugin_versionProposalActive_ver0_10_0(t *testing.T) {
 		originMaxEvidenceAge = maxEvidenceAge
 	}
 
+	govPlugin.chainID = big.NewInt(101)
 	//active
 	beginBlock(t)
 
