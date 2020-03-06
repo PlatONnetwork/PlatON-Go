@@ -21,8 +21,8 @@ CONTRACT BasicDataTypeContract : public platon::Contract{
        platon::StorageType<"boolkey"_n,bool> bool_v;
        platon::StorageType<"strkey"_n,std::string> string_v;
        platon::StorageType<"addrkey"_n,Address> address_v;
-      // platon::StorageType<"floatkey"_n,float> float_v;
-      //platon::StorageType<"doublekey"_n,double> double_v;
+//       platon::StorageType<"floatkey"_n,float> float_v;
+//      platon::StorageType<"doublekey"_n,double> double_v;
        platon::StorageType<"long"_n,long> long_v;
        platon::StorageType<"long2"_n,long long> long_long_v;
 
@@ -67,19 +67,35 @@ CONTRACT BasicDataTypeContract : public platon::Contract{
 
      /**
       * 4、浮点类型(float、double)
+      * 验证结果：浮点型编译不通过
       **/
-     /*ACTION void set_float(const float &value){
+      //1)、float入参带&引用值
+   /*  ACTION void set_float(const float &value){
           float_v.self() = value;
-       }
-      CONST float get_float(){
+     }
+     ACTION void set_float_one(const float value){
+          float_v.self() = value;
+     }
+    CONST float get_float(){
           return float_v.self();
-      }
-      ACTION void set_double(const double &value){
+     }*/
+     //2)、double入参带&引用值
+   /*ACTION void set_double(const double &value){
           double_v.self() = value;
       }
-      CONST double get_double(){
-           return double_v.self();
-       }*/
+     ACTION void set_double_one(const double value){
+            double_v.self() = value;
+     }
+     CONST double get_double(){
+         return double_v.self();
+     }*/
+     //3)、定义局部变量浮点型
+     //验证结果：可以编译通过，脚本调用正常未见gas不足异常
+    ACTION void set_float_type_local(){
+           float a = 1.3f;
+           double b = 2.56;
+           double c = a + 3;
+    }
 
       /**
        * 5、地址类型(Address)
@@ -163,8 +179,13 @@ PLATON_DISPATCH(BasicDataTypeContract,(init)
 (set_byte)(get_byte)
 (set_string)(get_string)(get_string_length)
 (set_address)(get_address)
-//(set_float)(get_float)
-//(set_double)(get_double)
+//(set_float)
+//(set_float_one)
+//(get_float)
+//(set_double)
+//(set_double_one)
+//(get_double)
+(set_float_type_local)
 (set_long)(get_long)(set_long_long)(get_long_long)
 (set_enum_validity)(set_enum_assignment)(set_enum_scope)
 (set_enum_class_assignment)

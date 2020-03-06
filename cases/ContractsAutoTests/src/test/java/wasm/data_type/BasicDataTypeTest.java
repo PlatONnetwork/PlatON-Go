@@ -86,9 +86,8 @@ public class BasicDataTypeTest extends WASMContractPrepareTest {
             collector.logStepPass("basicDataTypeContract 【验证地址取值】 执行getString() successfully actualAddreeValue:" + actualAddreeValue);
             //collector.assertEqual(actualStringValue,expectStringValue, "checkout  execute success.")
             //6、浮点类型(float)
-            //            Float floatValue = Float.parseFloat(floatValueStr);//-3.4E-38f
-
-          /*  Float floatValue = 1.5f;
+            // Float floatValue = Float.parseFloat(floatValueStr);//-3.4E-38f
+           /*  Float floatValue = 1.5f;
             TransactionReceipt  transactionReceipt5 = basicDataTypeContract.set_float(floatValue).send();
             collector.logStepPass("basicDataTypeContract 【验证浮点类型(float)】 successfully hash:" + transactionReceipt5.getTransactionHash());
             Float actualFloatValue = basicDataTypeContract.get_float().send();
@@ -102,8 +101,11 @@ public class BasicDataTypeTest extends WASMContractPrepareTest {
             Double actualDoubleValue = basicDataTypeContract.get_double().send();
             collector.logStepPass("basicDataTypeContract 【验证浮点类型(double)取值】 执行get_double() successfully actualDoubleValue:" + actualDoubleValue);
             collector.assertEqual(actualDoubleValue,doubleValue, "checkout  execute success.");*/
+           //8、验证浮点型局部变量
+            TransactionReceipt  transactionReceipt6 = basicDataTypeContract.set_float_type_local().send();
+            collector.logStepPass("basicDataTypeContract 【验证浮点型局部变量】 successfully hash:" + transactionReceipt6.getTransactionHash());
 
-            //8、验证long整型
+            //9、验证long整型
             Int32 longValue = Int32.of(50);
             TransactionReceipt  transactionReceipt7 = basicDataTypeContract.set_long(longValue).send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证long整型类型】 successfully hash:" + transactionReceipt7.getTransactionHash());
@@ -111,18 +113,18 @@ public class BasicDataTypeTest extends WASMContractPrepareTest {
             collector.logStepPass("basicDataIntegerTypeContract 【验证整数long取值】 执行get_long() successfully actualLongValue:" + actualLongValue);
             collector.assertEqual(actualLongValue,longValue, "checkout  execute success.");
 
-            //8、验证long long整型
+            //10、验证long long整型
             Int64 longlongValue = Int64.of(100);
             TransactionReceipt  transactionReceipt8 = basicDataTypeContract.set_long_long(longlongValue).send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证longlong整型类型】 successfully hash:" + transactionReceipt8.getTransactionHash());
             Int64 actualLongLongValue = basicDataTypeContract.get_long_long().send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证整数longlong取值】 执行get_long_long() successfully actualLongLongValue:" + actualLongLongValue);
             collector.assertEqual(actualLongLongValue,longlongValue, "checkout  execute success.");
-            //9、enum枚举赋值
+            //11、enum枚举赋值
             Uint8 actualEnumValue = basicDataTypeContract.set_enum_assignment().send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证enum枚举赋值】 执行set_enum_assignment() successfully actualEnumValue:" + actualEnumValue);
             collector.assertEqual(actualEnumValue,Uint8.of(3), "checkout  execute success.");
-            //10、enum限制作用域枚举赋值
+            //12、enum限制作用域枚举赋值
             Uint8 actualEnumValue1 = basicDataTypeContract.set_enum_class_assignment().send();
             collector.logStepPass("basicDataIntegerTypeContract 【验证enum限制作用域枚举赋值】 执行set_enum_class_assignment() successfully actualEnumValue1:" + actualEnumValue1);
             collector.assertEqual(actualEnumValue1,Uint8.of(2), "checkout  execute success.");
