@@ -149,7 +149,39 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		CONST u128 dividendsOf(Address _customerAddress){
 			return u128(0);		
 		}
+		
+		CONST u128 sellPrice(){
+			return u128(0);		
+		}
+		
+		CONST u128 buyPrice(){
+			return u128(0);		
+		}
 
+		CONST u128 calculateTokensReceived(u128 _ethereumToSpend){
+			return u128(0);	
+		}
+
+		CONST u128 calculateEthereumReceived(u128 _tokensToSell){
+			return u128(0);			
+		}
+
+		CONST uint8_t exitFee(){
+			return ExitFee_.self();		
+		}
+
+		u128 purchaseTokens(u128 _incomingEthereum, Address _referredBy) {
+			return u128(0);		
+		}
+		
+		u128 DividendsDistribution(u128 _incomingEthereum, Address _referredBy){
+			return u128(0);		
+		}
+		
+		u128 ethereumToTokens_(u128 _ethereum) {
+			return u128(0);		
+		}
+		
 
 
 
