@@ -165,15 +165,15 @@ func (self *StateDB) DumpStorage(check bool) {
 			}
 		}
 
-		for k, v := range obj.dirtyStorage {
-			vk, ok := obj.dirtyValueStorage[v]
+		for k, vk := range obj.dirtyStorage {
+			v, ok := obj.dirtyValueStorage[vk]
 			if ok {
-				log.Debug("dirty: key:%s, valueKey:%s, value:%s len:%d", hexutil.Encode([]byte(k)), v.String(), hexutil.Encode([]byte(vk)), len(vk))
+				log.Debug("dirty: key:%s, valueKey:%s, value:%s len:%d", hexutil.Encode([]byte(k)), vk.String(), hexutil.Encode(v.Value), len(v.Value))
 				if check {
 					vg := disk.GetCommittedState(addr, []byte(k))
 
-					if check && !bytes.Equal(vk, vg) {
-						panic(fmt.Sprintf("not equal, key:%s, value:%s len:%d", hexutil.Encode([]byte(k)), hexutil.Encode([]byte(vg)), len(vg)))
+					if check && !bytes.Equal(v.Value, vg) {
+						panic(fmt.Sprintf("not equal, key:%s, value:%s len:%d", hexutil.Encode([]byte(k)), hexutil.Encode(vg), len(vg)))
 					}
 				}
 			}
@@ -563,9 +563,9 @@ func (self *StateDB) getStateObjectSnapshot(addr common.Address, key string) (co
 		}
 		valueKey, dirty := obj.dirtyStorage[key]
 		if dirty {
-			value, ok := obj.dirtyValueStorage[valueKey]
+			refValue, ok := obj.dirtyValueStorage[valueKey]
 			if ok {
-				return valueKey, value
+				return valueKey, refValue.Value
 			}
 		}
 
@@ -716,8 +716,8 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte
 	for it.Next() {
 		key := db.trie.GetKey(it.Key)
 		if valueKey, ok := so.dirtyStorage[string(key)]; ok {
-			if value, dirty := so.dirtyValueStorage[valueKey]; dirty {
-				cb(key, value)
+			if refValue, dirty := so.dirtyValueStorage[valueKey]; dirty {
+				cb(key, refValue.Value)
 				continue
 			}
 		}
