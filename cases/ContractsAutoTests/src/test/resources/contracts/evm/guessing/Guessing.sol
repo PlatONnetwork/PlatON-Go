@@ -1,31 +1,27 @@
 pragma solidity ^0.5.13;
 /**
  * 竞猜合约
- * 1.创建一个竞猜合约，设置竞猜截止块高
- * 2.每个竞猜者都可以发起竞猜，竞猜金额>=5 LAT，每5个LAT可以获取一个中签号码（金额越多能拿到的中签号也越多）
- * 3.记录每个中签号码对应的钱包地址（中签号码生成规则为每个调用者竞猜的顺序号）
- * 4.当截止时间一到，竞猜开关关闭，由合约创建者进行开奖，并将合约中的所有奖金转至其账户下（开奖规则，将所所有开奖区块交易hash的进行keccak256后转成uint256再对所有的中签号码进行取余操作）
- * 注：在我们测试网络把ether修改成lat
+ * 每次下注合约接收用户转账，满足条件下(单笔>=5LAT，超过5LAT也只分配一个彩票)，
+ * 每笔交易给对应地址分配一个彩票（一个地址多笔交易可分配多个彩票），并记录地址转入数；
+ *
  */
 contract Guessing {
 
     uint256 public endBlock; //竞猜截止块高
     bool public guessingClosed = false; //竞猜是否已开奖
-    uint256 public baseUnit = 5 lat; //最小转金额（为了公平起见，保证只5个lat可以取到一个选票。）【在我们测试网络把ether修改成lat】
-    
+    uint256 public baseUnit = 5 lat; //最小转金额（为了公平起见，保证只5个lat可以取到一个选票。）
 
     uint256 public balance; //竞猜总金额
     mapping(address => uint256) public gussingerLat; //每个竞猜者对应的金额
     mapping(uint256 =>address payable ) public IndexOfgussinger; //每个竞猜者对应的下标（5个lat就给他分配一个随机数）
-    // mapping(string =>uint256 ) public indexMap; //自增序列下标
     uint public indexKey = 0;
-    address payable public winnerAddress; //中奖者地址
+    address[] public winnerAddresses; //中奖者地址
     address public createAddress;//合约创建者
 
     //竞猜成功通知
     event FundTransfer(address _backer, uint _amount, bool _isSuccess);
 
-     //记录已接收的LAT通知
+    //记录已接收的LAT通知
     event CurrentBalance(address _msgSenderAddress, uint _balance);
 
     //校验地址是否为空
@@ -39,10 +35,9 @@ contract Guessing {
      *
      * @param _endBlock 竞猜截止块高（达到此块高后不能再往合约转账）
      */
-    constructor (uint _endBlock)public payable {
+    constructor (uint _endBlock)public {
         createAddress = msg.sender;
         endBlock = _endBlock;
-        // indexMap[indexKey] = 0; //自增索引下标
     }
 
     /**
@@ -51,22 +46,17 @@ contract Guessing {
      * 默认函数，可以向合约直接打款
      */
     function () payable external {
-
-        require(msg.value > 0);
-
-        //竞猜总额累加
-        balance = add(balance,msg.value);
+        require(msg.value >= baseUnit);
 
         uint amount = msg.value;
-        uint num = amount/baseUnit; //判断可以获取几抽奖码
-        for(uint i=0;i<num;i++){
-            IndexOfgussinger[indexKey] = msg.sender;
-            indexKey++;
-        }
+        IndexOfgussinger[indexKey] = msg.sender;
+        indexKey++;
 
         //竞猜人的金额累加(可以投多次)
         gussingerLat[msg.sender] += amount;
 
+        //竞猜总额累加
+        balance += amount;
 
         //竞猜成功通知
         emit FundTransfer(msg.sender, amount, true);
@@ -88,13 +78,11 @@ contract Guessing {
      * 竞猜(带上金额)
      */
     function guessingWithLat() public beforeDeadline checkAmount payable{
-        require(msg.value > 0);
+
         uint amount = msg.value;
-        uint num = amount/baseUnit; //判断可以获取几抽奖码
-        for(uint i=0;i<num;i++){
-            IndexOfgussinger[indexKey] = msg.sender;
-            indexKey++;
-        }
+
+        IndexOfgussinger[indexKey] = msg.sender;
+        indexKey++;
 
         //竞猜人的金额累加(可以投多次)
         gussingerLat[msg.sender] += amount;
@@ -114,34 +102,104 @@ contract Guessing {
     /**
      * 开奖操作
      * 如果当前区块超过了截止日期
-     * 
+     *
+     * 参数A：基于开奖截止区块的hash转成uint256
+     *
+     * 参数B：本期内参与的总票数
+     *
+     * 结果C ：A 对 B取余
+     *
+     * 方法：A % B = C
+     *
+     *
+     * 1.参数B为个位数和十位数，取余数C的个位数，个位数相同的为中奖
+     *   例如余数的12，取个位数，个位数是2的为中奖票
+     *
+     * 2.参数B为百位数和千位数，取余数C的两位数(个位十位)，两位数相同的为中奖；
+     *   例如余数是123，取两位数，票数后两位23的为中奖票
+     *
+     * 3.参数B为万位数和十万位数，取余数C的三位数(个位十位百位)，三位数相同的为中奖；
+     *   例如余数是1234，取三位数，票数后三位带234的为中奖票
+     *
      */
     function draw() public afterDeadline {
         //只有合约创建者可以开奖
         if(!guessingClosed && createAddress == msg.sender){
+
             uint256 random = uint256(keccak256(abi.encodePacked(blockhash(endBlock))));
             uint drawIndex = random%indexKey;
+            uint postfix;
 
-            //取到中奖者
-            winnerAddress = IndexOfgussinger[drawIndex];
+            if(indexKey<100){
+                postfix = drawIndex%10;
+                if(postfix ==0){
+                    for(uint256 i=0;i<indexKey;i++){
+                        if((i-postfix)%10 == 0){
+                            winnerAddresses.push(IndexOfgussinger[i]);
+                        }
+                    }
+                }else{
+                    for(uint256 i=0;i<indexKey;i++){
+                        if(i%10 != 0 && (i-postfix)%10 == 0){
+                            winnerAddresses.push(IndexOfgussinger[i]);
+                        }
+                    }
+                }
+            }else if(indexKey<10000){
+                postfix = drawIndex%100;
+                if(postfix ==0){
+                    for(uint256 i=0;i<indexKey;i++){
+                        if((i-postfix)%100 == 0){
+                            winnerAddresses.push(IndexOfgussinger[i]);
+                        }
+                    }
+                }else{
+                    for(uint256 i=0;i<indexKey;i++){
+                        if(i%100 != 0 && (i-postfix)%100 == 0){
+                            winnerAddresses.push(IndexOfgussinger[i]);
+                        }
+                    }
+                }
+            }else{
+                postfix = drawIndex%1000;
+                if(postfix ==0){
+                    for(uint256 i=0;i<indexKey;i++){
+                        if((i-postfix)%1000 == 0){
+                            winnerAddresses.push(IndexOfgussinger[i]);
+                        }
+                    }
+                }else{
+                    for(uint256 i=0;i<indexKey;i++){
+                        if(i%1000 != 0 && (i-postfix)%1000 == 0){
+                            winnerAddresses.push(IndexOfgussinger[i]);
+                        }
+                    }
+                }
+            }
 
             //向中奖者转账
-            winnerAddress.transfer(balance);
-            emit FundTransfer(winnerAddress, balance, false);
+            for(uint256 j=0;j<winnerAddresses.length;j++){
+                if(winnerAddresses[j] != address(0x0)){
+                    address(uint160(winnerAddresses[j])).transfer(balance);
+                }
+            }
 
             guessingClosed = true;
         }
     }
 
+    /**
+     * 查看当前合约中的余额
+     */
     function getBalanceOf() view public returns (uint256){
         return address(this).balance;
     }
 
-    //累加函数
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        assert(c >= a);
-        return c;
+    /**
+     * 查看一共有几个中奖者
+     */
+    function getWinnerCount() view public returns (uint256){
+        return winnerAddresses.length;
     }
 
 }
