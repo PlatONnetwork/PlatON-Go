@@ -367,7 +367,7 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 		return []byte{}
 	}
 	if len(value) == 0 && valueKey == emptyStorage {
-		log.Warn("Empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
+		log.Debug("Empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
 	}
 	log.Debug("GetCommittedState", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
 	self.originStorage[key] = valueKey
