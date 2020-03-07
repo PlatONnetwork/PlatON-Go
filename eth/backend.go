@@ -575,7 +575,9 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
-	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance(reactor.GetChainID()))
+
+	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
+	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 	reactor.RegisterPlugin(xcom.CollectDeclareVersionRule, xplugin.NewCollectDeclareVersionPlugin())
 
 	// set rule order

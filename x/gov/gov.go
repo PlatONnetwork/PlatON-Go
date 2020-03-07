@@ -347,7 +347,7 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 					return err
 				}
 				candidate, err := stk.GetCanMutable(blockHash, nodeAddress)
-				if err != nil {
+				if candidate == nil || err != nil {
 					return VerifierInfoNotFound
 				} else if candidate.IsInvalid() {
 					return VerifierStatusInvalid
