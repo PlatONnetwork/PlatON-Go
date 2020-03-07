@@ -599,7 +599,7 @@ func (self *StateDB) ClearReference() {
 	for _, fn := range self.clearReferenceFunc {
 		fn()
 	}
-	log.Debug("clear all ref", "reflen", len(self.clearReferenceFunc))
+	log.Trace("clear all ref", "reflen", len(self.clearReferenceFunc))
 	if self.parent != nil {
 		if len(self.parent.clearReferenceFunc) > 0 {
 			panic("parent ref > 0")
@@ -816,7 +816,7 @@ func (self *StateDB) clearParentRef() {
 
 	if self.parent != nil {
 		self.parentCommitted = true
-		log.Debug("new root", "hash", self.parent.Root().String())
+		log.Trace("new root", "hash", self.parent.Root().String())
 		// Parent is nil, find the parent state based on current StateDB
 		self.parent = nil
 	}
@@ -953,7 +953,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		return nil
 	})
 
-	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
+	log.Trace("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }
 
