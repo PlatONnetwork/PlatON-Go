@@ -45,6 +45,55 @@ func (self Code) String() string {
 
 type Storage map[string]common.Hash
 type ValueStorage map[common.Hash][]byte
+type ReferenceValueStorage map[common.Hash]*ReferenceValue
+
+type ReferenceValue struct {
+	Count  uint32
+	Value  []byte
+}
+
+
+func (self ReferenceValueStorage) deleleReferenceValue(valueKey common.Hash) {
+	if refValue, ok := self[valueKey]; ok {
+		if refValue.Count--; refValue.Count == 0 {
+			delete(self, valueKey)
+		}else {
+			self[valueKey] = refValue
+		}
+	}
+}
+
+
+func (self ReferenceValueStorage) setReferenceValue (valueKey common.Hash, val []byte) {
+
+	var ref *ReferenceValue
+	if refValue, ok := self[valueKey]; ok {
+		refValue.Count++
+		ref = refValue
+	}else {
+		ref = &ReferenceValue{
+			Count: 1,
+			Value: val,
+		}
+	}
+	self[valueKey] = ref
+}
+
+func (self ReferenceValueStorage) Copy() ReferenceValueStorage {
+	cpy := make(ReferenceValueStorage, len(self))
+	for key, value := range self {
+		// deep copy
+		v := make([]byte, len(value.Value))
+		copy(v, value.Value)
+		cpv := &ReferenceValue{
+			Count: value.Count,
+			Value: v,
+		}
+		cpy[key] = cpv
+	}
+
+	return cpy
+}
 
 // Storage -> hash : hash , common.Hash ([32]byte)
 //type Storage map[common.Hash]common.Hash
@@ -107,7 +156,7 @@ type stateObject struct {
 	originValueStorage ValueStorage // Storage cache of original entries to dedup rewrites
 
 	dirtyStorage      Storage      // Storage entries that need to be flushed to disk
-	dirtyValueStorage ValueStorage // Storage entries that need to be flushed to disk
+	dirtyValueStorage ReferenceValueStorage // Storage entries that need to be flushed to disk
 
 	// Cache flags.
 	// When an object is marked suicided it will be delete from the trie
@@ -150,10 +199,10 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 		data:     data,
 
 		originStorage:      make(Storage),
-		originValueStorage: make(map[common.Hash][]byte),
+		originValueStorage: make(ValueStorage),
 
 		dirtyStorage:      make(Storage),
-		dirtyValueStorage: make(map[common.Hash][]byte),
+		dirtyValueStorage: make(ReferenceValueStorage),
 	}
 }
 
@@ -212,9 +261,9 @@ func (self *stateObject) GetState(db Database, keyTree string) []byte {
 	// If we have a dirty value for this state entry, return it
 	valueKey, dirty := self.dirtyStorage[keyTree]
 	if dirty {
-		value, ok := self.dirtyValueStorage[valueKey]
+		refValue, ok := self.dirtyValueStorage[valueKey]
 		if ok {
-			return value
+			return refValue.Value
 		}
 	}
 	// Otherwise return the entry's original value
@@ -289,7 +338,7 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 	valueKey := common.Hash{}
 	// If we have the original value cached, return that
 	if value := self.getCommittedStateCache(key); value != nil {
-		log.Info("GetCommittedState cache", "key", hex.EncodeToString([]byte(key)), "value", len(value))
+		log.Debug("GetCommittedState cache", "key", hex.EncodeToString([]byte(key)), "value", len(value))
 		return value
 	}
 
@@ -314,13 +363,13 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 	}
 
 	if valueKey != emptyStorage && len(value) == 0 {
-		//log.Error("invalid storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
+		log.Error("Invalid storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
 		return []byte{}
 	}
 	if len(value) == 0 && valueKey == emptyStorage {
-		log.Debug("empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
+		log.Debug("Empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
 	}
-	log.Info("GetCommittedState", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
+	log.Debug("GetCommittedState", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
 	self.originStorage[key] = valueKey
 	self.originValueStorage[valueKey] = value
 	return value
@@ -353,11 +402,13 @@ func (self *stateObject) setState(key string, valueKey common.Hash, value []byte
 
 	// delete value storage
 	if dirtyValue, ok := self.dirtyStorage[key]; ok {
-		delete(self.dirtyValueStorage, dirtyValue)
+		//delete(self.dirtyValueStorage, dirtyValue)
+		self.dirtyValueStorage.deleleReferenceValue(dirtyValue)
 	}
 
 	self.dirtyStorage[key] = valueKey
-	self.dirtyValueStorage[valueKey] = cpy
+	//self.dirtyValueStorage[valueKey] = cpy
+	self.dirtyValueStorage.setReferenceValue(valueKey, cpy)
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
@@ -367,12 +418,14 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		delete(self.dirtyStorage, key)
 
 		if valueKey == self.originStorage[key] {
-			delete(self.dirtyValueStorage, valueKey)
+			//delete(self.dirtyValueStorage, valueKey)
+			self.dirtyValueStorage.deleleReferenceValue(valueKey)
 			continue
 		}
 
 		if valueKey == emptyStorage || (valueKey == common.Hash{}) {
-			delete(self.dirtyValueStorage, valueKey)
+			//delete(self.dirtyValueStorage, valueKey)
+			self.dirtyValueStorage.deleleReferenceValue(valueKey)
 
 			if oldValueKey, ok := self.originStorage[key]; ok {
 				delete(self.originValueStorage, oldValueKey)
@@ -390,9 +443,10 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		self.setError(tr.TryUpdate([]byte(key), v))
 
 		//flush dirty value
-		if value, ok := self.dirtyValueStorage[valueKey]; ok {
-			delete(self.dirtyValueStorage, valueKey)
-			self.originValueStorage[valueKey] = value
+		if refValue, ok := self.dirtyValueStorage[valueKey]; ok {
+			//delete(self.dirtyValueStorage, valueKey)
+			self.dirtyValueStorage.deleleReferenceValue(valueKey)
+			self.originValueStorage[valueKey] = refValue.Value
 		}
 	}
 
