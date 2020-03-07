@@ -1,14 +1,18 @@
 package runtime
 
 import (
+	"context"
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"math/big"
-	"testing"
 )
+
 type account struct{}
+
 func (account) SubBalance(amount *big.Int)                          {}
 func (account) AddBalance(amount *big.Int)                          {}
 func (account) SetAddress(common.Address)                           {}
@@ -20,6 +24,12 @@ func (account) Address() common.Address                             { return com
 func (account) ReturnGas(*big.Int)                                  {}
 func (account) SetCode(common.Hash, []byte)                         {}
 func (account) ForEachStorage(cb func(key, value common.Hash) bool) {}
+
+func NewEVMWithCtx(cfg *Config) *vm.EVM {
+	vmenv := NewEnv(cfg)
+	vmenv.Ctx = context.TODO()
+	return vmenv
+}
 
 func TestEVMCallError(t *testing.T) {
 	defer func() {
@@ -35,8 +45,8 @@ func TestEVMCallError(t *testing.T) {
 		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	}
 	var (
-		vmenv   = NewEnv(cfg)
-		sender  = vm.AccountRef(cfg.Origin)
+		vmenv  = NewEVMWithCtx(cfg)
+		sender = vm.AccountRef(cfg.Origin)
 	)
 	vmenv.Call(
 		sender,
@@ -79,7 +89,7 @@ func TestEVMCall(t *testing.T) {
 
 	cfg := new(Config)
 	baseConfig(cfg)
-	vmenv := NewEnv(cfg)
+	vmenv := NewEVMWithCtx(cfg)
 	sender := vm.AccountRef(cfg.Origin)
 	// Call the code with the given configuration.
 	vmenv.Call(
@@ -100,7 +110,7 @@ func TestCallCode(t *testing.T) {
 
 	cfg := new(Config)
 	baseConfig(cfg)
-	vmenv := NewEnv(cfg)
+	vmenv := NewEVMWithCtx(cfg)
 	sender := vm.AccountRef(cfg.Origin)
 	// Call the code with the given configuration.
 	vmenv.CallCode(
@@ -121,7 +131,7 @@ func TestDelegateCall(t *testing.T) {
 
 	cfg := new(Config)
 	baseConfig(cfg)
-	vmenv := NewEnv(cfg)
+	vmenv := NewEVMWithCtx(cfg)
 	sender := vm.NewContract(account{}, account{}, big.NewInt(0), cfg.GasLimit)
 	vmenv.DelegateCall(
 		sender,
@@ -140,7 +150,7 @@ func TestStaticCall(t *testing.T) {
 
 	cfg := new(Config)
 	baseConfig(cfg)
-	vmenv := NewEnv(cfg)
+	vmenv := NewEVMWithCtx(cfg)
 	sender := vm.NewContract(account{}, account{}, big.NewInt(0), cfg.GasLimit)
 	vmenv.StaticCall(
 		sender,
@@ -165,7 +175,7 @@ func TestCreate(t *testing.T) {
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
-		vmenv   = NewEnv(cfg)
+		vmenv   = NewEVMWithCtx(cfg)
 		sender  = vm.NewContract(account{}, account{}, big.NewInt(0), cfg.GasLimit)
 	)
 	cfg.State.CreateAccount(address)
@@ -209,7 +219,7 @@ func TestPre(t *testing.T) {
 
 	cfg := new(Config)
 	baseConfig(cfg)
-	vmenv := NewEnv(cfg)
+	vmenv := NewEVMWithCtx(cfg)
 	sender := vm.AccountRef(cfg.Origin)
 	// Call the code with the given configuration.
 	vmenv.CallCode(
@@ -270,12 +280,12 @@ func TestOthers(t *testing.T) {
 		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	}
 	var (
-		vmenv   = NewEnv(cfg)
+		vmenv = NewEVMWithCtx(cfg)
 	)
 
 	vmenv.Interpreter()
 	vmenv.GetStateDB()
 	vmenv.GetEvm()
-	vmenv.GetConfig()
+	vmenv.GetVMConfig()
 	vmenv.Cancel()
 }

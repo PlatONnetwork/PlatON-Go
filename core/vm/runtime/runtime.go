@@ -17,6 +17,7 @@
 package runtime
 
 import (
+	"context"
 	"math"
 	"math/big"
 	"time"
@@ -52,8 +53,8 @@ type Config struct {
 func setDefaults(cfg *Config) {
 	if cfg.ChainConfig == nil {
 		cfg.ChainConfig = &params.ChainConfig{
-			ChainID:        big.NewInt(1),
-			EIP155Block:    new(big.Int),
+			ChainID:     big.NewInt(1),
+			EIP155Block: new(big.Int),
 		}
 	}
 
@@ -101,6 +102,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		vmenv   = NewEnv(cfg)
 		sender  = vm.AccountRef(cfg.Origin)
 	)
+	vmenv.Ctx = context.TODO()
 	cfg.State.CreateAccount(address)
 	// set the receiver's (the executing contract) code for execution.
 	cfg.State.SetCode(address, code)

@@ -165,15 +165,15 @@ func (self *StateDB) DumpStorage(check bool) {
 			}
 		}
 
-		for k, v := range obj.dirtyStorage {
-			vk, ok := obj.dirtyValueStorage[v]
+		for k, vk := range obj.dirtyStorage {
+			v, ok := obj.dirtyValueStorage[vk]
 			if ok {
-				log.Debug("dirty: key:%s, valueKey:%s, value:%s len:%d", hexutil.Encode([]byte(k)), v.String(), hexutil.Encode([]byte(vk)), len(vk))
+				log.Debug("dirty: key:%s, valueKey:%s, value:%s len:%d", hexutil.Encode([]byte(k)), vk.String(), hexutil.Encode(v.Value), len(v.Value))
 				if check {
 					vg := disk.GetCommittedState(addr, []byte(k))
 
-					if check && !bytes.Equal(vk, vg) {
-						panic(fmt.Sprintf("not equal, key:%s, value:%s len:%d", hexutil.Encode([]byte(k)), hexutil.Encode([]byte(vg)), len(vg)))
+					if check && !bytes.Equal(v.Value, vg) {
+						panic(fmt.Sprintf("not equal, key:%s, value:%s len:%d", hexutil.Encode([]byte(k)), hexutil.Encode(vg), len(vg)))
 					}
 				}
 			}
@@ -563,9 +563,9 @@ func (self *StateDB) getStateObjectSnapshot(addr common.Address, key string) (co
 		}
 		valueKey, dirty := obj.dirtyStorage[key]
 		if dirty {
-			value, ok := obj.dirtyValueStorage[valueKey]
+			refValue, ok := obj.dirtyValueStorage[valueKey]
 			if ok {
-				return valueKey, value
+				return valueKey, refValue.Value
 			}
 		}
 
@@ -599,7 +599,7 @@ func (self *StateDB) ClearReference() {
 	for _, fn := range self.clearReferenceFunc {
 		fn()
 	}
-	log.Debug("clear all ref", "reflen", len(self.clearReferenceFunc))
+	log.Trace("clear all ref", "reflen", len(self.clearReferenceFunc))
 	if self.parent != nil {
 		if len(self.parent.clearReferenceFunc) > 0 {
 			panic("parent ref > 0")
@@ -690,7 +690,7 @@ func (self *StateDB) TxIdx() uint32 {
 	return uint32(self.txIndex)
 }
 
-func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
+/*func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
 	so := db.getStateObject(addr)
 	if so == nil {
 		return
@@ -703,6 +703,43 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 			continue
 		}
 		cb(key, common.BytesToHash(it.Value))
+	}
+}*/
+
+func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte) bool) {
+	so := db.getStateObject(addr)
+	if so == nil {
+		return
+	}
+
+	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
+	for it.Next() {
+		key := db.trie.GetKey(it.Key)
+		if valueKey, ok := so.dirtyStorage[string(key)]; ok {
+			if refValue, dirty := so.dirtyValueStorage[valueKey]; dirty {
+				cb(key, refValue.Value)
+				continue
+			}
+		}
+
+		cb(key, db.trie.GetKey(it.Value))
+	}
+}
+
+func (db *StateDB) MigrateStorage(from, to common.Address) {
+
+	fromObj := db.getStateObject(from)
+	toObj := db.getStateObject(to)
+	if nil != fromObj && nil != toObj {
+		// replace storageRootHash
+		toObj.data.Root = fromObj.data.Root
+		// replace storageTrie
+		toObj.trie = db.db.CopyTrie(fromObj.trie)
+		// replace storage
+		toObj.dirtyStorage = fromObj.dirtyStorage.Copy()
+		toObj.dirtyValueStorage = fromObj.dirtyValueStorage.Copy()
+		toObj.originStorage = fromObj.originStorage.Copy()
+		toObj.originValueStorage = fromObj.originValueStorage.Copy()
 	}
 }
 
@@ -779,7 +816,7 @@ func (self *StateDB) clearParentRef() {
 
 	if self.parent != nil {
 		self.parentCommitted = true
-		log.Debug("new root", "hash", self.parent.Root().String())
+		log.Trace("new root", "hash", self.parent.Root().String())
 		// Parent is nil, find the parent state based on current StateDB
 		self.parent = nil
 	}
@@ -916,7 +953,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		return nil
 	})
 
-	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
+	log.Trace("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }
 

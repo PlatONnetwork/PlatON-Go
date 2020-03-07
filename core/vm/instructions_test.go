@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -38,7 +39,7 @@ type twoOperandTest struct {
 
 func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error)) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{Ctx: context.TODO()}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -886,6 +887,14 @@ func TestOpReturnDataCopy(t *testing.T) {
 
 func createMockState() StateDB {
 	return &mock.MockStateDB{
+		Nonce: map[common.Address]uint64{
+			common.BytesToAddress([]byte("a")): 1,
+			common.BytesToAddress([]byte("b")): 1,
+			common.BytesToAddress([]byte("c")): 1,
+			common.BytesToAddress([]byte("d")): 1,
+			common.BytesToAddress([]byte("e")): 1,
+			common.BytesToAddress([]byte("f")): 1,
+		},
 		Balance: map[common.Address]*big.Int{
 			common.BytesToAddress([]byte("a")): new(big.Int).SetUint64(100),
 			common.BytesToAddress([]byte("b")): new(big.Int).SetUint64(200),
@@ -1090,7 +1099,7 @@ func TestOpCoinbase(t *testing.T) {
 
 func buildEnv(statedb StateDB) (*EVM, *Stack, uint64, *EVMInterpreter) {
 	var (
-		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{Ctx: context.TODO()}, statedb, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -1294,6 +1303,7 @@ func TestOpGas(t *testing.T) {
 
 func TestOpCreate(t *testing.T) {
 	env, stack, pc, evmInterpreter := buildEnv(createMockState())
+	evmInterpreter.evm.Ctx = context.TODO()
 	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
 	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
 		return true

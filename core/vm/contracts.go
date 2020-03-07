@@ -113,6 +113,28 @@ func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, con
 	return nil, ErrOutOfGas
 }
 
+func IsEVMPrecompiledContract(addr common.Address) bool {
+	if _, ok := PrecompiledContractsHomestead[addr]; ok {
+		return true
+	}
+	return false
+}
+
+func IsPlatONPrecompiledContract(addr common.Address) bool {
+	if _, ok := PlatONPrecompiledContracts[addr]; ok {
+		return true
+	}
+	return false
+}
+
+func IsPrecompiledContract(addr common.Address) bool {
+	if IsEVMPrecompiledContract(addr) {
+		return true
+	} else {
+		return IsPlatONPrecompiledContract(addr)
+	}
+}
+
 // ECRECOVER implemented as a native contract.
 type ecrecover struct{}
 

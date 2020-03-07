@@ -175,12 +175,12 @@ func (c *Cleaner) cleanup() {
 
 			rawdb.DeleteReceipts(db, block.Hash(), block.NumberU64())
 
-			batch := c.blockchain.db.NewBatch()
-			for _, tx := range block.Transactions() {
-				txs++
-				rawdb.DeleteTxLookupEntry(batch, tx.Hash())
-			}
-			batch.Write()
+			//batch := c.blockchain.db.NewBatch()
+			//for _, tx := range block.Transactions() {
+			//	txs++
+			//	rawdb.DeleteTxLookupEntry(batch, tx.Hash())
+			//}
+			//batch.Write()
 
 			receipts++
 
