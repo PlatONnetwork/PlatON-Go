@@ -12,8 +12,10 @@ contract Guessing {
     uint256 public baseUnit = 5 lat; //最小转金额（为了公平起见，保证只5个lat可以取到一个选票。）
 
     uint256 public balance; //竞猜总金额
+    uint256 public averageAmount; //每个人获奖金额
     mapping(address => uint256) public gussingerLat; //每个竞猜者对应的金额
     mapping(uint256 =>address payable ) public IndexOfgussinger; //每个竞猜者对应的下标（5个lat就给他分配一个随机数）
+    mapping(address => uint256 ) public winnerMap; //中奖者对应中奖号码个数
     uint public indexKey = 0;
     address[] public winnerAddresses; //中奖者地址
     address public createAddress;//合约创建者
@@ -124,7 +126,7 @@ contract Guessing {
      */
     function draw() public afterDeadline {
         //只有合约创建者可以开奖
-        if(!guessingClosed && createAddress == msg.sender){
+        if(!guessingClosed && createAddress == msg.sender && indexKey > 0){
 
             uint256 random = uint256(keccak256(abi.encodePacked(blockhash(endBlock))));
             uint drawIndex = random%indexKey;
@@ -177,10 +179,16 @@ contract Guessing {
                 }
             }
 
+            //每个中奖者可以分到的金额
+            averageAmount = balance/winnerAddresses.length;
+            address payable tempAddress;
             //向中奖者转账
             for(uint256 j=0;j<winnerAddresses.length;j++){
+                //中奖者中奖票号统计
+                winnerMap[winnerAddresses[j]] = winnerMap[winnerAddresses[j]]+1;
                 if(winnerAddresses[j] != address(0x0)){
-                    address(uint160(winnerAddresses[j])).transfer(balance);
+                   tempAddress = address(uint160(winnerAddresses[j]));
+                   tempAddress.transfer(averageAmount);
                 }
             }
 
@@ -196,10 +204,17 @@ contract Guessing {
     }
 
     /**
-     * 查看一共有几个中奖者
+     * 查看一共有几个中奖号码
      */
     function getWinnerCount() view public returns (uint256){
         return winnerAddresses.length;
+    }
+
+    /**
+     * 获取所有中奖人地址（可能有重复，调用方可以对此进行合并）
+     */
+    function getWinnerAddresses() view public returns (address[] memory){
+        return winnerAddresses;
     }
 
 }

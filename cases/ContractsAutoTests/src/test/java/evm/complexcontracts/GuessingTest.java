@@ -22,7 +22,7 @@ import java.math.BigInteger;
  **/
 
 public class GuessingTest extends ContractPrepareTest {
-    private String endBlock = "100000000"; //设置竞猜截止块高
+    private String endBlock = "12823"; //设置竞猜截止块高
 
     @Before
     public void before() {
@@ -36,7 +36,7 @@ public class GuessingTest extends ContractPrepareTest {
 
         try {
 
-            Guessing guessing = Guessing.deploy(web3j, transactionManager, provider,new BigInteger("0"),new BigInteger(endBlock)).send();
+            Guessing guessing = Guessing.deploy(web3j, transactionManager, provider,new BigInteger(endBlock)).send();
 
             String contractAddress = guessing.getContractAddress();
             TransactionReceipt tx = guessing.getTransactionReceipt().get();
@@ -58,8 +58,9 @@ public class GuessingTest extends ContractPrepareTest {
 
             //发起转账(触发竞猜操作)
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("10"), Convert.Unit.LAT, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            BigInteger originBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            TransactionReceipt transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1000"), Convert.Unit.LAT, new BigInteger("1000000000"), new BigInteger("47123880")).send();
+//            BigInteger originBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("gas used>>>>>>>" + transactionReceipt.getGasUsed().toString());
 
             //查询合约余额
             contractBalance = guessing.getBalanceOf().send().toString();
@@ -69,8 +70,9 @@ public class GuessingTest extends ContractPrepareTest {
             collector.logStepPass("发起第一次竞猜前奖池总金额为："+balance);
 
             //发起竞猜(客户端发起的单位是von与 lat差10^18次方)
-            tx = guessing.guessingWithLat(new BigInteger("10000000000000000000")).send();
+            tx = guessing.guessingWithLat(new BigInteger("1000000000000000000000")).send();
             collector.logStepPass(tx.getLogs().toString());
+            collector.logStepPass(" gas used>>>>>>>" + transactionReceipt.getGasUsed());
 
             //自增序列下标
             String indexKey = guessing.indexKey().send().toString();
@@ -87,8 +89,12 @@ public class GuessingTest extends ContractPrepareTest {
             collector.logStepPass("自增序列下标为："+indexKey);
 
             //查询当前调用者余额
-             originBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
+            BigInteger originBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("开奖前用户账户余额为>>>"+originBalance);
+
+            //查询每个竞猜者对应的下标
+            collector.logStepPass("竞猜者对下标："+guessing.IndexOfgussinger(new BigInteger("0")).send().toString());
+
 
             //开奖操作
             tx = guessing.draw().send();
@@ -101,7 +107,7 @@ public class GuessingTest extends ContractPrepareTest {
 
 
             //查询中奖者
-            String winnerAddress = guessing.winnerAddress().send();
+            String winnerAddress = guessing.winnerAddresses(new BigInteger("0")).send();
             collector.logStepPass("中奖者地是："+winnerAddress);
 
         } catch (Exception e) {
