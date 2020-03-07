@@ -59,12 +59,10 @@ public class GuessingTest extends ContractPrepareTest {
             //发起转账(触发竞猜操作)
             Transfer transfer = new Transfer(web3j, transactionManager);
             TransactionReceipt transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1000"), Convert.Unit.LAT, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-//            BigInteger originBalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("gas used>>>>>>>" + transactionReceipt.getGasUsed().toString());
 
             //查询合约余额
             contractBalance = guessing.getBalanceOf().send().toString();
-            collector.assertEqual("10000000000000000000",contractBalance);
 
             balance = guessing.balance().send().toString();
             collector.logStepPass("发起第一次竞猜前奖池总金额为："+balance);
@@ -107,8 +105,8 @@ public class GuessingTest extends ContractPrepareTest {
 
 
             //查询中奖者
-            String winnerAddress = guessing.winnerAddresses(new BigInteger("0")).send();
-            collector.logStepPass("中奖者地是："+winnerAddress);
+//            String winnerAddress = guessing.winnerAddresses(new BigInteger("0")).send();
+//            collector.logStepPass("中奖者地是："+winnerAddress);
 
         } catch (Exception e) {
             collector.logStepFail("GuessingTest Calling Method fail.", e.toString());
