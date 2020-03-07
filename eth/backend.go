@@ -169,6 +169,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	var (
 		vmConfig = vm.Config{
 			ConsoleOutput: config.Debug,
+			WasmType:      vm.Str2WasmType(config.VMWasmType),
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
@@ -243,8 +244,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.MinerGasFloor, gasCeil)
 	}
 
-	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
-		config.MinerGasFloor /*config.MinerGasCeil,*/, eth.isLocalBlock, blockChainCache)
+	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, &vmConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
+		config.MinerGasFloor, eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
 
 	//extra data for each block will be set by worker.go
 	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))

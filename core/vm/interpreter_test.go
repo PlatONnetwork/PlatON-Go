@@ -1,13 +1,16 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"context"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 type account struct{}
+
 func (account) SubBalance(amount *big.Int)                          {}
 func (account) AddBalance(amount *big.Int)                          {}
 func (account) SetAddress(common.Address)                           {}
@@ -25,9 +28,9 @@ func TestEnforceRestrictions(t *testing.T) {
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
-	evmInterpreter.readOnly = true;
+	evmInterpreter.readOnly = true
 	varstore := operation{
-	execute:       opSstore,
+		execute:       opSstore,
 		gasCost:       gasSStore,
 		validateStack: makeStackFunc(2, 0),
 		valid:         true,
@@ -39,10 +42,9 @@ func TestEnforceRestrictions(t *testing.T) {
 	}
 }
 
-
 func TestRun(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{Ctx: context.TODO()}, nil, params.TestChainConfig, Config{})
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
 	contract := NewContract(account{}, account{}, big.NewInt(0), 1)
@@ -57,14 +59,14 @@ func TestRun(t *testing.T) {
 		t.Errorf("Test Run error")
 	}
 
-	contract.Code = []byte{byte(PUSH1), 0x1, byte(PUSH1), 0x1,byte(SSTORE), 0x1, 0x2}
+	contract.Code = []byte{byte(PUSH1), 0x1, byte(PUSH1), 0x1, byte(SSTORE), 0x1, 0x2}
 	_, err = evmInterpreter.Run(contract, []byte{}, true)
 	if err == nil {
 		t.Errorf("Test Run error")
 	}
 
-	contract.Code = []byte{byte(PUSH1), 0x1, byte(PUSH1), 0x1,byte(SSTORE), 0x1, 0x2}
-	contract.Gas = 100000;
+	contract.Code = []byte{byte(PUSH1), 0x1, byte(PUSH1), 0x1, byte(SSTORE), 0x1, 0x2}
+	contract.Gas = 100000
 	_, err = evmInterpreter.Run(contract, []byte{}, true)
 	if err == nil {
 		t.Errorf("Test Run error")
@@ -74,15 +76,15 @@ func TestRun(t *testing.T) {
 	for i := 0; i <= 1024; i++ {
 		contract.Code = append(contract.Code, byte(PUSH1), 0x1)
 	}
-	contract.Gas = 100000;
-	evmInterpreter.cfg.JumpTable = constantinopleInstructionSet;
+	contract.Gas = 100000
+	evmInterpreter.cfg.JumpTable = constantinopleInstructionSet
 	_, err = evmInterpreter.Run(contract, []byte{}, true)
 	if err == nil {
 		t.Errorf("Test Run error")
 	}
 
-	contract.Code = []byte{byte(PUSH1), 0x1, byte(PUSH1), 0x1,byte(REVERT)}
-	contract.Gas = 100000;
+	contract.Code = []byte{byte(PUSH1), 0x1, byte(PUSH1), 0x1, byte(REVERT)}
+	contract.Gas = 100000
 	_, err = evmInterpreter.Run(contract, []byte{}, true)
 	if err == nil {
 		t.Errorf("Test Run error")

@@ -17,6 +17,7 @@
 package tracers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -43,7 +44,7 @@ func (account) SetCode(common.Hash, []byte)                         {}
 func (account) ForEachStorage(cb func(key, value common.Hash) bool) {}
 
 func runTrace(tracer *Tracer) (json.RawMessage, error) {
-	env := vm.NewEVM(vm.Context{BlockNumber: big.NewInt(1)}, nil, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
+	env := vm.NewEVM(vm.Context{Ctx: context.TODO(), BlockNumber: big.NewInt(1)}, nil, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
 
 	contract := vm.NewContract(account{}, account{}, big.NewInt(0), 10000)
 	contract.Code = []byte{byte(vm.PUSH1), 0x1, byte(vm.PUSH1), 0x1, 0x0}

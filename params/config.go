@@ -83,7 +83,6 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter:  "evm",
 		GenesisVersion: GenesisVersion,
 	}
 
@@ -107,7 +106,6 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter:  "evm",
 		GenesisVersion: GenesisVersion,
 	}
 
@@ -122,7 +120,6 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter:  "wasm",
 		GenesisVersion: GenesisVersion,
 	}
 
@@ -149,9 +146,9 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, "", GenesisVersion}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), "", GenesisVersion}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -180,8 +177,6 @@ type ChainConfig struct {
 	Clique *CliqueConfig `json:"clique,omitempty"`
 	Cbft   *CbftConfig   `json:"cbft,omitempty"`
 
-	// Various vm interpreter
-	VMInterpreter  string `json:"interpreter,omitempty"`
 	GenesisVersion uint32 `json:"genesisVersion"`
 }
 

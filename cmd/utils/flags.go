@@ -604,6 +604,20 @@ var (
 		Usage: "Number of cache block states, default 10",
 		Value: eth.DefaultConfig.DBGCBlock,
 	}
+
+	VMWasmType = cli.StringFlag{
+		Name:   "vm.wasm_type",
+		Usage:  "The actual implementation type of the wasm instance",
+		EnvVar: "",
+		Value:  eth.DefaultConfig.VMWasmType,
+	}
+
+	VmTimeoutDuration = cli.Uint64Flag{
+		Name:   "vm.timeout_duration",
+		Usage:  "The VM execution timeout duration (uint: ms)",
+		EnvVar: "",
+		Value:  eth.DefaultConfig.VmTimeoutDuration,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1206,6 +1220,15 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.DBGCBlock = b
 		}
 	}
+
+	// vm options
+	if ctx.GlobalIsSet(VMWasmType.Name) {
+		cfg.VMWasmType = ctx.GlobalString(VMWasmType.Name)
+	}
+	if ctx.GlobalIsSet(VmTimeoutDuration.Name) {
+		cfg.VmTimeoutDuration = ctx.GlobalUint64(VmTimeoutDuration.Name)
+	}
+
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {

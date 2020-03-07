@@ -35,7 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/life/utils"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -430,7 +429,7 @@ func (sp *SlashingPlugin) getSlashTxHash(addr common.Address, blockNumber uint64
 
 // duplicate signature result key format addr+blockNumber+_+type
 func duplicateSignKey(addr common.Address, blockNumber uint64, dupType consensus.EvidenceType) []byte {
-	return append(append(addr.Bytes(), utils.Uint64ToBytes(blockNumber)...), common.Uint16ToBytes(uint16(dupType))...)
+	return append(append(addr.Bytes(), common.Uint64ToBytes(blockNumber)...), common.Uint16ToBytes(uint16(dupType))...)
 }
 
 func buildKey(blockNumber uint64, key []byte) []byte {
