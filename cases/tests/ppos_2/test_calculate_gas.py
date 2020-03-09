@@ -11,8 +11,7 @@ def test_staking_gas(client_new_node):
     details = "details"
     node = client_new_node.node
     economic = client_new_node.economic
-    benifit_address, pri_key = client_new_node.economic.account.generate_account(node.web3,
-                                                                                 economic.create_staking_limit * 2)
+    benifit_address, pri_key = economic.account.generate_account(node.web3,economic.create_staking_limit*2)
     benifit_address = node.web3.toChecksumAddress(benifit_address)
     balance1 = node.eth.getBalance(benifit_address)
     log.info(balance1)
@@ -26,11 +25,13 @@ def test_staking_gas(client_new_node):
                                                 pri_key,reward_per=0)
 
     assert_code(result, 0)
+
     data = rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(bytes.fromhex(benifit_address_)),
                        rlp.encode(bytes.fromhex(node.node_id)), rlp.encode(external_id),
                        rlp.encode(node_name),
                        rlp.encode(website), rlp.encode(details),
                        rlp.encode(economic.create_staking_limit),
+                       rlp.encode(0),
                        rlp.encode(node.program_version),
                        rlp.encode(bytes.fromhex(program_version_sign_)),
                        rlp.encode(bytes.fromhex(node.blspubkey)),

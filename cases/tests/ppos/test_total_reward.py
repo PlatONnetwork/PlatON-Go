@@ -1126,7 +1126,7 @@ def test_DG_TR_029(clients_noconsensus, reset_environment):
 
 
 @pytest.mark.P2
-@pytest.mark.skip("Test case process is random and needs to be executed multiple times manually")
+# @pytest.mark.skip("Test case process is random and needs to be executed multiple times manually")
 def test_DG_TR_030(clients_noconsensus, reset_environment):
     """
     The current consensus round consensus node is not in the settlement cycle list, verifying the node's revenue
