@@ -979,6 +979,27 @@ func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 	return <-result
 }
 
+// GetBlockByHash get the specified block by hash and number.
+func (cbft *Cbft) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
+	result := make(chan *types.Block, 1)
+	cbft.asyncCallCh <- func() {
+		// First extract from the confirmed block.
+		block := cbft.blockTree.FindBlockByHash(hash)
+		if block == nil {
+			// Extract from view state.
+			block = cbft.state.FindBlock(hash, number)
+		}
+		if block == nil {
+			header := cbft.blockChain.GetHeaderByHash(hash)
+			if header != nil {
+				block = cbft.blockChain.GetBlock(header.Hash(), header.Number.Uint64())
+			}
+		}
+		result <- block
+	}
+	return <-result
+}
+
 // CurrentBlock get the current lock block.
 func (cbft *Cbft) CurrentBlock() *types.Block {
 	var block *types.Block

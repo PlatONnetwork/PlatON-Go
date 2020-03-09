@@ -85,7 +85,11 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 				return header.ParentHash
 			}
 		}*/
-		for header := chain.Engine().GetBlockByHash(ref.ParentHash).Header(); header != nil; header = chain.Engine().GetBlockByHash(header.ParentHash).Header() {
+		block := chain.Engine().GetBlockByHashAndNum(ref.ParentHash, ref.Number.Uint64()-1)
+		if block == nil {
+			return common.Hash{}
+		}
+		for header := block.Header(); header != nil; header = chain.Engine().GetBlockByHashAndNum(header.ParentHash, header.Number.Uint64()-1).Header() {
 			cache[header.Number.Uint64()-1] = header.ParentHash
 			if n == header.Number.Uint64()-1 {
 				return header.ParentHash
