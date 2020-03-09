@@ -1125,6 +1125,13 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		addrSuffix := iter.Value()
 		canBase, err := sk.db.GetCanBaseStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
+			if err == snapshotdb.ErrNotFound {
+				if err := sk.db.Del(blockHash, iter.Key()); err != nil {
+					return err
+				}
+				// for fix bug Power exist, bug Base is del
+				continue
+			}
 			log.Error("Failed to ElectNextVerifierList: Query CandidateBase info is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
 			return err
@@ -1706,11 +1713,16 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	}
 
 	currMap := make(map[discover.NodeID]*big.Int, len(curr.Arr))
+	currqueen := make([]*staking.Validator, 0)
 	for _, v := range curr.Arr {
 
 		canAddr, _ := xutil.NodeId2Addr(v.NodeId)
 		can, err := sk.db.GetCandidateStore(blockHash, canAddr)
 		if nil != err {
+			if err == snapshotdb.ErrNotFound {
+				// for fix bug Power exist, bug Base is del
+				continue
+			}
 			log.Error("Failed to Query Candidate Info on Election", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
 			return err
@@ -1744,6 +1756,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 
 		currMap[v.NodeId] = v.Shares
+		currqueen = append(currqueen, v)
 	}
 
 	// Exclude the current consensus round validators from the validators of the Epoch
@@ -1762,6 +1775,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		addr, _ := xutil.NodeId2Addr(v.NodeId)
 		can, err := sk.db.GetCandidateStore(blockHash, addr)
 		if nil != err {
+			if err == snapshotdb.ErrNotFound {
+				// for fix bug Power exist, bug Base is del
+				continue
+			}
 			log.Error("Failed to Get Candidate on Election", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
 			return err
@@ -1849,7 +1866,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
 		"vrfQueueLen", len(vrfQueue))
 
-	nextQueue := shuffle(invalidLen, curr.Arr, vrfQueue)
+	nextQueue := shuffle(invalidLen, currqueen, vrfQueue)
 
 	if len(nextQueue) == 0 {
 		panic("The Next Round Validator is empty, blockNumber: " + fmt.Sprint(blockNumber))
@@ -2159,7 +2176,7 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 
 		if _, ok := slashNodeIdMap[val.NodeId]; ok {
 
-			log.Debug("Call SlashCandidates, Delete the validator", "blockNumber", blockNumber,
+			log.Info("Call SlashCandidates, Delete the validator", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", val.NodeId.String())
 
 			verifier.Arr = append(verifier.Arr[:i], verifier.Arr[i+1:]...)
@@ -2265,11 +2282,12 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
 	programVersion uint32) error {
 
-	log.Debug("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
+	log.Info("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
 
 	for _, nodeId := range nodeIds {
-
+		log.Info("Call ProposalPassedNotify itr nodeId", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "nodeid", nodeId)
 		addr, _ := xutil.NodeId2Addr(nodeId)
 		can, err := sk.db.GetCandidateStore(blockHash, addr)
 		if snapshotdb.NonDbNotFoundErr(err) {
@@ -2312,7 +2330,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
 	programVersion uint32) error {
 
-	log.Debug("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
+	log.Info("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", xutil.CalcVersion(programVersion), "nodeId", nodeId.String())
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
