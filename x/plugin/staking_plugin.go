@@ -1125,6 +1125,8 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		addrSuffix := iter.Value()
 		canBase, err := sk.db.GetCanBaseStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
+			log.Error("Failed to ElectNextVerifierList: Query CandidateBase info is failed", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
 			if err == snapshotdb.ErrNotFound {
 				if err := sk.db.Del(blockHash, iter.Key()); err != nil {
 					return err
@@ -1132,8 +1134,6 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 				// for fix bug Power exist, bug Base is del
 				continue
 			}
-			log.Error("Failed to ElectNextVerifierList: Query CandidateBase info is failed", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
 			return err
 		}
 
@@ -1719,12 +1719,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		canAddr, _ := xutil.NodeId2Addr(v.NodeId)
 		can, err := sk.db.GetCandidateStore(blockHash, canAddr)
 		if nil != err {
+			log.Error("Failed to Query Candidate Info on Election", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
 			if err == snapshotdb.ErrNotFound {
 				// for fix bug Power exist, bug Base is del
 				continue
 			}
-			log.Error("Failed to Query Candidate Info on Election", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
 			return err
 		}
 
@@ -1775,12 +1775,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		addr, _ := xutil.NodeId2Addr(v.NodeId)
 		can, err := sk.db.GetCandidateStore(blockHash, addr)
 		if nil != err {
+			log.Error("Failed to Get Candidate on Election", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
 			if err == snapshotdb.ErrNotFound {
 				// for fix bug Power exist, bug Base is del
 				continue
 			}
-			log.Error("Failed to Get Candidate on Election", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
 			return err
 		}
 
