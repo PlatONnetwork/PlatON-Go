@@ -125,6 +125,8 @@ type Engine interface {
 
 	GetBlockByHash(hash common.Hash) *types.Block
 
+	GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block
+
 	CurrentBlock() *types.Block
 
 	FastSyncCommitHead(block *types.Block) error
