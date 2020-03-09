@@ -62,7 +62,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	}
 	plugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidence)
 	plugin.StakingInstance()
-	plugin.GovPluginInstance(big.NewInt(101))
+	plugin.GovPluginInstance()
 
 	state.Prepare(txHashArr[1], common.ZeroHash, 2)
 

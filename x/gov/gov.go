@@ -488,7 +488,9 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 					}
 				}
 				if idx < len(voteValueList) {
+					removed := voteValueList[idx:]
 					voteValueList = voteValueList[:idx]
+					log.Debug(fmt.Sprintf("remove voted value, proposalID:%s, removedVoteValue:%+v", proposalID.Hex(), removed))
 					if err := UpdateVoteValue(proposalID, voteValueList, blockHash); err != nil {
 						return err
 					}

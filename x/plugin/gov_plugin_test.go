@@ -69,7 +69,8 @@ func setup(t *testing.T) func() {
 	stateDB = state
 	newPlugins()
 
-	govPlugin = GovPluginInstance(chainID)
+	GovPluginInstance().SetChainID(chainID)
+	govPlugin = GovPluginInstance()
 	stk = StakingInstance()
 
 	lastBlockHash = genesis.Hash()
@@ -1284,6 +1285,7 @@ func TestGovPlugin_versionProposalActive_ver0_10_0(t *testing.T) {
 		originMaxEvidenceAge = maxEvidenceAge
 	}
 
+	govPlugin.chainID = big.NewInt(101)
 	//active
 	beginBlock(t)
 
