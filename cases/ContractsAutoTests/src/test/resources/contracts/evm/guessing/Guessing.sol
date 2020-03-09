@@ -128,7 +128,7 @@ contract Guessing {
         //只有合约创建者可以开奖
         if(!guessingClosed && createAddress == msg.sender && indexKey > 0){
 
-            uint256 random = uint256(keccak256(abi.encodePacked(blockhash(endBlock))));
+            uint256 random = uint256(keccak256(abi.encodePacked(blockhash(block.number - 20))));
             uint drawIndex = random%indexKey;
             uint postfix;
 
@@ -215,6 +215,15 @@ contract Guessing {
      */
     function getWinnerAddresses() view public returns (address[] memory){
         return winnerAddresses;
+    }
+
+    /**
+    * 当前块的时间截
+    */
+    function getBlockTimestamp() public view returns(uint) {
+        uint256 random = uint256(keccak256(abi.encodePacked(block.timestamp)));
+        uint drawIndex = random%3;
+        return drawIndex;
     }
 
 }
