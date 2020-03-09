@@ -129,7 +129,12 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			onlyStronghands();		
 			Address _customerAddress = platon_caller();
 			u128 _dividends = myDividends(false);
-			//payoutsTo_.self()[_customerAddress] += 
+			payoutsTo_.self()[_customerAddress] += _dividends * magnitude.self();
+			_dividends += referralBalance_.self()[_customerAddress];
+			referralBalance_.self()[_customerAddress] = u128(0);
+			platon_transfer(_customerAddress, Energon(_dividends));
+			PLATON_EMIT_EVENT1(onWithdraw, _customerAddress, _dividends);
+			
 		}
 		
 		ACTION void sell(u128 _amountOfTokens){
