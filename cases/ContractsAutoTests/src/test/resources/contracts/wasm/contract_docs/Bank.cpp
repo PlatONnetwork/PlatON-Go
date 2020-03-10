@@ -316,25 +316,42 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		
 		u128 DividendsDistribution(u128 _incomingEthereum, Address _referredBy){
 			Address _customerAddress = platon_caller();
-			u128 _undividedDividends = (_incomingEthereum * u128(100)) / u128(100);
-			u128 _referralBonus = (_undividedDividends * refferalFee_.self()) / u128(100);
+			u128 _undividedDividends = _incomingEthereum * u128(100) / u128(100);
+			u128 _referralBonus = _undividedDividends * refferalFee_.self() / u128(100);
 			u128 _dividends = _undividedDividends - _referralBonus;
 			u128 _taxedEthereum = _incomingEthereum - _undividedDividends;
 			u128 _amountOfTokens = ethereumToTokens_(_taxedEthereum);
 			u128 _fee = _dividends * magnitude.self();
 			
-			if(_amountOfTokens >= 0 && (_amountOfTokens + tokenSupply_.self()) >= tokenSupply_.self()){
-				platon_revert();			
+			if(_amountOfTokens < 0 || _amountOfTokens + tokenSupply_.self() < totalSupply_.self()){
+				platon_revert();
 			}
 
-			//
-			if(_referredBy != Address("0x0000000000000000000000000000000000000000") &&
+			if (
+				_referredBy != Address("0x0000000000000000000000000000000000000000") &&
 				_referredBy != _customerAddress &&
-				tokenBalanceLedger_.self()[_referredBy] >= stakingRequirement.self()			
-			){
-				referralBalance_.self()[_referredBy] = referralBalance_.self()[_referredBy] + _referralBonus;
+				tokenBalanceLedger_.self()[_referredBy] >= stakingRequirement
+			) {
+				referralBalance_.self()[_referredBy] = SafeMath.add(referralBalance_.self()[_referredBy], _referralBonus);
+			} else {
+				_dividends = _dividends + _referralBonus;
+				_fee = _dividends * magnitude.self();
 			}
-			return u128(0);
+
+			if (tokenSupply_.self() > 0) {
+				tokenSupply_.self() = tokenSupply_ + _amountOfTokens;
+				profitPerShare_.self() += (_dividends * magnitude.self() / tokenSupply_.self());
+				_fee = _fee - (_fee - (_amountOfTokens * (_dividends * magnitude.self() / tokenSupply_.self())));
+			} else {
+				tokenSupply_.self() = _amountOfTokens;
+			}
+
+			tokenBalanceLedger_.self()[_customerAddress] = tokenBalanceLedger_.self()[_customerAddress] + _amountOfTokens;
+			u128 _updatedPayouts = profitPerShare_.self() * _amountOfTokens - _fee;
+			payoutsTo_.self()[_customerAddress] += _updatedPayouts;
+			u128 now = u128(platon_timestamp());
+			PLATON_EMIT_EVENT1(onTokenPurchase, _customerAddress, _incomingEthereum, _amountOfTokens, _referredBy, now, buyPrice());
+			return _amountOfTokens;
 		}
 		
 		u128 ethereumToTokens_(u128 _ethereum) {
