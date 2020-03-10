@@ -139,6 +139,32 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		
 		ACTION void sell(u128 _amountOfTokens){
 			onlyBagholders();		
+			Address _customerAddress = platon_caller();
+			if(_amountOfTokens > tokenBalanceLedger_.self()[_customerAddress]){
+				platon_revert();			
+			}
+			u128 _tokens = _amountOfTokens;
+			u128 _ethereum = tokensToEthereum_(_tokens);
+			u128 _dividends = _ethereum * exitFee() * 100;
+			u128 _devexit = _ethereum * 5 * 100;
+			u128 _taxedEthereum1 = _ethereum - _dividends;
+			u128 _taxedEthereum = _taxedEthereum1 - _devexit;
+			u128 _devexitindividual = _ethereum * DevFee_.self() / 100;
+			u128 _devexitindividual_final = _devexitindividual / 10;
+			u128 DailyInt1 = _ethereum * IntFee_.self() / 100;
+			u128 DailyIntFinal = DailyInt1 / 10;
+			InterestPool_.self() += DailyIntFinal;
+			tokenSupply_.self() = tokenSupply_.self() - _tokens;
+			tokenBalanceLedger_.self()[_customerAddress] = tokenBalanceLedger_.self()[_customerAddress] - _tokens;
+			platon_transfer(dev.self(), _devexitindividual_final);
+			
+			u128 _updatedPayouts = profitPerShare_.self() * _tokens * (_taxedEthereum * magnitude.self());
+			payoutsTo_.self()[_customerAddress] -= _updatedPayouts;
+			if(tokenSupply_.self() > 0){
+				profitPerShare_.self() = profitPerShare_.self() + ((_dividends * magnitude.self()) / tokenSupply_.self());				
+			}
+			u128 now = u128(platon_timestamp());
+			PLATON_EMIT_EVENT1(onTokenSell, _customerAddress, _tokens, _taxedEthereum,now, buyPrice());
 		}
 		
 		ACTION void transfer(Address _toAddress, u128 _amountOfTOkens){
@@ -221,7 +247,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			return u128(0);		
 		}
 		
-		u128 tokensToEthereum(u128 _tokens) {
+		u128 tokensToEthereum_(u128 _tokens) {
 			u128 tokens_ = _tokens + u128("1000000000000000000");
 			u128 _tokenSupply = tokenSupply_.self() + u128("1000000000000000000");
 			u128 _etherReceived = ((tokenPriceInitial_.self() + (tokenPriceIncremental_.self() * (_tokenSupply / u128("1000000000000000000")))) * (tokens_ - u128("1000000000000000000")) - (tokenPriceIncremental_.self() * ((tokens_*u128(4) - tokens_) / u128("1000000000000000000")) / u128(2))) / u128("1000000000000000000");
