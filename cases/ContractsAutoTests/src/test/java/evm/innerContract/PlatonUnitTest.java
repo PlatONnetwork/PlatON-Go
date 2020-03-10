@@ -47,16 +47,16 @@ public class PlatonUnitTest extends ContractPrepareTest {
 
             //发起转账
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.GLAT, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.MLAT, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.KLAT, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.LAT, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.FINNEY, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.SZABO, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.GVON, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.MVON, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.KVON, new BigInteger("1000000000"), new BigInteger("47123880")).send();
-            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.VON, new BigInteger("1000000000"), new BigInteger("47123880")).send();
+            TransactionReceipt transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.GLAT, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.MLAT, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.KLAT, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.LAT, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.FINNEY, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.SZABO, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.GVON, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.MVON, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.KVON, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.VON, new BigInteger("1000000000"), new BigInteger("4712388")).send();
 
             //查询合约余额
             String contractBalance = platonUnit.getBalance().send().toString();
