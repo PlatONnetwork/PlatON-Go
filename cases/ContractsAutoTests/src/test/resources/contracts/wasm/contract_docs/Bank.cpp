@@ -12,9 +12,15 @@ CONTRACT Bank: public platon::Contract, public Ownable
 	// define event
 	public:
 		bool onlyBagholders(){	
-			return false;				
+			if(myTokens() <= 0){
+				return false;
+			}
+			return true;				
 		}
 		bool onlyStronghands(){
+			if(myDividends(true) <= 0){
+				return false;
+			}
 			return false;		
 		}
 
@@ -98,12 +104,12 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			u128 DailyInterestFinal = DailyInterest1 / u128(10);
 			InterestPool_.self() -= DailyInterestFinal;
 			//
-			DividendsDistribution(DailyInterestFinal, Address("0x0"));
+			DividendsDistribution(DailyInterestFinal, Address("0x0000000000000000000000000000000000000000"));
 		}
 
 		ACTION void DivsAddon(){
 			u128 callValue = platon_call_value();
-			DividendsDistribution(callValue, Address("0x0"));
+			DividendsDistribution(callValue, Address("0x0000000000000000000000000000000000000000"));
 		}
 		
 		ACTION void reinvest() {
@@ -112,7 +118,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			payoutsTo_.self()[_customerAddress] += _dividends*magnitude.self();
 			_dividends += referralBalance_.self()[_customerAddress];
 			referralBalance_.self()[_customerAddress] = 0;
-			u128 _tokens = purchaseTokens(_dividends, Address("0x0"));
+			u128 _tokens = purchaseTokens(_dividends, Address("0x0000000000000000000000000000000000000000"));
 			PLATON_EMIT_EVENT1(onReinvestment, _customerAddress, _dividends, _tokens);
 		}
 
