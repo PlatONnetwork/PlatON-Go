@@ -249,7 +249,12 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 
 		CONST u128 calculateTokensReceived(u128 _ethereumToSpend){
-			return u128(0);	
+			u128 _dividends = _ethereumToSpend * entryFee_.self() / u128(100);
+			u128 _devbuyfees = _ethereumToSpend * u128(5) / u128(100);
+			u128 _taxedEthereum1 = _ethereumToSpend - _dividends;
+			u128 _taxedEthereum = _taxedEthereum1 - _devbuyfees;
+			u128 _amountOfTokens = ethereumToTokens_(_taxedEthereum);
+			return _amountOfTokens;
 		}
 
 		CONST u128 calculateEthereumReceived(u128 _tokensToSell){
