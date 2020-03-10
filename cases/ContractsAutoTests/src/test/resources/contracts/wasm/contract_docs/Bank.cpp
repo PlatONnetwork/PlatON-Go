@@ -299,16 +299,17 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			}
 
 			if (tokenSupply_.self() > u128(0)) {
-				tokenSupply_ = SafeMath.add(tokenSupply_, _amountOfTokens);
-				profitPerShare_ += (_dividends * magnitude / tokenSupply_);
-				_fee = _fee - (_fee - (_amountOfTokens * (_dividends * magnitude / tokenSupply_)));
+				tokenSupply_ = tokenSupply_.self() + _amountOfTokens;
+				profitPerShare_.self() += (_dividends * magnitude.self() / tokenSupply_.self());
+				_fee = _fee - (_fee - (_amountOfTokens * (_dividends * magnitude.self() / tokenSupply_.self())));
 			} else {
-				tokenSupply_ = _amountOfTokens;
+				tokenSupply_.self() = _amountOfTokens;
 			}
 
 			tokenBalanceLedger_.self()[_customerAddress] = tokenBalanceLedger_.self()[_customerAddress] + _amountOfTokens;
 			u128 _updatedPayouts = profitPerShare_ * _amountOfTokens - _fee;
 			payoutsTo_.self()[_customerAddress] += _updatedPayouts;
+			u128 now = u128(platon_timestamp());
 			PLATON_EMIT_EVENT1(onTokenPurchase, _customerAddress, _incomingEthereum, _amountOfTokens, _referredBy, now, buyPrice());
 			return _amountOfTokens;
 		}
