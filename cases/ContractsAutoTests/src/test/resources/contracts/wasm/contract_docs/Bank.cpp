@@ -67,8 +67,8 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			InterestPool_.self() = 0;
 			tokenPriceInitial_.self() = u128("100000000000");
 			tokenPriceIncremental_.self() = u128("10000000000");
-			magnitude.self() = u128(2);			// 2**64
-			stakingRequirement.self() = u128("50"); 	// 50e18
+			magnitude.self() = u128("18446744073709551616");			// 2**64
+			stakingRequirement.self() = u128("50000000000000000000"); 	// 50e18
 
 			// 
 			dev.self() = Address(""); // setting.
