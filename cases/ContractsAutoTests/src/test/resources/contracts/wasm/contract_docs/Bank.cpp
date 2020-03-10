@@ -205,8 +205,13 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 
 		CONST u128 myDividends(bool _includeReferralBonus){
-			Address _customerAddress = platon_caller;
-			return _includeReferralBonus ? dividendsOf(_customerAddress) + referralBalance_.self()[_customerAddress] : dividendsOf(_customerAddress) ;
+			Address _customerAddress = platon_caller();
+			if(_includeReferralBonus){
+				//u128 res = dividendsOf(_customerAddress);
+				//return res;
+				return u128(0);
+			} 
+			return dividendsOf(_customerAddress) ;
 		}
 
 		CONST u128 balanceOf(Address _customerAddress) {
