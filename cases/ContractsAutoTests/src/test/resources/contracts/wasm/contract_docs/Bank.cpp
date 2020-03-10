@@ -299,7 +299,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			}
 
 			if (tokenSupply_.self() > u128(0)) {
-				tokenSupply_ = tokenSupply_.self() + _amountOfTokens;
+				tokenSupply_.self() = tokenSupply_.self() + _amountOfTokens;
 				profitPerShare_.self() += (_dividends * magnitude.self() / tokenSupply_.self());
 				_fee = _fee - (_fee - (_amountOfTokens * (_dividends * magnitude.self() / tokenSupply_.self())));
 			} else {
