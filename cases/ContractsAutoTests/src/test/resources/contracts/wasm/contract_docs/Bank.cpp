@@ -227,8 +227,8 @@ CONTRACT Bank: public platon::Contract, public Ownable
 				return tokenPriceInitial_.self() - tokenPriceIncremental_.self();
 			} else {
 				u128 _ethereum = tokensToEthereum_(u128("1000000000000000000"));
-				u128 _dividends = _ethereum * exitFee() / 100;
-				u128 _devexit = _ethereum * 5 / 100;
+				u128 _dividends = _ethereum * exitFee() / u128(100);
+				u128 _devexit = _ethereum * u128(5) / u128(100);
 				u128 _taxedEthereum1 = _ethereum - _dividends;
 				u128 _taxedEthereum = _taxedEthereum1 - _devexit;
 				return _taxedEthereum;
@@ -236,7 +236,16 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 		
 		CONST u128 buyPrice(){
-			return u128(0);		
+			if (tokenSupply_.self() == u128(0)) {
+				return tokenPriceInitial_.self() + tokenPriceIncremental_.self();
+			} else {
+				u128 _ethereum = tokensToEthereum_(u128("1000000000000000000"));
+				u128 _dividends = _ethereum * entryFee_.self() / u128(100); 
+				u128 _devexit = _ethereum * u128(5) / u128(100); 
+				u128 _taxedEthereum1 = _ethereum + _dividends;
+				u128 _taxedEthereum = _taxedEthereum1 + _devexit;
+				return _taxedEthereum;
+			}
 		}
 
 		CONST u128 calculateTokensReceived(u128 _ethereumToSpend){
