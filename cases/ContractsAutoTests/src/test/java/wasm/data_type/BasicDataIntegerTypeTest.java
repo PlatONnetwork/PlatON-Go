@@ -49,7 +49,7 @@ public class BasicDataIntegerTypeTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qudong", showName = "wasm.basicDataTypeTest整型基本类型验证测试",sourcePrefix = "wasm")
+            author = "qudong", showName = "wasm.basicDataIntegerTypeTest整型基本类型验证测试",sourcePrefix = "wasm")
     public void testBasicDataIntegerTypeTest() {
 
          //部署合约
