@@ -274,7 +274,43 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 
 		u128 purchaseTokens(u128 _incomingEthereum, Address _referredBy) {
-			return u128(0);		
+			Address _customerAddress = platon_caller();
+			u128 _undividedDividends = _incomingEthereum *  entryFee_.self() / u128(100);
+			u128 _referralBonus = _undividedDividends * refferalFee_.self() / u128(100);
+			u128 _devbuyfees = _incomingEthereum * u128(5) / u128(100); 
+			u128 _dividends1 = _undividedDividends -  _referralBonus;
+			u128 _dividends = _dividends1 - _devbuyfees;
+			u128 _taxedEthereum = _incomingEthereum - _undividedDividends;
+			u128 _amountOfTokens = ethereumToTokens_(_taxedEthereum);
+			u128 _fee = _dividends * magnitude.self();
+
+			if(_amountOfTokens <= u128(0) || tokenSupply_.self() >= (_amountOfTokens + tokenSupply_.self())){
+				platon_revert();
+			}
+			if (
+				_referredBy != Address("0x0000000000000000000000000000000000000000") &&
+				_referredBy != _customerAddress &&
+				tokenBalanceLedger_.self()[_referredBy] >= stakingRequirement.self()
+			) {
+				referralBalance_.self()[_referredBy] = referralBalance_.self()[_referredBy]  + _referralBonus;
+			} else {
+				_dividends = _dividends + _referralBonus;
+				_fee = _dividends * magnitude.self();
+			}
+
+			if (tokenSupply_.self() > u128(0)) {
+				tokenSupply_ = SafeMath.add(tokenSupply_, _amountOfTokens);
+				profitPerShare_ += (_dividends * magnitude / tokenSupply_);
+				_fee = _fee - (_fee - (_amountOfTokens * (_dividends * magnitude / tokenSupply_)));
+			} else {
+				tokenSupply_ = _amountOfTokens;
+			}
+
+			tokenBalanceLedger_.self()[_customerAddress] = tokenBalanceLedger_.self()[_customerAddress] + _amountOfTokens;
+			u128 _updatedPayouts = profitPerShare_ * _amountOfTokens - _fee;
+			payoutsTo_.self()[_customerAddress] += _updatedPayouts;
+			PLATON_EMIT_EVENT1(onTokenPurchase, _customerAddress, _incomingEthereum, _amountOfTokens, _referredBy, now, buyPrice());
+			return _amountOfTokens;
 		}
 		
 		u128 DividendsDistribution(u128 _incomingEthereum, Address _referredBy){
