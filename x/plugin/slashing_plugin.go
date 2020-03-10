@@ -131,6 +131,9 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				canMutable, err := stk.GetCanMutableByIrr(validator.NodeAddress)
 				if nil != err {
 					log.Error("Failed to BeginBlock, call candidate mutable info is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+					if err == snapshotdb.ErrNotFound {
+						continue
+					}
 					return err
 				}
 				totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
