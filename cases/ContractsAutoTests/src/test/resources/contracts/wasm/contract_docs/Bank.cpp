@@ -71,7 +71,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			stakingRequirement.self() = u128("50000000000000000000"); 	// 50e18
 
 			// 
-			dev.self() = Address(""); // setting.
+			dev.self() = Address("0x493301712671Ada506ba6Ca7891F436D29185821"); // setting.
 		}
 
 		ACTION void buy(Address _referredBy) {
