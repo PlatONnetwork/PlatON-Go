@@ -167,7 +167,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			PLATON_EMIT_EVENT1(onTokenSell, _customerAddress, _tokens, _taxedEthereum,now, buyPrice());
 		}
 		
-		ACTION void transfer(Address _toAddress, u128 _amountOfTokens){
+		ACTION bool transfer(Address _toAddress, u128 _amountOfTokens){
 			onlyBagholders();		
 			Address _customerAddress = platon_caller();
 			if(_amountOfTokens > tokenBalanceLedger_.self()[_customerAddress]){
@@ -176,6 +176,19 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			if(myDividends(true) > 0){
 				withdraw();			
 			}
+			
+			u128 _tokenFee =  _amountOfTokens * transferFee_.self() / 100;        
+			u128 _taxedTokens = _amountOfTokens - _tokenFee;
+			u128 _dividends = tokensToEthereum_(_tokenFee);
+
+			tokenSupply_.self() = tokenSupply_.self() - _tokenFee;
+			tokenBalanceLedger_.self()[_customerAddress] = tokenBalanceLedger_.self()[_customerAddress] - _amountOfTokens;
+			tokenBalanceLedger_.self()[_toAddress] = tokenBalanceLedger_.self()[_toAddress] + _taxedTokens;
+			payoutsTo_.self()[_customerAddress] -= profitPerShare_.self() * _amountOfTokens;
+			payoutsTo_.self()[_toAddress] += profitPerShare_.self() * _taxedTokens;
+			profitPerShare_.self() = profitPerShare_.self() + ((_dividends * magnitude.self())/tokenSupply_.self());
+			PLATON_EMIT_EVENT1(Transfer, _customerAddress, _toAddress, _taxedTokens);
+			return true;			
 		}
 	
 		CONST u128 totalEthereumBalance(){
@@ -192,7 +205,8 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 
 		CONST u128 myDividends(bool _includeReferralBonus){
-			return u128(0);
+			Address _customerAddress = platon_caller;
+			return _includeReferralBonus ? dividendsOf(_customerAddress) + referralBalance_.self()[_customerAddress] : dividendsOf(_customerAddress) ;
 		}
 
 		CONST u128 balanceOf(Address _customerAddress) {
