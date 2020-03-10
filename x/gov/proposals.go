@@ -148,7 +148,7 @@ func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state 
 	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, xutil.EstimateConsensusRoundsForGov(xcom.TextProposalVote_DurationSeconds()))
 	tp.EndVotingBlock = endVotingBlock
 
-	log.Debug("text proposal", "endVotingBlock", tp.EndVotingBlock, "consensusSize", xutil.ConsensusSize(), "xcom.ElectionDistance()", xcom.ElectionDistance())
+	log.Debug("verify Text Proposal", "PIPID", tp.PIPID, "voteDuration", xcom.TextProposalVote_DurationSeconds(), "endVotingBlock", endVotingBlock, "blockNumber", submitBlock, "blockHash", blockHash)
 	return nil
 }
 
@@ -259,6 +259,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return PreActiveVersionProposalExist
 	}
 
+	log.Debug("verify Version Proposal", "PIPID", vp.PIPID, "voteDuration", xcom.VersionProposalVote_DurationSeconds(), "endVotingBlock", endVotingBlock, "activeBlock", activeBlock, "blockNumber", submitBlock, "blockHash", blockHash)
 	return nil
 }
 
@@ -352,6 +353,7 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 	} else if cp.EndVotingBlock >= tobeCanceled.GetEndVotingBlock() {
 		return EndVotingRoundsTooLarge
 	}
+	log.Debug("verify Cancel Proposal", "PIPID", cp.PIPID, "endVotingBlock", endVotingBlock, "blockNumber", submitBlock, "blockHash", blockHash)
 	return nil
 }
 
@@ -460,8 +462,11 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 			voteDuration = uint64(24 * 3600) //24 hours
 		}
 	}
+
 	endVotingBlock := xutil.EstimateEndVotingBlockForParaProposal(submitBlock, voteDuration)
 	pp.EndVotingBlock = endVotingBlock
+
+	log.Debug("verify Parameter Proposal", "PIPID", pp.PIPID, "voteDuration", voteDuration, "endVotingBlock", endVotingBlock, "blockNumber", submitBlock, "blockHash", blockHash)
 
 	return nil
 }
