@@ -480,15 +480,17 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 				return err
 			} else if len(voteValueList) > 0 {
 				idx := 0 // output index
+				removed := make([]VoteValue, 0)
 				for _, voteValue := range voteValueList {
 					//if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
 					if _, isPunished := punishedVerifierMap[voteValue.VoteNodeID]; !isPunished {
 						voteValueList[idx] = voteValue
 						idx++
+					} else {
+						removed = append(removed, voteValue)
 					}
 				}
-				if idx < len(voteValueList) {
-					removed := voteValueList[idx:]
+				if len(removed) > 0 && idx < len(voteValueList) {
 					voteValueList = voteValueList[:idx]
 					log.Debug(fmt.Sprintf("remove voted value, proposalID:%s, removedVoteValue:%+v", proposalID.Hex(), removed))
 					if err := UpdateVoteValue(proposalID, voteValueList, blockHash); err != nil {
