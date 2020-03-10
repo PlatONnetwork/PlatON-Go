@@ -323,7 +323,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			u128 _amountOfTokens = ethereumToTokens_(_taxedEthereum);
 			u128 _fee = _dividends * magnitude.self();
 			
-			if(_amountOfTokens < 0 || _amountOfTokens + tokenSupply_.self() < totalSupply_.self()){
+			if(_amountOfTokens < 0 || _amountOfTokens + tokenSupply_.self() < tokenSupply_.self()){
 				platon_revert();
 			}
 
@@ -332,7 +332,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 				_referredBy != _customerAddress &&
 				tokenBalanceLedger_.self()[_referredBy] >= stakingRequirement
 			) {
-				referralBalance_.self()[_referredBy] = SafeMath.add(referralBalance_.self()[_referredBy], _referralBonus);
+				referralBalance_.self()[_referredBy] = referralBalance_.self()[_referredBy] +  _referralBonus;
 			} else {
 				_dividends = _dividends + _referralBonus;
 				_fee = _dividends * magnitude.self();
