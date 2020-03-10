@@ -332,7 +332,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 				_referredBy != _customerAddress &&
 				tokenBalanceLedger_.self()[_referredBy] >= stakingRequirement
 			) {
-				referralBalance_.self()[_referredBy] = referralBalance_.self()[_referredBy] +  _referralBonus;
+				referralBalance_.self()[_referredBy] = referralBalance_.self()[_referredBy] + _referralBonus;
 			} else {
 				_dividends = _dividends + _referralBonus;
 				_fee = _dividends * magnitude.self();
@@ -355,7 +355,27 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 		
 		u128 ethereumToTokens_(u128 _ethereum) {
-			return u128(0);		
+			u128 _tokenPriceInitial = tokenPriceInitial_ * u128("1000000000000000000");
+			u128 _tokensReceived =
+				(
+					(
+						
+							(sqrt
+								(
+									(_tokenPriceInitial * _tokenPriceInitial)
+									+
+									(2 * (tokenPriceIncremental_.self() * u128("1000000000000000000")) * (_ethereum * u128("1000000000000000000")))
+									+
+									((tokenPriceIncremental_.self() * tokenPriceIncremental_.self()) * (tokenSupply_.self() * tokenSupply_.self()))
+									+
+									(2 * tokenPriceIncremental_.self() * _tokenPriceInitial*tokenSupply_.self())
+								)
+							) - _tokenPriceInitial
+						
+					) / (tokenPriceIncremental_)
+				) - (tokenSupply_.self());
+
+			return _tokensReceived;	
 		}
 		
 		u128 tokensToEthereum_(u128 _tokens) {
