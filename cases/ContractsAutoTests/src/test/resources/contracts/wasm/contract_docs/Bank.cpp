@@ -167,8 +167,15 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			PLATON_EMIT_EVENT1(onTokenSell, _customerAddress, _tokens, _taxedEthereum,now, buyPrice());
 		}
 		
-		ACTION void transfer(Address _toAddress, u128 _amountOfTOkens){
+		ACTION void transfer(Address _toAddress, u128 _amountOfTokens){
 			onlyBagholders();		
+			Address _customerAddress = platon_caller();
+			if(_amountOfTokens > tokenBalanceLedger_.self()[_customerAddress]){
+				platon_revert();			
+			}
+			if(myDividends(true) > 0){
+				withdraw();			
+			}
 		}
 	
 		CONST u128 totalEthereumBalance(){
