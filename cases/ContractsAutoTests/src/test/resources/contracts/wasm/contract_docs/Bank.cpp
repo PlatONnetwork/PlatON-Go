@@ -379,9 +379,21 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 		
 		u128 tokensToEthereum_(u128 _tokens) {
-			u128 tokens_ = _tokens + u128("1000000000000000000");
-			u128 _tokenSupply = tokenSupply_.self() + u128("1000000000000000000");
-			u128 _etherReceived = ((tokenPriceInitial_.self() + (tokenPriceIncremental_.self() * (_tokenSupply / u128("1000000000000000000")))) * (tokens_ - u128("1000000000000000000")) - (tokenPriceIncremental_.self() * ((tokens_*u128(4) - tokens_) / u128("1000000000000000000")) / u128(2))) / u128("1000000000000000000");
+			u128 tokens_ = (_tokens + u128("1000000000000000000"));
+			u128 _tokenSupply = (tokenSupply_.self() + u128("1000000000000000000"));
+			u128 _etherReceived =
+				(
+					(
+						(
+							(
+								(
+									tokenPriceInitial_ + (tokenPriceIncremental_ * (_tokenSupply / u128("1000000000000000000")))
+								) - tokenPriceIncremental_
+							) * (tokens_ - u128("1000000000000000000"))
+						) - (tokenPriceIncremental_ * ((tokens_ * tokens_ - tokens_) / u128("1000000000000000000"))) / u128(2)
+					)
+					/ u128("1000000000000000000")
+				);
 			return _etherReceived;		
 		}
 		
