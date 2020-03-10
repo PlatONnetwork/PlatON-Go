@@ -80,7 +80,7 @@ public class SimpleStorageTest extends ContractPrepareTest {
             executorService.shutdown();
 
         } catch (Exception e) {
-
+            collector.logStepFail("The contract fail.", e.toString());
         }
     }
 }
