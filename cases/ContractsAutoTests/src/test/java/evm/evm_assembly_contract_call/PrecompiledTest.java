@@ -31,7 +31,6 @@ public class PrecompiledTest extends ContractPrepareTest {
             author = "hudenian", showName = "evm_assembly_contract_call.AssemblyAddTest-evm合约调用系统合约", sourcePrefix = "evm")
     public void precompiledTest() {
         try {
-            provider = new ContractGasProvider(BigInteger.valueOf(500000000004L), BigInteger.valueOf(90000000L));
             Precompiled precompiled = Precompiled.deploy(web3j, transactionManager, provider).send();
 
             String contractAddress = precompiled.getContractAddress();
