@@ -407,19 +407,13 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			return y;			
 		}
 
-
-
-
-
-
-
-
-
-
-
 };
 
-PLATON_DISPATCH(Bank,(init))
+PLATON_DISPATCH(Bank,(init)(buy)(IDD)(DivsAddon)(reinvest)(exit)
+(withdraw)(sell)(transfer)(totalEthereumBalance)(totalSupply)
+(myTokens)(myDividends)(balanceOf)(dividendsOf)(sellPrice)
+(buyPrice)(calculateTokensReceived)(calculateEthereumReceived)(exitFee)(purchaseTokens)
+(DividendsDistribution)(ethereumToTokens_)(tokensToEthereum_))
 
 
 
