@@ -206,11 +206,9 @@ CONTRACT Bank: public platon::Contract, public Ownable
 
 		CONST u128 myDividends(bool _includeReferralBonus){
 			Address _customerAddress = platon_caller();
-			if(_includeReferralBonus){
-				//u128 res = dividendsOf(_customerAddress);
-				//return res;
-				return u128(0);
-			} 
+			/*if(_includeReferralBonus){
+				return dividendsOf(_customerAddress) + referralBalance_.self()[_customerAddress];
+			} */
 			return dividendsOf(_customerAddress) ;
 		}
 
@@ -219,11 +217,22 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 
 		CONST u128 dividendsOf(Address _customerAddress){
-			return u128(0);		
+			u128 val = profitPerShare_.self() * tokenBalanceLedger_.self()[_customerAddress] - payoutsTo_.self()[_customerAddress];
+			return val / magnitude.self();
 		}
 		
 		CONST u128 sellPrice(){
-			return u128(0);		
+			// our calculation relies on the token supply, so we need supply. Doh.
+			if (tokenSupply_.self() == u128(0)) {
+				return tokenPriceInitial_.self() - tokenPriceIncremental_.self();
+			} else {
+				u128 _ethereum = tokensToEthereum_(u128("1000000000000000000"));
+				u128 _dividends = _ethereum * exitFee() / 100;
+				u128 _devexit = _ethereum * 5 / 100;
+				u128 _taxedEthereum1 = _ethereum - _dividends;
+				u128 _taxedEthereum = _taxedEthereum1 - _devexit;
+				return _taxedEthereum;
+			}	
 		}
 		
 		CONST u128 buyPrice(){
