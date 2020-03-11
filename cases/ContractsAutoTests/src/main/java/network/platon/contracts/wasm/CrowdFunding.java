@@ -58,10 +58,30 @@ public class CrowdFunding extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> crowdFund() {
+        final WasmFunction function = new WasmFunction(FUNC_CROWDFUND, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> crowdFund(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_CROWDFUND, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> checkGoalReached() {
+        final WasmFunction function = new WasmFunction(FUNC_CHECKGOALREACHED, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> checkGoalReached(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_CHECKGOALREACHED, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public List<Transfer1EventResponse> getTransfer1Events(TransactionReceipt transactionReceipt) {
-        List<WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER1_EVENT, transactionReceipt);
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER1_EVENT, transactionReceipt);
         ArrayList<Transfer1EventResponse> responses = new ArrayList<Transfer1EventResponse>(valueList.size());
-        for (WasmEventValuesWithLog eventValues : valueList) {
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
             Transfer1EventResponse typedResponse = new Transfer1EventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
@@ -76,7 +96,7 @@ public class CrowdFunding extends WasmContract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, Transfer1EventResponse>() {
             @Override
             public Transfer1EventResponse call(Log log) {
-                WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER1_EVENT, log);
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER1_EVENT, log);
                 Transfer1EventResponse typedResponse = new Transfer1EventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
@@ -94,9 +114,9 @@ public class CrowdFunding extends WasmContract {
     }
 
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
-        List<WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER2_EVENT, transactionReceipt);
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER2_EVENT, transactionReceipt);
         ArrayList<Transfer2EventResponse> responses = new ArrayList<Transfer2EventResponse>(valueList.size());
-        for (WasmEventValuesWithLog eventValues : valueList) {
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
             Transfer2EventResponse typedResponse = new Transfer2EventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
@@ -112,7 +132,7 @@ public class CrowdFunding extends WasmContract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, Transfer2EventResponse>() {
             @Override
             public Transfer2EventResponse call(Log log) {
-                WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER2_EVENT, log);
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER2_EVENT, log);
                 Transfer2EventResponse typedResponse = new Transfer2EventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
@@ -148,26 +168,6 @@ public class CrowdFunding extends WasmContract {
     public static RemoteCall<CrowdFunding> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Uint64 _fundingGoalInlats, Uint64 _durationInMinutes) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_fundingGoalInlats,_durationInMinutes));
         return deployRemoteCall(CrowdFunding.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> crowdFund() {
-        final WasmFunction function = new WasmFunction(FUNC_CROWDFUND, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> crowdFund(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_CROWDFUND, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> checkGoalReached() {
-        final WasmFunction function = new WasmFunction(FUNC_CHECKGOALREACHED, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> checkGoalReached(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_CHECKGOALREACHED, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> safeWithdrawal() {
