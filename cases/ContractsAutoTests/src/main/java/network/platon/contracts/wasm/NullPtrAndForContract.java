@@ -26,9 +26,9 @@ public class NullPtrAndForContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_FOREACH_ARRAY = "get_foreach_array";
-
     public static final String FUNC_GET_FOREACH_MAP = "get_foreach_map";
+
+    public static final String FUNC_GET_FOREACH_ARRAY = "get_foreach_array";
 
     public static final String FUNC_SET_NULLPTR_OVERLOAD = "set_nullptr_overload";
 
@@ -44,14 +44,14 @@ public class NullPtrAndForContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<Uint32> get_foreach_array() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_ARRAY, Arrays.asList(), Uint32.class);
-        return executeRemoteCall(function, Uint32.class);
-    }
-
     public RemoteCall<String> get_foreach_map() {
         final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_MAP, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<Uint32> get_foreach_array() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_ARRAY, Arrays.asList(), Uint32.class);
+        return executeRemoteCall(function, Uint32.class);
     }
 
     public RemoteCall<String> set_nullptr_overload() {

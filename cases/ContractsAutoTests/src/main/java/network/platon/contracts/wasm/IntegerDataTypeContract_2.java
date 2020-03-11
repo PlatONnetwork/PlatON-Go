@@ -69,6 +69,21 @@ public class IntegerDataTypeContract_2 extends WasmContract {
         return executeRemoteCall(function, Uint8.class);
     }
 
+    public RemoteCall<Int64> getInt64() {
+        final WasmFunction function = new WasmFunction(FUNC_GETINT64, Arrays.asList(), Int64.class);
+        return executeRemoteCall(function, Int64.class);
+    }
+
+    public RemoteCall<TransactionReceipt> setInt64(Int64 input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETINT64, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setInt64(Int64 input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETINT64, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<IntegerDataTypeContract_2> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_2.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -87,21 +102,6 @@ public class IntegerDataTypeContract_2 extends WasmContract {
     public static RemoteCall<IntegerDataTypeContract_2> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_2.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<Int64> getInt64() {
-        final WasmFunction function = new WasmFunction(FUNC_GETINT64, Arrays.asList(), Int64.class);
-        return executeRemoteCall(function, Int64.class);
-    }
-
-    public RemoteCall<TransactionReceipt> setInt64(Int64 input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETINT64, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setInt64(Int64 input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETINT64, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> setInt8(Int8 input) {

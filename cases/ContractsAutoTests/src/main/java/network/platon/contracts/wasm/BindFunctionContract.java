@@ -29,9 +29,9 @@ public class BindFunctionContract extends WasmContract {
 
     public static final String FUNC_GET_BIND_STATIC_FUNCTION = "get_bind_static_function";
 
-    public static final String FUNC_GET_BIND_CLASS_FUNCTION_ONE = "get_bind_class_function_one";
-
     public static final String FUNC_GET_BIND_FUNCTION = "get_bind_function";
+
+    public static final String FUNC_GET_BIND_CLASS_FUNCTION_ONE = "get_bind_class_function_one";
 
     public static final String FUNC_GET_BIND_CLASS_FUNCTION = "get_bind_class_function";
 
@@ -48,4 +48,46 @@ public class BindFunctionContract extends WasmContract {
         return executeRemoteCall(function, Uint32.class);
     }
 
-    pub
+    public RemoteCall<Uint8> get_bind_function() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_BIND_FUNCTION, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
+    }
+
+    public RemoteCall<Uint32> get_bind_class_function_one() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_BIND_CLASS_FUNCTION_ONE, Arrays.asList(), Uint32.class);
+        return executeRemoteCall(function, Uint32.class);
+    }
+
+    public static RemoteCall<BindFunctionContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BindFunctionContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<BindFunctionContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BindFunctionContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<BindFunctionContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BindFunctionContract.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public static RemoteCall<BindFunctionContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BindFunctionContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<Uint32> get_bind_class_function() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_BIND_CLASS_FUNCTION, Arrays.asList(), Uint32.class);
+        return executeRemoteCall(function, Uint32.class);
+    }
+
+    public static BindFunctionContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        return new BindFunctionContract(contractAddress, web3j, credentials, contractGasProvider);
+    }
+
+    public static BindFunctionContract load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        return new BindFunctionContract(contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+}
