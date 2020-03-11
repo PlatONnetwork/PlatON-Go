@@ -61,7 +61,7 @@ def verify_low_block_rate_penalty(first_client, second_client, block_reward, sla
     log.info("Low block rate penalty amount: {}".format(punishment_amonut))
     if punishment_amonut < pledge_amount:
         assert (amount_after_punishment == pledge_amount - punishment_amonut) or (
-                    amount_after_punishment == pledge_amount - punishment_amonut * 2), "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
+                amount_after_punishment == pledge_amount - punishment_amonut * 2), "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
             amount_after_punishment)
     else:
         assert amount_after_punishment == 0, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
@@ -142,6 +142,14 @@ def test_VP_GPFV_003(client_new_node_obj_list_reset):
     log.info("Start verification penalty amount")
     verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
     log.info("Check amount completed")
+    result = second_client.ppos.getCandidateInfo(first_client.node.node_id)
+    log.info("Candidate Info：{}".format(result))
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result is False, "error: Node not kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result is False, "error: Node not kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result is False, "error: Node not kicked out ValidatorList"
 
 
 @pytest.mark.P0
@@ -931,7 +939,7 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
     assert (pledge_amount3 == amount - (punishment_amonut * 2 - pledge_amount1)) or (pledge_amount3 == amount - (
-                punishment_amonut - pledge_amount1)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+            punishment_amonut - pledge_amount1)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
