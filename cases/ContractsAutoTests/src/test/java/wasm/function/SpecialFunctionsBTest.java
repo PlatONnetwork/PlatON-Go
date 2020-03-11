@@ -38,7 +38,7 @@ public class SpecialFunctionsBTest extends WASMContractPrepareTest {
 
             Uint64 gaslimit = specialfunctionsb.getPlatONGasLimit().send();
             collector.logStepPass("getPlatONGasLimit函数返回值:" + gaslimit.value);
-            collector.assertEqual(gaslimit.value, new BigInteger("100000000"));
+            collector.assertEqual(gaslimit.value, new BigInteger("4712388"));
 
             String gasprice = specialfunctionsb.getPlatONGasPrice().send();
             collector.logStepPass("getPlatONGasPrice函数返回值:" + gasprice);
