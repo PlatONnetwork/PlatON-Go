@@ -30,6 +30,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		PLATON_EVENT1(onReinvestment, Address, u128, u128);
 		PLATON_EVENT1(onWithdraw, Address, u128);
 		PLATON_EVENT1(Transfer, Address, Address, u128);
+		PLATON_EVENT1(TestData, Address, u128, u128, u128);
 
 	public:
 		platon::StorageType<"name"_n, std::string> name;
@@ -71,26 +72,28 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			DailyInterest_.self() = 1;
 			IntFee_.self() = 25;
 			InterestPool_.self() = 0;
-			tokenPriceInitial_.self() = u128("100000000000");
-			tokenPriceIncremental_.self() = u128("10000000000");
-			magnitude.self() = u128("18446744073709551616");			// 2**64
-			stakingRequirement.self() = u128("50000000000000000000"); 	// 50e18
+			tokenPriceInitial_.self() = u128(100000000000);
+			tokenPriceIncremental_.self() = u128(10000000000);
+			magnitude.self() = (18_LAT).Get();			// 2**64
+			stakingRequirement.self() = (50_LAT).Get(); 	// 50e18
 
 			// 
-			dev.self() = Address("0x493301712671Ada506ba6Ca7891F436D29185821"); // setting.
+			dev.self() = Address("0x493301712671Ada506ba6Ca7891F436D29185823"); // setting.
 		}
 
 		ACTION void buy(Address _referredBy) {
-			u128 callValue = platon_call_value();
+			//u128 callValue = platon_call_value();		
+			u128 callValue = (100_LAT).Get();	
 			u128 DevFee1 = callValue / u128(100) * DevFee_.self();	
 			u128 DevFeeFinal = DevFee1 / u128(10);
+			//PLATON_EMIT_EVENT1(TestData, platon_caller(), callValue, DevFee1, DevFeeFinal);			
 			platon_transfer(dev.self(), Energon(DevFeeFinal));
 			
 			//
 			u128 DailyInt1 = callValue/ u128(100) * IntFee_.self();
 			u128 DailyIntFinal = DailyInt1 / u128(10);
 			InterestPool_.self() += DailyIntFinal;
-			//purchaseTokens(callValue, _referredBy);
+			purchaseTokens(callValue, _referredBy);
 		}
 
 		ACTION void IDD(){
@@ -151,14 +154,14 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			}
 			u128 _tokens = _amountOfTokens;
 			u128 _ethereum = tokensToEthereum_(_tokens);
-			u128 _dividends = _ethereum * exitFee() * 100;
-			u128 _devexit = _ethereum * 5 * 100;
+			u128 _dividends = _ethereum * exitFee() * u128(100);
+			u128 _devexit = _ethereum * u128(5) * u128(100);
 			u128 _taxedEthereum1 = _ethereum - _dividends;
 			u128 _taxedEthereum = _taxedEthereum1 - _devexit;
-			u128 _devexitindividual = _ethereum * DevFee_.self() / 100;
-			u128 _devexitindividual_final = _devexitindividual / 10;
-			u128 DailyInt1 = _ethereum * IntFee_.self() / 100;
-			u128 DailyIntFinal = DailyInt1 / 10;
+			u128 _devexitindividual = _ethereum * DevFee_.self() / u128(100);
+			u128 _devexitindividual_final = _devexitindividual / u128(10);
+			u128 DailyInt1 = _ethereum * IntFee_.self() / u128(100);
+			u128 DailyIntFinal = DailyInt1 / u128(10);
 			InterestPool_.self() += DailyIntFinal;
 			tokenSupply_.self() = tokenSupply_.self() - _tokens;
 			tokenBalanceLedger_.self()[_customerAddress] = tokenBalanceLedger_.self()[_customerAddress] - _tokens;
@@ -212,9 +215,9 @@ CONTRACT Bank: public platon::Contract, public Ownable
 
 		CONST u128 myDividends(bool _includeReferralBonus){
 			Address _customerAddress = platon_caller();
-			/*if(_includeReferralBonus){
+			if(_includeReferralBonus){
 				return dividendsOf(_customerAddress) + referralBalance_.self()[_customerAddress];
-			} */
+			}
 			return dividendsOf(_customerAddress) ;
 		}
 
@@ -232,7 +235,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			if (tokenSupply_.self() == u128(0)) {
 				return tokenPriceInitial_.self() - tokenPriceIncremental_.self();
 			} else {
-				u128 _ethereum = tokensToEthereum_(u128("1000000000000000000"));
+				u128 _ethereum = tokensToEthereum_((1_LAT).Get());
 				u128 _dividends = _ethereum * exitFee() / u128(100);
 				u128 _devexit = _ethereum * u128(5) / u128(100);
 				u128 _taxedEthereum1 = _ethereum - _dividends;
@@ -245,7 +248,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			if (tokenSupply_.self() == u128(0)) {
 				return tokenPriceInitial_.self() + tokenPriceIncremental_.self();
 			} else {
-				u128 _ethereum = tokensToEthereum_(u128("1000000000000000000"));
+				u128 _ethereum = tokensToEthereum_((1_LAT).Get());
 				u128 _dividends = _ethereum * entryFee_.self() / u128(100); 
 				u128 _devexit = _ethereum * u128(5) / u128(100); 
 				u128 _taxedEthereum1 = _ethereum + _dividends;
