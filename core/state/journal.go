@@ -109,20 +109,13 @@ type (
 	}
 	storageChange struct {
 		account  *common.Address
-		key      string
-		valueKey common.Hash
+		key      common.Hash
 		preValue []byte
 	}
 	codeChange struct {
 		account            *common.Address
 		prevcode, prevhash []byte
 	}
-	abiChange struct {
-		account  *common.Address
-		prevabi  []byte
-		prevhash []byte
-	}
-
 	// Changes to other state values.
 	refundChange struct {
 		prev uint64
@@ -202,18 +195,8 @@ func (ch codeChange) dirtied() *common.Address {
 	return ch.account
 }
 
-// todo: new method -> revert.
-func (ch abiChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).SetAbi(common.BytesToHash(ch.prevhash), ch.prevabi)
-}
-
-// todo: new method -> dirtied.
-func (ch abiChange) dirtied() *common.Address {
-	return ch.account
-}
-
 func (ch storageChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setState(ch.key, ch.valueKey, ch.preValue)
+	s.getStateObject(*ch.account).setState(ch.key, ch.preValue)
 }
 
 func (ch storageChange) dirtied() *common.Address {

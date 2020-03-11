@@ -39,11 +39,6 @@ type StateDB interface {
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
 
-	// todo: new func for abi of contract.
-	GetAbiHash(common.Address) common.Hash
-	GetAbi(common.Address) []byte
-	SetAbi(common.Address, []byte)
-
 	AddRefund(uint64)
 	SubRefund(uint64)
 	GetRefund() uint64
@@ -72,7 +67,7 @@ type StateDB interface {
 	GetLogs(hash common.Hash) []*types.Log
 	AddPreimage(common.Hash, []byte)
 
-	ForEachStorage(common.Address, func([]byte, []byte) bool)
+	ForEachStorage(common.Address, func(common.Hash, []byte) bool)
 	MigrateStorage(from, to common.Address)
 	//ppos add
 	TxHash() common.Hash

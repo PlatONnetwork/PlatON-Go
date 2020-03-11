@@ -19,15 +19,13 @@ package state
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"io"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	//"runtime/debug"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -37,84 +35,19 @@ import (
 var emptyCodeHash = crypto.Keccak256(nil)
 
 type Code []byte
-type Abi []byte
 
 func (self Code) String() string {
-	return string(self) //strings.Join(Disassemble(self), " ")
+	return string(self)
 }
 
-type Storage map[string]common.Hash
+//type Storage map[string]common.Hash
 type ValueStorage map[common.Hash][]byte
-type ReferenceValueStorage map[common.Hash]*ReferenceValue
 
-type ReferenceValue struct {
-	Count  uint32
-	Value  []byte
-}
-
-
-func (self ReferenceValueStorage) deleleReferenceValue(valueKey common.Hash) {
-	if refValue, ok := self[valueKey]; ok {
-		if refValue.Count--; refValue.Count == 0 {
-			delete(self, valueKey)
-		}else {
-			self[valueKey] = refValue
-		}
-	}
-}
-
-
-func (self ReferenceValueStorage) setReferenceValue (valueKey common.Hash, val []byte) {
-
-	var ref *ReferenceValue
-	if refValue, ok := self[valueKey]; ok {
-		refValue.Count++
-		ref = refValue
-	}else {
-		ref = &ReferenceValue{
-			Count: 1,
-			Value: val,
-		}
-	}
-	self[valueKey] = ref
-}
-
-func (self ReferenceValueStorage) Copy() ReferenceValueStorage {
-	cpy := make(ReferenceValueStorage, len(self))
+func (self ValueStorage) String() (str string) {
 	for key, value := range self {
-		// deep copy
-		v := make([]byte, len(value.Value))
-		copy(v, value.Value)
-		cpv := &ReferenceValue{
-			Count: value.Count,
-			Value: v,
-		}
-		cpy[key] = cpv
-	}
-
-	return cpy
-}
-
-// Storage -> hash : hash , common.Hash ([32]byte)
-//type Storage map[common.Hash]common.Hash
-
-func (self Storage) String() (str string) {
-	for key, value := range self {
-		// %X -> Provide hexadecimal
 		str += fmt.Sprintf("%X : %X\n", key, value)
 	}
-
 	return
-}
-
-// Copy a copy of Storage
-func (self Storage) Copy() Storage {
-	cpy := make(Storage, len(self))
-	for key, value := range self {
-		cpy[key] = value
-	}
-
-	return cpy
 }
 
 func (self ValueStorage) Copy() ValueStorage {
@@ -122,7 +55,6 @@ func (self ValueStorage) Copy() ValueStorage {
 	for key, value := range self {
 		cpy[key] = value
 	}
-
 	return cpy
 }
 
@@ -150,13 +82,15 @@ type stateObject struct {
 	// storage trie, which becomes non-nil on first access
 	code Code // contract bytecode, which gets set when code is loaded
 
-	abi Abi
+	//originStorage      Storage      // Storage cache of original entries to dedup rewrites
+	//originValueStorage ValueStorage // Storage cache of original entries to dedup rewrites
+	//
+	//dirtyStorage      Storage      // Storage entries that need to be flushed to disk
+	//dirtyValueStorage ReferenceValueStorage // Storage entries that need to be flushed to disk
 
-	originStorage      Storage      // Storage cache of original entries to dedup rewrites
-	originValueStorage ValueStorage // Storage cache of original entries to dedup rewrites
+	originStorage      ValueStorage      // Storage cache of original entries to dedup rewrites
 
-	dirtyStorage      Storage      // Storage entries that need to be flushed to disk
-	dirtyValueStorage ReferenceValueStorage // Storage entries that need to be flushed to disk
+	dirtyStorage      ValueStorage      // Storage entries that need to be flushed to disk
 
 	// Cache flags.
 	// When an object is marked suicided it will be delete from the trie
@@ -177,11 +111,30 @@ func (s *stateObject) empty() bool {
 // Account is the Ethereum consensus representation of accounts.
 // These objects are stored in the main account trie.
 type Account struct {
-	Nonce    uint64
-	Balance  *big.Int
-	Root     common.Hash // merkle root of the storage trie
-	CodeHash []byte
-	AbiHash  []byte
+	Nonce            uint64
+	Balance          *big.Int
+	Root             common.Hash // merkle root of the storage trie
+	CodeHash         []byte
+	StorageKeyPrefix []byte // A prefix added to the `key` to ensure that data between different accounts are not shared
+}
+
+func (self *Account) empty () bool {
+	if self.Nonce != 0 {
+		return false
+	}
+	if self.Balance.Cmp(common.Big0) != 0 {
+		return false
+	}
+	if self.Root != common.ZeroHash {
+		return false
+	}
+	if len(self.CodeHash) != 0 {
+		return false
+	}
+	if len(self.StorageKeyPrefix) != 0 {
+		return false
+	}
+	return true
 }
 
 // newObject creates a state object.
@@ -197,12 +150,8 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 		address:  address,
 		addrHash: crypto.Keccak256Hash(address[:]),
 		data:     data,
-
-		originStorage:      make(Storage),
-		originValueStorage: make(ValueStorage),
-
-		dirtyStorage:      make(Storage),
-		dirtyValueStorage: make(ReferenceValueStorage),
+		originStorage:      make(ValueStorage),
+		dirtyStorage:      make(ValueStorage),
 	}
 }
 
@@ -246,60 +195,20 @@ func (c *stateObject) getTrie(db Database) Trie {
 }
 
 // GetState retrieves a value from the account storage trie.
-//func (self *stateObject) GetState(db Database, key common.Hash) common.Hash {
-//	// If we have a dirty value for this state entry, return it
-//	value, dirty := self.dirtyStorage[key]
-//	if dirty {
-//		return value
-//	}
-//	// Otherwise return the entry's original value
-//	return self.GetCommittedState(db, key)
-//}
-
-// GetState retrieves a value from the account storage trie.
-func (self *stateObject) GetState(db Database, keyTree string) []byte {
+func (self *stateObject) GetState(db Database, key common.Hash) []byte {
 	// If we have a dirty value for this state entry, return it
-	valueKey, dirty := self.dirtyStorage[keyTree]
+	value, dirty := self.dirtyStorage[key]
 	if dirty {
-		refValue, ok := self.dirtyValueStorage[valueKey]
-		if ok {
-			return refValue.Value
-		}
+		return value
 	}
 	// Otherwise return the entry's original value
-	return self.GetCommittedState(db, keyTree)
+	return self.GetCommittedState(db, key)
 }
 
-// GetCommittedState retrieves a value from the committed account storage trie.
-//func (self *stateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
-//	// If we have the original value cached, return that
-//	value, cached := self.originStorage[key]
-//	if cached {
-//		return value
-//	}
-//	// Otherwise load the value from the database
-//	enc, err := self.getTrie(db).TryGet(key[:])
-//	if err != nil {
-//		self.setError(err)
-//		return common.Hash{}
-//	}
-//	if len(enc) > 0 {
-//		_, content, _, err := rlp.Split(enc)
-//		if err != nil {
-//			self.setError(err)
-//		}
-//		value.SetBytes(content)
-//	}
-//	self.originStorage[key] = value
-//	return value
-//}
-func (self *stateObject) getCommittedStateCache(key string) []byte {
-	valueKey, cached := self.originStorage[key]
+func (self *stateObject) getCommittedStateCache(key common.Hash) []byte {
+	value, cached := self.originStorage[key]
 	if cached {
-		value, cached2 := self.originValueStorage[valueKey]
-		if cached2 {
-			return value
-		}
+		return value
 	}
 
 	self.db.refLock.Lock()
@@ -308,10 +217,9 @@ func (self *stateObject) getCommittedStateCache(key string) []byte {
 	refLock := &self.db.refLock
 
 	for parentDB != nil {
-		valueKey, value := parentDB.getStateObjectSnapshot(self.address, key)
+		value := parentDB.getStateObjectSnapshot(self.address, key)
 		if value != nil {
-			self.originStorage[key] = valueKey
-			self.originValueStorage[valueKey] = value
+			self.originStorage[key] = value
 			refLock.Unlock()
 			return value
 		} else if parentCommitted {
@@ -333,53 +241,38 @@ func (self *stateObject) getCommittedStateCache(key string) []byte {
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
-func (self *stateObject) GetCommittedState(db Database, key string) []byte {
-	value := make([]byte, 0)
-	valueKey := common.Hash{}
+func (self *stateObject) GetCommittedState(db Database, key common.Hash) []byte {
 	// If we have the original value cached, return that
-	if value := self.getCommittedStateCache(key); value != nil {
-		log.Trace("GetCommittedState cache", "key", hex.EncodeToString([]byte(key)), "value", len(value))
+	if value := self.getCommittedStateCache(key); len(value) != 0 {
+		log.Trace("GetCommittedState cache", "key", key.String(), "value", len(value))
 		return value
 	}
 
 	// Otherwise load the valueKey from trie
-	enc, err := self.getTrie(db).TryGet([]byte(key))
+	enc, err := self.getTrie(db).TryGet(key[:])
 	if err != nil {
 		self.setError(err)
 		return []byte{}
 	}
+	value := make([]byte, 0)
 	if len(enc) > 0 {
 		_, content, _, err := rlp.Split(enc)
 		if err != nil {
 			self.setError(err)
 		}
-		valueKey.SetBytes(content)
-
-		//load value from db
-		value = self.db.trie.GetKey(valueKey.Bytes())
-		if err != nil {
-			self.setError(err)
-		}
+		value = content
 	}
 
-	if valueKey != emptyStorage && len(value) == 0 {
-		return []byte{}
-	}
-	if len(value) == 0 && valueKey == emptyStorage {
-		log.Trace("Empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
-	}
-	log.Trace("GetCommittedState", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
-	self.originStorage[key] = valueKey
-	self.originValueStorage[valueKey] = value
+	log.Trace("GetCommittedState trie", "key", key.String(), "value", len(value))
+	self.originStorage[key] = value
 	return value
 }
 
 // SetState updates a value in account storage.
-// set [keyTrie,valueKey] to storage
-// set [valueKey,value] to db
-func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.Hash, value []byte) {
+// set [prefixKey,value] to storage
+func (self *stateObject) SetState(db Database, key common.Hash, value []byte) {
 	//if the new value is the same as old,don't set
-	preValue := self.GetState(db, keyTrie) // get value key
+	preValue := self.GetState(db, key)
 	if bytes.Equal(preValue, value) {
 		return
 	}
@@ -387,66 +280,52 @@ func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.H
 	//New value is different, update and journal the change
 	self.db.journal.append(storageChange{
 		account:  &self.address,
-		key:      keyTrie,
-		valueKey: self.originStorage[keyTrie],
+		key:      key,
 		preValue: preValue,
 	})
 
-	self.setState(keyTrie, valueKey, value)
+	self.setState(key, value)
 }
 
-func (self *stateObject) setState(key string, valueKey common.Hash, value []byte) {
+func (self *stateObject) setState(key common.Hash, value []byte) {
 	cpy := make([]byte, len(value))
 	copy(cpy, value)
-
-	// delete value storage
-	if dirtyValue, ok := self.dirtyStorage[key]; ok {
-		//delete(self.dirtyValueStorage, dirtyValue)
-		self.dirtyValueStorage.deleleReferenceValue(dirtyValue)
-	}
-
-	self.dirtyStorage[key] = valueKey
-	//self.dirtyValueStorage[valueKey] = cpy
-	self.dirtyValueStorage.setReferenceValue(valueKey, cpy)
+	self.dirtyStorage[key] = cpy
 }
+
+func (self *stateObject) getPrefixKey (key []byte)  common.Hash {
+	temp := append(self.data.StorageKeyPrefix, key...)
+	prefixKey := common.Hash{}
+	keccak := sha3.NewKeccak256()
+	keccak.Write(temp)
+	keccak.Sum(prefixKey[:0])
+	return  prefixKey
+}
+
 
 // updateTrie writes cached storage modifications into the object's storage trie.
 func (self *stateObject) updateTrie(db Database) Trie {
 	tr := self.getTrie(db)
-	for key, valueKey := range self.dirtyStorage {
+	for key, value := range self.dirtyStorage {
 		delete(self.dirtyStorage, key)
 
-		if valueKey == self.originStorage[key] {
-			//delete(self.dirtyValueStorage, valueKey)
-			self.dirtyValueStorage.deleleReferenceValue(valueKey)
+		// Skip noop changes, persist actual changes
+		oldValue := self.originStorage[key]
+		if bytes.Equal(value, oldValue){
 			continue
 		}
 
-		if valueKey == emptyStorage || (valueKey == common.Hash{}) {
-			//delete(self.dirtyValueStorage, valueKey)
-			self.dirtyValueStorage.deleleReferenceValue(valueKey)
+		self.originStorage[key] = value
 
-			if oldValueKey, ok := self.originStorage[key]; ok {
-				delete(self.originValueStorage, oldValueKey)
-			}
-			self.originStorage[key] = valueKey
-			self.originValueStorage[valueKey] = []byte{}
-
-			self.setError(tr.TryDelete([]byte(key)))
+		if len(value) == 0 {
+			self.setError(tr.TryDelete(key[:]))
 			continue
 		}
 
-		self.originStorage[key] = valueKey
-
-		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
-		self.setError(tr.TryUpdate([]byte(key), v))
-
-		//flush dirty value
-		if refValue, ok := self.dirtyValueStorage[valueKey]; ok {
-			//delete(self.dirtyValueStorage, valueKey)
-			self.dirtyValueStorage.deleleReferenceValue(valueKey)
-			self.originValueStorage[valueKey] = refValue.Value
-		}
+		// Encoding []byte cannot fail, ok to ignore the error.
+		//v, _ := rlp.EncodeToBytes(bytes.TrimLeft(value, "\x00"))
+		v, _ := rlp.EncodeToBytes(value)
+		self.setError(tr.TryUpdate(key[:], v))
 	}
 
 	return tr
@@ -466,20 +345,7 @@ func (self *stateObject) CommitTrie(db Database) error {
 		return self.dbErr
 	}
 
-	root, err := self.trie.Commit(func(leaf []byte, parent common.Hash) error {
-		var valueKey common.Hash
-		_, content, _, err := rlp.Split(leaf)
-		if err != nil {
-			self.setError(err)
-		}
-		valueKey.SetBytes(content)
-		if value, ok := self.originValueStorage[valueKey]; ok {
-			self.db.db.TrieDB().InsertBlob(valueKey, value)
-		}
-
-		self.db.db.TrieDB().Reference(valueKey, parent)
-		return nil
-	})
+	root, err := self.trie.Commit(nil)
 
 	if err == nil {
 		self.data.Root = root
@@ -533,9 +399,7 @@ func (self *stateObject) deepCopy(db *StateDB) *stateObject {
 	}
 	stateObject.code = self.code
 	stateObject.dirtyStorage = self.dirtyStorage.Copy()
-	stateObject.dirtyValueStorage = self.dirtyValueStorage.Copy()
 	stateObject.originStorage = self.originStorage.Copy()
-	stateObject.originValueStorage = self.originValueStorage.Copy()
 	stateObject.suicided = self.suicided
 	stateObject.dirtyCode = self.dirtyCode
 	stateObject.deleted = self.deleted
@@ -625,46 +489,4 @@ func (self *stateObject) Nonce() uint64 {
 // interface. Interfaces are awesome.
 func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
-}
-
-// todo: New method
-// ======================================= New method ===============================
-
-// todo: new method -> AbiHash
-func (self *stateObject) AbiHash() []byte {
-	return self.data.AbiHash
-}
-
-// ABI returns the contract abi associated with this object, if any.
-func (self *stateObject) Abi(db Database) []byte {
-	//if self.Abi != nil {
-	//	return self.abi
-	//}
-	if bytes.Equal(self.AbiHash(), emptyCodeHash) {
-		return nil
-	}
-	// Extract the code from the tree, enter the parameters: address and hash, here you need to find the acquisition rules in depth
-	abi, err := db.ContractAbi(self.addrHash, common.BytesToHash(self.AbiHash()))
-	if err != nil {
-		self.setError(fmt.Errorf("can't load abi hash %x: %v", self.AbiHash(), err))
-	}
-	self.abi = abi
-	return abi
-}
-
-// todo: new method -> SetAbi.
-func (self *stateObject) SetAbi(abiHash common.Hash, abi []byte) {
-	prevabi := self.Abi(self.db.db)
-	self.db.journal.append(abiChange{
-		account:  &self.address,
-		prevhash: self.AbiHash(),
-		prevabi:  prevabi,
-	})
-	self.setAbi(abiHash, abi)
-}
-
-// todo: new method -> setAbi
-func (self *stateObject) setAbi(abiHash common.Hash, abi []byte) {
-	self.abi = abi
-	self.data.AbiHash = abiHash[:]
 }

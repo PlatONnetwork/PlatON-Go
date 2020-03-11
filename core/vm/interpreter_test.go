@@ -21,7 +21,7 @@ func (account) Balance() *big.Int                                   { return nil
 func (account) Address() common.Address                             { return common.Address{} }
 func (account) ReturnGas(*big.Int)                                  {}
 func (account) SetCode(common.Hash, []byte)                         {}
-func (account) ForEachStorage(cb func(key, value common.Hash) bool) {}
+func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
 func TestEnforceRestrictions(t *testing.T) {
 	var (

@@ -59,9 +59,10 @@ func makeTestState() (Database, common.Hash, []*testAccount, map[common.Hash][]b
 		}
 		key := randString(10)
 		value := []byte(randString(20))
-		valueKey := crypto.Keccak256Hash(value)
-		obj.setState(key, valueKey, value)
-		valueKeys[valueKey] = value
+		//valueKey := crypto.Keccak256Hash(value)
+		prefixKey := obj.getPrefixKey([]byte(key))
+		obj.setState(prefixKey, value)
+		valueKeys[prefixKey] = value
 		state.updateStateObject(obj)
 		accounts = append(accounts, acc)
 	}
