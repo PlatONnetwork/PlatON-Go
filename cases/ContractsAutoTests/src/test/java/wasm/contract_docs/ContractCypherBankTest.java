@@ -1,14 +1,12 @@
 package wasm.contract_docs;
 
 import com.platon.rlp.datatypes.Uint8;
-import com.platon.rlp.datatypes.WasmAddress;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.Bank;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
 import wasm.beforetest.WASMContractPrepareTest;
@@ -55,9 +53,9 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
             collector.logStepPass("Call exitFee, res: " + exitFee.getValue());
 
             // buy
-            TransactionReceipt buyTr = contract.buy(new WasmAddress(credentials.getAddress()), new BigInteger("100000000000000000000")).send();
-            collector.logStepPass("Send buy, txHash: " + buyTr.getTransactionHash() + " gasUsed: " + buyTr.getGasUsed());
-            collector.logStepPass("Send buy ,logs size: " + buyTr.getLogs().size());
+            //TransactionReceipt buyTr = contract.buy(new WasmAddress(credentials.getAddress()), new BigInteger("100000000000000000000")).send();
+            //collector.logStepPass("Send buy, txHash: " + buyTr.getTransactionHash() + " gasUsed: " + buyTr.getGasUsed());
+            //collector.logStepPass("Send buy ,logs size: " + buyTr.getLogs().size());
 
             // totalEthereumBalance
             BigInteger totalEthereumBalance = contract.totalEthereumBalance().send();
