@@ -107,7 +107,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			u128 DailyInterestFinal = DailyInterest1 / u128(10);
 			InterestPool_.self() -= DailyInterestFinal;
 			//
-			DividendsDistribution(DailyInterestFinal, Address("0x0000000000000000000000000000000000000000"));
+			//DividendsDistribution(DailyInterestFinal, Address("0x0000000000000000000000000000000000000000"));
 		}
 
 		ACTION void DivsAddon(){
