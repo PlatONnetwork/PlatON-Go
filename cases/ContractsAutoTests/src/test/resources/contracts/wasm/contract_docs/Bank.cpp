@@ -90,7 +90,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			u128 DailyInt1 = callValue/ u128(100) * IntFee_.self();
 			u128 DailyIntFinal = DailyInt1 / u128(10);
 			InterestPool_.self() += DailyIntFinal;
-			purchaseTokens(callValue, _referredBy);
+			//purchaseTokens(callValue, _referredBy);
 		}
 
 		ACTION void IDD(){
