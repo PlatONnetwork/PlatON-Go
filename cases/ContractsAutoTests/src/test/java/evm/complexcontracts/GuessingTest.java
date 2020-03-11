@@ -58,7 +58,7 @@ public class GuessingTest extends ContractPrepareTest {
 
             //发起转账(触发竞猜操作)
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1000"), Convert.Unit.LAT, new BigInteger("1000000000"), new BigInteger("47123880")).send();
+            TransactionReceipt transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1000"), Convert.Unit.LAT, new BigInteger("1000000000"), new BigInteger("4712388")).send();
             collector.logStepPass("gas used>>>>>>>" + transactionReceipt.getGasUsed().toString());
 
             //查询合约余额
@@ -90,12 +90,15 @@ public class GuessingTest extends ContractPrepareTest {
             BigInteger originBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("开奖前用户账户余额为>>>"+originBalance);
 
-            //查询每个竞猜者对应的下标
-            collector.logStepPass("竞猜者对下标："+guessing.IndexOfgussinger(new BigInteger("0")).send().toString());
+            //查询当前块高
+            long currentBlockNumber = new Long(web3j.platonBlockNumber().send().getBlockNumber().toString()).intValue();
+
+            //入参为截止块高的hash，真实环境需要从浏览器获取，此处为了测试方便直接从合约取当前块高hash
+            byte[] blockhash = guessing.generateBlockHash(new BigInteger(String.valueOf(currentBlockNumber-20))).send();
 
 
             //开奖操作
-            tx = guessing.draw().send();
+            tx = guessing.draw(blockhash).send();
             collector.logStepPass(tx.getLogs().toString());
 
 
@@ -103,10 +106,6 @@ public class GuessingTest extends ContractPrepareTest {
             BigInteger afterBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("开奖后用户账户余额为>>>"+afterBalance);
 
-
-            //查询中奖者
-//            String winnerAddress = guessing.winnerAddresses(new BigInteger("0")).send();
-//            collector.logStepPass("中奖者地是："+winnerAddress);
 
         } catch (Exception e) {
             collector.logStepFail("GuessingTest Calling Method fail.", e.toString());

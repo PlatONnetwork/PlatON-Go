@@ -47,7 +47,7 @@ public class SimpleStorageTest extends ContractPrepareTest {
             JSONArray jsonArray = JSONArray.parseArray(jsonContent);
             ExecutorService executorService = Executors.newCachedThreadPool();
             // 同时并发执行的线程数
-            final Semaphore semaphore = new Semaphore(100);
+            final Semaphore semaphore = new Semaphore(10);
             // 请求总数
             CountDownLatch countDownLatch = new CountDownLatch(jsonArray.size());
 
@@ -65,11 +65,10 @@ public class SimpleStorageTest extends ContractPrepareTest {
                                 + ", currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
                         byte[] hash = SimpleStorage.load(contractAddress, web3j, transactionManager, provider).hash().send();
-                        collector.logStepPass("contract load successful. blockHash:" + DataChangeUtil.bytesToHex(hash));
-                        collector.logStepPass("current time: " + finalI);
+                        collector.logStepPass("contract load successful, current time:"  + finalI + ", blockHash:" + DataChangeUtil.bytesToHex(hash));
                         semaphore.release();
                     } catch (Exception e) {
-                        //e.printStackTrace();
+                        e.printStackTrace();
                         collector.logStepFail("call fail.", e.toString());
                     }
                     countDownLatch.countDown();
@@ -80,7 +79,7 @@ public class SimpleStorageTest extends ContractPrepareTest {
             executorService.shutdown();
 
         } catch (Exception e) {
-
+            collector.logStepFail("The contract fail.", e.toString());
         }
     }
 }

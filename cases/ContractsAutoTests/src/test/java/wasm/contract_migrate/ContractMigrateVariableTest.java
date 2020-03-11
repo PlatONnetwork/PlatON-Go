@@ -44,7 +44,6 @@ public class ContractMigrateVariableTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            provider = new ContractGasProvider(BigInteger.valueOf(50000000004L), BigInteger.valueOf(90000000L));
             ContractMigrate_old contractMigrateOld = ContractMigrate_old.deploy(web3j, transactionManager, provider, oldval).send();
             String contractAddress = contractMigrateOld.getContractAddress();
             String transactionHash = contractMigrateOld.getTransactionReceipt().get().getTransactionHash();
