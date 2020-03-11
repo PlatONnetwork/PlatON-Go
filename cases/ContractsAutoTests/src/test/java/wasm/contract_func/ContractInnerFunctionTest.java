@@ -49,8 +49,8 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
             // test: gas_limit
             Uint64 gasLimit = innerFunction.gas_limit().send();
-            collector.logStepPass("To invoke gas_limit success. gasLimit: " + gasLimit);
-            collector.assertFalse(provider.getGasLimit().longValue() == gasLimit.getValue().longValue());
+            collector.logStepPass("To invoke gas_limit success. gasLimit: " + gasLimit + " conf: " + provider.getGasLimit());
+            collector.assertTrue(provider.getGasLimit().longValue() == gasLimit.getValue().longValue());
 
             // test: block_number
             Uint64 bn = innerFunction.block_number().send();
