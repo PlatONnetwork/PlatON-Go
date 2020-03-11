@@ -364,7 +364,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 		
 		u128 ethereumToTokens_(u128 _ethereum) {
-			u128 _tokenPriceInitial = tokenPriceInitial_ * u128("1000000000000000000");
+			u128 _tokenPriceInitial = tokenPriceInitial_ * (1_LAT).Get();
 			u128 _tokensReceived =
 				(
 					(
@@ -373,11 +373,11 @@ CONTRACT Bank: public platon::Contract, public Ownable
 								(
 									(_tokenPriceInitial * _tokenPriceInitial)
 									+
-									(2 * (tokenPriceIncremental_.self() * u128("1000000000000000000")) * (_ethereum * u128("1000000000000000000")))
+									(u128(2) * (tokenPriceIncremental_.self() * (1_LAT).Get()) * (_ethereum * (1_LAT).Get()))
 									+
 									((tokenPriceIncremental_.self() * tokenPriceIncremental_.self()) * (tokenSupply_.self() * tokenSupply_.self()))
 									+
-									(2 * tokenPriceIncremental_.self() * _tokenPriceInitial*tokenSupply_.self())
+									(u128(2) * tokenPriceIncremental_.self() * _tokenPriceInitial*tokenSupply_.self())
 								)
 							) - _tokenPriceInitial
 						
@@ -388,20 +388,20 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 		
 		u128 tokensToEthereum_(u128 _tokens) {
-			u128 tokens_ = (_tokens + u128("1000000000000000000"));
-			u128 _tokenSupply = (tokenSupply_.self() + u128("1000000000000000000"));
+			u128 tokens_ = (_tokens + (1_LAT).Get());
+			u128 _tokenSupply = (tokenSupply_.self() + (1_LAT).Get());
 			u128 _etherReceived =
 				(
 					(
 						(
 							(
 								(
-									tokenPriceInitial_ + (tokenPriceIncremental_ * (_tokenSupply / u128("1000000000000000000")))
+									tokenPriceInitial_ + (tokenPriceIncremental_ * (_tokenSupply / (1_LAT).Get()))
 								) - tokenPriceIncremental_
-							) * (tokens_ - u128("1000000000000000000"))
-						) - (tokenPriceIncremental_ * ((tokens_ * tokens_ - tokens_) / u128("1000000000000000000"))) / u128(2)
+							) * (tokens_ - (1_LAT).Get())
+						) - (tokenPriceIncremental_ * ((tokens_ * tokens_ - tokens_) / (1_LAT).Get())) / u128(2)
 					)
-					/ u128("1000000000000000000")
+					/ (1_LAT).Get()
 				);
 			return _etherReceived;		
 		}
