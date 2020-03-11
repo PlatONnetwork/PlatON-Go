@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -703,7 +702,7 @@ func Sha3(proc *exec.Process, src uint32, srcLen uint32, dst uint32, dstLen uint
 	}
 	hash := crypto.Keccak256(data)
 	if int(dstLen) < len(hash) {
-		panic(fmt.Errorf("dst len too short"))
+		panic(ErrWASMSha3DstToShort)
 	}
 	_, err = proc.WriteAt(hash, int64(dst))
 	if nil != err {
@@ -774,7 +773,7 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	if ctx.readOnly {
-		panic(errWASMWriteProtection)
+		panic(ErrWASMWriteProtection)
 	}
 	checkGas(ctx, StoreGas*uint64(keyLen+valLen))
 	keyBuf := make([]byte, keyLen)
@@ -871,7 +870,7 @@ func Revert(proc *exec.Process) {
 }
 
 func Panic(proc *exec.Process) {
-	panic("transaction panic")
+	panic(ErrWASMPanicOp)
 }
 
 func Debug(proc *exec.Process, dst uint32, len uint32) {
@@ -1075,7 +1074,7 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic(errWASMWriteProtection)
+		panic(ErrWASMWriteProtection)
 	}
 
 	address := make([]byte, common.AddressLength)
@@ -1110,7 +1109,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic(errWASMWriteProtection)
+		panic(ErrWASMWriteProtection)
 	}
 
 	// check call depth
@@ -1127,7 +1126,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	}
 
 	if len(input) == 0 {
-		panic(errWASMMigrate)
+		panic(ErrWASMMigrate)
 	}
 
 	value := make([]byte, valLen)
@@ -1175,7 +1174,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	// check code of old contract
 	oldCode := ctx.evm.StateDB.GetCode(oldContract)
 	if len(oldCode) == 0 {
-		panic("old target contract is illegal, no contract code exists")
+		panic(ErrWASMOldContractCodeNotExists)
 	}
 
 	// check balance of sender
@@ -1271,7 +1270,7 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic(errWASMWriteProtection)
+		panic(ErrWASMWriteProtection)
 	}
 
 	topics := make([]common.Hash, 0)
@@ -1291,7 +1290,7 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 
 		topicCount, err := rlp.CountValues(content)
 		if topicCount > WasmTopicNum {
-			panic("wasm event indexed count too large")
+			panic(ErrWASMEventCountToLarge)
 		}
 
 		decodeTopics := func(b []byte) ([]byte, []byte, error) {
@@ -1309,7 +1308,7 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 			}
 
 			if len(mem) > common.HashLength {
-				panic("wasm event indexed content too long")
+				panic(ErrWASMEventContentToLong)
 			}
 
 			topics = append(topics, common.BytesToHash(mem))

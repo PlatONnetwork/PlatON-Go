@@ -6,8 +6,14 @@ import (
 )
 
 var (
-	errWASMWriteProtection = errors.New("WASM: write protection")
-	errWASMMigrate         = errors.New("WASM: failed to migrate contract")
+	ErrWASMWriteProtection          = errors.New("WASM: write protection")
+	ErrWASMMigrate                  = errors.New("WASM: failed to migrate contract")
+	ErrWASMEventCountToLarge        = errors.New("WASM: event indexed count too large")
+	ErrWASMEventContentToLong       = errors.New("WASM: event indexed content too long")
+	ErrWASMSha3DstToShort           = errors.New("WASM: Sha3 dst len too short")
+	ErrWASMPanicOp                  = errors.New("WASM: transaction panic")
+	ErrWASMOldContractCodeNotExists = errors.New("WASM: old contract code is not exists")
+	ErrWASMUndefinedPanic           = errors.New("WASM: Undefined panic")
 )
 
 // WASMInterpreter represents an WASM interpreter
@@ -33,8 +39,13 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 // errExecutionReverted which means revert-and-keep-gas-lfet.
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	defer func() {
-		if er := recover(); er != nil {
-			ret, err = nil, fmt.Errorf("WASM execute fail：%v", er)
+		if r := recover(); r != nil {
+			switch e := r.(type) {
+			case error:
+				ret, err =  nil, e
+			default:
+				ret, err = nil, fmt.Errorf("WASM: execute fail, %v", e)
+			}
 		}
 	}()
 
