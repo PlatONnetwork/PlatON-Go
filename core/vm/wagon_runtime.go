@@ -1257,7 +1257,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 		panic(err)
 	}
 
-	ctx.contract.Gas = contract.Gas
+	ctx.contract.Gas += contract.Gas
 
 	_, err = proc.WriteAt(newContract.Bytes(), int64(newAddr))
 	if nil != err {
