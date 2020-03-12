@@ -25,7 +25,7 @@ import java.util.List;
  * @author hudenian
  *
  */
-public class GuessingTest extends WASMContractPrepareTest {
+public class GuessingWasmTest extends WASMContractPrepareTest {
 
     @Before
     public void before(){
