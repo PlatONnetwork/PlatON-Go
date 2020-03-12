@@ -776,13 +776,8 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
-	// todo: shield contract to created in temporary
-	/*if tx.To() == nil {
-		return fmt.Errorf("contract creation is not allowed")
-	}*/
-
-	// Heuristic limit, reject transactions over 1MB to prevent DOS attacks 32kb
-	if tx.Size() > 128*1024 {
+	// Heuristic limit, reject transactions over 1MB to prevent DOS attacks
+	if tx.Size() > 1024*1024 {
 		return ErrOversizedData
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded

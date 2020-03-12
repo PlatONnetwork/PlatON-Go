@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/big"
 	"testing"
 
 	//"github.com/PlatONnetwork/PlatON-Go/log"
@@ -400,6 +401,7 @@ func TestGovContract_SubmitParam(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
+	gc.Evm.chainConfig.ChainID = big.NewInt(101)
 	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
 
 	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
@@ -418,6 +420,7 @@ func TestGovContract_SubmitParam(t *testing.T) {
 func TestGovContract_SubmitParam_thenSubmitParamFailed(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
+	gc.Evm.chainConfig.ChainID = big.NewInt(101)
 
 	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
 	commit_sndb(chain)
@@ -429,6 +432,7 @@ func TestGovContract_SubmitParam_thenSubmitParamFailed(t *testing.T) {
 func TestGovContract_SubmitParam_thenSubmitVersionFailed(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
+	gc.Evm.chainConfig.ChainID = big.NewInt(101)
 
 	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
 	commit_sndb(chain)
@@ -440,6 +444,8 @@ func TestGovContract_SubmitParam_thenSubmitVersionFailed(t *testing.T) {
 func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
+
+	gc.Evm.chainConfig.ChainID = big.NewInt(101)
 
 	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
 	if err != nil {
@@ -510,6 +516,8 @@ func TestGovContract_voteTwoProposal_punished(t *testing.T) {
 func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
+
+	//gc.Evm.chainConfig.ChainID = big.NewInt(101)
 
 	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
 	if err != nil {

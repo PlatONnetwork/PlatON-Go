@@ -14,7 +14,8 @@
 
 ### 1.3 包装类生成
 
-初次合约测试脚本编写之前，将二进制和`abi`文件放在`src/test/resources/contracts/build`路径下，再执行`src/test/java/beforetest`路径下的`GeneratorPreTest`类的`junit`方法（右键直接使用`junit`插件即可执行）
+* EVM:将二进制和`abi`文件放在`src/test/resources/contracts/evm/build`路径下，再执行`src/test/java/evm/beforetest`路径下的`GeneratorPreTest`类的`junit`方法（右键直接使用`junit`插件即可执行）
+* WASM:将二进制和`abi`文件放在`src/test/resources/contracts/wasm/build`路径下，再执行`src/test/java/wasm/beforetest`路径下的`WASMGeneratorPreTest`类的`junit`方法（右键直接使用`junit`插件即可执行）
 
 ## 2 合约测试脚本编写
 
@@ -211,13 +212,32 @@ mvn clean test
 
 #### 4.2 报告示例
 
-![image-20191217094605262](./src/main/resources/templates/images/image-20191217094605262.png)
+![image-20191217094605262](https://github.com/qcblockchain/PlatON-Go/blob/feature/wasm/cases/ContractsAutoTests/src/main/resources/templates/images/image-20191217094605262.png)
 
 #### 4.3 编码说明
 
 使用`mvn clean test`测试时，因为`windows`默认采用`GBK`编码，所以`src/main/resources/templates`里面的文件编码需要调整成`GBK`，否则报告会乱码
 
-### 
 
 
+## 5 补充说明
 
+目前测试用例版本将包含EVM和WASM两个版本，脚本数和用例数已经变得庞大，为了规范两种类别的自动化测试用例，接下来将区分测试代码和测试数据：
+
+### 5.1 测试方法改造
+
+测试方法的注解需要带`sourcePrefix = "evm"`或者`sourcePrefix = "wasm"`
+
+完整信息：`@DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",        author = "qcxiao", showName = "complexcontracts.TokenTransferTest-代币转移", sourcePrefix = "evm")`
+
+### 5.2 测试数据转移
+
+测试数据均需要放到`evm`或者`wasm`文件夹下面
+
+### 5.2 测试优先级
+
+因为当前EVM测试需要半小时，如何全部执行时只执行WASM的用例，需要在Excel表中的casePriority字段标识成WASM，执行测试时通过命令：`mvn test -DcasePriority=WASM`，此时将只执行WASM的用例
+
+### 5.3 测试代码结构图
+
+![结构](https://github.com/qcblockchain/PlatON-Go/blob/feature/wasm/cases/ContractsAutoTests/src/main/resources/templates/images/%E7%BB%93%E6%9E%84.png)

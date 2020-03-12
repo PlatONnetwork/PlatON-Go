@@ -33,7 +33,7 @@ var (
 	tt255                    = math.BigPow(2, 255)
 	errWriteProtection       = errors.New("evm: write protection")
 	errReturnDataOutOfBounds = errors.New("evm: return data out of bounds")
-	errExecutionReverted     = errors.New("evm: execution reverted")
+	errExecutionReverted     = errors.New("execution reverted")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
 )
 
@@ -393,8 +393,7 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	}
 	interpreter.hasher.Write(data)
 	interpreter.hasher.Read(interpreter.hasherBuf[:])
-        /*
-	evm := interpreter.evm
+	/*evm := interpreter.evm
 	if evm.vmConfig.EnablePreimageRecording {
 		evm.StateDB.AddPreimage(interpreter.hasherBuf, data)
 	}*/

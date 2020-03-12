@@ -14,12 +14,12 @@
         <dependency>
             <groupId>network.platon.autotest</groupId>
             <artifactId>AutoPlatON</artifactId>
-            <version>0.0.1</version>
+            <version>0.0.3</version>
         </dependency>
         <dependency>
             <groupId>com.platon.client</groupId>
             <artifactId>core</artifactId>
-            <version>0.7.5.2-SNAPSHOT</version>
+            <version>0.9.1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.platon.client</groupId>
@@ -60,6 +60,11 @@
             <groupId>network.platon.autotest</groupId>
             <artifactId>contract-compile</artifactId>
             <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.6</version>
         </dependency>
     </dependencies>
 

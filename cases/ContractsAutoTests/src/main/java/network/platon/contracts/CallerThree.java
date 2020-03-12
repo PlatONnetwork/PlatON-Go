@@ -1,5 +1,10 @@
 package network.platon.contracts;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.web3j.abi.EventEncoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
@@ -20,12 +25,6 @@ import org.web3j.tx.gas.GasProvider;
 import rx.Observable;
 import rx.functions.Func1;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
@@ -33,10 +32,10 @@ import java.util.List;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.7.5.0.
+ * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
  */
 public class CallerThree extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c1461004657806317f936fb14610064578063371303c014610082575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b6040518082815260200191505060405180910390f35b61008a61009b565b005b60005481565b60008054905090565b60008081548092919060010191905055507fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e733600054604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a156fea265627a7a72315820c1d1db72903ec8f14966fb38c712bf97738afdc3f4570ea953ef919f4461353364736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c1461004657806317f936fb14610064578063371303c014610082575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b6040518082815260200191505060405180910390f35b61008a61009b565b005b60005481565b60008054905090565b60008081548092919060010191905055507fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e733600054604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a156fea265627a7a7231582085dfbfe4e7eb9c3dbf444c52efe44a145bf5e2a80d92f78463f6b85a64145d3b64736f6c634300050d0032";
 
     public static final String FUNC_GETCALLEETHREEX = "getCalleeThreeX";
 
@@ -44,7 +43,7 @@ public class CallerThree extends Contract {
 
     public static final String FUNC_X = "x";
 
-    public static final Event EVENTNAME_EVENT = new Event("EventName",
+    public static final Event EVENTNAME_EVENT = new Event("EventName", 
             Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}, new TypeReference<Uint256>() {}));
     ;
 
@@ -67,7 +66,7 @@ public class CallerThree extends Contract {
     }
 
     public List<EventNameEventResponse> getEventNameEvents(TransactionReceipt transactionReceipt) {
-        List<EventValuesWithLog> valueList = extractEventParametersWithLog(EVENTNAME_EVENT, transactionReceipt);
+        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(EVENTNAME_EVENT, transactionReceipt);
         ArrayList<EventNameEventResponse> responses = new ArrayList<EventNameEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             EventNameEventResponse typedResponse = new EventNameEventResponse();
@@ -100,8 +99,8 @@ public class CallerThree extends Contract {
     }
 
     public RemoteCall<BigInteger> getCalleeThreeX() {
-        final Function function = new Function(FUNC_GETCALLEETHREEX,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_GETCALLEETHREEX, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
@@ -109,14 +108,14 @@ public class CallerThree extends Contract {
     public RemoteCall<TransactionReceipt> inc() {
         final Function function = new Function(
                 FUNC_INC, 
-                Arrays.<Type>asList(),
+                Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<BigInteger> x() {
-        final Function function = new Function(FUNC_X,
-                Arrays.<Type>asList(),
+        final Function function = new Function(FUNC_X, 
+                Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }

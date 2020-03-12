@@ -89,11 +89,11 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // submit a proposal
-func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
+func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB, chainID *big.Int) error {
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
 
 	//param check
-	if err := proposal.Verify(blockNumber, blockHash, state); err != nil {
+	if err := proposal.Verify(blockNumber, blockHash, state, chainID); err != nil {
 		if bizError, ok := err.(*common.BizError); ok {
 			return bizError
 		} else {
@@ -347,7 +347,7 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 					return err
 				}
 				candidate, err := stk.GetCanMutable(blockHash, nodeAddress)
-				if err != nil {
+				if candidate == nil || err != nil {
 					return VerifierInfoNotFound
 				} else if candidate.IsInvalid() {
 					return VerifierStatusInvalid
@@ -480,15 +480,19 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 				return err
 			} else if len(voteValueList) > 0 {
 				idx := 0 // output index
+				removed := make([]VoteValue, 0)
 				for _, voteValue := range voteValueList {
 					//if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
 					if _, isPunished := punishedVerifierMap[voteValue.VoteNodeID]; !isPunished {
 						voteValueList[idx] = voteValue
 						idx++
+					} else {
+						removed = append(removed, voteValue)
 					}
 				}
-				if idx < len(voteValueList) {
+				if len(removed) > 0 && idx < len(voteValueList) {
 					voteValueList = voteValueList[:idx]
+					log.Debug(fmt.Sprintf("remove voted value, proposalID:%s, removedVoteValue:%+v", proposalID.Hex(), removed))
 					if err := UpdateVoteValue(proposalID, voteValueList, blockHash); err != nil {
 						return err
 					}
