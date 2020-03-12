@@ -70,9 +70,9 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
             collector.logStepPass("Send IDD ,logs size: " + iddTr.getLogs().size());
 
             // DivsAddon
-            TransactionReceipt divsAddonTr = contract.DivsAddon().send();
-            collector.logStepPass("Send DivsAddon, txHash: " + divsAddonTr.getTransactionHash() + " gasUsed: " + divsAddonTr.getGasUsed());
-            collector.logStepPass("Send DivsAddon ,logs size: " + divsAddonTr.getLogs().size());
+            //TransactionReceipt divsAddonTr = contract.DivsAddon().send();
+            //collector.logStepPass("Send DivsAddon, txHash: " + divsAddonTr.getTransactionHash() + " gasUsed: " + divsAddonTr.getGasUsed());
+            //collector.logStepPass("Send DivsAddon ,logs size: " + divsAddonTr.getLogs().size());
 
             // reinvest
             TransactionReceipt reinvestTr = contract.reinvest().send();
