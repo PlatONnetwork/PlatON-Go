@@ -18,7 +18,7 @@ contract Guessing {
     mapping(uint256 =>address payable ) public indexOfgussinger; //每个抽奖号码对应的竞猜者地址
     mapping(address => uint[]) public gussingerCodes; //每个竞猜者所有的抽奖号码集合
     mapping(address => uint256 ) public winnerMap; //中奖者对应中奖号码个数
-    uint public indexKey = 0;
+    uint public indexKey = 1;
     address[] public winnerAddresses; //中奖者地址数组
     address public createAddress;//合约创建者
     uint public postfix = 0; //中奖尾号
@@ -99,19 +99,14 @@ contract Guessing {
      * 方法：A % B = C
      *
      *
-     * 1.参数B为个位数和十位数，取余数C的个位数，个位数相同的为中奖
-     *   例如余数的12，取个位数，个位数是2的为中奖票
-     *
-     * 2.参数B为百位数和千位数，取余数C的两位数(个位十位)，两位数相同的为中奖；
-     *   例如余数是123，取两位数，票数后两位23的为中奖票
-     *
-     * 3.参数B为万位数和十万位数，取余数C的三位数(个位十位百位)，三位数相同的为中奖；
-     *   例如余数是1234，取三位数，票数后三位带234的为中奖票
+     * 1.参数B,1<总票数<99，取余数C的个位数，个位数相同的为中奖；例如余数的12，取个位数，个位数是2的为中奖票
+     * 2.参数B,100<总票数<9999，取余数C的两位数(个位十位)，两位数相同的为中奖；例如余数是123，取两位数，票数后两位23的为中奖票
+     * 3.参数B，总票数>10000，取余数C的三位数(个位十位百位)，三位数相同的为中奖；例如余数是1234，取三位数，票数后三位带234的为中奖票
      *
      */
     function draw(bytes32 _block_hash) public afterDeadline {
         //开奖只能操作一次，且只有合约创建者可以开奖
-        if(!guessingClosed && createAddress == msg.sender && indexKey > 0){
+        if(!guessingClosed && createAddress == msg.sender && indexKey > 1){
             uint256 random = uint256(keccak256(abi.encodePacked(_block_hash)));
             uint drawIndex = random%indexKey;
 
@@ -145,13 +140,13 @@ contract Guessing {
     function getwinners(uint drawIndex,uint times) internal{
         postfix = drawIndex%times;
         if(postfix ==0){
-            for(uint256 i=0;i<indexKey;i++){
+            for(uint256 i=1;i<indexKey;i++){
                 if((i-postfix)%times == 0){
                     winnerAddresses.push(indexOfgussinger[i]);
                 }
             }
         }else{
-            for(uint256 i=0;i<indexKey;i++){
+            for(uint256 i=1;i<indexKey;i++){
                 if(i%times != 0 && (i-postfix)%times == 0){
                     winnerAddresses.push(indexOfgussinger[i]);
                 }
@@ -202,6 +197,14 @@ contract Guessing {
      */
     function getMyGuessCodes() view public returns (uint[] memory){
         return gussingerCodes[msg.sender];
+    }
+
+    /**
+     * 获幸运尾号
+     */
+    function getPostfix() view public returns (uint){
+        require(guessingClosed == true);
+        return postfix;
     }
 
 

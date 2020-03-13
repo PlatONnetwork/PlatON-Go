@@ -2,7 +2,7 @@
 #include <string>
 using namespace platon;
 
-CONTRACT Guessing : public platon::Contract{
+CONTRACT GuessingWasm : public platon::Contract{
 
    private:
         platon::StorageType<"endblock"_n,uint64_t> endBlock; //竞猜截止块高
@@ -34,14 +34,14 @@ CONTRACT Guessing : public platon::Contract{
            createAddress.self() = platon_caller();
            endBlock.self() = _endBlock; 
            indexKey.self() = 0;//默认下标为0
-           baseUnit.self() = 5000000000000000000;
+           baseUnit.self() = (5_LAT).Get();
            guessingClosed.self() = false;
         }
 
         /**
          * 竞猜(带上金额)
          */ 
-        ACTION void guessingWithLat(std::string name){
+        ACTION void guessingWithLat(){
            DEBUG("Guessing", "guessingWithLat", platon_call_value());
            //判断转账金额要大于5lat 
            u128 amount = platon_call_value();
@@ -138,4 +138,4 @@ CONTRACT Guessing : public platon::Contract{
  
 };
 
-PLATON_DISPATCH(Guessing, (init)(guessingWithLat)(draw)(getwinners)(getBalance)(getWinnerCount)(getWinnerAddresses)(getMyGuessCodes)(getIndexKey))
+PLATON_DISPATCH(GuessingWasm, (init)(guessingWithLat)(draw)(getwinners)(getBalance)(getWinnerCount)(getWinnerAddresses)(getMyGuessCodes)(getIndexKey))
