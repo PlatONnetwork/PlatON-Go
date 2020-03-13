@@ -60,7 +60,7 @@ func (s *StateSuite) TestDump(c *checker.C) {
 	// check that dump contains the state objects that are in trie
 	got := string(s.state.Dump())
 	want := `{
-    "root": "1d75ab73e172edb7c3b3c0fd004d9896992fb96b617f6f954641d7618159e5e4",
+    "root": "32d937466d6678befa41bcd94571dde0c612392ee2d2fa21a0d420b8f2b803bc",
     "accounts": {
         "0000000000000000000000000000000000000001": {
             "balance": "22",
@@ -188,7 +188,8 @@ func TestSnapshot2(t *testing.T) {
 
 	so0Restored := state.getStateObject(stateobjaddr0)
 	// Update lazily-loaded values before comparing.
-	key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
+	//key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
+	key := so0Restored.getPrefixKey(storageaddr.Bytes())
 	so0Restored.GetState(state.db, key)
 	so0Restored.Code(state.db)
 	// non-deleted is equal (restored)
@@ -225,12 +226,12 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 		t.Errorf("Dirty storage size mismatch: have %d, want %d", len(so1.dirtyStorage), len(so0.dirtyStorage))
 	}
 	for k, v := range so1.dirtyStorage {
-		if so0.dirtyStorage[k] != v {
+		if !bytes.Equal(so0.dirtyStorage[k], v) {
 			t.Errorf("Dirty storage key %x mismatch: have %v, want %v", k, so0.dirtyStorage[k], v)
 		}
 	}
 	for k, v := range so0.dirtyStorage {
-		if so1.dirtyStorage[k] != v {
+		if !bytes.Equal(so1.dirtyStorage[k], v) {
 			t.Errorf("Dirty storage key %x mismatch: have %v, want none.", k, v)
 		}
 	}
@@ -238,12 +239,12 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 		t.Errorf("Origin storage size mismatch: have %d, want %d", len(so1.originStorage), len(so0.originStorage))
 	}
 	for k, v := range so1.originStorage {
-		if so0.originStorage[k] != v {
+		if !bytes.Equal(so0.originStorage[k], v) {
 			t.Errorf("Origin storage key %x mismatch: have %v, want %v", k, so0.originStorage[k], v)
 		}
 	}
 	for k, v := range so0.originStorage {
-		if so1.originStorage[k] != v {
+		if !bytes.Equal(so1.originStorage[k], v) {
 			t.Errorf("Origin storage key %x mismatch: have %v, want none.", k, v)
 		}
 	}
@@ -332,8 +333,8 @@ func TestForEachStorage(t *testing.T) {
 	fmt.Printf("after Commit, key: %v, value: %v \n", key, svalue)
 	state.SetState(address, key, svalue)
 
-	state.ForEachStorage(address, func(key, value []byte) bool {
-		fmt.Println("load out, key:", string(key), "value:", string(value))
+	state.ForEachStorage(address, func(key common.Hash, value []byte) bool {
+		fmt.Println("load out, key:", key.String(), "value:", string(value))
 		fmt.Printf("load out, key: %v, value: %v \n", key, value /*Bytes2Bits(key), Bytes2Bits(value)*/)
 		return true
 	})

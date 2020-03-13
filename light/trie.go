@@ -89,20 +89,6 @@ func (db *odrDatabase) ContractCodeSize(addrHash, codeHash common.Hash) (int, er
 	return len(code), err
 }
 
-func (db *odrDatabase) ContractAbi(addrHash, abiHash common.Hash) ([]byte, error) {
-	if abiHash == sha3Nil {
-		return nil, nil
-	}
-	if abi, err := db.backend.Database().Get(abiHash[:]); err == nil {
-		return abi, nil
-	}
-	id := *db.id
-	id.AccKey = addrHash[:]
-	req := &CodeRequest{Id: &id, Hash: abiHash}
-	err := db.backend.Retrieve(db.ctx, req)
-	return req.Data, err
-}
-
 func (db *odrDatabase) TrieDB() *trie.Database {
 	return nil
 }
