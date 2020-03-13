@@ -33,7 +33,7 @@ CONTRACT CrowdFunding : public platon::Contract{
             beneficiaryAddress.self() = platon_caller(); //收益人为合约发起者
             fundingGoal.self() = _fundingGoalInlats;
             deadline.self() = _durationInMinutes + platon_timestamp();
-            price.self() = 500; //1个LAT币可以买 2 个代币
+            price.self() = 500; //假设一个代币500Von
             crowdsaleClosed.self() = false;
         }
 
