@@ -10,6 +10,7 @@ from tests.lib import Genesis, PipConfig
 from dacite import from_dict
 from tests.govern.test_voting_statistics import submitcvpandvote, submitcppandvote, submittpandvote, \
     submitvpandvote, submitppandvote
+from common.key import mock_duplicate_sign
 
 
 def create_lockup_plan(client):
@@ -984,3 +985,36 @@ class TestSlashing:
             assert balance_after_lockup - balance_before_lockup == shares
         else:
             assert balance_after_lockup == balance_before_lockup
+
+def test_fixbug(new_genesis_env, clients_consensus):
+    new_genesis_env.deploy_all()
+    pip_stop = clients_consensus[0].pip
+    pip = clients_consensus[1].pip
+    submitvpandvote(clients_consensus, votingrounds=15)
+    proprosalinfo = pip.get_effect_proposal_info_of_vote()
+    log.info('Proposalinfo : {}'.format(proprosalinfo))
+    log.info('Stop node {}'.format(pip_stop.node.node_id))
+    pip_stop.node.stop()
+    pip.economic.wait_settlement_blocknum(pip.node)
+    verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
+    log.info('Verifier list : {}'.format(verifier_list))
+    validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)
+    log.info('Validator list : {}'.format(validator_list))
+    log.info('stop node nodeid {}'.format(pip_stop.node.node_id))
+    assert pip_stop.node.node_id not in verifier_list
+    assert pip_stop.node.node_id not in validator_list
+    wait_block_number(pip.node, proprosalinfo.get('ActiveBlock'))
+    assert pip.chain_version == proprosalinfo.get('NewVersion')
+    verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
+    log.info('Verifier list : {}'.format(verifier_list))
+    validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)
+    log.info('Validator list : {}'.format(validator_list))
+    assert pip_stop.node.node_id not in verifier_list
+    assert pip_stop.node.node_id not in validator_list
+    result = clients_consensus[1].ppos.getCandidateInfo(pip_stop.node.node_id)
+    log.info('Get nodeid {} candidate infor {}'.format(pip_stop.node.node_id, result))
+    assert_code(result, '301204')
+    assert result.get('Ret') == 'Query candidate info failed:Candidate info is not found'
+
+
+
