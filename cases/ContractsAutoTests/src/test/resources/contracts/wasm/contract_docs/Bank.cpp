@@ -82,8 +82,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		}
 
 		ACTION void buy(Address _referredBy) {
-			//u128 callValue = platon_call_value();		
-			u128 callValue = (100_LAT).Get();	
+			u128 callValue = platon_call_value();	
 			u128 DevFee1 = callValue / u128(100) * DevFee_.self();	
 			u128 DevFeeFinal = DevFee1 / u128(10);
 			//PLATON_EMIT_EVENT1(TestData, platon_caller(), callValue, DevFee1, DevFeeFinal);			
