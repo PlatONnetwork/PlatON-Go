@@ -5,7 +5,7 @@
 using namespace platon;
 
 /**
- * VRF.sol合约翻译
+ * VRF.sol合约
  * */
 
 CONTRACT VRF : public platon::Contract{

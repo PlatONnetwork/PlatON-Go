@@ -5,7 +5,7 @@
 using namespace platon;
 
 /**
- * MultiSigWallet.sol合约翻译
+ * MultiSigWallet.sol合约
  * */
 
 CONTRACT MultiSigWallet : public platon::Contract{
