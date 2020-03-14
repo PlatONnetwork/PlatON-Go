@@ -60,9 +60,9 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
             collector.logStepPass("Send buy ,logs size: " + buyTr.getLogs().size());
             /*Bank.TestDataEventResponse testData = contract.getTestDataEvents(buyTr).get(0);
             collector.logStepPass("parse logs, args1: " +
-                    testData.arg3.toString() + "" +
+                    testData.arg1.toString() + "" +
                     " args2: " + testData.arg2 +
-                    " args3: " + testData.arg1);*/
+                    " args3: " + testData.arg3);*/
 
             // IDD
             TransactionReceipt iddTr = contract.IDD().send();
