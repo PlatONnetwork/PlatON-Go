@@ -19,7 +19,7 @@ public class EVMVIDTokenTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "complexcontracts.EVMVIDTokenTest-", sourcePrefix = "evm")
+            author = "qcxiao", showName = "complexcontracts.EVMVIDTokenTest", sourcePrefix = "evm")
     public void guessingTest() {
         try {
             VIDToken token = VIDToken.deploy(web3j, transactionManager, provider).send();
