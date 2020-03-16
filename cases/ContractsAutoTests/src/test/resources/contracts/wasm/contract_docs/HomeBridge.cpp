@@ -4,6 +4,7 @@ using namespace platon;
 
 #include "src/BridgeDeploymentAddressStorage.hpp"
 #include "src/HomeBridgeGasConsumptionLimitsStorage.hpp"
+#include "src/Message.hpp"
 
 class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage, public HomeBridgeGasConsumptionLimitsStorage
 {
@@ -23,7 +24,7 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 	    platon::StorageType<"authorities"_n, std::vector<Address>> authorities;
 
 	    /// Used foreign transaction hashes.
-	    platon::StorageType<"withdraws"_n, std::map<bytes, bool>> withdraws;
+	    platon::StorageType<"withdraws"_n, std::map<h256, bool>> withdraws;
 
 	public:
 		/// Event created on money deposit.
@@ -33,15 +34,13 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 	    PLATON_EVENT1(Withdraw, Address, u128);
 
 	public:
-		void init(u128 requiredSignaturesParam, std::vector<Address> authoritiesParam, 
-			u128 estimatedGasCostOfWithdrawParam) {
+		void init(u128 requiredSignaturesParam, std::vector<Address> authoritiesParam, u128 estimatedGasCostOfWithdrawParam) {
 			if(requiredSignaturesParam == u128(0)){
 				platon_revert();
 			}
 			if(requiredSignaturesParam > u128(authoritiesParam.size())){
 				platon_revert();
 			}
-	
 	        requiredSignatures.self() = requiredSignaturesParam;
 	        authorities.self() = authoritiesParam;
 	        estimatedGasCostOfWithdraw.self() = estimatedGasCostOfWithdrawParam;
@@ -64,10 +63,10 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 	        // check that at least `requiredSignatures` `authorities` have signed `message`
 	        //require(Helpers.hasEnoughValidSignatures(message, vs, rs, ss, authorities, requiredSignatures));
 
-	        address recipient = Message.getRecipient(message);
-	        uint256 value = Message.getValue(message);
-	        bytes32 hash = Message.getTransactionHash(message);
-	        uint256 homeGasPrice = Message.getHomeGasPrice(message);
+	        Address recipient = Message::getRecipient(message);
+	        u128 value = Message::getValue(message);
+	        h256 hash = Message::getTransactionHash(message);
+	        u128 homeGasPrice = Message::getHomeGasPrice(message);
 
 	        // if the recipient calls `withdraw` they can choose the gas price freely.
 	        // if anyone else calls `withdraw` they have to use the gas price
@@ -77,26 +76,30 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 	        // and effectively burning recipients withdrawn value.
 	        // see https://github.com/paritytech/parity-bridge/issues/112
 	        // for further explanation.
-	        require((recipient == msg.sender) || (tx.gasprice == homeGasPrice));
+	        // todo: 临时屏蔽
+	        //require((recipient == msg.sender) || (tx.gasprice == homeGasPrice));
 
 	        // The following two statements guard against reentry into this function.
 	        // Duplicated withdraw or reentry.
-	        require(!withdraws[hash]);
+	        if(withdraws.self()[hash]){
+	        	platon_revert();
+	        }
 	        // Order of operations below is critical to avoid TheDAO-like re-entry bug
-	        withdraws[hash] = true;
+	        withdraws.self()[hash] = true;
 
-	        uint256 estimatedWeiCostOfWithdraw = estimatedGasCostOfWithdraw * homeGasPrice;
+	        u128 estimatedWeiCostOfWithdraw = estimatedGasCostOfWithdraw.self() * homeGasPrice;
 
 	        // charge recipient for relay cost
-	        uint256 valueRemainingAfterSubtractingCost = value - estimatedWeiCostOfWithdraw;
+	        u128 valueRemainingAfterSubtractingCost = value - estimatedWeiCostOfWithdraw;
 
 	        // pay out recipient
-	        recipient.transfer(valueRemainingAfterSubtractingCost);
+	        platon_transfer(recipient, Energon(valueRemainingAfterSubtractingCost));
 
 	        // refund relay cost to relaying authority
-	        msg.sender.transfer(estimatedWeiCostOfWithdraw);
+	        Address sender = platon_caller();
+	        platon_transfer(sender, Energon(estimatedWeiCostOfWithdraw));
 
-	        Withdraw(recipient, valueRemainingAfterSubtractingCost);
+	        PLATON_EMIT_EVENT1(Withdraw, recipient, valueRemainingAfterSubtractingCost);
 	    }
 
 
