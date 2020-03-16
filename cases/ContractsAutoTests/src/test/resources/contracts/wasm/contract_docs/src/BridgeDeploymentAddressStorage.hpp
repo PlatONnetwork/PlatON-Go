@@ -8,7 +8,7 @@ class BridgeDeploymentAddressStorage
 		platon::StorageType<"deployedAtBlock"_n, u128> deployedAtBlock;
 
 	public:
-	    ACTION BridgeDeploymentAddressStorage() public {
+	    ACTION BridgeDeploymentAddressStorage() {
 	        deployedAtBlock.self() = u128(platon_block_number());
 	    }	
 };
