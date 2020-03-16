@@ -29,6 +29,8 @@ public class TweetRegistry extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
+    public static final String FUNC_ADMINSETACCOUNTADMINISTRATOR = "adminSetAccountAdministrator";
+
     public static final String FUNC_REGISTRY = "registry";
 
     public static final String FUNC_GETNUMBEROFACCOUNTS = "getNumberOfAccounts";
@@ -47,8 +49,6 @@ public class TweetRegistry extends WasmContract {
 
     public static final String FUNC_GETREGISTRATIONDISABLED = "getRegistrationDisabled";
 
-    public static final String FUNC_ADMINSETACCOUNTADMINISTRATOR = "adminSetAccountAdministrator";
-
     public static final String FUNC_ADMINRETRIEVEDONATIONS = "adminRetrieveDonations";
 
     public static final String FUNC_ADMINDELETEREGISTRY = "adminDeleteRegistry";
@@ -61,13 +61,13 @@ public class TweetRegistry extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> registry(String name, WasmAddress accountAddress) {
-        final WasmFunction function = new WasmFunction(FUNC_REGISTRY, Arrays.asList(name,accountAddress), Void.class);
+    public RemoteCall<TransactionReceipt> adminSetAccountAdministrator(WasmAddress accountAdmin) {
+        final WasmFunction function = new WasmFunction(FUNC_ADMINSETACCOUNTADMINISTRATOR, Arrays.asList(accountAdmin), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> registry(String name, WasmAddress accountAddress, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_REGISTRY, Arrays.asList(name,accountAddress), Void.class);
+    public RemoteCall<TransactionReceipt> adminSetAccountAdministrator(WasmAddress accountAdmin, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ADMINSETACCOUNTADMINISTRATOR, Arrays.asList(accountAdmin), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
@@ -89,6 +89,16 @@ public class TweetRegistry extends WasmContract {
     public static RemoteCall<TweetRegistry> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(TweetRegistry.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> registry(String name, WasmAddress accountAddress) {
+        final WasmFunction function = new WasmFunction(FUNC_REGISTRY, Arrays.asList(name,accountAddress), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> registry(String name, WasmAddress accountAddress, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_REGISTRY, Arrays.asList(name,accountAddress), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<BigInteger> getNumberOfAccounts() {
@@ -144,16 +154,6 @@ public class TweetRegistry extends WasmContract {
     public RemoteCall<Boolean> getRegistrationDisabled() {
         final WasmFunction function = new WasmFunction(FUNC_GETREGISTRATIONDISABLED, Arrays.asList(), Boolean.class);
         return executeRemoteCall(function, Boolean.class);
-    }
-
-    public RemoteCall<TransactionReceipt> adminSetAccountAdministrator(WasmAddress accountAdmin) {
-        final WasmFunction function = new WasmFunction(FUNC_ADMINSETACCOUNTADMINISTRATOR, Arrays.asList(accountAdmin), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> adminSetAccountAdministrator(WasmAddress accountAdmin, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ADMINSETACCOUNTADMINISTRATOR, Arrays.asList(accountAdmin), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> adminRetrieveDonations() {

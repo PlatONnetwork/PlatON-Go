@@ -99,8 +99,8 @@ public class ContractEmitEvent extends WasmContract {
         for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
             Transfer2EventResponse typedResponse = new Transfer2EventResponse();
             typedResponse.log = eventValues.getLog();
-            typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(1);
             responses.add(typedResponse);
         }
         return responses;
@@ -113,8 +113,8 @@ public class ContractEmitEvent extends WasmContract {
                 WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER2_EVENT, log);
                 Transfer2EventResponse typedResponse = new Transfer2EventResponse();
                 typedResponse.log = log;
-                typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(1);
                 return typedResponse;
             }
         });
@@ -132,9 +132,9 @@ public class ContractEmitEvent extends WasmContract {
         for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
             Transfer3EventResponse typedResponse = new Transfer3EventResponse();
             typedResponse.log = eventValues.getLog();
-            typedResponse.arg3 = (String) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
             typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(1);
-            typedResponse.arg1 = (Uint32) eventValues.getNonIndexedValues().get(2);
+            typedResponse.arg3 = (Uint32) eventValues.getNonIndexedValues().get(2);
             responses.add(typedResponse);
         }
         return responses;
@@ -147,9 +147,9 @@ public class ContractEmitEvent extends WasmContract {
                 WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER3_EVENT, log);
                 Transfer3EventResponse typedResponse = new Transfer3EventResponse();
                 typedResponse.log = log;
-                typedResponse.arg3 = (String) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
                 typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(1);
-                typedResponse.arg1 = (Uint32) eventValues.getNonIndexedValues().get(2);
+                typedResponse.arg3 = (Uint32) eventValues.getNonIndexedValues().get(2);
                 return typedResponse;
             }
         });
@@ -233,18 +233,18 @@ public class ContractEmitEvent extends WasmContract {
     public static class Transfer2EventResponse {
         public Log log;
 
-        public String arg2;
-
         public String arg1;
+
+        public String arg2;
     }
 
     public static class Transfer3EventResponse {
         public Log log;
 
-        public String arg3;
+        public String arg1;
 
         public String arg2;
 
-        public Uint32 arg1;
+        public Uint32 arg3;
     }
 }

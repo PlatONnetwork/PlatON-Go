@@ -28,7 +28,7 @@ public class InitWithListParams extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_LIST_MERGE = "list_merge";
+    public static final String FUNC_LIST_POP_FRONT = "list_pop_front";
 
     public static final String FUNC_SET_LIST = "set_list";
 
@@ -50,11 +50,11 @@ public class InitWithListParams extends WasmContract {
 
     public static final String FUNC_LIST_POP_BACK = "list_pop_back";
 
-    public static final String FUNC_LIST_POP_FRONT = "list_pop_front";
-
     public static final String FUNC_LIST_SIZE = "list_size";
 
     public static final String FUNC_LIST_UNIQUE = "list_unique";
+
+    public static final String FUNC_LIST_MERGE = "list_merge";
 
     protected InitWithListParams(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -64,13 +64,13 @@ public class InitWithListParams extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> list_merge(List<String> inList) {
-        final WasmFunction function = new WasmFunction(FUNC_LIST_MERGE, Arrays.asList(inList), Void.class);
+    public RemoteCall<TransactionReceipt> list_pop_front() {
+        final WasmFunction function = new WasmFunction(FUNC_LIST_POP_FRONT, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> list_merge(List<String> inList, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_LIST_MERGE, Arrays.asList(inList), Void.class);
+    public RemoteCall<TransactionReceipt> list_pop_front(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_LIST_POP_FRONT, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
@@ -186,16 +186,6 @@ public class InitWithListParams extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<TransactionReceipt> list_pop_front() {
-        final WasmFunction function = new WasmFunction(FUNC_LIST_POP_FRONT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> list_pop_front(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_LIST_POP_FRONT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<Uint8> list_size() {
         final WasmFunction function = new WasmFunction(FUNC_LIST_SIZE, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
@@ -208,6 +198,16 @@ public class InitWithListParams extends WasmContract {
 
     public RemoteCall<TransactionReceipt> list_unique(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_LIST_UNIQUE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> list_merge(List<String> inList) {
+        final WasmFunction function = new WasmFunction(FUNC_LIST_MERGE, Arrays.asList(inList), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> list_merge(List<String> inList, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_LIST_MERGE, Arrays.asList(inList), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

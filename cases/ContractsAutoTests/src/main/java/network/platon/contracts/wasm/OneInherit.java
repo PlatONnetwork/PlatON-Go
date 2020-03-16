@@ -27,13 +27,13 @@ public class OneInherit extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_MY_MESSAGE_HEAD = "get_my_message_head";
-
-    public static final String FUNC_GET_MY_MESSAGE_BODY = "get_my_message_body";
+    public static final String FUNC_GET_MY_MESSAGE_SIZE = "get_my_message_size";
 
     public static final String FUNC_ADD_MY_MESSAGE = "add_my_message";
 
-    public static final String FUNC_GET_MY_MESSAGE_SIZE = "get_my_message_size";
+    public static final String FUNC_GET_MY_MESSAGE_HEAD = "get_my_message_head";
+
+    public static final String FUNC_GET_MY_MESSAGE_BODY = "get_my_message_body";
 
     protected OneInherit(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -43,14 +43,9 @@ public class OneInherit extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> get_my_message_head(Uint8 index) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_HEAD, Arrays.asList(index), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<String> get_my_message_body(Uint8 index) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_BODY, Arrays.asList(index), String.class);
-        return executeRemoteCall(function, String.class);
+    public RemoteCall<Uint8> get_my_message_size() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_SIZE, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public static RemoteCall<OneInherit> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -83,9 +78,14 @@ public class OneInherit extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<Uint8> get_my_message_size() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_SIZE, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
+    public RemoteCall<String> get_my_message_head(Uint8 index) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_HEAD, Arrays.asList(index), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<String> get_my_message_body(Uint8 index) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_BODY, Arrays.asList(index), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static OneInherit load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

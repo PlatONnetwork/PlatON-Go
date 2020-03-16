@@ -28,9 +28,9 @@ public class InitWithStruct extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_ADD_VECTOR = "add_vector";
-
     public static final String FUNC_GET_VECTOR_SIZE = "get_vector_size";
+
+    public static final String FUNC_ADD_VECTOR = "add_vector";
 
     public static final String FUNC_GET_VECTOR = "get_vector";
 
@@ -40,6 +40,11 @@ public class InitWithStruct extends WasmContract {
 
     protected InitWithStruct(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Uint64> get_vector_size() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR_SIZE, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public static RemoteCall<InitWithStruct> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -70,11 +75,6 @@ public class InitWithStruct extends WasmContract {
     public RemoteCall<TransactionReceipt> add_vector(String one_name, Uint64 one_age, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ADD_VECTOR, Arrays.asList(one_name,one_age), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint64> get_vector_size() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR_SIZE, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<String> get_vector(Uint8 index) {

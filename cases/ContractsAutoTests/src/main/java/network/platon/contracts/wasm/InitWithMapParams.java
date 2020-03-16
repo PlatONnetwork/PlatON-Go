@@ -29,9 +29,11 @@ public class InitWithMapParams extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GET_MAP_SIZE = "get_map_size";
+
     public static final String FUNC_ADD_MAP_ELEMENT = "add_map_element";
 
-    public static final String FUNC_DELETE_MAP_ELEMENT = "delete_map_element";
+    public static final String FUNC_ADDMAP = "addMap";
 
     public static final String FUNC_ADD_MAP = "add_map";
 
@@ -45,11 +47,9 @@ public class InitWithMapParams extends WasmContract {
 
     public static final String FUNC_GET_MAP_LIST = "get_map_list";
 
+    public static final String FUNC_DELETE_MAP_ELEMENT = "delete_map_element";
+
     public static final String FUNC_FIND_ELEMENT_BYKEY = "find_element_bykey";
-
-    public static final String FUNC_GET_MAP_SIZE = "get_map_size";
-
-    public static final String FUNC_ADDMAP = "addMap";
 
     protected InitWithMapParams(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -57,6 +57,11 @@ public class InitWithMapParams extends WasmContract {
 
     protected InitWithMapParams(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Uint8> get_map_size() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_MAP_SIZE, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> add_map_element(String key, String value) {
@@ -69,13 +74,13 @@ public class InitWithMapParams extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<TransactionReceipt> delete_map_element(String key) {
-        final WasmFunction function = new WasmFunction(FUNC_DELETE_MAP_ELEMENT, Arrays.asList(key), Void.class);
+    public RemoteCall<TransactionReceipt> addMap(Map<String, String> inMap) {
+        final WasmFunction function = new WasmFunction(FUNC_ADDMAP, Arrays.asList(inMap), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> delete_map_element(String key, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_DELETE_MAP_ELEMENT, Arrays.asList(key), Void.class);
+    public RemoteCall<TransactionReceipt> addMap(Map<String, String> inMap, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ADDMAP, Arrays.asList(inMap), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
@@ -164,24 +169,19 @@ public class InitWithMapParams extends WasmContract {
         return executeRemoteCall(function, Map.class);
     }
 
-    public RemoteCall<String> find_element_bykey(String key) {
-        final WasmFunction function = new WasmFunction(FUNC_FIND_ELEMENT_BYKEY, Arrays.asList(key), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Uint8> get_map_size() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_MAP_SIZE, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
-    }
-
-    public RemoteCall<TransactionReceipt> addMap(Map<String, String> inMap) {
-        final WasmFunction function = new WasmFunction(FUNC_ADDMAP, Arrays.asList(inMap), Void.class);
+    public RemoteCall<TransactionReceipt> delete_map_element(String key) {
+        final WasmFunction function = new WasmFunction(FUNC_DELETE_MAP_ELEMENT, Arrays.asList(key), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> addMap(Map<String, String> inMap, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ADDMAP, Arrays.asList(inMap), Void.class);
+    public RemoteCall<TransactionReceipt> delete_map_element(String key, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_DELETE_MAP_ELEMENT, Arrays.asList(key), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<String> find_element_bykey(String key) {
+        final WasmFunction function = new WasmFunction(FUNC_FIND_ELEMENT_BYKEY, Arrays.asList(key), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static InitWithMapParams load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

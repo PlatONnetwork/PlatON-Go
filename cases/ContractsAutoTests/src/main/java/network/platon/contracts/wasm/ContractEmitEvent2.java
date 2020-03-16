@@ -100,10 +100,10 @@ public class ContractEmitEvent2 extends WasmContract {
             typedResponse.log = eventValues.getLog();
             typedResponse.topic1 = (String) eventValues.getIndexedValues().get(0);
             typedResponse.topic2 = (String) eventValues.getIndexedValues().get(1);
-            typedResponse.arg4 = (Uint32) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg3 = (Uint32) eventValues.getNonIndexedValues().get(1);
-            typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(2);
-            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(3);
+            typedResponse.arg1 = (Uint32) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (Uint32) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg3 = (String) eventValues.getNonIndexedValues().get(2);
+            typedResponse.arg4 = (String) eventValues.getNonIndexedValues().get(3);
             responses.add(typedResponse);
         }
         return responses;
@@ -118,10 +118,10 @@ public class ContractEmitEvent2 extends WasmContract {
                 typedResponse.log = log;
                 typedResponse.topic1 = (String) eventValues.getIndexedValues().get(0);
                 typedResponse.topic2 = (String) eventValues.getIndexedValues().get(1);
-                typedResponse.arg4 = (Uint32) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg3 = (Uint32) eventValues.getNonIndexedValues().get(1);
-                typedResponse.arg2 = (String) eventValues.getNonIndexedValues().get(2);
-                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(3);
+                typedResponse.arg1 = (Uint32) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (Uint32) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg3 = (String) eventValues.getNonIndexedValues().get(2);
+                typedResponse.arg4 = (String) eventValues.getNonIndexedValues().get(3);
                 return typedResponse;
             }
         });
@@ -203,12 +203,12 @@ public class ContractEmitEvent2 extends WasmContract {
 
         public String topic2;
 
-        public Uint32 arg4;
+        public Uint32 arg1;
 
-        public Uint32 arg3;
+        public Uint32 arg2;
 
-        public String arg2;
+        public String arg3;
 
-        public String arg1;
+        public String arg4;
     }
 }

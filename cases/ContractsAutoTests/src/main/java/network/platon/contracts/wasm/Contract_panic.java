@@ -27,9 +27,9 @@ public class Contract_panic extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_SET_STRING_STORAGE = "set_string_storage";
-
     public static final String FUNC_PANIC_CONTRACT = "panic_contract";
+
+    public static final String FUNC_SET_STRING_STORAGE = "set_string_storage";
 
     public static final String FUNC_GET_STRING_STORAGE = "get_string_storage";
 
@@ -41,16 +41,6 @@ public class Contract_panic extends WasmContract {
 
     protected Contract_panic(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> set_string_storage(String name) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STRING_STORAGE, Arrays.asList(name), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_string_storage(String name, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STRING_STORAGE, Arrays.asList(name), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<Contract_panic> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -80,6 +70,16 @@ public class Contract_panic extends WasmContract {
 
     public RemoteCall<TransactionReceipt> panic_contract(String name, Uint64 value, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_PANIC_CONTRACT, Arrays.asList(name,value), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> set_string_storage(String name) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STRING_STORAGE, Arrays.asList(name), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_string_storage(String name, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STRING_STORAGE, Arrays.asList(name), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

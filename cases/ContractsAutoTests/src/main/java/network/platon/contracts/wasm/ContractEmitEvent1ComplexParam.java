@@ -56,16 +56,6 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> one_emit_event1(String name, Uint32 value, List<String> inList) {
-        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1, Arrays.asList(name,value,inList), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> one_emit_event1(String name, Uint32 value, List<String> inList, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1, Arrays.asList(name,value,inList), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
         ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
@@ -73,8 +63,8 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
             TransferEventResponse typedResponse = new TransferEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg2 = (Uint32) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg1 = (List<String>) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg1 = (Uint32) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (List<String>) eventValues.getNonIndexedValues().get(1);
             responses.add(typedResponse);
         }
         return responses;
@@ -88,8 +78,8 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
                 TransferEventResponse typedResponse = new TransferEventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg2 = (Uint32) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg1 = (List<String>) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg1 = (Uint32) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (List<String>) eventValues.getNonIndexedValues().get(1);
                 return typedResponse;
             }
         });
@@ -121,6 +111,16 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
         return deployRemoteCall(ContractEmitEvent1ComplexParam.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
+    public RemoteCall<TransactionReceipt> one_emit_event1(String name, Uint32 value, List<String> inList) {
+        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1, Arrays.asList(name,value,inList), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> one_emit_event1(String name, Uint32 value, List<String> inList, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1, Arrays.asList(name,value,inList), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<String> get_string() {
         final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
@@ -139,8 +139,8 @@ public class ContractEmitEvent1ComplexParam extends WasmContract {
 
         public String topic;
 
-        public Uint32 arg2;
+        public Uint32 arg1;
 
-        public List<String> arg1;
+        public List<String> arg2;
     }
 }

@@ -42,20 +42,20 @@ public class MultiSigWallet extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_CHANGETHRESHOLD = "changeThreshold";
-
     public static final String FUNC_EXECUTE = "execute";
 
     public static final String FUNC_ADDOWNER = "addOwner";
 
     public static final String FUNC_REMOVEOWNER = "removeOwner";
 
+    public static final String FUNC_CHANGETHRESHOLD = "changeThreshold";
+
     public static final String FUNC_GETISOWNER = "getIsOwner";
 
-    public static final WasmEvent OWNERREMOVED_EVENT = new WasmEvent("OwnerRemoved", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(Uint64.class)));
+    public static final WasmEvent OWNERADDED_EVENT = new WasmEvent("OwnerAdded", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(WasmAddress.class)));
     ;
 
-    public static final WasmEvent OWNERADDED_EVENT = new WasmEvent("OwnerAdded", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(WasmAddress.class)));
+    public static final WasmEvent OWNERREMOVED_EVENT = new WasmEvent("OwnerRemoved", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(Uint64.class)));
     ;
 
     public static final WasmEvent THRESHOLDCHANGED_EVENT = new WasmEvent("ThresholdChanged", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(Uint64.class)));
@@ -75,47 +75,14 @@ public class MultiSigWallet extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> changeThreshold(Uint64 _newThreshold) {
-        final WasmFunction function = new WasmFunction(FUNC_CHANGETHRESHOLD, Arrays.asList(_newThreshold), Void.class);
+    public RemoteCall<TransactionReceipt> execute(WasmAddress _to, Uint64 _value, byte[] _data, byte[] _signatures, Uint64 value, Uint64 gas) {
+        final WasmFunction function = new WasmFunction(FUNC_EXECUTE, Arrays.asList(_to,_value,_data,_signatures,value,gas), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> changeThreshold(Uint64 _newThreshold, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_CHANGETHRESHOLD, Arrays.asList(_newThreshold), Void.class);
+    public RemoteCall<TransactionReceipt> execute(WasmAddress _to, Uint64 _value, byte[] _data, byte[] _signatures, Uint64 value, Uint64 gas, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_EXECUTE, Arrays.asList(_to,_value,_data,_signatures,value,gas), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public List<OwnerRemovedEventResponse> getOwnerRemovedEvents(TransactionReceipt transactionReceipt) {
-        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(OWNERREMOVED_EVENT, transactionReceipt);
-        ArrayList<OwnerRemovedEventResponse> responses = new ArrayList<OwnerRemovedEventResponse>(valueList.size());
-        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
-            OwnerRemovedEventResponse typedResponse = new OwnerRemovedEventResponse();
-            typedResponse.log = eventValues.getLog();
-            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
-            responses.add(typedResponse);
-        }
-        return responses;
-    }
-
-    public Observable<OwnerRemovedEventResponse> ownerRemovedEventObservable(PlatonFilter filter) {
-        return web3j.platonLogObservable(filter).map(new Func1<Log, OwnerRemovedEventResponse>() {
-            @Override
-            public OwnerRemovedEventResponse call(Log log) {
-                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(OWNERREMOVED_EVENT, log);
-                OwnerRemovedEventResponse typedResponse = new OwnerRemovedEventResponse();
-                typedResponse.log = log;
-                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
-                return typedResponse;
-            }
-        });
-    }
-
-    public Observable<OwnerRemovedEventResponse> ownerRemovedEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
-        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(WasmEventEncoder.encode(OWNERREMOVED_EVENT));
-        return ownerRemovedEventObservable(filter);
     }
 
     public List<OwnerAddedEventResponse> getOwnerAddedEvents(TransactionReceipt transactionReceipt) {
@@ -149,6 +116,39 @@ public class MultiSigWallet extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(OWNERADDED_EVENT));
         return ownerAddedEventObservable(filter);
+    }
+
+    public List<OwnerRemovedEventResponse> getOwnerRemovedEvents(TransactionReceipt transactionReceipt) {
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(OWNERREMOVED_EVENT, transactionReceipt);
+        ArrayList<OwnerRemovedEventResponse> responses = new ArrayList<OwnerRemovedEventResponse>(valueList.size());
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
+            OwnerRemovedEventResponse typedResponse = new OwnerRemovedEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+            typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Observable<OwnerRemovedEventResponse> ownerRemovedEventObservable(PlatonFilter filter) {
+        return web3j.platonLogObservable(filter).map(new Func1<Log, OwnerRemovedEventResponse>() {
+            @Override
+            public OwnerRemovedEventResponse call(Log log) {
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(OWNERREMOVED_EVENT, log);
+                OwnerRemovedEventResponse typedResponse = new OwnerRemovedEventResponse();
+                typedResponse.log = log;
+                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+                typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
+                return typedResponse;
+            }
+        });
+    }
+
+    public Observable<OwnerRemovedEventResponse> ownerRemovedEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(WasmEventEncoder.encode(OWNERREMOVED_EVENT));
+        return ownerRemovedEventObservable(filter);
     }
 
     public List<ThresholdChangedEventResponse> getThresholdChangedEvents(TransactionReceipt transactionReceipt) {
@@ -191,9 +191,9 @@ public class MultiSigWallet extends WasmContract {
             ExecutedEventResponse typedResponse = new ExecutedEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg3 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
             typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(1);
-            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(2);
+            typedResponse.arg3 = (String) eventValues.getNonIndexedValues().get(2);
             responses.add(typedResponse);
         }
         return responses;
@@ -207,9 +207,9 @@ public class MultiSigWallet extends WasmContract {
                 ExecutedEventResponse typedResponse = new ExecutedEventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg3 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
                 typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(1);
-                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(2);
+                typedResponse.arg3 = (String) eventValues.getNonIndexedValues().get(2);
                 return typedResponse;
             }
         });
@@ -228,8 +228,8 @@ public class MultiSigWallet extends WasmContract {
             ReceivedEventResponse typedResponse = new ReceivedEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
             responses.add(typedResponse);
         }
         return responses;
@@ -243,8 +243,8 @@ public class MultiSigWallet extends WasmContract {
                 ReceivedEventResponse typedResponse = new ReceivedEventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
                 return typedResponse;
             }
         });
@@ -276,16 +276,6 @@ public class MultiSigWallet extends WasmContract {
         return deployRemoteCall(MultiSigWallet.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<TransactionReceipt> execute(WasmAddress _to, Uint64 _value, byte[] _data, byte[] _signatures, Uint64 value, Uint64 gas) {
-        final WasmFunction function = new WasmFunction(FUNC_EXECUTE, Arrays.asList(_to,_value,_data,_signatures,value,gas), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> execute(WasmAddress _to, Uint64 _value, byte[] _data, byte[] _signatures, Uint64 value, Uint64 gas, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_EXECUTE, Arrays.asList(_to,_value,_data,_signatures,value,gas), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<TransactionReceipt> addOwner(WasmAddress _owner) {
         final WasmFunction function = new WasmFunction(FUNC_ADDOWNER, Arrays.asList(_owner), Void.class);
         return executeRemoteCallTransaction(function);
@@ -306,6 +296,16 @@ public class MultiSigWallet extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<TransactionReceipt> changeThreshold(Uint64 _newThreshold) {
+        final WasmFunction function = new WasmFunction(FUNC_CHANGETHRESHOLD, Arrays.asList(_newThreshold), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> changeThreshold(Uint64 _newThreshold, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_CHANGETHRESHOLD, Arrays.asList(_newThreshold), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<Map> getIsOwner() {
         final WasmFunction function = new WasmFunction(FUNC_GETISOWNER, Arrays.asList(), Map.class, 
                 new com.platon.rlp.ParameterizedTypeImpl(
@@ -323,20 +323,20 @@ public class MultiSigWallet extends WasmContract {
         return new MultiSigWallet(contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static class OwnerRemovedEventResponse {
-        public Log log;
-
-        public String topic;
-
-        public Uint64 arg1;
-    }
-
     public static class OwnerAddedEventResponse {
         public Log log;
 
         public String topic;
 
         public WasmAddress arg1;
+    }
+
+    public static class OwnerRemovedEventResponse {
+        public Log log;
+
+        public String topic;
+
+        public Uint64 arg1;
     }
 
     public static class ThresholdChangedEventResponse {
@@ -352,11 +352,11 @@ public class MultiSigWallet extends WasmContract {
 
         public String topic;
 
-        public WasmAddress arg3;
+        public WasmAddress arg1;
 
         public Uint64 arg2;
 
-        public String arg1;
+        public String arg3;
     }
 
     public static class ReceivedEventResponse {
@@ -364,8 +364,8 @@ public class MultiSigWallet extends WasmContract {
 
         public String topic;
 
-        public Uint64 arg2;
+        public Uint64 arg1;
 
-        public WasmAddress arg1;
+        public WasmAddress arg2;
     }
 }

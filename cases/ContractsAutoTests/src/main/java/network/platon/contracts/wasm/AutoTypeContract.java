@@ -28,15 +28,15 @@ public class AutoTypeContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_ANTO_MULTIPLE = "get_anto_multiple";
-
-    public static final String FUNC_GET_ANTO_UINT8_T = "get_anto_uint8_t";
-
     public static final String FUNC_GET_ANTO_ITERATOR = "get_anto_iterator";
 
     public static final String FUNC_GET_ANTO_INT = "get_anto_int";
 
     public static final String FUNC_GET_ANTO_INT32 = "get_anto_int32";
+
+    public static final String FUNC_GET_ANTO_MULTIPLE = "get_anto_multiple";
+
+    public static final String FUNC_GET_ANTO_UINT8_T = "get_anto_uint8_t";
 
     public static final String FUNC_SET_ANTO_CARE_ONE = "set_anto_care_one";
 
@@ -46,16 +46,6 @@ public class AutoTypeContract extends WasmContract {
 
     protected AutoTypeContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<Int32> get_anto_multiple() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_MULTIPLE, Arrays.asList(), Int32.class);
-        return executeRemoteCall(function, Int32.class);
-    }
-
-    public RemoteCall<Uint8> get_anto_uint8_t() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_UINT8_T, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<Uint8> get_anto_iterator() {
@@ -91,6 +81,16 @@ public class AutoTypeContract extends WasmContract {
     public RemoteCall<Int32> get_anto_int32() {
         final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_INT32, Arrays.asList(), Int32.class);
         return executeRemoteCall(function, Int32.class);
+    }
+
+    public RemoteCall<Int32> get_anto_multiple() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_MULTIPLE, Arrays.asList(), Int32.class);
+        return executeRemoteCall(function, Int32.class);
+    }
+
+    public RemoteCall<Uint8> get_anto_uint8_t() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_UINT8_T, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> set_anto_care_one() {

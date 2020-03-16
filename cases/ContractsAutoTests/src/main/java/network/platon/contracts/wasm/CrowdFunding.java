@@ -58,16 +58,6 @@ public class CrowdFunding extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> crowdFund() {
-        final WasmFunction function = new WasmFunction(FUNC_CROWDFUND, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> crowdFund(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_CROWDFUND, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public List<Transfer1EventResponse> getTransfer1Events(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER1_EVENT, transactionReceipt);
         ArrayList<Transfer1EventResponse> responses = new ArrayList<Transfer1EventResponse>(valueList.size());
@@ -75,8 +65,8 @@ public class CrowdFunding extends WasmContract {
             Transfer1EventResponse typedResponse = new Transfer1EventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(1);
             responses.add(typedResponse);
         }
         return responses;
@@ -90,8 +80,8 @@ public class CrowdFunding extends WasmContract {
                 Transfer1EventResponse typedResponse = new Transfer1EventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(1);
                 return typedResponse;
             }
         });
@@ -110,9 +100,9 @@ public class CrowdFunding extends WasmContract {
             Transfer2EventResponse typedResponse = new Transfer2EventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg3 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
             typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(1);
-            typedResponse.arg1 = (Boolean) eventValues.getNonIndexedValues().get(2);
+            typedResponse.arg3 = (Boolean) eventValues.getNonIndexedValues().get(2);
             responses.add(typedResponse);
         }
         return responses;
@@ -126,9 +116,9 @@ public class CrowdFunding extends WasmContract {
                 Transfer2EventResponse typedResponse = new Transfer2EventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg3 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
                 typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(1);
-                typedResponse.arg1 = (Boolean) eventValues.getNonIndexedValues().get(2);
+                typedResponse.arg3 = (Boolean) eventValues.getNonIndexedValues().get(2);
                 return typedResponse;
             }
         });
@@ -158,6 +148,16 @@ public class CrowdFunding extends WasmContract {
     public static RemoteCall<CrowdFunding> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Uint64 _fundingGoalInlats, Uint64 _durationInMinutes) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_fundingGoalInlats,_durationInMinutes));
         return deployRemoteCall(CrowdFunding.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> crowdFund() {
+        final WasmFunction function = new WasmFunction(FUNC_CROWDFUND, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> crowdFund(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_CROWDFUND, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> checkGoalReached() {
@@ -193,9 +193,9 @@ public class CrowdFunding extends WasmContract {
 
         public String topic;
 
-        public WasmAddress arg2;
+        public WasmAddress arg1;
 
-        public Uint64 arg1;
+        public Uint64 arg2;
     }
 
     public static class Transfer2EventResponse {
@@ -203,10 +203,10 @@ public class CrowdFunding extends WasmContract {
 
         public String topic;
 
-        public WasmAddress arg3;
+        public WasmAddress arg1;
 
         public Uint64 arg2;
 
-        public Boolean arg1;
+        public Boolean arg3;
     }
 }

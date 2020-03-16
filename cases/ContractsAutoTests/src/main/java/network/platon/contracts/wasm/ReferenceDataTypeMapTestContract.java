@@ -30,6 +30,8 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
+    public static final String FUNC_ADDMAPBYPERSON = "addMapByPerson";
+
     public static final String FUNC_GETMAPBYPERSONSIZE = "getMapByPersonSize";
 
     public static final String FUNC_SETMAPKEYTYPE = "setMapKeyType";
@@ -40,8 +42,6 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
 
     public static final String FUNC_GETMAPVALUEBYSTRING = "getMapValueByString";
 
-    public static final String FUNC_ADDMAPBYPERSON = "addMapByPerson";
-
     public static final String FUNC_GETMAPBYPERSON = "getMapByPerson";
 
     protected ReferenceDataTypeMapTestContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -50,6 +50,16 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
 
     protected ReferenceDataTypeMapTestContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> addMapByPerson(Uint8 key, Person person) {
+        final WasmFunction function = new WasmFunction(FUNC_ADDMAPBYPERSON, Arrays.asList(key,person), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> addMapByPerson(Uint8 key, Person person, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ADDMAPBYPERSON, Arrays.asList(key,person), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<Uint64> getMapByPersonSize() {
@@ -105,16 +115,6 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
     public RemoteCall<String> getMapValueByString(String key) {
         final WasmFunction function = new WasmFunction(FUNC_GETMAPVALUEBYSTRING, Arrays.asList(key), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<TransactionReceipt> addMapByPerson(Uint8 key, Person person) {
-        final WasmFunction function = new WasmFunction(FUNC_ADDMAPBYPERSON, Arrays.asList(key,person), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> addMapByPerson(Uint8 key, Person person, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ADDMAPBYPERSON, Arrays.asList(key,person), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<String> getMapByPerson(Uint8 key) {

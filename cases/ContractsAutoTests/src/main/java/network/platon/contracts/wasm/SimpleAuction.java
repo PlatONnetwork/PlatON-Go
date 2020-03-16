@@ -58,6 +58,26 @@ public class SimpleAuction extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public static RemoteCall<SimpleAuction> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Uint64 _biddingTime, WasmAddress _beneficiary) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_biddingTime,_beneficiary));
+        return deployRemoteCall(SimpleAuction.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<SimpleAuction> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Uint64 _biddingTime, WasmAddress _beneficiary) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_biddingTime,_beneficiary));
+        return deployRemoteCall(SimpleAuction.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<SimpleAuction> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue, Uint64 _biddingTime, WasmAddress _beneficiary) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_biddingTime,_beneficiary));
+        return deployRemoteCall(SimpleAuction.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public static RemoteCall<SimpleAuction> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Uint64 _biddingTime, WasmAddress _beneficiary) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_biddingTime,_beneficiary));
+        return deployRemoteCall(SimpleAuction.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
     public List<HighestBidIncreasedEventResponse> getHighestBidIncreasedEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(HIGHESTBIDINCREASED_EVENT, transactionReceipt);
         ArrayList<HighestBidIncreasedEventResponse> responses = new ArrayList<HighestBidIncreasedEventResponse>(valueList.size());
@@ -122,26 +142,6 @@ public class SimpleAuction extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(AUCTIONENDED_EVENT));
         return auctionEndedEventObservable(filter);
-    }
-
-    public static RemoteCall<SimpleAuction> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Uint64 _biddingTime, WasmAddress _beneficiary) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_biddingTime,_beneficiary));
-        return deployRemoteCall(SimpleAuction.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<SimpleAuction> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Uint64 _biddingTime, WasmAddress _beneficiary) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_biddingTime,_beneficiary));
-        return deployRemoteCall(SimpleAuction.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<SimpleAuction> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue, Uint64 _biddingTime, WasmAddress _beneficiary) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_biddingTime,_beneficiary));
-        return deployRemoteCall(SimpleAuction.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public static RemoteCall<SimpleAuction> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Uint64 _biddingTime, WasmAddress _beneficiary) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_biddingTime,_beneficiary));
-        return deployRemoteCall(SimpleAuction.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
     public RemoteCall<TransactionReceipt> bid() {

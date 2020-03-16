@@ -31,15 +31,15 @@ public class IntegerDataTypeContract_1 extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_INT64 = "int64";
-
-    public static final String FUNC_UINT8T = "uint8t";
+    public static final String FUNC_INT8 = "int8";
 
     public static final String FUNC_UINT32T = "uint32t";
 
-    public static final String FUNC_INT8 = "int8";
-
     public static final String FUNC_INT32 = "int32";
+
+    public static final String FUNC_INT64 = "int64";
+
+    public static final String FUNC_UINT8T = "uint8t";
 
     public static final String FUNC_UINT64T = "uint64t";
 
@@ -53,6 +53,21 @@ public class IntegerDataTypeContract_1 extends WasmContract {
 
     protected IntegerDataTypeContract_1(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Int16> int8() {
+        final WasmFunction function = new WasmFunction(FUNC_INT8, Arrays.asList(), Int16.class);
+        return executeRemoteCall(function, Int16.class);
+    }
+
+    public RemoteCall<Uint32> uint32t(Uint32 input) {
+        final WasmFunction function = new WasmFunction(FUNC_UINT32T, Arrays.asList(input), Uint32.class);
+        return executeRemoteCall(function, Uint32.class);
+    }
+
+    public RemoteCall<Int32> int32() {
+        final WasmFunction function = new WasmFunction(FUNC_INT32, Arrays.asList(), Int32.class);
+        return executeRemoteCall(function, Int32.class);
     }
 
     public static RemoteCall<IntegerDataTypeContract_1> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -83,21 +98,6 @@ public class IntegerDataTypeContract_1 extends WasmContract {
     public RemoteCall<Uint8> uint8t(Uint8 input) {
         final WasmFunction function = new WasmFunction(FUNC_UINT8T, Arrays.asList(input), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
-    }
-
-    public RemoteCall<Uint32> uint32t(Uint32 input) {
-        final WasmFunction function = new WasmFunction(FUNC_UINT32T, Arrays.asList(input), Uint32.class);
-        return executeRemoteCall(function, Uint32.class);
-    }
-
-    public RemoteCall<Int16> int8() {
-        final WasmFunction function = new WasmFunction(FUNC_INT8, Arrays.asList(), Int16.class);
-        return executeRemoteCall(function, Int16.class);
-    }
-
-    public RemoteCall<Int32> int32() {
-        final WasmFunction function = new WasmFunction(FUNC_INT32, Arrays.asList(), Int32.class);
-        return executeRemoteCall(function, Int32.class);
     }
 
     public RemoteCall<Uint64> uint64t(Uint64 input) {

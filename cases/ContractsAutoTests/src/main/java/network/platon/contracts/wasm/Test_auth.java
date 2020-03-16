@@ -26,11 +26,11 @@ public class Test_auth extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_IS_IN_WHITELIST = "is_in_whitelist";
-
     public static final String FUNC_TEST_OWNER = "test_owner";
 
     public static final String FUNC_ADD_TO_WHITELIST = "add_to_whitelist";
+
+    public static final String FUNC_IS_IN_WHITELIST = "is_in_whitelist";
 
     public static final String FUNC_DELETE_FROM_WHITELIST = "delete_from_whitelist";
 
@@ -40,16 +40,6 @@ public class Test_auth extends WasmContract {
 
     protected Test_auth(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> is_in_whitelist(String addr) {
-        final WasmFunction function = new WasmFunction(FUNC_IS_IN_WHITELIST, Arrays.asList(addr), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> is_in_whitelist(String addr, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_IS_IN_WHITELIST, Arrays.asList(addr), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<Test_auth> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -89,6 +79,16 @@ public class Test_auth extends WasmContract {
 
     public RemoteCall<TransactionReceipt> add_to_whitelist(String addr, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ADD_TO_WHITELIST, Arrays.asList(addr), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> is_in_whitelist(String addr) {
+        final WasmFunction function = new WasmFunction(FUNC_IS_IN_WHITELIST, Arrays.asList(addr), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> is_in_whitelist(String addr, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_IS_IN_WHITELIST, Arrays.asList(addr), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

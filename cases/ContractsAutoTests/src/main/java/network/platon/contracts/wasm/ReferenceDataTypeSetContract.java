@@ -28,11 +28,11 @@ public class ReferenceDataTypeSetContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_ITERATOR_SET = "iterator_set";
-
     public static final String FUNC_INSERT_SET = "insert_set";
 
     public static final String FUNC_INIT_SET = "init_set";
+
+    public static final String FUNC_ITERATOR_SET = "iterator_set";
 
     public static final String FUNC_FIND_SET = "find_set";
 
@@ -50,16 +50,6 @@ public class ReferenceDataTypeSetContract extends WasmContract {
 
     protected ReferenceDataTypeSetContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> iterator_set() {
-        final WasmFunction function = new WasmFunction(FUNC_ITERATOR_SET, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> iterator_set(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ITERATOR_SET, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> insert_set(Uint8 value) {
@@ -99,6 +89,16 @@ public class ReferenceDataTypeSetContract extends WasmContract {
 
     public RemoteCall<TransactionReceipt> init_set(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_INIT_SET, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> iterator_set() {
+        final WasmFunction function = new WasmFunction(FUNC_ITERATOR_SET, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> iterator_set(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ITERATOR_SET, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

@@ -27,11 +27,11 @@ public class ReferenceDataTypeMapFuncContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GETMAPBYSIZE = "getMapBySize";
-
     public static final String FUNC_INSERTMAPUINT = "insertMapUint";
 
     public static final String FUNC_ADDMAPBYUINT = "addMapByUint";
+
+    public static final String FUNC_GETMAPBYSIZE = "getMapBySize";
 
     public static final String FUNC_DELETEMAPBYINDEX = "deleteMapByIndex";
 
@@ -45,11 +45,6 @@ public class ReferenceDataTypeMapFuncContract extends WasmContract {
 
     protected ReferenceDataTypeMapFuncContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<Uint8> getMapBySize() {
-        final WasmFunction function = new WasmFunction(FUNC_GETMAPBYSIZE, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> insertMapUint(Uint8 key, String value) {
@@ -90,6 +85,11 @@ public class ReferenceDataTypeMapFuncContract extends WasmContract {
     public RemoteCall<TransactionReceipt> addMapByUint(Uint8 n, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ADDMAPBYUINT, Arrays.asList(n), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Uint8> getMapBySize() {
+        final WasmFunction function = new WasmFunction(FUNC_GETMAPBYSIZE, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> deleteMapByIndex(Uint8 key) {

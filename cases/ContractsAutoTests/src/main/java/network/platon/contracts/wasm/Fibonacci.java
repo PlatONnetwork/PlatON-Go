@@ -52,25 +52,15 @@ public class Fibonacci extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number) {
-        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public List<NotifyEventResponse> getNotifyEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(NOTIFY_EVENT, transactionReceipt);
         ArrayList<NotifyEventResponse> responses = new ArrayList<NotifyEventResponse>(valueList.size());
         for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
             NotifyEventResponse typedResponse = new NotifyEventResponse();
             typedResponse.log = eventValues.getLog();
-            typedResponse.arg3 = (String) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
             typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(1);
-            typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(2);
+            typedResponse.arg3 = (Uint64) eventValues.getNonIndexedValues().get(2);
             responses.add(typedResponse);
         }
         return responses;
@@ -83,9 +73,9 @@ public class Fibonacci extends WasmContract {
                 WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(NOTIFY_EVENT, log);
                 NotifyEventResponse typedResponse = new NotifyEventResponse();
                 typedResponse.log = log;
-                typedResponse.arg3 = (String) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
                 typedResponse.arg2 = (Uint64) eventValues.getNonIndexedValues().get(1);
-                typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(2);
+                typedResponse.arg3 = (Uint64) eventValues.getNonIndexedValues().get(2);
                 return typedResponse;
             }
         });
@@ -117,6 +107,16 @@ public class Fibonacci extends WasmContract {
         return deployRemoteCall(Fibonacci.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
+    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number) {
+        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<Uint64> fibonacci_call(Uint64 number) {
         final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_CALL, Arrays.asList(number), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
@@ -133,10 +133,10 @@ public class Fibonacci extends WasmContract {
     public static class NotifyEventResponse {
         public Log log;
 
-        public String arg3;
+        public String arg1;
 
         public Uint64 arg2;
 
-        public Uint64 arg1;
+        public Uint64 arg3;
     }
 }

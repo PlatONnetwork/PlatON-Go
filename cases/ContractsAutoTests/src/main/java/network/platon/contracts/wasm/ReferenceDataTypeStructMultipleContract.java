@@ -28,13 +28,13 @@ public class ReferenceDataTypeStructMultipleContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GETGROUPARRAYINDEXVALUE = "getGroupArrayIndexValue";
+    public static final String FUNC_GETGROUPNAME = "getGroupName";
 
     public static final String FUNC_SETGROUPVALUE = "setGroupValue";
 
-    public static final String FUNC_GETGROUPNAME = "getGroupName";
-
     public static final String FUNC_SETGROUPARRAYVALUE = "setGroupArrayValue";
+
+    public static final String FUNC_GETGROUPARRAYINDEXVALUE = "getGroupArrayIndexValue";
 
     protected ReferenceDataTypeStructMultipleContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -44,8 +44,8 @@ public class ReferenceDataTypeStructMultipleContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> getGroupArrayIndexValue(Uint32 index) {
-        final WasmFunction function = new WasmFunction(FUNC_GETGROUPARRAYINDEXVALUE, Arrays.asList(index), String.class);
+    public RemoteCall<String> getGroupName() {
+        final WasmFunction function = new WasmFunction(FUNC_GETGROUPNAME, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
     }
 
@@ -79,11 +79,6 @@ public class ReferenceDataTypeStructMultipleContract extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<String> getGroupName() {
-        final WasmFunction function = new WasmFunction(FUNC_GETGROUPNAME, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
     public RemoteCall<TransactionReceipt> setGroupArrayValue(String oneValue, String twoValue) {
         final WasmFunction function = new WasmFunction(FUNC_SETGROUPARRAYVALUE, Arrays.asList(oneValue,twoValue), Void.class);
         return executeRemoteCallTransaction(function);
@@ -92,6 +87,11 @@ public class ReferenceDataTypeStructMultipleContract extends WasmContract {
     public RemoteCall<TransactionReceipt> setGroupArrayValue(String oneValue, String twoValue, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SETGROUPARRAYVALUE, Arrays.asList(oneValue,twoValue), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<String> getGroupArrayIndexValue(Uint32 index) {
+        final WasmFunction function = new WasmFunction(FUNC_GETGROUPARRAYINDEXVALUE, Arrays.asList(index), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static ReferenceDataTypeStructMultipleContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

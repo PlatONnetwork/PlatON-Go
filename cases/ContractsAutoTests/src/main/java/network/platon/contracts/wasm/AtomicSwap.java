@@ -40,17 +40,17 @@ public class AtomicSwap extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_DESTRUCT = "destruct";
-
     public static final String FUNC_SUB = "sub";
 
+    public static final String FUNC_REFUND = "refund";
+
     public static final String FUNC_ADD = "add";
+
+    public static final String FUNC_DESTRUCT = "destruct";
 
     public static final String FUNC_INITIATE = "initiate";
 
     public static final String FUNC_REDEEM = "redeem";
-
-    public static final String FUNC_REFUND = "refund";
 
     public static final WasmEvent INITIATED_EVENT = new WasmEvent("Initiated", Arrays.asList(new WasmEventParameter(byte[].class, true)), Arrays.asList(new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(Uint64.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class)));
     ;
@@ -72,16 +72,6 @@ public class AtomicSwap extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> destruct() {
-        final WasmFunction function = new WasmFunction(FUNC_DESTRUCT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> destruct(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_DESTRUCT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<TransactionReceipt> sub(BigInteger a, BigInteger b) {
         final WasmFunction function = new WasmFunction(FUNC_SUB, Arrays.asList(a,b), Void.class);
         return executeRemoteCallTransaction(function);
@@ -92,16 +82,6 @@ public class AtomicSwap extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b) {
-        final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public List<InitiatedEventResponse> getInitiatedEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(INITIATED_EVENT, transactionReceipt);
         ArrayList<InitiatedEventResponse> responses = new ArrayList<InitiatedEventResponse>(valueList.size());
@@ -109,11 +89,11 @@ public class AtomicSwap extends WasmContract {
             InitiatedEventResponse typedResponse = new InitiatedEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg5 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg4 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
             typedResponse.arg3 = (Uint64) eventValues.getNonIndexedValues().get(2);
-            typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(3);
-            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(4);
+            typedResponse.arg4 = (BigInteger) eventValues.getNonIndexedValues().get(3);
+            typedResponse.arg5 = (BigInteger) eventValues.getNonIndexedValues().get(4);
             responses.add(typedResponse);
         }
         return responses;
@@ -127,11 +107,11 @@ public class AtomicSwap extends WasmContract {
                 InitiatedEventResponse typedResponse = new InitiatedEventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg5 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg4 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
                 typedResponse.arg3 = (Uint64) eventValues.getNonIndexedValues().get(2);
-                typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(3);
-                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(4);
+                typedResponse.arg4 = (BigInteger) eventValues.getNonIndexedValues().get(3);
+                typedResponse.arg5 = (BigInteger) eventValues.getNonIndexedValues().get(4);
                 return typedResponse;
             }
         });
@@ -143,15 +123,35 @@ public class AtomicSwap extends WasmContract {
         return initiatedEventObservable(filter);
     }
 
+    public RemoteCall<TransactionReceipt> refund(byte[] _hashedSecret) {
+        final WasmFunction function = new WasmFunction(FUNC_REFUND, Arrays.asList(_hashedSecret, Void.class), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> refund(byte[] _hashedSecret, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_REFUND, Arrays.asList(_hashedSecret, Void.class), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b) {
+        final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public List<AddedEventResponse> getAddedEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(ADDED_EVENT, transactionReceipt);
         ArrayList<AddedEventResponse> responses = new ArrayList<AddedEventResponse>(valueList.size());
         for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
             AddedEventResponse typedResponse = new AddedEventResponse();
             typedResponse.log = eventValues.getLog();
-            typedResponse.arg3 = (byte[]) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg1 = (byte[]) eventValues.getNonIndexedValues().get(0);
             typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
-            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(2);
+            typedResponse.arg3 = (BigInteger) eventValues.getNonIndexedValues().get(2);
             responses.add(typedResponse);
         }
         return responses;
@@ -164,9 +164,9 @@ public class AtomicSwap extends WasmContract {
                 WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(ADDED_EVENT, log);
                 AddedEventResponse typedResponse = new AddedEventResponse();
                 typedResponse.log = log;
-                typedResponse.arg3 = (byte[]) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg1 = (byte[]) eventValues.getNonIndexedValues().get(0);
                 typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(1);
-                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(2);
+                typedResponse.arg3 = (BigInteger) eventValues.getNonIndexedValues().get(2);
                 return typedResponse;
             }
         });
@@ -184,8 +184,8 @@ public class AtomicSwap extends WasmContract {
         for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
             RedeemedEventResponse typedResponse = new RedeemedEventResponse();
             typedResponse.log = eventValues.getLog();
-            typedResponse.arg2 = (byte[]) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg1 = (byte[]) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg1 = (byte[]) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (byte[]) eventValues.getNonIndexedValues().get(1);
             responses.add(typedResponse);
         }
         return responses;
@@ -198,8 +198,8 @@ public class AtomicSwap extends WasmContract {
                 WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(REDEEMED_EVENT, log);
                 RedeemedEventResponse typedResponse = new RedeemedEventResponse();
                 typedResponse.log = log;
-                typedResponse.arg2 = (byte[]) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg1 = (byte[]) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg1 = (byte[]) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (byte[]) eventValues.getNonIndexedValues().get(1);
                 return typedResponse;
             }
         });
@@ -262,6 +262,16 @@ public class AtomicSwap extends WasmContract {
         return deployRemoteCall(AtomicSwap.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
+    public RemoteCall<TransactionReceipt> destruct() {
+        final WasmFunction function = new WasmFunction(FUNC_DESTRUCT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> destruct(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_DESTRUCT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<TransactionReceipt> initiate(byte[] _hashedSecret, WasmAddress _participant, Uint64 _refundTimestamp, BigInteger _payoff) {
         final WasmFunction function = new WasmFunction(FUNC_INITIATE, Arrays.asList(_hashedSecret,_participant,_refundTimestamp,_payoff), Void.class);
         return executeRemoteCallTransaction(function);
@@ -292,16 +302,6 @@ public class AtomicSwap extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<TransactionReceipt> refund(byte[] _hashedSecret) {
-        final WasmFunction function = new WasmFunction(FUNC_REFUND, Arrays.asList(_hashedSecret, Void.class), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> refund(byte[] _hashedSecret, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_REFUND, Arrays.asList(_hashedSecret, Void.class), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public static AtomicSwap load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         return new AtomicSwap(contractAddress, web3j, credentials, contractGasProvider);
     }
@@ -315,33 +315,33 @@ public class AtomicSwap extends WasmContract {
 
         public String topic;
 
-        public WasmAddress arg5;
+        public WasmAddress arg1;
 
-        public WasmAddress arg4;
+        public WasmAddress arg2;
 
         public Uint64 arg3;
 
-        public BigInteger arg2;
+        public BigInteger arg4;
 
-        public BigInteger arg1;
+        public BigInteger arg5;
     }
 
     public static class AddedEventResponse {
         public Log log;
 
-        public byte[] arg3;
+        public byte[] arg1;
 
         public WasmAddress arg2;
 
-        public BigInteger arg1;
+        public BigInteger arg3;
     }
 
     public static class RedeemedEventResponse {
         public Log log;
 
-        public byte[] arg2;
-
         public byte[] arg1;
+
+        public byte[] arg2;
     }
 
     public static class RefundedEventResponse {

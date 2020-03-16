@@ -27,9 +27,9 @@ public class ContractStorageVector extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_ADD_MESSAGE = "add_message";
-
     public static final String FUNC_GET_MESSAGE = "get_message";
+
+    public static final String FUNC_ADD_MESSAGE = "add_message";
 
     public static final String FUNC_GET_VECTOR_SIZE = "get_vector_size";
 
@@ -39,6 +39,11 @@ public class ContractStorageVector extends WasmContract {
 
     protected ContractStorageVector(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<My_message[]> get_message(String name) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_MESSAGE, Arrays.asList(name), My_message[].class);
+        return executeRemoteCall(function, My_message[].class);
     }
 
     public static RemoteCall<ContractStorageVector> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -69,11 +74,6 @@ public class ContractStorageVector extends WasmContract {
     public RemoteCall<TransactionReceipt> add_message(My_message one_message, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ADD_MESSAGE, Arrays.asList(one_message), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<My_message[]> get_message(String name) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_MESSAGE, Arrays.asList(name), My_message[].class);
-        return executeRemoteCall(function, My_message[].class);
     }
 
     public RemoteCall<Uint64> get_vector_size() {

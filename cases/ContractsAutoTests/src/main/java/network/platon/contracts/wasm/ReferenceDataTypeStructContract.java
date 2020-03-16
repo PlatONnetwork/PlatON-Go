@@ -27,11 +27,11 @@ public class ReferenceDataTypeStructContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_SETSTRUCTPERSONA = "setStructPersonA";
+
     public static final String FUNC_SETSTRUCTPERSONB = "setStructPersonB";
 
     public static final String FUNC_GETPERSONNAME = "getPersonName";
-
-    public static final String FUNC_SETSTRUCTPERSONA = "setStructPersonA";
 
     protected ReferenceDataTypeStructContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -61,6 +61,16 @@ public class ReferenceDataTypeStructContract extends WasmContract {
         return deployRemoteCall(ReferenceDataTypeStructContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
+    public RemoteCall<TransactionReceipt> setStructPersonA(String my_name, Uint64 my_age) {
+        final WasmFunction function = new WasmFunction(FUNC_SETSTRUCTPERSONA, Arrays.asList(my_name,my_age), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setStructPersonA(String my_name, Uint64 my_age, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETSTRUCTPERSONA, Arrays.asList(my_name,my_age), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<TransactionReceipt> setStructPersonB() {
         final WasmFunction function = new WasmFunction(FUNC_SETSTRUCTPERSONB, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
@@ -74,16 +84,6 @@ public class ReferenceDataTypeStructContract extends WasmContract {
     public RemoteCall<String> getPersonName() {
         final WasmFunction function = new WasmFunction(FUNC_GETPERSONNAME, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<TransactionReceipt> setStructPersonA(String my_name, Uint64 my_age) {
-        final WasmFunction function = new WasmFunction(FUNC_SETSTRUCTPERSONA, Arrays.asList(my_name,my_age), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setStructPersonA(String my_name, Uint64 my_age, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETSTRUCTPERSONA, Arrays.asList(my_name,my_age), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static ReferenceDataTypeStructContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

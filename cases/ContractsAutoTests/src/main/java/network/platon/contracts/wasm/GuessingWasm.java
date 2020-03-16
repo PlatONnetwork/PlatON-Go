@@ -42,13 +42,13 @@ public class GuessingWasm extends WasmContract {
 
     public static final String FUNC_GUESSINGWITHLAT = "guessingWithLat";
 
-    public static final String FUNC_DRAW = "draw";
-
-    public static final String FUNC_GETWINNERS = "getwinners";
-
     public static final String FUNC_GETBALANCE = "getBalance";
 
     public static final String FUNC_GETWINNERCOUNT = "getWinnerCount";
+
+    public static final String FUNC_DRAW = "draw";
+
+    public static final String FUNC_GETWINNERS = "getwinners";
 
     public static final String FUNC_GETWINNERADDRESSES = "getWinnerAddresses";
 
@@ -77,8 +77,8 @@ public class GuessingWasm extends WasmContract {
             Transfer1EventResponse typedResponse = new Transfer1EventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(1);
             responses.add(typedResponse);
         }
         return responses;
@@ -92,8 +92,8 @@ public class GuessingWasm extends WasmContract {
                 Transfer1EventResponse typedResponse = new Transfer1EventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(1);
                 return typedResponse;
             }
         });
@@ -105,6 +105,26 @@ public class GuessingWasm extends WasmContract {
         return transfer1EventObservable(filter);
     }
 
+    public RemoteCall<TransactionReceipt> guessingWithLat() {
+        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> guessingWithLat(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<BigInteger> getBalance() {
+        final WasmFunction function = new WasmFunction(FUNC_GETBALANCE, Arrays.asList(), BigInteger.class);
+        return executeRemoteCall(function, BigInteger.class);
+    }
+
+    public RemoteCall<Uint64> getWinnerCount() {
+        final WasmFunction function = new WasmFunction(FUNC_GETWINNERCOUNT, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER2_EVENT, transactionReceipt);
         ArrayList<Transfer2EventResponse> responses = new ArrayList<Transfer2EventResponse>(valueList.size());
@@ -112,8 +132,8 @@ public class GuessingWasm extends WasmContract {
             Transfer2EventResponse typedResponse = new Transfer2EventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(1);
             responses.add(typedResponse);
         }
         return responses;
@@ -127,8 +147,8 @@ public class GuessingWasm extends WasmContract {
                 Transfer2EventResponse typedResponse = new Transfer2EventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg2 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg1 = (WasmAddress) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(1);
                 return typedResponse;
             }
         });
@@ -160,16 +180,6 @@ public class GuessingWasm extends WasmContract {
         return deployRemoteCall(GuessingWasm.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<TransactionReceipt> guessingWithLat() {
-        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> guessingWithLat(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<TransactionReceipt> draw() {
         final WasmFunction function = new WasmFunction(FUNC_DRAW, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
@@ -188,16 +198,6 @@ public class GuessingWasm extends WasmContract {
     public RemoteCall<TransactionReceipt> getwinners(Uint64 drawIndex, Uint64 times, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_GETWINNERS, Arrays.asList(drawIndex,times), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<BigInteger> getBalance() {
-        final WasmFunction function = new WasmFunction(FUNC_GETBALANCE, Arrays.asList(), BigInteger.class);
-        return executeRemoteCall(function, BigInteger.class);
-    }
-
-    public RemoteCall<Uint64> getWinnerCount() {
-        final WasmFunction function = new WasmFunction(FUNC_GETWINNERCOUNT, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<WasmAddress[]> getWinnerAddresses() {
@@ -228,9 +228,9 @@ public class GuessingWasm extends WasmContract {
 
         public String topic;
 
-        public WasmAddress arg2;
+        public WasmAddress arg1;
 
-        public BigInteger arg1;
+        public BigInteger arg2;
     }
 
     public static class Transfer2EventResponse {
@@ -238,8 +238,8 @@ public class GuessingWasm extends WasmContract {
 
         public String topic;
 
-        public WasmAddress arg2;
+        public WasmAddress arg1;
 
-        public BigInteger arg1;
+        public BigInteger arg2;
     }
 }
