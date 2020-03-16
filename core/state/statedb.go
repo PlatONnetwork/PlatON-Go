@@ -619,11 +619,12 @@ func (self *StateDB) ClearIndexReference(index int) {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
 
-	if len(self.clearReferenceFunc) > index {
+	if len(self.clearReferenceFunc) > index && self.clearReferenceFunc[index] != nil {
 		//fn := self.clearReferenceFunc[index]
 		//fn()
 		log.Trace("Before clear index ref", "reflen", len(self.clearReferenceFunc), "index", index)
-		self.clearReferenceFunc = append(self.clearReferenceFunc[:index], self.clearReferenceFunc[index+1:]...)
+		//self.clearReferenceFunc = append(self.clearReferenceFunc[:index], self.clearReferenceFunc[index+1:]...)
+		self.clearReferenceFunc[index] = nil
 		log.Trace("After clear index ref", "reflen", len(self.clearReferenceFunc), "index", index)
 	}
 }
