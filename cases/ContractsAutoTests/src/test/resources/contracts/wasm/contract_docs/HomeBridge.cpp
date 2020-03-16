@@ -5,7 +5,7 @@ using namespace platon;
 #include "src/BridgeDeploymentAddressStorage.hpp"
 #include "src/HomeBridgeGasConsumptionLimitsStorage.hpp"
 
-class HomeBridge: public platon::Contract, public: BridgeDeploymentAddressStorage, public: HomeBridgeGasConsumptionLimitsStorage
+class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage, public HomeBridgeGasConsumptionLimitsStorage
 {
 	public:
 		/// Number of authorities signatures required to withdraw the money.
@@ -34,7 +34,7 @@ class HomeBridge: public platon::Contract, public: BridgeDeploymentAddressStorag
 
 	public:
 		void init(u128 requiredSignaturesParam, std::vector<Address> authoritiesParam, 
-			u128 estimatedGasCostOfWithdrawParam {
+			u128 estimatedGasCostOfWithdrawParam) {
 			if(requiredSignaturesParam == u128(0)){
 				platon_revert();
 			}
