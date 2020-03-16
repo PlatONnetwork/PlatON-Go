@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"reflect"
 	"strconv"
 
@@ -27,7 +28,6 @@ import (
 )
 
 func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byte, err error) {
-
 	// verify the tx data by contracts method
 	_, fn, params, err := plugin.VerifyTxData(input, command)
 	if nil != err {
@@ -107,4 +107,14 @@ func IsBlank(i interface{}) bool {
 		}
 	}
 	return val.IsNil()
+}
+
+
+func checkForkPIP0_11_0(state StateDB, input []byte) bool {
+	currentVersion := gov.GetCurrentActiveVersion(state)
+	if currentVersion >= plugin.FORKVERSION_0_11_0 && len(input) == 0 {
+		return true
+	} else {
+		return false
+	}
 }

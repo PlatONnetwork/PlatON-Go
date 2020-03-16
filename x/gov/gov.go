@@ -80,7 +80,7 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 
 	var version uint32
 	if len(avList) == 0 {
-		log.Error("cannot find current active version")
+		log.Warn("cannot find current active version")
 		return 0
 	} else {
 		version = avList[0].ActiveVersion
