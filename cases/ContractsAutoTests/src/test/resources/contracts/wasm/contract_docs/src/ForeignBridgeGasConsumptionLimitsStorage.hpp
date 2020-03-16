@@ -10,18 +10,14 @@ class ForeignBridgeGasConsumptionLimitsStorage
 
 	public:
 		PLATON_EVENT1(GasConsumptionLimitsUpdated, u128, u128);
-
-	public:
-		void init() {
-		}
 		
 	public:
-	    ACTION setGasLimitDepositRelay(u128 gas) {
+	    ACTION void setGasLimitDepositRelay(u128 gas) {
 	        gasLimitDepositRelay.self() = gas;
 	        PLATON_EMIT_EVENT1(GasConsumptionLimitsUpdated, gasLimitDepositRelay.self(), gasLimitWithdrawConfirm.self());
 	    }
 
-	    ACTION setGasLimitWithdrawConfirm(u128 gas) {
+	    ACTION void setGasLimitWithdrawConfirm(u128 gas) {
 	        gasLimitWithdrawConfirm.self() = gas;
 	        PLATON_EMIT_EVENT1(GasConsumptionLimitsUpdated, gasLimitDepositRelay.self(), gasLimitWithdrawConfirm.self());
 	    }	
