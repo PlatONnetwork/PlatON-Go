@@ -101,3 +101,5 @@ class HomeBridge: public platon::Contract, public: BridgeDeploymentAddressStorag
 
 
 };
+
+PLATON_DISPATCH(HomeBridge,(init)(withdraw));
