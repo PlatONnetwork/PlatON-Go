@@ -11,7 +11,7 @@ using namespace platon;
 CONTRACT MultiSigWallet : public platon::Contract{
 
     private:
-        platon::StorageType<"ownercount"_n, uint64_t> MAX_OWNER_COUNT;
+        platon::StorageType<"maxowner"_n, uint64_t> MAX_OWNER_COUNT;
         platon::StorageType<"nonce"_n, uint64_t> nonce;
         platon::StorageType<"threshold"_n, uint64_t> threshold;
         platon::StorageType<"ownercount"_n, uint64_t> ownersCount;
@@ -29,10 +29,13 @@ CONTRACT MultiSigWallet : public platon::Contract{
 
         ACTION void init(uint64_t _threshold,std::set<Address> _owners){
             target_addr.self() = "0x01"; //ecrecover(hash, v, r, s) 函数对应内置合约地址
-            platon_assert(_owners.size() > 0, "MSW: Not enough or too many owners"); 
+            platon_assert(_owners.size() > 0, "MSW: Not enough or too many owners");
+//            platon_assert(1>2,"_owners.size() is ", _owners.size());
             platon_assert(_threshold > 0 && _threshold <= _owners.size(), "MSW: Invalid threshold");
             ownersCount.self() = _owners.size();
             threshold.self() = _threshold;
+
+            MAX_OWNER_COUNT.self() = 10;
 
             std::string name = "OwnerAdded";
             for(auto iter = _owners.begin(); iter != _owners.end(); iter++) {
@@ -106,7 +109,7 @@ CONTRACT MultiSigWallet : public platon::Contract{
 //        }
 
         ACTION void addOwner(Address _owner){
-            platon_assert(ownersCount.self() < MAX_OWNER_COUNT.self(), "MSW: MAX_OWNER_COUNT reached");
+            platon_assert(ownersCount.self() < MAX_OWNER_COUNT.self(), "ownersCount is:",ownersCount.self(),"MAX_OWNER_COUNT is:",MAX_OWNER_COUNT.self(),"MSW: MAX_OWNER_COUNT reached");
             platon_assert(isOwner.self()[_owner] == false, "MSW: Already owner");
             ownersCount.self() += 1;
             isOwner.self()[_owner] = true;
