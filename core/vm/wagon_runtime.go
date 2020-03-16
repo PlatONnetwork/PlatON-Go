@@ -1,11 +1,13 @@
 package vm
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"golang.org/x/crypto/ripemd160"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -570,6 +572,53 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
+	// int32_t platon_ecrecover(const uint8_t hash[32], const uint8_t* sig, const uint8_t sig_len, uint8_t addr[20])
+	// func platon_ecrecover (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Ecrecover),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_ecrecover",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+	// void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t addr[20])
+	// func platon_ripemd160 (param $0 i32) (param $1 i32) (param $2 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Ripemd160),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_ripemd160",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// void platon_sha256(const uint8_t *input, uint32_t input_len, uint8_t hash[32])
+	// func platon_sha256 (param $0 i32) (param $1 i32) (param $2 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Sha256),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_sha256",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
 	return m
 }
 
@@ -1336,6 +1385,62 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 	bn := ctx.evm.BlockNumber.Uint64()
 
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
+}
+
+func Ecrecover(proc *exec.Process, hashPtr, sigPtr, sigLen, addrPtr uint32) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+
+	checkGas(ctx, params.EcrecoverGas)
+	hash := make([]byte, 32)
+	_, err := proc.ReadAt(hash, int64(hashPtr))
+	if err != nil {
+		panic(err)
+	}
+
+	sig := make([]byte, sigLen)
+	_, err = proc.ReadAt(sig, int64(sigPtr))
+	if err != nil {
+		panic(err)
+	}
+
+	pubKey, err := crypto.Ecrecover(hash, sig)
+	if err != nil {
+		return -1
+	}
+
+	if _, err = proc.WriteAt(crypto.Keccak256(pubKey[1:])[12:], int64(addrPtr)); err != nil {
+		return -1
+	}
+	return 0
+}
+
+func Ripemd160(proc *exec.Process, inputPtr, inputLen uint32, outputPtr uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, uint64(inputLen+31)/32*params.Ripemd160PerWordGas+params.Ripemd160BaseGas)
+
+	input := make([]byte, inputLen)
+	_, err := proc.ReadAt(input, int64(inputPtr))
+	if err != nil {
+		panic(err)
+	}
+	ripemd := ripemd160.New()
+	ripemd.Write(input)
+	output := ripemd.Sum(nil)
+	proc.WriteAt(output, int64(outputPtr))
+}
+
+func Sha256(proc *exec.Process, inputPtr, inputLen uint32, outputPtr uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, uint64(inputLen)*Sha3DataGas)
+
+	input := make([]byte, inputLen)
+	_, err := proc.ReadAt(input, int64(inputPtr))
+	if err != nil {
+		panic(err)
+	}
+	h := sha256.Sum256(input)
+
+	proc.WriteAt(h[:], int64(outputPtr))
 }
 
 func addLog(state StateDB, address common.Address, topics []common.Hash, data []byte, bn uint64) {
