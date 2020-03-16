@@ -29,6 +29,7 @@ class Message
 	            recipient := mload(add(message, 20))
 	        }
 	        return recipient;*/
+	        return Address("0x0000000000000000000000000000000000000000");
 	    }
 
 	    static u128 getValue(bytes message) {
@@ -42,6 +43,7 @@ class Message
 	            hash := mload(add(message, 84))
 	        }
 	        return hash;*/
+	        return h256();
 	    }
 
 	    static u128 getHomeGasPrice(bytes message) {
@@ -51,5 +53,6 @@ class Message
 	            gasPrice := mload(add(message, 116))
 	        }
 	        return gasPrice;*/
+	        return u128(0);
 	    }
 };
