@@ -17,7 +17,7 @@ const (
 	callEntryName = "invoke"
 	initFn        = "init"
 )
-const memoryLimit = 16 * 1014 * 1024
+const memoryLimit = 16 * 1024 * 1024
 
 const (
 	verifyModule   = true
