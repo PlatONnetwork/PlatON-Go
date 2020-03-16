@@ -5,8 +5,7 @@ using namespace platon;
 #include "src/BridgeDeploymentAddressStorage.hpp"
 #include "src/ForeignBridgeGasConsumptionLimitsStorage.hpp"
 
-class ForeignBridge: public platon::Contract, public: BridgeDeploymentAddressStorage, 
-public: ForeignBridgeGasConsumptionLimitsStorage
+class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStorage, public ForeignBridgeGasConsumptionLimitsStorage
 {
 	public:
 		 /// Number of authorities signatures required to withdraw the money.
@@ -36,12 +35,12 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 	    platon::StorageType<"signatures"_n, std::map<h256, bytes>> signatures;
 	    
 	    /// Pending deposits and authorities who confirmed them
-	    platon::StorageType<"messages_signed"_n, std::map<h256, bytes>> messages_signed;
-	    platon::StorageType<"num_messages_signed"_n, std::map<h256, uint64_t>> num_messages_signed;
+	    platon::StorageType<"messages_signed"_n, std::map<h256, bool>> messages_signed;
+	    platon::StorageType<"num_messages_signed"_n, std::map<h256, u128>> num_messages_signed;
 
 	    /// Pending deposits and authorities who confirmed them
 	    platon::StorageType<"deposits_signed"_n, std::map<h256, bool>> deposits_signed;
-	    platon::StorageType<"num_deposits_signed"_n, std::map<h256, uint64_t>> num_deposits_signed;
+	    platon::StorageType<"num_deposits_signed"_n, std::map<h256, u128>> num_deposits_signed;
 
 	    /// Token to work with
 	    platon::StorageType<"erc20token"_n, Address> erc20token;
@@ -56,7 +55,7 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 	    PLATON_EVENT1(Deposit, Address, u128);
 
 	    /// Event created on money withdraw.
-	    PLATON_EVENT1(Withdraw, Address, u128 value, u128 homeGasPrice);
+	    PLATON_EVENT1(Withdraw, Address, u128, u128);
 
 	    /// Collected signatures which should be relayed to home chain.
 	    // params: address authorityResponsibleForRelay, bytes32 messageHash, uint256 NumberOfCollectedSignatures
@@ -64,15 +63,11 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 
 	    /// Event created when new token address is set up.
 	    // params: address token
-	    PLATON_EVENT1(TokenAddress, Address);
+	    //PLATON_EVENT1(TokenAddress, Address);
 
 	public:
 		/// Constructor.
-	    function init(
-	        u128 _requiredSignatures,
-	        std::vector<Address> _authorities,
-	        u128 _estimatedGasCostOfWithdraw
-	    ) public
+	    void init(u128 _requiredSignatures, std::vector<Address> _authorities, u128 _estimatedGasCostOfWithdraw)
 	    {
 	    	if(_requiredSignatures == u128(0)){
 	    		platon_revert();
@@ -82,12 +77,12 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 	    	}
 	        requiredSignatures.self() = _requiredSignatures;
 
-	        for (uint i = 0; i < _authorities.size(); i++) {
+	        for (int i = 0; i < _authorities.size(); i++) {
 	            authorities.self()[_authorities[i]] = true;
 	        }
 	        estimatedGasCostOfWithdraw.self() = _estimatedGasCostOfWithdraw;
 
-	        homeGasPrice.self() = u128(1000000000)
+	        homeGasPrice.self() = u128(1000000000);
 	    }
 
 		/// require that sender is an authority
@@ -104,7 +99,8 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 	    /// Usage maps instead of arrey allows to reduce gas consumption
 	    ///
 	    /// token address (address)
-	    ACTION void setTokenAddress (const Address& token) {
+	    ACTION void setTokenAddress(Address token) {
+
 	    	onlyAuthority();
 
 	        // Duplicated deposits
@@ -118,14 +114,14 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 		    }
 		    tokenAddressAprroval_signs.self()[token_sender]= true;
 
-	        u128 signed = num_tokenAddressAprroval_signs.self()[token] + 1;
-	        num_tokenAddressAprroval_signs.self()[token] = signed;
+	        u128 _signed = num_tokenAddressAprroval_signs.self()[token] + u128(1);
+	        num_tokenAddressAprroval_signs.self()[token] = _signed;
 
 	        // TODO: this may cause troubles if requriedSignatures len is changed
-	        if (signed == requiredSignatures) {
+	        if (_signed == requiredSignatures.self()) {
 	        	//todo: 还有严重问题
 	            erc20token.self() = token;
-	            PLATON_EMIT_EVENT1(TokenAddress, token);
+	            //PLATON_EMIT_EVENT1(TokenAddress, token);
 	        }
 	    }
 
@@ -147,8 +143,10 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 	    	}
 	        // Protection from misbehaing authority
 	        // todo: 此处需要调整
-	        h256 hash_msg = keccak256(recipient, value, transactionHash);
-	        h256 hash_sender = keccak256(msg.sender, hash_msg);
+	        //h256 hash_msg = keccak256(recipient, value, transactionHash);
+	        //h256 hash_sender = keccak256(msg.sender, hash_msg);
+	        h256 hash_msg = platon_sha3(bytes());
+	        h256 hash_sender = platon_sha3(bytes());
 
 	        // Duplicated deposits
 	        if(deposits_signed.self()[hash_sender]){
@@ -156,15 +154,15 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 	        }
 	        deposits_signed.self()[hash_sender] = true;
 
-	        u128 signed = num_deposits_signed.self()[hash_msg] + u128(1);
-	        num_deposits_signed.self()[hash_msg] = signed;
+	        u128 _signed = num_deposits_signed.self()[hash_msg] + u128(1);
+	        num_deposits_signed.self()[hash_msg] = _signed;
 
 	        // TODO: this may cause troubles if requriedSignatures len is changed
-	        if (signed == requiredSignatures) {
+	        if (_signed == requiredSignatures) {
 	            // If the bridge contract does not own enough tokens to transfer
 	            // it will couse funds lock on the home side of the bridge
 	            // todo: 此处要调用ERC20的代币接口
-	            erc20token.transfer(recipient, value);
+	            //erc20token.transfer(recipient, value);
 	            PLATON_EMIT_EVENT1(Deposit, recipient, value);
 	        }
 	    }
@@ -215,11 +213,12 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 
 	        //require(message.length == 116);
 	        h256 hash = platon_sha3(message);
-	        h256 hash_sender = platon_sha3(msg.sender, hash);
+	        //h256 hash_sender = platon_sha3(msg.sender, hash);
+			h256 hash_sender = platon_sha3(message);
 
-	        u128 signed = num_messages_signed.self()[hash_sender] + u128(1);
+	        u128 _signed = num_messages_signed.self()[hash_sender] + u128(1);
 
-	        if (signed > u128(1)) {
+	        if (_signed > u128(1)) {
 	            // Duplicated signatures
 	            if(messages_signed.self()[hash_sender]) {
 	            	platon_revert();
@@ -232,26 +231,29 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 	        }
 	        messages_signed.self()[hash_sender] = true;
 
-	        h256 sign_idx = keccak256(hash, (signed-1));
+	        //h256 sign_idx = keccak256(hash, (signed-u128(1));
+	        h256 sign_idx = platon_sha3(bytes());
 	        signatures.self()[sign_idx]= signature;
 
-	        num_messages_signed.self()[hash_sender] = signed;
+	        num_messages_signed.self()[hash_sender] = _signed;
 
 	        // TODO: this may cause troubles if requiredSignatures len is changed
-	        if (signed == requiredSignatures.self()) {
-	            PLATON_EMIT_EVENT1(CollectedSignatures, platon_caller(), hash, signed);
+	        if (_signed == requiredSignatures.self()) {
+	            PLATON_EMIT_EVENT1(CollectedSignatures, platon_caller(), hash, _signed);
 	        }
 	    }
 
 	    /// Get signature
 	    CONST bytes signature(h256 hash, u128 index) {
-	        h256 sign_idx = keccak256(hash, index);
-	        return signatures.self()[sign_idx];
+	        /*(h256 sign_idx = keccak256(hash, index);
+	        return signatures.self()[sign_idx];*/
+	        return bytes();
 	    }
 
 	    /// Get message
 	    CONST bytes message(h256 hash){
-	        return messages.self()[hash];
+	        //return messages.self()[hash];
+	        return bytes();
 	    }
 
 };
