@@ -1290,6 +1290,9 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 		}
 
 		topicCount, err := rlp.CountValues(content)
+		if nil != err {
+			panic(err)
+		}
 		if topicCount > WasmTopicNum {
 			panic("wasm event indexed count too large")
 		}
