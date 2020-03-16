@@ -255,3 +255,6 @@ public: ForeignBridgeGasConsumptionLimitsStorage
 	    }
 
 };
+
+PLATON_DISPATCH(ForeignBridge,(init)(setTokenAddress)(deposit)(receiveApproval)
+	(submitSignature)(signature)(message));
