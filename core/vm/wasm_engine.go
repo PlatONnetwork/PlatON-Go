@@ -173,7 +173,10 @@ func validateFunc(input []byte, deploy bool) error {
 
 func fnNameHashUint() uint64 {
 	hash := fnv.New64()
-	hash.Write([]byte(initFn))
+	_, err := hash.Write([]byte(initFn))
+	if nil != err {
+		panic(err)
+	}
 	return hash.Sum64()
 }
 
