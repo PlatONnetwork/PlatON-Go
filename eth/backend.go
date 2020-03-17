@@ -20,6 +20,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"math/big"
 	"os"
 	"sync"
@@ -140,10 +141,16 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			if err := sdb.Close(); err != nil {
 				return nil, err
 			}
+
 			chainDb.Close()
 			if err := os.RemoveAll(ctx.ResolvePath("chaindata")); err != nil {
 				return nil, err
 			}
+
+			if err := os.RemoveAll(ctx.ResolvePath(wal.WalDir(ctx))); err != nil {
+				return nil, err
+			}
+
 			chainDb, err = CreateDB(ctx, config, "chaindata")
 			if err != nil {
 				return nil, err
