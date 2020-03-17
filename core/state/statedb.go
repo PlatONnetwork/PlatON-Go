@@ -602,7 +602,9 @@ func (self *StateDB) ClearReference() {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
 	for _, fn := range self.clearReferenceFunc {
-		fn()
+		if nil != fn {
+			fn()
+		}
 	}
 	log.Trace("clear all ref", "reflen", len(self.clearReferenceFunc))
 	if self.parent != nil {
