@@ -755,7 +755,7 @@ func (v *ViewChangeQuorumCert) String() string {
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockEpoch:%d,BlockViewNumber:%d,Hash:%s,Number:%d,"+
 		"HighestEpoch:%d,HighestViewNumber:%d,HighestBlockEpoch:%d,HighestBlockViewNumber:%d,HighestHash:%s,HighestNumber:%d}",
 		epoch, viewNumber, blockEpoch, blockViewNumber, hash.TerminalString(), number,
-		highestEpoch, highestViewNumber, highestBlockEpoch, highestBlockViewNumber, highestHash, highestNumber)
+		highestEpoch, highestViewNumber, highestBlockEpoch, highestBlockViewNumber, highestHash.TerminalString(), highestNumber)
 }
 
 func (v *ViewChangeQuorumCert) MsgHash() common.Hash {

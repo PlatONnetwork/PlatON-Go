@@ -585,7 +585,7 @@ func (cbft *Cbft) trySyncViewChangeQuorumCert(id string, msg *protocols.ViewChan
 			cbft.network.Send(id, &protocols.GetViewChange{
 				Epoch:          cbft.state.Epoch(),
 				ViewNumber:     cbft.state.ViewNumber(),
-				ViewChangeBits: nil,
+				ViewChangeBits: utils.NewBitArray(uint32(cbft.currentValidatorLen())),
 			})
 		}
 	}
