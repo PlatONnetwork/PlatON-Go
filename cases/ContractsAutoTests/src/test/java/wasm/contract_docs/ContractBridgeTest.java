@@ -94,6 +94,18 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
             collector.logStepPass("contract_ForeignBridge issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("contract_ForeignBridge deploy successfully. gasUsed: " + contract.getTransactionReceipt().get().getGasUsed().toString());
 
+            // setTokenAddress
+            TransactionReceipt tokenTr = contract.setTokenAddress(new WasmAddress(contractAddress)).send();
+            collector.logStepPass("Send setTokenAddress, txHash: " + tokenTr.getTransactionHash()
+                    + " gasUsed: " + tokenTr.getGasUsed());
+            collector.logStepPass("Send setTokenAddress ,logs size: " + tokenTr.getLogs().size());
+
+            // deposit
+            TransactionReceipt depositTr = contract.deposit(new WasmAddress(credentials.getAddress()), BigInteger.valueOf(1000000), new byte[]{}).send();
+            collector.logStepPass("Send deposit, txHash: " + depositTr.getTransactionHash()
+                    + " gasUsed: " + depositTr.getGasUsed());
+            collector.logStepPass("Send deposit ,logs size: " + depositTr.getLogs().size());
+
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
                 collector.logStepPass("contract_ForeignBridge and could not call contract function");
