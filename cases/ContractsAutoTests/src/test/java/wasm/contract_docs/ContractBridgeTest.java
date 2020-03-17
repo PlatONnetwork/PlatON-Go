@@ -43,6 +43,34 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
             collector.logStepPass("contract_HomeBridge issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("contract_HomeBridge deploy successfully. gasUsed: " + contract.getTransactionReceipt().get().getGasUsed().toString());
 
+            // transfer to contract
+            Transfer t = new Transfer(web3j, transactionManager);
+            t.sendFunds(contractAddress, new BigDecimal(100), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
+
+            //
+            TransactionReceipt setTr = contract.setGasLimitWithdrawRelay(new BigInteger("100000")).send();
+            collector.logStepPass("Send setGasLimitWithdrawRelay, txHash: " + setTr.getTransactionHash()
+                    + " gasUsed: " + setTr.getGasUsed());
+            collector.logStepPass("Send setGasLimitWithdrawRelay ,logs size: " + setTr.getLogs().size());
+            HomeBridge.GasConsumptionLimitsUpdatedEventResponse setEvent = contract.getGasConsumptionLimitsUpdatedEvents(setTr).get(0);
+            collector.logStepPass("Send setGasLimitWithdrawRelay, event args1:" + setEvent.arg1);
+
+            // withdraw.
+            byte[]   vs = new byte[0];
+            byte[][] rs = new byte[0][256];
+            byte[][] ss = new byte[0][256];
+            byte[]  message = new byte[116];
+            collector.logStepPass("message size: " + message.length);
+            TransactionReceipt withdrawTr = contract.withdraw(vs, rs, ss, message, new BigInteger("1000000000000000000")).send();
+            collector.logStepPass("Send withdraw, txHash: " + withdrawTr.getTransactionHash() + " gasUsed: " + withdrawTr.getGasUsed());
+            collector.logStepPass("Send withdraw ,logs size: " + withdrawTr.getLogs().size());
+            collector.assertTrue(withdrawTr.getLogs().size() != 0);
+            HomeBridge.WithdrawEventResponse withevent = contract.getWithdrawEvents(withdrawTr).get(0);
+            collector.logStepPass("Send withdraw ,event response, "
+            + " arg1: " + withevent.arg1);
+
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
                 collector.logStepPass("contract_HomeBridge and could not call contract function");
