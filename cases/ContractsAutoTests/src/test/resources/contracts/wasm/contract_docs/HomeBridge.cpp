@@ -34,7 +34,7 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 	    PLATON_EVENT1(Withdraw, Address, u128);
 
 	public:
-		void init(u128 requiredSignaturesParam, std::vector<Address> authoritiesParam, u128 estimatedGasCostOfWithdrawParam) {
+		ACTION void init(u128 requiredSignaturesParam, std::vector<Address> authoritiesParam, u128 estimatedGasCostOfWithdrawParam) {
 			if(requiredSignaturesParam == u128(0)){
 				platon_revert();
 			}
