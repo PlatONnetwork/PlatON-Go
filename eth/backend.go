@@ -137,7 +137,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		sdb := snapshotdb.Instance()
 		if status, err := sdb.GetBaseDB([]byte(downloader.KeyFastSyncStatus)); err == nil {
 			log.Info("last fast sync is fail,init  chain", "status", status)
-			if err := sdb.SetEmpty(); err != nil {
+			if err := sdb.Close(); err != nil {
 				return nil, err
 			}
 			chainDb.Close()
