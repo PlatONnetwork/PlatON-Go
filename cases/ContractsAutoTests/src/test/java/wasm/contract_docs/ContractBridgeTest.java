@@ -9,10 +9,12 @@ import network.platon.contracts.wasm.ForeignBridge;
 import network.platon.contracts.wasm.HomeBridge;
 import org.junit.Before;
 import org.junit.Test;
+import org.web3j.crypto.Wallet;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
+import org.web3j.utils.Numeric;
 import wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigDecimal;
@@ -105,6 +107,20 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
             collector.logStepPass("Send deposit, txHash: " + depositTr.getTransactionHash()
                     + " gasUsed: " + depositTr.getGasUsed());
             collector.logStepPass("Send deposit ,logs size: " + depositTr.getLogs().size());
+            collector.assertTrue(depositTr.getLogs().size() != 0);
+
+            // submitSignature
+            TransactionReceipt submitSignatureTr = contract.submitSignature(new byte[]{}, new byte[116]).send();
+            collector.logStepPass("Send submitSignature, txHash: " + submitSignatureTr.getTransactionHash()
+                    + " gasUsed: " + submitSignatureTr.getGasUsed());
+            collector.logStepPass("Send submitSignature ,logs size: " + submitSignatureTr.getLogs().size());
+            collector.assertTrue(submitSignatureTr.getLogs().size() != 0);
+
+            // signature
+            byte[] signature = contract.signature(new byte[]{}, BigInteger.TEN).send();
+            collector.logStepPass("Call signature, response: " + Numeric.toHexString(signature));
+
+
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
