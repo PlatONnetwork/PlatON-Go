@@ -38,7 +38,7 @@ public class ContractFibonacciTest extends WASMContractPrepareTest {
             collector.logStepPass("Fibonacci notify successfully, hash: " + tr.getTransactionHash());
             Fibonacci.NotifyEventResponse eventResponse = contract.getNotifyEvents(tr).get(0);
 
-            collector.logStepPass("To invoke fibonacci_notify success, args0: " + eventResponse.arg1.value
+            collector.logStepPass("To invoke fibonacci_notify success, args0: " + eventResponse.arg1
                     + " args2: " + eventResponse.arg2
                     + " args3: " + eventResponse.arg3);
 
