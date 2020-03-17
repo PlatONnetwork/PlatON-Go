@@ -17,11 +17,11 @@ class HomeBridgeGasConsumptionLimitsStorage
 		platon::StorageType<"gasLimitWithdrawRelay"_n, u128> gasLimitWithdrawRelay;
 
 	public:
-		PLATON_EVENT0(GasConsumptionLimitsUpdated, u128);
+		PLATON_EVENT1(GasConsumptionLimitsUpdated, u128);
 		
 	public:
 	    ACTION void setGasLimitWithdrawRelay(u128 gas) {
 	        gasLimitWithdrawRelay.self() = gas;
-	        PLATON_EMIT_EVENT0(GasConsumptionLimitsUpdated, gasLimitWithdrawRelay.self());
+	        PLATON_EMIT_EVENT1(GasConsumptionLimitsUpdated, gasLimitWithdrawRelay.self());
 	    }
 };
