@@ -29,7 +29,8 @@ class Message
 	            recipient := mload(add(message, 20))
 	        }
 	        return recipient;*/
-	        return Address("0x0000000000000000000000000000000000000000");
+	        Address sender = platon_caller();
+	        return sender;
 	    }
 
 	    static u128 getValue(bytes message) {
@@ -43,7 +44,8 @@ class Message
 	            hash := mload(add(message, 84))
 	        }
 	        return hash;*/
-	        return h256();
+	        h256 hash = platon_block_hash(platon_block_number()-1);
+	        return hash;
 	    }
 
 	    static u128 getHomeGasPrice(bytes message) {
@@ -53,6 +55,7 @@ class Message
 	            gasPrice := mload(add(message, 116))
 	        }
 	        return gasPrice;*/
-	        return u128(0);
+	        u128 gasPrice = platon_gas_price();
+	        return gasPrice;
 	    }
 };
