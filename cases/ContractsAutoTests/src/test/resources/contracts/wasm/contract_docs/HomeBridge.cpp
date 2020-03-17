@@ -111,4 +111,4 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 
 };
 
-PLATON_DISPATCH(HomeBridge,(init)(withdraw));
+PLATON_DISPATCH(HomeBridge,(init)(withdraw)(setGasLimitWithdrawRelay));
