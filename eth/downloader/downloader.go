@@ -637,6 +637,7 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 //if the sync is complete,will del the key
 func (d *Downloader) setFastSyncStatus(status uint16) error {
 	key := []byte(KeyFastSyncStatus)
+	log.Debug("set  fast sync status", "status", status)
 	switch status {
 	case FastSyncDel:
 		if err := d.snapshotDB.DelBaseDB(key); err != nil {
@@ -649,7 +650,7 @@ func (d *Downloader) setFastSyncStatus(status uint16) error {
 			common.Uint16ToBytes(status),
 		}
 		if err := d.snapshotDB.WriteBaseDB([][2][]byte{syncStatus}); err != nil {
-			log.Error("save  fast sync status begin to snapshotdb  fail", "err", err)
+			log.Error("save  fast sync status to snapshotdb  fail", "err", err)
 			return err
 		}
 	default:
