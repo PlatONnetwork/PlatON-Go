@@ -746,12 +746,8 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 		}
 		if err = <-errc; err != nil {
 			if d.mode == FastSync {
-				if err := d.snapshotDB.SetEmpty(); err != nil {
-					log.Error("close downer set snapshotdb empty  fail", "err", err)
-				} else {
-					if err := d.setFastSyncStatus(FastSyncFail); err != nil {
-						return err
-					}
+				if err := d.setFastSyncStatus(FastSyncFail); err != nil {
+					return err
 				}
 			}
 			break
