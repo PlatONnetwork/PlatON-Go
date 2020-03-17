@@ -132,6 +132,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
 	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
+	log.Debug("init chain ", "hegigh", height)
 	if height != nil && *height > 0 {
 		sdb := snapshotdb.Instance()
 		if status, err := sdb.GetBaseDB([]byte(downloader.KeyFastSyncStatus)); err == nil {
@@ -156,6 +157,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			}
 		} else if err != snapshotdb.ErrNotFound {
 			return nil, err
+		} else {
+			log.Debug("init chain not found", "err", err)
 		}
 	}
 
