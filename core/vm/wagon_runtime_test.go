@@ -3,7 +3,9 @@ package vm
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
+	"golang.org/x/crypto/ripemd160"
 	"hash/fnv"
 	"io/ioutil"
 	"math/big"
@@ -700,6 +702,42 @@ var testCase = []*Case{
 				return false
 			}
 			return true
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "platon_sha256_test",
+		check: func(ctx *VMContext, err error) bool {
+			input := []byte{1, 2, 3}
+			h := sha256.Sum256(input)
+			return bytes.Equal(h[:], ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "platon_ripemd160_test",
+		check: func(ctx *VMContext, err error) bool {
+			input := []byte{1, 2, 3}
+			rip := ripemd160.New()
+			rip.Write(input)
+			h160 := rip.Sum(nil)
+			return bytes.Equal(h160[:], ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "platon_ecrecover_test",
+		check: func(ctx *VMContext, err error) bool {
+			var testPrivHex = "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032"
+			key, _ := crypto.HexToECDSA(testPrivHex)
+			//addr := common.HexToAddress(testAddrHex)
+
+			msg := crypto.Keccak256([]byte("foo"))
+			sig, err := crypto.Sign(msg, key)
+			pubKey, _ := crypto.Ecrecover(msg, sig)
+
+			addr := crypto.Keccak256(pubKey[1:])[12:]
+			return bytes.Equal(addr[:], ctx.Output)
 		},
 	},
 }
