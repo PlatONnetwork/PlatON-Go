@@ -18,7 +18,7 @@ class MessageSigning
 				v := mload(add(signature, 0x60))
 			}
 			return ecrecover(hashMessage(message), uint8(v), r, s);*/
-			return Address("0x000000000000000000000000000000000000000");
+			return platon_caller();
 		}
 
 		static h256 hashMessage(bytes message){
