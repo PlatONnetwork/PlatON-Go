@@ -5,6 +5,7 @@ using namespace platon;
 #include "src/BridgeDeploymentAddressStorage.hpp"
 #include "src/HomeBridgeGasConsumptionLimitsStorage.hpp"
 #include "src/Message.hpp"
+#include "src/Helpers.hpp"
 
 class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage, public HomeBridgeGasConsumptionLimitsStorage
 {
@@ -46,7 +47,7 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 	        estimatedGasCostOfWithdraw.self() = estimatedGasCostOfWithdrawParam;
 		}
 		
-		 /// final step of a withdraw.
+		/// final step of a withdraw.
 	    /// checks that `requiredSignatures` `authorities` have signed of on the `message`.
 	    /// then transfers `value` to `recipient` (both extracted from `message`).
 	    /// see message library above for a breakdown of the `message` contents.
@@ -58,10 +59,14 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 	    /// transfering any ether `value` out of this contract to `recipient`.
 	    /// bridge users must trust a majority of `requiredSignatures` of the `authorities`.
 	    ACTION void withdraw(std::vector<uint8_t> vs, std::vector<h256> rs, std::vector<h256> ss, bytes message) {
-	        //require(message.length == 116);
+	        if(message.size() != 116){
+	        	platon_revert();
+	        }
 
 	        // check that at least `requiredSignatures` `authorities` have signed `message`
-	        //require(Helpers.hasEnoughValidSignatures(message, vs, rs, ss, authorities, requiredSignatures));
+	        if(!Helpers::hasEnoughValidSignatures(message, vs, rs, ss, authorities.self(), requiredSignatures.self())){
+				platon_revert();
+	        }
 
 	        Address recipient = Message::getRecipient(message);
 	        u128 value = Message::getValue(message);
@@ -76,8 +81,10 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 	        // and effectively burning recipients withdrawn value.
 	        // see https://github.com/paritytech/parity-bridge/issues/112
 	        // for further explanation.
-	        // todo: 临时屏蔽
-	        //require((recipient == msg.sender) || (tx.gasprice == homeGasPrice));
+	        Address sender = platon_caller();
+	        if(recipient != sender && platon_gas_price() != homeGasPrice){
+	        	platon_revert();
+	        }
 
 	        // The following two statements guard against reentry into this function.
 	        // Duplicated withdraw or reentry.
@@ -96,7 +103,6 @@ class HomeBridge: public platon::Contract, public BridgeDeploymentAddressStorage
 	        platon_transfer(recipient, Energon(valueRemainingAfterSubtractingCost));
 
 	        // refund relay cost to relaying authority
-	        Address sender = platon_caller();
 	        platon_transfer(sender, Energon(estimatedWeiCostOfWithdraw));
 
 	        PLATON_EMIT_EVENT1(Withdraw, recipient, valueRemainingAfterSubtractingCost);
