@@ -67,7 +67,7 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 
 	public:
 		/// Constructor.
-	    void init(u128 _requiredSignatures, std::vector<Address> _authorities, u128 _estimatedGasCostOfWithdraw)
+	    ACTION void init(u128 _requiredSignatures, std::vector<Address> _authorities, u128 _estimatedGasCostOfWithdraw)
 	    {
 	    	if(_requiredSignatures == u128(0)){
 	    		platon_revert();
