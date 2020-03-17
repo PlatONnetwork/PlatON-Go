@@ -539,10 +539,15 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	// get previous viewChangeQC from wal db
 	if isPreviousView() {
 		if qc, err := cbft.bridge.GetViewChangeQC(msg.Epoch, msg.ViewNumber); err == nil && qc != nil {
-			cbft.log.Debug("Send previous view change qc", "qc", qc.String())
-			cbft.network.Send(id, &protocols.ViewChangeQuorumCert{
+			highestqc, _ := cbft.bridge.GetViewChangeQC(localEpoch, localViewNumber)
+			viewChangeQuorumCert := &protocols.ViewChangeQuorumCert{
 				ViewChangeQC: qc,
-			})
+			}
+			if highestqc != nil {
+				viewChangeQuorumCert.HighestViewChangeQC = highestqc
+			}
+			cbft.log.Debug("Send previous viewChange quorumCert", "viewChangeQuorumCert", viewChangeQuorumCert.String())
+			cbft.network.Send(id, viewChangeQuorumCert)
 			return nil
 		}
 	}
@@ -564,7 +569,26 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 			return &authFailedError{err}
 		}
 	}
+	cbft.trySyncViewChangeQuorumCert(id, msg)
 	return nil
+}
+
+func (cbft *Cbft) trySyncViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
+	highestViewChangeQC := msg.HighestViewChangeQC
+	if highestViewChangeQC == nil {
+		return
+	}
+	epoch, viewNumber, _, _, _, _ := highestViewChangeQC.MaxBlock()
+	if cbft.state.Epoch() == epoch && cbft.state.ViewNumber()+2 < viewNumber {
+		if err := cbft.verifyViewChangeQC(highestViewChangeQC); err == nil {
+			cbft.log.Info("Receive future viewChangeQuorumCert, sync viewChangeQC with fast sync mode", "localView", cbft.state.ViewString(), "futureView", highestViewChangeQC.String())
+			cbft.network.Send(id, &protocols.GetViewChange{
+				Epoch:          cbft.state.Epoch(),
+				ViewNumber:     cbft.state.ViewNumber(),
+				ViewChangeBits: nil,
+			})
+		}
+	}
 }
 
 // OnViewChanges handles the message type of ViewChangesMsg.
