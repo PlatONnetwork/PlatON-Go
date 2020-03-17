@@ -40,6 +40,10 @@ import (
 
 const (
 	PPOSStorageKVSizeFetch = 100 // the kv size send to peer
+	KeyFastSyncStatus      = "FastSyncStatus"
+	FastSyncBegin          = 0
+	FastSyncFail           = 1
+	FastSyncDel            = 2
 )
 
 var (
@@ -434,6 +438,9 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 
 	log.Debug("Synchronising with the network", "peer", p.id, "eth", p.version, "head", hash, "bn", bn, "mode", d.mode)
 	defer func(start time.Time) {
+		if d.mode == FastSync {
+			d.setFastSyncStatus(FastSyncDel)
+		}
 		log.Debug("Synchronisation terminated", "elapsed", time.Since(start))
 	}(time.Now())
 
@@ -625,6 +632,32 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 	}
 }
 
+//setFastSyncStatus set status to snapshot db when fast sync begin
+//if  the user close platon when sync not finish,set status fail
+//if the sync is complete,will del the key
+func (d *Downloader) setFastSyncStatus(status uint16) error {
+	key := []byte(KeyFastSyncStatus)
+	switch status {
+	case FastSyncDel:
+		if err := d.snapshotDB.DelBaseDB(key); err != nil {
+			log.Error("del  fast sync status  from snapshotdb  fail", "err", err)
+			return err
+		}
+	case FastSyncBegin, FastSyncFail:
+		syncStatus := [2][]byte{
+			key,
+			common.Uint16ToBytes(status),
+		}
+		if err := d.snapshotDB.WriteBaseDB([][2][]byte{syncStatus}); err != nil {
+			log.Error("save  fast sync status begin to snapshotdb  fail", "err", err)
+			return err
+		}
+	default:
+		return errors.New("status is not supports")
+	}
+	return nil
+}
+
 func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (err error) {
 	log.Debug("Retrieving latest ppos storage cache from remote peer", "pivot number", pivot.Number)
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
@@ -645,6 +678,11 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (e
 		p.log.Error("set snapshotdb current fail", "err", err)
 		return errors.New("set current fail")
 	}
+
+	if err := d.setFastSyncStatus(FastSyncBegin); err != nil {
+		return err
+	}
+
 	var count int64
 	for {
 		select {
@@ -707,7 +745,13 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 		}
 		if err = <-errc; err != nil {
 			if d.mode == FastSync {
-				d.snapshotDB.SetEmpty()
+				if err := d.snapshotDB.SetEmpty(); err != nil {
+					log.Error("close downer set snapshotdb empty  fail", "err", err)
+				} else {
+					if err := d.setFastSyncStatus(FastSyncFail); err != nil {
+						return err
+					}
+				}
 			}
 			break
 		}

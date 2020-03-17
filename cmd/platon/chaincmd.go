@@ -17,12 +17,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"io"
 
 	"os"
 	"runtime"
@@ -185,46 +182,10 @@ func initGenesis(ctx *cli.Context) error {
 	if len(genesisPath) == 0 {
 		utils.Fatalf("Must supply path to genesis JSON file")
 	}
-	file, err := os.Open(genesisPath)
-	if err != nil {
-		utils.Fatalf("Failed to read genesis file: %v", err)
-	}
-	defer file.Close()
 
 	genesis := new(core.Genesis)
-
-	// init EconomicModel config
-	if err := json.NewDecoder(file).Decode(&genesis); err != nil {
-		utils.Fatalf("invalid genesis file: %v", err)
-	}
-
-	if nil == genesis || nil == genesis.Config {
-		utils.Fatalf("genesis configuration is missed")
-	}
-	if nil == genesis.Config.Cbft {
-		utils.Fatalf("cbft configuration is missed")
-	}
-	if genesis.Config.Cbft.Period == 0 {
-		utils.Fatalf("cbft.period configuration is missed")
-	}
-	if genesis.Config.Cbft.Amount == 0 {
-		utils.Fatalf("cbft.amount configuration is missed")
-	}
-	if nil == genesis.EconomicModel {
-		utils.Fatalf("economic configuration is missed")
-	}
-	if genesis.Config.GenesisVersion == 0 {
-		utils.Fatalf("genesis version configuration is missed")
-	}
-
-	xcom.ResetEconomicDefaultConfig(genesis.EconomicModel)
-	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
-	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
-	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
-
-	// check EconomicModel configuration
-	if err := xcom.CheckEconomicModel(); nil != err {
-		utils.Fatalf("Failed CheckEconomicModel configuration: %v", err)
+	if err := genesis.InitAndSetEconomicConfig(genesisPath); err != nil {
+		utils.Fatalf(err.Error())
 	}
 
 	// Open an initialise both full and light databases
@@ -247,6 +208,25 @@ func initGenesis(ctx *cli.Context) error {
 
 		chaindb.Close()
 	}
+	genesisFile, err := os.Create(stack.GenesisPath())
+	if err != nil {
+		utils.Fatalf("Failed create Genesis file: %v", err)
+	}
+	defer genesisFile.Close()
+
+	file, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+
+	if _, err := io.Copy(genesisFile, file); err != nil {
+		utils.Fatalf("Failed Copy Genesis file: %v", err)
+	}
+	if err := genesisFile.Chmod(0444); err != nil {
+		utils.Fatalf("Failed Chmod Genesis to 0444: %v", err)
+	}
+
 	return nil
 }
 
