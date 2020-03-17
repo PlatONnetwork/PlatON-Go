@@ -4,6 +4,7 @@ using namespace platon;
 
 #include "src/BridgeDeploymentAddressStorage.hpp"
 #include "src/ForeignBridgeGasConsumptionLimitsStorage.hpp"
+#include "src/MessageSigning.hpp"
 
 class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStorage, public ForeignBridgeGasConsumptionLimitsStorage
 {
@@ -63,7 +64,7 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 
 	    /// Event created when new token address is set up.
 	    // params: address token
-	    //PLATON_EVENT1(TokenAddress, Address);
+	    PLATON_EVENT0(TokenAddress, Address);
 
 	public:
 		/// Constructor.
@@ -121,7 +122,7 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 	        if (_signed == requiredSignatures.self()) {
 	        	//todo: 还有严重问题
 	            erc20token.self() = token;
-	            //PLATON_EMIT_EVENT1(TokenAddress, token);
+	            PLATON_EMIT_EVENT0(TokenAddress, token);
 	        }
 	    }
 
@@ -144,9 +145,27 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 	        // Protection from misbehaing authority
 	        // todo: 此处需要调整
 	        //h256 hash_msg = keccak256(recipient, value, transactionHash);
+	    	std::string recipientStr = recipient.toString();
+	    	std::string valueStr = std::to_string(value);
+	    	std::string transactionHashStr = transactionHash.toString();
+	    	std::string hashMsgStr = "";
+	    	hashMsgStr.append(recipientStr);
+	    	hashMsgStr.append(valueStr);
+	    	hashMsgStr.append(transactionHashStr);
+	    	bytes hashMsgData;
+	    	hashMsgData.insert(hashMsgData.begin(), hashMsgStr.begin(), hashMsgStr.end());
+	    	h256 hash_msg = platon_sha3(hashMsgData);
+
 	        //h256 hash_sender = keccak256(msg.sender, hash_msg);
-	        h256 hash_msg = platon_sha3(bytes());
-	        h256 hash_sender = platon_sha3(bytes());
+	        Address sender = platon_caller();
+	        std::string senderStr = sender.toString();
+	        std::string hashMessageStr = hash_msg.toString();
+	        std::string hashSenderStr = "";
+	        hashSenderStr.append(senderStr);
+	        hashSenderStr.append(hashMessageStr);
+	        bytes hashSenderData;
+	        hashSenderData.insert(hashSenderData.begin(), hashSenderStr.begin(), hashSenderStr.end());
+	        h256 hash_sender = platon_sha3(hashSenderData);
 
 	        // Duplicated deposits
 	        if(deposits_signed.self()[hash_sender]){
@@ -158,7 +177,7 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 	        num_deposits_signed.self()[hash_msg] = _signed;
 
 	        // TODO: this may cause troubles if requriedSignatures len is changed
-	        if (_signed == requiredSignatures) {
+	        if (_signed == requiredSignatures.self()) {
 	            // If the bridge contract does not own enough tokens to transfer
 	            // it will couse funds lock on the home side of the bridge
 	            // todo: 此处要调用ERC20的代币接口
@@ -209,12 +228,22 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 	    	onlyAuthority();
 
 	        // ensure that `signature` is really `message` signed by `msg.sender`
-	        //require(msg.sender == MessageSigning.recoverAddressFromSignedMessage(signature, message));
-
-	        //require(message.length == 116);
+	        Address sender = platon_caller(); 
+	        if(sender != MessageSigning::recoverAddressFromSignedMessage(signature, message)){
+	        	platon_revert();
+	        }
+	        if(message.size() != 116){
+	        	platon_revert();
+	        }
 	        h256 hash = platon_sha3(message);
-	        //h256 hash_sender = platon_sha3(msg.sender, hash);
-			h256 hash_sender = platon_sha3(message);
+	        std::string sendrStr = sender.toString();
+	        std::string hashStr = hash.toString();
+	        std::string hashByteStr = "";
+	        hashByteStr.append(sendrStr);
+	        hashByteStr.append(hashStr);
+	        bytes hashSenderData;
+	        hashSenderData.insert(hashSenderData.begin(), hashByteStr.begin(), hashByteStr.end());
+			h256 hash_sender = platon_sha3(hashSenderData);
 
 	        u128 _signed = num_messages_signed.self()[hash_sender] + u128(1);
 
@@ -232,7 +261,12 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 	        messages_signed.self()[hash_sender] = true;
 
 	        //h256 sign_idx = keccak256(hash, (signed-u128(1));
-	        h256 sign_idx = platon_sha3(bytes());
+	        std::string signIdStr = "";
+	        signIdStr.append(hashStr);
+	        signIdStr.append(std::to_string(_signed - u128(1)));
+	        bytes signIdxData;
+	        signIdxData.insert(signIdxData.begin(), signIdStr.begin(), signIdStr.end());
+	        h256 sign_idx = platon_sha3(signIdxData);
 	        signatures.self()[sign_idx]= signature;
 
 	        num_messages_signed.self()[hash_sender] = _signed;
@@ -245,15 +279,18 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 
 	    /// Get signature
 	    CONST bytes signature(h256 hash, u128 index) {
-	        /*(h256 sign_idx = keccak256(hash, index);
-	        return signatures.self()[sign_idx];*/
-	        return bytes();
+	    	std::string signatureStr = "";
+	    	signatureStr.append(hash.toString());
+	    	signatureStr.append(std::to_string(index));
+	    	bytes data;
+	    	data.insert(data.begin(), signatureStr.begin(), signatureStr.end());
+	    	h256 sign_idx = platon_sha3(data);
+	        return signatures.self()[sign_idx];
 	    }
 
 	    /// Get message
 	    CONST bytes message(h256 hash){
-	        //return messages.self()[hash];
-	        return bytes();
+	        return messages.self()[hash];
 	    }
 
 };
