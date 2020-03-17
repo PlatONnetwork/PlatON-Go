@@ -40,7 +40,7 @@ class Helpers
 				return false;
 			}
 
-			Address hash = MessageSigning::hashMessage(message);
+			h256 hash = MessageSigning::hashMessage(message);
 			/*
 			var encountered_addresses = new address[](allowed_signers.length);
 
