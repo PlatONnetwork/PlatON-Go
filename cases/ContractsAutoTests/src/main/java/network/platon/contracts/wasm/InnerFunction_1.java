@@ -27,11 +27,11 @@ public class InnerFunction_1 extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_NONCE = "nonce";
+
     public static final String FUNC_GAS = "gas";
 
     public static final String FUNC_BLOCK_HASH = "block_hash";
-
-    public static final String FUNC_NONCE = "nonce";
 
     public static final String FUNC_COINBASE = "coinbase";
 
@@ -43,6 +43,11 @@ public class InnerFunction_1 extends WasmContract {
 
     protected InnerFunction_1(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Uint64> nonce() {
+        final WasmFunction function = new WasmFunction(FUNC_NONCE, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<Uint64> gas() {
@@ -73,11 +78,6 @@ public class InnerFunction_1 extends WasmContract {
     public RemoteCall<String> block_hash(Uint64 bn) {
         final WasmFunction function = new WasmFunction(FUNC_BLOCK_HASH, Arrays.asList(bn), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Uint64> nonce() {
-        final WasmFunction function = new WasmFunction(FUNC_NONCE, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<WasmAddress> coinbase() {

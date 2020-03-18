@@ -44,25 +44,29 @@ public class Bank extends WasmContract {
 
     public static final String FUNC_DIVSADDON = "DivsAddon";
 
-    public static final String FUNC_MYDIVIDENDS = "myDividends";
-
     public static final String FUNC_TRANSFER = "transfer";
 
     public static final String FUNC_WITHDRAW = "withdraw";
 
     public static final String FUNC_BUY = "buy";
 
+    public static final String FUNC_SELL = "sell";
+
     public static final String FUNC_IDD = "IDD";
 
     public static final String FUNC_REINVEST = "reinvest";
 
-    public static final String FUNC_SELL = "sell";
+    public static final String FUNC_EXITFEE = "exitFee";
+
+    public static final String FUNC_CALCULATEETHEREUMRECEIVED = "calculateEthereumReceived";
 
     public static final String FUNC_TOTALETHEREUMBALANCE = "totalEthereumBalance";
 
     public static final String FUNC_TOTALSUPPLY = "totalSupply";
 
     public static final String FUNC_MYTOKENS = "myTokens";
+
+    public static final String FUNC_MYDIVIDENDS = "myDividends";
 
     public static final String FUNC_BALANCEOF = "balanceOf";
 
@@ -74,17 +78,13 @@ public class Bank extends WasmContract {
 
     public static final String FUNC_CALCULATETOKENSRECEIVED = "calculateTokensReceived";
 
-    public static final String FUNC_CALCULATEETHEREUMRECEIVED = "calculateEthereumReceived";
-
-    public static final String FUNC_EXITFEE = "exitFee";
+    public static final WasmEvent ONTOKENPURCHASE_EVENT = new WasmEvent("onTokenPurchase", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class)));
+    ;
 
     public static final WasmEvent ONTOKENSELL_EVENT = new WasmEvent("onTokenSell", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class)));
     ;
 
     public static final WasmEvent ONREINVESTMENT_EVENT = new WasmEvent("onReinvestment", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class)));
-    ;
-
-    public static final WasmEvent ONTOKENPURCHASE_EVENT = new WasmEvent("onTokenPurchase", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class)));
     ;
 
     public static final WasmEvent ONWITHDRAW_EVENT = new WasmEvent("onWithdraw", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class)));
@@ -124,11 +124,6 @@ public class Bank extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<BigInteger> myDividends(Boolean _includeReferralBonus) {
-        final WasmFunction function = new WasmFunction(FUNC_MYDIVIDENDS, Arrays.asList(_includeReferralBonus), BigInteger.class);
-        return executeRemoteCall(function, BigInteger.class);
-    }
-
     public RemoteCall<TransactionReceipt> transfer(WasmAddress _toAddress, BigInteger _amountOfTokens) {
         final WasmFunction function = new WasmFunction(FUNC_TRANSFER, Arrays.asList(_toAddress,_amountOfTokens), Void.class);
         return executeRemoteCallTransaction(function);
@@ -147,6 +142,47 @@ public class Bank extends WasmContract {
     public RemoteCall<TransactionReceipt> withdraw(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public List<OnTokenPurchaseEventResponse> getOnTokenPurchaseEvents(TransactionReceipt transactionReceipt) {
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(ONTOKENPURCHASE_EVENT, transactionReceipt);
+        ArrayList<OnTokenPurchaseEventResponse> responses = new ArrayList<OnTokenPurchaseEventResponse>(valueList.size());
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
+            OnTokenPurchaseEventResponse typedResponse = new OnTokenPurchaseEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg3 = (WasmAddress) eventValues.getNonIndexedValues().get(2);
+            typedResponse.arg4 = (BigInteger) eventValues.getNonIndexedValues().get(3);
+            typedResponse.arg5 = (BigInteger) eventValues.getNonIndexedValues().get(4);
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Observable<OnTokenPurchaseEventResponse> onTokenPurchaseEventObservable(PlatonFilter filter) {
+        return web3j.platonLogObservable(filter).map(new Func1<Log, OnTokenPurchaseEventResponse>() {
+            @Override
+            public OnTokenPurchaseEventResponse call(Log log) {
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(ONTOKENPURCHASE_EVENT, log);
+                OnTokenPurchaseEventResponse typedResponse = new OnTokenPurchaseEventResponse();
+                typedResponse.log = log;
+                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg3 = (WasmAddress) eventValues.getNonIndexedValues().get(2);
+                typedResponse.arg4 = (BigInteger) eventValues.getNonIndexedValues().get(3);
+                typedResponse.arg5 = (BigInteger) eventValues.getNonIndexedValues().get(4);
+                return typedResponse;
+            }
+        });
+    }
+
+    public Observable<OnTokenPurchaseEventResponse> onTokenPurchaseEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(WasmEventEncoder.encode(ONTOKENPURCHASE_EVENT));
+        return onTokenPurchaseEventObservable(filter);
     }
 
     public List<OnTokenSellEventResponse> getOnTokenSellEvents(TransactionReceipt transactionReceipt) {
@@ -221,47 +257,6 @@ public class Bank extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(ONREINVESTMENT_EVENT));
         return onReinvestmentEventObservable(filter);
-    }
-
-    public List<OnTokenPurchaseEventResponse> getOnTokenPurchaseEvents(TransactionReceipt transactionReceipt) {
-        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(ONTOKENPURCHASE_EVENT, transactionReceipt);
-        ArrayList<OnTokenPurchaseEventResponse> responses = new ArrayList<OnTokenPurchaseEventResponse>(valueList.size());
-        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
-            OnTokenPurchaseEventResponse typedResponse = new OnTokenPurchaseEventResponse();
-            typedResponse.log = eventValues.getLog();
-            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(1);
-            typedResponse.arg3 = (WasmAddress) eventValues.getNonIndexedValues().get(2);
-            typedResponse.arg4 = (BigInteger) eventValues.getNonIndexedValues().get(3);
-            typedResponse.arg5 = (BigInteger) eventValues.getNonIndexedValues().get(4);
-            responses.add(typedResponse);
-        }
-        return responses;
-    }
-
-    public Observable<OnTokenPurchaseEventResponse> onTokenPurchaseEventObservable(PlatonFilter filter) {
-        return web3j.platonLogObservable(filter).map(new Func1<Log, OnTokenPurchaseEventResponse>() {
-            @Override
-            public OnTokenPurchaseEventResponse call(Log log) {
-                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(ONTOKENPURCHASE_EVENT, log);
-                OnTokenPurchaseEventResponse typedResponse = new OnTokenPurchaseEventResponse();
-                typedResponse.log = log;
-                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg2 = (BigInteger) eventValues.getNonIndexedValues().get(1);
-                typedResponse.arg3 = (WasmAddress) eventValues.getNonIndexedValues().get(2);
-                typedResponse.arg4 = (BigInteger) eventValues.getNonIndexedValues().get(3);
-                typedResponse.arg5 = (BigInteger) eventValues.getNonIndexedValues().get(4);
-                return typedResponse;
-            }
-        });
-    }
-
-    public Observable<OnTokenPurchaseEventResponse> onTokenPurchaseEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
-        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(WasmEventEncoder.encode(ONTOKENPURCHASE_EVENT));
-        return onTokenPurchaseEventObservable(filter);
     }
 
     public List<OnWithdrawEventResponse> getOnWithdrawEvents(TransactionReceipt transactionReceipt) {
@@ -399,6 +394,16 @@ public class Bank extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<TransactionReceipt> sell(BigInteger _amountOfTokens) {
+        final WasmFunction function = new WasmFunction(FUNC_SELL, Arrays.asList(_amountOfTokens), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> sell(BigInteger _amountOfTokens, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SELL, Arrays.asList(_amountOfTokens), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<TransactionReceipt> IDD() {
         final WasmFunction function = new WasmFunction(FUNC_IDD, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
@@ -419,14 +424,14 @@ public class Bank extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<TransactionReceipt> sell(BigInteger _amountOfTokens) {
-        final WasmFunction function = new WasmFunction(FUNC_SELL, Arrays.asList(_amountOfTokens), Void.class);
-        return executeRemoteCallTransaction(function);
+    public RemoteCall<Uint8> exitFee() {
+        final WasmFunction function = new WasmFunction(FUNC_EXITFEE, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
-    public RemoteCall<TransactionReceipt> sell(BigInteger _amountOfTokens, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SELL, Arrays.asList(_amountOfTokens), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
+    public RemoteCall<BigInteger> calculateEthereumReceived(BigInteger _tokensToSell) {
+        final WasmFunction function = new WasmFunction(FUNC_CALCULATEETHEREUMRECEIVED, Arrays.asList(_tokensToSell), BigInteger.class);
+        return executeRemoteCall(function, BigInteger.class);
     }
 
     public RemoteCall<BigInteger> totalEthereumBalance() {
@@ -441,6 +446,11 @@ public class Bank extends WasmContract {
 
     public RemoteCall<BigInteger> myTokens() {
         final WasmFunction function = new WasmFunction(FUNC_MYTOKENS, Arrays.asList(), BigInteger.class);
+        return executeRemoteCall(function, BigInteger.class);
+    }
+
+    public RemoteCall<BigInteger> myDividends(Boolean _includeReferralBonus) {
+        final WasmFunction function = new WasmFunction(FUNC_MYDIVIDENDS, Arrays.asList(_includeReferralBonus), BigInteger.class);
         return executeRemoteCall(function, BigInteger.class);
     }
 
@@ -469,22 +479,28 @@ public class Bank extends WasmContract {
         return executeRemoteCall(function, BigInteger.class);
     }
 
-    public RemoteCall<BigInteger> calculateEthereumReceived(BigInteger _tokensToSell) {
-        final WasmFunction function = new WasmFunction(FUNC_CALCULATEETHEREUMRECEIVED, Arrays.asList(_tokensToSell), BigInteger.class);
-        return executeRemoteCall(function, BigInteger.class);
-    }
-
-    public RemoteCall<Uint8> exitFee() {
-        final WasmFunction function = new WasmFunction(FUNC_EXITFEE, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
-    }
-
     public static Bank load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         return new Bank(contractAddress, web3j, credentials, contractGasProvider);
     }
 
     public static Bank load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         return new Bank(contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public static class OnTokenPurchaseEventResponse {
+        public Log log;
+
+        public String topic;
+
+        public BigInteger arg1;
+
+        public BigInteger arg2;
+
+        public WasmAddress arg3;
+
+        public BigInteger arg4;
+
+        public BigInteger arg5;
     }
 
     public static class OnTokenSellEventResponse {
@@ -509,22 +525,6 @@ public class Bank extends WasmContract {
         public BigInteger arg1;
 
         public BigInteger arg2;
-    }
-
-    public static class OnTokenPurchaseEventResponse {
-        public Log log;
-
-        public String topic;
-
-        public BigInteger arg1;
-
-        public BigInteger arg2;
-
-        public WasmAddress arg3;
-
-        public BigInteger arg4;
-
-        public BigInteger arg5;
     }
 
     public static class OnWithdrawEventResponse {

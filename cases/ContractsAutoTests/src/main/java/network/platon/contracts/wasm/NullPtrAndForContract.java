@@ -30,11 +30,11 @@ public class NullPtrAndForContract extends WasmContract {
 
     public static final String FUNC_GET_FOREACH_MAP = "get_foreach_map";
 
-    public static final String FUNC_GET_FOREACH_ARRAY = "get_foreach_array";
-
     public static final String FUNC_GET_NULLPTR = "get_nullptr";
 
     public static final String FUNC_GET_NULLPTR_ONE = "get_nullptr_one";
+
+    public static final String FUNC_GET_FOREACH_ARRAY = "get_foreach_array";
 
     protected NullPtrAndForContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -52,11 +52,6 @@ public class NullPtrAndForContract extends WasmContract {
     public RemoteCall<String> get_foreach_map() {
         final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_MAP, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Uint32> get_foreach_array() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_ARRAY, Arrays.asList(), Uint32.class);
-        return executeRemoteCall(function, Uint32.class);
     }
 
     public static RemoteCall<NullPtrAndForContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -87,6 +82,11 @@ public class NullPtrAndForContract extends WasmContract {
     public RemoteCall<Boolean> get_nullptr_one() {
         final WasmFunction function = new WasmFunction(FUNC_GET_NULLPTR_ONE, Arrays.asList(), Boolean.class);
         return executeRemoteCall(function, Boolean.class);
+    }
+
+    public RemoteCall<Uint32> get_foreach_array() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_ARRAY, Arrays.asList(), Uint32.class);
+        return executeRemoteCall(function, Uint32.class);
     }
 
     public static NullPtrAndForContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

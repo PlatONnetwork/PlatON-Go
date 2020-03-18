@@ -70,6 +70,26 @@ public class GuessingWasm extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> guessingWithLat() {
+        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> guessingWithLat(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<BigInteger> getBalance() {
+        final WasmFunction function = new WasmFunction(FUNC_GETBALANCE, Arrays.asList(), BigInteger.class);
+        return executeRemoteCall(function, BigInteger.class);
+    }
+
+    public RemoteCall<Uint64> getWinnerCount() {
+        final WasmFunction function = new WasmFunction(FUNC_GETWINNERCOUNT, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
     public List<Transfer1EventResponse> getTransfer1Events(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER1_EVENT, transactionReceipt);
         ArrayList<Transfer1EventResponse> responses = new ArrayList<Transfer1EventResponse>(valueList.size());
@@ -103,26 +123,6 @@ public class GuessingWasm extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER1_EVENT));
         return transfer1EventObservable(filter);
-    }
-
-    public RemoteCall<TransactionReceipt> guessingWithLat() {
-        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> guessingWithLat(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<BigInteger> getBalance() {
-        final WasmFunction function = new WasmFunction(FUNC_GETBALANCE, Arrays.asList(), BigInteger.class);
-        return executeRemoteCall(function, BigInteger.class);
-    }
-
-    public RemoteCall<Uint64> getWinnerCount() {
-        final WasmFunction function = new WasmFunction(FUNC_GETWINNERCOUNT, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
