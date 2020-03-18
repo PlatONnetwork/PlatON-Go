@@ -17,16 +17,17 @@
 package types
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"container/heap"
 	"errors"
 	"io"
 	"math/big"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -41,6 +42,8 @@ type Transaction struct {
 	hash atomic.Value
 	size atomic.Value
 	from atomic.Value
+
+	fromAddr *common.Address
 }
 
 type txdata struct {
@@ -232,6 +235,14 @@ func (tx *Transaction) Cost() *big.Int {
 
 func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
+}
+
+func (tx *Transaction) SetFromAddr(fromAddr *common.Address) {
+	tx.fromAddr = fromAddr
+}
+
+func (tx *Transaction) GetFromAddr() *common.Address {
+	return tx.fromAddr
 }
 
 // Transactions is a Transaction slice type for basic sorting.

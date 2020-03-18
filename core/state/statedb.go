@@ -846,11 +846,13 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 // goes into transaction receipts.
 func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	s.Finalise(deleteEmptyObjects)
-	return s.trie.Hash()
+	//return s.trie.Hash()
+	return s.trie.ParallelHash2()
 }
 
 func (s *StateDB) Root() common.Hash {
-	return s.trie.Hash()
+	//return s.trie.Hash()
+	return s.trie.ParallelHash2()
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
@@ -901,7 +903,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		delete(s.stateObjectsDirty, addr)
 	}
 	// Write trie changes.
-	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	root, err = s.trie.ParallelCommit2(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
@@ -986,4 +988,47 @@ func (s *StateDB) SetAbi(addr common.Address, abi []byte) {
 	if stateObject != nil {
 		stateObject.SetAbi(crypto.Keccak256Hash(abi), abi)
 	}
+}
+
+func (s *StateDB) AddMinerEarnings(addr common.Address, amount *big.Int) {
+	stateObject := s.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		//stateObject.db = s
+		stateObject.AddBalance(amount)
+	}
+}
+
+func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjects bool) {
+	//log.Debug("merge state object to stateDB", "txIdx", idx, "fromAddr", from.stateObject.address.Hex(), "fromBalance", from.GetBalance().Uint64(), "fromNonce", from.GetNonce(), "toAddr", to.stateObject.address.Hex(), "toBalance", to.GetBalance().Uint64())
+	if from.stateObject.suicided || (deleteEmptyObjects && from.stateObject.empty()) {
+		s.deleteStateObject(from.stateObject)
+	} else {
+		from.stateObject.updateRoot(s.db)
+		s.updateStateObject(from.stateObject)
+		s.stateObjects[from.stateObject.address] = from.stateObject
+	}
+	s.journal.append(balanceChange{
+		account: &from.stateObject.address,
+		//prev:    new(big.Int).Set(s.GetOrNewParallelStateObject(from.stateObject.address).GetBalance()),
+		prev: common.Big0,
+	})
+	s.stateObjectsDirty[from.stateObject.address] = struct{}{}
+
+	if to.stateObject.suicided || (deleteEmptyObjects && to.stateObject.empty()) {
+		s.deleteStateObject(to.stateObject)
+	} else {
+		to.stateObject.updateRoot(s.db)
+		s.updateStateObject(to.stateObject)
+		s.stateObjects[to.stateObject.address] = to.stateObject
+	}
+	s.journal.append(balanceChange{
+		account: &to.stateObject.address,
+		//prev:    new(big.Int).Set(s.GetOrNewParallelStateObject(to.stateObject.address).GetBalance()),
+		prev: common.Big0,
+	})
+	s.stateObjectsDirty[to.stateObject.address] = struct{}{}
+}
+
+func (self *StateDB) IncreaseTxIdx() {
+	self.txIndex++
 }
