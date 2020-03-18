@@ -2299,7 +2299,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			continue
 		}
 		currentVersion := gov.GetCurrentActiveVersion(state)
-		if currentVersion == 0 || gov.GetCurrentActiveVersion(state) >= FORKVERSION_0_11_0 {
+		if currentVersion == 0 || gov.GetCurrentActiveVersion(state) >= FORKVERSION_0_11_0 || programVersion == FORKVERSION_0_11_0 {
 			if can.IsInvalid() {
 				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
 				continue
