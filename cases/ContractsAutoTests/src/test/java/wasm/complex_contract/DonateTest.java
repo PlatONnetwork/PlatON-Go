@@ -51,7 +51,7 @@ public class DonateTest extends WASMContractPrepareTest {
             // 加入白名单
             donate.addToWhitelist(new WasmAddress(credentials.getAddress())).send();
             Map whitelist = donate.getWhitelist().send();
-            collector.logStepPass("Whitelist >>>> " + whitelist);
+            System.err.println("Whitelist >>>> " + whitelist);
 
             // 捐赠，只有加入白名单才能捐赠
             TransactionReceipt receipt = donate.donate(new WasmAddress(credentials.getAddress()),BigInteger.valueOf(1000)).send();
