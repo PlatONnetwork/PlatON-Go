@@ -96,7 +96,7 @@ class TestEnvironment:
 
     @property
     def version(self):
-        return "0.8.0"
+        return "0.10.2"
 
     @property
     def running(self) -> bool:
@@ -669,7 +669,7 @@ def create_env(conf_tmp=None, node_file=None, account_file=None, init_chain=True
 
 if __name__ == "__main__":
     from tests.lib import get_no_pledge_node, get_no_pledge_node_list, get_pledge_list, check_node_in_list
-    node_filename = abspath("deploy/node/one_node.yml")
+    node_filename = abspath("deploy/node/debug_4_4.yml")
     env = create_env(node_file=node_filename)
     # print(os.path.getctime(env.cfg.platon_bin_file))
     # new_cfg = copy.copy(env.cfg)
@@ -677,6 +677,12 @@ if __name__ == "__main__":
     # print(env.cfg.syncmode)
     log.info("测试部署")
     env.deploy_all()
+    stop_nodes = env.consensus_node_list[:2]
+    for node in stop_nodes:
+        print(node.url)
+    time.sleep(50)
+    print(env.consensus_node_list[3].url)
+    env.stop_nodes(stop_nodes)
     # node = env.get_consensus_node_by_index(0)
     # print(node.debug.economicConfig())
     # print(type(node.debug.economicConfig()))
