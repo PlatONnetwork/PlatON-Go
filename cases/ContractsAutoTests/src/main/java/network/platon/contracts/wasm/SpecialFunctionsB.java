@@ -26,9 +26,9 @@ public class SpecialFunctionsB extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GETPLATONGASLIMIT = "getPlatONGasLimit";
-
     public static final String FUNC_GETPLATONGAS = "getPlatONGas";
+
+    public static final String FUNC_GETPLATONGASLIMIT = "getPlatONGasLimit";
 
     public static final String FUNC_GETPLATONGASPRICE = "getPlatONGasPrice";
 
@@ -40,19 +40,9 @@ public class SpecialFunctionsB extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<Uint64> getPlatONGasLimit() {
-        final WasmFunction function = new WasmFunction(FUNC_GETPLATONGASLIMIT, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
-    }
-
     public RemoteCall<Uint64> getPlatONGas() {
         final WasmFunction function = new WasmFunction(FUNC_GETPLATONGAS, Arrays.asList(), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
-    }
-
-    public RemoteCall<String> getPlatONGasPrice() {
-        final WasmFunction function = new WasmFunction(FUNC_GETPLATONGASPRICE, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public static RemoteCall<SpecialFunctionsB> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -73,6 +63,16 @@ public class SpecialFunctionsB extends WasmContract {
     public static RemoteCall<SpecialFunctionsB> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(SpecialFunctionsB.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<Uint64> getPlatONGasLimit() {
+        final WasmFunction function = new WasmFunction(FUNC_GETPLATONGASLIMIT, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
+    public RemoteCall<String> getPlatONGasPrice() {
+        final WasmFunction function = new WasmFunction(FUNC_GETPLATONGASPRICE, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static SpecialFunctionsB load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

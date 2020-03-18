@@ -28,8 +28,6 @@ public class InitWithListParams extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_LIST_POP_FRONT = "list_pop_front";
-
     public static final String FUNC_SET_LIST = "set_list";
 
     public static final String FUNC_GET_LIST = "get_list";
@@ -50,6 +48,8 @@ public class InitWithListParams extends WasmContract {
 
     public static final String FUNC_LIST_POP_BACK = "list_pop_back";
 
+    public static final String FUNC_LIST_POP_FRONT = "list_pop_front";
+
     public static final String FUNC_LIST_SIZE = "list_size";
 
     public static final String FUNC_LIST_UNIQUE = "list_unique";
@@ -62,16 +62,6 @@ public class InitWithListParams extends WasmContract {
 
     protected InitWithListParams(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> list_pop_front() {
-        final WasmFunction function = new WasmFunction(FUNC_LIST_POP_FRONT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> list_pop_front(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_LIST_POP_FRONT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<InitWithListParams> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, List<String> inList) {
@@ -183,6 +173,16 @@ public class InitWithListParams extends WasmContract {
 
     public RemoteCall<TransactionReceipt> list_pop_back(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_LIST_POP_BACK, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> list_pop_front() {
+        final WasmFunction function = new WasmFunction(FUNC_LIST_POP_FRONT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> list_pop_front(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_LIST_POP_FRONT, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

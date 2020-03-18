@@ -48,6 +48,11 @@ public class InitOverloadWithString extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<String> string_splice(String spliceStr) {
+        final WasmFunction function = new WasmFunction(FUNC_STRING_SPLICE, Arrays.asList(spliceStr), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public static RemoteCall<InitOverloadWithString> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, String initStr) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(initStr));
         return deployRemoteCall(InitOverloadWithString.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -66,11 +71,6 @@ public class InitOverloadWithString extends WasmContract {
     public static RemoteCall<InitOverloadWithString> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, String initStr) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(initStr));
         return deployRemoteCall(InitOverloadWithString.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<String> string_splice(String spliceStr) {
-        final WasmFunction function = new WasmFunction(FUNC_STRING_SPLICE, Arrays.asList(spliceStr), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<String> get_string() {
