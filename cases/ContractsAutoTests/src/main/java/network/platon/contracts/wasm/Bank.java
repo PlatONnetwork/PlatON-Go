@@ -58,8 +58,6 @@ public class Bank extends WasmContract {
 
     public static final String FUNC_EXITFEE = "exitFee";
 
-    public static final String FUNC_CALCULATEETHEREUMRECEIVED = "calculateEthereumReceived";
-
     public static final String FUNC_TOTALETHEREUMBALANCE = "totalEthereumBalance";
 
     public static final String FUNC_TOTALSUPPLY = "totalSupply";
@@ -77,6 +75,8 @@ public class Bank extends WasmContract {
     public static final String FUNC_BUYPRICE = "buyPrice";
 
     public static final String FUNC_CALCULATETOKENSRECEIVED = "calculateTokensReceived";
+
+    public static final String FUNC_CALCULATEETHEREUMRECEIVED = "calculateEthereumReceived";
 
     public static final WasmEvent ONTOKENPURCHASE_EVENT = new WasmEvent("onTokenPurchase", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class)));
     ;
@@ -429,11 +429,6 @@ public class Bank extends WasmContract {
         return executeRemoteCall(function, Uint8.class);
     }
 
-    public RemoteCall<BigInteger> calculateEthereumReceived(BigInteger _tokensToSell) {
-        final WasmFunction function = new WasmFunction(FUNC_CALCULATEETHEREUMRECEIVED, Arrays.asList(_tokensToSell), BigInteger.class);
-        return executeRemoteCall(function, BigInteger.class);
-    }
-
     public RemoteCall<BigInteger> totalEthereumBalance() {
         final WasmFunction function = new WasmFunction(FUNC_TOTALETHEREUMBALANCE, Arrays.asList(), BigInteger.class);
         return executeRemoteCall(function, BigInteger.class);
@@ -476,6 +471,11 @@ public class Bank extends WasmContract {
 
     public RemoteCall<BigInteger> calculateTokensReceived(BigInteger _ethereumToSpend) {
         final WasmFunction function = new WasmFunction(FUNC_CALCULATETOKENSRECEIVED, Arrays.asList(_ethereumToSpend), BigInteger.class);
+        return executeRemoteCall(function, BigInteger.class);
+    }
+
+    public RemoteCall<BigInteger> calculateEthereumReceived(BigInteger _tokensToSell) {
+        final WasmFunction function = new WasmFunction(FUNC_CALCULATEETHEREUMRECEIVED, Arrays.asList(_tokensToSell), BigInteger.class);
         return executeRemoteCall(function, BigInteger.class);
     }
 

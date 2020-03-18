@@ -73,6 +73,21 @@ public class LATToken extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<String> getName() {
+        final WasmFunction function = new WasmFunction(FUNC_GETNAME, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
+        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(_owner), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
+    public RemoteCall<Uint8> getDecimals() {
+        final WasmFunction function = new WasmFunction(FUNC_GETDECIMALS, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
+    }
+
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
         ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
@@ -106,21 +121,6 @@ public class LATToken extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
-    }
-
-    public RemoteCall<String> getName() {
-        final WasmFunction function = new WasmFunction(FUNC_GETNAME, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
-        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(_owner), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
-    }
-
-    public RemoteCall<Uint8> getDecimals() {
-        final WasmFunction function = new WasmFunction(FUNC_GETDECIMALS, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public List<ApprovalEventResponse> getApprovalEvents(TransactionReceipt transactionReceipt) {

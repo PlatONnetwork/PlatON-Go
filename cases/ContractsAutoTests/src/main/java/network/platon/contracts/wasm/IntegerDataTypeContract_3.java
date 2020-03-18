@@ -47,16 +47,6 @@ public class IntegerDataTypeContract_3 extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> setBool(Boolean input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETBOOL, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setBool(Boolean input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETBOOL, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public static RemoteCall<IntegerDataTypeContract_3> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_3.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -75,6 +65,16 @@ public class IntegerDataTypeContract_3 extends WasmContract {
     public static RemoteCall<IntegerDataTypeContract_3> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_3.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> setBool(Boolean input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETBOOL, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setBool(Boolean input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETBOOL, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> setString(String input) {

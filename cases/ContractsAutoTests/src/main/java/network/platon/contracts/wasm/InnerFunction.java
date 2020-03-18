@@ -42,11 +42,6 @@ public class InnerFunction extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> gas_price() {
-        final WasmFunction function = new WasmFunction(FUNC_GAS_PRICE, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
     public static RemoteCall<InnerFunction> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(InnerFunction.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -65,6 +60,11 @@ public class InnerFunction extends WasmContract {
     public static RemoteCall<InnerFunction> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(InnerFunction.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<String> gas_price() {
+        final WasmFunction function = new WasmFunction(FUNC_GAS_PRICE, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<Uint64> block_number() {

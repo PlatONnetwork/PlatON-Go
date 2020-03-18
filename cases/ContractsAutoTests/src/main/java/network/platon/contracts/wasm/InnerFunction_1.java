@@ -55,6 +55,11 @@ public class InnerFunction_1 extends WasmContract {
         return executeRemoteCall(function, Uint64.class);
     }
 
+    public RemoteCall<String> block_hash(Uint64 bn) {
+        final WasmFunction function = new WasmFunction(FUNC_BLOCK_HASH, Arrays.asList(bn), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public static RemoteCall<InnerFunction_1> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(InnerFunction_1.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -73,11 +78,6 @@ public class InnerFunction_1 extends WasmContract {
     public static RemoteCall<InnerFunction_1> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(InnerFunction_1.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<String> block_hash(Uint64 bn) {
-        final WasmFunction function = new WasmFunction(FUNC_BLOCK_HASH, Arrays.asList(bn), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<WasmAddress> coinbase() {

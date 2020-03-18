@@ -78,26 +78,6 @@ public class BasicDataIntegerTypeContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
     public RemoteCall<Int8> get_int8() {
         final WasmFunction function = new WasmFunction(FUNC_GET_INT8, Arrays.asList(), Int8.class);
         return executeRemoteCall(function, Int8.class);
@@ -121,6 +101,26 @@ public class BasicDataIntegerTypeContract extends WasmContract {
     public RemoteCall<TransactionReceipt> set_uint16(Uint16 value, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SET_UINT16, Arrays.asList(value), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public static RemoteCall<BasicDataIntegerTypeContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(BasicDataIntegerTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
     public RemoteCall<TransactionReceipt> set_uint8(Uint8 value) {

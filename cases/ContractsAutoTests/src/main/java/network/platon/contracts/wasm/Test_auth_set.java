@@ -48,6 +48,16 @@ public class Test_auth_set extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<TransactionReceipt> test_owner_p(String addr) {
+        final WasmFunction function = new WasmFunction(FUNC_TEST_OWNER_P, Arrays.asList(addr), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> test_owner_p(String addr, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_TEST_OWNER_P, Arrays.asList(addr), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<Test_auth_set> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, String addr) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(addr));
         return deployRemoteCall(Test_auth_set.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -66,16 +76,6 @@ public class Test_auth_set extends WasmContract {
     public static RemoteCall<Test_auth_set> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, String addr) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(addr));
         return deployRemoteCall(Test_auth_set.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> test_owner_p(String addr) {
-        final WasmFunction function = new WasmFunction(FUNC_TEST_OWNER_P, Arrays.asList(addr), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> test_owner_p(String addr, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_TEST_OWNER_P, Arrays.asList(addr), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static Test_auth_set load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
