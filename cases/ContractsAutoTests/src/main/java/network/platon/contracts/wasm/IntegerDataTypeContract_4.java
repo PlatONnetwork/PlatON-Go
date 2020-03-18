@@ -47,6 +47,16 @@ public class IntegerDataTypeContract_4 extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> setU256(Uint64 input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setU256(Uint64 input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<IntegerDataTypeContract_4> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_4.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -65,16 +75,6 @@ public class IntegerDataTypeContract_4 extends WasmContract {
     public static RemoteCall<IntegerDataTypeContract_4> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_4.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> setU256(Uint64 input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setU256(Uint64 input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> setAddress(String input) {
