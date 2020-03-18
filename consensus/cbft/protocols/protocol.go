@@ -740,14 +740,22 @@ func (s *GetViewChange) BHash() common.Hash {
 }
 
 type ViewChangeQuorumCert struct {
-	ViewChangeQC *ctypes.ViewChangeQC `json:"viewchangeQC"` // viewChange aggregate signature
-	messageHash  atomic.Value         `rlp:"-"`
+	ViewChangeQC        *ctypes.ViewChangeQC `json:"viewchangeQC"`                  // viewChange aggregate signature
+	HighestViewChangeQC *ctypes.ViewChangeQC `json:"highestViewChangeQC" rlp:"nil"` // the highest viewChangeQC of current epoch
+	messageHash         atomic.Value         `rlp:"-"`
 }
 
 func (v *ViewChangeQuorumCert) String() string {
 	epoch, viewNumber, blockEpoch, blockViewNumber, hash, number := v.ViewChangeQC.MaxBlock()
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockEpoch:%d,BlockViewNumber:%d,Hash:%s,Number:%d}",
-		epoch, viewNumber, blockEpoch, blockViewNumber, hash.TerminalString(), number)
+	if v.HighestViewChangeQC == nil {
+		return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockEpoch:%d,BlockViewNumber:%d,Hash:%s,Number:%d}",
+			epoch, viewNumber, blockEpoch, blockViewNumber, hash.TerminalString(), number)
+	}
+	highestEpoch, highestViewNumber, highestBlockEpoch, highestBlockViewNumber, highestHash, highestNumber := v.HighestViewChangeQC.MaxBlock()
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockEpoch:%d,BlockViewNumber:%d,Hash:%s,Number:%d,"+
+		"HighestEpoch:%d,HighestViewNumber:%d,HighestBlockEpoch:%d,HighestBlockViewNumber:%d,HighestHash:%s,HighestNumber:%d}",
+		epoch, viewNumber, blockEpoch, blockViewNumber, hash.TerminalString(), number,
+		highestEpoch, highestViewNumber, highestBlockEpoch, highestBlockViewNumber, highestHash.TerminalString(), highestNumber)
 }
 
 func (v *ViewChangeQuorumCert) MsgHash() common.Hash {
