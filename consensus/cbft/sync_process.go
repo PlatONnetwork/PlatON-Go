@@ -579,9 +579,19 @@ func (cbft *Cbft) trySyncViewChangeQuorumCert(id string, msg *protocols.ViewChan
 		return
 	}
 	epoch, viewNumber, _, _, _, _ := highestViewChangeQC.MaxBlock()
-	if cbft.state.Epoch() == epoch && cbft.state.ViewNumber()+2 < viewNumber {
+	if cbft.state.Epoch() != epoch {
+		return
+	}
+	if cbft.state.ViewNumber() == viewNumber {
 		if err := cbft.verifyViewChangeQC(highestViewChangeQC); err == nil {
-			cbft.log.Info("Receive future viewChangeQuorumCert, sync viewChangeQC with fast sync mode", "localView", cbft.state.ViewString(), "futureView", highestViewChangeQC.String())
+			cbft.log.Debug("The highest view is equal to local, change view by highestViewChangeQC directly", "localView", cbft.state.ViewString(), "futureView", highestViewChangeQC.String())
+			cbft.tryChangeViewByViewChange(highestViewChangeQC)
+		}
+		return
+	}
+	if cbft.state.ViewNumber() < viewNumber {
+		if err := cbft.verifyViewChangeQC(highestViewChangeQC); err == nil {
+			cbft.log.Debug("Receive future viewChange quorumCert, sync viewChangeQC with fast mode", "localView", cbft.state.ViewString(), "futureView", highestViewChangeQC.String())
 			cbft.network.Send(id, &protocols.GetViewChange{
 				Epoch:          cbft.state.Epoch(),
 				ViewNumber:     cbft.state.ViewNumber(),
