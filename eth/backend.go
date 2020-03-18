@@ -135,6 +135,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
 	log.Debug("init chain ", "hegigh", height)
 	if height != nil && *height > 0 {
+		//when last  fast syncing fail,we will clean chaindb,wal,snapshotdb
 		sdb := snapshotdb.Instance()
 		if status, err := sdb.GetBaseDB([]byte(downloader.KeyFastSyncStatus)); err == nil {
 			log.Info("last fast sync is fail,init  chain", "status", status)
