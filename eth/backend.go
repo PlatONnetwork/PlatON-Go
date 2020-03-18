@@ -133,7 +133,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
 	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
-	log.Debug("init chain ", "hegigh", height)
+	log.Debug("init chain ", "height", height)
 	if height != nil && *height > 0 {
 		//when last  fast syncing fail,we will clean chaindb,wal,snapshotdb
 		sdb := snapshotdb.Instance()
