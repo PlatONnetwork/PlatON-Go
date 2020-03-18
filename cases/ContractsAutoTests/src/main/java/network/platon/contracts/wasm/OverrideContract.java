@@ -37,6 +37,11 @@ public class OverrideContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<Uint32> getArea(Uint64 input) {
+        final WasmFunction function = new WasmFunction(FUNC_GETAREA, Arrays.asList(input), Uint32.class);
+        return executeRemoteCall(function, Uint32.class);
+    }
+
     public static RemoteCall<OverrideContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(OverrideContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -55,11 +60,6 @@ public class OverrideContract extends WasmContract {
     public static RemoteCall<OverrideContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(OverrideContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<Uint32> getArea(Uint64 input) {
-        final WasmFunction function = new WasmFunction(FUNC_GETAREA, Arrays.asList(input), Uint32.class);
-        return executeRemoteCall(function, Uint32.class);
     }
 
     public static OverrideContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

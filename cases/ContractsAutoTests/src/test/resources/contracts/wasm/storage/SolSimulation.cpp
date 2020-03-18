@@ -47,6 +47,18 @@ CONTRACT SolSimulation : public platon::Contract {
   ACTION void debug() {
     println("counter:", *counter_, "step:", *step_, "fragment:", *fragment_);
   }
+  
+  CONST uint64_t getCounter() {
+    return *counter_;
+  }
+  
+  CONST size_t getStep() {
+    return *step_;
+  }
+  
+  CONST size_t getFragment() {
+    return *fragment_;
+  }
 
  private:
   void write(size_t pos, uint64_t num) {
@@ -86,3 +98,4 @@ CONTRACT SolSimulation : public platon::Contract {
 
 PLATON_DISPATCH(SolSimulation, (init)(action)(debug))
 }
+

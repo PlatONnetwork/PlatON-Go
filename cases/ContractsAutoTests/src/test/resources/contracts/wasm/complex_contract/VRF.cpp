@@ -12,17 +12,18 @@ CONTRACT VRF : public platon::Contract{
 
     private:
         platon::StorageType<"groupOrder"_n, u128> groupOrder;
-        platon::StorageType<"fieldSize"_n, uint64_t> fieldSize;
-        platon::StorageType<"wordlength"_n, uint64_t> wordLengthBytes;
-        platon::StorageType<"bigmod"_n,std::array<uint64_t,6>> bigModExpContractInputs;
-        platon::StorageType<"output"_n, uint64_t> output;
-        platon::StorageType<"sqrtpower"_n, uint64_t> sqrtPower;
-        platon::StorageType<"newcandi"_n,std::array<uint64_t,2>> newCandiArr;
-        platon::StorageType<"rv"_n,std::array<uint64_t,2>> rv;
-        platon::StorageType<"scalar"_n, uint64_t> SCALAR_FROM_CURVE_POINTS_HASH_PREFIX;
-        platon::StorageType<"scalaprr"_n, uint64_t> VRF_RANDOM_OUTPUT_HASH_PREFIX;
-        platon::StorageType<"prooflen"_n, uint64_t> PROOF_LENGTH;
+        platon::StorageType<"fieldSize"_n, u128> fieldSize;
+        platon::StorageType<"wordlength"_n, u128> wordLengthBytes;
+        platon::StorageType<"bigmod"_n,std::array<u128,6>> bigModExpContractInputs;
+        platon::StorageType<"output"_n, u128> output;
+        platon::StorageType<"sqrtpower"_n, u128> sqrtPower;
+        platon::StorageType<"newcandi"_n,std::array<u128,2>> newCandiArr;
+        platon::StorageType<"rv"_n,std::array<u128,2>> rv;
+        platon::StorageType<"scalar"_n, u128> SCALAR_FROM_CURVE_POINTS_HASH_PREFIX;
+        platon::StorageType<"scalaprr"_n, u128> VRF_RANDOM_OUTPUT_HASH_PREFIX;
+        platon::StorageType<"prooflen"_n, u128> PROOF_LENGTH;
         platon::StorageType<"addstr"_n, std::string> address_str;
+        platon::StorageType<"findhash"_n, u128> fieldHash128;
 
     public:
         ACTION void init(){
@@ -45,8 +46,8 @@ CONTRACT VRF : public platon::Contract{
             
         }
 
-        uint64_t bigModExp(uint64_t base,uint64_t exponent){
-            uint64_t callResult;
+        u128 bigModExp(u128 base,u128 exponent){
+            u128 callResult;
             bigModExpContractInputs.self()[0] = wordLengthBytes.self();
             bigModExpContractInputs.self()[1] = wordLengthBytes.self();
             bigModExpContractInputs.self()[2] = wordLengthBytes.self();
@@ -54,60 +55,59 @@ CONTRACT VRF : public platon::Contract{
             bigModExpContractInputs.self()[4] = exponent;
             bigModExpContractInputs.self()[5] = fieldSize.self();
 
-            uint64_t value = 12;
-            uint64_t gas = 4712388;
-            std::string addr = "0x000000000000000000000000000000000000005";
+            u128 value = 0; //转账金额
+            u128 gas = 4712388; //预估的手续费
+            std::string addr = "0x05";//目标合约地址
             platon::bytes params = platon::cross_call_args("data", bigModExpContractInputs.self());
 
+            u128 resulth128;
             if (platon_call(Address(addr), params, value, gas)) {
                 platon::bytes ret;
                 size_t len = platon_get_call_output_length();
                 ret.resize(len);
                 platon_get_call_output(ret.data());
                 std::string str = toHex(ret);
-                base = std::stoul(str);
+                resulth128 = std::stoull(str);
             }
-            return base;
+            return resulth128;
 
         }
 
-        uint64_t getSqrtPower(){
+        u128 getSqrtPower(){
             return (fieldSize.self()+1) >>2;
         }
 
-        uint64_t squareRoot(uint64_t x){
+        u128 squareRoot(u128 x){
             return bigModExp(x,getSqrtPower());
         }
 
-        uint64_t ySquared(uint64_t x){
-            uint64_t value1 = x*x%fieldSize.self();
-            uint64_t xCubed = x*value1%fieldSize.self();
+        u128 ySquared(u128 x){
+            u128 value1 = x*x%fieldSize.self();
+            u128 xCubed = x*value1%fieldSize.self();
             return (xCubed+7)%fieldSize.self();
         }
 
-        bool isOnCurve(uint64_t p1,uint64_t p2){
+        bool isOnCurve(u128 p1,u128 p2){
             return ySquared(p1) == p2*p2%fieldSize.self();
         }
 
         //c++实现keccak256算法实现未开发
-        // uint64_t fieldHash(bytes &b){
-        uint64_t fieldHash(bytes &bt){
-            uint64_t base;
-            platon::bytes res = keccak256(bt);
-            std::string str = toHex(res); //byte转string
-            base = std::stoul(str);//string转uint64
-            while(base >= fieldSize.self()){
-                res = keccak256(res);
-                std::string str = toHex(res);
-                base = std::stoul(str);
-            }
-//            std::string str = toHex(res);
-            return base;
+        // u128 fieldHash(bytes &b){
+        u128 fieldHash(bytes &bt){
+            h256 res = platon_sha256(bt);//h256转u128
+//            fieldHash128.self() = toHex(res.toString())
+//            std::string res1 = std::to_string(res);
+//            while(res >= fieldSize.self()){
+//                res = platon_sha256(res);
+//                std::string str = toHex(res);
+//                base = std::stoul(str);
+//            }
+            return fieldHash128.self();
         }
 
         bytes keccak256(bytes &bt){
-            uint64_t value = 12;
-            uint64_t gas = 4712388;
+            u128 value = 12;
+            u128 gas = 4712388;
             std::string target_addr = "0x000000000000000000000000000000000000002";
             platon::bytes ret;
 
@@ -121,8 +121,8 @@ CONTRACT VRF : public platon::Contract{
             return ret;
         }
 
-        // std::array<uint64_t,2> newCandidateSecp256k1Point(bytes &bt){
-        std::array<uint64_t,2> newCandidateSecp256k1Point(bytes bt){
+        // std::array<u128,2> newCandidateSecp256k1Point(bytes &bt){
+        ACTION std::array<u128,2> newCandidateSecp256k1Point(bytes bt){
             newCandiArr.self()[0] = fieldHash(bt);
             newCandiArr.self()[1] = squareRoot(ySquared(newCandiArr.self()[0]));
             if (newCandiArr.self()[1] % 2 ==1){
@@ -132,8 +132,8 @@ CONTRACT VRF : public platon::Contract{
         }
 
         
-        std::array<uint64_t,2>  hashToCurve(uint64_t &pk1,uint64_t pk2,uint64_t input){
-            // uint64_t pk1 = 0;//test
+        std::array<u128,2>  hashToCurve(u128 &pk1,u128 pk2,u128 input){
+            // u128 pk1 = 0;//test
             std::string datapk1str = std::to_string(pk1);
             bytes datapk1;
             datapk1.insert(datapk1.begin(), datapk1str.begin(), datapk1str.end());
@@ -147,10 +147,10 @@ CONTRACT VRF : public platon::Contract{
             return rv.self();
         }
 
-        bool ecmulVerify(std::array<uint64_t,2> multiplicand,uint64_t scalar,std::array<uint64_t,2> product){
+        bool ecmulVerify(std::array<u128,2> multiplicand,u128 scalar,std::array<u128,2> product){
             platon_assert(scalar != 0, "bad value");
-            uint64_t x = multiplicand[0];
-            uint64_t v = multiplicand[1] % 2 == 0 ? 27 : 28;
+            u128 x = multiplicand[0];
+            u128 v = multiplicand[1] % 2 == 0 ? 27 : 28;
             // platon::bytes scalarTimesX = fromHex(scalar*x%groupOrder.self());
             // Address actual = ecrecover(fromHex(0),v,fromHex(x),groupOrder.self());//待处理
             // Address exponent = Address(uint256(keccak256(abi.encodePacked(product))));//待处理
@@ -159,10 +159,10 @@ CONTRACT VRF : public platon::Contract{
             return (actual == exponent);
         }
 
-        std::array<uint64_t,2> projectiveSub(uint64_t x1,uint64_t z1,uint64_t x2,uint64_t z2){
-            uint64_t num1 = z2*x1%fieldSize.self();
-            uint64_t num2 = (fieldSize.self()-x2)*z1%fieldSize.self();
-            std::array<uint64_t,2> arrays;
+        std::array<u128,2> projectiveSub(u128 x1,u128 z1,u128 x2,u128 z2){
+            u128 num1 = z2*x1%fieldSize.self();
+            u128 num2 = (fieldSize.self()-x2)*z1%fieldSize.self();
+            std::array<u128,2> arrays;
             arrays[0] = (num1+num2)%fieldSize;
             arrays[1] = (z1*z2)%fieldSize.self();
             
@@ -170,32 +170,32 @@ CONTRACT VRF : public platon::Contract{
         }
 
         // Returns x1/z1*x2/z2=(x1x2)/(z1z2), in projective coordinates on P¹(𝔽ₙ)
-        std::array<uint64_t,2> projectiveMul(uint64_t x1,uint64_t z1,uint64_t x2,uint64_t z2){
-            std::array<uint64_t,2> arr;
+        std::array<u128,2> projectiveMul(u128 x1,u128 z1,u128 x2,u128 z2){
+            std::array<u128,2> arr;
             arr[0] = x1*x2%fieldSize.self();
             arr[1] = z1*z2%fieldSize.self();  
 
             return arr;
         }
 
-       std::array<uint64_t,3> projectiveECAdd(uint64_t px,uint64_t py,uint64_t qx,uint64_t qy){
-           std::array<uint64_t,3> resArr;
+       std::array<u128,3> projectiveECAdd(u128 px,u128 py,u128 qx,u128 qy){
+           std::array<u128,3> resArr;
 
-        //    std::tuple<uint64_t, uint64_t> (z1,z2) = make_tuple(1,1);
-           uint64_t z1 =1;
-           uint64_t z2 =1;
-           uint64_t lx = (qx+fieldSize.self()-py)%fieldSize.self();
-           uint64_t lz = (qx+fieldSize.self()-px)%fieldSize.self();
-           uint64_t dx;
+        //    std::tuple<u128, u128> (z1,z2) = make_tuple(1,1);
+           u128 z1 =1;
+           u128 z2 =1;
+           u128 lx = (qx+fieldSize.self()-py)%fieldSize.self();
+           u128 lz = (qx+fieldSize.self()-px)%fieldSize.self();
+           u128 dx;
 
-           std::array<uint64_t,2> sxdx1 = projectiveMul(lx, lz, lx, lz); // ((qy-py)/(qx-px))^2
-           std::array<uint64_t,2> sxdx2 = projectiveSub(resArr[0], dx, px, z1); // ((qy-py)/(qx-px))^2-px
-           std::array<uint64_t,2> sxdx3 = projectiveSub(resArr[0], dx, qx, z2); // ((qy-py)/(qx-px))^2-px-qx 
+           std::array<u128,2> sxdx1 = projectiveMul(lx, lz, lx, lz); // ((qy-py)/(qx-px))^2
+           std::array<u128,2> sxdx2 = projectiveSub(resArr[0], dx, px, z1); // ((qy-py)/(qx-px))^2-px
+           std::array<u128,2> sxdx3 = projectiveSub(resArr[0], dx, qx, z2); // ((qy-py)/(qx-px))^2-px-qx
 
-           uint64_t dy;
-           std::array<uint64_t,2> sydy1 = projectiveSub(px, z1, sxdx3[0], dx); // px-sx
-           std::array<uint64_t,2> sydy2 = projectiveMul(resArr[1], dy, lx, lz); // ((qy-py)/(qx-px))(px-sx)
-           std::array<uint64_t,2> sydy3 = projectiveSub(resArr[1], dy, py, z1); // ((qy-py)/(qx-px))(px-sx)-py
+           u128 dy;
+           std::array<u128,2> sydy1 = projectiveSub(px, z1, sxdx3[0], dx); // px-sx
+           std::array<u128,2> sydy2 = projectiveMul(resArr[1], dy, lx, lz); // ((qy-py)/(qx-px))(px-sx)
+           std::array<u128,2> sydy3 = projectiveSub(resArr[1], dy, py, z1); // ((qy-py)/(qx-px))(px-sx)-py
            
 
            
@@ -211,26 +211,26 @@ CONTRACT VRF : public platon::Contract{
            return resArr;
        }
 
-       std::array<uint64_t,2> affineECAdd(std::array<uint64_t,2> p1,std::array<uint64_t,2> p2,uint64_t invZ){
-         uint64_t x;
-         uint64_t y;
-         uint64_t z;
-         std::array<uint64_t,3> arr3 = projectiveECAdd(p1[0], p1[1], p2[0], p2[1]);
+       std::array<u128,2> affineECAdd(std::array<u128,2> p1,std::array<u128,2> p2,u128 invZ){
+         u128 x;
+         u128 y;
+         u128 z;
+         std::array<u128,3> arr3 = projectiveECAdd(p1[0], p1[1], p2[0], p2[1]);
 
         platon_assert( z*invZ%fieldSize.self() == 1, "bad value");
 
-        std::array<uint64_t,2> resArr;
+        std::array<u128,2> resArr;
         resArr[0] = x*invZ%fieldSize.self();
         resArr[1] = y*invZ%fieldSize.self();
         return resArr;
        }
 
-       bool verifyLinearCombinationWithGenerator(uint64_t c,std::array<uint64_t,2> p,uint64_t s,Address lcWitness){
-           uint64_t value = 12;
-           uint64_t gas = 4712388;
+       bool verifyLinearCombinationWithGenerator(u128 c,std::array<u128,2> p,u128 s,Address lcWitness){
+           u128 value = 12;
+           u128 gas = 4712388;
 
            platon_assert( lcWitness != Address(0), "bad value");
-           uint64_t v = (p[1] % 2 == 0) ? 27 : 28;
+           u128 v = (p[1] % 2 == 0) ? 27 : 28;
 
             std::string datastr = std::to_string((groupOrder.self() - p[0]*s%groupOrder.self()));
             bytes data;
@@ -257,9 +257,9 @@ CONTRACT VRF : public platon::Contract{
            return computed == lcWitness;
        }
 
-       std::array<uint64_t,2> linearCombination(uint64_t c,std::array<uint64_t,2> p1,std::array<uint64_t,2> cp1Witness,
-       uint64_t s, std::array<uint64_t,2> p2,std::array<uint64_t,2> sp2Witness,uint64_t zInv){
-           std::array<uint64_t,2> arr1;
+       std::array<u128,2> linearCombination(u128 c,std::array<u128,2> p1,std::array<u128,2> cp1Witness,
+       u128 s, std::array<u128,2> p2,std::array<u128,2> sp2Witness,u128 zInv){
+           std::array<u128,2> arr1;
         //    arr1[0] = p1;
         //    arr1[1] = c;
         //    arr1[2] = cp1Witness;
@@ -268,38 +268,40 @@ CONTRACT VRF : public platon::Contract{
            return affineECAdd(cp1Witness, sp2Witness, zInv);
        }
 
-       uint64_t scalarFromCurvePoints(std::array<uint64_t,2> hash,std::array<uint64_t,2> pk,std::array<uint64_t,2> gamma,
-       Address uWitness,std::array<uint64_t,2> v){
-            uint64_t res = 0;
+       u128 scalarFromCurvePoints(std::array<u128,2> hash,std::array<u128,2> pk,std::array<u128,2> gamma,
+       Address uWitness,std::array<u128,2> v){
+            u128 res = 0; //输入参数进行转换
+            platon::bytes inputBytes;
+            h256 reshash = platon_sha256(inputBytes);
             //uint256(keccak256(abi.encodePacked(SCALAR_FROM_CURVE_POINTS_HASH_PREFIX,hash, pk, gamma, v, uWitness)));
             return res;
        }
 
-       void verifyVRFProof(std::array<uint64_t,2> pk,std::array<uint64_t,2> gamma,uint64_t c,uint64_t s,
-       uint64_t seed,Address uWitness,std::array<uint64_t,2> cGammaWitness,
-       std::array<uint64_t,2> sHashWitness,uint64_t zInv){
+       void verifyVRFProof(std::array<u128,2> pk,std::array<u128,2> gamma,u128 c,u128 s,
+       u128 seed,Address uWitness,std::array<u128,2> cGammaWitness,
+       std::array<u128,2> sHashWitness,u128 zInv){
            platon_assert(isOnCurve(pk[0],pk[1]), "public key is not on curve");
            platon_assert(isOnCurve(gamma[0],gamma[1]), "gamma is not on curve");
            platon_assert(isOnCurve(cGammaWitness[0],cGammaWitness[1]), "cGammaWitness is not on curve");
            platon_assert(isOnCurve(sHashWitness[0],sHashWitness[1]), "sHashWitness is not on curve");
            platon_assert(verifyLinearCombinationWithGenerator(c, pk, s, uWitness),"addr(c*pk+s*g)≠_uWitness");
 
-           std::array<uint64_t,2> hash = hashToCurve(pk[0],pk[1],seed);
-           std::array<uint64_t,2> v = linearCombination(c, gamma, cGammaWitness, s, hash, sHashWitness, zInv);
-           uint64_t derivedC = scalarFromCurvePoints(hash, pk, gamma, uWitness, v);
+           std::array<u128,2> hash = hashToCurve(pk[0],pk[1],seed);
+           std::array<u128,2> v = linearCombination(c, gamma, cGammaWitness, s, hash, sHashWitness, zInv);
+           u128 derivedC = scalarFromCurvePoints(hash, pk, gamma, uWitness, v);
            platon_assert(c == derivedC, "invalid proof");
        }
 
-       uint64_t randomValueFromVRFProof(bytes proof){
+       ACTION h256 randomValueFromVRFProof(bytes proof){
             platon_assert(sizeof(proof) == PROOF_LENGTH.self(), "wrong proof length");
 
-            std::array<uint64_t,2> pk; // parse proof contents into these variables
-            std::array<uint64_t,2> gamma;
-            std::array<uint64_t,3> cSSeed;
+            std::array<u128,2> pk; // parse proof contents into these variables
+            std::array<u128,2> gamma;
+            std::array<u128,3> cSSeed;
             Address uWitness;
-            std::array<uint64_t,2> cGammaWitness;
-            std::array<uint64_t,2> sHashWitness;
-            uint64_t zInv;
+            std::array<u128,2> cGammaWitness;
+            std::array<u128,2> sHashWitness;
+            u128 zInv;
             //FIXME
             // (pk, gamma, cSSeed, uWitness, cGammaWitness, sHashWitness, zInv) = abi.decode( //不好翻译
             //     proof, (uint256[2], uint256[2], uint256[3], address, uint256[2],
@@ -315,12 +317,11 @@ CONTRACT VRF : public platon::Contract{
                  sHashWitness,
                  zInv
              );
-//             output = uint256(keccak256(abi.encode(VRF_RANDOM_OUTPUT_HASH_PREFIX, gamma)));
              platon::bytes gammaBytes;
-             uint64_t output = std::stoul(toHex(keccak256(gammaBytes)));
-             return zInv;
+             h256 output = platon_sha256(gammaBytes);
+             return output;
        }
 };
 
-PLATON_DISPATCH(VRF, (init)(newCandidateSecp256k1Point))
+PLATON_DISPATCH(VRF, (init)(newCandidateSecp256k1Point)(randomValueFromVRFProof))
 
