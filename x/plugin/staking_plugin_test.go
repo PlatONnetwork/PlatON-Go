@@ -2890,7 +2890,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	/**
 	Start ProposalPassedNotify
 	*/
-	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
+	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion, state)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
 }

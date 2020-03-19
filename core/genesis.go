@@ -240,6 +240,47 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 	return newcfg, stored, nil
 }
 
+func (g *Genesis) InitAndSetEconomicConfig(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+	if err := json.NewDecoder(file).Decode(g); err != nil {
+		return fmt.Errorf("invalid genesis file: %v", err)
+	}
+
+	if nil == g.Config {
+		return errors.New("genesis configuration is missed")
+	}
+	if nil == g.Config.Cbft {
+		return errors.New("cbft configuration is missed")
+	}
+	if g.Config.Cbft.Period == 0 {
+		return errors.New("cbft.period configuration is missed")
+	}
+	if g.Config.Cbft.Amount == 0 {
+		return errors.New("cbft.amount configuration is missed")
+	}
+	if nil == g.EconomicModel {
+		return errors.New("economic configuration is missed")
+	}
+	if g.Config.GenesisVersion == 0 {
+		return errors.New("genesis version configuration is missed")
+	}
+
+	xcom.ResetEconomicDefaultConfig(g.EconomicModel)
+	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
+	xcom.SetNodeBlockTimeWindow(g.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(g.Config.Cbft.Amount))
+
+	// check EconomicModel configuration
+	if err := xcom.CheckEconomicModel(); nil != err {
+		return fmt.Errorf("Failed CheckEconomicModel configuration: %v", err)
+	}
+	return nil
+}
+
 func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 	switch {
 	case g != nil:
