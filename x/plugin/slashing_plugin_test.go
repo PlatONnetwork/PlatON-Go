@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"testing"
 
@@ -572,5 +573,235 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
 	if _, err := si.CheckDuplicateSign(addr, 1, 1, stateDB); nil != err {
 		t.Fatal(err)
+	}
+}
+
+func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
+	_, genesis, _ := newChainState()
+	si, stateDB := initInfo(t)
+	// Starting from the second consensus round
+	blockNumber := new(big.Int).SetUint64(xutil.ConsensusSize()*2 - xcom.ElectionDistance())
+	if err := snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	defer func() {
+		snapshotdb.Instance().Clear()
+	}()
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "4", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+
+	// The following uses multiple nodes to simulate a variety of different scenarios
+	validatorMap := make(map[discover.NodeID]bool)
+	// Blocks were produced in the last round; removed from pending list
+	// bits：1 -> delete
+	validatorMap[nodeIdArr[0]] = true
+	nodePrivate, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	noSlashingNodeId := discover.PubkeyID(&nodePrivate.PublicKey)
+	// Current round of production blocks; removed from pending list
+	// bits: 1 -> delete
+	validatorMap[noSlashingNodeId] = false
+	// There is no penalty when the time window is reached, there is no zero block in the middle,
+	// the last round was zero block, and the "bit" operation is performed.
+	// bits：010001
+	validatorMap[nodeIdArr[1]] = false
+	// There is no penalty when the time window is reached;
+	// there is no production block in the penultimate round and no production block in the last round;
+	// "bit" operations are required
+	// bits：011001
+	validatorMap[nodeIdArr[2]] = false
+	// There is no penalty for reaching the time window;
+	// there is no production block in the penultimate round, and the last round is not selected as a consensus node;
+	// a "bit" operation is required
+	// bits：001001
+	validatorMap[nodeIdArr[3]] = false
+	// No penalty is reached when the time window is reached;
+	// it has not been selected as a consensus node in the middle, and it has not been selected as a consensus node in the last round;
+	// it is necessary to move the "bit" operation. After the operation, the "bit" bit = 0, from the list of waiting penalties Delete
+	// bits：00001 -> delete
+	validatorMap[nodeIdArr[4]] = false
+	// Since the value of the time window is reduced after being governed;
+	// and there are no production blocks in the last two rounds, N bits need to be shifted, but no penalty is imposed.
+	// Governance again, at this time the time window becomes larger, and the consensus node was not selected in the last round, no penalty will be imposed.
+	// bits：111001
+	validatorMap[nodeIdArr[5]] = false
+	// Meet the penalty conditions, punish them, and remove them from the pending list
+	// bits：1011 -> delete
+	validatorMap[nodeIdArr[6]] = false
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+	var blsKeyHex bls.PublicKeyHex
+	b, _ := blsKey.GetPublicKey().MarshalText()
+	if err := blsKeyHex.UnmarshalText(b); nil != err {
+		panic(err)
+	}
+
+	canAddr, err := xutil.NodeId2Addr(nodeIdArr[6])
+	if nil != err {
+		t.Fatal(err)
+	}
+	can := &staking.Candidate{
+		CandidateBase: &staking.CandidateBase{
+			NodeId:          nodeIdArr[6],
+			BlsPubKey:       blsKeyHex,
+			StakingAddress:  canAddr,
+			BenefitAddress:  canAddr,
+			StakingBlockNum: blockNumber.Uint64(),
+			StakingTxIndex:  1,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
+		},
+		CandidateMutable: &staking.CandidateMutable{
+			Shares:             new(big.Int).SetUint64(1000),
+			Released:           common.Big256,
+			ReleasedHes:        common.Big0,
+			RestrictingPlan:    common.Big0,
+			RestrictingPlanHes: common.Big0,
+		},
+	}
+	stateDB.CreateAccount(can.StakingAddress)
+	stateDB.AddBalance(can.StakingAddress, new(big.Int).SetUint64(1000000000000000000))
+	if val, err := rlp.EncodeToBytes(can); nil != err {
+		t.Fatal(err)
+	} else if err := snapshotdb.Instance().PutBaseDB(staking.CanBaseKeyByAddr(canAddr), val); nil != err {
+		t.Fatal(err)
+	}
+	if val, err := rlp.EncodeToBytes(can.CandidateMutable); nil != err {
+		t.Fatal(err)
+	} else if err := snapshotdb.Instance().PutBaseDB(staking.CanMutableKeyByAddr(canAddr), val); nil != err {
+		t.Fatal(err)
+	}
+
+	header := &types.Header{
+		Number: blockNumber,
+		Extra:  make([]byte, 97),
+	}
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, stateDB, validatorMap); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+	// Third consensus round
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap[nodeIdArr[0]] = false
+	validatorMap[nodeIdArr[6]] = false
+	sign, err := crypto.Sign(header.SealHash().Bytes(), nodePrivate)
+	if nil != err {
+		t.Fatal(err)
+	}
+	copy(header.Extra[len(header.Extra)-common.ExtraSeal:], sign[:])
+	if err := si.setPackAmount(common.ZeroHash, header); nil != err {
+		t.Fatal(err)
+	}
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, stateDB, validatorMap); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+	// Fourth consensus round
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap[nodeIdArr[0]] = true
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, stateDB, validatorMap); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+	// Fifth consensus round
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap[nodeIdArr[2]] = false
+	validatorMap[nodeIdArr[3]] = false
+	validatorMap[nodeIdArr[5]] = false
+	validatorMap[nodeIdArr[6]] = false
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, stateDB, validatorMap); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) != 1 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 1)
+		return
+	}
+	// Sixth consensus round
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "3", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "2", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap[nodeIdArr[1]] = false
+	validatorMap[nodeIdArr[2]] = false
+	validatorMap[nodeIdArr[5]] = false
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, stateDB, validatorMap); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+	// Seventh consensus round
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "6", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap[nodeIdArr[5]] = false
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, stateDB, validatorMap); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+
+	waitSlashingNodeList, err := si.getWaitSlashingNodeList(header.Number.Uint64(), common.ZeroHash)
+	if nil != err {
+		t.Fatal(err)
+	}
+	if len(waitSlashingNodeList) != 4 {
+		t.Errorf("waitSlashingNodeList amount: have %v, want %v", len(waitSlashingNodeList), 0)
+		return
+	}
+	expectMap := make(map[discover.NodeID]*WaitSlashingNode)
+	expectMap[nodeIdArr[1]] = &WaitSlashingNode{
+		CountBit: 1,
+		Round:    5,
+	}
+	expectMap[nodeIdArr[2]] = &WaitSlashingNode{
+		CountBit: 3, // 11
+		Round:    4,
+	}
+	expectMap[nodeIdArr[3]] = &WaitSlashingNode{
+		CountBit: 1,
+		Round:    4,
+	}
+	expectMap[nodeIdArr[5]] = &WaitSlashingNode{
+		CountBit: 7, // 111
+		Round:    4,
+	}
+	for _, value := range waitSlashingNodeList {
+		if expectValue, ok := expectMap[value.NodeId]; !ok {
+			t.Errorf("waitSlashingNodeList info: not nodeId:%v", value.NodeId.TerminalString())
+			return
+		} else {
+			if expectValue.Round != value.Round {
+				t.Errorf("waitSlashingNodeList info: have round:%v, want round:%v", value.Round, expectValue.Round)
+				return
+			}
+			if expectValue.CountBit != value.CountBit {
+				t.Errorf("waitSlashingNodeList info: have countBit:%v, want countBit:%v", value.CountBit, expectValue.CountBit)
+				return
+			}
+		}
 	}
 }
