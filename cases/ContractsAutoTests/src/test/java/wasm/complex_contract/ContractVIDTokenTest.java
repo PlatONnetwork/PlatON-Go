@@ -74,7 +74,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             collector.assertEqual(allowance, value);
 
             // IncreaseApproval
-            BigInteger increaseValue = new BigInteger("233");
+            BigInteger increaseValue = new BigInteger("23300000");
             TransactionReceipt increaseTr = contract.IncreaseApproval(to, increaseValue).send();
             collector.logStepPass("Send IncreaseApproval, hash:  " + increaseTr.getTransactionHash()
                     + " gasUsed: " + increaseTr.getGasUsed());
@@ -83,7 +83,16 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             collector.logStepPass("Call Allowance after increaseApproval, res: " + afterIncreaseAllowance);
             collector.assertEqual(afterIncreaseAllowance, value.add(increaseValue));
 
+            // DecreaseApproval
+            BigInteger decreaseValue = new BigInteger("23300000");
+            TransactionReceipt decreaseTr = contract.DecreaseApproval(to, decreaseValue).send();
+            collector.logStepPass("Send DecreaseApproval, hash:  " + decreaseTr.getTransactionHash()
+                    + " gasUsed: " + decreaseTr.getGasUsed());
 
+            BigInteger afterDecreaseAllowance = contract.Allowance(credentials.getAddress(), to).send();
+            collector.logStepPass("Call Allowance after DecreaseApproval, res: " + afterDecreaseAllowance);
+            collector.assertEqual(afterDecreaseAllowance, value);
+            
             // TransferFrom
             // spender: a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7
             // 0x493301712671Ada506ba6Ca7891F436D29185821
