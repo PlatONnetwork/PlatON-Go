@@ -92,7 +92,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             BigInteger afterDecreaseAllowance = contract.Allowance(credentials.getAddress(), to).send();
             collector.logStepPass("Call Allowance after DecreaseApproval, res: " + afterDecreaseAllowance);
             collector.assertEqual(afterDecreaseAllowance, value);
-            
+
             // TransferFrom
             // spender: a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7
             // 0x493301712671Ada506ba6Ca7891F436D29185821
@@ -109,6 +109,17 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             collector.logStepPass("Call balanceOf 2, res: " + to2Balance);
             collector.assertEqual(to2Balance, valule2);
             collector.logStepPass("Check TransferFrom() and Approve() success.");
+
+            // TransferToken
+            BigInteger transferTokenValue = new BigInteger("10000");
+            TransactionReceipt transferTokenTR = contract.TransferToken(to, transferTokenValue).send();
+            collector.logStepPass("Send TransferToken, hash:  " + transferTokenTR.getTransactionHash()
+                    + " gasUsed: " + transferTokenTR.getGasUsed() + " logs:" + transferTokenTR.getLogs().size());
+            VIDToken.TransferEvEventResponse transferTokenResponse = contract.getTransferEvEvents(transferTokenTR).get(0);
+            collector.logStepPass("Send TransaferToken Logs: "
+                    + " arg1: " + transferTokenResponse.arg1
+                    + " arg2: " + transferTokenResponse.arg2
+                    + " arg3: " + transferTokenResponse.arg3);
 
 
         } catch (Exception e) {
