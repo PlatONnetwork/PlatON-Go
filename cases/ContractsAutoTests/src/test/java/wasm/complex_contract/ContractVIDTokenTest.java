@@ -121,6 +121,17 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " arg2: " + transferTokenResponse.arg2
                     + " arg3: " + transferTokenResponse.arg3);
 
+            // Burn
+            BigInteger burnValue = new BigInteger("122");
+            TransactionReceipt burnTr = contract.Burn(burnValue).send();
+            collector.logStepPass("Send Burn, hash:  " + burnTr.getTransactionHash()
+                    + " gasUsed: " + burnTr.getGasUsed() + " logs:" + burnTr.getLogs().size());
+            VIDToken.BurnEvEventResponse burnResponse = contract.getBurnEvEvents(burnTr).get(0);
+            collector.assertTrue(burnTr.getLogs().size() != 0);
+            collector.logStepPass("Send Burn Logs: "
+                    + " arg1: " + transferTokenResponse.arg1
+                    + " arg2: " + transferTokenResponse.arg2);
+
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
