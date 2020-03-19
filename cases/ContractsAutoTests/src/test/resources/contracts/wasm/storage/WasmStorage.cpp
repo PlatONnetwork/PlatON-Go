@@ -159,5 +159,5 @@ CONTRACT WasmStorage : public platon::Contract {
   const uint64_t kMaxStringLength = 512;
 };
 
-PLATON_DISPATCH(WasmStorage, (init)(action)(debug))
+PLATON_DISPATCH(WasmStorage, (init)(action)(random_data)(debug))
 }  // namespace platon

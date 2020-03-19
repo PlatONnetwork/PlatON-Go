@@ -38,6 +38,16 @@ public class InitWithMap extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> set_map(String key, String value) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_MAP, Arrays.asList(key,value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_map(String key, String value, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_MAP, Arrays.asList(key,value), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<InitWithMap> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, String key, String value) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(key,value));
         return deployRemoteCall(InitWithMap.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -56,16 +66,6 @@ public class InitWithMap extends WasmContract {
     public static RemoteCall<InitWithMap> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, String key, String value) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(key,value));
         return deployRemoteCall(InitWithMap.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> set_map(String key, String value) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_MAP, Arrays.asList(key,value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_map(String key, String value, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_MAP, Arrays.asList(key,value), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<String> get_map(String key) {

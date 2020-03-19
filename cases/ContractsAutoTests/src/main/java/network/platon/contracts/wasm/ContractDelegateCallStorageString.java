@@ -39,6 +39,11 @@ public class ContractDelegateCallStorageString extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public static RemoteCall<ContractDelegateCallStorageString> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractDelegateCallStorageString.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -57,11 +62,6 @@ public class ContractDelegateCallStorageString extends WasmContract {
     public static RemoteCall<ContractDelegateCallStorageString> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractDelegateCallStorageString.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> delegate_call_set_string(String target_address, String name, Uint64 gas) {

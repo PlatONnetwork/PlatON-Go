@@ -58,16 +58,6 @@ public class HomeBridge extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> setGasLimitWithdrawRelay(BigInteger gas) {
-        final WasmFunction function = new WasmFunction(FUNC_SETGASLIMITWITHDRAWRELAY, Arrays.asList(gas), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setGasLimitWithdrawRelay(BigInteger gas, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETGASLIMITWITHDRAWRELAY, Arrays.asList(gas), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public List<GasConsumptionLimitsUpdatedEventResponse> getGasConsumptionLimitsUpdatedEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(GASCONSUMPTIONLIMITSUPDATED_EVENT, transactionReceipt);
         ArrayList<GasConsumptionLimitsUpdatedEventResponse> responses = new ArrayList<GasConsumptionLimitsUpdatedEventResponse>(valueList.size());
@@ -97,6 +87,16 @@ public class HomeBridge extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(GASCONSUMPTIONLIMITSUPDATED_EVENT));
         return gasConsumptionLimitsUpdatedEventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> setGasLimitWithdrawRelay(BigInteger gas) {
+        final WasmFunction function = new WasmFunction(FUNC_SETGASLIMITWITHDRAWRELAY, Arrays.asList(gas), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setGasLimitWithdrawRelay(BigInteger gas, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETGASLIMITWITHDRAWRELAY, Arrays.asList(gas), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<DepositEventResponse> getDepositEvents(TransactionReceipt transactionReceipt) {
