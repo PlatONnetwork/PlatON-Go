@@ -131,6 +131,14 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 					return err
 				}
 			}
+			if versionProposal.NewVersion == uint32(0<<16|9<<11|0) {
+				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "15", blockNumber, blockHash); nil != err {
+					return err
+				}
+				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", blockNumber, blockHash); nil != err {
+					return err
+				}
+			}
 			log.Info("version proposal is active.", "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
 	}
