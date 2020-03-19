@@ -18,12 +18,12 @@ class MessageSigning
 				v := mload(add(signature, 0x60))
 			}
 			return ecrecover(hashMessage(message), uint8(v), r, s);*/
-			return Address("0x000000000000000000000000000000000000000");
+			return platon_caller();
 		}
 
-		static bytes hashMessage(bytes message){
+		static h256 hashMessage(bytes message){
 			/*bytes memory prefix = "\x19Ethereum Signed Message:\n";
 			return keccak256(prefix, Helpers.uintToString(message.length), message);*/
-			return bytes();
+			return platon_sha3(message);;
 		}
 };

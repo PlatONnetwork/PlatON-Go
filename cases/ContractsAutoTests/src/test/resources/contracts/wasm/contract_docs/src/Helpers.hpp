@@ -36,11 +36,11 @@ class Helpers
 											std::vector<Address> allowed_signers, 
 											u128 requiredSignatures){
 			// not enough signatures
-			if (u128(vs.size()) < requiredSignatures) {
+			/*if (u128(vs.size()) < requiredSignatures) {
 				return false;
-			}
+			}*/
 
-			Address hash = MessageSigning::hashMessage(message);
+			h256 hash = MessageSigning::hashMessage(message);
 			/*
 			var encountered_addresses = new address[](allowed_signers.length);
 
