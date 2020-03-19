@@ -19,6 +19,7 @@ package plugin
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
@@ -53,6 +54,17 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 	RestrictingInstance()
 	chain := mock.NewChain()
 	gov.InitGenesisGovernParam(snapshotdb.Instance())
+	avList := []gov.ActiveVersionValue{
+		{
+			ActiveVersion: 1,
+			ActiveBlock:   0,
+		},
+	}
+	enValue, err := json.Marshal(avList)
+	if nil != err {
+		panic(err)
+	}
+	chain.StateDB.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), enValue)
 	return si, chain.StateDB
 }
 
