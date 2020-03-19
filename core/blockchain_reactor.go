@@ -324,6 +324,9 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 	}
 
 	input := tx.Data()
+	if len(input) == 0 {
+		return nil
+	}
 
 	var contract vm.PlatONPrecompiledContract
 	switch to {
@@ -343,6 +346,7 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 		// pass if the contract is validatorInnerContract
 		return nil
 	}
+	// verify the ppos contract tx.data
 	if contract != nil {
 		if fcode, _, _, err := plugin.VerifyTxData(input, contract.FnSigns()); nil != err {
 			return err

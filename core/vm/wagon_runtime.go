@@ -12,7 +12,6 @@ import (
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/PlatONnetwork/wagon/wasm"
 
-	"math"
 	"math/big"
 	"reflect"
 )
@@ -30,14 +29,14 @@ type VMContext struct {
 	Log      *WasmLogger
 }
 
-func NewVMContext(evm *EVM, contract *Contract, config Config, db StateDB) *VMContext {
-	return &VMContext{
-		evm:      evm,
-		contract: contract,
-		config:   config,
-		db:       db,
-	}
-}
+//func NewVMContext(evm *EVM, contract *Contract, config Config, db StateDB) *VMContext {
+//	return &VMContext{
+//		evm:      evm,
+//		contract: contract,
+//		config:   config,
+//		db:       db,
+//	}
+//}
 
 func addFuncExport(m *wasm.Module, sig wasm.FunctionSig, function wasm.Function, export wasm.ExportEntry) {
 	typesLen := len(m.Types.Entries)
@@ -803,7 +802,7 @@ func GetStateLength(proc *exec.Process, key uint32, keyLen uint32) uint32 {
 	return uint32(len(val))
 }
 
-func GetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) uint32 {
+func GetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 	keyBuf := make([]byte, keyLen)
 	_, err := proc.ReadAt(keyBuf, int64(key))
@@ -811,17 +810,18 @@ func GetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen 
 		panic(err)
 	}
 	valBuf := ctx.evm.StateDB.GetState(ctx.contract.Address(), keyBuf)
-	checkGas(ctx, StoreLenGas*uint64(len(valBuf)))
+	vlen := len(valBuf)
+	checkGas(ctx, StoreLenGas*uint64(vlen))
 
-	if uint32(len(valBuf)) > valLen {
-		return math.MaxUint32
+	if uint32(vlen) > valLen {
+		return -1
 	}
 
 	_, err = proc.WriteAt(valBuf, int64(val))
 	if nil != err {
 		panic(err)
 	}
-	return 0
+	return int32(vlen)
 }
 
 func GetInputLength(proc *exec.Process) uint32 {
@@ -1257,7 +1257,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 		panic(err)
 	}
 
-	ctx.contract.Gas = contract.Gas
+	ctx.contract.Gas += contract.Gas
 
 	_, err = proc.WriteAt(newContract.Bytes(), int64(newAddr))
 	if nil != err {
@@ -1290,6 +1290,9 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 		}
 
 		topicCount, err := rlp.CountValues(content)
+		if nil != err {
+			panic(err)
+		}
 		if topicCount > WasmTopicNum {
 			panic("wasm event indexed count too large")
 		}
