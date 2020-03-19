@@ -48,7 +48,27 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
 
-          
+            // transfer in contract
+            String to = "0x493301712671Ada506ba6Ca7891F436D29185821";
+            BigInteger value = new BigInteger("100000");
+            TransactionReceipt transferTr = contract.Transfer(to, value).send();
+            collector.logStepPass("Send Transfer, hash:  " + transferTr.getTransactionHash()
+                    + " gasUsed: " + transferTr.getGasUsed());
+
+            // balance of
+            BigInteger balance = contract.BalanceOf(to).send();
+            collector.logStepPass("Call balanceOf, res: " + balance);
+            collector.assertEqual(balance, value);
+
+            // approve
+            TransactionReceipt approveTR = contract.Approve(to, value).send();
+            collector.logStepPass("Send Approve, hash:  " + approveTR.getTransactionHash()
+                    + " gasUsed: " + approveTR.getGasUsed());
+
+            // allowance
+            BigInteger allowance = contract.Allowance(credentials.getAddress(), to).send();
+            collector.logStepPass("Call allowance, res: " + allowance);
+            collector.assertEqual(allowance, value);
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
