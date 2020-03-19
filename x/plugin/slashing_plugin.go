@@ -134,7 +134,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				return err
 			}
 
-			slashQueue := make(staking.SlashQueue, 0)
+			var slashQueue staking.SlashQueue
 
 			currentVersion := gov.GetCurrentActiveVersion(state)
 			if currentVersion == 0 {
