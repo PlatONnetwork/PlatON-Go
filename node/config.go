@@ -45,7 +45,7 @@ const (
 	datadirTrustedNodes    = "trusted-nodes.json" // Path within the datadir to the trusted node list
 	datadirNodeDatabase    = "nodes"              // Path within the datadir to store the node infos
 	datadirBlsKey          = "blskey"             // Path within the datadir to the node's private key
-
+	datadirGenesis         = "genesis.json"       // Path within the datadir to the genesis file
 )
 
 // Config represents a small collection of configuration values to fine tune the
@@ -269,6 +269,10 @@ var isOldGethResource = map[string]bool{
 	"nodekey":            true,
 	"static-nodes.json":  true,
 	"trusted-nodes.json": true,
+}
+
+func (c *Config) GenesisPath() string {
+	return c.ResolvePath(datadirGenesis)
 }
 
 // ResolvePath resolves path in the instance directory.

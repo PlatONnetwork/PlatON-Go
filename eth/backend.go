@@ -20,7 +20,9 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"math/big"
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -129,6 +131,44 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
+
+	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
+	log.Debug("init chain ", "height", height)
+	if height != nil && *height > 0 {
+		//when last  fast syncing fail,we will clean chaindb,wal,snapshotdb
+		sdb := snapshotdb.Instance()
+		if status, err := sdb.GetBaseDB([]byte(downloader.KeyFastSyncStatus)); err == nil {
+			log.Info("last fast sync is fail,init  chain", "status", status)
+			if err := sdb.Close(); err != nil {
+				return nil, err
+			}
+
+			chainDb.Close()
+			if err := os.RemoveAll(ctx.ResolvePath("chaindata")); err != nil {
+				return nil, err
+			}
+
+			if err := os.RemoveAll(ctx.ResolvePath(wal.WalDir(ctx))); err != nil {
+				return nil, err
+			}
+
+			chainDb, err = CreateDB(ctx, config, "chaindata")
+			if err != nil {
+				return nil, err
+			}
+			if config.Genesis == nil {
+				log.Info("last fast sync is fail,set  genesis")
+				config.Genesis = new(core.Genesis)
+				if err := config.Genesis.InitAndSetEconomicConfig(ctx.GenesisPath()); err != nil {
+					return nil, err
+				}
+			}
+		} else if err != snapshotdb.ErrNotFound {
+			return nil, err
+		} else {
+			log.Debug("init chain not found", "err", err)
+		}
+	}
 
 	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
 

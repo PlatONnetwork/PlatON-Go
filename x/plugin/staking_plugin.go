@@ -2277,7 +2277,7 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 }
 
 func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
-	programVersion uint32) error {
+	programVersion uint32, state xcom.StateDB) error {
 
 	log.Info("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
@@ -2297,6 +2297,13 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			log.Error("Failed to ProposalPassedNotify: Promote candidate programVersion failed, the can is empty",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 			continue
+		}
+		currentVersion := gov.GetCurrentActiveVersion(state)
+		if currentVersion == 0 || gov.GetCurrentActiveVersion(state) >= FORKVERSION_0_11_0 || programVersion == FORKVERSION_0_11_0 {
+			if can.IsInvalid() {
+				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
+				continue
+			}
 		}
 
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
