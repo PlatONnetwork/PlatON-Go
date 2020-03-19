@@ -80,9 +80,6 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		SubmitCancel:  gc.submitCancel,
 		SubmitParam:   gc.submitParam,
 
-		// TODO test
-		uint16(2009): gc.StorageVersion,
-
 		// Get
 		GetProposal:           gc.getProposal,
 		GetResult:             gc.getTallyResult,
@@ -482,38 +479,4 @@ func (gc *GovContract) callHandler(funcName string, resultValue interface{}, err
 	default:
 		return callResultHandler(gc.Evm, funcName+" of GovContract", resultValue, common.InternalError.Wrap(err.Error())), nil
 	}
-}
-
-
-
-func (gc *GovContract) StorageVersion (version uint32) ([]byte, error) {
-
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
-	state := gc.Evm.StateDB
-
-	// Storage new version  for gov
-	if err := gov.AddActiveVersion(version, blockNumber, state); err != nil {
-		log.Error("Failed to storage version to stateDB", "blockNumber", blockNumber, "blockHash", blockHash, "err", err)
-		return gc.nonCallHandler("StorageVersion", uint16(2009), err)
-	}
-
-	// promote the version for validators
-	stakingPlugin := plugin.StakingInstance()
-	arr, err := stakingPlugin.GetValidatorList(blockHash, blockNumber, plugin.CurrentRound, plugin.QueryStartNotIrr)
-	if nil != err {
-		log.Error("Failed to GetValidatorList", "blockNumber", blockNumber, "blockHash", blockHash, "err", err)
-		return gc.nonCallHandler("StorageVersion", uint16(2009), err)
-	}
-
-	nodeIds := make([]discover.NodeID, len(arr))
-	for i, v := range  arr {
-		nodeIds[i] = v.NodeId
-	}
-	if err := stakingPlugin.ProposalPassedNotify(blockHash, blockNumber, nodeIds, version); nil != err {
-		log.Error("Failed to ProposalPassedNotify", "blockNumber", blockNumber, "blockHash", blockHash, "err", err)
-		return gc.nonCallHandler("StorageVersion", uint16(2009), err)
-	}
-
-	return gc.nonCallHandler("StorageVersion", uint16(2009), nil)
 }

@@ -192,7 +192,7 @@ func (s *stateObject) empty() bool {
 
 func (s *stateObject) delReferenceValueStorage(valueKey common.Hash) {
 	if checkForkPIP0_11_0(s.db) {
-		log.Debug("delReferenceValueStorage Start, deleleReferenceValue", "govVersion", s.db.govVersion, "valueKey", valueKey.String())
+		log.Trace("delReferenceValueStorage Start, deleleReferenceValue", "govVersion", s.db.govVersion, "valueKey", valueKey.String())
 		s.dirtyValueStorage.deleleReferenceValue(valueKey)
 	}else {
 		s.dirtyValueStorage.pureDelReferenceValue(valueKey)
@@ -201,7 +201,7 @@ func (s *stateObject) delReferenceValueStorage(valueKey common.Hash) {
 
 func (s *stateObject) setReferenceValueStorage (valueKey common.Hash, val []byte) {
 	if checkForkPIP0_11_0(s.db) {
-		log.Debug("setReferenceValueStorage Start, setReferenceValue", "govVersion", s.db.govVersion, "valueKey", valueKey.String(), "val", hexutil.Encode(val))
+		log.Trace("setReferenceValueStorage Start, setReferenceValue", "govVersion", s.db.govVersion, "valueKey", valueKey.String(), "val", hexutil.Encode(val))
 		s.dirtyValueStorage.setReferenceValue(valueKey, val)
 	}else {
 		s.dirtyValueStorage.pureSetReferenceValue(valueKey, val)

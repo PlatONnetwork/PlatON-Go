@@ -971,7 +971,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 		currVersion := gov.GetCurrentActiveVersion(state)
 		if currVersion >= plugin.FORKVERSION_0_11_0 {
-			log.Debug("GetCurrentActiveVersion on blockchain WriteBlockWithState", "blockNumber", block.Number(),
+			log.Trace("GetCurrentActiveVersion on blockchain WriteBlockWithState", "blockNumber", block.Number(),
 				"blockHash", block.Hash().TerminalString(), "govVersion", currVersion, "forkVersion", plugin.FORKVERSION_0_11_0)
 			bc.cacheConfig.DBGCMpt = false
 		}
@@ -991,7 +991,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
-			log.Debug("Deference trie start", "blockNumber", block.Number(), "blockHash", block.Hash().TerminalString(),
+			log.Trace("Deference trie start", "blockNumber", block.Number(), "blockHash", block.Hash().TerminalString(),
 				"root", currentBlock.Root().TerminalString())
 			triedb.DereferenceDB(currentBlock.Root())
 
