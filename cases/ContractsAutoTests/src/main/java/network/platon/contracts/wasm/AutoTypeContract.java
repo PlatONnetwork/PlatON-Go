@@ -28,6 +28,8 @@ public class AutoTypeContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GET_ANTO_ITERATOR = "get_anto_iterator";
+
     public static final String FUNC_GET_ANTO_INT = "get_anto_int";
 
     public static final String FUNC_GET_ANTO_INT32 = "get_anto_int32";
@@ -38,14 +40,17 @@ public class AutoTypeContract extends WasmContract {
 
     public static final String FUNC_SET_ANTO_CARE_ONE = "set_anto_care_one";
 
-    public static final String FUNC_GET_ANTO_ITERATOR = "get_anto_iterator";
-
     protected AutoTypeContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
     }
 
     protected AutoTypeContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Uint8> get_anto_iterator() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_ITERATOR, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public static RemoteCall<AutoTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -96,11 +101,6 @@ public class AutoTypeContract extends WasmContract {
     public RemoteCall<TransactionReceipt> set_anto_care_one(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SET_ANTO_CARE_ONE, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint8> get_anto_iterator() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_ITERATOR, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public static AutoTypeContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

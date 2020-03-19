@@ -40,11 +40,13 @@ public class GuessingWasm extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_GUESSINGWITHLAT = "guessingWithLat";
+    public static final String FUNC_GETINDEXKEY = "getIndexKey";
 
     public static final String FUNC_GETBALANCE = "getBalance";
 
     public static final String FUNC_GETWINNERCOUNT = "getWinnerCount";
+
+    public static final String FUNC_GUESSINGWITHLAT = "guessingWithLat";
 
     public static final String FUNC_DRAW = "draw";
 
@@ -53,8 +55,6 @@ public class GuessingWasm extends WasmContract {
     public static final String FUNC_GETWINNERADDRESSES = "getWinnerAddresses";
 
     public static final String FUNC_GETMYGUESSCODES = "getMyGuessCodes";
-
-    public static final String FUNC_GETINDEXKEY = "getIndexKey";
 
     public static final WasmEvent TRANSFER1_EVENT = new WasmEvent("transfer1", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(BigInteger.class)));
     ;
@@ -105,14 +105,9 @@ public class GuessingWasm extends WasmContract {
         return transfer1EventObservable(filter);
     }
 
-    public RemoteCall<TransactionReceipt> guessingWithLat() {
-        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> guessingWithLat(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
+    public RemoteCall<Uint64> getIndexKey() {
+        final WasmFunction function = new WasmFunction(FUNC_GETINDEXKEY, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<BigInteger> getBalance() {
@@ -180,6 +175,16 @@ public class GuessingWasm extends WasmContract {
         return deployRemoteCall(GuessingWasm.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
+    public RemoteCall<TransactionReceipt> guessingWithLat() {
+        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> guessingWithLat(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<TransactionReceipt> draw() {
         final WasmFunction function = new WasmFunction(FUNC_DRAW, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
@@ -207,11 +212,6 @@ public class GuessingWasm extends WasmContract {
 
     public RemoteCall<Uint64> getMyGuessCodes(WasmAddress address) {
         final WasmFunction function = new WasmFunction(FUNC_GETMYGUESSCODES, Arrays.asList(address), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
-    }
-
-    public RemoteCall<Uint64> getIndexKey() {
-        final WasmFunction function = new WasmFunction(FUNC_GETINDEXKEY, Arrays.asList(), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
     }
 

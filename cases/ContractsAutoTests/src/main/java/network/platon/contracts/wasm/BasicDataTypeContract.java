@@ -29,11 +29,9 @@ public class BasicDataTypeContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_STRING_LENGTH = "get_string_length";
+    public static final String FUNC_SET_FLOAT_TYPE_LOCAL = "set_float_type_local";
 
-    public static final String FUNC_SET_ENUM_VALIDITY = "set_enum_validity";
-
-    public static final String FUNC_SET_ENUM_ASSIGNMENT = "set_enum_assignment";
+    public static final String FUNC_GET_ADDRESS = "get_address";
 
     public static final String FUNC_SET_BOOL = "set_bool";
 
@@ -47,11 +45,9 @@ public class BasicDataTypeContract extends WasmContract {
 
     public static final String FUNC_GET_STRING = "get_string";
 
-    public static final String FUNC_SET_FLOAT_TYPE_LOCAL = "set_float_type_local";
+    public static final String FUNC_GET_STRING_LENGTH = "get_string_length";
 
     public static final String FUNC_SET_ADDRESS = "set_address";
-
-    public static final String FUNC_GET_ADDRESS = "get_address";
 
     public static final String FUNC_SET_LONG = "set_long";
 
@@ -60,6 +56,10 @@ public class BasicDataTypeContract extends WasmContract {
     public static final String FUNC_SET_LONG_LONG = "set_long_long";
 
     public static final String FUNC_GET_LONG_LONG = "get_long_long";
+
+    public static final String FUNC_SET_ENUM_VALIDITY = "set_enum_validity";
+
+    public static final String FUNC_SET_ENUM_ASSIGNMENT = "set_enum_assignment";
 
     public static final String FUNC_SET_ENUM_SCOPE = "set_enum_scope";
 
@@ -73,9 +73,19 @@ public class BasicDataTypeContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<Uint8> get_string_length() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING_LENGTH, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
+    public RemoteCall<TransactionReceipt> set_float_type_local() {
+        final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_float_type_local(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<String> get_address() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_ADDRESS, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static RemoteCall<BasicDataTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -96,21 +106,6 @@ public class BasicDataTypeContract extends WasmContract {
     public static RemoteCall<BasicDataTypeContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(BasicDataTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> set_enum_validity() {
-        final WasmFunction function = new WasmFunction(FUNC_SET_ENUM_VALIDITY, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_enum_validity(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_ENUM_VALIDITY, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint8> set_enum_assignment() {
-        final WasmFunction function = new WasmFunction(FUNC_SET_ENUM_ASSIGNMENT, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> set_bool(Boolean value) {
@@ -158,14 +153,9 @@ public class BasicDataTypeContract extends WasmContract {
         return executeRemoteCall(function, String.class);
     }
 
-    public RemoteCall<TransactionReceipt> set_float_type_local() {
-        final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_float_type_local(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
+    public RemoteCall<Uint8> get_string_length() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING_LENGTH, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> set_address() {
@@ -176,11 +166,6 @@ public class BasicDataTypeContract extends WasmContract {
     public RemoteCall<TransactionReceipt> set_address(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SET_ADDRESS, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<String> get_address() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_ADDRESS, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> set_long(Int32 value) {
@@ -211,6 +196,21 @@ public class BasicDataTypeContract extends WasmContract {
     public RemoteCall<Int64> get_long_long() {
         final WasmFunction function = new WasmFunction(FUNC_GET_LONG_LONG, Arrays.asList(), Int64.class);
         return executeRemoteCall(function, Int64.class);
+    }
+
+    public RemoteCall<TransactionReceipt> set_enum_validity() {
+        final WasmFunction function = new WasmFunction(FUNC_SET_ENUM_VALIDITY, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_enum_validity(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_ENUM_VALIDITY, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Uint8> set_enum_assignment() {
+        final WasmFunction function = new WasmFunction(FUNC_SET_ENUM_ASSIGNMENT, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> set_enum_scope() {

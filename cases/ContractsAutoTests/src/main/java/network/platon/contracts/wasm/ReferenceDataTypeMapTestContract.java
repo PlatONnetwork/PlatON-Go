@@ -32,8 +32,6 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
 
     public static final String FUNC_ADDMAPBYPERSON = "addMapByPerson";
 
-    public static final String FUNC_GETMAPBYPERSONSIZE = "getMapByPersonSize";
-
     public static final String FUNC_SETMAPKEYTYPE = "setMapKeyType";
 
     public static final String FUNC_ADDMAPSTRING = "addMapString";
@@ -41,6 +39,8 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
     public static final String FUNC_GETMAPSTRINGSIZE = "getMapStringSize";
 
     public static final String FUNC_GETMAPVALUEBYSTRING = "getMapValueByString";
+
+    public static final String FUNC_GETMAPBYPERSONSIZE = "getMapByPersonSize";
 
     public static final String FUNC_GETMAPBYPERSON = "getMapByPerson";
 
@@ -60,11 +60,6 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
     public RemoteCall<TransactionReceipt> addMapByPerson(Uint8 key, Person person, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ADDMAPBYPERSON, Arrays.asList(key,person), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint64> getMapByPersonSize() {
-        final WasmFunction function = new WasmFunction(FUNC_GETMAPBYPERSONSIZE, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public static RemoteCall<ReferenceDataTypeMapTestContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -115,6 +110,11 @@ public class ReferenceDataTypeMapTestContract extends WasmContract {
     public RemoteCall<String> getMapValueByString(String key) {
         final WasmFunction function = new WasmFunction(FUNC_GETMAPVALUEBYSTRING, Arrays.asList(key), String.class);
         return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<Uint64> getMapByPersonSize() {
+        final WasmFunction function = new WasmFunction(FUNC_GETMAPBYPERSONSIZE, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<String> getMapByPerson(Uint8 key) {
