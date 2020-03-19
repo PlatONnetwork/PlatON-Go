@@ -15,8 +15,6 @@
 */**/*dapps*
 build/_vendor/pkg
 wasm.log
-cmd/ctool/test/addr.json
-cmd/ctool/test/privateKeys.txt
 #*
 .#*
 *#
