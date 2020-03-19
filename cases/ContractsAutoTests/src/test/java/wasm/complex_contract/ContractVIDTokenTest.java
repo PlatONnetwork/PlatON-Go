@@ -132,6 +132,26 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " arg1: " + transferTokenResponse.arg1
                     + " arg2: " + transferTokenResponse.arg2);
 
+            // Freeze
+            TransactionReceipt freezeTr = contract.Freeze(credentials.getAddress(), true).send();
+            collector.logStepPass("Send Freeze, hash:  " + freezeTr.getTransactionHash()
+                    + " gasUsed: " + freezeTr.getGasUsed() + " logs:" + freezeTr.getLogs().size());
+            VIDToken.FreezeEvEventResponse freezeResponse = contract.getFreezeEvEvents(freezeTr).get(0);
+            collector.assertTrue(freezeTr.getLogs().size() != 0);
+            collector.logStepPass("Send Burn Logs: "
+                    + " arg1: " + freezeResponse.arg1
+                    + " arg2: " + freezeResponse.arg2);
+
+            // ValidatePublisher
+            TransactionReceipt publisherTr = contract.ValidatePublisher(to, true, credentials.getAddress()).send();
+            collector.logStepPass("Send ValidatePublisher, hash:  " + publisherTr.getTransactionHash()
+                    + " gasUsed: " + publisherTr.getGasUsed() + " logs:" + publisherTr.getLogs().size());
+            VIDToken.ValidatePublisherEvEventResponse publisherResponse = contract.getValidatePublisherEvEvents(publisherTr).get(0);
+            collector.assertTrue(publisherTr.getLogs().size() != 0);
+            collector.logStepPass("Send ValidatePublisher Logs: "
+                    + " arg1: " + publisherResponse.arg1
+                    + " arg2: " + publisherResponse.arg2
+                    + " arg3: " + publisherResponse.arg3);
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
