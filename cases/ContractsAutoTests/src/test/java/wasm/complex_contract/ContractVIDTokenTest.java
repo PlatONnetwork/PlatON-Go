@@ -73,6 +73,17 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             collector.logStepPass("Call allowance, res: " + allowance);
             collector.assertEqual(allowance, value);
 
+            // IncreaseApproval
+            BigInteger increaseValue = new BigInteger("233");
+            TransactionReceipt increaseTr = contract.IncreaseApproval(to, increaseValue).send();
+            collector.logStepPass("Send IncreaseApproval, hash:  " + increaseTr.getTransactionHash()
+                    + " gasUsed: " + increaseTr.getGasUsed());
+
+            BigInteger afterIncreaseAllowance = contract.Allowance(credentials.getAddress(), to).send();
+            collector.logStepPass("Call Allowance after increaseApproval, res: " + afterIncreaseAllowance);
+            collector.assertEqual(afterIncreaseAllowance, value.add(increaseValue));
+
+
             // TransferFrom
             // spender: a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7
             // 0x493301712671Ada506ba6Ca7891F436D29185821
@@ -80,7 +91,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             Credentials spendCredentials = Credentials.create("a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7");
             TransactionManager spenderTM = transactionManager = new RawTransactionManager(web3j, spendCredentials, chainId);
             String to2 = "0x1E1ae3407377F7897470FEf31a80873B4FD75cA1";
-            BigInteger valule2 = new BigInteger("10000000000000");
+            BigInteger valule2 = new BigInteger("10000");
             VIDToken v = VIDToken.load(contractAddress, web3j, spenderTM, provider);
             TransactionReceipt transferFromTr = v.TransferFrom(credentials.getAddress(), to2, valule2).send();
             collector.logStepPass("Send TransferFrom, hash:  " + transferFromTr.getTransactionHash()
