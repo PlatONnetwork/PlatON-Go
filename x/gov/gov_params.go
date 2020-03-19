@@ -269,6 +269,61 @@ func RegisterGovernParamVerifiers() {
 	for _, param := range queryInitParam() {
 		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
 	}
+	RegisterExtraGovernParamVerifiers()
+}
+
+// Used when new governance parameters need to be added after the blockchain is running
+func RegisterExtraGovernParamVerifiers() {
+	extraGovernParam := []*GovernParam{
+		{
+
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceCumulativeTime,
+				fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: (ZeroProduceNumberThreshold, %d]", xcom.CeilZeroProduceCumulativeTime)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceCumulativeTime())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				roundNumber, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed ZeroProduceCumulativeTime is failed")
+				}
+
+				numberThreshold, err := GovernZeroProduceNumberThreshold(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckZeroProduceCumulativeTime(uint16(roundNumber), numberThreshold); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceNumberThreshold,
+				fmt.Sprintf("Number of zero production blocks, range: (1, ZeroProduceCumulativeTime]")},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceNumberThreshold())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed ZeroProduceNumberThreshold is failed")
+				}
+
+				roundNumber, err := GovernZeroProduceCumulativeTime(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckZeroProduceNumberThreshold(roundNumber, uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+	}
+
+	for _, param := range extraGovernParam {
+		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
+	}
 }
 
 func RegGovernParamVerifier(module, name string, callback ParamVerifier) {

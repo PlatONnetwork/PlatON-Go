@@ -20,6 +20,9 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
 
@@ -50,9 +53,29 @@ const (
 var (
 	// The prefix key of the number of blocks packed in the recording node
 	packAmountPrefix = []byte("nodePackAmount")
-	once             sync.Once
-	slash            *SlashingPlugin
+	// Nodes with zero block behavior are stored in this list; This value is the key of the list
+	waitSlashingNodeListKey = []byte("waitSlashingNodeList")
+	once                    sync.Once
+	slash                   *SlashingPlugin
 )
+
+// Nodes with zero blocks will construct this structure and store it in the queue waiting for punishment.
+type WaitSlashingNode struct {
+	NodeId discover.NodeID
+	// The number of consensus rounds when the first zero block appeared
+	Round uint64
+	// Used to record the number of times the node has zero blocks.
+	// Each bit represents whether each consensus round is zero block.
+	CountBit uint64
+}
+
+func (w *WaitSlashingNode) String() string {
+	v, err := json.Marshal(w)
+	if err != nil {
+		panic(err)
+	}
+	return string(v)
+}
 
 type SlashingPlugin struct {
 	db             snapshotdb.DB
@@ -111,54 +134,77 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				return err
 			}
 
-			slashQueue := make(staking.SlashQueue, 0)
+			var slashQueue staking.SlashQueue
 
-			blockReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
-			if nil != err {
-				log.Error("Failed to BeginBlock, query GovernSlashBlocksReward is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-				return err
+			currentVersion := gov.GetCurrentActiveVersion(state)
+			if currentVersion == 0 {
+				log.Error("Failed to BeginBlock, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
+				return errors.New("Failed to get CurrentActiveVersion")
 			}
-
-			for _, validator := range preRoundVal.Arr {
-				nodeId := validator.NodeId
-				count := result[nodeId]
-				if count > 0 {
-					continue
-				}
-				slashType := staking.LowRatioDel
-				slashAmount := common.Big0
-
-				canMutable, err := stk.GetCanMutableByIrr(validator.NodeAddress)
-				if nil != err {
-					log.Error("Failed to BeginBlock, call candidate mutable info is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-					if err == snapshotdb.ErrNotFound {
-						continue
+			if currentVersion >= uint32(0<<16|9<<11|0) {
+				// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
+				validatorMap := make(map[discover.NodeID]bool)
+				for _, validator := range preRoundVal.Arr {
+					nodeId := validator.NodeId
+					count := result[nodeId]
+					if count > 0 {
+						validatorMap[nodeId] = true
+					} else {
+						validatorMap[nodeId] = false
 					}
+				}
+
+				if slashQueue, err = sp.zeroProduceProcess(blockHash, header, state, validatorMap); nil != err {
+					log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
-				totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
-				if blockReward > 0 {
-					slashAmount, err = calcSlashBlockRewards(sp.db, blockHash, uint64(blockReward))
+			} else {
+				blockReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
+				if nil != err {
+					log.Error("Failed to BeginBlock, query GovernSlashBlocksReward is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+					return err
+				}
+
+				for _, validator := range preRoundVal.Arr {
+					nodeId := validator.NodeId
+					count := result[nodeId]
+					if count > 0 {
+						continue
+					}
+					slashType := staking.LowRatioDel
+					slashAmount := common.Big0
+
+					canMutable, err := stk.GetCanMutableByIrr(validator.NodeAddress)
 					if nil != err {
-						log.Error("Failed to BeginBlock, call calcSlashBlockRewards fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+						log.Error("Failed to BeginBlock, call candidate mutable info is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+						if err == snapshotdb.ErrNotFound {
+							continue
+						}
+						return err
 					}
-					if slashAmount.Cmp(totalBalance) > 0 {
-						slashAmount = totalBalance
+					totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
+					if blockReward > 0 {
+						slashAmount, err = calcSlashBlockRewards(sp.db, blockHash, uint64(blockReward))
+						if nil != err {
+							log.Error("Failed to BeginBlock, call calcSlashBlockRewards fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+						}
+						if slashAmount.Cmp(totalBalance) > 0 {
+							slashAmount = totalBalance
+						}
 					}
-				}
-				log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
-					"packBlockCount", count, "slashType", slashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blockReward)
+					log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+						"packBlockCount", count, "slashType", slashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blockReward)
 
-				slashItem := &staking.SlashNodeItem{
-					NodeId:      nodeId,
-					Amount:      slashAmount,
-					SlashType:   slashType,
-					BenefitAddr: vm.RewardManagerPoolAddr,
-				}
+					slashItem := &staking.SlashNodeItem{
+						NodeId:      nodeId,
+						Amount:      slashAmount,
+						SlashType:   slashType,
+						BenefitAddr: vm.RewardManagerPoolAddr,
+					}
 
-				slashQueue = append(slashQueue, slashItem)
+					slashQueue = append(slashQueue, slashItem)
+				}
 			}
-
 			// Real to slash the node
 			// If there is no record of the node,
 			// it means that there is no block,
@@ -180,6 +226,220 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 }
 
 func (sp *SlashingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+	return nil
+}
+
+func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *types.Header, state xcom.StateDB, validatorMap map[discover.NodeID]bool) (staking.SlashQueue, error) {
+	blockNumber := header.Number.Uint64()
+	slashQueue := make(staking.SlashQueue, 0)
+	waitSlashingNodeList, err := sp.getWaitSlashingNodeList(header.Number.Uint64(), blockHash)
+	if nil != err {
+		return nil, err
+	}
+	preRound := xutil.CalculateRound(header.Number.Uint64()) - 1
+	log.Info("Call zeroProduceProcess start", "blockNumber", blockNumber, "blockHash", blockHash, "preRound", preRound, "waitSlashingNodeListSize", waitSlashingNodeList)
+	if len(waitSlashingNodeList) > 0 {
+		for index := 0; index < len(waitSlashingNodeList); index++ {
+			waitSlashingNode := waitSlashingNodeList[index]
+			// Check if a node has produced a block, including in the current round
+			var isDelete = false
+			nodeId := waitSlashingNode.NodeId
+			isProduced, ok := validatorMap[nodeId]
+			delete(validatorMap, nodeId)
+			delFunc := func(nodeList []*WaitSlashingNode, index *int) []*WaitSlashingNode {
+				if len(nodeList) == 1 {
+					return nil
+				}
+				if len(nodeList)-1 == *index {
+					return nodeList[:*index]
+				}
+				result := append(nodeList[:*index], nodeList[*index+1:]...)
+				*index--
+				return result
+			}
+			if ok && isProduced {
+				isDelete = true
+			} else {
+				if amount, err := sp.getPackAmount(blockNumber, blockHash, nodeId); nil != err {
+					return nil, err
+				} else if amount > 0 {
+					isDelete = true
+					log.Debug("Call zeroProduceProcess, The current round produced blocks", "blockNumber", blockNumber, "blockHash", blockHash, "nodeId", nodeId.TerminalString(), "packAmount", amount)
+				}
+			}
+			if isDelete {
+				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
+				log.Debug("Call zeroProduceProcess, produced blocks", "blockNumber", blockNumber, "blockHash", blockHash, "nodeId", nodeId.TerminalString(),
+					"preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "waitSlashingNodeListSize", len(waitSlashingNodeList))
+				continue
+			}
+			zeroProduceNumberThreshold, err := gov.GovernZeroProduceNumberThreshold(blockNumber, blockHash)
+			if nil != err {
+				log.Error("Failed to zeroProduceProcess, call GovernZeroProduceNumberThreshold is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+					"err", err)
+				return nil, err
+			}
+			zeroProduceCumulativeTime, err := gov.GovernZeroProduceCumulativeTime(blockNumber, blockHash)
+			if nil != err {
+				log.Error("Failed to zeroProduceProcess, call GovernZeroProduceCumulativeTime is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+					"err", err)
+				return nil, err
+			}
+			log.Debug("Call zeroProduceProcess, Judgment time threshold", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "zeroProduceCumulativeTime", zeroProduceCumulativeTime,
+				"nodeId", nodeId.TerminalString(), "preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "isProduced", isProduced, "isExistPreRound", ok)
+			// The time window is full and you need to move the bits to store the previous round of information
+			if diff := uint16(preRound - waitSlashingNode.Round); diff >= zeroProduceCumulativeTime {
+				// When the value of the time window becomes smaller after being governed, the extra value needs to be cleared
+				// Calculate the number of values outside the time window
+				// If the value of the time window is not governed, the calculated value is 1.
+				moveNumber := (diff + 1) - zeroProduceCumulativeTime
+				waitSlashingNode.CountBit = waitSlashingNode.CountBit >> moveNumber
+				if waitSlashingNode.CountBit > 0 {
+					waitSlashingNode.Round += uint64(moveNumber)
+					log.Debug("Call zeroProduceProcess, first move bit, countBit > 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+						"moveBitNumber", moveNumber, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit))
+					for {
+						// If the first bit is a zero-out block, then exit the loop directly
+						// Otherwise, it will be shifted until it reaches the position where there is an identified zero block
+						// If all positions are 0, then delete it directly from the pending list
+						if waitSlashingNode.CountBit&1 != 0 {
+							break
+						}
+						waitSlashingNode.CountBit = waitSlashingNode.CountBit >> 1
+						if waitSlashingNode.CountBit == 0 {
+							log.Debug("Call zeroProduceProcess, for move 1bit, countBit equals 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString())
+							break
+						}
+						waitSlashingNode.Round++
+						log.Debug("Call zeroProduceProcess, for move 1bit, countBit > 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+							"firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit))
+					}
+				}
+			}
+			if ok && !isProduced {
+				// Mark whether the previous round was a zero-out block
+				if waitSlashingNode.CountBit == 0 {
+					waitSlashingNode.Round = preRound
+					waitSlashingNode.CountBit = 1
+				} else {
+					diffRound := preRound - waitSlashingNode.Round
+					waitSlashingNode.CountBit = waitSlashingNode.CountBit | (1 << diffRound)
+				}
+				log.Debug("Call zeroProduceProcess, preRound zero produced, set bit", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+					"preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit))
+			}
+			if waitSlashingNode.CountBit == 0 {
+				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
+				log.Debug("Call zeroProduceProcess, Move and set the bit successfully, countBit equals 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "waitSlashingNodeListSize", len(waitSlashingNodeList))
+				continue
+			}
+			// If the range of the time window is satisfied, and the number of zero blocks is satisfied, a penalty is imposed.
+			if diff := uint16(preRound - waitSlashingNode.Round + 1); diff == zeroProduceCumulativeTime {
+				calcBitFunc := func(countBit uint64, number int) uint16 {
+					var compareValue uint64 = 1
+					var count uint16
+					for i := 0; i < number; i++ {
+						if countBit&compareValue > 0 {
+							count++
+						}
+						compareValue = compareValue << 1
+					}
+					return count
+				}
+				if zeroProduceCount := calcBitFunc(waitSlashingNode.CountBit, int(zeroProduceCumulativeTime)); zeroProduceCount >= zeroProduceNumberThreshold {
+					waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
+					log.Debug("Call zeroProduceProcess, Meet the conditions of punishment", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+						"countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "zeroProduceCount", zeroProduceCount, "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "waitSlashingNodeListSize", len(waitSlashingNodeList))
+					// Structure for constructing penalty information
+					nodeAddr, err := xutil.NodeId2Addr(nodeId)
+					if err != nil {
+						log.Error("Failed to convert nodeID to address", "nodeId", nodeId.TerminalString(), "error", err)
+						return nil, err
+					}
+					canMutable, err := stk.GetCanMutableByIrr(nodeAddr)
+					if nil != err {
+						log.Error("Failed to zeroProduceProcess, call candidate mutable info is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
+							"nodeAddr", nodeAddr.Hex(), "err", err)
+						if err == snapshotdb.ErrNotFound {
+							continue
+						}
+						return nil, err
+					}
+					var slashAmount *big.Int
+					totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
+					blocksReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
+					if nil != err {
+						log.Error("Failed to zeroProduceProcess, query GovernSlashBlocksReward is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+						return nil, err
+					}
+					if blocksReward > 0 {
+						slashAmount, err = calcSlashBlockRewards(sp.db, blockHash, uint64(blocksReward))
+						if nil != err {
+							log.Error("Failed to zeroProduceProcess, call calcSlashBlockRewards fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+							return nil, err
+						}
+						if slashAmount.Cmp(totalBalance) > 0 {
+							slashAmount = totalBalance
+						}
+					}
+					log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+						"zeroProduceCount", zeroProduceCount, "slashType", staking.LowRatioDel, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blocksReward)
+
+					slashItem := &staking.SlashNodeItem{
+						NodeId:      nodeId,
+						Amount:      slashAmount,
+						SlashType:   staking.LowRatioDel,
+						BenefitAddr: vm.RewardManagerPoolAddr,
+					}
+					slashQueue = append(slashQueue, slashItem)
+				}
+			}
+		}
+	}
+	// The remaining zero-out blocks in the map belong to the first zero-out block,
+	// so they are directly added to the list.
+	for key, isProduced := range validatorMap {
+		if !isProduced {
+			waitSlashingNodeList = append(waitSlashingNodeList, &WaitSlashingNode{
+				NodeId:   key,
+				Round:    preRound,
+				CountBit: 1,
+			})
+			log.Debug("Call zeroProduceProcess, first zero produced", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", key.TerminalString(), "preRound", preRound, "waitSlashingNodeListSize", len(waitSlashingNodeList))
+		}
+	}
+	if err := sp.setWaitSlashingNodeList(header.Number.Uint64(), blockHash, waitSlashingNodeList); nil != err {
+		return nil, err
+	}
+	log.Info("Call zeroProduceProcess success", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "waitSlashingNodeList", waitSlashingNodeList)
+	return slashQueue, nil
+}
+
+func (sp *SlashingPlugin) getWaitSlashingNodeList(blockNumber uint64, blockHash common.Hash) ([]*WaitSlashingNode, error) {
+	value, err := sp.db.Get(blockHash, waitSlashingNodeListKey)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return nil, err
+	}
+	var result []*WaitSlashingNode
+	if err != snapshotdb.ErrNotFound {
+		if err := rlp.DecodeBytes(value, &result); nil != err {
+			log.Error("rlpDecode WaitSlashingNodeList failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "key", string(waitSlashingNodeListKey), "err", err)
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
+func (sp *SlashingPlugin) setWaitSlashingNodeList(blockNumber uint64, blockHash common.Hash, list []*WaitSlashingNode) error {
+	if enValue, err := rlp.EncodeToBytes(list); nil != err {
+		log.Error("rlpEncode WaitSlashingNodeList failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "listSize", len(list), "err", err)
+		return err
+	} else {
+		if err := sp.db.Put(blockHash, waitSlashingNodeListKey, enValue); nil != err {
+			log.Error("snapshotDB put WaitSlashingNodeList failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "key", string(waitSlashingNodeListKey), "err", err)
+			return err
+		}
+	}
 	return nil
 }
 

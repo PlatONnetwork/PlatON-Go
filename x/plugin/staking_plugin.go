@@ -2552,12 +2552,20 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 	if uint64(del.DelegateEpoch) == epoch {
 		return nil
 	}
+	// When the settlement period when the first delegation is the same as the settlement period when the node is staking,
+	// and when the delegation is performed again in the next settlement cycle,
+	// the "per" value of the node is not available at this time, so you need to directly lazy
 	if len(per) == 0 {
 		lazyCalcDelegateAmount(epoch, del)
 		return nil
 	}
 
 	delegateRewardReceives := make([]reward.DelegateRewardReceipt, 0)
+	// When the settlement period at the first delegation is the same as the settlement period at the node's staking,
+	// , And when a second delegation is made after multiple billing cycles,
+	// For example: the node staking when the settlement period = 1, and the delegation is also in this settlement period. At this time,
+	// the node's "per" value only starts when the settlement period = 2; now it is the settlement period = 5, and this time it needs to be calculated When entrusting the income,
+	// you need to convert the entrustment from the hesitation period to the lock-in period before calculating.
 	if per[0].Epoch > uint64(del.DelegateEpoch) {
 		lazyCalcDelegateAmount(epoch, del)
 	}

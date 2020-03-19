@@ -59,6 +59,8 @@ const (
 	KeySlashBlocksReward          = "slashBlocksReward"
 	KeyMaxBlockGasLimit           = "maxBlockGasLimit"
 	KeyMaxTxDataLimit             = "maxTxDataLimit"
+	KeyZeroProduceNumberThreshold = "zeroProduceNumberThreshold"
+	KeyZeroProduceCumulativeTime  = "zeroProduceCumulativeTime"
 )
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
@@ -797,3 +799,31 @@ func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash) (int, err
 //
 //	return size, nil
 //}
+
+func GovernZeroProduceNumberThreshold(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceNumberThreshold, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceCumulativeTime, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
