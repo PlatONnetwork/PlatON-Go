@@ -153,6 +153,17 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " arg2: " + publisherResponse.arg2
                     + " arg3: " + publisherResponse.arg3);
 
+            // ValidateWallet
+            TransactionReceipt walletTr = contract.ValidateWallet(to, true, credentials.getAddress()).send();
+            collector.logStepPass("Send ValidateWallet, hash:  " + walletTr.getTransactionHash()
+                    + " gasUsed: " + walletTr.getGasUsed() + " logs:" + walletTr.getLogs().size());
+            VIDToken.ValidateWalletEvEventResponse walletResponse = contract.getValidateWalletEvEvents(walletTr).get(0);
+            collector.assertTrue(publisherTr.getLogs().size() != 0);
+            collector.logStepPass("Send ValidateWallet Logs: "
+                    + " arg1: " + walletResponse.arg1
+                    + " arg2: " + walletResponse.arg2
+                    + " arg3: " + walletResponse.arg3);
+
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
                 collector.logStepPass("contract_VIDToken and could not call contract function");
