@@ -223,9 +223,6 @@ func initGenesis(ctx *cli.Context) error {
 	if _, err := io.Copy(genesisFile, file); err != nil {
 		utils.Fatalf("Failed Copy Genesis file: %v", err)
 	}
-	if err := genesisFile.Chmod(0444); err != nil {
-		utils.Fatalf("Failed Chmod Genesis to 0444: %v", err)
-	}
 
 	return nil
 }
