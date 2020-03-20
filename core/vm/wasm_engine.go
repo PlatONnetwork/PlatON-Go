@@ -2,6 +2,7 @@ package vm
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"hash/fnv"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -17,7 +18,7 @@ const (
 	callEntryName = "invoke"
 	initFn        = "init"
 )
-const memoryLimit = 16 * 1014 * 1024
+const memoryLimit = 16 * 1024 * 1024
 
 const (
 	verifyModule   = true
@@ -27,10 +28,11 @@ const (
 type wagonEngineCreator struct {
 }
 
-func (w *wagonEngineCreator) Create(evm *EVM, config Config, contract *Contract) (wasmEngine, error) {
+func (w *wagonEngineCreator) Create(evm *EVM, config Config, gasTable params.GasTable, contract *Contract) (wasmEngine, error) {
 	return &wagonEngine{
 		evm:      evm,
 		config:   config,
+		gasTable: gasTable,
 		contract: contract,
 	}, nil
 }
@@ -42,6 +44,7 @@ type wasmEngine interface {
 type wagonEngine struct {
 	evm      *EVM
 	config   Config
+	gasTable params.GasTable
 	vm       *exec.CompileVM
 	contract *Contract
 }
@@ -122,6 +125,7 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte) er
 		evm:      engine.EVM(),
 		contract: engine.Contract(),
 		config:   engine.Config(),
+		gasTable: engine.gasTable,
 		db:       engine.StateDB(),
 		Input:    input, //set input bytes
 		Log:      NewWasmLogger(engine.config, log.WasmRoot()),
