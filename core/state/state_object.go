@@ -245,7 +245,7 @@ func (self *stateObject) getCommittedStateCache(key []byte) []byte {
 func (self *stateObject) GetCommittedState(db Database, key []byte) []byte {
 	// If we have the original value cached, return that
 	if value := self.getCommittedStateCache(key); len(value) != 0 {
-		log.Trace("GetCommittedState cache", "key", hex.EncodeToString([]byte(key)), "value", len(value))
+		log.Trace("GetCommittedState cache", "key", hex.EncodeToString(key), "value", len(value))
 		return value
 	}
 
@@ -315,10 +315,6 @@ func (self *stateObject) removePrefixValue(value []byte) []byte {
 	if len(value) > prefixLen {
 		return value[prefixLen:]
 	}
-	//prefixKey := common.Hash{}
-	//keccak := sha3.NewKeccak256()
-	//keccak.Write(temp)
-	//keccak.Sum(prefixKey[:0])
 	return []byte{}
 }
 
