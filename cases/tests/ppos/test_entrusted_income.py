@@ -3379,7 +3379,7 @@ def test_EI_BC_083(clients_new_node, reset_environment):
 
 
 @pytest.mark.P1
-def test_EI_BC_084(clients_new_node):
+def test_EI_BC_084(clients_new_node, reset_environment):
     """
     多账户委托多节点，委托跨结算期多次领取
     :param clients_new_node:
