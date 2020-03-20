@@ -30,8 +30,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/node"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/stretchr/testify/assert"
 
@@ -626,7 +624,7 @@ func TestStakingContract_getHistoryVerifierList(t *testing.T) {
 			NodeId:value,
 		}
 	}
-	current := staking.Validator_array{Start:uint64(0), End:uint64(50), Arr:validatorQueue}
+	current := staking.ValidatorArray{Start:uint64(0), End:uint64(50), Arr:validatorQueue}
 	data, _ := rlp.EncodeToBytes(current);
 	numStr := strconv.FormatUint(xutil.ConsensusSize() - xcom.ElectionDistance(), 10)
 	hDB.Put([]byte(plugin.ValidatorName+numStr), data)
@@ -661,10 +659,10 @@ func TestStakingContract_getHistoryVerifierList(t *testing.T) {
 			return
 		}
 
-		if r.Status {
-			t.Log("the VerifierList info:", r.Data)
+		if r.Code == 0 {
+			t.Log("the VerifierList info:", r.Ret)
 		} else {
-			t.Error("getHistoryVerifierList failed", r.ErrMsg)
+			t.Error("getHistoryVerifierList failed", r.Ret)
 		}
 	}
 
@@ -705,7 +703,7 @@ func TestStakingContract_getHistoryValidatorList(t *testing.T) {
 			NodeId:value,
 		}
 	}
-	current := staking.Validator_array{Start:uint64(0), End:uint64(50), Arr:validatorQueue}
+	current := staking.ValidatorArray{Start:uint64(0), End:uint64(50), Arr:validatorQueue}
 	data, _ := rlp.EncodeToBytes(current);
 	numStr := strconv.FormatUint(xutil.CalcBlocksEachEpoch(), 10)
 	hDB.Put([]byte(plugin.ValidatorName+numStr), data)
@@ -740,10 +738,10 @@ func TestStakingContract_getHistoryValidatorList(t *testing.T) {
 			return
 		}
 
-		if r.Status {
-			t.Log("the Validator info:", r.Data)
+		if r.Code == 0 {
+			t.Log("the Validator info:", r.Ret)
 		} else {
-			t.Error("getHistoryValidatorList failed", r.ErrMsg)
+			t.Error("getHistoryValidatorList failed", r.Ret)
 		}
 	}
 

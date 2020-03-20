@@ -62,6 +62,7 @@ const (
 	QueryHistoryValidatorList  = 1107
 	QueryNodeVersion  = 1108
 	QueryHistoryReward  = 1109
+	QueryHistorySlash = 1110
 	GetPackageReward    = 1200
 	GetStakingReward    = 1201
 	GetAvgPackTime      = 1202
@@ -117,6 +118,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		QueryHistoryValidatorList: stkc.getHistoryValidatorList,
 		QueryNodeVersion: stkc.getNodeVersion,
 		QueryHistoryReward: stkc.getHistoryReward,
+		QueryHistorySlash: stkc.getHistorySlash,
 
 		GetPackageReward: stkc.getPackageReward,
 		GetStakingReward: stkc.getStakingReward,
@@ -877,6 +879,19 @@ func (stkc *StakingContract) getHistoryReward(blockNumber *big.Int) ([]byte, err
 
 	return callResultHandler(stkc.Evm, "getHistoryReward",
 		reward, nil), nil
+}
+
+func (stkc *StakingContract) getHistorySlash(blockNumber *big.Int) ([]byte, error) {
+	blockHash := stkc.Evm.BlockHash
+
+	slashData, err := stkc.Plugin.GetSlashData(blockHash, blockNumber.Uint64())
+	if nil != err {
+		return callResultHandler(stkc.Evm, "getHistorySlash",
+			slashData, staking.ErrGetValidatorList.Wrap(err.Error())), nil
+	}
+
+	return callResultHandler(stkc.Evm, "getHistorySlash",
+		slashData, nil), nil
 }
 
 func (stkc *StakingContract) getNodeVersion() ([]byte, error) {

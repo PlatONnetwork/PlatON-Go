@@ -1226,11 +1226,21 @@ type SlashNodeItem struct {
 	BenefitAddr common.Address
 }
 
+type SlashNodeData struct {
+	// the nodeId will be slashed
+	NodeId discover.NodeID
+	// the amount of von with slashed
+	Amount *big.Int
+}
+
+
 func (s *SlashNodeItem) String() string {
 	return fmt.Sprintf(`{"nodeId": %s, "amount": %d, "slashType": %d, "benefitAddr": %s}`, s.NodeId.String(), s.Amount, s.SlashType, s.BenefitAddr.Hex())
 }
 
 type SlashQueue []*SlashNodeItem
+
+type SlashNodeQueue []*SlashNodeData
 
 func (queue SlashQueue) String() string {
 	arr := make([]string, len(queue))

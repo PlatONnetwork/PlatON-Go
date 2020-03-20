@@ -87,6 +87,7 @@ const (
 	RewardName  = "Reward"
 	YearName  = "Year"
 	InitNodeName  = "InitNode"
+	SlashName = "Slash"
 )
 
 // Instance a global StakingPlugin
@@ -1411,6 +1412,22 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 	}
 
 	return queue, nil
+}
+
+func (sk *StakingPlugin) GetSlashData(blockHash common.Hash, blockNumber uint64) (staking.SlashNodeQueue, error) {
+	numStr := strconv.FormatUint(blockNumber, 10)
+	log.Debug("wow,GetSlashData query number:", "num string", numStr)
+	data, err := STAKING_DB.HistoryDB.Get([]byte(SlashName + numStr))
+	if nil != err {
+		return nil, err
+	}
+	var slashNodeQueue staking.SlashNodeQueue
+	err = rlp.DecodeBytes(data, &slashNodeQueue)
+	if nil != err {
+		return nil, err
+	}
+	log.Debug("wow,GetHistoryVerifierList", slashNodeQueue)
+	return  slashNodeQueue, nil
 }
 
 func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, isCommit bool) (bool, error) {

@@ -30,8 +30,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -3040,7 +3038,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 	}
 
 	// build genesis veriferList and validatorList
-	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+	validatorQueue := make(staking.ValidatorQueue, 101)
 
 	for j := 0; j < 1000; j++ {
 
@@ -3074,26 +3072,35 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 
 		var blsKey bls.SecretKey
 		blsKey.SetByCSPRNG()
+		var blsKeyHex bls.PublicKeyHex
+		b, _ := blsKey.GetPublicKey().MarshalText()
+		if err := blsKeyHex.UnmarshalText(b); nil != err {
+			log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+		}
 		canTmp := &staking.Candidate{
-			NodeId:          nodeId,
-			BlsPubKey:       *blsKey.GetPublicKey(),
-			StakingAddress:  sender,
-			BenefitAddress:  addr,
-			StakingBlockNum: uint64(1),
-			StakingTxIndex:  uint32(index),
-			Shares:          balance,
-			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-			// Prevent null pointer initialization
-			Released:           common.Big0,
-			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
-			RestrictingPlanHes: common.Big0,
+			CandidateBase: &staking.CandidateBase{
+				NodeId:          nodeId,
+				BlsPubKey:       blsKeyHex,
+				StakingAddress:  sender,
+				BenefitAddress:  addr,
+				StakingBlockNum: uint64(1),
+				StakingTxIndex:  uint32(1),
+				ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 
-			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
-				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
+				Description: staking.Description{
+					NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(index),
+					ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+					Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(index) + ".org",
+					Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(index) + " Super Node",
+				},
+			},
+			CandidateMutable: &staking.CandidateMutable{
+				Shares: balance,
+				// Prevent null pointer initialization
+				Released:           common.Big0,
+				ReleasedHes:        common.Big0,
+				RestrictingPlan:    common.Big0,
+				RestrictingPlanHes: common.Big0,
 			},
 		}
 
@@ -3107,7 +3114,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 		}
 
 		// Store Candidate info
-		canKey := staking.CandidateKeyByAddr(canAddr)
+		canKey := staking.CanBaseKeyByAddr(canAddr)
 		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
 			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
 			return
@@ -3119,13 +3126,11 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 			}
 		}
 
-		if j < int(xcom.EpochValidatorNum()) {
+		if j < 101 {
 			v := &staking.Validator{
 				NodeAddress: canAddr,
 				NodeId:      canTmp.NodeId,
 				BlsPubKey:   canTmp.BlsPubKey,
-				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
-					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 				ValidatorTerm: 0,
 			}
 			validatorQueue[j] = v
@@ -3208,26 +3213,37 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 				}
 
 				addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-
+				var blsKey bls.SecretKey
+				blsKey.SetByCSPRNG()
+				var blsKeyHex bls.PublicKeyHex
+				b, _ := blsKey.GetPublicKey().MarshalText()
+				if err := blsKeyHex.UnmarshalText(b); nil != err {
+					log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+				}
 				canTmp := &staking.Candidate{
-					NodeId:          nodeId,
-					StakingAddress:  sender,
-					BenefitAddress:  addr,
-					StakingBlockNum: uint64(1 + i),
-					StakingTxIndex:  uint32(index),
-					Shares:          balance,
-					ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-					// Prevent null pointer initialization
-					Released:           common.Big0,
-					ReleasedHes:        common.Big0,
-					RestrictingPlan:    common.Big0,
-					RestrictingPlanHes: common.Big0,
+					CandidateBase: &staking.CandidateBase{
+						NodeId:          nodeId,
+						BlsPubKey:       blsKeyHex,
+						StakingAddress:  sender,
+						BenefitAddress:  addr,
+						StakingBlockNum: uint64(1),
+						StakingTxIndex:  uint32(i+1),
+						ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 
-					Description: staking.Description{
-						NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
-						ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-						Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-						Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+						Description: staking.Description{
+							NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+							ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+							Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+							Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+						},
+					},
+					CandidateMutable: &staking.CandidateMutable{
+						Shares: balance,
+						// Prevent null pointer initialization
+						Released:           common.Big0,
+						ReleasedHes:        common.Big0,
+						RestrictingPlan:    common.Big0,
+						RestrictingPlanHes: common.Big0,
 					},
 				}
 
@@ -3239,8 +3255,6 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 				v := &staking.Validator{
 					NodeAddress: canAddr,
 					NodeId:      canTmp.NodeId,
-					StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
-						fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 					ValidatorTerm: 0,
 				}
 				validatorQueue[j] = v
@@ -3297,26 +3311,37 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 			}
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-
+			var blsKey bls.SecretKey
+			blsKey.SetByCSPRNG()
+			var blsKeyHex bls.PublicKeyHex
+			b, _ := blsKey.GetPublicKey().MarshalText()
+			if err := blsKeyHex.UnmarshalText(b); nil != err {
+				log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+			}
 			canTmp := &staking.Candidate{
-				NodeId:          nodeId,
-				StakingAddress:  sender,
-				BenefitAddress:  addr,
-				StakingBlockNum: uint64(i + 1),
-				StakingTxIndex:  uint32(index),
-				Shares:          balance,
-				ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-				// Prevent null pointer initialization
-				Released:           common.Big0,
-				ReleasedHes:        common.Big0,
-				RestrictingPlan:    common.Big0,
-				RestrictingPlanHes: common.Big0,
+				CandidateBase: &staking.CandidateBase{
+					NodeId:          nodeId,
+					BlsPubKey:       blsKeyHex,
+					StakingAddress:  sender,
+					BenefitAddress:  addr,
+					StakingBlockNum: uint64(1),
+					StakingTxIndex:  uint32(1),
+					ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 
-				Description: staking.Description{
-					NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
-					ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-					Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-					Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+					Description: staking.Description{
+						NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+						ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+						Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+						Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+					},
+				},
+				CandidateMutable: &staking.CandidateMutable{
+					Shares: balance,
+					// Prevent null pointer initialization
+					Released:           common.Big0,
+					ReleasedHes:        common.Big0,
+					RestrictingPlan:    common.Big0,
+					RestrictingPlanHes: common.Big0,
 				},
 			}
 
@@ -3489,26 +3514,37 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 		}
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
+		var blsKeyHex bls.PublicKeyHex
+		b, _ := blsKey.GetPublicKey().MarshalText()
+		if err := blsKeyHex.UnmarshalText(b); nil != err {
+			log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+		}
 		canTmp := &staking.Candidate{
-			NodeId:          nodeId,
-			StakingAddress:  sender,
-			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
-			StakingTxIndex:  uint32(index),
-			Shares:          balance,
-			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-			// Prevent null pointer initialization
-			Released:           common.Big0,
-			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
-			RestrictingPlanHes: common.Big0,
+			CandidateBase: &staking.CandidateBase{
+				NodeId:          nodeId,
+				BlsPubKey:       blsKeyHex,
+				StakingAddress:  sender,
+				BenefitAddress:  addr,
+				StakingBlockNum: uint64(1),
+				StakingTxIndex:  uint32(1),
+				ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 
-			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
-				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Description: staking.Description{
+					NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+					ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+					Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+					Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				},
+			},
+			CandidateMutable: &staking.CandidateMutable{
+				Shares: balance,
+				// Prevent null pointer initialization
+				Released:           common.Big0,
+				ReleasedHes:        common.Big0,
+				RestrictingPlan:    common.Big0,
+				RestrictingPlanHes: common.Big0,
 			},
 		}
 
@@ -3597,26 +3633,37 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 				}
 
 				addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-
+				var blsKey bls.SecretKey
+				blsKey.SetByCSPRNG()
+				var blsKeyHex bls.PublicKeyHex
+				b, _ := blsKey.GetPublicKey().MarshalText()
+				if err := blsKeyHex.UnmarshalText(b); nil != err {
+					log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+				}
 				canTmp := &staking.Candidate{
-					NodeId:          nodeId,
-					StakingAddress:  sender,
-					BenefitAddress:  addr,
-					StakingBlockNum: uint64(1 + i),
-					StakingTxIndex:  uint32(index),
-					Shares:          balance,
-					ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-					// Prevent null pointer initialization
-					Released:           common.Big0,
-					ReleasedHes:        common.Big0,
-					RestrictingPlan:    common.Big0,
-					RestrictingPlanHes: common.Big0,
+					CandidateBase: &staking.CandidateBase{
+						NodeId:          nodeId,
+						BlsPubKey:       blsKeyHex,
+						StakingAddress:  sender,
+						BenefitAddress:  addr,
+						StakingBlockNum: uint64(1),
+						StakingTxIndex:  uint32(1),
+						ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 
-					Description: staking.Description{
-						NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
-						ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-						Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-						Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+						Description: staking.Description{
+							NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+							ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+							Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+							Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+						},
+					},
+					CandidateMutable: &staking.CandidateMutable{
+						Shares: balance,
+						// Prevent null pointer initialization
+						Released:           common.Big0,
+						ReleasedHes:        common.Big0,
+						RestrictingPlan:    common.Big0,
+						RestrictingPlanHes: common.Big0,
 					},
 				}
 
@@ -3628,8 +3675,6 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 				v := &staking.Validator{
 					NodeAddress: canAddr,
 					NodeId:      canTmp.NodeId,
-					StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
-						fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 					ValidatorTerm: 0,
 				}
 				validatorQueue[j] = v
@@ -3686,26 +3731,37 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 			}
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-
+			var blsKey bls.SecretKey
+			blsKey.SetByCSPRNG()
+			var blsKeyHex bls.PublicKeyHex
+			b, _ := blsKey.GetPublicKey().MarshalText()
+			if err := blsKeyHex.UnmarshalText(b); nil != err {
+				log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+			}
 			canTmp := &staking.Candidate{
-				NodeId:          nodeId,
-				StakingAddress:  sender,
-				BenefitAddress:  addr,
-				StakingBlockNum: uint64(i + 1),
-				StakingTxIndex:  uint32(index),
-				Shares:          balance,
-				ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-				// Prevent null pointer initialization
-				Released:           common.Big0,
-				ReleasedHes:        common.Big0,
-				RestrictingPlan:    common.Big0,
-				RestrictingPlanHes: common.Big0,
+				CandidateBase: &staking.CandidateBase{
+					NodeId:          nodeId,
+					BlsPubKey:       blsKeyHex,
+					StakingAddress:  sender,
+					BenefitAddress:  addr,
+					StakingBlockNum: uint64(1),
+					StakingTxIndex:  uint32(1),
+					ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 
-				Description: staking.Description{
-					NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
-					ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-					Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-					Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+					Description: staking.Description{
+						NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+						ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+						Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+						Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+					},
+				},
+				CandidateMutable: &staking.CandidateMutable{
+					Shares: balance,
+					// Prevent null pointer initialization
+					Released:           common.Big0,
+					ReleasedHes:        common.Big0,
+					RestrictingPlan:    common.Big0,
+					RestrictingPlanHes: common.Big0,
 				},
 			}
 
