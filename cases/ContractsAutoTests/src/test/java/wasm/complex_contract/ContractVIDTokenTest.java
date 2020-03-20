@@ -180,7 +180,15 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             boolean verifyFileRes = contract.VerifyFile("").send();
             collector.logStepPass("Call VerifyFile, res: " + verifyFileRes);
 
+            // set price
+            TransactionReceipt setPriceTr = contract.SetPrice(new BigInteger("30000000000")).send();
+            collector.logStepPass("Send SetPrice, hash:  " + setPriceTr.getTransactionHash()
+                    + " gasUsed: " + setPriceTr.getGasUsed() + " logs:" + setPriceTr.getLogs().size());
 
+            // set wallet
+            TransactionReceipt setWalltTr = contract.SetWallet(credentials.getAddress()).send();
+            collector.logStepPass("Send SetWallet, hash:  " + setWalltTr.getTransactionHash()
+                    + " gasUsed: " + setWalltTr.getGasUsed() + " logs:" + setWalltTr.getLogs().size());
 
         } catch (Exception e) {
             if(e instanceof ArrayIndexOutOfBoundsException){
