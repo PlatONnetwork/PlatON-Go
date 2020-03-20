@@ -26,9 +26,9 @@ public class ContractDistoryWithPermissionCheck extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_DISTORY_CONTRACT = "distory_contract";
-
     public static final String FUNC_SET_STRING = "set_string";
+
+    public static final String FUNC_DISTORY_CONTRACT = "distory_contract";
 
     public static final String FUNC_GET_STRING = "get_string";
 
@@ -38,6 +38,16 @@ public class ContractDistoryWithPermissionCheck extends WasmContract {
 
     protected ContractDistoryWithPermissionCheck(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> set_string(String name) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(name), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_string(String name, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(name), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<ContractDistoryWithPermissionCheck> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -67,16 +77,6 @@ public class ContractDistoryWithPermissionCheck extends WasmContract {
 
     public RemoteCall<TransactionReceipt> distory_contract(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_DISTORY_CONTRACT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> set_string(String name) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(name), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_string(String name, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(name), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

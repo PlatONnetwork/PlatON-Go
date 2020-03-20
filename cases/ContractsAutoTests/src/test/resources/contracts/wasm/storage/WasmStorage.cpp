@@ -34,11 +34,18 @@ CONTRACT WasmStorage : public platon::Contract {
     *random_ = 1234567890;
   }
 
+  ACTION void random_data() {
+     auto current = platon_block_number();
+     auto timestamp = platon_timestamp();
+     random(current, timestamp);
+  }
+
   ACTION void action() {
     auto current = platon_block_number();
     auto timestamp = platon_timestamp();
     bool hit = false;
     uint64_t index = 0;
+    platon_assert(counter_->size() != 0 , "counter removed");
     DEBUG("current:", current, "timestamp:", timestamp);
     for (auto k : kInternal) {
       auto number = (*states_)[k.first];
@@ -152,5 +159,5 @@ CONTRACT WasmStorage : public platon::Contract {
   const uint64_t kMaxStringLength = 512;
 };
 
-PLATON_DISPATCH(WasmStorage, (init)(action)(debug))
+PLATON_DISPATCH(WasmStorage, (init)(action)(random_data)(debug))
 }  // namespace platon

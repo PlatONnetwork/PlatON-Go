@@ -40,9 +40,11 @@ public class Donate extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_GETCLOSINGTIME = "getClosingTime";
+    public static final String FUNC_PAUSE = "pause";
 
-    public static final String FUNC_GETMINVONAMOUNT = "getMinVonAmount";
+    public static final String FUNC_GETWHITELIST = "getWhitelist";
+
+    public static final String FUNC_GETCHARITY = "getCharity";
 
     public static final String FUNC_DONATE = "donate";
 
@@ -54,25 +56,23 @@ public class Donate extends WasmContract {
 
     public static final String FUNC_REMOVEFROMWHITELIST = "removeFromWhitelist";
 
-    public static final String FUNC_PAUSE = "pause";
-
     public static final String FUNC_UNPAUSE = "unpause";
 
     public static final String FUNC_TRANSFEROWNERSHIP = "transferOwnership";
 
     public static final String FUNC_GETOWNER = "getOwner";
 
-    public static final String FUNC_GETCHARITY = "getCharity";
-
     public static final String FUNC_GETOPENINGTIME = "getOpeningTime";
+
+    public static final String FUNC_GETCLOSINGTIME = "getClosingTime";
+
+    public static final String FUNC_GETMINVONAMOUNT = "getMinVonAmount";
 
     public static final String FUNC_GETMAXVONAMOUNT = "getMaxVonAmount";
 
     public static final String FUNC_GETMAXNUMDONORS = "getMaxNumDonors";
 
     public static final String FUNC_GETDONORS = "getDonors";
-
-    public static final String FUNC_GETWHITELIST = "getWhitelist";
 
     public static final String FUNC_GETPAUSED = "getPaused";
 
@@ -94,14 +94,28 @@ public class Donate extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<BigInteger> getClosingTime() {
-        final WasmFunction function = new WasmFunction(FUNC_GETCLOSINGTIME, Arrays.asList(), BigInteger.class);
-        return executeRemoteCall(function, BigInteger.class);
+    public RemoteCall<TransactionReceipt> pause() {
+        final WasmFunction function = new WasmFunction(FUNC_PAUSE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<BigInteger> getMinVonAmount() {
-        final WasmFunction function = new WasmFunction(FUNC_GETMINVONAMOUNT, Arrays.asList(), BigInteger.class);
-        return executeRemoteCall(function, BigInteger.class);
+    public RemoteCall<TransactionReceipt> pause(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_PAUSE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Map> getWhitelist() {
+        final WasmFunction function = new WasmFunction(FUNC_GETWHITELIST, Arrays.asList(), Map.class, 
+                new com.platon.rlp.ParameterizedTypeImpl(
+                new java.lang.reflect.Type[] {com.platon.rlp.datatypes.WasmAddress.class, java.lang.Boolean.class}, 
+                java.util.Map.class, 
+                java.util.Map.class));
+        return executeRemoteCall(function, Map.class);
+    }
+
+    public RemoteCall<WasmAddress> getCharity() {
+        final WasmFunction function = new WasmFunction(FUNC_GETCHARITY, Arrays.asList(), WasmAddress.class);
+        return executeRemoteCall(function, WasmAddress.class);
     }
 
     public List<DonatedEventResponse> getDonatedEvents(TransactionReceipt transactionReceipt) {
@@ -240,16 +254,6 @@ public class Donate extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<TransactionReceipt> pause() {
-        final WasmFunction function = new WasmFunction(FUNC_PAUSE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> pause(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_PAUSE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<TransactionReceipt> unpause() {
         final WasmFunction function = new WasmFunction(FUNC_UNPAUSE, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
@@ -275,13 +279,18 @@ public class Donate extends WasmContract {
         return executeRemoteCall(function, WasmAddress.class);
     }
 
-    public RemoteCall<WasmAddress> getCharity() {
-        final WasmFunction function = new WasmFunction(FUNC_GETCHARITY, Arrays.asList(), WasmAddress.class);
-        return executeRemoteCall(function, WasmAddress.class);
-    }
-
     public RemoteCall<BigInteger> getOpeningTime() {
         final WasmFunction function = new WasmFunction(FUNC_GETOPENINGTIME, Arrays.asList(), BigInteger.class);
+        return executeRemoteCall(function, BigInteger.class);
+    }
+
+    public RemoteCall<BigInteger> getClosingTime() {
+        final WasmFunction function = new WasmFunction(FUNC_GETCLOSINGTIME, Arrays.asList(), BigInteger.class);
+        return executeRemoteCall(function, BigInteger.class);
+    }
+
+    public RemoteCall<BigInteger> getMinVonAmount() {
+        final WasmFunction function = new WasmFunction(FUNC_GETMINVONAMOUNT, Arrays.asList(), BigInteger.class);
         return executeRemoteCall(function, BigInteger.class);
     }
 
@@ -298,15 +307,6 @@ public class Donate extends WasmContract {
     public RemoteCall<WasmAddress[]> getDonors() {
         final WasmFunction function = new WasmFunction(FUNC_GETDONORS, Arrays.asList(), WasmAddress[].class);
         return executeRemoteCall(function, WasmAddress[].class);
-    }
-
-    public RemoteCall<Map> getWhitelist() {
-        final WasmFunction function = new WasmFunction(FUNC_GETWHITELIST, Arrays.asList(), Map.class, 
-                new com.platon.rlp.ParameterizedTypeImpl(
-                new java.lang.reflect.Type[] {com.platon.rlp.datatypes.WasmAddress.class, java.lang.Boolean.class}, 
-                java.util.Map.class, 
-                java.util.Map.class));
-        return executeRemoteCall(function, Map.class);
     }
 
     public RemoteCall<Boolean> getPaused() {

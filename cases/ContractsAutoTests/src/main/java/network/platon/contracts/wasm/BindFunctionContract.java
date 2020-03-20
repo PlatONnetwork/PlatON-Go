@@ -29,9 +29,9 @@ public class BindFunctionContract extends WasmContract {
 
     public static final String FUNC_GET_BIND_STATIC_FUNCTION = "get_bind_static_function";
 
-    public static final String FUNC_GET_BIND_FUNCTION = "get_bind_function";
-
     public static final String FUNC_GET_BIND_CLASS_FUNCTION_ONE = "get_bind_class_function_one";
+
+    public static final String FUNC_GET_BIND_FUNCTION = "get_bind_function";
 
     public static final String FUNC_GET_BIND_CLASS_FUNCTION = "get_bind_class_function";
 
@@ -45,6 +45,11 @@ public class BindFunctionContract extends WasmContract {
 
     public RemoteCall<Uint32> get_bind_static_function() {
         final WasmFunction function = new WasmFunction(FUNC_GET_BIND_STATIC_FUNCTION, Arrays.asList(), Uint32.class);
+        return executeRemoteCall(function, Uint32.class);
+    }
+
+    public RemoteCall<Uint32> get_bind_class_function_one() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_BIND_CLASS_FUNCTION_ONE, Arrays.asList(), Uint32.class);
         return executeRemoteCall(function, Uint32.class);
     }
 
@@ -71,11 +76,6 @@ public class BindFunctionContract extends WasmContract {
     public RemoteCall<Uint8> get_bind_function() {
         final WasmFunction function = new WasmFunction(FUNC_GET_BIND_FUNCTION, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
-    }
-
-    public RemoteCall<Uint32> get_bind_class_function_one() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_BIND_CLASS_FUNCTION_ONE, Arrays.asList(), Uint32.class);
-        return executeRemoteCall(function, Uint32.class);
     }
 
     public RemoteCall<Uint32> get_bind_class_function() {

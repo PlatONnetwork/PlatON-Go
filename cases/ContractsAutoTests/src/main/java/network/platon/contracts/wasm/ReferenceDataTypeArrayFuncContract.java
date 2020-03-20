@@ -27,8 +27,6 @@ public class ReferenceDataTypeArrayFuncContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_SETARRAYFILL = "setArrayFill";
-
     public static final String FUNC_GETARRAYISEMPTY = "getArrayIsEmpty";
 
     public static final String FUNC_SETINITARRAYDATE = "setInitArrayDate";
@@ -37,22 +35,14 @@ public class ReferenceDataTypeArrayFuncContract extends WasmContract {
 
     public static final String FUNC_GETARRAYFIRSTVALUE = "getArrayFirstValue";
 
+    public static final String FUNC_SETARRAYFILL = "setArrayFill";
+
     protected ReferenceDataTypeArrayFuncContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
     }
 
     protected ReferenceDataTypeArrayFuncContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> setArrayFill(String str) {
-        final WasmFunction function = new WasmFunction(FUNC_SETARRAYFILL, Arrays.asList(str), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setArrayFill(String str, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETARRAYFILL, Arrays.asList(str), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<ReferenceDataTypeArrayFuncContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -98,6 +88,16 @@ public class ReferenceDataTypeArrayFuncContract extends WasmContract {
     public RemoteCall<String> getArrayFirstValue() {
         final WasmFunction function = new WasmFunction(FUNC_GETARRAYFIRSTVALUE, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<TransactionReceipt> setArrayFill(String str) {
+        final WasmFunction function = new WasmFunction(FUNC_SETARRAYFILL, Arrays.asList(str), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setArrayFill(String str, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETARRAYFILL, Arrays.asList(str), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static ReferenceDataTypeArrayFuncContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

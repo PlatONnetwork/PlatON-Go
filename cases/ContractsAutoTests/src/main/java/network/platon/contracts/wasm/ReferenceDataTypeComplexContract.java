@@ -28,7 +28,7 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_SET_STUDENT_INFO = "set_student_info";
+    public static final String FUNC_GET_NAME = "get_name";
 
     public static final String FUNC_SET_STUDENT_ID = "set_student_id";
 
@@ -40,8 +40,6 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
 
     public static final String FUNC_SET_NAME = "set_name";
 
-    public static final String FUNC_GET_NAME = "get_name";
-
     public static final String FUNC_SET_AGE = "set_age";
 
     public static final String FUNC_GET_AGE = "get_age";
@@ -49,6 +47,8 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
     public static final String FUNC_SET_ARRAY_COURSE = "set_array_course";
 
     public static final String FUNC_GET_ARRAY_COURSE = "get_array_course";
+
+    public static final String FUNC_SET_STUDENT_INFO = "set_student_info";
 
     protected ReferenceDataTypeComplexContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -58,14 +58,9 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> set_student_info(Uint64 sId, String name, Uint8 age, Boolean sex) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STUDENT_INFO, Arrays.asList(sId,name,age,sex), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_student_info(Uint64 sId, String name, Uint8 age, Boolean sex, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STUDENT_INFO, Arrays.asList(sId,name,age,sex), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
+    public RemoteCall<String> get_name() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_NAME, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static RemoteCall<ReferenceDataTypeComplexContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -128,11 +123,6 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<String> get_name() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_NAME, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
     public RemoteCall<TransactionReceipt> set_age(Uint8 age) {
         final WasmFunction function = new WasmFunction(FUNC_SET_AGE, Arrays.asList(age), Void.class);
         return executeRemoteCallTransaction(function);
@@ -161,6 +151,16 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
     public RemoteCall<String[]> get_array_course() {
         final WasmFunction function = new WasmFunction(FUNC_GET_ARRAY_COURSE, Arrays.asList(), String[].class);
         return executeRemoteCall(function, String[].class);
+    }
+
+    public RemoteCall<TransactionReceipt> set_student_info(Uint64 sId, String name, Uint8 age, Boolean sex) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STUDENT_INFO, Arrays.asList(sId,name,age,sex), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_student_info(Uint64 sId, String name, Uint8 age, Boolean sex, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STUDENT_INFO, Arrays.asList(sId,name,age,sex), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static ReferenceDataTypeComplexContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

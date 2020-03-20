@@ -40,8 +40,6 @@ public class AtomicSwap extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_REFUND = "refund";
-
     public static final String FUNC_ADD = "add";
 
     public static final String FUNC_SUB = "sub";
@@ -51,6 +49,8 @@ public class AtomicSwap extends WasmContract {
     public static final String FUNC_INITIATE = "initiate";
 
     public static final String FUNC_REDEEM = "redeem";
+
+    public static final String FUNC_REFUND = "refund";
 
     public static final WasmEvent INITIATED_EVENT = new WasmEvent("Initiated", Arrays.asList(new WasmEventParameter(byte[].class, true)), Arrays.asList(new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(Uint64.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class)));
     ;
@@ -72,16 +72,6 @@ public class AtomicSwap extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> refund(byte[] _hashedSecret) {
-        final WasmFunction function = new WasmFunction(FUNC_REFUND, Arrays.asList(_hashedSecret, Void.class), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> refund(byte[] _hashedSecret, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_REFUND, Arrays.asList(_hashedSecret, Void.class), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b) {
         final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
         return executeRemoteCallTransaction(function);
@@ -89,16 +79,6 @@ public class AtomicSwap extends WasmContract {
 
     public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> sub(BigInteger a, BigInteger b) {
-        final WasmFunction function = new WasmFunction(FUNC_SUB, Arrays.asList(a,b), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> sub(BigInteger a, BigInteger b, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SUB, Arrays.asList(a,b), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
@@ -141,6 +121,16 @@ public class AtomicSwap extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(INITIATED_EVENT));
         return initiatedEventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> sub(BigInteger a, BigInteger b) {
+        final WasmFunction function = new WasmFunction(FUNC_SUB, Arrays.asList(a,b), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> sub(BigInteger a, BigInteger b, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SUB, Arrays.asList(a,b), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<AddedEventResponse> getAddedEvents(TransactionReceipt transactionReceipt) {
@@ -299,6 +289,16 @@ public class AtomicSwap extends WasmContract {
 
     public RemoteCall<TransactionReceipt> redeem(byte[] _hashedSecret, byte[] _secret, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_REDEEM, Arrays.asList(_hashedSecret,_secret), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> refund(byte[] _hashedSecret) {
+        final WasmFunction function = new WasmFunction(FUNC_REFUND, Arrays.asList(_hashedSecret, Void.class), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> refund(byte[] _hashedSecret, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_REFUND, Arrays.asList(_hashedSecret, Void.class), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

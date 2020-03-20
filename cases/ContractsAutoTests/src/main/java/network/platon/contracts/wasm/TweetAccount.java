@@ -28,8 +28,6 @@ public class TweetAccount extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GETOWNERADDRESS = "getOwnerAddress";
-
     public static final String FUNC_ISADMIN = "isAdmin";
 
     public static final String FUNC_TWEET = "tweet";
@@ -37,6 +35,8 @@ public class TweetAccount extends WasmContract {
     public static final String FUNC_GETTWEET = "getTweet";
 
     public static final String FUNC_GETLATESTTWEET = "getLatestTweet";
+
+    public static final String FUNC_GETOWNERADDRESS = "getOwnerAddress";
 
     public static final String FUNC_GETNUMBEROFTWEETS = "getNumberOfTweets";
 
@@ -54,11 +54,6 @@ public class TweetAccount extends WasmContract {
 
     protected TweetAccount(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<WasmAddress> getOwnerAddress() {
-        final WasmFunction function = new WasmFunction(FUNC_GETOWNERADDRESS, Arrays.asList(), WasmAddress.class);
-        return executeRemoteCall(function, WasmAddress.class);
     }
 
     public static RemoteCall<TweetAccount> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -104,6 +99,11 @@ public class TweetAccount extends WasmContract {
     public RemoteCall<String> getLatestTweet() {
         final WasmFunction function = new WasmFunction(FUNC_GETLATESTTWEET, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<WasmAddress> getOwnerAddress() {
+        final WasmFunction function = new WasmFunction(FUNC_GETOWNERADDRESS, Arrays.asList(), WasmAddress.class);
+        return executeRemoteCall(function, WasmAddress.class);
     }
 
     public RemoteCall<Uint64> getNumberOfTweets() {

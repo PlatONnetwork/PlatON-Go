@@ -28,9 +28,9 @@ public class SpecialFunctionsB extends WasmContract {
 
     public static final String FUNC_GETPLATONGAS = "getPlatONGas";
 
-    public static final String FUNC_GETPLATONGASLIMIT = "getPlatONGasLimit";
-
     public static final String FUNC_GETPLATONGASPRICE = "getPlatONGasPrice";
+
+    public static final String FUNC_GETPLATONGASLIMIT = "getPlatONGasLimit";
 
     protected SpecialFunctionsB(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -65,14 +65,14 @@ public class SpecialFunctionsB extends WasmContract {
         return deployRemoteCall(SpecialFunctionsB.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<Uint64> getPlatONGasLimit() {
-        final WasmFunction function = new WasmFunction(FUNC_GETPLATONGASLIMIT, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
-    }
-
     public RemoteCall<String> getPlatONGasPrice() {
         final WasmFunction function = new WasmFunction(FUNC_GETPLATONGASPRICE, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<Uint64> getPlatONGasLimit() {
+        final WasmFunction function = new WasmFunction(FUNC_GETPLATONGASLIMIT, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public static SpecialFunctionsB load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
