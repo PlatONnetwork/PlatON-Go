@@ -62,9 +62,6 @@ var DefaultConfig = Config{
 	DBDisabledCache:false,
 	DBCacheEpoch: 10,
 
-	MinerGasPrice: big.NewInt(params.GVon),
-	MinerRecommit: 3 * time.Second,
-
 	MiningLogAtDepth:       7,
 	TxChanSize:             4096,
 	ChainHeadChanSize:      10,
