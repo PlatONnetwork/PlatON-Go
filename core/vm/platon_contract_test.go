@@ -189,10 +189,10 @@ var (
 	//initProgramVersion      = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 	//initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
 
-	initProgramVersion      = uint32(0<<16 | 8<<8 | 0) // 2048, version: 0.8.0
+	initProgramVersion      = uint32(0<<16 | 8<<8 | 0) // version: 0.8.0
 	initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
 
-	promoteVersion      = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
+	promoteVersion      = uint32(0<<16 | 11<<8 | 0) // version: 0.11.0
 	promoteVersionBytes = common.Uint32ToBytes(promoteVersion)
 
 	balanceStr = []string{
