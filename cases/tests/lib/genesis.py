@@ -41,6 +41,8 @@ class Slashing:
     duplicateSignReportReward: int
     slashBlocksReward: int
     maxEvidenceAge: int
+    zeroProduceCumulativeTime: int
+    zeroProduceNumberThreshold: int
 
 
 @dataclass

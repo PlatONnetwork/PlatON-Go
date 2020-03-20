@@ -9,7 +9,7 @@
             "period": 10000,
             "validatorMode": "ppos"
         },
-        "genesisVersion": 2562
+        "genesisVersion": 2816
     },
     "economicModel": {
         "common": {
@@ -27,7 +27,9 @@
             "slashFractionDuplicateSign": 100,
             "duplicateSignReportReward": 50,
             "slashBlocksReward": 5,
-            "maxEvidenceAge": 1
+            "maxEvidenceAge": 1,
+            "zeroProduceCumulativeTime": 1,
+            "zeroProduceNumberThreshold": 1
         },
         "gov": {
             "versionProposalVoteDurationSeconds": 1600,
