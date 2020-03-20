@@ -96,6 +96,8 @@ type StateDB struct {
 	// children StateDB callback, is called when parent committed
 	clearReferenceFunc []func()
 	parent             *StateDB
+	// The index in clearReferenceFunc of parent StateDB
+	referenceFuncIndex int
 }
 
 // Create a new state from a given trie.
@@ -129,12 +131,14 @@ func (self *StateDB) NewStateDB() *StateDB {
 		parent:             self,
 		clearReferenceFunc: make([]func(), 0),
 	}
-	self.AddReferenceFunc(stateDB.clearParentRef)
+	index := self.AddReferenceFunc(stateDB.clearParentRef)
+	stateDB.referenceFuncIndex = index
 	//if stateDB.parent != nil {
 	//	stateDB.parent.DumpStorage(false)
 	//}
 	return stateDB
 }
+
 func (self *StateDB) HadParent() bool {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
@@ -582,7 +586,7 @@ func (self *StateDB) getStateObjectSnapshot(addr common.Address, key string) (co
 }
 
 // Add childrent statedb reference
-func (self *StateDB) AddReferenceFunc(fn func()) {
+func (self *StateDB) AddReferenceFunc(fn func()) int {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
 	// It must not be nil
@@ -590,6 +594,7 @@ func (self *StateDB) AddReferenceFunc(fn func()) {
 		panic("statedb had cleared")
 	}
 	self.clearReferenceFunc = append(self.clearReferenceFunc, fn)
+	return len(self.clearReferenceFunc) - 1
 }
 
 // Clear reference when StateDB is committed
@@ -597,7 +602,9 @@ func (self *StateDB) ClearReference() {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
 	for _, fn := range self.clearReferenceFunc {
-		fn()
+		if nil != fn {
+			fn()
+		}
 	}
 	log.Trace("clear all ref", "reflen", len(self.clearReferenceFunc))
 	if self.parent != nil {
@@ -607,6 +614,33 @@ func (self *StateDB) ClearReference() {
 	}
 	self.clearReferenceFunc = nil
 	self.parent = nil
+}
+
+// Clear reference by index
+func (self *StateDB) ClearIndexReference(index int) {
+	self.refLock.Lock()
+	defer self.refLock.Unlock()
+
+	if len(self.clearReferenceFunc) > index && self.clearReferenceFunc[index] != nil {
+		//fn := self.clearReferenceFunc[index]
+		//fn()
+		log.Trace("Before clear index ref", "reflen", len(self.clearReferenceFunc), "index", index)
+		//self.clearReferenceFunc = append(self.clearReferenceFunc[:index], self.clearReferenceFunc[index+1:]...)
+		self.clearReferenceFunc[index] = nil
+		log.Trace("After clear index ref", "reflen", len(self.clearReferenceFunc), "index", index)
+	}
+}
+
+// Clear Parent reference
+func (self *StateDB) ClearParentReference() {
+	self.refLock.Lock()
+	defer self.refLock.Unlock()
+
+	if self.parent != nil && self.referenceFuncIndex >= 0 {
+		self.parent.ClearIndexReference(self.referenceFuncIndex)
+		self.parent = nil
+		self.referenceFuncIndex = -1
+	}
 }
 
 // Retrieve a state object given by the address. Returns nil if not found.
