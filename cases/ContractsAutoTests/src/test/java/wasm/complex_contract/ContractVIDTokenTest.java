@@ -176,6 +176,10 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                         + " arg2: " + response.arg2);
             }
 
+            // VerifyFile
+            boolean verifyFileRes = contract.VerifyFile("").send();
+            collector.logStepPass("Call VerifyFile, res: " + verifyFileRes);
+
 
 
         } catch (Exception e) {
