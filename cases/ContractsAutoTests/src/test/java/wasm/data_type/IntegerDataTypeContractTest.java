@@ -210,6 +210,13 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
                     + contractAddress + ", hash:" + transactionHash
                     + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
+            // init address
+            TransactionReceipt initTr = contract.initAddress().send();
+            collector.logStepPass("To invoke initAddress success, txHash: " + initTr.getTransactionHash());
+            String afterInitAddress = contract.getAddress().send();
+            collector.logStepPass("To invoke getAddress success, getAddress: " + afterInitAddress);
+            collector.assertEqual(afterInitAddress.toLowerCase(), "0xf674172E619af9C09C126a568CF2838d243cE7F7".toLowerCase());
+
             // test: store address
             Address expectAddr = new Address("0x5b05e7a3e2a688c5e5cc491545a84a1efc66c1b1");
             TransactionReceipt addrTr = contract.setAddress(expectAddr.getValue()).send();

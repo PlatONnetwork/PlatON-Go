@@ -333,7 +333,7 @@ CONTRACT VIDToken : public Contract {
     return true;
   }
 
-  ACTION bool VerifyFile(const std::string& file_hash) {
+  CONST bool VerifyFile(const std::string& file_hash) {
     if (file_index_.self().size() == 0) {
       return false;
     }
