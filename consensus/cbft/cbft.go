@@ -981,8 +981,8 @@ func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 
 // GetBlockByHash get the specified block by hash and number.
 func (cbft *Cbft) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
-	result := make(chan *types.Block, 1)
-	cbft.asyncCallCh <- func() {
+
+	callBlock := func() *types.Block {
 		// First extract from the confirmed block.
 		block := cbft.blockTree.FindBlockByHash(hash)
 		if block == nil {
@@ -995,7 +995,14 @@ func (cbft *Cbft) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.B
 				block = cbft.blockChain.GetBlock(header.Hash(), header.Number.Uint64())
 			}
 		}
-		result <- block
+		return block
+	}
+	if !cbft.isStart() {
+		return callBlock()
+	}
+	result := make(chan *types.Block, 1)
+	cbft.asyncCallCh <- func() {
+		result <- callBlock()
 	}
 	return <-result
 }
