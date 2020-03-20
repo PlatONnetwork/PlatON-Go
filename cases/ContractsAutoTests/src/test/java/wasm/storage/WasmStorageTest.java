@@ -47,12 +47,15 @@ public class WasmStorageTest extends ContractPrepareTest {
                     + ", deployTxHash1:" + transactionHash1
                     + ", gasUsed1:" + wasmStorage1.getTransactionReceipt().get().getGasUsed());
 
+            WasmStorage.load(contractAddress1, web3j, transactionManager, provider).random_data().send();
+
             WasmStorage wasmStorage2 = WasmStorage.deploy(web3j, transactionManager, provider).send();
             String contractAddress2 = wasmStorage2.getContractAddress();
             String transactionHash2 = wasmStorage2.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("deploy successfully.contractAddress2:" + contractAddress2
                     + ", deployTxHash2:" + transactionHash2
                     + ", gasUsed2:" + wasmStorage2.getTransactionReceipt().get().getGasUsed());
+
 
             String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "all_addr_and_private_keys_4000_evm.json").toUri().getPath());
             String jsonContent = OneselfFileUtil.readFile(filePath);
@@ -62,8 +65,8 @@ public class WasmStorageTest extends ContractPrepareTest {
             // 同时并发执行的线程数
             final Semaphore semaphore = new Semaphore(10);
             // 请求总数
-            CountDownLatch countDownLatch = new CountDownLatch(100);
-            for (int i = 0; i < 100; i++) {
+            CountDownLatch countDownLatch = new CountDownLatch(3000);
+            for (int i = 0; i < 3000; i++) {
                 int finalI = i;
                 executorService.execute(() -> {
                     try {
@@ -74,16 +77,19 @@ public class WasmStorageTest extends ContractPrepareTest {
                         provider = new ContractGasProvider(new BigInteger(gasPrice), new BigInteger(gasLimit));
                         transactionManager = new RawTransactionManager(web3j, credentials, chainId);
 
-                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).action().send();
-                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).debug().send();
-
-                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).action().send();
-                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).debug().send();
-
-                        WasmStorage.load(contractAddress1, web3j, transactionManager, provider).action().send();
-                        WasmStorage.load(contractAddress1, web3j, transactionManager, provider).debug().send();
-
-                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).action().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
+                        WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
                         WasmStorage.load(contractAddress2, web3j, transactionManager, provider).debug().send();
 
                         collector.logStepPass("this time:" + finalI);
@@ -97,6 +103,25 @@ public class WasmStorageTest extends ContractPrepareTest {
             }
             countDownLatch.await();
             executorService.shutdown();
+
+            WasmStorage wasmStorage3 = WasmStorage.deploy(web3j, transactionManager, provider).send();
+            String contractAddress3 = wasmStorage3.getContractAddress();
+            String transactionHash3 = wasmStorage3.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("deploy successfully.contractAddress3:" + contractAddress3
+                    + ", deployTxHash3:" + transactionHash3
+                    + ", gasUsed3:" + wasmStorage3.getTransactionReceipt().get().getGasUsed());
+
+            for (int i = 0; i < 11; i++) {
+                WasmStorage.load(contractAddress3, web3j, transactionManager, provider).action().send();
+                WasmStorage.load(contractAddress3, web3j, transactionManager, provider).debug().send();
+            }
+
+            for (int i = 0; i < 11; i++) {
+                WasmStorage.load(contractAddress1, web3j, transactionManager, provider).action().send();
+                WasmStorage.load(contractAddress1, web3j, transactionManager, provider).debug().send();
+            }
+
+
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("", e.getMessage());
