@@ -3,6 +3,7 @@ package vm
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var (
@@ -12,16 +13,18 @@ var (
 
 // WASMInterpreter represents an WASM interpreter
 type WASMInterpreter struct {
-	evm *EVM
-	cfg Config
+	evm      *EVM
+	cfg      Config
+	gasTable params.GasTable
 }
 
 // NewWASMInterpreter returns a new instance of the Interpreter
 func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 
 	return &WASMInterpreter{
-		evm: evm,
-		cfg: cfg,
+		evm:      evm,
+		cfg:      cfg,
+		gasTable: evm.ChainConfig().GasTable(evm.BlockNumber),
 	}
 }
 
@@ -53,7 +56,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		return nil, err
 	}
 
-	engine, err := creator.Create(in.evm, in.cfg, contract)
+	engine, err := creator.Create(in.evm, in.cfg, in.gasTable, contract)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +113,7 @@ func NewWasmEngineCreator(vm WasmInsType) (wasmEngineCreator, error) {
 }
 
 type wasmEngineCreator interface {
-	Create(evm *EVM, config Config, contract *Contract) (wasmEngine, error)
+	Create(evm *EVM, config Config, gasTable params.GasTable, contract *Contract) (wasmEngine, error)
 }
 
 //// parse input(payload)
