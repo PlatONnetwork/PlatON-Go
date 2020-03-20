@@ -19,6 +19,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"io"
@@ -41,7 +42,7 @@ func (self Code) String() string {
 }
 
 //type Storage map[string]common.Hash
-type ValueStorage map[common.Hash][]byte
+type ValueStorage map[string][]byte
 
 func (self ValueStorage) String() (str string) {
 	for key, value := range self {
@@ -88,9 +89,9 @@ type stateObject struct {
 	//dirtyStorage      Storage      // Storage entries that need to be flushed to disk
 	//dirtyValueStorage ReferenceValueStorage // Storage entries that need to be flushed to disk
 
-	originStorage      ValueStorage      // Storage cache of original entries to dedup rewrites
+	originStorage ValueStorage // Storage cache of original entries to dedup rewrites
 
-	dirtyStorage      ValueStorage      // Storage entries that need to be flushed to disk
+	dirtyStorage ValueStorage // Storage entries that need to be flushed to disk
 
 	// Cache flags.
 	// When an object is marked suicided it will be delete from the trie
@@ -118,7 +119,7 @@ type Account struct {
 	StorageKeyPrefix []byte // A prefix added to the `key` to ensure that data between different accounts are not shared
 }
 
-func (self *Account) empty () bool {
+func (self *Account) empty() bool {
 	if self.Nonce != 0 {
 		return false
 	}
@@ -146,12 +147,12 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 		data.CodeHash = emptyCodeHash
 	}
 	return &stateObject{
-		db:       db,
-		address:  address,
-		addrHash: crypto.Keccak256Hash(address[:]),
-		data:     data,
-		originStorage:      make(ValueStorage),
-		dirtyStorage:      make(ValueStorage),
+		db:            db,
+		address:       address,
+		addrHash:      crypto.Keccak256Hash(address[:]),
+		data:          data,
+		originStorage: make(ValueStorage),
+		dirtyStorage:  make(ValueStorage),
 	}
 }
 
@@ -195,9 +196,9 @@ func (c *stateObject) getTrie(db Database) Trie {
 }
 
 // GetState retrieves a value from the account storage trie.
-func (self *stateObject) GetState(db Database, key common.Hash) []byte {
+func (self *stateObject) GetState(db Database, key []byte) []byte {
 	// If we have a dirty value for this state entry, return it
-	value, dirty := self.dirtyStorage[key]
+	value, dirty := self.dirtyStorage[string(key)]
 	if dirty {
 		return value
 	}
@@ -205,8 +206,8 @@ func (self *stateObject) GetState(db Database, key common.Hash) []byte {
 	return self.GetCommittedState(db, key)
 }
 
-func (self *stateObject) getCommittedStateCache(key common.Hash) []byte {
-	value, cached := self.originStorage[key]
+func (self *stateObject) getCommittedStateCache(key []byte) []byte {
+	value, cached := self.originStorage[string(key)]
 	if cached {
 		return value
 	}
@@ -219,7 +220,7 @@ func (self *stateObject) getCommittedStateCache(key common.Hash) []byte {
 	for parentDB != nil {
 		value := parentDB.getStateObjectSnapshot(self.address, key)
 		if value != nil {
-			self.originStorage[key] = value
+			self.originStorage[string(key)] = value
 			refLock.Unlock()
 			return value
 		} else if parentCommitted {
@@ -241,10 +242,10 @@ func (self *stateObject) getCommittedStateCache(key common.Hash) []byte {
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
-func (self *stateObject) GetCommittedState(db Database, key common.Hash) []byte {
+func (self *stateObject) GetCommittedState(db Database, key []byte) []byte {
 	// If we have the original value cached, return that
 	if value := self.getCommittedStateCache(key); len(value) != 0 {
-		log.Trace("GetCommittedState cache", "key", key.String(), "value", len(value))
+		log.Trace("GetCommittedState cache", "key", hex.EncodeToString([]byte(key)), "value", len(value))
 		return value
 	}
 
@@ -263,14 +264,14 @@ func (self *stateObject) GetCommittedState(db Database, key common.Hash) []byte 
 		value = content
 	}
 
-	log.Trace("GetCommittedState trie", "key", key.String(), "value", len(value))
-	self.originStorage[key] = value
+	log.Trace("GetCommittedState trie", "key", hex.EncodeToString(key), "value", len(value))
+	self.originStorage[string(key)] = value
 	return value
 }
 
 // SetState updates a value in account storage.
 // set [prefixKey,value] to storage
-func (self *stateObject) SetState(db Database, key common.Hash, value []byte) {
+func (self *stateObject) SetState(db Database, key, value []byte) {
 	//if the new value is the same as old,don't set
 	preValue := self.GetState(db, key)
 	if bytes.Equal(preValue, value) {
@@ -287,21 +288,39 @@ func (self *stateObject) SetState(db Database, key common.Hash, value []byte) {
 	self.setState(key, value)
 }
 
-func (self *stateObject) setState(key common.Hash, value []byte) {
+func (self *stateObject) setState(key []byte, value []byte) {
 	cpy := make([]byte, len(value))
 	copy(cpy, value)
-	self.dirtyStorage[key] = cpy
+	self.dirtyStorage[string(key)] = cpy
 }
 
-func (self *stateObject) getPrefixKey (key []byte)  common.Hash {
+func (self *stateObject) getPrefixKey(key []byte) common.Hash {
 	temp := append(self.data.StorageKeyPrefix, key...)
 	prefixKey := common.Hash{}
 	keccak := sha3.NewKeccak256()
 	keccak.Write(temp)
 	keccak.Sum(prefixKey[:0])
-	return  prefixKey
+	return prefixKey
 }
 
+func (self *stateObject) getPrefixValue(value []byte) []byte {
+	if len(value) == 0 {
+		return []byte{}
+	}
+	return append(self.data.StorageKeyPrefix, value...)
+}
+
+func (self *stateObject) removePrefixValue(value []byte) []byte {
+	prefixLen := len(self.data.StorageKeyPrefix)
+	if len(value) > prefixLen {
+		return value[prefixLen:]
+	}
+	//prefixKey := common.Hash{}
+	//keccak := sha3.NewKeccak256()
+	//keccak.Write(temp)
+	//keccak.Sum(prefixKey[:0])
+	return []byte{}
+}
 
 // updateTrie writes cached storage modifications into the object's storage trie.
 func (self *stateObject) updateTrie(db Database) Trie {
@@ -311,21 +330,21 @@ func (self *stateObject) updateTrie(db Database) Trie {
 
 		// Skip noop changes, persist actual changes
 		oldValue := self.originStorage[key]
-		if bytes.Equal(value, oldValue){
+		if bytes.Equal(value, oldValue) {
 			continue
 		}
 
 		self.originStorage[key] = value
 
 		if len(value) == 0 {
-			self.setError(tr.TryDelete(key[:]))
+			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
 
 		// Encoding []byte cannot fail, ok to ignore the error.
 		//v, _ := rlp.EncodeToBytes(bytes.TrimLeft(value, "\x00"))
 		v, _ := rlp.EncodeToBytes(value)
-		self.setError(tr.TryUpdate(key[:], v))
+		self.setError(tr.TryUpdate([]byte(key), v))
 	}
 
 	return tr
