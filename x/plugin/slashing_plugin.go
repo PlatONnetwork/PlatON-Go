@@ -141,7 +141,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				log.Error("Failed to BeginBlock, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return errors.New("Failed to get CurrentActiveVersion")
 			}
-			if currentVersion >= uint32(0<<16|9<<11|0) {
+			if currentVersion >= FORKVERSION_0_11_0 {
 				// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
 				validatorMap := make(map[discover.NodeID]bool)
 				for _, validator := range preRoundVal.Arr {
