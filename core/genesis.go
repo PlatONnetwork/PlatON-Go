@@ -337,7 +337,11 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
 	// Initialized Govern Parameters
-	if err := gov.InitGenesisGovernParam(snapDB, g.Config.GenesisVersion); err != nil {
+	var genesisVersion uint32 = 0
+	if g.Config != nil {
+		genesisVersion = g.Config.GenesisVersion
+	}
+	if err := gov.InitGenesisGovernParam(snapDB, genesisVersion); err != nil {
 		log.Error("Failed to init govern parameter in snapshotdb", "err", err)
 		panic("Failed to init govern parameter in snapshotdb")
 	}
