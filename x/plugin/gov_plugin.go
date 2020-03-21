@@ -131,7 +131,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 					return err
 				}
 			}
-			if govPlugin.chainID != nil && govPlugin.chainID.Uint64() == uint64(101) && versionProposal.NewVersion == FORKVERSION_0_11_0 {
+			if versionProposal.NewVersion == FORKVERSION_0_11_0 {
 				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "15", blockNumber, blockHash); nil != err {
 					return err
 				}

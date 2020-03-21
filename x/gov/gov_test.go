@@ -180,7 +180,7 @@ func setup(t *testing.T) *mock.Chain {
 		fmt.Println("newBlock, %", err)
 	}
 
-	if err := InitGenesisGovernParam(chain.SnapDB); err != nil {
+	if err := InitGenesisGovernParam(chain.SnapDB, 2048); err != nil {
 		t.Error("InitGenesisGovernParam, error", err)
 	}
 	RegisterGovernParamVerifiers()

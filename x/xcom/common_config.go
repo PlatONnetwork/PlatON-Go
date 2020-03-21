@@ -485,7 +485,7 @@ func CheckZeroProduceNumberThreshold(zeroProduceCumulativeTime uint16, zeroProdu
 	return nil
 }
 
-func CheckEconomicModel() error {
+func CheckEconomicModel(genesisVersion uint32) error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
 	}
@@ -565,12 +565,14 @@ func CheckEconomicModel() error {
 		return err
 	}
 
-	if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
-		return err
-	}
+	if genesisVersion >= uint32(0<<16|11<<8|0) {
+		if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
+			return err
+		}
 
-	if err := CheckZeroProduceCumulativeTime(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
-		return err
+		if err := CheckZeroProduceCumulativeTime(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
+			return err
+		}
 	}
 
 	return nil
