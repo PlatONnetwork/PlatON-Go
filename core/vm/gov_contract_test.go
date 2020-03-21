@@ -300,7 +300,7 @@ func setup(t *testing.T) *mock.Chain {
 	gc.Plugin = govPlugin
 	build_staking_data_new(chain)
 
-	if err := gov.InitGenesisGovernParam(chain.SnapDB); err != nil {
+	if err := gov.InitGenesisGovernParam(chain.SnapDB, 2048); err != nil {
 		t.Error("error", err)
 	}
 	gov.RegisterGovernParamVerifiers()

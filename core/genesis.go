@@ -175,7 +175,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 		}
 
 		// check EconomicModel configuration
-		if err := xcom.CheckEconomicModel(); nil != err {
+		if err := xcom.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
 			log.Error("Failed to check economic config", "err", err)
 			return nil, common.Hash{}, err
 		}
@@ -275,7 +275,7 @@ func (g *Genesis) InitAndSetEconomicConfig(path string) error {
 	xcom.SetPerRoundBlocks(uint64(g.Config.Cbft.Amount))
 
 	// check EconomicModel configuration
-	if err := xcom.CheckEconomicModel(); nil != err {
+	if err := xcom.CheckEconomicModel(g.Config.GenesisVersion); nil != err {
 		return fmt.Errorf("Failed CheckEconomicModel configuration: %v", err)
 	}
 	return nil
@@ -337,7 +337,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
 	// Initialized Govern Parameters
-	if err := gov.InitGenesisGovernParam(snapDB); err != nil {
+	if err := gov.InitGenesisGovernParam(snapDB, g.Config.GenesisVersion); err != nil {
 		log.Error("Failed to init govern parameter in snapshotdb", "err", err)
 		panic("Failed to init govern parameter in snapshotdb")
 	}
