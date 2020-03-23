@@ -20,6 +20,8 @@ import (
 	"math"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -116,7 +118,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 
-			if versionProposal.NewVersion == uint32(2560) { // version = 0.10.0
+			if versionProposal.NewVersion == params.FORKVERSION_0_10_0 {
 				if err = gov.UpdateGovernParamValue(gov.ModuleSlashing, gov.KeyMaxEvidenceAge, "1", blockNumber, blockHash); err != nil {
 					log.Error("Version(0.10.0) proposal is active, but update slashing.maxEvidenceAge to 1 failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 					return err
@@ -125,14 +127,18 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 					log.Error("Version(0.10.0) proposal is active, but update staking.unStakeFreezeDuration to 2 failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 					return err
 				}
+				log.Debug("Version(0.10.0) proposal is active, and update govern-parameters success")
 			}
-			if versionProposal.NewVersion == FORKVERSION_0_11_0 {
+			if versionProposal.NewVersion == params.FORKVERSION_0_11_0 {
 				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "15", blockNumber, blockHash); nil != err {
+					log.Error("Version(0.10.0) proposal is active, but update slashing.zeroProduceCumulativeTime to 15 failed")
 					return err
 				}
 				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", blockNumber, blockHash); nil != err {
+					log.Error("Version(0.10.0) proposal is active, but update slashing.zeroProduceNumberThreshold to 3 failed")
 					return err
 				}
+				log.Debug("Version(0.10.0) proposal is active, and update govern-parameters success")
 			}
 			log.Info("version proposal is active.", "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
