@@ -27,7 +27,7 @@ def pledge_punishment(clients):
     # stop node
     first_client.node.stop()
     # Waiting for a settlement round
-    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+    second_client.economic.wait_consensus_blocknum(second_client.node, 4)
     log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
     # view verifier list
     verifier_list = second_client.ppos.getVerifierList()

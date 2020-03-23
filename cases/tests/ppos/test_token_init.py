@@ -649,10 +649,12 @@ def test_AL_BI_002(new_genesis_env, staking_cfg):
     # stop node
     node.stop()
     # Waiting for 2 consensus round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
     log.info("verifier_list: {}".format(verifier_list))
+    result = client2.ppos.getCandidateInfo(client1.node.node_id)
+    log.info("CandidateInfo:{}".format(result))
     slash_blocks = get_governable_parameter_value(client2, 'slashBlocksReward')
     log.info("slash_blocks".format(slash_blocks))
     # Get the penalty amount

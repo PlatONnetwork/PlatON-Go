@@ -49,11 +49,14 @@ def test_00(global_test_env):
     # node2 = global_test_env.get_all_nodes()[1]
     client1 = Client(global_test_env, node1, StakingConfig("external_id", "node_name221", "website", "details"))
     # client2 = Client(global_test_env, node2, StakingConfig("external_id", "node_name222", "website", "details"))
-
-    result = client1.ppos.getCandidateInfo(client1.node.node_id)
-    print(result)
-    result = client2.ppos.getCandidateInfo(client2.node.node_id)
-    print(result)
+    # result = client1.ppos.getCandidateInfo(client1.node.node_id)
+    # print(result)
+    node_list = client1.economic.env.node_config_list
+    nodeid_list = []
+    for i in range(len(node_list)):
+        id = node_list[i]['id']
+        nodeid_list.append(id)
+    print(nodeid_list)
 
 def test_01(global_test_env):
 
