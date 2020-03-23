@@ -19,7 +19,6 @@ package plugin
 import (
 	"fmt"
 	"math"
-	"math/big"
 	"strconv"
 	"sync"
 
