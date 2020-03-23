@@ -1421,12 +1421,15 @@ func (sk *StakingPlugin) GetSlashData(blockHash common.Hash, blockNumber uint64)
 	if nil != err {
 		return nil, err
 	}
-	var slashNodeQueue staking.SlashNodeQueue
+	slashNodeQueue := make(staking.SlashNodeQueue,0)
 	err = rlp.DecodeBytes(data, &slashNodeQueue)
 	if nil != err {
 		return nil, err
 	}
-	log.Debug("wow,GetHistoryVerifierList", slashNodeQueue)
+	if slashNodeQueue == nil{
+		slashNodeQueue = make(staking.SlashNodeQueue,0)
+	}
+	log.Debug("wow,GetSlashData", slashNodeQueue)
 	return  slashNodeQueue, nil
 }
 
