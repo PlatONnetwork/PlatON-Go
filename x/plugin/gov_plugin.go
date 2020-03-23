@@ -18,7 +18,6 @@ package plugin
 
 import (
 	"math"
-	"math/big"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -36,7 +35,6 @@ var (
 )
 
 type GovPlugin struct {
-	chainID *big.Int
 }
 
 var govp *GovPlugin
@@ -49,9 +47,6 @@ func GovPluginInstance() *GovPlugin {
 	return govp
 }
 
-func (govPlugin *GovPlugin) SetChainID(chainId *big.Int) {
-	govPlugin.chainID = chainId
-}
 func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
@@ -121,7 +116,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 
-			if govPlugin.chainID != nil && govPlugin.chainID.Uint64() == uint64(101) && versionProposal.NewVersion == uint32(2560) { // version = 0.10.0
+			if versionProposal.NewVersion == uint32(2560) { // version = 0.10.0
 				if err = gov.UpdateGovernParamValue(gov.ModuleSlashing, gov.KeyMaxEvidenceAge, "1", blockNumber, blockHash); err != nil {
 					log.Error("Version(0.10.0) proposal is active, but update slashing.maxEvidenceAge to 1 failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 					return err
@@ -131,7 +126,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 					return err
 				}
 			}
-			if versionProposal.NewVersion == uint32(0<<16|9<<11|0) {
+			if versionProposal.NewVersion == FORKVERSION_0_11_0 {
 				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "15", blockNumber, blockHash); nil != err {
 					return err
 				}

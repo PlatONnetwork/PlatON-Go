@@ -20,11 +20,12 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"math/big"
 	"os"
 	"sync"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -616,7 +617,6 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 
-	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 	reactor.RegisterPlugin(xcom.CollectDeclareVersionRule, xplugin.NewCollectDeclareVersionPlugin())
 

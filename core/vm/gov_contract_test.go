@@ -1469,9 +1469,6 @@ func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) 
 	chain := setup(t)
 	defer clear(chain, t)
 
-	gc.Evm.chainConfig.ChainID = big.NewInt(101)
-	plugin.GovPluginInstance().SetChainID(big.NewInt(101))
-
 	//submit a proposal and vote for it. proposalID= txHashArr[1]
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
