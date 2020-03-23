@@ -17,7 +17,10 @@
 package plugin
 
 import (
+	"fmt"
 	"math"
+	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -130,13 +133,16 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				log.Debug("Version(0.10.0) proposal is active, and update govern-parameters success")
 			}
 			if versionProposal.NewVersion == params.FORKVERSION_0_11_0 {
-
-				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "15", blockNumber, blockHash); nil != err {
-					log.Error("Version(0.10.0) proposal is active, but update slashing.zeroProduceCumulativeTime to 15 failed")
+				zeroProduceCumulativeTime := 15
+				zeroProduceNumberThreshold := 3
+				if int(xutil.EpochSize()) > zeroProduceCumulativeTime {
+					zeroProduceCumulativeTime = int(xutil.EpochSize() - 1)
+					zeroProduceNumberThreshold = 2
+				}
+				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [zeroProduceNumberThreshold, %d]", xcom.MaxZeroProduceCumulativeTime), strconv.Itoa(zeroProduceCumulativeTime), blockNumber, blockHash); nil != err {
 					return err
 				}
-				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", blockNumber, blockHash); nil != err {
-					log.Error("Version(0.10.0) proposal is active, but update slashing.zeroProduceNumberThreshold to 3 failed")
+				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, fmt.Sprintf("Number of zero production blocks, range: [1, zeroProduceCumulativeTime]"), strconv.Itoa(zeroProduceNumberThreshold), blockNumber, blockHash); nil != err {
 					return err
 				}
 				log.Debug("Version(0.10.0) proposal is active, and update govern-parameters success")

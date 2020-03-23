@@ -365,7 +365,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 						}
 						return nil, err
 					}
-					var slashAmount *big.Int
+					slashAmount := new(big.Int).SetUint64(0)
 					totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
 					blocksReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
 					if nil != err {
