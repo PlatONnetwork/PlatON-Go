@@ -40,18 +40,17 @@ const (
 )
 
 const (
-	Zero                          = 0
-	Eighty                        = 80
-	Hundred                       = 100
-	TenThousand                   = 10000
-	CeilBlocksReward              = 50000
-	CeilMaxValidators             = 201
-	FloorMaxConsensusVals         = 4
-	CeilMaxConsensusVals          = 25
-	PositiveInfinity              = "+∞"
-	CeilUnStakeFreezeDuration     = 28 * 4
-	CeilMaxEvidenceAge            = CeilUnStakeFreezeDuration - 1
-	CeilZeroProduceCumulativeTime = 43
+	Zero                      = 0
+	Eighty                    = 80
+	Hundred                   = 100
+	TenThousand               = 10000
+	CeilBlocksReward          = 50000
+	CeilMaxValidators         = 201
+	FloorMaxConsensusVals     = 4
+	CeilMaxConsensusVals      = 25
+	PositiveInfinity          = "+∞"
+	CeilUnStakeFreezeDuration = 28 * 4
+	CeilMaxEvidenceAge        = CeilUnStakeFreezeDuration - 1
 )
 
 var (
@@ -72,6 +71,9 @@ var (
 	TenMillionLAT, _ = new(big.Int).SetString("10000000000000000000000000", 10)
 
 	BillionLAT, _ = new(big.Int).SetString("1000000000000000000000000000", 10)
+
+	// The maximum time range for the cumulative number of zero blocks
+	MaxZeroProduceCumulativeTime uint16 = 64
 )
 
 type commonConfig struct {
@@ -472,15 +474,15 @@ func CheckSlashBlocksReward(rewards int) error {
 }
 
 func CheckZeroProduceCumulativeTime(zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) error {
-	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > CeilZeroProduceCumulativeTime {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d)", zeroProduceNumberThreshold, CeilZeroProduceCumulativeTime))
+	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > MaxZeroProduceCumulativeTime {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d]", zeroProduceNumberThreshold, MaxZeroProduceCumulativeTime))
 	}
 	return nil
 }
 
 func CheckZeroProduceNumberThreshold(zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) error {
 	if zeroProduceNumberThreshold < 1 || zeroProduceNumberThreshold > zeroProduceCumulativeTime {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceNumberThreshold must be [%d, %d)", 1, zeroProduceCumulativeTime))
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceNumberThreshold must be [%d, %d]", 1, zeroProduceCumulativeTime))
 	}
 	return nil
 }
@@ -566,6 +568,15 @@ func CheckEconomicModel(genesisVersion uint32) error {
 	}
 
 	if genesisVersion >= uint32(0<<16|11<<8|0) {
+		consensusSize := BlocksWillCreate() * MaxConsensusVals()
+		em := MaxEpochMinutes()
+		i := Interval()
+
+		epochSize := uint16(em * 60 / (i * consensusSize))
+		if epochSize < MaxZeroProduceCumulativeTime {
+			MaxZeroProduceCumulativeTime = epochSize
+		}
+
 		if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
 			return err
 		}
