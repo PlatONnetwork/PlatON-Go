@@ -431,6 +431,10 @@ func (s *Ethereum) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateDebugAPI(s.chainConfig, s),
 		}, {
+			Namespace: "debug",
+			Version:   "1.0",
+			Service:   xplugin.NewPublicPPOSAPI(),
+		}, {
 			Namespace: "net",
 			Version:   "1.0",
 			Service:   s.netRPCService,

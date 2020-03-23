@@ -130,6 +130,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				log.Debug("Version(0.10.0) proposal is active, and update govern-parameters success")
 			}
 			if versionProposal.NewVersion == params.FORKVERSION_0_11_0 {
+
 				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "15", blockNumber, blockHash); nil != err {
 					log.Error("Version(0.10.0) proposal is active, but update slashing.zeroProduceCumulativeTime to 15 failed")
 					return err

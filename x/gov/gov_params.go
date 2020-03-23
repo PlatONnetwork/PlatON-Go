@@ -245,9 +245,15 @@ func initParam() []*GovernParam {
 
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
-func InitGenesisGovernParam(snapDB snapshotdb.DB) error {
+func InitGenesisGovernParam(snapDB snapshotdb.DB, genesisVersion uint32) error {
 	var paramItemList []*ParamItem
-	for _, param := range queryInitParam() {
+
+	initParamList := queryInitParam()
+	if genesisVersion >= uint32(0<<16|11<<8|0) {
+		initParamList = append(initParamList, GetExtraGovernParams()...)
+	}
+
+	for _, param := range initParamList {
 		paramItemList = append(paramItemList, param.ParamItem)
 
 		key := KeyParamValue(param.ParamItem.Module, param.ParamItem.Name)
@@ -274,7 +280,13 @@ func RegisterGovernParamVerifiers() {
 
 // Used when new governance parameters need to be added after the blockchain is running
 func RegisterExtraGovernParamVerifiers() {
-	extraGovernParam := []*GovernParam{
+	for _, param := range GetExtraGovernParams() {
+		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
+	}
+}
+
+func GetExtraGovernParams() []*GovernParam {
+	return []*GovernParam{
 		{
 
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceCumulativeTime,
@@ -319,10 +331,6 @@ func RegisterExtraGovernParamVerifiers() {
 				return nil
 			},
 		},
-	}
-
-	for _, param := range extraGovernParam {
-		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
 	}
 }
 

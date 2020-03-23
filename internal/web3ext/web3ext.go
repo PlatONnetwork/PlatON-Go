@@ -412,6 +412,10 @@ web3._extend({
 			call: 'debug_economicConfig',
 		}),
 		new web3._extend.Method({
+			name: 'getWaitSlashingNodeList',
+			call: 'debug_getWaitSlashingNodeList',
+		}),
+		new web3._extend.Method({
 			name: 'enableDBGC',
 			call: 'debug_enableDBGC',
 		}),

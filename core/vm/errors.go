@@ -27,5 +27,5 @@ var (
 	ErrInsufficientBalance      = errors.New("insufficient balance for transfer")
 	ErrContractAddressCollision = errors.New("contract address collision")
 	ErrNoCompatibleInterpreter  = errors.New("no compatible interpreter")
-	ErrAbort                    = errors.New("abort of gas")
+	ErrAbort                    = errors.New("vm exec abort")
 )
