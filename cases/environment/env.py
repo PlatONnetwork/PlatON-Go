@@ -125,7 +125,7 @@ class TestEnvironment:
         amount = self.genesis_config["config"]["cbft"].get("amount")
         return int(period / 1000 / amount)
 
-    def consensus_node_id_list(self):
+    def consensus_node_id_list(self) -> List[str]:
         return [node.node_id for node in self.consensus_node_list]
 
     def find_node_by_node_id(self, node_id):

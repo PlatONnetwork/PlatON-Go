@@ -252,9 +252,9 @@ def wait_block_number(node, block, interval=1):
     """
     current_block = node.block_number
     if 0 < block - current_block <= 10:
-        timeout = 10 + int(time.time())
+        timeout = 10 + int(time.time()) + 50
     elif block - current_block > 10:
-        timeout = int((block - current_block) * interval * 1.5) + int(time.time())
+        timeout = int((block - current_block) * interval * 1.5) + int(time.time()) + 50
     else:
         log.info('current block {} is greater than block {}'.format(node.block_number, block))
         return
