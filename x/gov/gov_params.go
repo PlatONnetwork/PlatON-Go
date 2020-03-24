@@ -245,7 +245,7 @@ func initParam() []*GovernParam {
 
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
-func InitGenesisGovernParam(snapDB snapshotdb.DB, genesisVersion uint32) error {
+func InitGenesisGovernParam(snapDB snapshotdb.BaseDB, genesisVersion uint32) error {
 	var paramItemList []*ParamItem
 
 	initParamList := queryInitParam()
