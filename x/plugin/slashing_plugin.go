@@ -250,7 +250,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 	preRound := xutil.CalculateRound(header.Number.Uint64()) - 1
 	log.Info("Call zeroProduceProcess start", "blockNumber", blockNumber, "blockHash", blockHash, "preRound", preRound, "waitSlashingNodeListSize", waitSlashingNodeList)
 	if len(waitSlashingNodeList) > 0 {
-		snQueue := make(staking.SlashNodeQueue, len(waitSlashingNodeList))
+		var snQueue staking.SlashNodeQueue
 		for index := 0; index < len(waitSlashingNodeList); index++ {
 			waitSlashingNode := waitSlashingNodeList[index]
 			// Check if a node has produced a block, including in the current round
@@ -394,10 +394,11 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 							slashAmount = totalBalance
 						}
 					}
-					snQueue[index] = &staking.SlashNodeData{
+					snData := &staking.SlashNodeData{
 						NodeId          : nodeId,
 						Amount : slashAmount,
 					}
+					snQueue = append(snQueue, snData)
 					log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
 						"zeroProduceCount", zeroProduceCount, "slashType", staking.LowRatioDel, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blocksReward)
 
@@ -770,10 +771,10 @@ func calcSlashBlockRewards(db snapshotdb.DB, hash common.Hash, blockRewardAmount
 
 func (sp *SlashingPlugin)setSlashData(num uint64,snQueue staking.SlashNodeQueue) {
 	log.Debug("setSlashData","num", num,"len(snQueue)",len(snQueue))
-	log.Debug("setSlashData", snQueue)
 	if snQueue == nil || len(snQueue) == 0{
 		return
 	}
+	log.Debug("setSlashData,su", snQueue)
 	data, err := rlp.EncodeToBytes(snQueue)
 	if nil != err {
 		log.Error("wow,Failed to EncodeToBytes on slashingPlugin Confirmed When Election block", "err", err)
