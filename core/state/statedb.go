@@ -325,7 +325,6 @@ func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
 	defer self.lock.Unlock()
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		//prefixKey := stateObject.getPrefixKey(key)
 		return stateObject.removePrefixValue(stateObject.GetState(self.db, key))
 	}
 	return []byte{}
@@ -335,7 +334,6 @@ func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
 func (self *StateDB) GetCommittedState(addr common.Address, key []byte) []byte {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		//prefixKey := stateObject.getPrefixKey(key)
 		return stateObject.removePrefixValue(stateObject.GetCommittedState(self.db, key))
 	}
 	return []byte{}
@@ -412,7 +410,7 @@ func (self *StateDB) SetState(address common.Address, key, value []byte) {
 
 	if stateObject != nil {
 		//prefixKey := stateObject.getPrefixKey(key)
-		stateObject.SetState(self.db, key, stateObject.getPrefixValue(value))
+		stateObject.SetState(self.db, key, stateObject.getPrefixValue(key, value))
 	}
 	self.lock.Unlock()
 }
