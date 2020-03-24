@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
+	"github.com/syndtr/goleveldb/leveldb"
 	"math/big"
 	"os"
 	"sync"
@@ -133,16 +134,27 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
 	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
-	log.Debug("init chain ", "height", height)
+	log.Debug("read header number from chain db", "height", height)
 	if height != nil && *height > 0 {
 		//when last  fast syncing fail,we will clean chaindb,wal,snapshotdb
-		sdb := snapshotdb.Instance()
-		if status, err := sdb.GetBaseDB([]byte(downloader.KeyFastSyncStatus)); err == nil {
-			log.Info("last fast sync is fail,init  chain", "status", status)
-			if err := sdb.Close(); err != nil {
-				return nil, err
-			}
+		snapshotBaseDB, err := snapshotdb.OpenBaseDB(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles)
+		if err != nil {
+			return nil, err
+		}
+		status, err := snapshotBaseDB.Get([]byte(downloader.KeyFastSyncStatus), nil)
 
+		if err := snapshotBaseDB.Close(); err != nil {
+			return nil, err
+		}
+
+		// systemError
+		if err != nil && err != leveldb.ErrNotFound {
+			return nil, err
+		}
+		//if find sync status,this means last syncing not finish,should clean all db to reinit
+		//if not find sync status,no need init chain
+		if err == nil {
+			log.Info("last fast sync is fail,init  chain", "status", status, "prichain", config.Genesis == nil)
 			chainDb.Close()
 			if err := os.RemoveAll(ctx.ResolvePath("chaindata")); err != nil {
 				return nil, err
@@ -157,16 +169,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				return nil, err
 			}
 			if config.Genesis == nil {
-				log.Info("last fast sync is fail,set  genesis")
 				config.Genesis = new(core.Genesis)
 				if err := config.Genesis.InitAndSetEconomicConfig(ctx.GenesisPath()); err != nil {
 					return nil, err
 				}
 			}
-		} else if err != snapshotdb.ErrNotFound {
-			return nil, err
-		} else {
-			log.Debug("init chain not found", "err", err)
 		}
 	}
 

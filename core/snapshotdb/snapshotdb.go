@@ -196,6 +196,27 @@ func Instance() DB {
 	return dbInstance
 }
 
+func OpenBaseDB(snapshotDBPath string, cache int, handles int) (*leveldb.DB, error) {
+	leveldbPath := getBaseDBPath(snapshotDBPath)
+	baseDB, err := leveldb.OpenFile(leveldbPath, &opt.Options{
+		OpenFilesCacheCapacity: handles,
+		BlockCacheCapacity:     cache / 2 * opt.MiB,
+		WriteBuffer:            cache / 4 * opt.MiB, // Two of these are used internally
+		Filter:                 filter.NewBloomFilter(10),
+	})
+	if err != nil {
+		if _, corrupted := err.(*leveldbError.ErrCorrupted); corrupted {
+			baseDB, err = leveldb.RecoverFile(leveldbPath, nil)
+			if err != nil {
+				return nil, fmt.Errorf("[SnapshotDB.recover]RecoverFile baseDB fail:%v", err)
+			}
+		} else {
+			return nil, err
+		}
+	}
+	return baseDB, nil
+}
+
 func open(path string, cache int, handles int) (*snapshotDB, error) {
 	s, err := openFile(path, false)
 	if err != nil {
@@ -204,22 +225,11 @@ func open(path string, cache int, handles int) (*snapshotDB, error) {
 	}
 	logger.Info("Allocated cache and file handles", "cache", cache, "handles", handles)
 
-	baseDB, err := leveldb.OpenFile(getBaseDBPath(path), &opt.Options{
-		OpenFilesCacheCapacity: handles,
-		BlockCacheCapacity:     cache / 2 * opt.MiB,
-		WriteBuffer:            cache / 4 * opt.MiB, // Two of these are used internally
-		Filter:                 filter.NewBloomFilter(10),
-	})
+	baseDB, err := OpenBaseDB(path, cache, handles)
 	if err != nil {
-		if _, corrupted := err.(*leveldbError.ErrCorrupted); corrupted {
-			baseDB, err = leveldb.RecoverFile(getBaseDBPath(path), nil)
-			if err != nil {
-				return nil, fmt.Errorf("[SnapshotDB.recover]RecoverFile baseDB fail:%v", err)
-			}
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
+
 	unCommitBlock := new(unCommitBlocks)
 	unCommitBlock.blocks = make(map[common.Hash]*blockData)
 	db := &snapshotDB{
