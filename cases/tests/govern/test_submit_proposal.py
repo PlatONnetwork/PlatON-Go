@@ -6,7 +6,7 @@ from tests.lib.utils import wait_block_number, assert_code, get_governable_param
 from tests.lib.client import get_client_by_nodeid
 import time
 import math
-from tests.govern.test_voting_statistics import submitcppandvote, submitcvpandvote
+from tests.govern.test_voting_statistics import submitcppandvote, submitcvpandvote, submitppandvote
 
 
 @pytest.mark.P0
@@ -1129,6 +1129,8 @@ class TestPP:
             log.info('Submit param proposal result : {}'.format(result))
             assert_code(result, 0)
 
+
+
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_018(self, no_vp_proposal):
@@ -1137,6 +1139,205 @@ class TestPP:
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
+
+    @pytest.mark.P0
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_022(self, new_genesis_env, clients_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.zeroProduceNumberThreshold = 2
+        genesis.economicModel.slashing.zeroProduceCumulativeTime = 3
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        client = clients_consensus[0]
+        pip = client.pip
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime', '',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime', '1.1',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime', '-1',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime', '0',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime', 4,
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
+                                 str(pip.economic.consensus_wheel + 1), pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
+                                 str(get_governable_parameter_value(client, 'zeroProduceNumberThreshold') - 1),
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302034)
+
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
+                                 str(pip.economic.consensus_wheel), pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    @pytest.mark.P0
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_023(self, new_genesis_env, clients_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.zeroProduceNumberThreshold = 2
+        genesis.economicModel.slashing.zeroProduceCumulativeTime = 3
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        client = clients_consensus[0]
+        pip = client.pip
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold', '',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold', '1.1',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold', '-2',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold', '0',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold', 1,
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold',
+                                 str(int(get_governable_parameter_value(client, 'zeroProduceCumulativeTime')) + 1),
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold',
+                                 str(get_governable_parameter_value(client, 'zeroProduceCumulativeTime')),
+                                     pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    @pytest.mark.P0
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_023_2(self, new_genesis_env, clients_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.zeroProduceNumberThreshold = 2
+        genesis.economicModel.slashing.zeroProduceCumulativeTime = 3
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        client = clients_consensus[0]
+        pip = client.pip
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold',
+                                 '1', pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 0)
+
+    @pytest.mark.P2
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_024_UP_PA_008_PP_VO_004(self, new_genesis_env, clients_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        client = clients_consensus[0]
+        pip = client.pip
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold',
+                                 '4',pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('zeroProduceNumberThreshold {} submit param proposal result :{}'.format(4, result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
+                                 '4', pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 0)
+        proposal_info = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
+        log.info('Param praposal info : {}'.format(proposal_info))
+        for client in clients_consensus:
+            pip = client.pip
+            result = pip.vote(pip.node.node_id, proposal_info.get('ProposalID'), pip.cfg.vote_option_yeas,
+                              pip.node.staking_address)
+            log.info('node {} vote result {}'.format(pip.node.node_id, result))
+            assert_code(result, 0)
+        wait_block_number(pip.node, proposal_info.get('EndVotingBlock'))
+        value = client.pip.pip.getGovernParamValue('slashing', 'zeroProduceCumulativeTime').get('Ret')
+        log.info('zeroProduceCumulativeTime new value : {}'.format(value))
+        assert int(value) == 4
+
+        value, oldvalue = get_governable_parameter_value(client, 'zeroProduceCumulativeTime', flag=1)
+        assert value == 4
+        assert oldvalue == 1
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold',
+                                 '4', pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 0)
+
+    @pytest.mark.P2
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_025_UP_PA_009_PP_VO_005(self, new_genesis_env, clients_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
+        genesis.economicModel.slashing.zeroProduceNumberThreshold = 2
+        genesis.economicModel.slashing.zeroProduceCumulativeTime = 3
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        client = clients_consensus[0]
+        pip = client.pip
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
+                                 '1',pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('zeroProduceCumulativeTime {} submit param proposal result :{}'.format(1, result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold',
+                                 '1', pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 0)
+        proposal_info = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
+        log.info('Param praposal info : {}'.format(proposal_info))
+        for client in clients_consensus:
+            pip = client.pip
+            result = pip.vote(pip.node.node_id, proposal_info.get('ProposalID'), pip.cfg.vote_option_yeas,
+                              pip.node.staking_address)
+            log.info('node {} vote result {}'.format(pip.node.node_id, result))
+            assert_code(result, 0)
+        wait_block_number(pip.node, proposal_info.get('EndVotingBlock'))
+        value = client.pip.pip.getGovernParamValue('slashing', 'zeroProduceNumberThreshold').get('Ret')
+        log.info('zeroProduceNumberThreshold new value : {}'.format(value))
+        assert int(value) == 1
+
+        value, oldvalue = get_governable_parameter_value(client, 'zeroProduceNumberThreshold', flag=1)
+        assert value == 1
+        assert oldvalue == 2
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
+                                 '1', pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 0)
+
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')

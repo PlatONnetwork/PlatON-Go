@@ -32,7 +32,7 @@ class TestPlatonVersion:
         assert_code(result, 301005)
 
     @pytest.mark.P2
-    def test_VE_DE_004(self, new_genesis_env, client_noconsensus):
+    def test_VE_DE_004_VE_DE_011(self, new_genesis_env, client_noconsensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.config.genesisVersion = client_noconsensus.pip.cfg.version3
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -63,6 +63,64 @@ class TestPlatonVersion:
         address, _ = client.economic.account.generate_account(client.node.web3, 10 ** 18 * 10000000)
         result = client.staking.create_staking(0, address, address)
         assert_code(result, 301004)
+
+    @pytest.mark.P2
+    def test_VE_DE_007(self, new_genesis_env):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.zeroProduceCumulativeTime = 5
+        new_genesis_env.set_genesis(genesis.to_dict())
+        try:
+            new_genesis_env.deploy_all()
+        except Exception as e:
+            log.info('Deploy failed error measage {}'.format(e.args[0]))
+            index = e.args[0].find('ZeroProduceCumulativeTime')
+            assert e.args[0][index:index + 40] == r'ZeroProduceCumulativeTime must be [1, 4]'
+
+    @pytest.mark.P2
+    def test_VE_DE_008_VE_DE_009(self, new_genesis_env, client_noconsensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.zeroProduceCumulativeTime = 4
+        genesis.economicModel.slashing.zeroProduceNumberThreshold = 4
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        time.sleep(3)
+        assert client_noconsensus.node.block_number > 0
+
+    @pytest.mark.P2
+    def test_VE_DE_008_VE_DE_009(self, new_genesis_env, client_noconsensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.zeroProduceCumulativeTime = 4
+        genesis.economicModel.slashing.zeroProduceNumberThreshold = 4
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        time.sleep(3)
+        assert client_noconsensus.node.block_number > 0
+
+    @pytest.mark.P2
+    def test_VE_DE_010(self, new_genesis_env):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.zeroProduceCumulativeTime = 3
+        genesis.economicModel.slashing.zeroProduceNumberThreshold = 4
+        new_genesis_env.set_genesis(genesis.to_dict())
+        try:
+            new_genesis_env.deploy_all()
+        except Exception as e:
+            log.info('Deploy failed error measage {}'.format(e.args[0]))
+            index = e.args[0].find('ZeroProduceNumberThreshold')
+
+            assert e.args[0][index:index + 41] == r'ZeroProduceNumberThreshold must be [1, 3]'
+
+    @pytest.mark.P2
+    def test_VE_DE_010(self, new_genesis_env):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.zeroProduceNumberThreshold = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        try:
+            new_genesis_env.deploy_all()
+        except Exception as e:
+            log.info('Deploy failed error measage {}'.format(e.args[0]))
+            index = e.args[0].find('ZeroProduceNumberThreshold')
+            assert e.args[0][index:index + 41] == r'ZeroProduceNumberThreshold must be [1, 1]'
 
     @pytest.mark.P2
     def test_VE_AD_002(self, new_genesis_env):

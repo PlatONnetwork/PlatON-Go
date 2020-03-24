@@ -357,7 +357,7 @@ def von_amount(amonut, base):
     return int(Decimal(str(amonut)) * Decimal(str(base)))
 
 
-def get_governable_parameter_value(client_obj, parameter):
+def get_governable_parameter_value(client_obj, parameter, flag=None):
     """
     Get governable parameter value
     :return:
@@ -368,7 +368,11 @@ def get_governable_parameter_value(client_obj, parameter):
     for i in parameter_information:
         if i['ParamItem']['Name'] == parameter:
             log.info("{} ParamValue: {}".format(parameter, i['ParamValue']['Value']))
-            return i['ParamValue']['Value']
+            log.info("{} Param old Value: {}".format(parameter, i['ParamValue']['StaleValue']))
+            if not flag:
+                return i['ParamValue']['Value']
+            else:
+                return int(i['ParamValue']['Value']), int(i['ParamValue']['StaleValue'])
 
 
 def get_the_dynamic_parameter_gas_fee(data):
