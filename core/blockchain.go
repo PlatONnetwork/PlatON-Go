@@ -20,13 +20,13 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"io"
 	mrand "math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
@@ -970,9 +970,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		oversize := false
 
 		currVersion := gov.GetCurrentActiveVersion(state)
-		if currVersion >= plugin.FORKVERSION_0_11_0 {
+		if currVersion >= params.FORKVERSION_0_11_0 {
 			log.Trace("GetCurrentActiveVersion on blockchain WriteBlockWithState", "blockNumber", block.Number(),
-				"blockHash", block.Hash().TerminalString(), "govVersion", currVersion, "forkVersion", plugin.FORKVERSION_0_11_0)
+				"blockHash", block.Hash().TerminalString(), "govVersion", currVersion, "forkVersion", params.FORKVERSION_0_11_0)
 			bc.cacheConfig.DBGCMpt = false
 		}
 
