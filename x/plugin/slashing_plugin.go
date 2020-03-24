@@ -215,7 +215,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					slashNodeQueue = append(slashNodeQueue, snData)
 				}
 			}
-			setSlashData(header.Number.Uint64() ,slashNodeQueue)
+			sp.setSlashData(header.Number.Uint64() ,slashNodeQueue)
 			// Real to slash the node
 			// If there is no record of the node,
 			// it means that there is no block,
@@ -411,7 +411,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				}
 			}
 		}
-		setSlashData(blockNumber, snQueue)
+		sp.setSlashData(blockNumber, snQueue)
 	}
 	// The remaining zero-out blocks in the map belong to the first zero-out block,
 	// so they are directly added to the list.
@@ -768,10 +768,10 @@ func calcSlashBlockRewards(db snapshotdb.DB, hash common.Hash, blockRewardAmount
 	return new(big.Int).Mul(newBlockReward, new(big.Int).SetUint64(blockRewardAmount)), nil
 }
 
-func setSlashData(num uint64,snQueue staking.SlashNodeQueue) {
-	log.Debug("setSlashData,num", num)
+func (sp *SlashingPlugin)setSlashData(num uint64,snQueue staking.SlashNodeQueue) {
+	log.Debug("setSlashData","num", num,"len(snQueue)",len(snQueue))
 	log.Debug("setSlashData", snQueue)
-	if(snQueue == nil){
+	if snQueue == nil || len(snQueue) == 0{
 		return
 	}
 	data, err := rlp.EncodeToBytes(snQueue)
