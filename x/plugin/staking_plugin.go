@@ -1423,16 +1423,20 @@ func (sk *StakingPlugin) GetSlashData(blockHash common.Hash, blockNumber uint64)
 	if nil != err {
 		return nil, err
 	}
-	slashNodeQueue := make(staking.SlashNodeQueue,0)
+	var slashNodeQueue staking.SlashNodeQueue
 	err = rlp.DecodeBytes(data, &slashNodeQueue)
 	if nil != err {
 		return nil, err
 	}
-	if slashNodeQueue == nil{
-		slashNodeQueue = make(staking.SlashNodeQueue,0)
+	snq := make(staking.SlashNodeQueue, len(slashNodeQueue))
+	for i, v := range slashNodeQueue {
+		snq[i] = &staking.SlashNodeData{
+			NodeId:v.NodeId,
+			Amount:v.Amount,
+		}
 	}
-	log.Debug("wow,GetSlashData", slashNodeQueue)
-	return  slashNodeQueue, nil
+	log.Debug("wow,GetSlashData", snq)
+	return  snq, nil
 }
 
 func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, isCommit bool) (bool, error) {

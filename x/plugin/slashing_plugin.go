@@ -769,6 +769,7 @@ func calcSlashBlockRewards(db snapshotdb.DB, hash common.Hash, blockRewardAmount
 }
 
 func setSlashData(num uint64,snQueue *staking.SlashNodeQueue) {
+	log.Debug("setSlashData", snQueue)
 	data, err := rlp.EncodeToBytes(snQueue)
 	if nil != err {
 		log.Error("wow,Failed to EncodeToBytes on slashingPlugin Confirmed When Election block", "err", err)
