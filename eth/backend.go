@@ -20,7 +20,6 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/syndtr/goleveldb/leveldb"
 	"math/big"
 	"os"
 	"sync"
@@ -146,7 +145,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		status, err := snapshotBaseDB.GetBaseDB([]byte(downloader.KeyFastSyncStatus))
 
 		// systemError
-		if err != nil && err != leveldb.ErrNotFound {
+		if err != nil && err != snapshotdb.ErrNotFound {
 			if err := snapshotBaseDB.Close(); err != nil {
 				return nil, err
 			}
@@ -155,8 +154,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		//if find sync status,this means last syncing not finish,should clean all db to reinit
 		//if not find sync status,no need init chain
 		if err == nil {
-
-			log.Info("last fast sync is fail,init  chain", "status", status, "prichain", config.Genesis == nil)
+			log.Info("last fast sync is fail,init  db", "status", status, "prichain", config.Genesis == nil)
 			chainDb.Close()
 			if err := snapshotBaseDB.Close(); err != nil {
 				return nil, err
@@ -189,6 +187,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 					return nil, err
 				}
 			}
+			log.Info("last fast sync is fail,init  db finish")
 		}
 	}
 
