@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sync"
 
@@ -567,12 +568,8 @@ func CheckEconomicModel(genesisVersion uint32) error {
 		return err
 	}
 
-	if genesisVersion >= uint32(0<<16|11<<8|0) {
-		consensusSize := BlocksWillCreate() * MaxConsensusVals()
-		em := MaxEpochMinutes()
-		i := Interval()
-
-		epochSize := uint16(em * 60 / (i * consensusSize))
+	if genesisVersion >= params.FORKVERSION_0_11_0 {
+		epochSize := uint16(EpochSize())
 		if epochSize < MaxZeroProduceCumulativeTime {
 			MaxZeroProduceCumulativeTime = epochSize
 		}
@@ -620,6 +617,19 @@ func MaxConsensusVals() uint64 {
 
 func AdditionalCycleTime() uint64 {
 	return ec.Common.AdditionalCycleTime
+}
+
+func ConsensusSize() uint64 {
+	return BlocksWillCreate() * MaxConsensusVals()
+}
+
+func EpochSize() uint64 {
+	consensusSize := ConsensusSize()
+	em := MaxEpochMinutes()
+	i := Interval()
+
+	epochSize := em * 60 / (i * consensusSize)
+	return epochSize
 }
 
 /******
