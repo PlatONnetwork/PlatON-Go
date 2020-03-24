@@ -305,7 +305,7 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.Ba
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
 
-	err := plugin.RestrictingInstance().InitGenesisRestrictingPlans(statedb)
+	err := plugin.NewRestrictingPlugin(nil).InitGenesisRestrictingPlans(statedb)
 	if err != nil {
 		return fmt.Errorf("Failed to init genesis restricting plans, err:%s", err.Error())
 	}
