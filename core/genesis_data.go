@@ -26,7 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB) error {
+func genesisStakingData(snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.StateDB) error {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init staking snapshotdb data, validatorMode is not ppos")
@@ -284,7 +284,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 	return nil
 }
 
-func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.DB, genesisIssue *big.Int) error {
+func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.BaseDB, genesisIssue *big.Int) error {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")

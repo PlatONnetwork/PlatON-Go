@@ -134,29 +134,33 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
+	snapshotBaseDB, err := snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+	if err != nil {
+		return nil, err
+	}
+
 	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
 	log.Debug("read header number from chain db", "height", height)
 	if height != nil && *height > 0 {
 		//when last  fast syncing fail,we will clean chaindb,wal,snapshotdb
-		snapshotBaseDB, err := snapshotdb.OpenBaseDB(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles)
-		if err != nil {
-			return nil, err
-		}
-		status, err := snapshotBaseDB.Get([]byte(downloader.KeyFastSyncStatus), nil)
-
-		if err := snapshotBaseDB.Close(); err != nil {
-			return nil, err
-		}
+		status, err := snapshotBaseDB.GetBaseDB([]byte(downloader.KeyFastSyncStatus))
 
 		// systemError
 		if err != nil && err != leveldb.ErrNotFound {
+			if err := snapshotBaseDB.Close(); err != nil {
+				return nil, err
+			}
 			return nil, err
 		}
 		//if find sync status,this means last syncing not finish,should clean all db to reinit
 		//if not find sync status,no need init chain
 		if err == nil {
+
 			log.Info("last fast sync is fail,init  chain", "status", status, "prichain", config.Genesis == nil)
 			chainDb.Close()
+			if err := snapshotBaseDB.Close(); err != nil {
+				return nil, err
+			}
 			if err := os.RemoveAll(ctx.ResolvePath("chaindata")); err != nil {
 				return nil, err
 			}
@@ -165,10 +169,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				return nil, err
 			}
 
+			if err := os.RemoveAll(ctx.ResolvePath(snapshotdb.DBPath)); err != nil {
+				return nil, err
+			}
+
 			chainDb, err = CreateDB(ctx, config, "chaindata")
 			if err != nil {
 				return nil, err
 			}
+
+			snapshotBaseDB, err = snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+			if err != nil {
+				return nil, err
+			}
+
 			if config.Genesis == nil {
 				config.Genesis = new(core.Genesis)
 				if err := config.Genesis.InitAndSetEconomicConfig(ctx.GenesisPath()); err != nil {
@@ -178,7 +192,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		}
 	}
 
-	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
+	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
+
+	if err := snapshotBaseDB.Close(); err != nil {
+		return nil, err
+	}
 
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
