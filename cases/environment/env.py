@@ -128,6 +128,12 @@ class TestEnvironment:
     def consensus_node_id_list(self):
         return [node.node_id for node in self.consensus_node_list]
 
+    def find_node_by_node_id(self, node_id):
+        for node in self.get_all_nodes():
+            if node_id == node.node_id:
+                return node
+        raise Exception("can't find node")
+
     def copy_env(self):
         """
         Copy environment
