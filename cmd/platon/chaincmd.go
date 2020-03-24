@@ -196,21 +196,21 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		var snapshtoBaseDB snapshotdb.DB
+		var sdb snapshotdb.DB
 		if name == "chaindata" {
-			snapshtoBaseDB, err = snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
+			sdb, err = snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
 			if err != nil {
 				utils.Fatalf("Failed to open snapshotdb: %v", err)
 			}
 
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, snapshtoBaseDB, genesis)
+		_, hash, err := core.SetupGenesisBlock(chaindb, sdb, genesis)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
 		log.Info("Successfully wrote genesis state", "database", name, "hash", hash.Hex())
-		if snapshtoBaseDB != nil {
-			if err := snapshtoBaseDB.Close(); err != nil {
+		if sdb != nil {
+			if err := sdb.Close(); err != nil {
 				utils.Fatalf("close base db fail: %v", err)
 			}
 		}
