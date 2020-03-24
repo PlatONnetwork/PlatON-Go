@@ -125,6 +125,9 @@ class TestEnvironment:
         amount = self.genesis_config["config"]["cbft"].get("amount")
         return int(period / 1000 / amount)
 
+    def consensus_node_id_list(self):
+        return [node.node_id for node in self.consensus_node_list]
+
     def copy_env(self):
         """
         Copy environment
@@ -335,8 +338,8 @@ class TestEnvironment:
     def deploy_nodes(self, node_list: List[Node], genesis_file):
         """
         Deployment node
-                                                                Choose whether to empty the environment depending on whether initialization is required
-                                                                Upload all node files
+        Choose whether to empty the environment depending on whether initialization is required
+        Upload all node files
         :param node_list:
         :param genesis_file:
         """
