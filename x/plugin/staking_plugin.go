@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -2005,7 +2007,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	// Balance that can only be effective for Slash
 	total := new(big.Int).Add(can.Released, can.RestrictingPlan)
 
-	if total.Cmp(slashItem.Amount) < 0 {
+	if slashItem.Amount != nil && total.Cmp(slashItem.Amount) < 0 {
 		log.Error("Warned to SlashCandidates: the candidate total staking amount is not enough",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(),
 			"candidate total amount", total, "slashing amount", slashItem.Amount)
@@ -2299,7 +2301,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			continue
 		}
 		currentVersion := gov.GetCurrentActiveVersion(state)
-		if currentVersion == 0 || gov.GetCurrentActiveVersion(state) >= FORKVERSION_0_11_0 || programVersion == FORKVERSION_0_11_0 {
+		if currentVersion == 0 || gov.GetCurrentActiveVersion(state) >= params.FORKVERSION_0_11_0 || programVersion == params.FORKVERSION_0_11_0 {
 			if can.IsInvalid() {
 				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
 				continue

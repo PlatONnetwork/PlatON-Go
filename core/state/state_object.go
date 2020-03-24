@@ -21,10 +21,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"io"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -50,10 +51,9 @@ type ValueStorage map[common.Hash][]byte
 type ReferenceValueStorage map[common.Hash]*ReferenceValue
 
 type ReferenceValue struct {
-	Count  uint32
-	Value  []byte
+	Count uint32
+	Value []byte
 }
-
 
 func (self ReferenceValueStorage) deleleReferenceValue(valueKey common.Hash) {
 	if refValue, ok := self[valueKey]; ok {
@@ -61,7 +61,7 @@ func (self ReferenceValueStorage) deleleReferenceValue(valueKey common.Hash) {
 		// `Count--` may be negative after the fork.
 		if refValue.Count--; refValue.Count <= 0 {
 			delete(self, valueKey)
-		}else {
+		} else {
 			self[valueKey] = refValue
 		}
 	}
@@ -71,14 +71,13 @@ func (self ReferenceValueStorage) pureDelReferenceValue(valueKey common.Hash) {
 	delete(self, valueKey)
 }
 
-
-func (self ReferenceValueStorage) setReferenceValue (valueKey common.Hash, val []byte) {
+func (self ReferenceValueStorage) setReferenceValue(valueKey common.Hash, val []byte) {
 
 	var ref *ReferenceValue
 	if refValue, ok := self[valueKey]; ok {
 		refValue.Count++
 		ref = refValue
-	}else {
+	} else {
 		ref = &ReferenceValue{
 			Count: 1,
 			Value: val,
@@ -87,7 +86,7 @@ func (self ReferenceValueStorage) setReferenceValue (valueKey common.Hash, val [
 	self[valueKey] = ref
 }
 
-func (self ReferenceValueStorage) pureSetReferenceValue (valueKey common.Hash, val []byte) {
+func (self ReferenceValueStorage) pureSetReferenceValue(valueKey common.Hash, val []byte) {
 	ref := &ReferenceValue{
 		Count: 1,
 		Value: val,
@@ -171,7 +170,7 @@ type stateObject struct {
 	originStorage      Storage      // Storage cache of original entries to dedup rewrites
 	originValueStorage ValueStorage // Storage cache of original entries to dedup rewrites
 
-	dirtyStorage      Storage      // Storage entries that need to be flushed to disk
+	dirtyStorage      Storage               // Storage entries that need to be flushed to disk
 	dirtyValueStorage ReferenceValueStorage // Storage entries that need to be flushed to disk
 
 	// Cache flags.
@@ -194,22 +193,22 @@ func (s *stateObject) delReferenceValueStorage(valueKey common.Hash) {
 	if checkForkPIP0_11_0(s.db) {
 		log.Trace("delReferenceValueStorage Start, deleleReferenceValue", "govVersion", s.db.govVersion, "valueKey", valueKey.String())
 		s.dirtyValueStorage.deleleReferenceValue(valueKey)
-	}else {
+	} else {
 		s.dirtyValueStorage.pureDelReferenceValue(valueKey)
 	}
 }
 
-func (s *stateObject) setReferenceValueStorage (valueKey common.Hash, val []byte) {
+func (s *stateObject) setReferenceValueStorage(valueKey common.Hash, val []byte) {
 	if checkForkPIP0_11_0(s.db) {
 		log.Trace("setReferenceValueStorage Start, setReferenceValue", "govVersion", s.db.govVersion, "valueKey", valueKey.String(), "val", hexutil.Encode(val))
 		s.dirtyValueStorage.setReferenceValue(valueKey, val)
-	}else {
+	} else {
 		s.dirtyValueStorage.pureSetReferenceValue(valueKey, val)
 	}
 }
 
 func checkForkPIP0_11_0(state *StateDB) bool {
-	if state.govVersion >= plugin.FORKVERSION_0_11_0 {
+	if state.govVersion >= params.FORKVERSION_0_11_0 {
 		return true
 	} else {
 		return false

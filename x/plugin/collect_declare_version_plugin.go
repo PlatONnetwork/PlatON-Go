@@ -3,6 +3,8 @@ package plugin
 import (
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -14,8 +16,8 @@ import (
 
 func NewCollectDeclareVersionPlugin() *CollectDeclareVersionPlugin {
 	cd := new(CollectDeclareVersionPlugin)
-	cd.num = FORKNUM
-	cd.version = FORKVERSION
+	cd.num = params.FORKNUM
+	cd.version = params.FORKVERSION
 	return cd
 }
 
@@ -25,7 +27,7 @@ type CollectDeclareVersionPlugin struct {
 }
 
 func (b *CollectDeclareVersionPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-	if header.ParentHash.String() == FORKHASH && (header.Number.Uint64()-FORKNUM) == 1 {
+	if header.ParentHash.String() == params.FORKHASH && (header.Number.Uint64()-params.FORKNUM) == 1 {
 		if err := gov.AddActiveVersion(b.version, header.Number.Uint64(), state); err != nil {
 			return err
 		}
@@ -40,7 +42,7 @@ func (b *CollectDeclareVersionPlugin) BeginBlock(blockHash common.Hash, header *
 }
 
 func (b *CollectDeclareVersionPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-	if header.ParentHash.String() == FORKHASH && (header.Number.Uint64()-FORKNUM) == 1 {
+	if header.ParentHash.String() == params.FORKHASH && (header.Number.Uint64()-params.FORKNUM) == 1 {
 		defer func() {
 			gov.EnableCounter = false
 		}()
@@ -70,7 +72,7 @@ func (b *CollectDeclareVersionPlugin) Confirmed(nodeId discover.NodeID, block *t
 }
 
 func IsForkBlock(blockNumber uint64, parentHash string) bool {
-	if blockNumber == FORKNUM+1 && parentHash == FORKHASH {
+	if blockNumber == params.FORKNUM+1 && parentHash == params.FORKHASH {
 		return true
 	}
 	return false

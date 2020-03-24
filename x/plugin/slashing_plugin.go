@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
@@ -141,7 +142,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				log.Error("Failed to BeginBlock, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return errors.New("Failed to get CurrentActiveVersion")
 			}
-			if currentVersion >= FORKVERSION_0_11_0 {
+			if currentVersion >= params.FORKVERSION_0_11_0 {
 				// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
 				validatorMap := make(map[discover.NodeID]bool)
 				for _, validator := range preRoundVal.Arr {
@@ -365,7 +366,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 						}
 						return nil, err
 					}
-					var slashAmount *big.Int
+					slashAmount := new(big.Int).SetUint64(0)
 					totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
 					blocksReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
 					if nil != err {
