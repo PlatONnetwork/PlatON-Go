@@ -26,6 +26,15 @@ def create_pledge_node_information(client):
     log.info("current Verifier List：{}".format(result))
 
 
+def update_zero_produce(new_genesis_env, cumulativetime=4, numberthreshold=3):
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.slashing.zeroProduceCumulativeTime = cumulativetime
+    genesis.economicModel.slashing.zeroProduceNumberThreshold = numberthreshold
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+
+
 def test_ZB_NP_01(new_genesis_env, clients_noconsensus):
     """
     节点未被选中验证人列表查询零出块记录表
@@ -65,24 +74,42 @@ def test_ZB_NP_02(clients_noconsensus):
         first_economic.wait_consensus_blocknum(first_node)
 
 
-def test_ZB_NP_03(clients_noconsensus):
+def test_ZB_NP_03(new_genesis_env, clients_noconsensus):
     """
     节点未被选中共识验证人列表查询零出块记录表（存在零出块记录）
     """
+    update_zero_produce(new_genesis_env)
     first_client = clients_noconsensus[0]
     second_client = clients_noconsensus[1]
     first_economic = first_client.economic
     first_node = first_client.node
+
     create_pledge_node_information(first_client)
+    verifier_nodeid_list = first_client.economic.env.consensus_node_id_list()
+    verifier_nodeid_list.append(first_node.node_id)
+    verifier_nodeid_list.pop(4)
+    log.info("verifier nodeid list: {}".format(verifier_nodeid_list))
     for i in range(4):
         result = check_node_in_list(first_node.node_id, first_client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
         if result:
+            result = second_client.node.debug.setValidatorList(verifier_nodeid_list)
+            assert result is None
             # stop node
             first_client.node.stop()
-            second_client.economic.wait_consensus_blocknum(second_client.node, 1)
+            second_client.economic.wait_consensus_blocknum(second_client.node)
             log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
-            result = Debug.getWaitSlashingNodeList(second_client.node)
+            result = check_node_in_list(first_node.node_id, second_client.ppos.getValidatorList)
+            log.info("node in consensus list status：{}".format(result))
+            result = second_client.ppos.getValidatorList()
+            log.info("Validator List:{}".format(result))
+            first_node.start()
+            second_client.economic.wait_consensus_blocknum(second_client.node)
+            log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
+            result = second_client.node.debug.getWaitSlashingNodeList()
+            log.info("Slashing NodeList: {}".format(result))
+            second_client.economic.wait_consensus_blocknum(second_client.node)
+            result = second_client.node.debug.getWaitSlashingNodeList()
             log.info("Slashing NodeList: {}".format(result))
             break
         else:
@@ -108,3 +135,51 @@ def test_ZB_NP_04(clients_noconsensus):
             break
         else:
             first_economic.wait_consensus_blocknum(first_node)
+
+
+def test_ZB_NP_05(new_genesis_env, clients_noconsensus):
+    """
+    节点被选中共识验证人查询零出块记录表（存在零出块记录）
+    """
+    update_zero_produce(new_genesis_env)
+    first_client = clients_noconsensus[0]
+    second_client = clients_noconsensus[1]
+    first_economic = first_client.economic
+    first_node = first_client.node
+    create_pledge_node_information(first_client)
+    verifier_nodeid_list = first_client.economic.env.consensus_node_id_list()
+    verifier_nodeid_list.append(first_node.node_id)
+    verifier_nodeid_list.pop(0)
+    log.info("verifier nodeid list: {}".format(verifier_nodeid_list))
+    second_client.node.debug.setValidatorList(verifier_nodeid_list)
+    first_node.stop()
+    second_client.economic.wait_consensus_blocknum(second_client.node, 1)
+    first_node.start()
+    second_client.economic.wait_consensus_blocknum(second_client.node)
+    result = second_client.node.debug.getWaitSlashingNodeList()
+    log.info("Slashing Node List:{}".format(result))
+    second_client.economic.wait_consensus_blocknum(second_client.node)
+    result = second_client.node.debug.getWaitSlashingNodeList()
+    log.info("Slashing Node List:{}".format(result))
+
+
+def test_ZB_NP_06(new_genesis_env, clients_noconsensus):
+    """
+    节点被选中共识验证人未出块查询零出块记录表（不存在零出块记录）
+    """
+    update_zero_produce(new_genesis_env)
+    first_client = clients_noconsensus[0]
+    second_client = clients_noconsensus[1]
+    first_economic = first_client.economic
+    first_node = first_client.node
+    create_pledge_node_information(first_client)
+    verifier_nodeid_list = first_client.economic.env.consensus_node_id_list()
+    verifier_nodeid_list.append(first_node.node_id)
+    verifier_nodeid_list.pop(0)
+    log.info("verifier nodeid list: {}".format(verifier_nodeid_list))
+    second_client.node.debug.setValidatorList(verifier_nodeid_list)
+    first_node.stop()
+    second_client.economic.wait_consensus_blocknum(second_client.node, 1)
+    result = second_client.node.debug.getWaitSlashingNodeList()
+    log.info("Slashing Node List:{}".format(result))
+
