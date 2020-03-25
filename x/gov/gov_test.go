@@ -204,7 +204,7 @@ func submitText(t *testing.T, chain *mock.Chain) Proposal {
 		ProposalID:   tpProposalID,
 		Proposer:     nodeID,
 	}
-	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), NewMockStaking(), chain.StateDB, chainID); err != nil {
+	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), NewMockStaking(), chain.StateDB); err != nil {
 		t.Error("submitText, err", err)
 	}
 	return p
@@ -220,7 +220,7 @@ func submitVersion(t *testing.T, chain *mock.Chain, stk *MockStaking) Proposal {
 		NewVersion:      tempActiveVersion,
 		EndVotingRounds: vpEndVotingRounds,
 	}
-	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB, chainID); err != nil {
+	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
 		t.Error("submitVersion, err", err)
 	}
 	return p
