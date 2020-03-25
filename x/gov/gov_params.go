@@ -245,12 +245,13 @@ func initParam() []*GovernParam {
 
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
-func InitGenesisGovernParam(snapDB snapshotdb.DB, genesisVersion uint32) error {
+func InitGenesisGovernParam(snapDB snapshotdb.BaseDB, genesisVersion uint32) error {
 	var paramItemList []*ParamItem
 
 	initParamList := queryInitParam()
-	if genesisVersion >= uint32(0<<16|11<<8|0) {
+	if genesisVersion >= params.FORKVERSION_0_11_0 {
 		initParamList = append(initParamList, GetExtraGovernParams()...)
+		log.Info("Call InitGenesisGovernParam execution 0.11.0", "genesisVersion", genesisVersion)
 	}
 
 	for _, param := range initParamList {

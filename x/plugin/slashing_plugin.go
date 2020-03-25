@@ -155,7 +155,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					}
 				}
 
-				if slashQueue, err = sp.zeroProduceProcess(blockHash, header, state, validatorMap); nil != err {
+				if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap); nil != err {
 					log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
@@ -230,13 +230,14 @@ func (sp *SlashingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) 
 	return nil
 }
 
-func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *types.Header, state xcom.StateDB, validatorMap map[discover.NodeID]bool) (staking.SlashQueue, error) {
+func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *types.Header, validatorMap map[discover.NodeID]bool) (staking.SlashQueue, error) {
 	blockNumber := header.Number.Uint64()
 	slashQueue := make(staking.SlashQueue, 0)
 	waitSlashingNodeList, err := sp.getWaitSlashingNodeList(header.Number.Uint64(), blockHash)
 	if nil != err {
 		return nil, err
 	}
+
 	preRound := xutil.CalculateRound(header.Number.Uint64()) - 1
 	log.Info("Call zeroProduceProcess start", "blockNumber", blockNumber, "blockHash", blockHash, "preRound", preRound, "waitSlashingNodeListSize", waitSlashingNodeList)
 	if len(waitSlashingNodeList) > 0 {
@@ -247,6 +248,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 			nodeId := waitSlashingNode.NodeId
 			isProduced, ok := validatorMap[nodeId]
 			delete(validatorMap, nodeId)
+
 			delFunc := func(nodeList []*WaitSlashingNode, index *int) []*WaitSlashingNode {
 				if len(nodeList) == 1 {
 					return nil
@@ -258,6 +260,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				*index--
 				return result
 			}
+
 			if ok && isProduced {
 				isDelete = true
 			} else {
@@ -268,12 +271,14 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 					log.Debug("Call zeroProduceProcess, The current round produced blocks", "blockNumber", blockNumber, "blockHash", blockHash, "nodeId", nodeId.TerminalString(), "packAmount", amount)
 				}
 			}
+
 			if isDelete {
 				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
 				log.Debug("Call zeroProduceProcess, produced blocks", "blockNumber", blockNumber, "blockHash", blockHash, "nodeId", nodeId.TerminalString(),
 					"preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "waitSlashingNodeListSize", len(waitSlashingNodeList))
 				continue
 			}
+
 			zeroProduceNumberThreshold, err := gov.GovernZeroProduceNumberThreshold(blockNumber, blockHash)
 			if nil != err {
 				log.Error("Failed to zeroProduceProcess, call GovernZeroProduceNumberThreshold is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
@@ -286,6 +291,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 					"err", err)
 				return nil, err
 			}
+
 			log.Debug("Call zeroProduceProcess, Judgment time threshold", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "zeroProduceCumulativeTime", zeroProduceCumulativeTime,
 				"nodeId", nodeId.TerminalString(), "preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "isProduced", isProduced, "isExistPreRound", ok)
 			// The time window is full and you need to move the bits to store the previous round of information
@@ -295,6 +301,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				// If the value of the time window is not governed, the calculated value is 1.
 				moveNumber := (diff + 1) - zeroProduceCumulativeTime
 				waitSlashingNode.CountBit = waitSlashingNode.CountBit >> moveNumber
+
 				if waitSlashingNode.CountBit > 0 {
 					waitSlashingNode.Round += uint64(moveNumber)
 					log.Debug("Call zeroProduceProcess, first move bit, countBit > 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
@@ -317,6 +324,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 					}
 				}
 			}
+
 			if ok && !isProduced {
 				// Mark whether the previous round was a zero-out block
 				if waitSlashingNode.CountBit == 0 {
@@ -329,13 +337,17 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				log.Debug("Call zeroProduceProcess, preRound zero produced, set bit", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
 					"preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit))
 			}
+
 			if waitSlashingNode.CountBit == 0 {
 				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
 				log.Debug("Call zeroProduceProcess, Move and set the bit successfully, countBit equals 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "waitSlashingNodeListSize", len(waitSlashingNodeList))
 				continue
 			}
+
 			// If the range of the time window is satisfied, and the number of zero blocks is satisfied, a penalty is imposed.
 			if diff := uint16(preRound - waitSlashingNode.Round + 1); diff == zeroProduceCumulativeTime {
+
+				// Count the number of flags
 				calcBitFunc := func(countBit uint64, number int) uint16 {
 					var compareValue uint64 = 1
 					var count uint16
@@ -347,10 +359,12 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 					}
 					return count
 				}
+
 				if zeroProduceCount := calcBitFunc(waitSlashingNode.CountBit, int(zeroProduceCumulativeTime)); zeroProduceCount >= zeroProduceNumberThreshold {
 					waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
 					log.Debug("Call zeroProduceProcess, Meet the conditions of punishment", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
 						"countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "zeroProduceCount", zeroProduceCount, "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "waitSlashingNodeListSize", len(waitSlashingNodeList))
+
 					// Structure for constructing penalty information
 					nodeAddr, err := xutil.NodeId2Addr(nodeId)
 					if err != nil {
@@ -366,6 +380,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 						}
 						return nil, err
 					}
+
 					slashAmount := new(big.Int).SetUint64(0)
 					totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
 					blocksReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
@@ -409,6 +424,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 			log.Debug("Call zeroProduceProcess, first zero produced", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", key.TerminalString(), "preRound", preRound, "waitSlashingNodeListSize", len(waitSlashingNodeList))
 		}
 	}
+
 	if err := sp.setWaitSlashingNodeList(header.Number.Uint64(), blockHash, waitSlashingNodeList); nil != err {
 		return nil, err
 	}
