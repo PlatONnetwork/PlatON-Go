@@ -19,6 +19,8 @@ package vm
 import (
 	"context"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"hash"
 	"sync/atomic"
 
@@ -261,5 +263,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 // CanRun tells if the contract, passed as an argument, can be
 // run by the current interpreter.
 func (in *EVMInterpreter) CanRun(code []byte) bool {
+	if currVersion := gov.GetCurrentActiveVersion(in.evm.StateDB); currVersion < params.FORKVERSION_0_11_0  {
+		log.Trace("EVMInterpreter CanRun", "blockNumber", in.evm.BlockNumber, "blockHash", in.evm.BlockHash.TerminalString(), "currVerion", currVersion)
+		return true
+	}
 	return CanUseEVMInterp(code)
 }
