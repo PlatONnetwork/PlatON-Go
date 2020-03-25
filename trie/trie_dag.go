@@ -56,11 +56,24 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 		pid = xxhash.Sum64(pprefix)
 	}
 
+	cachedHash := func(n node) (node, bool) {
+		if hash, _ := n.cache(); len(hash) != 0 {
+			return hash, true
+		}
+		return n, false
+	}
+
 	switch nc := n.(type) {
 	case *shortNode:
 		collapsed, cached := nc.copy(), nc.copy()
 		collapsed.Key = hexToCompact(nc.Key)
 		cached.Key = common.CopyBytes(nc.Key)
+
+		hash, has := cachedHash(nc.Val)
+		if has {
+			hash, _ = hash.(hashNode)
+			collapsed.Val = hash
+		}
 
 		id := xxhash.Sum64(append(prefix, nc.Key...))
 		td.nodes[id] = &dagNode{
