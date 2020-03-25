@@ -25,6 +25,7 @@ def create_staking(client, reward):
     delegate_address, _ = client.economic.account.generate_account(client.node.web3, client.economic.add_staking_limit * 5)
     result = client.staking.create_staking(0, staking_address, staking_address, amount=staking_amount, reward_per=reward)
     assert_code(result, 0)
+    setattr(client, "staking_amount", staking_amount)
     return staking_address, delegate_address
 
 
