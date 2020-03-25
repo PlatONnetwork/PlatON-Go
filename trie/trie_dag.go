@@ -296,7 +296,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 		}
 		returnHasherToPool(hasher)
 		wg.Done()
-		log.Error("Work done", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs)
+		//log.Error("Work done", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs)
 	}
 
 	wg.Add(numCPU)
