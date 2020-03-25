@@ -196,16 +196,24 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		var spath string
+		var sdb snapshotdb.DB
 		if name == "chaindata" {
-			spath = stack.ResolvePath(snapshotdb.DBPath)
+			sdb, err = snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
+			if err != nil {
+				utils.Fatalf("Failed to open snapshotdb: %v", err)
+			}
+
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, spath, genesis)
+		_, hash, err := core.SetupGenesisBlock(chaindb, sdb, genesis)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
 		log.Info("Successfully wrote genesis state", "database", name, "hash", hash.Hex())
-
+		if sdb != nil {
+			if err := sdb.Close(); err != nil {
+				utils.Fatalf("close base db fail: %v", err)
+			}
+		}
 		chaindb.Close()
 	}
 	genesisFile, err := os.Create(stack.GenesisPath())
@@ -442,7 +450,7 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	peerSnapshotDB, err := snapshotdb.Open(ctx.Args().Get(1), ctx.GlobalInt(utils.CacheFlag.Name), 256)
+	peerSnapshotDB, err := snapshotdb.Open(ctx.Args().Get(1), ctx.GlobalInt(utils.CacheFlag.Name), 256, false)
 	if err != nil {
 		return err
 	}
