@@ -2300,8 +2300,8 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 			continue
 		}
-		currentVersion := gov.GetCurrentActiveVersion(state)
-		if currentVersion == 0 || gov.GetCurrentActiveVersion(state) >= params.FORKVERSION_0_11_0 || programVersion == params.FORKVERSION_0_11_0 {
+
+		if gov.CheckForkPIP0_11_0(state) || programVersion == params.FORKVERSION_0_11_0 {
 			if can.IsInvalid() {
 				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
 				continue
@@ -2334,7 +2334,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 }
 
 func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
-	programVersion uint32) error {
+	programVersion uint32, state xcom.StateDB) error {
 
 	log.Info("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", xutil.CalcVersion(programVersion), "nodeId", nodeId.String())
@@ -2351,6 +2351,11 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		log.Error("Failed to DeclarePromoteNotify: Promote candidate programVersion failed, the can is empty",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 			"version", programVersion)
+		return nil
+	}
+
+	if gov.CheckForkPIP0_11_0(state) && can.IsInvalid() {
+		log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
 		return nil
 	}
 
