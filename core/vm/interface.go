@@ -67,7 +67,7 @@ type StateDB interface {
 	GetLogs(hash common.Hash) []*types.Log
 	AddPreimage(common.Hash, []byte)
 
-	ForEachStorage(common.Address, func(common.Hash, []byte) bool)
+	ForEachStorage(common.Address, func([]byte, []byte) bool)
 	MigrateStorage(from, to common.Address)
 	//ppos add
 	TxHash() common.Hash

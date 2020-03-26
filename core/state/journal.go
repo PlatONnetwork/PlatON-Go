@@ -109,7 +109,7 @@ type (
 	}
 	storageChange struct {
 		account  *common.Address
-		key      common.Hash
+		key      []byte
 		preValue []byte
 	}
 	codeChange struct {

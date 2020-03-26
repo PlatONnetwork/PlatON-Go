@@ -325,8 +325,7 @@ func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
 	defer self.lock.Unlock()
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		prefixKey := stateObject.getPrefixKey(key)
-		return stateObject.GetState(self.db, prefixKey)
+		return stateObject.removePrefixValue(stateObject.GetState(self.db, key))
 	}
 	return []byte{}
 }
@@ -335,9 +334,7 @@ func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
 func (self *StateDB) GetCommittedState(addr common.Address, key []byte) []byte {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		prefixKey := stateObject.getPrefixKey(key)
-		value := stateObject.GetCommittedState(self.db, prefixKey)
-		return value
+		return stateObject.removePrefixValue(stateObject.GetCommittedState(self.db, key))
 	}
 	return []byte{}
 }
@@ -412,12 +409,11 @@ func (self *StateDB) SetState(address common.Address, key, value []byte) {
 	stateObject := self.GetOrNewStateObject(address)
 
 	if stateObject != nil {
-		prefixKey := stateObject.getPrefixKey(key)
-		stateObject.SetState(self.db, prefixKey, value)
+		//prefixKey := stateObject.getPrefixKey(key)
+		stateObject.SetState(self.db, key, stateObject.getPrefixValue(key, value))
 	}
 	self.lock.Unlock()
 }
-
 
 //func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
 //	var buffer bytes.Buffer
@@ -548,17 +544,17 @@ func (self *StateDB) getStateObjectLocalCache(addr common.Address) (stateObject 
 }
 
 // Find stateObject storage in cache
-func (self *StateDB) getStateObjectSnapshot(addr common.Address, key common.Hash) []byte {
+func (self *StateDB) getStateObjectSnapshot(addr common.Address, key []byte) []byte {
 	if obj := self.stateObjects[addr]; obj != nil {
 		if obj.deleted {
 			return nil
 		}
-		value, dirty := obj.dirtyStorage[key]
+		value, dirty := obj.dirtyStorage[string(key)]
 		if dirty {
 			return value
 		}
 
-		value, cached := obj.originStorage[key]
+		value, cached := obj.originStorage[string(key)]
 		if cached {
 			return value
 		}
@@ -683,7 +679,7 @@ func (self *StateDB) TxIdx() uint32 {
 	return uint32(self.txIndex)
 }
 
-func (db *StateDB) ForEachStorage(addr common.Address, cb func(key common.Hash, value []byte) bool) {
+func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte) bool) {
 	so := db.getStateObject(addr)
 	if so == nil {
 		return
@@ -691,8 +687,8 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key common.Hash, 
 
 	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
 	for it.Next() {
-		key := common.BytesToHash(db.trie.GetKey(it.Key))
-		if value, ok := so.dirtyStorage[key]; ok {
+		key := db.trie.GetKey(it.Key)
+		if value, ok := so.dirtyStorage[string(key)]; ok {
 			cb(key, value)
 			continue
 		}

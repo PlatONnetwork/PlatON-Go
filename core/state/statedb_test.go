@@ -679,13 +679,13 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		checkeq("GetCodeSize", state.GetCodeSize(addr), checkstate.GetCodeSize(addr))
 		// Check storage.
 		if obj := state.getStateObject(addr); obj != nil {
-			state.ForEachStorage(addr, func(key common.Hash, value []byte) bool {
+			state.ForEachStorage(addr, func(key []byte, value []byte) bool {
 				cobj := checkstate.getStateObject(addr)
-				return checkeq("GetState("+ key.String() +")", cobj.GetState(checkstate.db, key), value)
+				return checkeq("GetState("+hex.EncodeToString(key)+")", cobj.GetState(checkstate.db, key), value)
 			})
-			checkstate.ForEachStorage(addr, func(key common.Hash, value []byte) bool {
+			checkstate.ForEachStorage(addr, func(key []byte, value []byte) bool {
 				cobj := checkstate.getStateObject(addr)
-				return checkeq("GetState("+ key.String() +")", cobj.GetState(checkstate.db, key), value)
+				return checkeq("GetState("+hex.EncodeToString(key)+")", cobj.GetState(checkstate.db, key), value)
 			})
 		}
 		if err != nil {

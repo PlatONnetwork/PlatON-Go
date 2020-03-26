@@ -18,6 +18,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -189,7 +190,7 @@ func TestSnapshot2(t *testing.T) {
 	so0Restored := state.getStateObject(stateobjaddr0)
 	// Update lazily-loaded values before comparing.
 	//key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
-	key := so0Restored.getPrefixKey(storageaddr.Bytes())
+	key := storageaddr.Bytes()
 	so0Restored.GetState(state.db, key)
 	so0Restored.Code(state.db)
 	// non-deleted is equal (restored)
@@ -333,8 +334,8 @@ func TestForEachStorage(t *testing.T) {
 	fmt.Printf("after Commit, key: %v, value: %v \n", key, svalue)
 	state.SetState(address, key, svalue)
 
-	state.ForEachStorage(address, func(key common.Hash, value []byte) bool {
-		fmt.Println("load out, key:", key.String(), "value:", string(value))
+	state.ForEachStorage(address, func(key []byte, value []byte) bool {
+		fmt.Println("load out, key:", hex.EncodeToString(key), "value:", string(value))
 		fmt.Printf("load out, key: %v, value: %v \n", key, value /*Bytes2Bits(key), Bytes2Bits(value)*/)
 		return true
 	})
