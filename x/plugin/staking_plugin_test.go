@@ -2722,7 +2722,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	Start DeclarePromoteNotify
 	*/
 	for i, can := range queue {
-		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion)
+		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion, state)
 
 		assert.Nil(t, err, fmt.Sprintf("Failed to DeclarePromoteNotify, index: %d, err: %v", i, err))
 	}
