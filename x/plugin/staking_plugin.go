@@ -1103,6 +1103,12 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	currOriginVersion := gov.GetVersionForStaking(blockHash, state)
 	currVersion := xutil.CalcVersion(currOriginVersion)
 
+	currentVersion := gov.GetCurrentActiveVersion(state)
+	if currentVersion == 0 {
+		log.Error("Failed to ElectNextVerifierList, GetCurrentActiveVersion is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString())
+		return errors.New("Failed to get CurrentActiveVersion")
+	}
+
 	maxvalidators, err := gov.GovernMaxValidators(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to ElectNextVerifierList: query govern params `maxvalidators` is failed", "blockNumber",
@@ -1137,14 +1143,26 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			return err
 		}
 
-		if canBase.ProgramVersion < currVersion {
-			log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
-				"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
-				canBase.ProgramVersion, "currVersion", currVersion)
+		if currentVersion >= params.FORKVERSION_0_11_0 {
+			if xutil.CalcVersion(canBase.ProgramVersion) < currVersion {
+				log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
+					"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
+					canBase.ProgramVersion, "currVersion", currVersion)
 
-			// Low program version cannot be elected for epoch validator
-			continue
+				// Low program version cannot be elected for epoch validator
+				continue
+			}
+		} else {
+			if canBase.ProgramVersion < currVersion {
+				log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
+					"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
+					canBase.ProgramVersion, "currVersion", currVersion)
+
+				// Low program version cannot be elected for epoch validator
+				continue
+			}
 		}
 
 		addr := common.BytesToAddress(addrSuffix)
