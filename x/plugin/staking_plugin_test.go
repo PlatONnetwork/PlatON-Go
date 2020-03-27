@@ -3457,7 +3457,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		time.Sleep(time.Microsecond * 10)
 	}
 
-	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces)
+	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, params.GenesisVersion)
 	assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 	assert.True(t, nil != result, "the result is nil")
 
