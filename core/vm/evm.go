@@ -460,7 +460,8 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// by the error checking condition below.
 	if err == nil && !maxCodeSizeExceeded {
 		var createDataGas uint64
-		if CanUseWASMInterp(ret) {
+		currVersion := gov.GetCurrentActiveVersion(evm.StateDB)
+		if CanUseWASMInterp(ret) && currVersion >= params.FORKVERSION_0_11_0 {
 			createDataGas = uint64(len(ret)) * params.CreateWasmDataGas
 		}else {
 			createDataGas = uint64(len(ret)) * params.CreateDataGas

@@ -85,9 +85,9 @@ func IntrinsicGas(data []byte, contractCreation bool, state vm.StateDB) (uint64,
 		gas = params.TxGas
 	}
 
-	currVerion := gov.GetCurrentActiveVersion(state)
+	currVersion := gov.GetCurrentActiveVersion(state)
 	var noZeroGas, zeroGas uint64
-	if contractCreation && vm.CanUseWASMInterp(data) && currVerion >= params.FORKVERSION_0_11_0 {
+	if contractCreation && vm.CanUseWASMInterp(data) && currVersion >= params.FORKVERSION_0_11_0 {
 		noZeroGas= params.TxDataNonZeroWasmDeployGas
 		zeroGas= params.TxDataZeroWasmDeployGas
 	}else {
