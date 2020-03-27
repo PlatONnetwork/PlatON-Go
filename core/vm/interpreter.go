@@ -189,6 +189,8 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Get the operation from the jump table and validate the stack to ensure there are
 		// enough stack items available to perform the operation.
 		op = contract.GetOp(pc)
+
+		fmt.Println("bd block 调试: EVMInterpreter run", "op", op)
 		operation := in.cfg.JumpTable[op]
 		if !operation.valid {
 			return nil, fmt.Errorf("invalid opcode 0x%x", int(op))
@@ -249,6 +251,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		case operation.reverts:
 			return res, errExecutionReverted
 		case operation.halts:
+			fmt.Println("bd block 调试: EVMInterpreter run", "stop", "res", res)
 			return res, nil
 		case !operation.jumps:
 			pc++

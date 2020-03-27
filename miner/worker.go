@@ -1107,6 +1107,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	extraData := w.makeExtraData()
 	copy(header.Extra[:len(extraData)], extraData)
 
+	fmt.Println("bd block 调试: worker start", "blockNumber", header.Number)
 	// BeginBlocker()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
 		log.Error("Failed to GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)

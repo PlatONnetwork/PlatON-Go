@@ -17,6 +17,7 @@
 package core
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -118,9 +119,10 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
 
 	log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
-
+	fmt.Println("bd block 调试:  开始执行tx ApplyTransaction", "blockNumber", header.Number)
 	// Apply the transaction to the current state (included in the env)
 	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
+	fmt.Println("bd block 调试:  完成执行tx ApplyTransaction", "blockNumber", header.Number, "gas", gas, "failed", failed, "err", err)
 	if err != nil {
 		return nil, 0, err
 	}
