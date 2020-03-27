@@ -142,7 +142,7 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 		ProposalID:   txHash,
 		Proposer:     verifier,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitText", SubmitText, err)
 }
 
@@ -180,7 +180,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		Proposer:        verifier,
 		NewVersion:      newVersion,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitVersion", SubmitVersion, err)
 }
 
@@ -217,7 +217,7 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		Proposer:        verifier,
 		TobeCanceled:    tobeCanceledProposalID,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitCancel", SubmitCancel, err)
 }
 
@@ -255,7 +255,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 		Name:         name,
 		NewValue:     newValue,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitParam", SubmitParam, err)
 }
 
