@@ -74,7 +74,7 @@ var (
 	BillionLAT, _ = new(big.Int).SetString("1000000000000000000000000000", 10)
 
 	// The maximum time range for the cumulative number of zero blocks
-	MaxZeroProduceCumulativeTime uint16 = 64
+	maxZeroProduceCumulativeTime uint16 = 64
 )
 
 type commonConfig struct {
@@ -475,8 +475,8 @@ func CheckSlashBlocksReward(rewards int) error {
 }
 
 func CheckZeroProduceCumulativeTime(zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) error {
-	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > MaxZeroProduceCumulativeTime {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d]", zeroProduceNumberThreshold, MaxZeroProduceCumulativeTime))
+	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > uint16(EpochSize()) {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d]", zeroProduceNumberThreshold, uint16(EpochSize())))
 	}
 	return nil
 }
@@ -570,8 +570,8 @@ func CheckEconomicModel(genesisVersion uint32) error {
 
 	if genesisVersion >= params.FORKVERSION_0_11_0 {
 		epochSize := uint16(EpochSize())
-		if epochSize < MaxZeroProduceCumulativeTime {
-			MaxZeroProduceCumulativeTime = epochSize
+		if epochSize > maxZeroProduceCumulativeTime {
+			return fmt.Errorf("the number of consensus rounds in a settlement cycle cannot be greater than maxZeroProduceCumulativeTime(%d)", maxZeroProduceCumulativeTime)
 		}
 
 		if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {

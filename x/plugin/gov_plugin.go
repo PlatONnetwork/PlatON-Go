@@ -140,11 +140,11 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 			if versionProposal.NewVersion == params.FORKVERSION_0_11_0 {
 				zeroProduceCumulativeTime := 15
 				zeroProduceNumberThreshold := 3
-				if int(xutil.EpochSize()) > zeroProduceCumulativeTime {
+				if zeroProduceCumulativeTime > int(xutil.EpochSize()) {
 					zeroProduceCumulativeTime = int(xutil.EpochSize() - 1)
 					zeroProduceNumberThreshold = 2
 				}
-				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [zeroProduceNumberThreshold, %d]", xcom.MaxZeroProduceCumulativeTime), strconv.Itoa(zeroProduceCumulativeTime), blockNumber, blockHash); nil != err {
+				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [zeroProduceNumberThreshold, %d]", uint16(xutil.EpochSize())), strconv.Itoa(zeroProduceCumulativeTime), blockNumber, blockHash); nil != err {
 					return err
 				}
 				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, fmt.Sprintf("Number of zero production blocks, range: [1, zeroProduceCumulativeTime]"), strconv.Itoa(zeroProduceNumberThreshold), blockNumber, blockHash); nil != err {
