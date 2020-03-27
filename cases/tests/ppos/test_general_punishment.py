@@ -535,7 +535,12 @@ def test_VP_GPFV_013(new_genesis_env, clients_consensus):
     # stop node
     client1.node.stop()
     # Waiting for a 3 consensus round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
+    client2.economic.wait_consensus_blocknum(client2.node)
+    print(client2.node.debug.getWaitSlashingNodeList())
+    client2.economic.wait_consensus_blocknum(client2.node)
+    print(client2.node.debug.getWaitSlashingNodeList())
+    client2.economic.wait_consensus_blocknum(client2.node)
+    print(client2.node.debug.getWaitSlashingNodeList())
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()

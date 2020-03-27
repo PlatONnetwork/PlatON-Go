@@ -279,6 +279,8 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
     if effectiveflag:
         blocknum = 0
         for client in clients_verifier:
+            if not client.node.running:
+                continue
             if client.node.block_number < blocknum and blocknum != 0:
                 wait_block_number(client.node, blocknum)
             result = client.pip.vote(client.node.node_id, proposalinfo.get('ProposalID'),
