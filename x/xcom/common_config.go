@@ -288,8 +288,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
-				ZeroProduceCumulativeTime:  uint16(15),
-				ZeroProduceNumberThreshold: uint16(3),
+				ZeroProduceCumulativeTime:  uint16(3),
+				ZeroProduceNumberThreshold: uint16(2),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(160),
@@ -383,8 +383,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
-				ZeroProduceCumulativeTime:  uint16(15),
-				ZeroProduceNumberThreshold: uint16(3),
+				ZeroProduceCumulativeTime:  uint16(3),
+				ZeroProduceNumberThreshold: uint16(2),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(160),
