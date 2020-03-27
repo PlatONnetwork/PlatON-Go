@@ -238,6 +238,19 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 		return nil, err
 	}
 
+	zeroProduceNumberThreshold, err := gov.GovernZeroProduceNumberThreshold(blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to zeroProduceProcess, call GovernZeroProduceNumberThreshold is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+			"err", err)
+		return nil, err
+	}
+	zeroProduceCumulativeTime, err := gov.GovernZeroProduceCumulativeTime(blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to zeroProduceProcess, call GovernZeroProduceCumulativeTime is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+			"err", err)
+		return nil, err
+	}
+
 	preRound := xutil.CalculateRound(header.Number.Uint64()) - 1
 	log.Info("Call zeroProduceProcess start", "blockNumber", blockNumber, "blockHash", blockHash, "preRound", preRound, "waitSlashingNodeListSize", waitSlashingNodeList)
 	if len(waitSlashingNodeList) > 0 {
@@ -277,19 +290,6 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				log.Debug("Call zeroProduceProcess, produced blocks", "blockNumber", blockNumber, "blockHash", blockHash, "nodeId", nodeId.TerminalString(),
 					"preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "waitSlashingNodeListSize", len(waitSlashingNodeList))
 				continue
-			}
-
-			zeroProduceNumberThreshold, err := gov.GovernZeroProduceNumberThreshold(blockNumber, blockHash)
-			if nil != err {
-				log.Error("Failed to zeroProduceProcess, call GovernZeroProduceNumberThreshold is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-					"err", err)
-				return nil, err
-			}
-			zeroProduceCumulativeTime, err := gov.GovernZeroProduceCumulativeTime(blockNumber, blockHash)
-			if nil != err {
-				log.Error("Failed to zeroProduceProcess, call GovernZeroProduceCumulativeTime is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-					"err", err)
-				return nil, err
 			}
 
 			log.Debug("Call zeroProduceProcess, Judgment time threshold", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "zeroProduceCumulativeTime", zeroProduceCumulativeTime,
@@ -344,71 +344,13 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				continue
 			}
 
-			// If the range of the time window is satisfied, and the number of zero blocks is satisfied, a penalty is imposed.
-			if diff := uint16(preRound - waitSlashingNode.Round + 1); diff == zeroProduceCumulativeTime {
-
-				// Count the number of flags
-				calcBitFunc := func(countBit uint64, number int) uint16 {
-					var compareValue uint64 = 1
-					var count uint16
-					for i := 0; i < number; i++ {
-						if countBit&compareValue > 0 {
-							count++
-						}
-						compareValue = compareValue << 1
-					}
-					return count
-				}
-
-				if zeroProduceCount := calcBitFunc(waitSlashingNode.CountBit, int(zeroProduceCumulativeTime)); zeroProduceCount >= zeroProduceNumberThreshold {
-					waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
-					log.Debug("Call zeroProduceProcess, Meet the conditions of punishment", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
-						"countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "zeroProduceCount", zeroProduceCount, "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "waitSlashingNodeListSize", len(waitSlashingNodeList))
-
-					// Structure for constructing penalty information
-					nodeAddr, err := xutil.NodeId2Addr(nodeId)
-					if err != nil {
-						log.Error("Failed to convert nodeID to address", "nodeId", nodeId.TerminalString(), "error", err)
-						return nil, err
-					}
-					canMutable, err := stk.GetCanMutableByIrr(nodeAddr)
-					if nil != err {
-						log.Error("Failed to zeroProduceProcess, call candidate mutable info is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
-							"nodeAddr", nodeAddr.Hex(), "err", err)
-						if err == snapshotdb.ErrNotFound {
-							continue
-						}
-						return nil, err
-					}
-
-					slashAmount := new(big.Int).SetUint64(0)
-					totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
-					blocksReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
-					if nil != err {
-						log.Error("Failed to zeroProduceProcess, query GovernSlashBlocksReward is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-						return nil, err
-					}
-					if blocksReward > 0 {
-						slashAmount, err = calcSlashBlockRewards(sp.db, blockHash, uint64(blocksReward))
-						if nil != err {
-							log.Error("Failed to zeroProduceProcess, call calcSlashBlockRewards fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-							return nil, err
-						}
-						if slashAmount.Cmp(totalBalance) > 0 {
-							slashAmount = totalBalance
-						}
-					}
-					log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
-						"zeroProduceCount", zeroProduceCount, "slashType", staking.LowRatioDel, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blocksReward)
-
-					slashItem := &staking.SlashNodeItem{
-						NodeId:      nodeId,
-						Amount:      slashAmount,
-						SlashType:   staking.LowRatioDel,
-						BenefitAddr: vm.RewardManagerPoolAddr,
-					}
-					slashQueue = append(slashQueue, slashItem)
-				}
+			slashItem, err := sp.checkSlashing(header.Number.Uint64(), blockHash, waitSlashingNode, preRound, zeroProduceCumulativeTime, zeroProduceNumberThreshold)
+			if nil != err {
+				return nil, err
+			}
+			if slashItem != nil {
+				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
+				slashQueue = append(slashQueue, slashItem)
 			}
 		}
 	}
@@ -416,12 +358,21 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 	// so they are directly added to the list.
 	for key, isProduced := range validatorMap {
 		if !isProduced {
-			waitSlashingNodeList = append(waitSlashingNodeList, &WaitSlashingNode{
+			waitSlashingNode := &WaitSlashingNode{
 				NodeId:   key,
 				Round:    preRound,
 				CountBit: 1,
-			})
-			log.Debug("Call zeroProduceProcess, first zero produced", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", key.TerminalString(), "preRound", preRound, "waitSlashingNodeListSize", len(waitSlashingNodeList))
+			}
+			slashItem, err := sp.checkSlashing(header.Number.Uint64(), blockHash, waitSlashingNode, preRound, zeroProduceCumulativeTime, zeroProduceNumberThreshold)
+			if nil != err {
+				return nil, err
+			}
+			if slashItem != nil {
+				slashQueue = append(slashQueue, slashItem)
+			} else {
+				waitSlashingNodeList = append(waitSlashingNodeList, waitSlashingNode)
+				log.Debug("Call zeroProduceProcess, first zero produced", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", key.TerminalString(), "preRound", preRound, "waitSlashingNodeListSize", len(waitSlashingNodeList))
+			}
 		}
 	}
 
@@ -430,6 +381,76 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 	}
 	log.Info("Call zeroProduceProcess success", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "waitSlashingNodeList", waitSlashingNodeList)
 	return slashQueue, nil
+}
+
+func (sp *SlashingPlugin) checkSlashing(blockNumber uint64, blockHash common.Hash, waitSlashingNode *WaitSlashingNode, preRound uint64, zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) (*staking.SlashNodeItem, error) {
+	nodeId := waitSlashingNode.NodeId
+	// If the range of the time window is satisfied, and the number of zero blocks is satisfied, a penalty is imposed.
+	if diff := uint16(preRound - waitSlashingNode.Round + 1); diff == zeroProduceCumulativeTime {
+
+		// Count the number of flags
+		calcBitFunc := func(countBit uint64, number int) uint16 {
+			var compareValue uint64 = 1
+			var count uint16
+			for i := 0; i < number; i++ {
+				if countBit&compareValue > 0 {
+					count++
+				}
+				compareValue = compareValue << 1
+			}
+			return count
+		}
+
+		if zeroProduceCount := calcBitFunc(waitSlashingNode.CountBit, int(zeroProduceCumulativeTime)); zeroProduceCount >= zeroProduceNumberThreshold {
+			log.Debug("Call zeroProduceProcess, Meet the conditions of punishment", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+				"countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "zeroProduceCount", zeroProduceCount, "zeroProduceNumberThreshold", zeroProduceNumberThreshold)
+
+			// Structure for constructing penalty information
+			nodeAddr, err := xutil.NodeId2Addr(nodeId)
+			if err != nil {
+				log.Error("Failed to convert nodeID to address", "nodeId", nodeId.TerminalString(), "error", err)
+				return nil, err
+			}
+			canMutable, err := stk.GetCanMutableByIrr(nodeAddr)
+			if nil != err {
+				log.Error("Failed to zeroProduceProcess, call candidate mutable info is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+					"nodeAddr", nodeAddr.Hex(), "err", err)
+				if err == snapshotdb.ErrNotFound {
+					return nil, nil
+				}
+				return nil, err
+			}
+
+			slashAmount := new(big.Int).SetUint64(0)
+			totalBalance := calcCanTotalBalance(blockNumber, canMutable)
+			blocksReward, err := gov.GovernSlashBlocksReward(blockNumber, blockHash)
+			if nil != err {
+				log.Error("Failed to zeroProduceProcess, query GovernSlashBlocksReward is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+				return nil, err
+			}
+			if blocksReward > 0 {
+				slashAmount, err = calcSlashBlockRewards(sp.db, blockHash, uint64(blocksReward))
+				if nil != err {
+					log.Error("Failed to zeroProduceProcess, call calcSlashBlockRewards fail", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+					return nil, err
+				}
+				if slashAmount.Cmp(totalBalance) > 0 {
+					slashAmount = totalBalance
+				}
+			}
+			log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+				"zeroProduceCount", zeroProduceCount, "slashType", staking.LowRatioDel, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blocksReward)
+
+			slashItem := &staking.SlashNodeItem{
+				NodeId:      nodeId,
+				Amount:      slashAmount,
+				SlashType:   staking.LowRatioDel,
+				BenefitAddr: vm.RewardManagerPoolAddr,
+			}
+			return slashItem, nil
+		}
+	}
+	return nil, nil
 }
 
 func (sp *SlashingPlugin) getWaitSlashingNodeList(blockNumber uint64, blockHash common.Hash) ([]*WaitSlashingNode, error) {
