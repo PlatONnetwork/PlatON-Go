@@ -257,7 +257,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	root := state.IntermediateRoot(true)
 	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
 		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
-	fmt.Println("bd block 调试: BeginBlocker after", "blockNumber", header.Number)
+	fmt.Println("bd block 调试: BeginBlocker after", "blockNumber", header.Number, "root", root.Hex())
 	return nil
 }
 
@@ -306,7 +306,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	root := state.IntermediateRoot(true)
 	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash.Hex(), "blockNumber",
 		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
-	fmt.Println("bd block 调试:  EndBlocker after", "blockNumber", header.Number)
+	fmt.Println("bd block 调试:  EndBlocker after", "blockNumber", header.Number, "root", root.Hex())
 	return nil
 }
 

@@ -19,6 +19,7 @@ package core
 import (
 	"context"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
 	"time"
@@ -75,7 +76,7 @@ type Message interface {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation bool, state vm.StateDB) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if contractCreation {
@@ -84,8 +85,9 @@ func IntrinsicGas(data []byte, contractCreation bool) (uint64, error) {
 		gas = params.TxGas
 	}
 
+	currVerion := gov.GetCurrentActiveVersion(state)
 	var noZeroGas, zeroGas uint64
-	if contractCreation && vm.CanUseWASMInterp(data) {
+	if contractCreation && vm.CanUseWASMInterp(data) && currVerion >= params.FORKVERSION_0_11_0 {
 		noZeroGas= params.TxDataNonZeroWasmDeployGas
 		zeroGas= params.TxDataZeroWasmDeployGas
 	}else {
@@ -200,7 +202,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	contractCreation := msg.To() == nil
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation)
+	gas, err := IntrinsicGas(st.data, contractCreation, st.state)
 	if err != nil {
 		return nil, 0, false, err
 	}
