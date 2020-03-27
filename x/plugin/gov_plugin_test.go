@@ -1304,8 +1304,8 @@ func TestGovPlugin_versionProposalActive_ver0_11_0(t *testing.T) {
 		newZeroProduceNumberThreshold = numberThreshold
 	}
 
-	assert.Equal(t, uint16(15), newZeroProduceCumulativeTime)
-	assert.Equal(t, uint16(3), newZeroProduceNumberThreshold)
+	assert.Equal(t, uint16(8), newZeroProduceCumulativeTime)
+	assert.Equal(t, uint16(2), newZeroProduceNumberThreshold)
 }
 
 func TestGovPlugin_versionProposalActive_ver0_10_0(t *testing.T) {
