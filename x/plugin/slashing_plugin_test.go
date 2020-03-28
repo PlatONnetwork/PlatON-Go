@@ -606,11 +606,15 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	validatorQueue := make(staking.ValidatorQueue, 0)
 	// The following uses multiple nodes to simulate a variety of different scenarios
 	validatorMap := make(map[discover.NodeID]bool)
 	// Blocks were produced in the last round; removed from pending list
 	// bits：1 -> delete
 	validatorMap[nodeIdArr[0]] = true
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[0],
+	})
 	nodePrivate, err := crypto.GenerateKey()
 	if err != nil {
 		panic(err)
@@ -619,33 +623,55 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	// Current round of production blocks; removed from pending list
 	// bits: 1 -> delete
 	validatorMap[noSlashingNodeId] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:noSlashingNodeId,
+	})
 	// There is no penalty when the time window is reached, there is no zero block in the middle,
 	// the last round was zero block, and the "bit" operation is performed.
 	// bits：010001
 	validatorMap[nodeIdArr[1]] = false
+	validatorMap[noSlashingNodeId] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[1],
+	})
 	// There is no penalty when the time window is reached;
 	// there is no production block in the penultimate round and no production block in the last round;
 	// "bit" operations are required
 	// bits：011001
 	validatorMap[nodeIdArr[2]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[2],
+	})
 	// There is no penalty for reaching the time window;
 	// there is no production block in the penultimate round, and the last round is not selected as a consensus node;
 	// a "bit" operation is required
 	// bits：001001
 	validatorMap[nodeIdArr[3]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[3],
+	})
 	// No penalty is reached when the time window is reached;
 	// it has not been selected as a consensus node in the middle, and it has not been selected as a consensus node in the last round;
 	// it is necessary to move the "bit" operation. After the operation, the "bit" bit = 0, from the list of waiting penalties Delete
 	// bits：00001 -> delete
 	validatorMap[nodeIdArr[4]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[4],
+	})
 	// Since the value of the time window is reduced after being governed;
 	// and there are no production blocks in the last two rounds, N bits need to be shifted, but no penalty is imposed.
 	// Governance again, at this time the time window becomes larger, and the consensus node was not selected in the last round, no penalty will be imposed.
 	// bits：111001
 	validatorMap[nodeIdArr[5]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[5],
+	})
 	// Meet the penalty conditions, punish them, and remove them from the pending list
 	// bits：1011 -> delete
 	validatorMap[nodeIdArr[6]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[6],
+	})
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
 	var blsKeyHex bls.PublicKeyHex
@@ -693,7 +719,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		Number: blockNumber,
 		Extra:  make([]byte, 97),
 	}
-	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap); nil != err {
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
 		t.Fatal(err)
 	} else if len(slashingQueue) > 0 {
 		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
@@ -702,8 +728,15 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	// Third consensus round
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[0]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[0],
+	})
 	validatorMap[nodeIdArr[6]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[6],
+	})
 	sign, err := crypto.Sign(header.SealHash().Bytes(), nodePrivate)
 	if nil != err {
 		t.Fatal(err)
@@ -712,7 +745,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	if err := si.setPackAmount(common.ZeroHash, header); nil != err {
 		t.Fatal(err)
 	}
-	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap); nil != err {
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
 		t.Fatal(err)
 	} else if len(slashingQueue) > 0 {
 		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
@@ -721,8 +754,12 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	// Fourth consensus round
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[0]] = true
-	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap); nil != err {
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[0],
+	})
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
 		t.Fatal(err)
 	} else if len(slashingQueue) > 0 {
 		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
@@ -731,11 +768,24 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	// Fifth consensus round
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[2]] = false
 	validatorMap[nodeIdArr[3]] = false
 	validatorMap[nodeIdArr[5]] = false
 	validatorMap[nodeIdArr[6]] = false
-	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap); nil != err {
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[2],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[3],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[5],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[6],
+	})
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
 		t.Fatal(err)
 	} else if len(slashingQueue) != 1 {
 		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 1)
@@ -750,10 +800,20 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	}
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[1]] = false
 	validatorMap[nodeIdArr[2]] = false
 	validatorMap[nodeIdArr[5]] = false
-	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap); nil != err {
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[1],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[2],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[5],
+	})
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
 		t.Fatal(err)
 	} else if len(slashingQueue) > 0 {
 		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
@@ -768,8 +828,12 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	}
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[5]] = false
-	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap); nil != err {
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId:nodeIdArr[5],
+	})
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
 		t.Fatal(err)
 	} else if len(slashingQueue) > 0 {
 		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
