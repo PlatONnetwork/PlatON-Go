@@ -291,7 +291,7 @@ func GetExtraGovernParams() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceCumulativeTime,
-				fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [zeroProduceNumberThreshold, %d]", xcom.MaxZeroProduceCumulativeTime)},
+				fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [zeroProduceNumberThreshold, %d]", int(xcom.EpochSize()))},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceCumulativeTime())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 

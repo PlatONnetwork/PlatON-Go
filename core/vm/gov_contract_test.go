@@ -1537,7 +1537,7 @@ func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) 
 	if govParam == nil {
 		t.Fatal("cannot find the extra param: slashing.zeroProduceNumberThreshold")
 	} else {
-		assert.Equal(t, "3", govParam.ParamValue.Value)
+		assert.Equal(t, "2", govParam.ParamValue.Value)
 	}
 
 	govParam, err = gov.FindGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, chain.CurrentHeader().Hash())
@@ -1547,7 +1547,7 @@ func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) 
 	if govParam == nil {
 		t.Fatal("cannot find the extra param: slashing.zeroProduceCumulativeTime")
 	} else {
-		assert.Equal(t, "15", govParam.ParamValue.Value)
+		assert.Equal(t, "8", govParam.ParamValue.Value)
 	}
 
 }
