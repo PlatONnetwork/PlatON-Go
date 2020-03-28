@@ -977,6 +977,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		}
 
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
+			log.Trace("No gc mpt", "blockNumber", block.Number(), "blockHash", block.Hash().TerminalString(),
+				"root", currentBlock.Root().TerminalString())
 			triedb.Reference(root, common.Hash{})
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
