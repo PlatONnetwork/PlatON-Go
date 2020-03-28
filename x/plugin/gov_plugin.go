@@ -17,8 +17,10 @@
 package plugin
 
 import (
+	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -135,21 +137,21 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				}
 				log.Debug("Version(0.10.0) proposal is active, and update govern-parameters success")
 			}
-			//if versionProposal.NewVersion == params.FORKVERSION_0_11_0 {
-			//	zeroProduceCumulativeTime := 15
-			//	zeroProduceNumberThreshold := 3
-			//	if zeroProduceCumulativeTime > int(xutil.EpochSize()) {
-			//		zeroProduceCumulativeTime = int(xutil.EpochSize() - 1)
-			//		zeroProduceNumberThreshold = 2
-			//	}
-			//	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [zeroProduceNumberThreshold, %d]", uint16(xutil.EpochSize())), strconv.Itoa(zeroProduceCumulativeTime), blockNumber, blockHash); nil != err {
-			//		return err
-			//	}
-			//	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, fmt.Sprintf("Number of zero production blocks, range: [1, zeroProduceCumulativeTime]"), strconv.Itoa(zeroProduceNumberThreshold), blockNumber, blockHash); nil != err {
-			//		return err
-			//	}
-			//	log.Debug("Version(0.11.0) proposal is active, and update govern-parameters success", "blockNumber", blockNumber,)
-			//}
+			if versionProposal.NewVersion == params.FORKVERSION_0_11_0 {
+				zeroProduceCumulativeTime := 15
+				zeroProduceNumberThreshold := 3
+				if zeroProduceCumulativeTime > int(xutil.EpochSize()) {
+					zeroProduceCumulativeTime = int(xutil.EpochSize() - 1)
+					zeroProduceNumberThreshold = 2
+				}
+				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [zeroProduceNumberThreshold, %d]", uint16(xutil.EpochSize())), strconv.Itoa(zeroProduceCumulativeTime), blockNumber, blockHash); nil != err {
+					return err
+				}
+				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, fmt.Sprintf("Number of zero production blocks, range: [1, zeroProduceCumulativeTime]"), strconv.Itoa(zeroProduceNumberThreshold), blockNumber, blockHash); nil != err {
+					return err
+				}
+				log.Debug("Version(0.11.0) proposal is active, and update govern-parameters success", "blockNumber", blockNumber,)
+			}
 			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
 	}
