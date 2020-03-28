@@ -2777,11 +2777,11 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 		}
 		sv.x = x
 
-		//log.Debug("Call probabilityElection, calculated probability on Election", "nodeId", sv.v.NodeId.TerminalString(),
-		//	"addr", sv.v.NodeAddress.Hex(), "index", index, "currentNonce",
-		//	hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]),
-		//	"target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version,
-		//	"blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
+		log.Debug("Call probabilityElection, calculated probability on Election", "nodeId", sv.v.NodeId.TerminalString(),
+			"addr", sv.v.NodeAddress.Hex(), "index", index, "currentNonce",
+			hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]),
+			"target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version,
+			"blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 
 	vrfQueue := make(staking.ValidatorQueue, shiftLen)
