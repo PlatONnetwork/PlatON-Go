@@ -71,7 +71,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 
 	if xutil.IsBeginOfEpoch(blockNumber) {
 		if err := accuVerifiersAtBeginOfSettlement(blockHash, blockNumber); err != nil {
-			log.Error("accumulates all distinct verifiers for voting proposal failed.", "err", err)
+			log.Error("accumulates all distinct verifiers for voting proposal failed.", "blockNumber", blockNumber, "err", err)
 			return err
 		}
 	}
@@ -106,7 +106,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 			tallyResult.Status = gov.Active
 
 			if err := gov.SetTallyResult(*tallyResult, state); err != nil {
-				log.Error("update version proposal tally result failed.", "preActiveVersionProposalID", preActiveVersionProposalID)
+				log.Error("update version proposal tally result failed.", "blockNumber", blockNumber, "preActiveVersionProposalID", preActiveVersionProposalID)
 				return err
 			}
 
@@ -150,9 +150,9 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, fmt.Sprintf("Number of zero production blocks, range: [1, zeroProduceCumulativeTime]"), strconv.Itoa(zeroProduceNumberThreshold), blockNumber, blockHash); nil != err {
 					return err
 				}
-				log.Debug("Version(0.11.0) proposal is active, and update govern-parameters success")
+				log.Debug("Version(0.11.0) proposal is active, and update govern-parameters success", "blockNumber", blockNumber,)
 			}
-			log.Info("version proposal is active.", "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
+			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
 	}
 	return nil
