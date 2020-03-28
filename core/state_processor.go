@@ -118,7 +118,8 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
 
-	log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
+	//log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
+	fmt.Println("bd block 调试: execute tx start: 0.11.0", "blockNumber", header.Number, "txHash", tx.Hash().String())
 	fmt.Println("bd block 调试:  开始执行tx ApplyTransaction", "blockNumber", header.Number)
 	// Apply the transaction to the current state (included in the env)
 	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
