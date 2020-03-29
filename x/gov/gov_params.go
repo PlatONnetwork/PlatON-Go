@@ -112,7 +112,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleStaking, KeyUnStakeFreezeDuration,
-				fmt.Sprintf("quantity of epoch for skake withdrawal, range: (maxEvidenceAge, %d]", xcom.CeilUnStakeFreezeDuration)},
+				fmt.Sprintf("quantity of epoch for skake withdrawal, range: (MaxEvidenceAge, %d]", xcom.CeilUnStakeFreezeDuration)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.UnStakeFreezeDuration())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -178,7 +178,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleSlashing, KeyMaxEvidenceAge,
-				fmt.Sprintf("quantity of epoch. During these epochs after a node duplicated-sign, others can report it, range: (%d, unStakeFreezeDuration)", xcom.Zero)},
+				fmt.Sprintf("quantity of epoch. During these epochs after a node duplicated-sign, others can report it, range: (%d, UnStakeFreezeDuration)", xcom.Zero)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.MaxEvidenceAge())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -291,7 +291,7 @@ func GetExtraGovernParams() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceCumulativeTime,
-				fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [zeroProduceNumberThreshold, %d]", int(xcom.EpochSize()))},
+				fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [ZeroProduceNumberThreshold, %d]", int(xcom.EpochSize()))},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceCumulativeTime())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -313,7 +313,7 @@ func GetExtraGovernParams() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceNumberThreshold,
-				fmt.Sprintf("Number of zero production blocks, range: [1, zeroProduceCumulativeTime]")},
+				fmt.Sprintf("Number of zero production blocks, range: [1, ZeroProduceCumulativeTime]")},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceNumberThreshold())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
