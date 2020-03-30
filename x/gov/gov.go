@@ -76,13 +76,13 @@ func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
 func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	avList, err := ListActiveVersion(state)
 	if err != nil {
-		log.Error("Cannot find active version list")
+		log.Error("Cannot find active version list", "err", err)
 		return 0
 	}
 
 	var version uint32
 	if len(avList) == 0 {
-		log.Warn("cannot find current active version")
+		log.Warn("cannot find current active version, The ActiveVersion List is nil")
 		return 0
 	} else {
 		version = avList[0].ActiveVersion

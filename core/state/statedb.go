@@ -20,10 +20,11 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
@@ -99,7 +100,7 @@ type StateDB struct {
 	parent             *StateDB
 
 	// Gov version in each state
-	govVersion  uint32
+	govVersion uint32
 	// The index in clearReferenceFunc of parent StateDB
 	referenceFuncIndex int
 }
@@ -852,7 +853,6 @@ func (self *StateDB) Copy() *StateDB {
 	}
 	state.parentCommitted = self.parentCommitted
 	self.refLock.Unlock()
-
 
 	// fetch the gov version
 	state.govVersion = gov.GetCurrentActiveVersion(state)
