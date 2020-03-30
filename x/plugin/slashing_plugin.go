@@ -155,7 +155,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					}
 				}
 
-				if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap); nil != err {
+				if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap, preRoundVal.Arr); nil != err {
 					log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
@@ -230,7 +230,7 @@ func (sp *SlashingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) 
 	return nil
 }
 
-func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *types.Header, validatorMap map[discover.NodeID]bool) (staking.SlashQueue, error) {
+func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *types.Header, validatorMap map[discover.NodeID]bool, validatorQueue staking.ValidatorQueue) (staking.SlashQueue, error) {
 	blockNumber := header.Number.Uint64()
 	slashQueue := make(staking.SlashQueue, 0)
 	waitSlashingNodeList, err := sp.getWaitSlashingNodeList(header.Number.Uint64(), blockHash)
@@ -252,7 +252,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 	}
 
 	preRound := xutil.CalculateRound(header.Number.Uint64()) - 1
-	log.Info("Call zeroProduceProcess start", "blockNumber", blockNumber, "blockHash", blockHash, "preRound", preRound, "waitSlashingNodeListSize", waitSlashingNodeList)
+	log.Info("Call zeroProduceProcess start", "blockNumber", blockNumber, "blockHash", blockHash, "preRound", preRound, "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "zeroProduceCumulativeTime", zeroProduceCumulativeTime, "waitSlashingNodeListSize", waitSlashingNodeList)
 	if len(waitSlashingNodeList) > 0 {
 		for index := 0; index < len(waitSlashingNodeList); index++ {
 			waitSlashingNode := waitSlashingNodeList[index]
@@ -356,10 +356,11 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 	}
 	// The remaining zero-out blocks in the map belong to the first zero-out block,
 	// so they are directly added to the list.
-	for key, isProduced := range validatorMap {
-		if !isProduced {
+	for _, validator := range validatorQueue {
+		isProduced, ok := validatorMap[validator.NodeId]
+		if ok && !isProduced {
 			waitSlashingNode := &WaitSlashingNode{
-				NodeId:   key,
+				NodeId:   validator.NodeId,
 				Round:    preRound,
 				CountBit: 1,
 			}
@@ -371,7 +372,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				slashQueue = append(slashQueue, slashItem)
 			} else {
 				waitSlashingNodeList = append(waitSlashingNodeList, waitSlashingNode)
-				log.Debug("Call zeroProduceProcess, first zero produced", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", key.TerminalString(), "preRound", preRound, "waitSlashingNodeListSize", len(waitSlashingNodeList))
+				log.Debug("Call zeroProduceProcess, first zero produced", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", validator.NodeId.TerminalString(), "preRound", preRound, "waitSlashingNodeListSize", len(waitSlashingNodeList))
 			}
 		}
 	}
