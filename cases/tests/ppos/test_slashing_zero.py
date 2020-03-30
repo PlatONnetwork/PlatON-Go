@@ -85,6 +85,30 @@ def new_validator_client(update_zero_produce_env, client_noconsensus):
     yield client_noconsensus
 
 
+# def test_case(new_validator_client):
+#     new_validator_client.node.stop()
+#     economic = new_validator_client.economic
+#     node = economic.env.get_consensus_node_by_index(0)
+#
+#     def slashing(candidate_info):
+#         ret = candidate_info["Ret"]
+#         if ret["Status"] == 0 and ret["Released"] == new_validator_client.staking_amount:
+#             return False
+#         return True
+#
+#     for i in range(1000):
+#         if i/2 == 0 and not new_validator_client.node.running:
+#             new_validator_client.node.start(False)
+#             economic.wait_consensus_blocknum(node)
+#             new_validator_client.node.stop()
+#         else:
+#             economic.wait_consensus_blocknum(node)
+#         print(i, get_slash_count(node.debug.getWaitSlashingNodeList(), new_validator_client.node.node_id))
+#         if slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id)):
+#             print("slashing")
+#             break
+
+
 def test_ZB_NP_11(new_validator_client):
     new_validator_client.node.stop()
     economic = new_validator_client.economic
@@ -122,7 +146,7 @@ def test_ZB_NP_12(new_validator_client):
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
-    assert_not_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
+    assert node.ppos.getCandidateInfo(new_validator_client.node.node_id)["Ret"]["Released"] == new_validator_client.staking_amount
 
 
 def test_ZB_NP_13(new_validator_client):
