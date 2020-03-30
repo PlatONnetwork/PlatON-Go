@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -102,6 +103,7 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	if err != nil {
 		t.Fatalf("failed to create node: %v", err)
 	}
+	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 	//ethConf := &eth.Config{
 	//	Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
 	//}
