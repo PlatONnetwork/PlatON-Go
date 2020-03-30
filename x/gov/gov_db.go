@@ -18,6 +18,7 @@ package gov
 
 import (
 	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -472,8 +473,6 @@ func GetExistProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, err
 }
 
 func ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, error) {
-	//key := KeyActiveVersions()
-	//fmt.Println("bd block 调试:  gov getCurrVersion", "keyTrie", string(key), "hexKeyTrie",  hex.EncodeToString(key), "key", key)
 	avListBytes := state.GetState(vm.GovContractAddr, KeyActiveVersions())
 	if len(avListBytes) == 0 {
 		return nil, nil

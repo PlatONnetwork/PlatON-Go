@@ -19,10 +19,11 @@ package vm
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"hash"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -189,8 +190,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Get the operation from the jump table and validate the stack to ensure there are
 		// enough stack items available to perform the operation.
 		op = contract.GetOp(pc)
-
-		fmt.Println("bd block 调试: EVMInterpreter run", "op", op)
 		operation := in.cfg.JumpTable[op]
 		if !operation.valid {
 			return nil, fmt.Errorf("invalid opcode 0x%x", int(op))
@@ -251,7 +250,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		case operation.reverts:
 			return res, errExecutionReverted
 		case operation.halts:
-			fmt.Println("bd block 调试: EVMInterpreter run", "stop", "res", res)
 			return res, nil
 		case !operation.jumps:
 			pc++
@@ -266,7 +264,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 // CanRun tells if the contract, passed as an argument, can be
 // run by the current interpreter.
 func (in *EVMInterpreter) CanRun(code []byte) bool {
-	if currVersion := gov.GetCurrentActiveVersion(in.evm.StateDB); currVersion < params.FORKVERSION_0_11_0  {
+	if currVersion := gov.GetCurrentActiveVersion(in.evm.StateDB); currVersion < params.FORKVERSION_0_11_0 {
 		log.Trace("EVMInterpreter CanRun", "blockNumber", in.evm.BlockNumber, "blockHash", in.evm.BlockHash.TerminalString(), "currVerion", currVersion)
 		return true
 	}

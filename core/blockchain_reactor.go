@@ -211,7 +211,7 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId dis
 
 // Called before every block has not executed all txs
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
-	fmt.Println("bd block 调试: BeginBlocker before", "blockNumber", header.Number)
+
 	/**
 	this things about ppos
 	*/
@@ -264,13 +264,13 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	root := state.IntermediateRoot(true)
 	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
 		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
-	fmt.Println("bd block 调试: BeginBlocker after", "blockNumber", header.Number, "root", root.Hex())
+
 	return nil
 }
 
 // Called after every block had executed all txs
 func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) error {
-	fmt.Println("bd block 调试:  EndBlocker before", "blockNumber", header.Number)
+
 	/**
 	this things about ppos
 	*/
@@ -313,7 +313,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	root := state.IntermediateRoot(true)
 	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash.Hex(), "blockNumber",
 		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
-	fmt.Println("bd block 调试:  EndBlocker after", "blockNumber", header.Number, "root", root.Hex())
+
 	return nil
 }
 

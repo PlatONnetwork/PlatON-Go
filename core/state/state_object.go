@@ -379,7 +379,6 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 	valueKey := common.Hash{}
 	// If we have the original value cached, return that
 	if value := self.getCommittedStateCache(key); value != nil {
-		fmt.Println("bd block 调试: GetCommittedState cache", "key", hex.EncodeToString([]byte(key)), "value", len(value))
 		log.Trace("GetCommittedState cache", "key", hex.EncodeToString([]byte(key)), "value", len(value))
 		return value
 	}
@@ -408,10 +407,8 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 		return []byte{}
 	}
 	if len(value) == 0 && valueKey == emptyStorage {
-		fmt.Println("bd block 调试: Empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
 		log.Trace("Empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
 	}
-	fmt.Println("bd block 调试: GetCommittedState", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
 	log.Trace("GetCommittedState", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
 	self.originStorage[key] = valueKey
 	self.originValueStorage[valueKey] = value
@@ -452,7 +449,6 @@ func (self *stateObject) setState(key string, valueKey common.Hash, value []byte
 	self.dirtyStorage[key] = valueKey
 	//self.dirtyValueStorage[valueKey] = cpy
 	self.setReferenceValueStorage(valueKey, cpy)
-	fmt.Println("bd block 调试: setState", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
