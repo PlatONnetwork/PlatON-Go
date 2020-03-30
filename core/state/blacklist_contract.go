@@ -8,7 +8,6 @@ import "github.com/PlatONnetwork/PlatON-Go/common"
 // "0x18253041ce1d238f42f685ff1714153ea9c97699"
 // "0x187b3a7d5f790a30f59703338eba42ee11e584fa"
 // "0x1e4419a4a0c96bab21004c258586c9e172c98ed6"
-// "0x32bec384344c2dc1ea794a4e149c1b74dd8467ef"
 // "0x3800f5390e5921059a1ae817e12c224813cdd33a"
 // "0x471b4f5e00bf612766b1ead6df6e658244e6c179"
 // "0xab782161cf50b8282afd717d27b5a99bc80f909b"
@@ -25,7 +24,6 @@ var badContracts = map[common.Address]struct{}{
 	common.HexToAddress("0x18253041ce1d238f42f685ff1714153ea9c97699"): {},
 	common.HexToAddress("0x187b3a7d5f790a30f59703338eba42ee11e584fa"): {},
 	common.HexToAddress("0x1e4419a4a0c96bab21004c258586c9e172c98ed6"): {},
-	common.HexToAddress("0x32bec384344c2dc1ea794a4e149c1b74dd8467ef"): {},
 	common.HexToAddress("0x3800f5390e5921059a1ae817e12c224813cdd33a"): {},
 	common.HexToAddress("0x471b4f5e00bf612766b1ead6df6e658244e6c179"): {},
 	common.HexToAddress("0xab782161cf50b8282afd717d27b5a99bc80f909b"): {},
