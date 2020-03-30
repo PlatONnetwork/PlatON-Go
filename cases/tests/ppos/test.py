@@ -10,14 +10,11 @@ from hexbytes import HexBytes
 # result = mock_duplicate_sign(1,'a71f82ac2b15f6dbffa9f87de2d237d6bc7581d453bcaf973251b079ef9b20db','15338821af5128c21696180b7ea047905803a519c43153880b7da0c210563254',35531)
 # print(result)
 #
+3000
+interval = int((10000 / 10) / 1000)
 
-class ss():
-    def ssd(self):
-        print(1)
-
-def es():
-    a = ss()
-    a.ssd()
-
-if __name__ == '__main__':
-    es()
+consensus_wheel = (5 * 60) // (interval * 10 * 7)
+print(consensus_wheel)
+print(consensus_wheel * 70)
+annual_cycle = (28 * 60) // 280
+print(annual_cycle)

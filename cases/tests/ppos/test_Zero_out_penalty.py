@@ -1719,5 +1719,61 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
     assert_slashing(first_node.ppos.getCandidateInfo(second_node.node_id), 1500000000000000000000000)
 
 
+def test_ZB_NP_70(new_genesis_env, clients_noconsensus):
+    """
+    同时触发多个节点零出块
+    """
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.common.maxEpochMinutes = 5
+    genesis.economicModel.common.maxConsensusVals = 7
+    genesis.economicModel.staking.maxValidators = 7
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+    economic = clients_noconsensus[0].economic
+    node = economic.env.get_consensus_node_by_index(0)
+    for i in range(len(clients_noconsensus)):
+        client = clients_noconsensus[i]
+        log.info("Current connection node：{}".format(client.node.node_mark))
+        log.info("Start creating a pledge account Pledge_address")
+        staking_amount = von_amount(client.economic.create_staking_limit, 2)
+        staking_address, pri_key = client.economic.account.generate_account(client.node.web3, staking_amount)
+        log.info("Created, account address: {} Amount: {}".format(staking_address, staking_amount))
+        log.info("Start applying for a pledge node")
+        result = client.staking.create_staking(0, staking_address, staking_address)
+        assert_code(result, 0)
+    economic.wait_settlement_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
+    result = node.ppos.getVerifierList()
+    log.info("current Verifier List：{}".format(result))
+    result = node.ppos.getValidatorList()
+    log.info("current Validator List：{}".format(result))
+
+    # # update_zero_produce(new_genesis_env, 2, 2)
+
+    # log.info("first_node id :{}".format(first_node.node_id))
+    # second_node = economic.env.get_consensus_node_by_index(3)
+    # log.info("second_node id :{}".format(second_node.node_id))
+    #
+    # # Start execution use case
+    # current_validator = get_pledge_list(first_node.ppos.getValidatorList)
+    # log.info("current validator: {}".format(current_validator))
+    # time.sleep(2)
+    # log.info("Current block height: {}".format(first_node.eth.blockNumber))
+    # second_node.stop()
+    # economic.wait_consensus_blocknum(first_node, 1)
+    # log.info("Current block height: {}".format(first_node.eth.blockNumber))
+    # current_validator = get_pledge_list(first_node.ppos.getValidatorList)
+    # log.info("current validator: {}".format(current_validator))
+    # wait_slashing_list = first_node.debug.getWaitSlashingNodeList()
+    # log.info("Zero block record table：{}".format(wait_slashing_list))
+    # assert get_slash_count(wait_slashing_list, second_node.node_id) == to_int(1)
+    # assert_not_slashing(first_node.ppos.getCandidateInfo(second_node.node_id), 1500000000000000000000000)
+    # wait_block_number(first_node, 100)
+    # second_node.start(False)
+    # wait_slashing_list = first_node.debug.getWaitSlashingNodeList()
+    # assert get_slash_count(wait_slashing_list, second_node.node_id) == 0
+    # assert_slashing(first_node.ppos.getCandidateInfo(second_node.node_id), 1500000000000000000000000)
+
 
 

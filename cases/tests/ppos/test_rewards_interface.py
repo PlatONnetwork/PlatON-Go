@@ -1619,19 +1619,19 @@ class TestNet:
         log.info("deploy end")
         return test_node
 
-    @pytest.mark.P2
-    def test_DD_NE_001(self, global_test_env):
-        test_node = self.deploy_me(global_test_env, 'main')
-        try:
-            log.info(test_node.admin.nodeInfo)
-        except Exception as e:
-            e == "20 seconds"
-        log_file = "/home/platon/trantor_test/node-{}/log/platon.log".format(test_node.p2p_port)
-        test_node.sftp.get(log_file, conf.LOG_FILE)
-        with open(conf.LOG_FILE, 'r') as f:
-            info = f.readlines()
-            log.info(info[-1])
-            assert info[-1].strip() == "Fatal: Error starting protocol stack: EconomicModel config is nil"
+    # @pytest.mark.P2
+    # def test_DD_NE_001(self, global_test_env):
+    #     test_node = self.deploy_me(global_test_env, 'main')
+    #     try:
+    #         log.info(test_node.admin.nodeInfo)
+    #     except Exception as e:
+    #         e == "20 seconds"
+    #     log_file = "/home/platon/trantor_test/node-{}/log/platon.log".format(test_node.p2p_port)
+    #     test_node.sftp.get(log_file, conf.LOG_FILE)
+    #     with open(conf.LOG_FILE, 'r') as f:
+    #         info = f.readlines()
+    #         log.info(info[-1])
+    #         assert info[-1].strip() == "Fatal: Error starting protocol stack: EconomicModel config is nil"
 
     @pytest.mark.P2
     def test_DD_NE_002(self, global_test_env):
