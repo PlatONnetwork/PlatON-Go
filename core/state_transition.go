@@ -19,6 +19,7 @@ package core
 import (
 	"context"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
@@ -193,6 +194,8 @@ func (st *StateTransition) preCheck() error {
 // An error indicates a consensus issue.
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
 
+
+
 	// init initialGas value = txMsg.gas
 	if err = st.preCheck(); err != nil {
 		return
@@ -219,6 +222,14 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		vmerr error
 	)
 
+	var needSkipExec bool
+	to := *(msg.To())
+	currVersion := gov.GetCurrentActiveVersion(st.state)
+	if currVersion >= params.FORKVERSION_0_11_0 && state.IsBadContract(to) {
+		needSkipExec = true
+	}
+
+
 	// Limit the time it takes for a virtual machine to execute the smart contract,
 	// Except precompiled contracts.
 	ctx := context.Background()
@@ -238,10 +249,16 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	if contractCreation {
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
-		// Increment the nonce for the next transaction
-		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		if needSkipExec {
+			vmerr = vm.ErrExecBadContract
+			log.Debug("execute bad contract", "blockNumber", evm.BlockNumber, "txHash", evm.StateDB.TxHash().TerminalString(), "contractAddr", to.String())
+		} else {
+			// Increment the nonce for the next transaction
+			st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+			ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		}
 	}
+
 	if vmerr != nil {
 		log.Error("VM returned with error", "blockNumber", evm.BlockNumber, "txHash", evm.StateDB.TxHash().TerminalString(), "err", vmerr)
 		// A possible consensus-error would be if there wasn't
