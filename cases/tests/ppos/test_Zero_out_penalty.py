@@ -313,59 +313,6 @@ def test_ZB_NP_08(new_genesis_env, client_noconsensus):
     assert get_slash_count(wait_slashing_list, client_noconsensus.node.node_id) == to_int(11)
     assert_not_slashing(node.ppos.getCandidateInfo(client_noconsensus.node.node_id), economic.create_staking_limit)
 
-    # second_client.economic.wait_consensus_blocknum(second_client.node)
-    # log.info("current validator: {}".format(get_pledge_list(second_client.ppos.getValidatorList)))
-    # result = second_client.node.debug.setValidatorList(second_client.economic.env.consensus_node_id_list(), pri_key)
-    # assert_code(result, 0)
-    #
-    # second_client.economic.wait_consensus_blocknum(second_client.node)
-    # log.info("current validator: {}".format(get_pledge_list(second_client.ppos.getValidatorList)))
-    # result = second_client.node.debug.setValidatorList(second_client.economic.env.consensus_node_id_list(), pri_key)
-    # assert_code(result, 0)
-    # result = second_client.node.debug.getWaitSlashingNodeList()
-    # log.info("Slashing Node List:{}".format(result))
-    # wait_slashing_list = get_slash_count(result, first_node.node_id)
-    # assert wait_slashing_list == 0
-    #
-    # second_client.economic.wait_consensus_blocknum(second_client.node)
-    # log.info("current validator: {}".format(get_pledge_list(second_client.ppos.getValidatorList)))
-    # result = second_client.node.debug.setValidatorList(verifier_nodeid_list, pri_key)
-    # assert_code(result, 0)
-    # result = second_client.node.debug.getWaitSlashingNodeList()
-    # log.info("Slashing Node List:{}".format(result))
-    # wait_slashing_list = get_slash_count(result, first_node.node_id)
-    # assert wait_slashing_list == to_int(1)
-    #
-    # second_client.economic.wait_consensus_blocknum(second_client.node)
-    # log.info("current validator: {}".format(get_pledge_list(second_client.ppos.getValidatorList)))
-    # result = second_client.node.debug.setValidatorList(verifier_nodeid_list, pri_key)
-    # assert_code(result, 0)
-    # result = second_client.node.debug.getWaitSlashingNodeList()
-    # log.info("Slashing Node List:{}".format(result))
-    # wait_slashing_list = get_slash_count(result, first_node.node_id)
-    # assert wait_slashing_list == to_int(1)
-    #
-    # second_client.economic.wait_consensus_blocknum(second_client.node)
-    # log.info("current validator: {}".format(get_pledge_list(second_client.ppos.getValidatorList)))
-    # result = second_client.node.debug.getWaitSlashingNodeList()
-    # log.info("Slashing Node List:{}".format(result))
-    # wait_slashing_list = get_slash_count(result, first_node.node_id)
-    # assert wait_slashing_list == to_int(1)
-    #
-    # second_client.economic.wait_consensus_blocknum(second_client.node)
-    # log.info("current validator: {}".format(get_pledge_list(second_client.ppos.getValidatorList)))
-    # result = second_client.node.debug.getWaitSlashingNodeList()
-    # log.info("Slashing Node List:{}".format(result))
-    # wait_slashing_list = get_slash_count(result, first_node.node_id)
-    # assert wait_slashing_list == to_int(1001)
-    #
-    # second_client.economic.wait_consensus_blocknum(second_client.node)
-    # log.info("current validator: {}".format(get_pledge_list(second_client.ppos.getValidatorList)))
-    # result = second_client.node.debug.getWaitSlashingNodeList()
-    # log.info("Slashing Node List:{}".format(result))
-    # wait_slashing_list = get_slash_count(result, first_node.node_id)
-    # assert wait_slashing_list == to_int(11)
-
 
 def test_ZB_NP_09(new_genesis_env, client_noconsensus):
     """
