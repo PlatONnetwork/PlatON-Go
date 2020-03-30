@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -221,13 +222,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		vmerr error
 	)
 
-	var needSkipExec bool
-	to := *(msg.To())
-	currVersion := gov.GetCurrentActiveVersion(st.state)
-	if currVersion >= params.FORKVERSION_0_11_0 && state.IsBadContract(to) {
-		needSkipExec = true
-	}
-
 	// Limit the time it takes for a virtual machine to execute the smart contract,
 	// Except precompiled contracts.
 	ctx := context.Background()
@@ -249,6 +243,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+
+		var needSkipExec bool
+		to := *(msg.To())
+		currVersion := gov.GetCurrentActiveVersion(st.state)
+		if currVersion >= params.FORKVERSION_0_11_0 && state.IsBadContract(to) {
+			needSkipExec = true
+		}
 
 		if needSkipExec {
 			vmerr = vm.ErrExecBadContract
