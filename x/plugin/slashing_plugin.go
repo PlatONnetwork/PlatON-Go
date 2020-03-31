@@ -362,12 +362,13 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 			if slashItem != nil {
 				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
 				slashQueue = append(slashQueue, slashItem)
+				snData := &staking.SlashNodeData{
+					NodeId          : nodeId,
+					Amount : slashItem.Amount,
+				}
+				snQueue = append(snQueue, snData)
 			}
-			snData := &staking.SlashNodeData{
-				NodeId          : nodeId,
-				Amount : slashItem.Amount,
-			}
-			snQueue = append(snQueue, snData)
+
 		}
 		sp.setSlashData(blockNumber, snQueue)
 	}
