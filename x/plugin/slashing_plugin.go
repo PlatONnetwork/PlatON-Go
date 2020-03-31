@@ -25,6 +25,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -137,6 +138,8 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 
 			var slashQueue staking.SlashQueue
 
+			var slashNodeQueue staking.SlashNodeQueue
+
 			currentVersion := gov.GetCurrentActiveVersion(state)
 			if currentVersion == 0 {
 				log.Error("Failed to BeginBlock, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
@@ -204,8 +207,15 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					}
 
 					slashQueue = append(slashQueue, slashItem)
+
+					snData := &staking.SlashNodeData{
+						NodeId          : nodeId,
+						Amount : slashAmount,
+					}
+					slashNodeQueue = append(slashNodeQueue, snData)
 				}
 			}
+			sp.setSlashData(header.Number.Uint64() ,slashNodeQueue)
 			// Real to slash the node
 			// If there is no record of the node,
 			// it means that there is no block,
@@ -254,6 +264,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 	preRound := xutil.CalculateRound(header.Number.Uint64()) - 1
 	log.Info("Call zeroProduceProcess start", "blockNumber", blockNumber, "blockHash", blockHash, "preRound", preRound, "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "zeroProduceCumulativeTime", zeroProduceCumulativeTime, "waitSlashingNodeListSize", waitSlashingNodeList)
 	if len(waitSlashingNodeList) > 0 {
+		var snQueue staking.SlashNodeQueue
 		for index := 0; index < len(waitSlashingNodeList); index++ {
 			waitSlashingNode := waitSlashingNodeList[index]
 			// Check if a node has produced a block, including in the current round
@@ -352,7 +363,13 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
 				slashQueue = append(slashQueue, slashItem)
 			}
+			snData := &staking.SlashNodeData{
+				NodeId          : nodeId,
+				Amount : slashItem.Amount,
+			}
+			snQueue = append(snQueue, snData)
 		}
+		sp.setSlashData(blockNumber, snQueue)
 	}
 	// The remaining zero-out blocks in the map belong to the first zero-out block,
 	// so they are directly added to the list.
@@ -788,4 +805,18 @@ func calcSlashBlockRewards(db snapshotdb.DB, hash common.Hash, blockRewardAmount
 		return nil, err
 	}
 	return new(big.Int).Mul(newBlockReward, new(big.Int).SetUint64(blockRewardAmount)), nil
+}
+
+func (sp *SlashingPlugin)setSlashData(num uint64,snQueue staking.SlashNodeQueue) {
+	log.Debug("setSlashData","num", num,"len(snQueue)",len(snQueue))
+	if snQueue == nil || len(snQueue) == 0{
+		return
+	}
+	log.Debug("setSlashData,su", snQueue)
+	data, err := rlp.EncodeToBytes(snQueue)
+	if nil != err {
+		log.Error("wow,Failed to EncodeToBytes on slashingPlugin Confirmed When Election block", "err", err)
+	}
+	numStr := strconv.FormatUint(num, 10)
+	STAKING_DB.HistoryDB.Put([]byte(SlashName+numStr), data)
 }

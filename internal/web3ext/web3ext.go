@@ -480,6 +480,11 @@ web3._extend({
 			call: 'platon_getPrepareQC',
 			params: 1
 		}),
+		new web3._extend.Method({
+			name: 'getTransactionByBlock',
+			call: 'platon_getTransactionByBlock',
+			params: 1
+		}),
 	],
 	properties: [
 		new web3._extend.Property({

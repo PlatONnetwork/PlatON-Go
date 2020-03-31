@@ -133,6 +133,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
+	hDB, error := CreateDB(ctx, config, "historydata")
+	if error != nil {
+		return nil, error
+	}
+	xplugin.STAKING_DB = &xplugin.StakingDB{
+		HistoryDB:  hDB,
+	}
 	snapshotBaseDB, err := snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
 	if err != nil {
 		return nil, err
@@ -253,6 +260,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		}
 	)
 	cacheConfig.DBDisabledGC.Set(config.DBDisabledGC)
+	log.Debug("SetDBCache 111", "DBDisabledCache", config.DBDisabledCache, "DBCacheEpoch", config.DBCacheEpoch)
+	xcom.SetDBCache(config.DBDisabledCache, config.DBCacheEpoch)
 
 	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, eth.chainConfig, eth.engine, vmConfig, eth.shouldPreserve)
 	if err != nil {
