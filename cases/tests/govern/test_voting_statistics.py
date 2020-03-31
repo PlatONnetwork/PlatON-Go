@@ -10,7 +10,7 @@ from dacite import from_dict
 from tests.govern.conftest import proposal_vote, version_proposal_vote
 
 
-def submitvpandvote(clients, votingrounds=2, version=None):
+def submitvpandvote(clients, votingrounds=3, version=None):
     pip = clients[0].pip
     if version is None:
         version = pip.cfg.version5

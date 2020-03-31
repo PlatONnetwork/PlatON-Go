@@ -994,13 +994,14 @@ def test_fixbug(new_genesis_env, clients_consensus):
     proprosalinfo = pip.get_effect_proposal_info_of_vote()
     log.info('Proposalinfo : {}'.format(proprosalinfo))
     log.info('Stop node {}'.format(pip_stop.node.node_id))
+    log.info('stop node nodeid {}'.format(pip_stop.node.node_id))
     pip_stop.node.stop()
     pip.economic.wait_settlement_blocknum(pip.node)
+    pip.economic.wait_consensus_blocknum(pip.node, 1)
     verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
     log.info('Verifier list : {}'.format(verifier_list))
     validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)
     log.info('Validator list : {}'.format(validator_list))
-    log.info('stop node nodeid {}'.format(pip_stop.node.node_id))
     assert pip_stop.node.node_id not in verifier_list
     assert pip_stop.node.node_id not in validator_list
     wait_block_number(pip.node, proprosalinfo.get('ActiveBlock'))

@@ -1677,7 +1677,7 @@ class TestVotedCADV:
 @allure.title('Voted verifier, replace the platon bin and declare version')
 def test_DE_VE_074(no_vp_proposal, client_verifier):
     pip = client_verifier.pip
-    submitvpandvote([client_verifier], votingrounds=1)
+    submitvpandvote([client_verifier], votingrounds=2)
     proposalinfo = pip.get_effect_proposal_info_of_vote()
     log.info('Get proposal information : {}'.format(proposalinfo))
     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))

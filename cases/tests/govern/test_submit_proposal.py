@@ -1183,10 +1183,10 @@ class TestPP:
 
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
-                                 str(get_governable_parameter_value(client, 'zeroProduceNumberThreshold') - 1),
+                                 str(int(get_governable_parameter_value(client, 'zeroProduceNumberThreshold')) - 1),
                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
-        assert_code(result, 302034)
+        assert_code(result, 3)
 
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
@@ -1772,6 +1772,7 @@ class TestGas:
                                       pip.node.staking_address, transaction_cfg=transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
+
 
 if __name__ == '__main__':
     pytest.main(['./tests/govern/', '-s', '-q', '--alluredir', './report/report'])
