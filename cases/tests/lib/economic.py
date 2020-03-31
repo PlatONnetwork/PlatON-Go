@@ -32,16 +32,16 @@ class Economic:
         # Billing cycle
         self.expected_minutes = self.genesis.economicModel.common.maxEpochMinutes
         # Consensus rounds
-        self.consensus_wheel = (self.expected_minutes * 60) // (
-            self.interval * self.per_round_blocks * self.validator_count)
+        # self.consensus_wheel = (self.expected_minutes * 60) // (
+        #     self.interval * self.per_round_blocks * self.validator_count)
         # Number of settlement periods
-        self.settlement_size = self.consensus_wheel * (self.interval * self.per_round_blocks * self.validator_count)
+        # self.settlement_size = self.consensus_wheel * (self.interval * self.per_round_blocks * self.validator_count)
         # Consensus round number
-        self.consensus_size = self.per_round_blocks * self.validator_count
+        # self.consensus_size = self.per_round_blocks * self.validator_count
 
         # Minimum amount limit
-        # Minimum deposit amount
         self.create_staking_limit = self.genesis.economicModel.staking.stakeThreshold
+        # Minimum deposit amount
         # Minimum holding amount
         self.add_staking_limit = self.genesis.economicModel.staking.operatingThreshold
         # Minimum commission amount
@@ -55,6 +55,20 @@ class Economic:
         # text proposal vote duration senconds
         self.tp_vote_settlement_wheel = self.genesis.economicModel.gov.textProposalVoteDurationSeconds // (
             self.interval * self.per_round_blocks * self.validator_count)
+
+    @property
+    def consensus_wheel(self):
+        return (self.expected_minutes * 60) // (
+                self.interval * self.per_round_blocks * self.validator_count)
+
+    @property
+    def consensus_size(self):
+        return self.per_round_blocks * self.validator_count
+
+    @property
+    def settlement_size(self):
+        return self.consensus_wheel * (self.interval * self.per_round_blocks * self.validator_count)
+
 
     @property
     def account(self):

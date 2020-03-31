@@ -2,7 +2,7 @@ import time
 
 from dacite import from_dict
 from dacite import from_dict
-
+import copy
 from common.key import mock_duplicate_sign
 from common.log import log
 from tests.conftest import param_governance_verify_before_endblock, param_governance_verify
@@ -1727,11 +1727,17 @@ def test_ZB_NP_70(new_genesis_env, clients_noconsensus):
     genesis.economicModel.common.maxEpochMinutes = 5
     genesis.economicModel.common.maxConsensusVals = 7
     genesis.economicModel.staking.maxValidators = 7
+    genesis.economicModel.slashing.zeroProduceNumberThreshold = 2
+    genesis.economicModel.slashing.zeroProduceCumulativeTime = 4
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
-    economic = clients_noconsensus[0].economic
+    economic_old = clients_noconsensus[0].economic
+    economic = copy.copy(economic_old)
+    economic.validator_count = 7
+    economic.expected_minutes = 5
     node = economic.env.get_consensus_node_by_index(0)
+    # Start execution use case
     for i in range(len(clients_noconsensus)):
         client = clients_noconsensus[i]
         log.info("Current connection node：{}".format(client.node.node_mark))
@@ -1742,38 +1748,94 @@ def test_ZB_NP_70(new_genesis_env, clients_noconsensus):
         log.info("Start applying for a pledge node")
         result = client.staking.create_staking(0, staking_address, staking_address)
         assert_code(result, 0)
+        result = client.node.ppos.getCandidateInfo(client.node.node_id)
+        log.info("Candidate Info:{}".format(result))
     economic.wait_settlement_blocknum(node)
     log.info("Current block height: {}".format(node.eth.blockNumber))
-    result = node.ppos.getVerifierList()
-    log.info("current Verifier List：{}".format(result))
     result = node.ppos.getValidatorList()
     log.info("current Validator List：{}".format(result))
+    clients_noconsensus[1].node.stop()
+    clients_noconsensus[2].node.stop()
 
-    # # update_zero_produce(new_genesis_env, 2, 2)
+    economic.wait_consensus_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
+    log.info("Validator List:{}".format(node.ppos.getValidatorList()))
+    wait_slashing_list = node.debug.getWaitSlashingNodeList()
+    log.info("Zero block record table：{}".format(wait_slashing_list))
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == 0
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == 0
 
-    # log.info("first_node id :{}".format(first_node.node_id))
-    # second_node = economic.env.get_consensus_node_by_index(3)
-    # log.info("second_node id :{}".format(second_node.node_id))
-    #
-    # # Start execution use case
-    # current_validator = get_pledge_list(first_node.ppos.getValidatorList)
-    # log.info("current validator: {}".format(current_validator))
-    # time.sleep(2)
-    # log.info("Current block height: {}".format(first_node.eth.blockNumber))
-    # second_node.stop()
-    # economic.wait_consensus_blocknum(first_node, 1)
-    # log.info("Current block height: {}".format(first_node.eth.blockNumber))
-    # current_validator = get_pledge_list(first_node.ppos.getValidatorList)
-    # log.info("current validator: {}".format(current_validator))
-    # wait_slashing_list = first_node.debug.getWaitSlashingNodeList()
-    # log.info("Zero block record table：{}".format(wait_slashing_list))
-    # assert get_slash_count(wait_slashing_list, second_node.node_id) == to_int(1)
-    # assert_not_slashing(first_node.ppos.getCandidateInfo(second_node.node_id), 1500000000000000000000000)
-    # wait_block_number(first_node, 100)
-    # second_node.start(False)
-    # wait_slashing_list = first_node.debug.getWaitSlashingNodeList()
-    # assert get_slash_count(wait_slashing_list, second_node.node_id) == 0
-    # assert_slashing(first_node.ppos.getCandidateInfo(second_node.node_id), 1500000000000000000000000)
+    economic.wait_consensus_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
+    log.info("Validator List:{}".format(node.ppos.getValidatorList()))
+    wait_slashing_list = node.debug.getWaitSlashingNodeList()
+    log.info("Zero block record table：{}".format(wait_slashing_list))
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == to_int(1)
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == to_int(1)
+
+    economic.wait_consensus_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
+    log.info("Validator List:{}".format(node.ppos.getValidatorList()))
+    wait_slashing_list = node.debug.getWaitSlashingNodeList()
+    log.info("Zero block record table：{}".format(wait_slashing_list))
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == to_int(11)
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == to_int(11)
+
+    economic.wait_consensus_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
+    log.info("Validator List:{}".format(node.ppos.getValidatorList()))
+    wait_slashing_list = node.debug.getWaitSlashingNodeList()
+    log.info("Zero block record table：{}".format(wait_slashing_list))
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == to_int(111)
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == to_int(111)
+
+    economic.wait_consensus_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
+    log.info("Validator List:{}".format(node.ppos.getValidatorList()))
+    wait_slashing_list = node.debug.getWaitSlashingNodeList()
+    log.info("Zero block record table：{}".format(wait_slashing_list))
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == 0
+    assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == 0
+    assert_slashing(node.ppos.getCandidateInfo(clients_noconsensus[1].node.node_id), economic.create_staking_limit)
+    assert_slashing(node.ppos.getCandidateInfo(clients_noconsensus[2].node.node_id), economic.create_staking_limit)
+    economic.wait_consensus_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
+    economic.wait_consensus_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
 
 
+def test_71(new_genesis_env, client_consensus, client_noconsensus):
+    """
+    随机生成零出块
+    """
+    update_zero_produce(new_genesis_env)
+    economic = client_noconsensus.economic
+    node = economic.env.get_consensus_node_by_index(0)
 
+    # Voting failed and expired
+    param_governance_verify_before_endblock(client_consensus, 'slashing', 'zeroProduceNumberThreshold', '4', True)
+
+    # Start execution use case
+    create_pledge_node_information(client_noconsensus)
+    initial_validator, slashing_node_list = gen_validator_list(economic.env.consensus_node_id_list(), client_noconsensus.node.node_id)
+    log.info("verifier nodeid list: {}".format(initial_validator))
+    client_noconsensus.node.stop()
+
+    set_slashing(initial_validator, slashing_node_list, node, economic, "011")
+    assert_set_validator_list(node, slashing_node_list)
+    client_noconsensus.node.start(False)
+
+    economic.wait_consensus_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
+    current_validator = get_pledge_list(node.ppos.getValidatorList)
+    log.info("current validator: {}".format(current_validator))
+    assert_set_validator_list(node, initial_validator)
+
+    economic.wait_consensus_blocknum(node)
+    log.info("Current block height: {}".format(node.eth.blockNumber))
+    current_validator = get_pledge_list(node.ppos.getValidatorList)
+    log.info("current validator: {}".format(current_validator))
+    wait_slashing_list = node.debug.getWaitSlashingNodeList()
+    log.info("Zero block record table：{}".format(wait_slashing_list))
+    assert get_slash_count(wait_slashing_list, client_noconsensus.node.node_id) == 0
+    assert_not_slashing(node.ppos.getCandidateInfo(client_noconsensus.node.node_id), economic.create_staking_limit)
