@@ -41,8 +41,12 @@ public class CrowdFundingTest extends WASMContractPrepareTest {
             collector.logStepPass("CrowdFunding call transfer hash is:"+transactionReceipt.getTransactionHash());
 
             //检测众筹目标是否已经达到
-            transactionReceipt =crowdFunding.checkGoalReached().send();
+            transactionReceipt =crowdFunding.safeWithdrawal().send();
             collector.logStepPass("CrowdFunding call checkGoalReached hash is:"+transactionReceipt.getTransactionHash());
+
+            CrowdFunding.Transfer1EventResponse flg = crowdFunding.getTransfer1Events(transactionReceipt).get(0);
+            collector.assertEqual("1000",crowdFunding.getTransfer1Events(transactionReceipt).get(0).arg2.toString());
+
 
 
         } catch (Exception e) {
