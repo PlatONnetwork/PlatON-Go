@@ -185,10 +185,6 @@ var (
 		Name:  "lightkdf",
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
 	}
-	TxPoolMakeTraction = cli.BoolFlag{
-		Name:  "txpool.MakeTraction",
-		Usage: "make a lot traction",
-	}
 	// Transaction pool settings
 	TxPoolLocalsFlag = cli.StringFlag{
 		Name:  "txpool.locals",

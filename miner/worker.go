@@ -180,7 +180,6 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 
 	committer core.Committer
-	timeouts  uint64
 }
 
 func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor uint64, isLocalBlock func(*types.Block) bool,
@@ -924,7 +923,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	startTime = time.Now()
 	var localTimeout = false
-	var remoteTimeout = false
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, tstart, blockDeadline); failed {
@@ -935,37 +933,23 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	commitLocalTxCount := w.current.tcount
-	log.Debug("Local transactions executing stat", "number", header.Number, "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("Local transactions executing stat", "number", header.Number, "involvedTxCount", commitLocalTxCount, "time", time.Since(startTime))
 
 	startTime = time.Now()
 	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
 
-		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, tstart, blockDeadline); failed {
+		if failed, _ := w.committer.CommitTransactions(header, txs, interrupt, timestamp, tstart, blockDeadline); failed {
 			return
-		} else {
-			remoteTimeout = timeout
 		}
 	}
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
-	log.Debug("Remote transactions executing stat", "number", header.Number, "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
-
-	percentage := uint64(0)
-	if header.Number.Uint64() > 100 {
-		percentage = w.timeouts * 100 / (header.Number.Uint64() - 100)
-
-	}
-	log.Warn("execute all txs for new work", "number", header.Number, "pending", txsCount, "txs", w.current.tcount, "diff", txsCount-w.current.tcount, "duration", time.Since(tstart), "timeoutPercentage", percentage)
+	log.Debug("Remote transactions executing stat", "number", header.Number, "involvedTxCount", commitRemoteTxCount, "time", time.Since(startTime))
 
 	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
 		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
 	}
-
-	if (localTimeout || remoteTimeout) && header.Number.Uint64() >= 100 {
-		w.timeouts++
-	}
-
-	log.Warn("Commit new work", "number", header.Number, "duration", time.Since(tstart))
+	log.Debug("Commit new work", "number", header.Number, "pending", txsCount, "txs", w.current.tcount, "diff", txsCount-w.current.tcount, "duration", time.Since(tstart))
 }
 
 // commit runs any post-transaction state modifications, assembles the final block

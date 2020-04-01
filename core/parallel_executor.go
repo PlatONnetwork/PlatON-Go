@@ -72,7 +72,6 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 		for gasPoolEnough && !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
 			//call executeTransaction if batch length == 1
-			//fmt.Printf("batch No: %d, parallelTxIdxs: %+v\n", batchNo, parallelTxIdxs)
 			if len(parallelTxIdxs) == 1 {
 				exe.executeTransaction(parallelTxIdxs[0])
 			} else if len(parallelTxIdxs) > 1 {
@@ -114,15 +113,7 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 		finaliseStart := time.Now()
 		ctx.state.Finalise(true)
 		finaliseCost += time.Since(finaliseStart).Milliseconds()
-		/*for i, tx := range ctx.packedTxList {
-			//log.Debug(fmt.Sprintf("End to pack block, fromBalance: %d, toBalance: %d", ctx.state.GetBalance(*tx.GetFromAddr()), ctx.state.GetBalance(*tx.To())))
-			log.Debug(fmt.Sprintf("tx executed parallel, Idx: %d, fromAddr: %s, fromBalance: %d, fromNonce: %d, toAddr: %s, toBalance: %d, txAmount: %d, minerBalance: %d", i, tx.GetFromAddr().Hex(), ctx.state.GetBalance(*tx.GetFromAddr()).Uint64(), ctx.state.GetNonce(*tx.GetFromAddr()), tx.To().Hex(), ctx.state.GetBalance(*tx.To()).Uint64(), tx.Value().Uint64(), ctx.state.GetBalance(ctx.header.Coinbase)))
-		}*/
-
 	}
-
-	log.Warn("pack block cost statis", "number", ctx.header.Number.Uint64(), "mergeCost", mergeCost, "finaliseCost", finaliseCost, "duration", time.Since(ctx.startTime))
-
 	return nil
 }
 
@@ -250,8 +241,6 @@ func (exe *Executor) executeParallel(arg interface{}) {
 
 	toObj := exe.ctx.GetState().GetOrNewParallelStateObject(*msg.To())
 	toObj.AddBalance(msg.Value())
-
-	//log.Debug(fmt.Sprintf("txIdx: %d executed, fromAddr: %s, balance: %d, toAddr: %s, balance: %d, txAmount: %d", idx, msg.From().Hex(), fromObj.GetBalance().Uint64(), msg.To().Hex(), toObj.GetBalance().Uint64(), msg.Value().Uint64()))
 
 	exe.buildTransferSuccessResult(idx, fromObj, toObj, intrinsicGas, minerEarnings)
 	return
