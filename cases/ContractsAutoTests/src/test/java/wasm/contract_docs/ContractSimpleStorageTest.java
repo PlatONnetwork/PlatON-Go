@@ -40,11 +40,7 @@ public class ContractSimpleStorageTest extends WASMContractPrepareTest {
             collector.assertEqual(result.value.toString(), "10000");
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("SimpleStorage and could not call contract function");
-            }else{
-                collector.logStepFail("SimpleStorage failure,exception msg:" , e.getMessage());
-            }
+            collector.logStepFail("SimpleStorage failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
