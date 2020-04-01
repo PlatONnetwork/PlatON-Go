@@ -109,6 +109,13 @@ func (s *Ethereum) AddLesServer(ls LesServer) {
 	ls.SetBloomBitsIndexer(s.bloomIndexer)
 }
 
+func (s *Ethereum) MakeTractions() {
+	err := s.txPool.MakeTransaction()
+	if err != nil {
+		panic(err)
+	}
+}
+
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
 func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
@@ -273,7 +280,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
-			reactor.SetPrivateKey(config.CbftConfig.NodePriKey)
+			reactor.SetPrivateKey(ctx.NodePriKey())
 			handlePlugin(reactor)
 			agency = reactor
 
@@ -569,6 +576,8 @@ func (s *Ethereum) Stop() error {
 
 // RegisterPlugin one by one
 func handlePlugin(reactor *core.BlockChainReactor) {
+	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
+
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
 	xplugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidence)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
@@ -577,7 +586,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 
 	// set rule order
-	reactor.SetBeginRule([]int{xcom.SlashingRule, xcom.GovernanceRule})
+	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.GovernanceRule})
 	reactor.SetEndRule([]int{xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
 
 }

@@ -64,7 +64,6 @@ var customGenesisTests = []struct {
             "stakeThreshold": 1000000000000000000000000,
             "operatingThreshold": 10000000000000000000,
             "maxValidators": 30,
-            "hesitateRatio": 1,
             "unStakeFreezeDuration": 2
         },
         "slashing":{
@@ -155,7 +154,6 @@ var customGenesisTests = []struct {
             "stakeThreshold": 1000000000000000000000000,
             "operatingThreshold": 10000000000000000000,
             "maxValidators": 30,
-            "hesitateRatio": 1,
             "unStakeFreezeDuration": 2
         },
         "slashing":{
@@ -246,7 +244,6 @@ var customGenesisTests = []struct {
             "stakeThreshold": 1000000000000000000000000,
             "operatingThreshold": 10000000000000000000,
             "maxValidators": 30,
-            "hesitateRatio": 1,
             "unStakeFreezeDuration": 2
         },
         "slashing":{
@@ -324,7 +321,7 @@ func TestCustomGenesis(t *testing.T) {
 		// Query the custom genesis block
 		geth := runGeth(t,
 			"--datadir", datadir, "--maxpeers", "0", "--port", "0",
-			"--nodiscover", "--nat", "none", "--ipcdisable",
+			"--nodiscover", "--nat", "none", "--ipcdisable", "--testnet",
 			"--exec", tt.query, "console")
 		t.Log("testi", i)
 		geth.ExpectRegexp(tt.result)

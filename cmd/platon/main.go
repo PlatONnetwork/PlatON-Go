@@ -64,6 +64,7 @@ var (
 		utils.DataDirFlag,
 		utils.KeyStoreDirFlag,
 		utils.NoUSBFlag,
+		utils.TxPoolMakeTraction,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
@@ -104,7 +105,10 @@ var (
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
 		utils.DeveloperPeriodFlag,
+		utils.MainFlag,
 		utils.TestnetFlag,
+		utils.RallynetFlag,
+		utils.DemonetFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
@@ -369,5 +373,10 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 
 	if err := ethereum.StartMining(); err != nil {
 		utils.Fatalf("Failed to start mining: %v", err)
+	}
+	if ctx.GlobalBool(utils.TxPoolMakeTraction.Name) {
+		go func() {
+			ethereum.MakeTractions()
+		}()
 	}
 }

@@ -37,3 +37,7 @@ func (parallelObject *ParallelStateObject) SubBalance(amount *big.Int) {
 	}
 	parallelObject.stateObject.setBalance(new(big.Int).Sub(parallelObject.stateObject.Balance(), amount))
 }
+
+func (parallelObject *ParallelStateObject) UpdateRoot() {
+	parallelObject.stateObject.updateRoot(parallelObject.stateObject.db.db)
+}

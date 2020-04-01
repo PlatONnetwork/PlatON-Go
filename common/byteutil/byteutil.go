@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package byteutil
 
 import (
@@ -294,7 +293,7 @@ func PrintNodeID(nodeID discover.NodeID) string {
 	return hex.EncodeToString(nodeID.Bytes()[:8])
 }
 
-func RTrim(src []byte) []byte {
+/*func RTrim(src []byte) []byte {
 	var pos int
 	for pos = len(src); pos > 0; pos-- {
 		if src[pos-1] != '\x00' {
@@ -302,4 +301,4 @@ func RTrim(src []byte) []byte {
 		}
 	}
 	return src[:pos]
-}
+}*/

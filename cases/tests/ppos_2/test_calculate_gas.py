@@ -3,7 +3,7 @@ import rlp
 import pytest
 
 
-@pytest.mark.P2
+@pytest.mark.P3
 def test_staking_gas(client_new_node):
     external_id = "external_id"
     node_name = "node_name"
@@ -13,41 +13,38 @@ def test_staking_gas(client_new_node):
     economic = client_new_node.economic
     benifit_address, pri_key = client_new_node.economic.account.generate_account(node.web3,
                                                                                  economic.create_staking_limit * 2)
-    benifit_address = benifit_address
+    benifit_address = node.web3.toChecksumAddress(benifit_address)
     balance1 = node.eth.getBalance(benifit_address)
     log.info(balance1)
-    program_version_sign = node.program_version_sign
-    benifit_address = node.web3.toChecksumAddress(benifit_address)
-    if benifit_address[:2] == '0x':
-        benifit_address_ = benifit_address[2:]
-    if program_version_sign[:2] == '0x':
-        program_version_sign = program_version_sign[2:]
+    benifit_address_ = benifit_address[2:]
+    program_version_sign_ = node.program_version_sign[2:]
+    result = client_new_node.ppos.createStaking(0, benifit_address, node.node_id, external_id,
+                                                node_name, website,
+                                                details, economic.create_staking_limit,
+                                                node.program_version, node.program_version_sign, node.blspubkey,
+                                                node.schnorr_NIZK_prove,
+                                                pri_key)
+
+    assert_code(result, 0)
     data = rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(bytes.fromhex(benifit_address_)),
                        rlp.encode(bytes.fromhex(node.node_id)), rlp.encode(external_id),
                        rlp.encode(node_name),
                        rlp.encode(website), rlp.encode(details),
                        rlp.encode(economic.create_staking_limit),
                        rlp.encode(node.program_version),
-                       rlp.encode(bytes.fromhex(program_version_sign)),
+                       rlp.encode(bytes.fromhex(program_version_sign_)),
                        rlp.encode(bytes.fromhex(node.blspubkey)),
                        rlp.encode(bytes.fromhex(node.schnorr_NIZK_prove))])
     gas = get_the_dynamic_parameter_gas_fee(data) + 21000 + 6000 + 32000
     log.info(gas)
     gasPrice = node.web3.platon.gasPrice
     log.info(gasPrice)
-    result = client_new_node.ppos.createStaking(0, benifit_address, node.node_id, external_id,
-                                                node_name, website,
-                                                website, economic.create_staking_limit,
-                                                node.program_version, node.program_version_sign, node.blspubkey,
-                                                node.schnorr_NIZK_prove,
-                                                pri_key, transaction_cfg={"gasPrice": gasPrice})
-    assert_code(result, 0)
     balance2 = node.eth.getBalance(benifit_address)
     log.info(balance2)
-    assert balance1 - economic.create_staking_limit == balance2 + gas * gasPrice
+    assert balance1 - economic.create_staking_limit - gas * gasPrice == balance2
 
 
-@pytest.mark.P2
+@pytest.mark.P3
 def test_delegate_gas(client_new_node):
     client = client_new_node
     node = client.node
@@ -72,7 +69,7 @@ def test_delegate_gas(client_new_node):
     assert balance1 - economic.delegate_limit - gas * gasPrice == balance2
 
 
-@pytest.mark.P2
+@pytest.mark.P3
 def test_withdrewDelegate_gas(client_new_node):
     client = client_new_node
     node = client.node
@@ -103,7 +100,7 @@ def test_withdrewDelegate_gas(client_new_node):
     assert balance1 - gas * gasPrice == balance2 - economic.delegate_limit
 
 
-@pytest.mark.P2
+@pytest.mark.P3
 def test_increase_staking_gas(client_new_node):
     client = client_new_node
     node = client.node
@@ -128,7 +125,7 @@ def test_increase_staking_gas(client_new_node):
     assert balance1 - economic.delegate_limit - gas * gasPrice == balance2
 
 
-@pytest.mark.P2
+@pytest.mark.P3
 def test_edit_candidate_gas(client_new_node):
     external_id = "external_id"
     node_name = "node_name"
@@ -137,21 +134,19 @@ def test_edit_candidate_gas(client_new_node):
     client = client_new_node
     node = client.node
     economic = client.economic
-    staking_address, pri_key = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
-    if staking_address[:2] == '0x':
-        staking_address_ = staking_address[2:]
-    result = client.staking.create_staking(0, staking_address, staking_address)
+    benifit_address, pri_key = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
+    result = client.staking.create_staking(0, benifit_address, benifit_address)
     assert_code(result, 0)
-    balance1 = node.eth.getBalance(staking_address)
+    balance1 = node.eth.getBalance(benifit_address)
     log.info(balance1)
-    result = client.ppos.editCandidate(staking_address_, node.node_id, external_id, node_name, website, details,
+    result = client.ppos.editCandidate(benifit_address, node.node_id, external_id, node_name, website, details,
                                        pri_key)
     assert_code(result, 0)
-    balance2 = node.eth.getBalance(staking_address)
+    balance2 = node.eth.getBalance(benifit_address)
     log.info(balance2)
-
+    benifit_address_ = benifit_address[2:]
     data = rlp.encode(
-        [rlp.encode(int(1001)), rlp.encode(bytes.fromhex(staking_address_)), rlp.encode(bytes.fromhex(node.node_id)),
+        [rlp.encode(int(1001)), rlp.encode(bytes.fromhex(benifit_address_)), rlp.encode(bytes.fromhex(node.node_id)),
          rlp.encode("external_id"), rlp.encode("node_name"), rlp.encode("website"), rlp.encode("details")])
     gas = get_the_dynamic_parameter_gas_fee(data) + 21000 + 6000 + 12000
     log.info(gas)
@@ -161,7 +156,7 @@ def test_edit_candidate_gas(client_new_node):
     assert balance1 - gas * gasPrice == balance2
 
 
-@pytest.mark.P2
+@pytest.mark.P3
 def test_withdrew_staking_gas(client_new_node):
     client = client_new_node
     node = client.node
@@ -182,7 +177,3 @@ def test_withdrew_staking_gas(client_new_node):
     gasPrice = node.web3.platon.gasPrice
     log.info(gasPrice)
     assert balance1 - gas * gasPrice == balance2 - economic.create_staking_limit
-
-
-if __name__ == '__main__':
-    pytest.main(['-s', 'test_calculate_gas.py::test_staking_gas'])

@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	dag3 "github.com/PlatONnetwork/PlatON-Go/core/dag"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
@@ -19,12 +20,12 @@ func NewTxDag(signer types.Signer) *TxDag {
 	return txDag
 }
 
-func (txDag *TxDag) MakeDagGraph(txs []*types.Transaction) error {
+func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction) error {
 	txDag.dag = dag3.NewDag(len(txs))
 	tempMap := make(map[common.Address]int, 0)
 	latestPrecompiledIndex := -1
 	for curIdx, cur := range txs {
-		if vm.IsPrecompiled(*cur.To()) {
+		if vm.IsPrecompiled(*cur.To()) || state.IsContract(*cur.To()) {
 			if curIdx > 0 {
 				for begin := latestPrecompiledIndex + 1; begin < curIdx; begin++ {
 					txDag.dag.AddEdge(begin, curIdx)

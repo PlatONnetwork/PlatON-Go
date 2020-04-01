@@ -17,14 +17,18 @@
 package core
 
 import (
+	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"math"
 	"math/big"
+	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -754,12 +758,12 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// todo: shield contract to created in temporary
-	if tx.To() == nil {
+	/*if tx.To() == nil {
 		return fmt.Errorf("contract creation is not allowed")
-	}
+	}*/
 
-	// Heuristic limit, reject transactions over 1MB to prevent DOS attacks
-	if tx.Size() > 1024*1024 {
+	// Heuristic limit, reject transactions over 1MB to prevent DOS attacks 32kb
+	if tx.Size() > 128*1024 {
 		return ErrOversizedData
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded
@@ -969,6 +973,131 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 	pool.pendingState.SetNonce(addr, tx.Nonce()+1)
 
 	return true
+}
+
+type PriAccount struct {
+	Priv    *ecdsa.PrivateKey
+	Nonce   uint64
+	Address common.Address
+}
+
+func generateAccount(size int) []*PriAccount {
+	addrs := make([]*PriAccount, size)
+	for i := 0; i < size; i++ {
+		privateKey, _ := crypto.GenerateKey()
+		address := crypto.PubkeyToAddress(privateKey.PublicKey)
+		addrs[i] = &PriAccount{privateKey, 0, address}
+	}
+	return addrs
+}
+
+func (pool *TxPool) MakeTransaction() error {
+	time.Sleep(10 * time.Second)
+	//addr :0x6bFBBe245B513Fd5b7E42Ac088a1865cd8060E36
+	pri, err := crypto.HexToECDSA("4fec153ded5872f806ebf2ce668aad52d03f4aa7f05441edab9721c665d96c58")
+	if err != nil {
+		return fmt.Errorf("hex to ecdsa fail:%v", err)
+	}
+	singine := types.NewEIP155Signer(pool.chainconfig.ChainID)
+
+	accountsize := 12000
+	log.Debug("MakeTransaction begin prepare account", "account size", accountsize)
+	accounts := generateAccount(accountsize)
+	amountEach, _ := new(big.Int).SetString("100000000000000000000", 10)
+	gasPrice := new(big.Int).SetInt64(10000)
+	nonce := uint64(0)
+	for _, account := range accounts {
+		tx := types.NewTransaction(nonce, account.Address, amountEach, 30000, gasPrice, nil)
+		newTx, err := types.SignTx(tx, singine, pri)
+		if err != nil {
+			panic(fmt.Errorf("sign error,%s", err.Error()))
+		}
+		if err := pool.AddLocal(newTx); err != nil {
+			return err
+		}
+		nonce++
+	}
+	log.Debug("MakeTransaction begin prepare account finish")
+
+	time.Sleep(20 * time.Second)
+
+	//	add := common.HexToAddress("0x021875a46201a572fa092e88fab46b8be6a88a13")
+	amount := new(big.Int).SetInt64(1)
+
+	/*for {
+		for _, account := range accounts {
+			tx := types.NewTransaction(account.Nonce, accounts[rand.Int31n(int32(accountsize))].Address, amount, 30000, gasPrice, nil)
+			newTx, err := types.SignTx(tx, singine, account.Priv)
+			if err != nil {
+				log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
+			}
+			pool.AddLocal(newTx)
+			account.Nonce++
+		}
+
+	}*/
+
+	txsCh := make(chan []*types.Transaction, 1)
+	exitCH := make(chan struct{})
+	go func() {
+		for {
+			if len(pool.pending) > 4000 {
+				time.Sleep(time.Millisecond * 150)
+				continue
+			}
+			select {
+			case txs := <-txsCh:
+				a := make([]*types.Transaction, 0)
+				now := time.Now()
+				for _, tx := range txs {
+					a = append(a, tx)
+					if len(a) >= 2000 {
+						pool.addTxs(a, true)
+						a = make([]*types.Transaction, 0)
+
+						if len(pool.pending) >= 4000 {
+							time.Sleep(time.Millisecond * 150)
+							continue
+						}
+						//time.Sleep(time.Millisecond * 20)
+
+					}
+					//err := pool.addTx(tx, false)
+					//if err != nil {
+					//	log.Crit("addTxLocked fail", "err", err)
+					//}
+				}
+				if len(a) > 0 {
+					pool.addTxs(a, true)
+				}
+				log.Debug("MakeTransaction time use", "use", time.Since(now))
+			case <-exitCH:
+				return
+			}
+		}
+	}()
+
+	log.Debug("begin to MakeTransaction")
+	for {
+		txs := make([]*types.Transaction, accountsize)
+		for n, account := range accounts {
+			tx := types.NewTransaction(account.Nonce, accounts[rand.Int31n(int32(accountsize))].Address, amount, 30000, gasPrice, nil)
+			newTx, err := types.SignTx(tx, singine, account.Priv)
+			if err != nil {
+				log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
+			}
+			txs[n] = newTx
+			account.Nonce++
+		}
+
+		txsCh <- txs
+		/*		if i%10 == 0 {
+				log.Debug("Transaction have be send", "i", i*accountsize)
+			}*/
+	}
+	exitCH <- struct{}{}
+	log.Debug("finish to MakeTransaction")
+	return nil
 }
 
 // AddLocal enqueues a single transaction into the pool if it is valid, marking
@@ -1182,7 +1311,10 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local bool) []error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	return pool.addTxsLocked(txs, local)
+	start := time.Now()
+	errs := pool.addTxsLocked(txs, local)
+	log.Warn("add Txs cost", "len", len(txs), "cost", common.PrettyDuration(time.Since(start)))
+	return errs
 }
 
 // addTxsLocked attempts to queue a batch of transactions if they are valid,

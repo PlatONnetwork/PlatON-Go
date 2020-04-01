@@ -48,5 +48,5 @@ type Processor interface {
 }
 
 type Committer interface {
-	CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (failed bool, isTimeout bool)
+	CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, startTime, blockDeadline time.Time) (failed bool, isTimeout bool)
 }

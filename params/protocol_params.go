@@ -72,8 +72,8 @@ const (
 	MemoryGas        uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 
-	// todo: MAX CODE SIZE. pre value : 24576
-	MaxCodeSize = 524288 // Maximum bytecode to permit for a contract
+	// todo: MAX CODE SIZE. pre value : 24576 524288
+	MaxCodeSize = 24576 // Maximum bytecode to permit for a contract
 
 	// Precompiled contract gas prices
 
@@ -90,7 +90,7 @@ const (
 	Bn256PairingBaseGas     uint64 = 100000 // Base price for an elliptic curve pairing check
 	Bn256PairingPerPointGas uint64 = 80000  // Per-point price for an elliptic curve pairing check
 
-	// PlatONPrecompiled contract gas prices
+	// PlatONPrecompiled contract gas
 
 	StakingGas          uint64 = 6000  // Gas needed for precompiled contract: stakingContract
 	CreateStakeGas      uint64 = 32000 // Gas needed for createStaking
@@ -114,6 +114,11 @@ const (
 	RestrictingPlanGas       uint64 = 18000 // Gas needed for precompiled contract: restrictingPlanContract
 	CreateRestrictingPlanGas uint64 = 8000  // Gas needed for createRestrictingPlan
 	ReleasePlanGas           uint64 = 21000 // Gas consumed every time the von of the restrictPlan is released
+
+	DelegateRewardGas         uint64 = 3000 // Gas needed for  delegate reward
+	WithdrawDelegateRewardGas uint64 = 8000 // Gas needed for withdraw  delegate reward
+	WithdrawDelegateNodeGas   uint64 = 1000 // Gas needed for withdraw  delegate reward Node Count
+	WithdrawDelegateEpochGas  uint64 = 100  // Gas needed for withdraw  delegate reward epoch Count
 )
 
 var (

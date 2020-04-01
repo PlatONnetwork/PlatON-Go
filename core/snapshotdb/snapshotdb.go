@@ -123,7 +123,6 @@ var (
 	//ErrNotFound when db not found
 	ErrNotFound = errors.New("snapshotDB: not found")
 
-	ErrBlockRepeat = errors.New("the block is exist in snapshotdb uncommit")
 	ErrBlockTooLow = errors.New("the block is less than commit highest block")
 )
 
@@ -547,21 +546,10 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	if blockNumber == nil {
 		return errors.New("[SnapshotDB]the blockNumber must not be nil ")
 	}
-	findBlock := s.unCommit.Get(hash)
-	//a block can't new twice
-	if findBlock != nil {
-		//  if block num is different,hash is same as common.ZeroHash,the exsist block may have commit ,so just cover it
-		newBlockWithDiffNumber := findBlock.BlockHash == common.ZeroHash && findBlock.Number.Cmp(blockNumber) != 0
-		if !newBlockWithDiffNumber {
-			logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
-			return ErrBlockRepeat
-		}
-	}
 	if s.current.GetHighest(false).Num.Cmp(blockNumber) >= 0 {
 		logger.Error("the block is less than commit highest", "commit", s.current.GetHighest(false).Num, "new", blockNumber)
 		return ErrBlockTooLow
 	}
-
 	block := new(blockData)
 	block.Number = new(big.Int).Set(blockNumber)
 	block.ParentHash = parentHash
@@ -818,7 +806,6 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	var itrs []iterator.Iterator
 	var parentHash common.Hash
 	parentHash = hash
-	//	t := time.Now()
 	s.unCommit.RLock()
 	for {
 		if block, ok := s.unCommit.blocks[parentHash]; ok {
@@ -829,9 +816,6 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 		}
 	}
 	s.unCommit.RUnlock()
-	//	logger.Info("Ranking uncommit", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
-
-	//	t = time.Now()
 	s.commitLock.RLock()
 	for i := len(s.committed) - 1; i >= 0; i-- {
 		block := s.committed[i]
@@ -841,24 +825,15 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 		}
 	}
 	s.commitLock.RUnlock()
-	//	logger.Info("Ranking commit", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
-
-	//	t = time.Now()
 	//put  unCommit and commit itr to heap
 	rankingHeap := newRankingHeap(rangeNumber)
 	for i := 0; i < len(itrs); i++ {
 		rankingHeap.itr2Heap(itrs[i], false, false)
 	}
-	//	logger.Info("Ranking heap", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
-
-	//	t = time.Now()
 	//put baseDB itr to heap
 	itr := s.baseDB.NewIterator(prefix, nil)
 	rankingHeap.itr2Heap(itr, true, true)
-	//	logger.Info("Ranking base", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
-
 	//generate memdb Iterator
-	//	t = time.Now()
 	mdb := memdb.New(DefaultComparer, rangeNumber)
 	for rankingHeap.heap.Len() > 0 {
 		kv := heap.Pop(&rankingHeap.heap).(kv)
@@ -867,7 +842,6 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 		}
 	}
 	rankingHeap = nil
-	//	logger.Info("Ranking pop", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
 	return mdb.NewIterator(nil)
 }
 

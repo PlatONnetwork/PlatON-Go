@@ -2,6 +2,7 @@ package core
 
 import (
 	"math/big"
+	"runtime"
 	"sync"
 	"time"
 
@@ -18,7 +19,7 @@ var (
 	executor     Executor
 )
 
-const poolSize = 4
+const TIMEOUT = int32(1)
 
 type Executor struct {
 	chainContext ChainContext
@@ -35,7 +36,7 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 	executorOnce.Do(func() {
 		log.Info("Init parallel executor ...")
 		executor = Executor{}
-		executor.workerPool, _ = ants.NewPoolWithFunc(poolSize, func(i interface{}) {
+		executor.workerPool, _ = ants.NewPoolWithFunc(runtime.NumCPU(), func(i interface{}) {
 			executor.executeParallel(i)
 			executor.wg.Done()
 		})
@@ -54,20 +55,21 @@ func SetExecutor() *Executor {
 	return &executor
 }
 
-func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (timeout bool, err error) {
+func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 	exe.ctx = ctx
-	isTimeout := false
 	gasPoolEnough := true
-
+	mergeCost := int64(0)
+	finaliseCost := int64(0)
 	if len(ctx.txList) > 0 {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
 
-		if err := txDag.MakeDagGraph(ctx.txList); err != nil {
-			return isTimeout, err
+		if err := txDag.MakeDagGraph(ctx.GetState(), ctx.txList); err != nil {
+			return err
 		}
 		batchNo := 0
-		for gasPoolEnough && !isTimeout && txDag.HasNext() {
+
+		for gasPoolEnough && !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
 			//call executeTransaction if batch length == 1
 			//fmt.Printf("batch No: %d, parallelTxIdxs: %+v\n", batchNo, parallelTxIdxs)
@@ -75,13 +77,12 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (timeout bool, err erro
 				exe.executeTransaction(parallelTxIdxs[0])
 			} else if len(parallelTxIdxs) > 1 {
 				for _, originIdx := range parallelTxIdxs {
-					var now = time.Now()
 					from := ctx.GetTx(originIdx).GetFromAddr()
 					if _, popped := ctx.poppedAddresses[from]; popped {
 						break
 					}
-					if bftEngine && (ctx.blockDeadline.Equal(now) || ctx.blockDeadline.Before(now)) {
-						isTimeout = true
+
+					if bftEngine && ctx.IsTimeout() {
 						break
 					}
 
@@ -94,8 +95,9 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (timeout bool, err erro
 				}
 				// waiting for current batch done
 				exe.wg.Wait()
-
+				mergeStart := time.Now()
 				exe.batchMerge(batchNo, parallelTxIdxs, true)
+				mergeCost += time.Since(mergeStart).Milliseconds()
 
 			} else {
 				break
@@ -103,28 +105,32 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (timeout bool, err erro
 
 			batchNo++
 		}
-
 		//add balance for miner
 		if ctx.GetEarnings().Cmp(big.NewInt(0)) > 0 {
 			//log.Debug("add miner balance", "minerAddr", ctx.header.Coinbase.Hex(), "amount", ctx.GetEarnings().Uint64())
 			ctx.state.AddMinerEarnings(ctx.header.Coinbase, ctx.GetEarnings())
 			//exe.ctx.GetHeader().GasUsed = ctx.GetBlockGasUsed()
 		}
+		finaliseStart := time.Now()
 		ctx.state.Finalise(true)
+		finaliseCost += time.Since(finaliseStart).Milliseconds()
 		/*for i, tx := range ctx.packedTxList {
 			//log.Debug(fmt.Sprintf("End to pack block, fromBalance: %d, toBalance: %d", ctx.state.GetBalance(*tx.GetFromAddr()), ctx.state.GetBalance(*tx.To())))
 			log.Debug(fmt.Sprintf("tx executed parallel, Idx: %d, fromAddr: %s, fromBalance: %d, fromNonce: %d, toAddr: %s, toBalance: %d, txAmount: %d, minerBalance: %d", i, tx.GetFromAddr().Hex(), ctx.state.GetBalance(*tx.GetFromAddr()).Uint64(), ctx.state.GetNonce(*tx.GetFromAddr()), tx.To().Hex(), ctx.state.GetBalance(*tx.To()).Uint64(), tx.Value().Uint64(), ctx.state.GetBalance(ctx.header.Coinbase)))
 		}*/
 
 	}
-	return isTimeout, nil
+
+	log.Warn("pack block cost statis", "number", ctx.header.Number.Uint64(), "mergeCost", mergeCost, "finaliseCost", finaliseCost, "duration", time.Since(ctx.startTime))
+
+	return nil
 }
 
 func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 	exe.ctx = ctx
 	if len(ctx.txList) > 0 {
 		txDag := NewTxDag(exe.signer)
-		if err := txDag.MakeDagGraph(ctx.txList); err != nil {
+		if err := txDag.MakeDagGraph(ctx.GetState(), ctx.txList); err != nil {
 			return err
 		}
 
@@ -179,7 +185,7 @@ func (exe *Executor) batchMerge(batchNo int, originIdxList []int, deleteEmptyObj
 					receipt.CumulativeGasUsed = exe.ctx.GetBlockGasUsed()
 
 					//receipt.Logs = originState.GetLogs(exe.ctx.GetTx(idx).Hash())
-					receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+					//receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 					exe.ctx.AddReceipt(resultList[idx].receipt)
 
 					exe.ctx.AddPackedTx(exe.ctx.GetTx(idx))
@@ -205,6 +211,11 @@ func (exe *Executor) batchMerge(batchNo int, originIdxList []int, deleteEmptyObj
 }
 
 func (exe *Executor) executeParallel(arg interface{}) {
+	defer exe.setPackBlockTimeout()
+	if exe.ctx.IsTimeout() {
+		return
+	}
+
 	idx := arg.(int)
 	tx := exe.ctx.GetTx(idx)
 	msg, err := tx.AsMessage(exe.signer)
@@ -260,6 +271,9 @@ func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStat
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 
+	//update root here instead of in state.Merge()
+	fromStateObject.UpdateRoot()
+
 	result := &Result{
 		fromStateObject: fromStateObject,
 		toStateObject:   toStateObject,
@@ -270,7 +284,11 @@ func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStat
 	exe.ctx.SetResult(idx, result)
 }
 
-func (exe Executor) executeTransaction(idx int) {
+func (exe *Executor) executeTransaction(idx int) {
+	defer exe.setPackBlockTimeout()
+	if exe.ctx.IsTimeout() {
+		return
+	}
 	snap := exe.ctx.GetState().Snapshot()
 	tx := exe.ctx.GetTx(idx)
 	exe.ctx.GetState().Prepare(tx.Hash(), exe.ctx.GetBlockHash(), int(exe.ctx.GetState().TxIdx()))
@@ -283,4 +301,17 @@ func (exe Executor) executeTransaction(idx int) {
 	exe.ctx.AddPackedTx(tx)
 	exe.ctx.GetState().IncreaseTxIdx()
 	exe.ctx.AddReceipt(receipt)
+}
+
+func (exe *Executor) setPackBlockTimeout() {
+	if exe.ctx.IsTimeout() {
+		return
+	} else {
+		ctx, ok := exe.ctx.(*PackBlockContext)
+		if ok {
+			if ctx.blockDeadline.Equal(time.Now()) || ctx.blockDeadline.Before(time.Now()) {
+				ctx.SetTimeout(true)
+			}
+		}
+	}
 }

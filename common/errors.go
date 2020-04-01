@@ -14,7 +14,6 @@ var (
 type BizError struct {
 	Code uint32
 	Msg  string
-	Err  error
 }
 
 func (e *BizError) Error() string {
@@ -25,22 +24,13 @@ func NewBizError(code uint32, text string) *BizError {
 	return &BizError{Code: code, Msg: text}
 }
 
-func NewBizErrorf(code uint32, format string, a ...interface{}) *BizError {
-	return NewBizError(code, fmt.Sprintf(format, a...))
-}
-
-func NewBizErrorw(code uint32, text string, err error) *BizError {
-	return &BizError{Code: code, Msg: text, Err: err}
-}
-
 func (be *BizError) Wrap(text string) *BizError {
-	return &BizError{Code: be.Code, Msg: be.Msg + ":" + text, Err: be.Err}
+	return &BizError{Code: be.Code, Msg: be.Msg + ":" + text}
 
 }
 
 func (be *BizError) Wrapf(format string, a ...interface{}) *BizError {
-	return &BizError{Code: be.Code, Msg: be.Msg + ":" + fmt.Sprintf(format, a...), Err: be.Err}
-
+	return &BizError{Code: be.Code, Msg: be.Msg + ":" + fmt.Sprintf(format, a...)}
 }
 
 func (be *BizError) AppendMsg(msg string) {

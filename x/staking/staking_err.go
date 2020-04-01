@@ -26,6 +26,7 @@ var (
 	ErrProgramVersionTooLow      = common.NewBizError(301004, "The program version of the relates node's is too low")
 	ErrDeclVsFialedCreateCan     = common.NewBizError(301005, "DeclareVersion is failed on create staking")
 	ErrNoSameStakingAddr         = common.NewBizError(301006, "The address must be the same as initiated staking")
+	ErrInvalidRewardPer          = common.NewBizError(301007, "Invalid param RewardPer")
 	ErrStakeVonTooLow            = common.NewBizError(301100, "Staking deposit too low")
 	ErrCanAlreadyExist           = common.NewBizError(301101, "This candidate is already exist")
 	ErrCanNoExist                = common.NewBizError(301102, "This candidate is not exist")

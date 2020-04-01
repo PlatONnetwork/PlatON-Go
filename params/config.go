@@ -37,36 +37,7 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 }
 
 var (
-	initialMainNetConsensusNodes = []initNode{
-		{
-			"enode://a84f5047c13a01b01b1f5c8be63c360d1d9d49d4d0f0c55deacade344bd3f1d12033b1334d8e42646f7eaf4a46ab325e6e02d020f4ac157ac71a4d202cd5ccea@13.69.9.245:16789", //TEST-SEA
-			"6af3f69120080ea55fc803fbe5fc659a2274d413b8c6162fbd8ab6b1bb88de7e01c395977a3a64f91f04132104041c0035b13fa36251672e10820c043d2fdd09798120527682df31f57a4cd57030ecb084f84fa1c5b78d1272c162b001d20280",
-		},
-		{
-			"enode://01fd4af4c8cdf5d7b934c0ad955d0b7b44114555457f49032d2eccf838abe18eff5a336be7d0fd93cb50359192d1a4c063eaad4b395f6c5b6b6dc3fda64ccfbb@207.46.233.122:16789", //TEST-SG
-			"ac7f88010a1838b23c60c075d83f1cbf412e833187dd838d18c560e4e6f1cd17672695f31262578b580501804177e70c9c0fff88f7dcd257848f7af8e9a39921db378547e6f8e7111d1de2651261ce03d2a4a1821e7774bae25acd28d5f09a0b",
-		},
-		{
-			"enode://a2b436b09818b678c38983c51e80de7e564a42c5f875ad0a7e6dddddbd6b3b0396ba02fa1f19542765b03c74ffb33774f67fb13615e59bb31c451a44e9678117@52.142.166.24:16789", //TEST-NA
-			"4e76bff3d7487cc8ee2f47ba09c997df386d3a06e9771067023ecb1f7dbcc8123ff59af9b6fd7814cc793e4e11d4420890532ae6d63fddb5a0e56b019567a5f6181d4ad14bc3e5771a285738c8def864526246cccb7fa6ee3cbdef3083e08009",
-		},
-		{
-			"enode://f32160f10265d2273e4a625c9795564689ac80aa40a75f7f2e93aa31f214a0459a47c6813079355504928f1f521f86a70f1a31d4db607ee128df72825f967dd8@52.143.129.153:16789", //TEST-US
-			"b96ddc93537ef7ec25626d272be4f2ba445fdedb5b40fbf4b8ea519c9144df309e862e8e64f6871cdbfb6cb1b8583d1960f4781358999b283c66b096fc16b596c81392f912a9905f0b6df3eb7cdf7a044eba2ef3efd046cd039b7bc85553130b",
-		},
-		{
-			"enode://4f4946d376233ed5a0440c0a68fbf9a0dd926e276a7c88715e889ce2029f1f8c25d5a7abb9dfcb155cf0a73888e2e2b79e07ac10f3c4a810ec57201f2fbd2389@52.63.239.155:16789", //TEST-US
-			"81e4458fe917b277378b6de409244973c9d1a27d8bc0b18e7230edee30dc69e4575d2d732fa662cc43021ce8f3c20901be367e7b3596405d28181beea68be83d3a4e9a627b9ffb6cbd098859e62ac3fc778a2cd4b3e70d1eafb9edef06dc1d09",
-		},
-		{
-			"enode://53c2582db1d5397dab9c079e9d03a3fd81b5332eda145f3c10e62df365f3fea828a880f8d39803e6555f9df84453cbf27d2bf80b27c09727f0909044da5d560c@35.182.73.204:16789", //TEST-US
-			"455582d7d02884c3aa9a8d8b3173b88a76248853cc4ee1e973b3bd0a192f28834d8121f99cdba1dcee06e8437b9fc60b6d88f5e5c662d2dd24be4469be209c20a07f0b9cb210ff5a8b99d8a2b4a90d7d3ed8b60c73b8727e109be2f803abe811",
-		},
-		{
-			"enode://61241ed97c11ffb8843b6f62263b63eb2d47b73e1ccc7ca474fd3e8f212c56d3e1687f4fe380ce122a478773ba70b5f893ee4baece836513d3b68a88a2977631@3.122.68.59:16789", //TEST-US
-			"0c722bbee6314348218648cb63244364c490ca8e04e8cfbc6f38d2ec90a8b33be65c987692e84aae5fe47926f4e0a00c7e08f3a1ccc36e5576b684b7fda2b34646723ffdd8a841d4ad9e8c1b228073fba4ddf6e03620ecdd8f6c07b158103289",
-		},
-	}
+	initialMainNetConsensusNodes = []initNode{}
 
 	initialTestnetConsensusNodes = []initNode{
 		{
@@ -99,9 +70,42 @@ var (
 		},
 	}
 
+	initialRallyNetConsensusNodes = []initNode{
+		{
+			"enode://beb5e7c53bc85c7bc516fe97071bf53d947c9f2889a61944d6770970f869e680da944e08c2ef44fb11416b9afc2447f7253fa891e87a0e01651189713bb60d8d@35.204.79.107:16789",
+			"f2aa6dd970e1ea05200e509f3bcfa6b5db120538dad1cc6f4bb345a60426091c43f2beeb7077a4031a4cdbc30f571c18973b9b5275394d0faa82d1f507625aaae0bdccb3e5612b2c5706a97c3f8457f990a0f57633ecb2f7903e3c608685e591",
+		},
+		{
+			"enode://1e522c3f60430bb77819f2fbf0db044d87c19c2acf17c0f4c6ef29b5131511d0150836dc1dea3bd11e23da2d25f1628b2052d764b792f0619437866b94e1875d@34.65.187.110:16789",
+			"3e2a1ea482652106d37f75c945ea7399b55207cd88da5f545b4120da80adcc8ff35166fa1a9edc61083b7baebd6dda003a302ecff3ea3c7ba655251d9a6a6130e12160771c0f793caa2cf46c263c1ceee48cbc31244b3cfeaed6f24b8dbe1001",
+		},
+		{
+			"enode://dda92565a6d02af28f98d36ce25417e42a6ad6bb00fff0280300fd2d7fe127ad7ad265d681b35a6d0331fad644a5aabcf070a93c39309dad27e2083253cff1a3@13.211.42.206:16789",
+			"192fdd69f21a899038f2fbb8731821ff2a672adc9137b6b0dfe9696d1efd86c0654e72e3cecd9ed8b832e6204869a506a2b5fd0bf4bd467b96c2cd553715e24d07aa9d5957e556d26c17e97ed505957a536cd01af70166707e6cd03fecc8b789",
+		},
+		{
+			"enode://eaea0f8302c9818efff378f4fce1bcca3f9dccac960d882fc448f294f0985266a85f3507769f575221b374021e48611348b944cb5cbe3f2fe1218f898413107f@3.6.118.118:16789",
+			"6243fb60d114e1c9d196979ac98c70c97c402eb39481416383b0fc04010721714606f4c808fbd4debe816abb6daeb0171db85b092eb88a1633d6753ae3cfa0b7193473d32caf18b849212a1e42d275658961886eb1769db71b7ca402fa8fc587",
+		},
+		{
+			"enode://6f61b708dbcca26630f4a9811cdf1b54fc91da4e42d09c6e827a67720d0d201c7a7d0c4c410ba4cdf2e02328c0444fe9b7a90e506153ac0bb859cffcd2fe55fd@15.222.177.170:16789",
+			"d6d53da1a081fd481647e3c75862c609ed0b1b6d06782e20f3ccad849f448802d7bbb3a7de11d328037f4ee6251520097d1487d7efaa3cd1adfbec9139b98bd77419a7e6a04a0bc5f7ca1272361a0998b5879aa3c4aaf4320513a39999cc8510",
+		},
+		{
+			"enode://40683c74d5f0dbbf3daefacad5a9afb6384d3c9109e48bba8ccc61084e72005ccac984f6a946712fc3c1e77f26072315ab46046c31374b842a3d3949b14af4b7@35.176.104.241:16789",
+			"3d07f9ff2b620c19eb2fe302d8dff4ba8f9687c38e923558cb37b7f77198c7ed7ac8405b27aacd45e20918ae588b6c1438e81a1df717f919969e4055633cd0d8da54b0a6d5a60a9fab6b080e7ba1f05a26e47722911b3174318a59b775422d0b",
+		},
+		{
+			"enode://636607cdb83df0c2ed863875aa999ce0adf4a143061ff1f1e99a3200dcc16d55945870c73c641ea9e972105496d1f051789a7115e396e1326835dab6a8acee92@3.123.104.238:16789",
+			"77022119b671104057983c7d9102d3ceb435b1c63e421c93077d6538ef5b7eeea6aadb7b943855760d4828b89e34af0035e1cb311f64b5ab84424fb4f8eec3792d39ad3d49e7adf0e4db3666b71ae77edef9409a44d9427059d8529b0ce47194",
+		},
+	}
+
+	initialDemoNetConsensusNodes = []initNode{}
+
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(97),
+		ChainID:     big.NewInt(100),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
@@ -110,7 +114,7 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter:  "wasm",
+		VMInterpreter:  "evm",
 		GenesisVersion: GenesisVersion,
 	}
 
@@ -125,11 +129,41 @@ var (
 
 	// TestnetChainConfig contains the chain parameters to run a node on the test network.
 	TestnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(103),
+		ChainID:     big.NewInt(101),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        20000,
+		},
+		VMInterpreter:  "evm",
+		GenesisVersion: GenesisVersion,
+	}
+
+	// RallynetChainConfig is the chain parameters to run a node on the Rally network.
+	RallynetChainConfig = &ChainConfig{
+		ChainID:     big.NewInt(94),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(1),
+		Cbft: &CbftConfig{
+			InitialNodes:  ConvertNodeUrl(initialRallyNetConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        20000,
+		},
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
+	}
+
+	// DemonetChainConfig is the chain parameters to run a node on the demo network.
+	DemonetChainConfig = &ChainConfig{
+		ChainID:     big.NewInt(399),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(1),
+		Cbft: &CbftConfig{
+			InitialNodes:  ConvertNodeUrl(initialDemoNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
 			Period:        20000,
@@ -258,7 +292,7 @@ func (c *ChainConfig) IsEWASM(num *big.Int) bool {
 //
 // The returned GasTable's fields shouldn't, under any circumstances, be changed.
 func (c *ChainConfig) GasTable(num *big.Int) GasTable {
-	return GasTableHomestead
+	return GasTableConstantinople
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
