@@ -20,6 +20,16 @@ func (self *StateDB) GetOrNewParallelStateObject(addr common.Address) *ParallelS
 	}
 	return NewParallelStateObject(stateObject)
 }
+
+func (self *StateDB) IsContract(to common.Address) bool {
+	stateObject := self.justGetStateObject(to)
+	if stateObject == nil || stateObject.deleted {
+		return false
+	} else {
+		return len(stateObject.code) > 0
+	}
+}
+
 func (self *StateDB) justGetStateObject(addr common.Address) (stateObject *stateObject) {
 	if obj := self.justGetStateObjectCache(addr); obj != nil {
 		if obj.deleted {

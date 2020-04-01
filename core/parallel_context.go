@@ -38,6 +38,8 @@ type Context interface {
 	GetLogs() []*types.Log
 	GetEarnings() *big.Int
 	AddEarnings(*big.Int)
+	SetTimeout(isTimeout bool)
+	IsTimeout() bool
 }
 
 type Result struct {
@@ -65,18 +67,21 @@ type PackBlockContext struct {
 	earnings           *big.Int
 	startTime          time.Time
 	blockDeadline      time.Time
+	timeout            *common.AtomicBool
 }
 
-func NewPackBlockContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, blockDeadline time.Time) *PackBlockContext {
+func NewPackBlockContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, startTime, blockDeadline time.Time) *PackBlockContext {
 	ctx := &PackBlockContext{}
 	ctx.state = state
 	ctx.header = header
 	ctx.blockHash = blockHash
 	ctx.gp = gp
+	ctx.startTime = startTime
 	ctx.blockDeadline = blockDeadline
 	ctx.poppedAddresses = make(map[*common.Address]struct{})
 	ctx.earnings = big.NewInt(0)
 	ctx.blockGasUsedHolder = &header.GasUsed
+	ctx.timeout = &common.AtomicBool{}
 	return ctx
 }
 
@@ -197,6 +202,14 @@ func (ctx *PackBlockContext) GetBlockDeadline() time.Time {
 	return ctx.blockDeadline
 }
 
+func (ctx *PackBlockContext) SetTimeout(isTimeout bool) {
+	ctx.timeout.Set(isTimeout)
+}
+
+func (ctx *PackBlockContext) IsTimeout() bool {
+	return ctx.timeout.IsSet()
+}
+
 type VerifyBlockContext struct {
 	state              *state.StateDB
 	header             *types.Header
@@ -212,9 +225,10 @@ type VerifyBlockContext struct {
 	blockGasUsedHolder *uint64
 	earnings           *big.Int
 	verifyResult       bool
+	startTime          time.Time
 }
 
-func NewVerifyBlockContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, blockGasUsed *uint64) *VerifyBlockContext {
+func NewVerifyBlockContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, blockGasUsed *uint64, startTime time.Time) *VerifyBlockContext {
 	ctx := &VerifyBlockContext{}
 	ctx.state = state
 	ctx.header = header
@@ -223,6 +237,7 @@ func NewVerifyBlockContext(state *state.StateDB, header *types.Header, blockHash
 	ctx.poppedAddresses = make(map[*common.Address]struct{})
 	ctx.earnings = big.NewInt(0)
 	ctx.blockGasUsedHolder = blockGasUsed
+	ctx.startTime = startTime
 	return ctx
 }
 
@@ -334,4 +349,12 @@ func (ctx *VerifyBlockContext) SetVerifyResult(verifyResult bool) {
 }
 func (ctx *VerifyBlockContext) GetVerifyResult() bool {
 	return ctx.verifyResult
+}
+
+func (ctx *VerifyBlockContext) SetTimeout(isTimeout bool) {
+	return
+}
+
+func (ctx *VerifyBlockContext) IsTimeout() bool {
+	return false
 }

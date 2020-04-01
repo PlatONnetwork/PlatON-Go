@@ -292,10 +292,10 @@ func parallelMode(t testing.TB) {
 
 	start := time.Now()
 	gp := new(GasPool).AddGas(1000000000000000000)
-	ctx := NewPackBlockContext(stateDb, header, common.Hash{}, gp, time.Now().Add(200*time.Second))
+	ctx := NewPackBlockContext(stateDb, header, common.Hash{}, gp, time.Now(), time.Now().Add(200*time.Second))
 	ctx.SetTxList(testTxList)
 
-	if _, err := GetExecutor().PackBlockTxs(ctx); err != nil {
+	if err := GetExecutor().PackBlockTxs(ctx); err != nil {
 		t.Fatal("pack txs err", "err", err)
 	}
 	end := time.Now()

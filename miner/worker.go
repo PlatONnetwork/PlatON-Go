@@ -180,6 +180,7 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 
 	committer core.Committer
+	timeouts  uint64
 }
 
 func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor uint64, isLocalBlock func(*types.Block) bool,
@@ -234,6 +235,7 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 	worker.commitWorkEnv.nextBlockTime.Store(time.Now())
 
 	worker.setCommitter(NewParallelTxsCommitter(worker))
+	//worker.setCommitter(NewTxsCommitter(worker))
 
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
@@ -922,10 +924,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	startTime = time.Now()
 	var localTimeout = false
-
+	var remoteTimeout = false
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline); failed {
+		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, tstart, blockDeadline); failed {
 			return
 		} else {
 			localTimeout = timeout
@@ -939,18 +941,31 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
 
-		if failed, _ := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline); failed {
+		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, tstart, blockDeadline); failed {
 			return
+		} else {
+			remoteTimeout = timeout
 		}
 	}
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
 	log.Debug("Remote transactions executing stat", "number", header.Number, "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
+	percentage := uint64(0)
+	if header.Number.Uint64() > 100 {
+		percentage = w.timeouts * 100 / (header.Number.Uint64() - 100)
+
+	}
+	log.Warn("execute all txs for new work", "number", header.Number, "pending", txsCount, "txs", w.current.tcount, "diff", txsCount-w.current.tcount, "duration", time.Since(tstart), "timeoutPercentage", percentage)
+
 	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
 		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
 	}
 
-	log.Debug("Commit new work", "number", header.Number, "pending", txsCount, "txs", w.current.tcount, "diff", txsCount-w.current.tcount, "duration", time.Since(tstart))
+	if (localTimeout || remoteTimeout) && header.Number.Uint64() >= 100 {
+		w.timeouts++
+	}
+
+	log.Warn("Commit new work", "number", header.Number, "duration", time.Since(tstart))
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
@@ -976,7 +991,10 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		return err
 	}
 
+	finalizeStart := time.Now()
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
+	log.Warn("finalise while committing new work", "number", w.current.header.Number, "finalizeAndRootHashCost", time.Since(finalizeStart), "duration", time.Since(start))
+
 	if err != nil {
 		return err
 	}
@@ -994,8 +1012,8 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 			}
 			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.LAT)))
 
-			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
-				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))
+			log.Warn("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
+				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", time.Since(start))
 		case <-w.exitCh:
 			log.Info("Worker has exited")
 		}

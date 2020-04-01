@@ -1,6 +1,8 @@
 package core
 
 import (
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -41,9 +43,10 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		}
 	}
 
+	startTime := time.Now()
 	// Iterate over and process the individual transactions
 	if len(block.Transactions()) > 0 {
-		ctx := NewVerifyBlockContext(statedb, header, block.Hash(), gp, usedGas)
+		ctx := NewVerifyBlockContext(statedb, header, block.Hash(), gp, usedGas, startTime)
 		ctx.SetTxList(block.Transactions())
 		if err := GetExecutor().VerifyBlockTxs(ctx); err != nil {
 			return nil, nil, 0, err

@@ -1003,8 +1003,11 @@ func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjec
 	if from.stateObject.suicided || (deleteEmptyObjects && from.stateObject.empty()) {
 		s.deleteStateObject(from.stateObject)
 	} else {
-		from.stateObject.updateRoot(s.db)
-		s.updateStateObject(from.stateObject)
+		//Executor.executeParallel() will update each state object.
+		//from.stateObject.updateRoot(s.db)
+
+		//Executor.PackBlockTxs() will call state.Finalise()
+		//s.updateStateObject(from.stateObject)
 		s.stateObjects[from.stateObject.address] = from.stateObject
 	}
 	s.journal.append(balanceChange{
@@ -1017,8 +1020,11 @@ func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjec
 	if to.stateObject.suicided || (deleteEmptyObjects && to.stateObject.empty()) {
 		s.deleteStateObject(to.stateObject)
 	} else {
-		to.stateObject.updateRoot(s.db)
-		s.updateStateObject(to.stateObject)
+		//Executor.executeParallel() will update each state object.
+		//to.stateObject.updateRoot(s.db)
+
+		//Executor.PackBlockTxs() will call state.Finalise()
+		//s.updateStateObject(to.stateObject)
 		s.stateObjects[to.stateObject.address] = to.stateObject
 	}
 	s.journal.append(balanceChange{

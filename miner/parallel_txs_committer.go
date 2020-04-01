@@ -19,7 +19,7 @@ func NewParallelTxsCommitter(w *worker) *ParallelTxsCommitter {
 	}
 }
 
-func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (failed bool, isTimeout bool) {
+func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, startTime, blockDeadline time.Time) (failed bool, isTimeout bool) {
 	w := c.worker
 
 	// Short circuit if current is nil
@@ -47,11 +47,11 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 		}
 	}
 
-	ctx := core.NewPackBlockContext(w.current.state, header, common.Hash{}, w.current.gasPool, blockDeadline)
+	ctx := core.NewPackBlockContext(w.current.state, header, common.Hash{}, w.current.gasPool, startTime, blockDeadline)
 	ctx.SetTxList(parallelTxs)
-	if timeout, err := core.GetExecutor().PackBlockTxs(ctx); err != nil {
+	if err := core.GetExecutor().PackBlockTxs(ctx); err != nil {
 		log.Debug("pack txs err", "err", err)
-		return true, timeout
+		return true, ctx.IsTimeout()
 	}
 
 	w.current.txs = append(w.current.txs, ctx.GetPackedTxList()...)
@@ -60,13 +60,13 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 	//w.current.header.GasUsed = ctx.GetBlockGasUsed()
 	coalescedLogs = append(coalescedLogs, ctx.GetLogs()...)
 
-	root := w.current.state.IntermediateRoot(true)
+	/*root := w.current.state.IntermediateRoot(true)
 	log.Debug("pack block", "w.current.state.Root", root.Hex())
 	log.Debug("pack block", "w.current.txs", len(w.current.txs), "number", w.current.header.Number.Uint64())
 	log.Debug("pack block", "w.current.receipts", len(w.current.receipts), "number", w.current.header.Number.Uint64())
 	log.Debug("pack block", "coalescedLogs", len(coalescedLogs), "number", w.current.header.Number.Uint64())
 	log.Debug("pack block", "w.current.gasPool", w.current.gasPool.Gas(), "number", w.current.header.Number.Uint64())
-	log.Debug("pack block", "w.current.header.GasUsed", w.current.header.GasUsed, "number", w.current.header.Number.Uint64())
+	log.Debug("pack block", "w.current.header.GasUsed", w.current.header.GasUsed, "number", w.current.header.Number.Uint64())*/
 
 	if !w.isRunning() && len(coalescedLogs) > 0 {
 		// We don't push the pendingLogsEvent while we are mining. The reason is that
@@ -88,5 +88,5 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 	if interrupt != nil {
 		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
 	}
-	return false, timeout
+	return false, ctx.IsTimeout()
 }
