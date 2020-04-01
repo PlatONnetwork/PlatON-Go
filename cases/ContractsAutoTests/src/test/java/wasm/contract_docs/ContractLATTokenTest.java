@@ -78,11 +78,7 @@ public class ContractLATTokenTest extends WASMContractPrepareTest {
             collector.assertEqual(balance.getValue().longValue(), Long.valueOf(100000000));
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("contract_LATToken and could not call contract function");
-            }else{
-                collector.logStepFail("contract_LATToken failure,exception msg:" , e.getMessage());
-            }
+            collector.logStepFail("contract_LATToken failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

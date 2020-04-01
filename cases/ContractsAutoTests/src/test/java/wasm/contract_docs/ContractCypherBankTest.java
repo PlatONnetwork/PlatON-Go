@@ -126,12 +126,8 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
             collector.logStepPass("Call buyPrice, res: " + buyPrice);
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("contract_CypherBank and could not call contract function");
-            }else{
-                collector.logStepFail("contract_CypherBank failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("contract_CypherBank failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 

@@ -59,12 +59,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("ReferenceDataTypeContract and could not call contract function");
-            }else{
-                collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -105,12 +101,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("ReferenceDataTypeContract and could not call contract function");
-            }else{
-                collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -151,12 +143,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("ReferenceDataTypeContract and could not call contract function");
-            }else{
-                collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 }

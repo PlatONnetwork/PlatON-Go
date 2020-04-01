@@ -191,12 +191,8 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " gasUsed: " + setWalltTr.getGasUsed() + " logs:" + setWalltTr.getLogs().size());
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("contract_VIDToken and could not call contract function");
-            }else{
-                collector.logStepFail("contract_VIDToken failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("contract_VIDToken failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
