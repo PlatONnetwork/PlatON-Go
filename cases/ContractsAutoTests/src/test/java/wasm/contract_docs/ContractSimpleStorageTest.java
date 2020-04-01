@@ -44,8 +44,8 @@ public class ContractSimpleStorageTest extends WASMContractPrepareTest {
                 collector.logStepPass("SimpleStorage and could not call contract function");
             }else{
                 collector.logStepFail("SimpleStorage failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
             }
+            e.printStackTrace();
         }
     }
 
