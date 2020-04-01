@@ -1329,10 +1329,6 @@ func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) []error {
 		if replace, errs[i] = pool.add(tx, local); errs[i] == nil && !replace {
 			from, _ := types.Sender(pool.signer, tx) // already validated
 			dirty[from] = struct{}{}
-		} else {
-			if errs[i] != nil {
-				panic(errs[i])
-			}
 		}
 	}
 	// Only reprocess the internal state if something was actually added
