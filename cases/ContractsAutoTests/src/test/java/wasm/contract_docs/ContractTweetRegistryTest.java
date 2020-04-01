@@ -120,11 +120,7 @@ public class ContractTweetRegistryTest extends WASMContractPrepareTest {
             collector.assertEqual(cbalance, BigInteger.ZERO);
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("TweetAccount and could not call contract function");
-            }else{
-                collector.logStepFail("TweetAccount failure,exception msg:" , e.getMessage());
-            }
+            collector.logStepFail("TweetAccount failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
