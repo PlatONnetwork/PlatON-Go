@@ -2010,7 +2010,7 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 		return nil, err
 	}
 	if len(preNonces) < len(queue) {
-		log.Error("Failed to randomOrderValidator on Election", "blockNumber", blockNumber, "validatorListSize", len(queue),
+		log.Error("Failed to randomOrderValidatorQueue on Election", "blockNumber", blockNumber, "validatorListSize", len(queue),
 			"preNoncesSize", len(preNonces), "parentHash", parentHash.TerminalString())
 		return nil, staking.ErrWrongFuncParams
 	}
@@ -2025,6 +2025,7 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 			validator:v,
 			value:value,
 		}
+		log.Debug("Call randomOrderValidatorQueue xor", "nodeId", v.NodeId.TerminalString(), "nodeAddress", v.NodeAddress.Hex(), "nonce", hexutil.Encode(preNonces[i]), "xorValue", value)
 	}
 
 	frontPart := orderList[:xcom.ShiftValidatorNum()]
@@ -2033,7 +2034,7 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 	sort.Sort(frontPart)
 	sort.Sort(backPart)
 
-	orderList = make(randomOrderValidatorList, len(queue))
+	orderList = make(randomOrderValidatorList, 0)
 	orderList = append(orderList, frontPart...)
 	orderList = append(orderList, backPart...)
 
@@ -2041,7 +2042,7 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 	for i, v := range orderList {
 		resultQueue[i] = v.validator
 	}
-	log.Debug("Call randomOrderValidator success", "blockNumber", blockNumber, "parentHash", parentHash.TerminalString(), "resultQueueSize", len(resultQueue))
+	log.Debug("Call randomOrderValidatorQueue success", "blockNumber", blockNumber, "parentHash", parentHash.TerminalString(), "resultQueueSize", len(resultQueue))
 	return resultQueue, nil
 }
 
