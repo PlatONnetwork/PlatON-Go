@@ -18,6 +18,8 @@ package vm
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -200,7 +202,10 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 	}
 
 	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
-	evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
+	if currVersion := gov.GetCurrentActiveVersion(statedb); currVersion >= params.FORKVERSION_0_11_0  {
+		log.Trace("NewEVM append wasm interpreter", "blockNumber", ctx.BlockNumber, "blockHash", ctx.BlockHash.TerminalString(), "currVerion", currVersion)
+		evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
+	}
 	evm.interpreter = evm.interpreters[0]
 	return evm
 }
@@ -455,7 +460,8 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// by the error checking condition below.
 	if err == nil && !maxCodeSizeExceeded {
 		var createDataGas uint64
-		if CanUseWASMInterp(ret) {
+		currVersion := gov.GetCurrentActiveVersion(evm.StateDB)
+		if CanUseWASMInterp(ret) && currVersion >= params.FORKVERSION_0_11_0 {
 			createDataGas = uint64(len(ret)) * params.CreateWasmDataGas
 		}else {
 			createDataGas = uint64(len(ret)) * params.CreateDataGas

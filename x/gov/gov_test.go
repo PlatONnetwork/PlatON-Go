@@ -97,7 +97,7 @@ func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.Address
 	can := &staking.CandidateMutable{Status: staking.Valided}
 	return can, nil
 }
-func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error {
+func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32, state xcom.StateDB) error {
 	if stk.DeclaeredVodes == nil {
 		stk.DeclaeredVodes = make(map[discover.NodeID]uint32)
 	}
@@ -180,7 +180,7 @@ func setup(t *testing.T) *mock.Chain {
 		fmt.Println("newBlock, %", err)
 	}
 
-	if err := InitGenesisGovernParam(chain.SnapDB); err != nil {
+	if err := InitGenesisGovernParam(chain.SnapDB, 2048); err != nil {
 		t.Error("InitGenesisGovernParam, error", err)
 	}
 	RegisterGovernParamVerifiers()

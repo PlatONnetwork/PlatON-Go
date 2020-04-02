@@ -38,7 +38,7 @@ type Staking interface {
 	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
 	GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error)
 	GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error)
-	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
+	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32, state xcom.StateDB) error
 }
 
 const (
@@ -59,6 +59,8 @@ const (
 	KeySlashBlocksReward          = "slashBlocksReward"
 	KeyMaxBlockGasLimit           = "maxBlockGasLimit"
 	KeyMaxTxDataLimit             = "maxTxDataLimit"
+	KeyZeroProduceNumberThreshold = "zeroProduceNumberThreshold"
+	KeyZeroProduceCumulativeTime  = "zeroProduceCumulativeTime"
 )
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
@@ -74,13 +76,13 @@ func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
 func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	avList, err := ListActiveVersion(state)
 	if err != nil {
-		log.Error("Cannot find active version list")
+		log.Error("Cannot find active version list", "err", err)
 		return 0
 	}
 
 	var version uint32
 	if len(avList) == 0 {
-		log.Error("cannot find current active version")
+		log.Warn("cannot find current active version, The ActiveVersion List is nil")
 		return 0
 	} else {
 		version = avList[0].ActiveVersion
@@ -273,7 +275,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		} else if declaredVersion>>8 == activeVersion>>8 {
 			//there's a voting-version-proposal, if the declared version equals the current active version, notify staking immediately
 			log.Debug("call stk.DeclarePromoteNotify(not voted, declaredVersion==activeVersion)", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion, state); err != nil {
 				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 				return NotifyStakingDeclaredVersionError
 			}
@@ -295,7 +297,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			log.Debug("there is no version proposal at pre-active stage")
 			if declaredVersion>>8 == activeVersion>>8 {
 				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion, state); err != nil {
 					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 					return NotifyStakingDeclaredVersionError
 				}
@@ -307,7 +309,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			log.Debug("there is a version proposal at pre-active stage", "preActiveVersion", preActiveVersion)
 			if declaredVersion>>8 == preActiveVersion>>8 {
 				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion, state); err != nil {
 					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 					return NotifyStakingDeclaredVersionError
 				}
@@ -797,3 +799,31 @@ func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash) (int, err
 //
 //	return size, nil
 //}
+
+func GovernZeroProduceNumberThreshold(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceNumberThreshold, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceCumulativeTime, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}

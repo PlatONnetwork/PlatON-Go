@@ -73,7 +73,7 @@ type downloadTester struct {
 // newTester creates a new downloader test mocker.
 func newTester() *downloadTester {
 	sdbPath := path.Join(os.TempDir(), fmt.Sprint(rand.Int63()))
-	sdb, err := snapshotdb.Open(sdbPath, 0, 0)
+	sdb, err := snapshotdb.Open(sdbPath, 0, 0, false)
 	if err != nil {
 		panic(err)
 	}
@@ -569,7 +569,9 @@ func TestCanonicalSynchronisation63Full(t *testing.T) { testCanonicalSynchronisa
 func TestCanonicalSynchronisation64Full(t *testing.T) { testCanonicalSynchronisation(t, 64, FullSync) }
 func TestCanonicalSynchronisation64Fast(t *testing.T) { testCanonicalSynchronisation(t, 64, FastSync) }
 
-func TestCanonicalSynchronisation64Light(t *testing.T) { testCanonicalSynchronisation(t, 64, LightSync) }
+func TestCanonicalSynchronisation64Light(t *testing.T) {
+	testCanonicalSynchronisation(t, 64, LightSync)
+}
 
 func testCanonicalSynchronisation(t *testing.T, protocol int, mode SyncMode) {
 	t.Parallel()

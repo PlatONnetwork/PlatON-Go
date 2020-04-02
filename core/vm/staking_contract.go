@@ -74,10 +74,16 @@ type StakingContract struct {
 }
 
 func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
+	if checkForkPIP0_11_0(stkc.Evm.StateDB, input) {
+		return 0
+	}
 	return params.StakingGas
 }
 
 func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
+	if checkForkPIP0_11_0(stkc.Evm.StateDB, input) {
+		return nil, nil
+	}
 	return execPlatonContract(input, stkc.FnSigns())
 }
 

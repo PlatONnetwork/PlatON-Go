@@ -539,6 +539,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	// get previous viewChangeQC from wal db
 	if isPreviousView() {
 		if qc, err := cbft.bridge.GetViewChangeQC(msg.Epoch, msg.ViewNumber); err == nil && qc != nil {
+			// also inform the local highest view
 			highestqc, _ := cbft.bridge.GetViewChangeQC(localEpoch, localViewNumber-1)
 			viewChangeQuorumCert := &protocols.ViewChangeQuorumCert{
 				ViewChangeQC: qc,
@@ -569,10 +570,12 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 			return &authFailedError{err}
 		}
 	}
+	// if the other party's view is still higher than the local one, continue to synchronize the view
 	cbft.trySyncViewChangeQuorumCert(id, msg)
 	return nil
 }
 
+// Synchronize view one by one according to the highest view notified by the other party
 func (cbft *Cbft) trySyncViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
 	highestViewChangeQC := msg.HighestViewChangeQC
 	if highestViewChangeQC == nil {
@@ -590,8 +593,10 @@ func (cbft *Cbft) trySyncViewChangeQuorumCert(id string, msg *protocols.ViewChan
 		return
 	}
 	if cbft.state.ViewNumber() < viewNumber {
+		// if local view lags, synchronize view one by one
 		if err := cbft.verifyViewChangeQC(highestViewChangeQC); err == nil {
 			cbft.log.Debug("Receive future viewChange quorumCert, sync viewChangeQC with fast mode", "localView", cbft.state.ViewString(), "futureView", highestViewChangeQC.String())
+			// request viewChangeQC for the current view
 			cbft.network.Send(id, &protocols.GetViewChange{
 				Epoch:          cbft.state.Epoch(),
 				ViewNumber:     cbft.state.ViewNumber(),
