@@ -273,16 +273,16 @@ func InitGenesisGovernParam(stateDB xcom.StateDB, snapDB snapshotdb.BaseDB, gene
 		value := common.MustRlpEncode(param.ParamValue)
 		lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
 		if nil != err {
-			return fmt.Errorf("failed to Store govern paramtero: PutBaseDB failed. ParamItem:%s, ParamValue:%s, error:%s", param.ParamItem.Module, param.ParamItem.Name, err.Error())
-		}
-		if err := snapDB.PutBaseDB(key, value); err != nil {
-			return err
+			return fmt.Errorf("failed to Store govern parameter: PutBaseDB failed. ParamItem:%s, ParamValue:%s, error:%s", param.ParamItem.Module, param.ParamItem.Name, err.Error())
 		}
 	}
 
 	key := KeyParamItems()
 	value := common.MustRlpEncode(paramItemList)
 	lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
+	if nil != err {
+		return fmt.Errorf("failed to Store govern parameter list: PutBaseDB failed. error:%s", err.Error())
+	}
 
 	stateDB.SetState(vm.GovContractAddr, KeyGovernHASHKey(), lastHash.Bytes())
 	return nil
