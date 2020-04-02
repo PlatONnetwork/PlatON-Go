@@ -138,8 +138,6 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 
 			var slashQueue staking.SlashQueue
 
-			var slashNodeQueue staking.SlashNodeQueue
-
 			currentVersion := gov.GetCurrentActiveVersion(state)
 			if currentVersion == 0 {
 				log.Error("Failed to BeginBlock, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
@@ -208,19 +206,23 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 
 					slashQueue = append(slashQueue, slashItem)
 
-					snData := &staking.SlashNodeData{
-						NodeId          : nodeId,
-						Amount : slashAmount,
-					}
-					slashNodeQueue = append(slashNodeQueue, snData)
 				}
 			}
-			sp.setSlashData(header.Number.Uint64() ,slashNodeQueue)
+
 			// Real to slash the node
 			// If there is no record of the node,
 			// it means that there is no block,
 			// then the penalty is directly
 			if len(slashQueue) != 0 {
+				var slashNodeQueue staking.SlashNodeQueue
+				for _, slashItem := range slashQueue  {
+					snData := &staking.SlashNodeData{
+						NodeId          : slashItem.NodeId,
+						Amount : slashItem.Amount,
+					}
+					slashNodeQueue = append(slashNodeQueue, snData)
+				}
+				sp.setSlashData(header.Number.Uint64() ,slashNodeQueue)
 				if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), slashQueue...); nil != err {
 					log.Error("Failed to BeginBlock, call SlashCandidates is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 					return err
@@ -264,7 +266,6 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 	preRound := xutil.CalculateRound(header.Number.Uint64()) - 1
 	log.Info("Call zeroProduceProcess start", "blockNumber", blockNumber, "blockHash", blockHash, "preRound", preRound, "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "zeroProduceCumulativeTime", zeroProduceCumulativeTime, "waitSlashingNodeListSize", waitSlashingNodeList)
 	if len(waitSlashingNodeList) > 0 {
-		var snQueue staking.SlashNodeQueue
 		for index := 0; index < len(waitSlashingNodeList); index++ {
 			waitSlashingNode := waitSlashingNodeList[index]
 			// Check if a node has produced a block, including in the current round
@@ -362,15 +363,10 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 			if slashItem != nil {
 				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
 				slashQueue = append(slashQueue, slashItem)
-				snData := &staking.SlashNodeData{
-					NodeId          : nodeId,
-					Amount : slashItem.Amount,
-				}
-				snQueue = append(snQueue, snData)
 			}
 
 		}
-		sp.setSlashData(blockNumber, snQueue)
+
 	}
 	// The remaining zero-out blocks in the map belong to the first zero-out block,
 	// so they are directly added to the list.
