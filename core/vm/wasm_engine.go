@@ -2,7 +2,9 @@ package vm
 
 import (
 	"context"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"hash/fnv"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -120,7 +122,7 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte) er
 	if nil != err {
 		return err
 	}
-	vm.RecoverPanic = true
+	vm.RecoverPanic = false // NOTE: There is no need for wagon vm to handle err and panic and it will be handled by wagon engine.
 	ctx := &VMContext{
 		evm:      engine.EVM(),
 		contract: engine.Contract(),
@@ -141,8 +143,20 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte) er
 	return nil
 }
 
-func (engine *wagonEngine) exec(index int64) ([]byte, error) {
-	_, err := engine.vm.ExecCode(index)
+func (engine *wagonEngine) exec(index int64) (ret []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			switch e := r.(type) {
+			case error:
+				ret, err =  nil, e
+			default:
+				log.Error("Failed to exec wagon vm", "the undefined err", fmt.Sprintf("%v", e))
+				ret, err = nil, ErrWASMUndefinedPanic
+			}
+		}
+	}()
+
+	_, err = engine.vm.ExecCode(index)
 	if err != nil {
 		return nil, errors.Wrap(err, "execute function code")
 	}
@@ -153,10 +167,8 @@ func (engine *wagonEngine) exec(index int64) ([]byte, error) {
 		return nil, errExecutionReverted
 	case engine.vm.Abort():
 		return nil, ErrAbort
-	case err != nil:
-		return nil, errors.Wrap(err, "execute function code")
 	}
-	return ctx.Output, err
+	return ctx.Output, nil
 }
 
 func (engine *wagonEngine) MakeModule(deploy bool) (*exec.CompiledModule, int64, error) {

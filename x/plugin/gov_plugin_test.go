@@ -20,6 +20,8 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -56,7 +58,7 @@ var (
 	/*endVotingBlock uint64
 	activeBlock    uint64*/
 	stateDB xcom.StateDB
-	chainID = big.NewInt(101)
+	chainID = big.NewInt(100)
 
 //	stk            *StakingPlugin
 )
@@ -80,7 +82,7 @@ func setup(t *testing.T) func() {
 	snapdb = snapshotdb.Instance()
 
 	// init data
-	if err := gov.InitGenesisGovernParam(snapdb); err != nil {
+	if err := gov.InitGenesisGovernParam(snapdb, 2048); err != nil {
 		t.Fatalf("cannot init genesis govern param...")
 	}
 
@@ -1224,11 +1226,95 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	}
 }
 
+func TestGovPlugin_versionProposalActive_ver0_11_0(t *testing.T) {
+
+	defer setup(t)()
+
+	chainID = big.NewInt(101)
+	GovPluginInstance().SetChainID(chainID)
+	promoteVersion = params.FORKVERSION_0_11_0
+
+	//submit version proposal
+	submitVersion(t, txHashArr[0])
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction() //flush to LevelDB
+
+	endVotingBlock := xutil.CalEndVotingBlock(1, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()))
+	actvieBlock := xutil.CalActiveBlock(endVotingBlock)
+
+	buildBlockNoCommit(2)
+	//voting
+	allVote(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	build_staking_data_more(endVotingBlock)
+
+	//tally result
+	endBlock(t)
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+	lastBlockNumber = uint64(actvieBlock - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	//buildBlockNoCommit(23480)
+	build_staking_data_more(actvieBlock)
+
+	_, err := gov.GetGovernParamValue(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, lastBlockNumber, lastBlockHash)
+	assert.Equal(t, gov.UnsupportedGovernParam, err)
+	_, err = gov.GetGovernParamValue(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, lastBlockNumber, lastBlockHash)
+	assert.Equal(t, gov.UnsupportedGovernParam, err)
+
+	//active
+	beginBlock(t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	activeVersion := gov.GetCurrentActiveVersion(stateDB)
+	if activeVersion == promoteVersion {
+		t.Logf("active SUCCESS, %d", activeVersion)
+	} else {
+		t.Fatalf("active FALSE, %d", activeVersion)
+	}
+
+	var newZeroProduceCumulativeTime uint16
+	if cumulativeTime, err := gov.GovernZeroProduceCumulativeTime(lastBlockNumber, lastBlockHash); err != nil {
+		t.Fatalf("cannot find new gov param (newZeroProduceCumulativeTime)")
+	} else {
+		newZeroProduceCumulativeTime = cumulativeTime
+	}
+
+	var newZeroProduceNumberThreshold uint16
+	if numberThreshold, err := gov.GovernZeroProduceNumberThreshold(lastBlockNumber, lastBlockHash); err != nil {
+		t.Fatalf("cannot find new gov param(newZeroProduceNumberThreshold)")
+	} else {
+		newZeroProduceNumberThreshold = numberThreshold
+	}
+
+	assert.Equal(t, uint16(8), newZeroProduceCumulativeTime)
+	assert.Equal(t, uint16(2), newZeroProduceNumberThreshold)
+}
+
 func TestGovPlugin_versionProposalActive_ver0_10_0(t *testing.T) {
 
 	defer setup(t)()
 
-	promoteVersion = uint32(0<<16 | 10<<8 | 0) // 2560, version: 0.10.0
+	chainID = big.NewInt(101)
+	GovPluginInstance().SetChainID(chainID)
+	promoteVersion = params.FORKVERSION_0_10_0
 
 	//submit version proposal
 	submitVersion(t, txHashArr[0])
@@ -1285,7 +1371,6 @@ func TestGovPlugin_versionProposalActive_ver0_10_0(t *testing.T) {
 		originMaxEvidenceAge = maxEvidenceAge
 	}
 
-	govPlugin.chainID = big.NewInt(101)
 	//active
 	beginBlock(t)
 
