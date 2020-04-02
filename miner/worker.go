@@ -188,6 +188,8 @@ type worker struct {
 	fullTaskHook func()                             // Method to call before pushing the full sealing task.
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 
+	committer core.Committer
+
 	vmTimeout uint64
 }
 
@@ -247,6 +249,9 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, vmCo
 
 	worker.commitWorkEnv.nextBlockTime.Store(time.Now())
 
+	worker.setCommitter(NewParallelTxsCommitter(worker))
+	//worker.setCommitter(NewTxsCommitter(worker))
+
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
 	go worker.resultLoop()
@@ -275,6 +280,10 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, vmCo
 // setRecommitInterval updates the interval for miner sealing work recommitting.
 func (w *worker) setRecommitInterval(interval time.Duration) {
 	w.resubmitIntervalCh <- interval
+}
+
+func (w *worker) setCommitter(committer core.Committer) {
+	w.committer = committer
 }
 
 // pending returns the pending state and corresponding block.
@@ -1138,7 +1147,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		if _, ok := w.engine.(consensus.Bft); ok {
 			if err := w.commit(nil, true, tstart); nil != err {
 				log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
-				return err
 			}
 		} else {
 			w.updateSnapshot()
@@ -1215,7 +1223,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var localTimeout = false
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if ok, timeout := w.commitTransactionsWithHeader(header, txs, interrupt, timestamp, blockDeadline); ok {
+		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, tstart, blockDeadline); failed {
 			return fmt.Errorf("commit transactions error")
 		} else {
 			localTimeout = timeout
@@ -1223,23 +1231,23 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	commitLocalTxCount := w.current.tcount
-	log.Debug("Local transactions executing stat", "number", header.Number, "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("Local transactions executing stat", "number", header.Number, "involvedTxCount", commitLocalTxCount, "time", time.Since(startTime))
 
 	startTime = time.Now()
 	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
-		if ok, _ := w.commitTransactionsWithHeader(header, txs, interrupt, timestamp, blockDeadline); ok {
+
+		if failed, _ := w.committer.CommitTransactions(header, txs, interrupt, timestamp, tstart, blockDeadline); failed {
 			return fmt.Errorf("commit transactions error")
 		}
 	}
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
-	log.Debug("Remote transactions executing stat", "number", header.Number, "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("Remote transactions executing stat", "number", header.Number, "involvedTxCount", commitRemoteTxCount, "time", time.Since(startTime))
 
 	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
 		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
 		return err
 	}
-
 	log.Debug("Commit new work", "number", header.Number, "pending", txsCount, "txs", w.current.tcount, "diff", txsCount-w.current.tcount, "duration", time.Since(tstart))
 	return nil
 }
@@ -1267,7 +1275,10 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		return err
 	}
 
+	finalizeStart := time.Now()
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
+	log.Warn("finalise while committing new work", "number", w.current.header.Number, "finalizeAndRootHashCost", time.Since(finalizeStart), "duration", time.Since(start))
+
 	if err != nil {
 		return err
 	}
@@ -1289,7 +1300,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.LAT)))
 
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
-				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))
+				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", time.Since(start))
 		case <-w.exitCh:
 			log.Info("Worker has exited")
 		}

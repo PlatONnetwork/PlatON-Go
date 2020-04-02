@@ -144,11 +144,19 @@ func (t *odrTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
 	return t.trie.Commit(onleaf)
 }
 
+func (t *odrTrie) ParallelCommit2(onleaf trie.LeafCallback) (common.Hash, error) {
+	return t.Commit(onleaf)
+}
+
 func (t *odrTrie) Hash() common.Hash {
 	if t.trie == nil {
 		return t.id.Root
 	}
 	return t.trie.Hash()
+}
+
+func (t *odrTrie) ParallelHash2() common.Hash {
+	return t.Hash()
 }
 
 func (t *odrTrie) NodeIterator(startkey []byte) trie.NodeIterator {

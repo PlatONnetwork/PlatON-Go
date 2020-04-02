@@ -42,6 +42,8 @@ type Transaction struct {
 	hash atomic.Value
 	size atomic.Value
 	from atomic.Value
+
+	fromAddr *common.Address
 }
 
 type txdata struct {
@@ -233,6 +235,14 @@ func (tx *Transaction) Cost() *big.Int {
 
 func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
+}
+
+func (tx *Transaction) SetFromAddr(fromAddr *common.Address) {
+	tx.fromAddr = fromAddr
+}
+
+func (tx *Transaction) GetFromAddr() *common.Address {
+	return tx.fromAddr
 }
 
 // Transactions is a Transaction slice type for basic sorting.

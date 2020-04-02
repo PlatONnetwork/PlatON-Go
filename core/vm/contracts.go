@@ -430,3 +430,14 @@ func (c *bn256Pairing) Run(input []byte) ([]byte, error) {
 	}
 	return false32Byte, nil
 }
+
+func IsPrecompiled(to common.Address) bool {
+	_, exist1 := PlatONPrecompiledContracts[to]
+	_, exist2 := PrecompiledContractsHomestead[to]
+	_, exist3 := PrecompiledContractsByzantium[to]
+	if exist1 || exist2 || exist3 {
+		return true
+	} else {
+		return false
+	}
+}
