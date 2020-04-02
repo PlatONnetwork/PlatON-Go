@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -35,6 +37,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var chain *mock.Chain
+
 func initHandler() *ecdsa.PrivateKey {
 	vh = &VrfHandler{
 		db:           snapshotdb.Instance(),
@@ -46,6 +50,9 @@ func initHandler() *ecdsa.PrivateKey {
 		panic(err)
 	}
 	vh.SetPrivateKey(pri)
+
+	chain = mock.NewChain()
+
 	return pri
 }
 
@@ -55,7 +62,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 		vh.db.Clear()
 	}()
 
-	gov.InitGenesisGovernParam(vh.db, 2048)
+	gov.InitGenesisGovernParam(chain.StateDB, vh.db, 2048)
 
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))

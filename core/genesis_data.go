@@ -1,14 +1,12 @@
 package core
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -60,7 +58,7 @@ func genesisStakingData(snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.Sta
 		if err := snapdb.PutBaseDB(key, val); nil != err {
 			return common.ZeroHash, err
 		}
-		newHash := generateKVHash(key, val, hash)
+		newHash := common.GenerateKVHash(key, val, hash)
 		return newHash, nil
 	}
 
@@ -316,17 +314,6 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.Ba
 	return nil
 }
 
-func generateKVHash(k, v []byte, oldHash common.Hash) common.Hash {
-	var buf bytes.Buffer
-	buf.Write(k)
-	buf.Write(v)
-	buf.Write(oldHash.Bytes())
-	return rlpHash(buf.Bytes())
-}
-
-func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
-	rlp.Encode(hw, x)
-	hw.Sum(h[:0])
-	return h
+func genesisGovernParamData(stateDB *state.StateDB, snapdb snapshotdb.BaseDB, genesisVersion uint32) error {
+	return gov.InitGenesisGovernParam(stateDB, snapdb, genesisVersion)
 }

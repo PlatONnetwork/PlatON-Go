@@ -22,12 +22,14 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
@@ -245,7 +247,7 @@ func initParam() []*GovernParam {
 
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
-func InitGenesisGovernParam(snapDB snapshotdb.BaseDB, genesisVersion uint32) error {
+func InitGenesisGovernParam(stateDB xcom.StateDB, snapDB snapshotdb.BaseDB, genesisVersion uint32) error {
 	var paramItemList []*ParamItem
 
 	initParamList := queryInitParam()
@@ -254,11 +256,25 @@ func InitGenesisGovernParam(snapDB snapshotdb.BaseDB, genesisVersion uint32) err
 		log.Info("Call InitGenesisGovernParam execution 0.11.0", "genesisVersion", genesisVersion)
 	}
 
+	putBasedb_genKVHash_Fn := func(key, val []byte, hash common.Hash) (common.Hash, error) {
+		if err := snapDB.PutBaseDB(key, val); nil != err {
+			return common.ZeroHash, err
+		}
+		newHash := common.GenerateKVHash(key, val, hash)
+		return newHash, nil
+	}
+
+	var lastHash = common.ZeroHash
+	var err error
 	for _, param := range initParamList {
 		paramItemList = append(paramItemList, param.ParamItem)
 
 		key := KeyParamValue(param.ParamItem.Module, param.ParamItem.Name)
 		value := common.MustRlpEncode(param.ParamValue)
+		lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
+		if nil != err {
+			return fmt.Errorf("failed to Store govern paramtero: PutBaseDB failed. ParamItem:%s, ParamValue:%s, error:%s", param.ParamItem.Module, param.ParamItem.Name, err.Error())
+		}
 		if err := snapDB.PutBaseDB(key, value); err != nil {
 			return err
 		}
@@ -266,9 +282,9 @@ func InitGenesisGovernParam(snapDB snapshotdb.BaseDB, genesisVersion uint32) err
 
 	key := KeyParamItems()
 	value := common.MustRlpEncode(paramItemList)
-	if err := snapDB.PutBaseDB(key, value); err != nil {
-		return err
-	}
+	lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
+
+	stateDB.SetState(vm.GovContractAddr, KeyGovernHASHKey(), lastHash.Bytes())
 	return nil
 }
 

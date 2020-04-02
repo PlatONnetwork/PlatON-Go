@@ -190,7 +190,7 @@ func (exe *Executor) batchMerge(batchNo int, originIdxList []int, deleteEmptyObj
 				}
 			} else {
 				switch resultList[idx].err {
-				case ErrGasLimitReached, ErrNonceTooHigh:
+				case ErrGasLimitReached, ErrNonceTooHigh, vm.ErrAbort:
 					// pop error
 					exe.ctx.SetPoppedAddress(exe.ctx.GetTx(idx).GetFromAddr())
 				default:
