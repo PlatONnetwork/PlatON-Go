@@ -434,7 +434,7 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 
 	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
 
-	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, 0, amount, delegateRewardPerList)
+	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, nil, canAddr, can, 0, amount, delegateRewardPerList)
 }
 
 func getDelegate(blockHash common.Hash, stakingNum uint64, index int, t *testing.T) *staking.Delegation {
@@ -1614,7 +1614,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	expectedCumulativeIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
 	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.LAT))
-	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
+	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, nil, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
 		t.Fatal("Failed to Delegate:", err)
 	}
 

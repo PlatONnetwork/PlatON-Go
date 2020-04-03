@@ -316,7 +316,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
 	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.chainConfig.ChainID)
-	node.GetCryptoHandler().SetPrivateKey(config.CbftConfig.NodePriKey)
+	node.GetCryptoHandler().SetPrivateKey(ctx.NodePriKey())
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 

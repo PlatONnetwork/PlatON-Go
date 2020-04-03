@@ -88,6 +88,16 @@ func StakingInstance() *StakingPlugin {
 	return stk
 }
 
+func NewStakingPlugin(db snapshotdb.DB) *StakingPlugin {
+	stakePlnOnce.Do(func() {
+		log.Info("Init Staking plugin ...")
+		stk = &StakingPlugin{
+			db: staking.NewStakingDBWithDB(db),
+		}
+	})
+	return stk
+}
+
 func (sk *StakingPlugin) SetEventMux(eventMux *event.TypeMux) {
 	sk.eventMux = eventMux
 }
@@ -792,14 +802,14 @@ func (sk *StakingPlugin) GetDelegateExInfoByIrr(delAddr common.Address,
 }
 
 func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
-	delAddr common.Address, del *staking.Delegation, canAddr common.Address, can *staking.Candidate,
+	delAddr common.Address, del, delShouldMerge *staking.Delegation, canAddr common.Address, can *staking.Candidate,
 	typ uint16, amount *big.Int, delegateRewardPerList []*reward.DelegateRewardPer) error {
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
-	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
+	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, sk.db.GetDB()); err != nil {
 		return err
 	}
 
@@ -833,6 +843,18 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	}
 
 	del.DelegateEpoch = uint32(epoch)
+	if delShouldMerge != nil {
+		//if in the same block have many staking with diffent StakingTxIndex,
+		// delegate many times in the same block will treat  as one delegate,
+		//the older del will merge to new del without transfer to StakingContractAddr
+		del.ReleasedHes.Add(del.ReleasedHes, delShouldMerge.ReleasedHes)
+		del.RestrictingPlanHes.Add(del.RestrictingPlanHes, delShouldMerge.RestrictingPlanHes)
+		amount.Add(amount, delShouldMerge.ReleasedHes)
+		amount.Add(amount, delShouldMerge.RestrictingPlanHes)
+		log.Debug("Call delegate :the older delegate merge to the new delegate", "amount", amount, "releasedHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes)
+	}
+
+	del.StakingTxIndex = can.StakingTxIndex
 
 	// set new delegate info
 	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del); nil != err {
