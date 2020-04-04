@@ -847,11 +847,12 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		//if in the same block have many staking with diffent StakingTxIndex,
 		// delegate many times in the same block will treat  as one delegate,
 		//the older del will merge to new del without transfer to StakingContractAddr
+		log.Debug("Call delegate :merge to the new delegate before", "amount", amount, "releasedHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes)
 		del.ReleasedHes.Add(del.ReleasedHes, delShouldMerge.ReleasedHes)
 		del.RestrictingPlanHes.Add(del.RestrictingPlanHes, delShouldMerge.RestrictingPlanHes)
 		amount.Add(amount, delShouldMerge.ReleasedHes)
 		amount.Add(amount, delShouldMerge.RestrictingPlanHes)
-		log.Debug("Call delegate :the older delegate merge to the new delegate", "amount", amount, "releasedHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes)
+		log.Debug("Call delegate :merge to the new delegate after", "amount", amount, "releasedHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes)
 	}
 
 	del.StakingTxIndex = can.StakingTxIndex
