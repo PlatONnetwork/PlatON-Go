@@ -323,12 +323,15 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	}
 	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
+	var initDataStateHash = common.ZeroHash
+	var err error
+
 	// Initialized Govern Parameters
 	var genesisVersion uint32 = 0
 	if g.Config != nil {
 		genesisVersion = g.Config.GenesisVersion
 	}
-	if err := genesisGovernParamData(statedb, sdb, genesisVersion); err != nil {
+	if initDataStateHash, err = genesisGovernParamData(initDataStateHash, sdb, genesisVersion); err != nil {
 		log.Error("Failed to init govern parameter in snapshotdb", "err", err)
 		panic("Failed to init govern parameter in snapshotdb")
 	}
@@ -348,7 +351,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		}
 
 		// Store genesis staking data
-		if err := genesisStakingData(sdb, g, statedb); nil != err {
+		if _, err := genesisStakingData(initDataStateHash, sdb, g, statedb); nil != err {
 			panic("Failed Store staking: " + err.Error())
 		}
 	}

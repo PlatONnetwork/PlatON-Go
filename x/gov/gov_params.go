@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -247,7 +246,7 @@ func initParam() []*GovernParam {
 
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
-func InitGenesisGovernParam(stateDB xcom.StateDB, snapDB snapshotdb.BaseDB, genesisVersion uint32) error {
+func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, genesisVersion uint32) (common.Hash, error) {
 	var paramItemList []*ParamItem
 
 	initParamList := queryInitParam()
@@ -264,7 +263,7 @@ func InitGenesisGovernParam(stateDB xcom.StateDB, snapDB snapshotdb.BaseDB, gene
 		return newHash, nil
 	}
 
-	var lastHash = common.ZeroHash
+	var lastHash = prevHash
 	var err error
 	for _, param := range initParamList {
 		paramItemList = append(paramItemList, param.ParamItem)
@@ -273,7 +272,7 @@ func InitGenesisGovernParam(stateDB xcom.StateDB, snapDB snapshotdb.BaseDB, gene
 		value := common.MustRlpEncode(param.ParamValue)
 		lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
 		if nil != err {
-			return fmt.Errorf("failed to Store govern parameter: PutBaseDB failed. ParamItem:%s, ParamValue:%s, error:%s", param.ParamItem.Module, param.ParamItem.Name, err.Error())
+			return lastHash, fmt.Errorf("failed to Store govern parameter: PutBaseDB failed. ParamItem:%s, ParamValue:%s, error:%s", param.ParamItem.Module, param.ParamItem.Name, err.Error())
 		}
 	}
 
@@ -281,11 +280,11 @@ func InitGenesisGovernParam(stateDB xcom.StateDB, snapDB snapshotdb.BaseDB, gene
 	value := common.MustRlpEncode(paramItemList)
 	lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
 	if nil != err {
-		return fmt.Errorf("failed to Store govern parameter list: PutBaseDB failed. error:%s", err.Error())
+		return lastHash, fmt.Errorf("failed to Store govern parameter list: PutBaseDB failed. error:%s", err.Error())
 	}
 
-	stateDB.SetState(vm.GovContractAddr, KeyGovernHASHKey(), lastHash.Bytes())
-	return nil
+	//stateDB.SetState(vm.GovContractAddr, KeyGovernHASHKey(), lastHash.Bytes())
+	return lastHash, nil
 }
 
 func RegisterGovernParamVerifiers() {
