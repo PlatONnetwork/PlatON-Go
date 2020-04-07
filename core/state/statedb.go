@@ -19,7 +19,6 @@ package state
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"sort"
 	"sync"
@@ -94,8 +93,6 @@ type StateDB struct {
 	clearReferenceFunc []func()
 	parent             *StateDB
 
-	// Gov version in each state
-	govVersion uint32
 	// The index in clearReferenceFunc of parent StateDB
 	referenceFuncIndex int
 }
@@ -116,7 +113,6 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
 	}
-	state.govVersion = gov.GetCurrentActiveVersion(state)
 	return state, nil
 }
 
@@ -133,9 +129,6 @@ func (self *StateDB) NewStateDB() *StateDB {
 		parent:             self,
 		clearReferenceFunc: make([]func(), 0),
 	}
-
-	// fetch the gov version
-	stateDB.govVersion = gov.GetCurrentActiveVersion(stateDB)
 
 	index := self.AddReferenceFunc(stateDB.clearParentRef)
 	stateDB.referenceFuncIndex = index
@@ -215,7 +208,6 @@ func (self *StateDB) Reset(root common.Hash) error {
 	self.logSize = 0
 	self.preimages = make(map[common.Hash][]byte)
 	self.clearJournalAndRefund()
-	self.govVersion = gov.GetCurrentActiveVersion(self)
 	return nil
 }
 
@@ -825,8 +817,6 @@ func (self *StateDB) Copy() *StateDB {
 	state.parentCommitted = self.parentCommitted
 	self.refLock.Unlock()
 
-	// fetch the gov version
-	state.govVersion = gov.GetCurrentActiveVersion(state)
 	return state
 }
 
