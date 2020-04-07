@@ -2,6 +2,7 @@ package vm
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"math/big"
 	"testing"
 
@@ -25,7 +26,7 @@ func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
 func TestEnforceRestrictions(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
 	evmInterpreter.readOnly = true
@@ -44,7 +45,7 @@ func TestEnforceRestrictions(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	var (
-		env            = NewEVM(Context{Ctx: context.TODO()}, nil, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{Ctx: context.TODO()}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
 	contract := NewContract(account{}, account{}, big.NewInt(0), 1)

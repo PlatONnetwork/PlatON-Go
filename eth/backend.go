@@ -21,8 +21,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"sync"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -130,7 +133,69 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
-	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
+	snapshotBaseDB, err := snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+	if err != nil {
+		return nil, err
+	}
+
+	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
+	log.Debug("read header number from chain db", "height", height)
+	if height != nil && *height > 0 {
+		//when last  fast syncing fail,we will clean chaindb,wal,snapshotdb
+		status, err := snapshotBaseDB.GetBaseDB([]byte(downloader.KeyFastSyncStatus))
+
+		// systemError
+		if err != nil && err != snapshotdb.ErrNotFound {
+			if err := snapshotBaseDB.Close(); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+		//if find sync status,this means last syncing not finish,should clean all db to reinit
+		//if not find sync status,no need init chain
+		if err == nil {
+			log.Info("last fast sync is fail,init  db", "status", status, "prichain", config.Genesis == nil)
+			chainDb.Close()
+			if err := snapshotBaseDB.Close(); err != nil {
+				return nil, err
+			}
+			if err := os.RemoveAll(ctx.ResolvePath("chaindata")); err != nil {
+				return nil, err
+			}
+
+			if err := os.RemoveAll(ctx.ResolvePath(wal.WalDir(ctx))); err != nil {
+				return nil, err
+			}
+
+			if err := os.RemoveAll(ctx.ResolvePath(snapshotdb.DBPath)); err != nil {
+				return nil, err
+			}
+
+			chainDb, err = CreateDB(ctx, config, "chaindata")
+			if err != nil {
+				return nil, err
+			}
+
+			snapshotBaseDB, err = snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+			if err != nil {
+				return nil, err
+			}
+
+			if config.Genesis == nil {
+				config.Genesis = new(core.Genesis)
+				if err := config.Genesis.InitAndSetEconomicConfig(ctx.GenesisPath()); err != nil {
+					return nil, err
+				}
+			}
+			log.Info("last fast sync is fail,init  db finish")
+		}
+	}
+
+	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
+
+	if err := snapshotBaseDB.Close(); err != nil {
+		return nil, err
+	}
 
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -389,6 +454,10 @@ func (s *Ethereum) APIs() []rpc.API {
 			Namespace: "debug",
 			Version:   "1.0",
 			Service:   NewPrivateDebugAPI(s.chainConfig, s),
+		}, {
+			Namespace: "debug",
+			Version:   "1.0",
+			Service:   xplugin.NewPublicPPOSAPI(),
 		}, {
 			Namespace: "net",
 			Version:   "1.0",
