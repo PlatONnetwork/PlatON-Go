@@ -58,8 +58,6 @@ func SetExecutor() *Executor {
 func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 	exe.ctx = ctx
 	gasPoolEnough := true
-	mergeCost := int64(0)
-	finaliseCost := int64(0)
 	if len(ctx.txList) > 0 {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
@@ -94,9 +92,7 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 				}
 				// waiting for current batch done
 				exe.wg.Wait()
-				mergeStart := time.Now()
 				exe.batchMerge(batchNo, parallelTxIdxs, true)
-				mergeCost += time.Since(mergeStart).Milliseconds()
 
 			} else {
 				break
@@ -110,9 +106,7 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 			ctx.state.AddMinerEarnings(ctx.header.Coinbase, ctx.GetEarnings())
 			//exe.ctx.GetHeader().GasUsed = ctx.GetBlockGasUsed()
 		}
-		finaliseStart := time.Now()
 		ctx.state.Finalise(true)
-		finaliseCost += time.Since(finaliseStart).Milliseconds()
 	}
 	return nil
 }
