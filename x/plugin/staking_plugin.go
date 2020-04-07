@@ -1862,7 +1862,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	//
 	invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
 
-	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
+	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue, blockNumber uint64, parentHash common.Hash) (staking.ValidatorQueue, error) {
 
 		// increase term and use new shares  one by one
 		for i, v := range currQueue {
@@ -1877,7 +1877,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		copyCurrQueue := make(staking.ValidatorQueue, len(currQueue)-invalidLen)
 		// Remove the invalid validators
 		copy(copyCurrQueue, currQueue[invalidLen:])
-		return shuffleQueue(copyCurrQueue, vrfQueue)
+		return shuffleQueue(copyCurrQueue, vrfQueue, blockNumber, parentHash)
 	}
 
 	var vrfQueue staking.ValidatorQueue
@@ -1906,7 +1906,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
 		"vrfQueueLen", len(vrfQueue))
 
-	nextQueue := shuffle(invalidLen, currqueen, vrfQueue)
+	nextQueue, err := shuffle(invalidLen, currqueen, vrfQueue, blockNumber, header.ParentHash)
+	if nil != err {
+		return err
+	}
 
 	if len(nextQueue) == 0 {
 		panic("The Next Round Validator is empty, blockNumber: " + fmt.Sprint(blockNumber))
@@ -1952,7 +1955,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	return nil
 }
 
-func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
+func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue, blockNumber uint64, parentHash common.Hash) (staking.ValidatorQueue, error) {
 
 	remainLen := len(remainCurrQueue)
 	totalQueue := append(remainCurrQueue, vrfQueue...)
@@ -1970,9 +1973,77 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.Vali
 
 	copy(next, totalQueue)
 
-	// re-sort before store next validators
-	next.ValidatorSort(nil, staking.CompareForStore)
-	return next
+	// Divide all consensus nodes into two groups, the front and back positions of each group are not changed,
+	// but random ordering is performed in each group
+	// The first group: the first f nodes
+	// The second group: the last 2f + 1 nodes
+	next, err := randomOrderValidatorQueue(blockNumber, parentHash, next)
+	if nil != err {
+		return nil, err
+	}
+	return next, nil
+}
+
+
+type randomOrderValidator struct {
+	validator *staking.Validator
+	value	*big.Int
+}
+type randomOrderValidatorList []*randomOrderValidator
+
+func (r randomOrderValidatorList) Len() int {
+	return len(r)
+}
+
+func (r randomOrderValidatorList) Less(i, j int) bool {
+	return r[i].value.Cmp(r[j].value) > 0
+}
+
+func (r randomOrderValidatorList) Swap(i, j int) {
+	r[i], r[j] = r[j], r[i]
+}
+
+// Randomly sort nodes
+func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue staking.ValidatorQueue) (staking.ValidatorQueue, error) {
+	preNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
+	if nil != err {
+		return nil, err
+	}
+	if len(preNonces) < len(queue) {
+		log.Error("Failed to randomOrderValidatorQueue on Election", "blockNumber", blockNumber, "validatorListSize", len(queue),
+			"preNoncesSize", len(preNonces), "parentHash", parentHash.TerminalString())
+		return nil, staking.ErrWrongFuncParams
+	}
+	if len(preNonces) > len(queue) {
+		preNonces = preNonces[len(preNonces)-len(queue):]
+	}
+
+	orderList := make(randomOrderValidatorList, len(queue))
+	for i, v := range queue {
+		value :=  new(big.Int).Xor(new(big.Int).SetBytes(v.NodeAddress.Bytes()), new(big.Int).SetBytes(preNonces[i][:common.AddressLength]))
+		orderList[i] = &randomOrderValidator{
+			validator:v,
+			value:value,
+		}
+		log.Debug("Call randomOrderValidatorQueue xor", "nodeId", v.NodeId.TerminalString(), "nodeAddress", v.NodeAddress.Hex(), "nonce", hexutil.Encode(preNonces[i]), "xorValue", value)
+	}
+
+	frontPart := orderList[:xcom.ShiftValidatorNum()]
+	backPart := orderList[xcom.ShiftValidatorNum():]
+
+	sort.Sort(frontPart)
+	sort.Sort(backPart)
+
+	orderList = make(randomOrderValidatorList, 0)
+	orderList = append(orderList, frontPart...)
+	orderList = append(orderList, backPart...)
+
+	resultQueue := make(staking.ValidatorQueue, len(orderList))
+	for i, v := range orderList {
+		resultQueue[i] = v.validator
+	}
+	log.Debug("Call randomOrderValidatorQueue success", "blockNumber", blockNumber, "parentHash", parentHash.TerminalString(), "resultQueueSize", len(resultQueue))
+	return resultQueue, nil
 }
 
 // NotifyPunishedVerifiers
