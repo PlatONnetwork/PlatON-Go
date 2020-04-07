@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -69,11 +70,16 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 
 		for gasPoolEnough && !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
+			fmt.Println(fmt.Sprintf("PackBlockTxs batch=%d, parallTxIds=%+v", batchNo, parallelTxIdxs))
 			//call executeTransaction if batch length == 1
 			if len(parallelTxIdxs) == 1 {
 				exe.executeTransaction(parallelTxIdxs[0])
 			} else if len(parallelTxIdxs) > 1 {
 				for _, originIdx := range parallelTxIdxs {
+					if !gasPoolEnough || ctx.IsTimeout() {
+						break
+					}
+
 					from := ctx.GetTx(originIdx).GetFromAddr()
 					if _, popped := ctx.poppedAddresses[from]; popped {
 						break
@@ -122,7 +128,7 @@ func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 		batchNo := 0
 		for txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
-
+			fmt.Println(fmt.Sprintf("VerifyBlockTxs batch=%d, parallTxIds=%+v", batchNo, parallelTxIdxs))
 			if len(parallelTxIdxs) == 1 {
 				exe.executeTransaction(parallelTxIdxs[0])
 			} else if len(parallelTxIdxs) > 1 {
@@ -244,6 +250,7 @@ func (exe *Executor) buildTransferFailedResult(idx int, err error) {
 		err: err,
 	}
 	exe.ctx.SetResult(idx, result)
+	fmt.Println(fmt.Sprintf("---------- Fail. tx no=%d", idx))
 }
 func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStateObject *state.ParallelStateObject, txGasUsed uint64, minerEarnings *big.Int) {
 	tx := exe.ctx.GetTx(idx)
@@ -265,6 +272,8 @@ func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStat
 		err:             nil,
 	}
 	exe.ctx.SetResult(idx, result)
+
+	fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
 }
 
 func (exe *Executor) executeTransaction(idx int) {
