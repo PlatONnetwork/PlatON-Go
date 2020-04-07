@@ -25,7 +25,7 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 	tempMap := make(map[common.Address]int, 0)
 	latestPrecompiledIndex := -1
 	for curIdx, cur := range txs {
-		if vm.IsPrecompiled(*cur.To()) || state.IsContract(*cur.To()) {
+		if vm.IsPrecompiledContract(*cur.To()) || state.IsContract(*cur.To()) {
 			if curIdx > 0 {
 				for begin := latestPrecompiledIndex + 1; begin < curIdx; begin++ {
 					txDag.dag.AddEdge(begin, curIdx)
