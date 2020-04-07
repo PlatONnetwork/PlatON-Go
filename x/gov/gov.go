@@ -223,15 +223,6 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	return nil
 }
 
-var NodeDeclaredVersionsCounter map[discover.NodeID]uint32 = make(map[discover.NodeID]uint32)
-var EnableCounter bool
-
-func countNodeDeclaredVersions(declaredNodeID discover.NodeID, declaredVersion uint32) {
-	if EnableCounter {
-		NodeDeclaredVersionsCounter[declaredNodeID] = declaredVersion
-	}
-}
-
 // node declares it's version
 func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
@@ -319,7 +310,6 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			}
 		}
 	}
-	countNodeDeclaredVersions(declaredNodeID, declaredVersion)
 	return nil
 }
 

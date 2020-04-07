@@ -20,9 +20,6 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -111,9 +108,8 @@ func IsBlank(i interface{}) bool {
 	return val.IsNil()
 }
 
-func checkForkPIP0_11_0(state StateDB, input []byte) bool {
-	currentVersion := gov.GetCurrentActiveVersion(state)
-	if currentVersion >= params.FORKVERSION_0_11_0 && len(input) == 0 {
+func checkInputEmpty(input []byte) bool {
+	if len(input) == 0 {
 		return true
 	} else {
 		return false

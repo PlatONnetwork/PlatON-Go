@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sync"
 
@@ -234,12 +233,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
 				MaxValidators:         uint64(101),
-				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
+				UnStakeFreezeDuration: uint64(2), // freezing 2 epoch
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
-				MaxEvidenceAge:             uint32(27),
+				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(15),
 				ZeroProduceNumberThreshold: uint16(3),
@@ -253,7 +252,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposalSupportRate:          float64(0.667),
 				CancelProposalVoteRate:           float64(0.50),
 				CancelProposalSupportRate:        float64(0.667),
-				ParamProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
+				ParamProposalVoteDurationSeconds: uint64(24 * 3600),
 				ParamProposalVoteRate:            float64(0.50),
 				ParamProposalSupportRate:         float64(0.667),
 			},
@@ -383,8 +382,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
-				ZeroProduceCumulativeTime:  uint16(3),
-				ZeroProduceNumberThreshold: uint16(2),
+				ZeroProduceCumulativeTime:  uint16(15),
+				ZeroProduceNumberThreshold: uint16(3),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(160),
@@ -395,7 +394,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposalSupportRate:          float64(0.667),
 				CancelProposalVoteRate:           float64(0.50),
 				CancelProposalSupportRate:        float64(0.667),
-				ParamProposalVoteDurationSeconds: uint64(160),
+				ParamProposalVoteDurationSeconds: uint64(24 * 3600),
 				ParamProposalVoteRate:            float64(0.50),
 				ParamProposalSupportRate:         float64(0.667),
 			},
@@ -568,19 +567,16 @@ func CheckEconomicModel(genesisVersion uint32) error {
 		return err
 	}
 
-	if genesisVersion >= params.FORKVERSION_0_11_0 {
-		epochSize := uint16(EpochSize())
-		if epochSize > maxZeroProduceCumulativeTime {
-			return fmt.Errorf("the number of consensus rounds in a settlement cycle cannot be greater than maxZeroProduceCumulativeTime(%d)", maxZeroProduceCumulativeTime)
-		}
+	if uint16(EpochSize()) > maxZeroProduceCumulativeTime {
+		return fmt.Errorf("the number of consensus rounds in a settlement cycle cannot be greater than maxZeroProduceCumulativeTime(%d)", maxZeroProduceCumulativeTime)
+	}
 
-		if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
-			return err
-		}
+	if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
+		return err
+	}
 
-		if err := CheckZeroProduceCumulativeTime(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
-			return err
-		}
+	if err := CheckZeroProduceCumulativeTime(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
+		return err
 	}
 
 	return nil

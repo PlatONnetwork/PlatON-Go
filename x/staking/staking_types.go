@@ -1014,6 +1014,17 @@ func (queue ValidatorExQueue) String() string {
 	return "[" + strings.Join(arr, ",") + "]"
 }
 
+func NewDelegation() *Delegation {
+	del := new(Delegation)
+	// Prevent null pointer initialization
+	del.Released = new(big.Int).SetInt64(0)
+	del.RestrictingPlan = new(big.Int).SetInt64(0)
+	del.ReleasedHes = new(big.Int).SetInt64(0)
+	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
+	del.CumulativeIncome = new(big.Int).SetInt64(0)
+	return del
+}
+
 // the Delegate information
 type Delegation struct {
 	// The epoch number at delegate or edit
@@ -1028,6 +1039,9 @@ type Delegation struct {
 	RestrictingPlanHes *big.Int
 	// Cumulative delegate income (Waiting for withdrawal)
 	CumulativeIncome *big.Int
+
+	// The tx index at the time of staking
+	StakingTxIndex uint32
 }
 
 func (del *Delegation) CleanCumulativeIncome(epoch uint32) {

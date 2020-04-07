@@ -57,14 +57,14 @@ type GovContract struct {
 }
 
 func (gc *GovContract) RequiredGas(input []byte) uint64 {
-	if checkForkPIP0_11_0(gc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return 0
 	}
 	return params.GovGas
 }
 
 func (gc *GovContract) Run(input []byte) ([]byte, error) {
-	if checkForkPIP0_11_0(gc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return nil, nil
 	}
 	return execPlatonContract(input, gc.FnSigns())

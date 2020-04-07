@@ -26,8 +26,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -969,12 +967,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		limit := common.StorageSize(bc.cacheConfig.TrieNodeLimit) * 1024 * 1024
 		oversize := false
 
-		currVersion := gov.GetCurrentActiveVersion(state)
-		if currVersion >= params.FORKVERSION_0_11_0 {
-			log.Trace("GetCurrentActiveVersion on blockchain WriteBlockWithState", "blockNumber", block.Number(),
-				"blockHash", block.Hash().TerminalString(), "govVersion", currVersion, "forkVersion", params.FORKVERSION_0_11_0)
-			bc.cacheConfig.DBGCMpt = false
-		}
+		bc.cacheConfig.DBGCMpt = false
 
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
 			log.Trace("No gc mpt", "blockNumber", block.Number(), "blockHash", block.Hash().TerminalString(),
