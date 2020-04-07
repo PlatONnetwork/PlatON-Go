@@ -51,7 +51,7 @@ var (
 	vpPIPID           = "vpPIPID"
 	vpEndVotingRounds = uint64(2)
 
-	tempActiveVersion = uint32(0<<16 | 9<<8 | 4)
+	tempActiveVersion = uint32(0<<16 | 13<<8 | 4)
 
 	chainID = big.NewInt(100)
 )

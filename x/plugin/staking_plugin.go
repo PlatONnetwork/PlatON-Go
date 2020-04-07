@@ -26,8 +26,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -1168,26 +1166,14 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			return err
 		}
 
-		if currentVersion >= params.FORKVERSION_0_11_0 {
-			if xutil.CalcVersion(canBase.ProgramVersion) < currVersion {
-				log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
-					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
-					"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
-					canBase.ProgramVersion, "currVersion", currVersion)
+		if xutil.CalcVersion(canBase.ProgramVersion) < currVersion {
+			log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
+				"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
+				canBase.ProgramVersion, "currVersion", currVersion)
 
-				// Low program version cannot be elected for epoch validator
-				continue
-			}
-		} else {
-			if canBase.ProgramVersion < currVersion {
-				log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
-					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
-					"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
-					canBase.ProgramVersion, "currVersion", currVersion)
-
-				// Low program version cannot be elected for epoch validator
-				continue
-			}
+			// Low program version cannot be elected for epoch validator
+			continue
 		}
 
 		addr := common.BytesToAddress(addrSuffix)
@@ -1800,16 +1786,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		// Collect candidate who need to be removed
 		// from the validators because the version is too low
 
-		if currentVersion >= params.FORKVERSION_0_11_0 {
-			if xutil.CalcVersion(can.ProgramVersion) < currVersion {
-				removeCans[v.NodeId] = can
-				needRMLowVersionLen++
-			}
-		} else {
-			if can.ProgramVersion < currVersion {
-				removeCans[v.NodeId] = can
-				needRMLowVersionLen++
-			}
+		if xutil.CalcVersion(can.ProgramVersion) < currVersion {
+			removeCans[v.NodeId] = can
+			needRMLowVersionLen++
 		}
 
 		currMap[v.NodeId] = v.Shares
@@ -1847,14 +1826,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 
 		// Ignore the low version
-		if currentVersion >= params.FORKVERSION_0_11_0 {
-			if xutil.CalcVersion(can.ProgramVersion) < currVersion {
-				continue
-			}
-		} else {
-			if can.ProgramVersion < currVersion {
-				continue
-			}
+		if xutil.CalcVersion(can.ProgramVersion) < currVersion {
+			continue
 		}
 
 		diffQueue = append(diffQueue, v)
@@ -2365,11 +2338,9 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			continue
 		}
 
-		if gov.CheckForkPIP0_11_0(state) || programVersion == params.FORKVERSION_0_11_0 {
-			if can.IsInvalid() {
-				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
-				continue
-			}
+		if can.IsInvalid() {
+			log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
+			continue
 		}
 
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
@@ -2418,7 +2389,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		return nil
 	}
 
-	if gov.CheckForkPIP0_11_0(state) && can.IsInvalid() {
+	if can.IsInvalid() {
 		log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
 		return nil
 	}
@@ -2811,26 +2782,16 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 
 	log.Debug("Call probabilityElection, sort probability queue", "blockNumber", blockNumber, "currentVersion", currentVersion, "list", svList)
 
-	if currentVersion >= params.FORKVERSION_0_11_0 {
-		nsvList := make(newSortValidatorQueue, len(svList))
-		for index, sv := range svList {
-			nsvList[index] = sv
+	nsvList := make(newSortValidatorQueue, len(svList))
+	for index, sv := range svList {
+		nsvList[index] = sv
+	}
+	sort.Sort(nsvList)
+	for index, sv := range nsvList {
+		if index == shiftLen {
+			break
 		}
-		sort.Sort(nsvList)
-		for index, sv := range nsvList {
-			if index == shiftLen {
-				break
-			}
-			vrfQueue[index] = sv.v
-		}
-	} else {
-		sort.Sort(svList)
-		for index, sv := range svList {
-			if index == shiftLen {
-				break
-			}
-			vrfQueue[index] = sv.v
-		}
+		vrfQueue[index] = sv.v
 	}
 
 	log.Debug("Call probabilityElection finished", "blockNumber", blockNumber, "currentVersion", currentVersion, "vrfQueue", vrfQueue)

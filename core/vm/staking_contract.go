@@ -74,14 +74,14 @@ type StakingContract struct {
 }
 
 func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
-	if checkForkPIP0_11_0(stkc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return 0
 	}
 	return params.StakingGas
 }
 
 func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
-	if checkForkPIP0_11_0(stkc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return nil, nil
 	}
 	return execPlatonContract(input, stkc.FnSigns())
@@ -636,7 +636,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 			// rebuild delegate
 			del = staking.NewDelegation()
 			log.Debug("Call delegate of stakingContract:the older delegate should merge to the new delegate",
-				"oldStakingTxIndex", del.StakingTxIndex, "newStakingTxIndex", canBase.StakingTxIndex, "releasedHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes)
+				"oldStakingTxIndex", del.StakingTxIndex, "newStakingTxIndex", canBase.StakingTxIndex, "releasedHes", delShouldMerge.ReleasedHes, "restrictingPlanHes", delShouldMerge.RestrictingPlanHes)
 		}
 	}
 	var delegateRewardPerList []*reward.DelegateRewardPer
