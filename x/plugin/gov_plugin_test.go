@@ -82,7 +82,7 @@ func setup(t *testing.T) func() {
 	snapdb = snapshotdb.Instance()
 
 	// init data
-	if err := gov.InitGenesisGovernParam(state, snapdb, 2048); err != nil {
+	if _, err := gov.InitGenesisGovernParam(common.ZeroHash, snapdb, 2048); err != nil {
 		t.Fatalf("cannot init genesis govern param...")
 	}
 

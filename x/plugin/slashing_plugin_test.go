@@ -54,7 +54,7 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 	StakingInstance()
 	RestrictingInstance()
 	chain := mock.NewChain()
-	gov.InitGenesisGovernParam(chain.StateDB, snapshotdb.Instance(), 2048)
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
 	avList := []gov.ActiveVersionValue{
 		{
 			ActiveVersion: 1,

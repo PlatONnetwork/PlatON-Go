@@ -649,7 +649,7 @@ func build_gov_data(state xcom.StateDB) {
 
 	//set a default active version
 	gov.AddActiveVersion(initProgramVersion, 0, state)
-	gov.InitGenesisGovernParam(state, snapshotdb.Instance(), 2048)
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
 }
 
 func buildStateDB(t *testing.T) xcom.StateDB {
