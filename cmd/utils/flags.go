@@ -1374,9 +1374,15 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-
-	config, _, err := core.SetupGenesisBlock(chainDb, stack.ResolvePath(snapshotdb.DBPath), MakeGenesis(ctx))
+	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
 	if err != nil {
+		Fatalf("%v", err)
+	}
+	config, _, err := core.SetupGenesisBlock(chainDb, basedb, MakeGenesis(ctx))
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	if err := basedb.Close(); err != nil {
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine
@@ -1409,9 +1415,15 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeCfg *node.Config) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-
-	config, _, err := core.SetupGenesisBlock(chainDb, stack.ResolvePath(snapshotdb.DBPath), MakeGenesis(ctx))
+	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
 	if err != nil {
+		Fatalf("%v", err)
+	}
+	config, _, err := core.SetupGenesisBlock(chainDb, basedb, MakeGenesis(ctx))
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	if err := basedb.Close(); err != nil {
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine

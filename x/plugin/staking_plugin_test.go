@@ -2722,7 +2722,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	Start DeclarePromoteNotify
 	*/
 	for i, can := range queue {
-		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion)
+		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion, state)
 
 		assert.Nil(t, err, fmt.Sprintf("Failed to DeclarePromoteNotify, index: %d, err: %v", i, err))
 	}
@@ -2890,7 +2890,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	/**
 	Start ProposalPassedNotify
 	*/
-	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
+	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion, state)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
 }
@@ -3457,7 +3457,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		time.Sleep(time.Microsecond * 10)
 	}
 
-	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces)
+	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, params.GenesisVersion)
 	assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 	assert.True(t, nil != result, "the result is nil")
 

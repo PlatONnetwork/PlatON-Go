@@ -41,7 +41,6 @@ func (self Code) String() string {
 	return string(self)
 }
 
-//type Storage map[string]common.Hash
 type ValueStorage map[string][]byte
 
 func (self ValueStorage) String() (str string) {
@@ -335,7 +334,6 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		}
 
 		// Encoding []byte cannot fail, ok to ignore the error.
-		//v, _ := rlp.EncodeToBytes(bytes.TrimLeft(value, "\x00"))
 		v, _ := rlp.EncodeToBytes(value)
 		self.setError(tr.TryUpdate([]byte(key), v))
 	}

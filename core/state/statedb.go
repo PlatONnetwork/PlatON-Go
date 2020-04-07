@@ -19,6 +19,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"sort"
 	"sync"
@@ -92,6 +93,11 @@ type StateDB struct {
 	// children StateDB callback, is called when parent committed
 	clearReferenceFunc []func()
 	parent             *StateDB
+
+	// Gov version in each state
+	govVersion uint32
+	// The index in clearReferenceFunc of parent StateDB
+	referenceFuncIndex int
 }
 
 // Create a new state from a given trie.
@@ -100,7 +106,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &StateDB{
+	state := &StateDB{
 		db:                 db,
 		trie:               tr,
 		stateObjects:       make(map[common.Address]*stateObject),
@@ -109,7 +115,9 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		preimages:          make(map[common.Hash][]byte),
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
-	}, nil
+	}
+	state.govVersion = gov.GetCurrentActiveVersion(state)
+	return state, nil
 }
 
 // New StateDB based on the parent StateDB
@@ -125,12 +133,19 @@ func (self *StateDB) NewStateDB() *StateDB {
 		parent:             self,
 		clearReferenceFunc: make([]func(), 0),
 	}
-	self.AddReferenceFunc(stateDB.clearParentRef)
+
+	// fetch the gov version
+	stateDB.govVersion = gov.GetCurrentActiveVersion(stateDB)
+
+	index := self.AddReferenceFunc(stateDB.clearParentRef)
+	stateDB.referenceFuncIndex = index
+
 	//if stateDB.parent != nil {
 	//	stateDB.parent.DumpStorage(false)
 	//}
 	return stateDB
 }
+
 func (self *StateDB) HadParent() bool {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
@@ -200,6 +215,7 @@ func (self *StateDB) Reset(root common.Hash) error {
 	self.logSize = 0
 	self.preimages = make(map[common.Hash][]byte)
 	self.clearJournalAndRefund()
+	self.govVersion = gov.GetCurrentActiveVersion(self)
 	return nil
 }
 
@@ -564,7 +580,7 @@ func (self *StateDB) getStateObjectSnapshot(addr common.Address, key []byte) []b
 }
 
 // Add childrent statedb reference
-func (self *StateDB) AddReferenceFunc(fn func()) {
+func (self *StateDB) AddReferenceFunc(fn func()) int {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
 	// It must not be nil
@@ -572,6 +588,7 @@ func (self *StateDB) AddReferenceFunc(fn func()) {
 		panic("statedb had cleared")
 	}
 	self.clearReferenceFunc = append(self.clearReferenceFunc, fn)
+	return len(self.clearReferenceFunc) - 1
 }
 
 // Clear reference when StateDB is committed
@@ -579,7 +596,9 @@ func (self *StateDB) ClearReference() {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
 	for _, fn := range self.clearReferenceFunc {
-		fn()
+		if nil != fn {
+			fn()
+		}
 	}
 	log.Trace("clear all ref", "reflen", len(self.clearReferenceFunc))
 	if self.parent != nil {
@@ -589,6 +608,33 @@ func (self *StateDB) ClearReference() {
 	}
 	self.clearReferenceFunc = nil
 	self.parent = nil
+}
+
+// Clear reference by index
+func (self *StateDB) ClearIndexReference(index int) {
+	self.refLock.Lock()
+	defer self.refLock.Unlock()
+
+	if len(self.clearReferenceFunc) > index && self.clearReferenceFunc[index] != nil {
+		//fn := self.clearReferenceFunc[index]
+		//fn()
+		log.Trace("Before clear index ref", "reflen", len(self.clearReferenceFunc), "index", index)
+		//self.clearReferenceFunc = append(self.clearReferenceFunc[:index], self.clearReferenceFunc[index+1:]...)
+		self.clearReferenceFunc[index] = nil
+		log.Trace("After clear index ref", "reflen", len(self.clearReferenceFunc), "index", index)
+	}
+}
+
+// Clear Parent reference
+func (self *StateDB) ClearParentReference() {
+	self.refLock.Lock()
+	defer self.refLock.Unlock()
+
+	if self.parent != nil && self.referenceFuncIndex >= 0 {
+		self.parent.ClearIndexReference(self.referenceFuncIndex)
+		self.parent = nil
+		self.referenceFuncIndex = -1
+	}
 }
 
 // Retrieve a state object given by the address. Returns nil if not found.
@@ -734,6 +780,7 @@ func (self *StateDB) Copy() *StateDB {
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
 	}
+
 	// Copy the dirty states, logs, and preimages
 	for addr := range self.journal.dirties {
 		// As documented [here](https://github.com/ethereum/go-ethereum/pull/16485#issuecomment-380438527),
@@ -778,6 +825,8 @@ func (self *StateDB) Copy() *StateDB {
 	state.parentCommitted = self.parentCommitted
 	self.refLock.Unlock()
 
+	// fetch the gov version
+	state.govVersion = gov.GetCurrentActiveVersion(state)
 	return state
 }
 

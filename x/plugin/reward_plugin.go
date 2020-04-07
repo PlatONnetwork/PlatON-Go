@@ -19,10 +19,12 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -303,7 +305,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 		// Execute new logic after this version.
 		// Update the delegation information only when there is delegation income available.
 		currentVersion := gov.GetCurrentActiveVersion(state)
-		if currentVersion == 0 || currentVersion >= FORKVERSION {
+		if currentVersion == 0 || currentVersion >= params.FORKVERSION {
 			if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
 				receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
 				delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
