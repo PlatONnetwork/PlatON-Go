@@ -96,7 +96,7 @@ class TestEnvironment:
 
     @property
     def version(self):
-        return ""
+        return "0.11.0"
 
     @property
     def running(self) -> bool:
@@ -677,6 +677,12 @@ if __name__ == "__main__":
     # print(env.cfg.syncmode)
     log.info("测试部署")
     env.deploy_all()
+    stop_nodes = env.consensus_node_list[:2]
+    for node in stop_nodes:
+        print(node.url)
+    time.sleep(50)
+    print(env.consensus_node_list[3].url)
+    env.stop_nodes(stop_nodes)
     # node = env.get_consensus_node_by_index(0)
     # print(node.debug.economicConfig())
     # print(type(node.debug.economicConfig()))

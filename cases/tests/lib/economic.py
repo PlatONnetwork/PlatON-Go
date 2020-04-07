@@ -68,11 +68,15 @@ class Economic:
         block_namber = self.consensus_size * roundnum
         count = 0
         for i in range(block_namber):
-            node_id = node.eth.ecrecover(current_block)
-            # node_id = get_pub_key(node.url, current_block)
-            current_block = current_block - 1
-            if node_id == node.node_id:
-                count = count + 1
+            if current_block > 0:
+                node_id = node.eth.ecrecover(current_block)
+                # node_id = get_pub_key(node.url, current_block)
+                current_block = current_block - 1
+                if node_id == node.node_id:
+                    count = count + 1
+            else:
+                break
+        print(current_block)
         return count
 
     def get_number_blocks_in_interval(self, node: Node, roundnum=1):
@@ -100,16 +104,21 @@ class Economic:
     def delegate_cumulative_income(self, node, block_reward, staking_reward, delegate_total_amount, delegate_amount, reward=None):
         entrusted_income = self.calculate_delegate_reward(node, block_reward, staking_reward, reward)
         print("entrusted_income: ", entrusted_income)
-        unit_commission_award = math.floor(Decimal(str(entrusted_income)) / int((Decimal(str(delegate_total_amount)) / (10 ** 9))))
-        print("unit_commission_award: ", unit_commission_award)
-        current_commission_award = int((Decimal(str(delegate_amount)) / (10 ** 9)) * Decimal(str(unit_commission_award)))
+        # unit_commission_award = math.floor(Decimal(str(entrusted_income)) / int((Decimal(str(delegate_total_amount)) / (10 ** 9))))
+        # print("unit_commission_award: ", unit_commission_award)
+        # current_commission_award = int((Decimal(str(delegate_amount)) / (10 ** 9)) * Decimal(str(unit_commission_award)))
+        # print("current_commission_award: ", current_commission_award)
+        current_commission_award = math.floor(Decimal(str(entrusted_income)) * Decimal(str(delegate_amount)) / Decimal(str(delegate_total_amount)))
         print("current_commission_award: ", current_commission_award)
         return current_commission_award
 
     def delegate_dividend_income(self, delegate_reward_total, delegate_total_amount, delegate_amount):
-        unit_commission_award = math.floor(Decimal(str(delegate_reward_total)) / int((Decimal(str(delegate_total_amount)) / (10 ** 9))))
-        print("unit_commission_award: ", unit_commission_award)
-        current_commission_award = int((Decimal(str(delegate_amount)) / (10 ** 9)) * Decimal(str(unit_commission_award)))
+        # unit_commission_award = math.floor(Decimal(str(delegate_reward_total)) / int((Decimal(str(delegate_total_amount)) / (10 ** 9))))
+        # print("unit_commission_award: ", unit_commission_award)
+        # current_commission_award = int((Decimal(str(delegate_amount)) / (10 ** 9)) * Decimal(str(unit_commission_award)))
+        # print("current_commission_award: ", current_commission_award)
+        # return current_commission_award
+        current_commission_award = math.floor(Decimal(str(delegate_reward_total)) * Decimal(str(delegate_amount)) / Decimal(str(delegate_total_amount)))
         print("current_commission_award: ", current_commission_award)
         return current_commission_award
 

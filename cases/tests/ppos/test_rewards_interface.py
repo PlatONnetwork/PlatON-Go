@@ -807,7 +807,7 @@ class TestwithdrawDelegateReward():
         assert balance_before_withdraw1 - gas1 + rewards1 == balance_after_withdraw1
 
     @pytest.mark.P2
-    def test_IN_DR_004_IN_DR_014(self, clients_new_node):
+    def test_IN_DR_004_IN_DR_014(self, clients_new_node, reset_environment):
         client0 = clients_new_node[0]
         client1 = clients_new_node[1]
         address0, _ = client0.economic.account.generate_account(client0.node.web3, init_amount)
@@ -854,7 +854,7 @@ class TestwithdrawDelegateReward():
         assert balance_before1 - gas1 + rewards1_node0 + delegate_amount == balance_after1
 
     @pytest.mark.P2
-    def test_withdraw_rewards_gas(self, clients_new_node):
+    def test_withdraw_rewards_gas(self, clients_new_node, reset_environment):
         client0 = clients_new_node[0]
         # client1 = clients_new_node[1]
         address0, _ = client0.economic.account.generate_account(client0.node.web3, init_amount)
@@ -892,7 +892,7 @@ class TestwithdrawDelegateReward():
         assert balance_before1 - gas1 + rewards1 == balance_after1
 
     @pytest.mark.P2
-    def test_IN_DR_005_IN_DR_015(self, clients_new_node):
+    def test_IN_DR_005_IN_DR_015(self, clients_new_node, reset_environment):
         client0 = clients_new_node[0]
         client1 = clients_new_node[1]
         address0, _ = client0.economic.account.generate_account(client0.node.web3, init_amount)
@@ -1318,7 +1318,7 @@ class TestwithdrawDelegateReward():
 
 class TestGas:
     @pytest.mark.P1
-    def test_IN_GA_001_IN_GA_002(self, clients_new_node):
+    def test_IN_GA_001_IN_GA_002(self, clients_new_node, reset_environment):
         client1 = clients_new_node[0]
         client2 = clients_new_node[1]
         address1, _ = client1.economic.account.generate_account(client1.node.web3, init_amount)
@@ -1469,7 +1469,7 @@ class TestGas:
         assert balance_address - gas + 10 ** 18 * 1000 + reward == balance_address_1
 
     @pytest.mark.P2
-    def test_IN_GA_007_IN_GA_008(self, client_new_node):
+    def test_IN_GA_007_IN_GA_008(self, client_new_node, reset_environment):
         client = client_new_node
         address, _ = client.economic.account.generate_account(client.node.web3, init_amount)
         staking_and_delegate(client, address)
@@ -1509,7 +1509,7 @@ class TestGas:
             assert e.args[0].get('message') == "intrinsic gas too low"
 
     @pytest.mark.P2
-    def test_IN_GA_009_IN_GA_010(self, client_new_node):
+    def test_IN_GA_009_IN_GA_010(self, client_new_node, reset_environment):
         client = client_new_node
         a = get_getDelegateReward_gas_fee(client, 1, 1)
         log.info(a)
@@ -1641,15 +1641,18 @@ class TestNet:
 
     @pytest.mark.P2
     def test_DD_NE_003(self, global_test_env):
-        test_node = self.deploy_me(global_test_env, 'rallynet')
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 95
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 3000
+        pass
+        # test_node = self.deploy_me(global_test_env, 'rallynet')
+        # assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 94
+        # assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 3000
 
     @pytest.mark.P2
     def test_DD_NE_004(self, global_test_env):
-        test_node = self.deploy_me(global_test_env, 'uatnet')
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 299
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 4000
+        pass
+        # delete for 0.8.0
+        # test_node = self.deploy_me(global_test_env, 'uatnet')
+        # assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 299
+        # assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 4000
 
     @pytest.mark.P2
     def test_DD_NE_005(self, global_test_env):
