@@ -299,14 +299,14 @@ func parallelMode(t testing.TB) {
 		t.Fatal("pack txs err", "err", err)
 	}
 	end := time.Now()
-	executeTxsCost := end.Sub(start).Milliseconds()
-	t.Logf("Executed txs cost(parallel mode, including to make DAG graph): %d milliseconds.\n", executeTxsCost)
+	executeTxsCost := end.Sub(start).Nanoseconds()
+	t.Logf("Executed txs cost(parallel mode, including to make DAG graph): %d Nanoseconds.\n", executeTxsCost)
 
 	finalizedBlock, err := Finalize(blockchain, header, stateDb, ctx.packedTxList, ctx.receipts)
 	if err != nil {
 		t.Fatal("Finalize block failed", "err", err)
 	}
-	t.Logf("Finalize block cost(parallel mode): %d milliseconds.\n", time.Now().Sub(end).Milliseconds())
+	t.Logf("Finalize block cost(parallel mode): %d Nanoseconds.\n", time.Now().Sub(end).Nanoseconds())
 
 	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
 		t.Fatal("Seal block failed", "err", err)
@@ -345,17 +345,16 @@ func serialMode(t testing.TB) {
 		}
 		receipts = append(receipts, receipt)
 	}
-
 	end := time.Now()
-	executeTxsCost := end.Sub(start).Milliseconds()
-	t.Logf("Executed txs cost(serial mode): %d milliseconds.\n", executeTxsCost)
+	executeTxsCost := end.Sub(start).Nanoseconds()
+	t.Logf("Executed txs cost(serial mode): %d Nanoseconds.\n", executeTxsCost)
 
 	finalizedBlock, err := Finalize(blockchain, header, stateDb, testTxList, receipts)
 
 	if err != nil {
 		t.Fatal("Finalize block failed", "err", err)
 	}
-	t.Logf("Finalize block cost(parallel mode): %d milliseconds.\n", time.Now().Sub(end).Milliseconds())
+	t.Logf("Finalize block cost(parallel mode): %d Nanoseconds.\n", time.Now().Sub(end).Nanoseconds())
 
 	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
 		t.Fatal("Seal block failed", "err", err)
