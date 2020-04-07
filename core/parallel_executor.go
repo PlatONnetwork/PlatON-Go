@@ -224,7 +224,7 @@ func (exe *Executor) executeParallel(arg interface{}) {
 		return
 	}
 
-	intrinsicGas, err := IntrinsicGas(msg.Data(), false)
+	intrinsicGas, err := IntrinsicGas(msg.Data(), false, exe.ctx.GetState())
 	if err != nil {
 		exe.buildTransferFailedResult(idx, err)
 		return
