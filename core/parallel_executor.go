@@ -192,6 +192,7 @@ func (exe *Executor) batchMerge(batchNo int, originIdxList []int, deleteEmptyObj
 
 					//total with all txs(not only all parallel txs)
 					exe.ctx.CumulateBlockGasUsed(receipt.GasUsed)
+					log.Debug("tx packed success", "txHash", exe.ctx.GetTx(idx).Hash().Hex(), "txUsedGas", receipt.GasUsed)
 
 					//reset receipt.CumulativeGasUsed
 					receipt.CumulativeGasUsed = exe.ctx.GetBlockGasUsed()
@@ -294,7 +295,7 @@ func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStat
 	}
 	exe.ctx.SetResult(idx, result)
 
-	log.Debug("tx success", "txGas", txGasUsed)
+	log.Debug("tx packed success", "txHash", tx.Hash().Hex(), "txTo", tx.To().Hex(), "dataLength", len(tx.Data()), "toCodeSize", exe.ctx.GetState().GetCodeSize(*tx.To()), "txUsedGas", txGasUsed)
 	//fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
 }
 
