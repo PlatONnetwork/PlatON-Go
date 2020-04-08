@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -459,11 +457,6 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 	}
 
 	var voteDuration = xcom.ParamProposalVote_DurationSeconds()
-	if chainID != nil && (chainID.Uint64() == uint64(101) || chainID.Uint64() == uint64(299)) {
-		if GetCurrentActiveVersion(state) >= params.FORKVERSION_0_10_0 {
-			voteDuration = uint64(24 * 3600) //24 hours
-		}
-	}
 
 	endVotingBlock := xutil.EstimateEndVotingBlockForParaProposal(submitBlock, voteDuration)
 	pp.EndVotingBlock = endVotingBlock

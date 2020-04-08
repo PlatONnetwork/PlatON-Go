@@ -23,10 +23,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -88,9 +84,8 @@ func IntrinsicGas(data []byte, contractCreation bool, state vm.StateDB) (uint64,
 		gas = params.TxGas
 	}
 
-	currVersion := gov.GetCurrentActiveVersion(state)
 	var noZeroGas, zeroGas uint64
-	if contractCreation && vm.CanUseWASMInterp(data) && currVersion >= params.FORKVERSION_0_11_0 {
+	if contractCreation && vm.CanUseWASMInterp(data) {
 		noZeroGas = params.TxDataNonZeroWasmDeployGas
 		zeroGas = params.TxDataZeroWasmDeployGas
 	} else {
@@ -243,20 +238,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-
-		var needSkipExec bool
-		to := *(msg.To())
-		currVersion := gov.GetCurrentActiveVersion(st.state)
-		if currVersion >= params.FORKVERSION_0_11_0 && state.IsBadContract(to) {
-			needSkipExec = true
-		}
-
-		if needSkipExec {
-			vmerr = vm.ErrExecBadContract
-			log.Debug("execute bad contract", "blockNumber", evm.BlockNumber, "txHash", evm.StateDB.TxHash().TerminalString(), "contractAddr", to.String())
-		} else {
-			ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
-		}
+		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 
 	if vmerr != nil {

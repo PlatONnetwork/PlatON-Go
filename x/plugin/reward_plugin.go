@@ -23,9 +23,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -304,20 +301,9 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 		}
 		// Execute new logic after this version.
 		// Update the delegation information only when there is delegation income available.
-		currentVersion := gov.GetCurrentActiveVersion(state)
-		if currentVersion == 0 || currentVersion >= params.FORKVERSION {
-			if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
-				receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
-				delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
-				if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation); err != nil {
-					return nil, err
-				}
-			}
-		} else {
-			if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
-				receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
-				delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
-			}
+		if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
+			receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
+			delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
 			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation); err != nil {
 				return nil, err
 			}
