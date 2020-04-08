@@ -2018,6 +2018,10 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 		preNonces = preNonces[len(preNonces)-len(queue):]
 	}
 
+	if len(queue) <= int(xcom.ShiftValidatorNum()) {
+		return queue, nil
+	}
+
 	orderList := make(randomOrderValidatorList, len(queue))
 	for i, v := range queue {
 		value :=  new(big.Int).Xor(new(big.Int).SetBytes(v.NodeAddress.Bytes()), new(big.Int).SetBytes(preNonces[i][:common.AddressLength]))
