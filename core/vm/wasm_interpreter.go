@@ -3,6 +3,7 @@ package vm
 import (
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -12,9 +13,9 @@ var (
 	ErrWASMEventCountToLarge        = errors.New("WASM: event indexed count too large")
 	ErrWASMEventContentToLong       = errors.New("WASM: event indexed content too long")
 	ErrWASMSha3DstToShort           = errors.New("WASM: sha3 dst len too short")
-	ErrWASMPanicOp                  = errors.New("WASM: transaction panic")
+	ErrWASMPanicOp                  = errors.New("WASM: transaction err op")
 	ErrWASMOldContractCodeNotExists = errors.New("WASM: old contract code is not exists")
-	ErrWASMUndefinedPanic           = errors.New("WASM: vm undefined panic")
+	ErrWASMUndefinedPanic           = errors.New("WASM: vm undefined err")
 )
 
 // WASMInterpreter represents an WASM interpreter
@@ -45,7 +46,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		if r := recover(); r != nil {
 			switch e := r.(type) {
 			case error:
-				ret, err =  nil, e
+				ret, err = nil, e
 			default:
 				ret, err = nil, fmt.Errorf("WASM: execute fail, %v", e)
 			}
