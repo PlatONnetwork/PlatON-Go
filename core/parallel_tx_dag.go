@@ -25,7 +25,8 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 	tempMap := make(map[common.Address]int, 0)
 	latestPrecompiledIndex := -1
 	for curIdx, cur := range txs {
-		if vm.IsPrecompiledContract(*cur.To()) || state.IsContract(*cur.To()) {
+		if vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
+			//log.Debug("found contract tx", "idx", curIdx, "toAddr", cur.To().Hex())
 			if curIdx > 0 {
 				if curIdx-latestPrecompiledIndex > 1 {
 					for begin := latestPrecompiledIndex + 1; begin < curIdx; begin++ {
