@@ -27,8 +27,12 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 	for curIdx, cur := range txs {
 		if vm.IsPrecompiledContract(*cur.To()) || state.IsContract(*cur.To()) {
 			if curIdx > 0 {
-				for begin := latestPrecompiledIndex + 1; begin < curIdx; begin++ {
-					txDag.dag.AddEdge(begin, curIdx)
+				if curIdx-latestPrecompiledIndex > 1 {
+					for begin := latestPrecompiledIndex + 1; begin < curIdx; begin++ {
+						txDag.dag.AddEdge(begin, curIdx)
+					}
+				} else if curIdx-latestPrecompiledIndex == 1 {
+					txDag.dag.AddEdge(latestPrecompiledIndex, curIdx)
 				}
 				//txDag.dag.AddEdge(curIdx-1, curIdx)
 			}

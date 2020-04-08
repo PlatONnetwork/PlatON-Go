@@ -5,9 +5,9 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"math/rand"
-	"os"
 	"runtime"
 	"testing"
 	"time"
@@ -35,14 +35,16 @@ var (
 	nodePriKey = crypto.HexMustToECDSA("1191dc5317d5930beb77848f416ee023921fa4452f4d783384f35352409c0ad0")
 	nodeID     = crypto.PubkeyToAddress(nodePriKey.PublicKey)
 
-	fromAccountList []*account
-	toAccountList   []*account
-	testTxList      types.Transactions
-	accountCount    = 50
-	txCount         = 200
-	balance         = int64(7300000000000)
-	blockGasLimit   = uint64(1000000000000000000)
-	signer          = types.NewEIP155Signer(chainConfig.ChainID)
+	fromAccountList      []*account
+	toAccountList        []*account
+	contractAccountList  []*account
+	testTxList           types.Transactions
+	accountCount         = 5
+	contractAccountCount = 5
+	txCount              = 20
+	balance              = int64(7300000000000)
+	blockGasLimit        = uint64(1000000000000000000)
+	signer               = types.NewEIP155Signer(chainConfig.ChainID)
 
 	blockchain         *BlockChain
 	stateDb            *state2.StateDB
@@ -57,10 +59,20 @@ type account struct {
 	nonce   uint64
 }
 
-func initTx() {
+func initAccount() {
+	contractAccountList = make([]*account, contractAccountCount)
+	for i := 0; i < contractAccountCount; i++ {
+		contractAccountKey, _ := crypto.GenerateKey()
+		contractAccount := &account{}
+		contractAccount.priKey = contractAccountKey
+		contractAccount.address = crypto.PubkeyToAddress(contractAccountKey.PublicKey)
+		contractAccount.nonce = 0
+		contractAccountList[i] = contractAccount
+
+	}
+
 	fromAccountList = make([]*account, accountCount)
 	toAccountList = make([]*account, accountCount)
-	testTxList = make(types.Transactions, txCount)
 
 	for i := 0; i < accountCount; i++ {
 		fromKey, _ := crypto.GenerateKey()
@@ -77,16 +89,21 @@ func initTx() {
 		toAccount.nonce = 0
 		toAccountList[i] = toAccount
 	}
+}
 
+func initTx() {
+	testTxList = make(types.Transactions, txCount)
 	for i := 0; i < txCount; i++ {
 		fromAccount := fromAccountList[rand.Intn(accountCount)]
 		toAccount := toAccountList[rand.Intn(accountCount)]
+		//contractAccount := contractAccountList[rand.Intn(contractAccountCount)]
 		var tx *types.Transaction
-		if i%10 == 0 {
+		if i == 0 {
 			tx, _ = types.SignTx(
 				types.NewTransaction(
 					fromAccount.nonce,
-					vm.GovContractAddr,
+					toAccount.address,
+					//contractAccount.address,
 					big.NewInt(1),
 					//21000+9000+320000, // it is short.
 					21000+9000+320000+21000, // it is enough.
@@ -95,16 +112,54 @@ func initTx() {
 				signer,
 				fromAccount.priKey)
 		} else {
-			tx, _ = types.SignTx(
-				types.NewTransaction(
-					fromAccount.nonce,
-					toAccount.address,
-					big.NewInt(1),
-					21000,
-					big.NewInt(10),
-					nil),
-				signer,
-				fromAccount.priKey)
+			if i < txCount/4 {
+				tx, _ = types.SignTx(
+					types.NewTransaction(
+						fromAccount.nonce,
+						//contractAccount.address,
+						toAccount.address,
+						big.NewInt(1),
+						(21000+9000+320000+21000), // it is enough.
+						big.NewInt(1500000),
+						hexutil.MustDecode("0xf87303843b9aca008347e7c494e80cbe05d8b7de0b8b2e436deda5ea6a70e4bf90808ecd888f9af6c4c62d90d8830186a081eca09610dd9c17164e5675e593c1b7b59aa865a2f120ecc0287538cf18ba05d76a78a07f49582e1850d7cff2bad12b5acd333cd8d50f25eccc04fd896c93b97b75f66a")),
+					signer,
+					fromAccount.priKey)
+			} else if i >= txCount/4 && i < 2*txCount/4 {
+				tx, _ = types.SignTx(
+					types.NewTransaction(
+						fromAccount.nonce,
+						toAccount.address,
+						big.NewInt(1),
+						//21000+9000+320000, // it is short.
+						21000+9000+320000+21000, // it is enough.
+						big.NewInt(1500000),
+						hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
+					signer,
+					fromAccount.priKey)
+			} else if i >= 2*txCount/4 && i < 3*txCount/4 {
+				tx, _ = types.SignTx(
+					types.NewTransaction(
+						fromAccount.nonce,
+						//toAccount.address,
+						vm.GovContractAddr,
+						big.NewInt(1),
+						21000,
+						big.NewInt(10),
+						nil),
+					signer,
+					fromAccount.priKey)
+			} else {
+				tx, _ = types.SignTx(
+					types.NewTransaction(
+						fromAccount.nonce,
+						toAccount.address,
+						big.NewInt(1),
+						21000,
+						big.NewInt(10),
+						nil),
+					signer,
+					fromAccount.priKey)
+			}
 		}
 
 		from, _ := types.Sender(signer, tx)
@@ -115,59 +170,6 @@ func initTx() {
 	}
 }
 
-func initPrecompiledTx() {
-	fromAccountList = make([]*account, accountCount)
-	toAccountList = make([]*account, accountCount)
-	testTxList = make(types.Transactions, txCount)
-
-	for i := 0; i < accountCount; i++ {
-		fromKey, _ := crypto.GenerateKey()
-		fromAccount := &account{}
-		fromAccount.priKey = fromKey
-		fromAccount.address = crypto.PubkeyToAddress(fromKey.PublicKey)
-		fromAccount.nonce = 0
-		fromAccountList[i] = fromAccount
-
-		toKey, _ := crypto.GenerateKey()
-		toAccount := &account{}
-		toAccount.priKey = toKey
-		toAccount.address = crypto.PubkeyToAddress(toKey.PublicKey)
-		toAccount.nonce = 0
-		toAccountList[i] = toAccount
-	}
-
-	testTxList = make(types.Transactions, txCount)
-
-	fromAccount := fromAccountList[rand.Intn(accountCount)]
-
-	tx, _ := types.SignTx(
-		types.NewTransaction(
-			fromAccount.nonce,
-			vm.GovContractAddr,
-			big.NewInt(1),
-			21000+9000+320000, // it is short.
-			big.NewInt(1500000),
-			hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
-		signer,
-		fromAccount.priKey)
-	fromAccount.nonce++
-	testTxList[0] = tx
-
-	fromAccount2 := fromAccountList[rand.Intn(accountCount)]
-	toAccount := toAccountList[rand.Intn(accountCount)]
-	tx2, _ := types.SignTx(
-		types.NewTransaction(
-			fromAccount2.nonce,
-			toAccount.address,
-			big.NewInt(1),
-			21000,
-			big.NewInt(10),
-			nil),
-		signer,
-		fromAccount2.priKey)
-	fromAccount2.nonce++
-	testTxList[1] = tx2
-}
 func initChain() {
 	db := ethdb.NewMemDatabase()
 	stateDb, _ = state2.New(common.Hash{}, state2.NewDatabase(db))
@@ -177,6 +179,11 @@ func initChain() {
 		stateDb.SetBalance(fromAccountList[i].address, big.NewInt(balance))
 		stateDb.SetBalance(toAccountList[i].address, big.NewInt(balance))
 	}
+
+	for i := 0; i < contractAccountCount; i++ {
+		stateDb.SetCode(contractAccountList[i].address, hexutil.MustDecode("0xf87303843b9aca008347e7c494e80cbe05d8b7de0b8b2e436deda5ea6a70e4bf90808ecd888f9af6c4c62d90d8830186a081eca09610dd9c17164e5675e593c1b7b59aa865a2f120ecc0287538cf18ba05d76a78a07f49582e1850d7cff2bad12b5acd333cd8d50f25eccc04fd896c93b97b75f66a"))
+	}
+
 	stateDb.Finalise(false)
 
 	gspec := &Genesis{
@@ -264,34 +271,37 @@ func Seal(chain consensus.ChainReader, block *types.Block) (sealedBlock *types.B
 	return sealBlock, nil
 }
 
-func TestMain(m *testing.M) {
-	initTx()
-	//initPrecompiledTx()
+/*func TestMain(m *testing.M) {
+	//initTx()
+	initPrecompiledTx()
 	exitCode := m.Run()
 	os.Exit(exitCode)
-}
+}*/
 
 func TestParallel_PackParallel_VerifyParallel(t *testing.T) {
-	//initTx()
+	initAccount()
 	initChain()
+	initTx()
+
 	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, engine))
 	parallelMode(t)
 }
 
 func TestParallel_PackParallel_VerifySerial(t *testing.T) {
-	//initTx()
+	initAccount()
 	initChain()
+	initTx()
+
 	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, engine))
 	parallelMode(t)
 }
 
 func parallelMode(t testing.TB) {
 	initState := stateDb.Copy()
-
 	NewExecutor(chainConfig, blockchain, cvm.Config{})
 
 	start := time.Now()
-	gp := new(GasPool).AddGas(1000000000000000000)
+	gp := new(GasPool).AddGas(3200000)
 	ctx := NewPackBlockContext(stateDb, header, common.Hash{}, gp, time.Now(), time.Now().Add(200*time.Second))
 	ctx.SetTxList(testTxList)
 
@@ -311,6 +321,7 @@ func parallelMode(t testing.TB) {
 	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
 		t.Fatal("Seal block failed", "err", err)
 	} else {
+		fmt.Println(fmt.Sprintf("total txs=%d", len(sealedBlock.Transactions())))
 		if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
 			t.Fatal("ProcessDirectly block error", "err", err)
 		}
@@ -318,21 +329,27 @@ func parallelMode(t testing.TB) {
 }
 
 func TestParallel_PackSerial_VerifyParallel(t *testing.T) {
-	//initTx()
+	initAccount()
 	initChain()
+	initTx()
+
 	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, engine))
 	serialMode(t)
 }
 
 func TestParallel_PackSerial_VerifySerial(t *testing.T) {
-	//initTx()
+	initAccount()
 	initChain()
+	initTx()
+
 	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, engine))
 	serialMode(t)
 }
 
 func serialMode(t testing.TB) {
 	initState := stateDb.Copy()
+	NewExecutor(chainConfig, blockchain, cvm.Config{})
+
 	gp := new(GasPool).AddGas(1000000000000000000)
 	start := time.Now()
 	var receipts = types.Receipts{}
