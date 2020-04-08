@@ -44,7 +44,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
-//go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
@@ -170,7 +169,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			log.Info("Writing default main-net genesis block")
 			genesis = DefaultGenesisBlock()
 		} else {
-			log.Info("Writing custom genesis block")
+			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
 		}
 
 		// check EconomicModel configuration
@@ -237,11 +236,13 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
+//this is only use to self chain
 func (g *Genesis) InitAndSetEconomicConfig(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
 	}
+	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
 	defer file.Close()
 	if err := json.NewDecoder(file).Decode(g); err != nil {
 		return fmt.Errorf("invalid genesis file: %v", err)
