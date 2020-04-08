@@ -74,8 +74,6 @@ const (
 	MemoryGas                  uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas           uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 	TxDataNonZeroWasmDeployGas uint64 = 4     // Per byte of data attached to a transaction that is not equal to zero for wasm deploying. NOTE: Not payable on data of calls between transactions.
-	SelfdestructGas            uint64 = 5000  // Cost of SELFDESTRUCT post EIP 150 (Tangerine)
-	CreateBySelfdestructGas    uint64 = 25000 // CreateBySelfdestructGas is used when the refunded account is one that does not exist. This logic is similar to call.Introduced in Tangerine Whistle (Eip 150)
 	// todo: MAX CODE SIZE. pre value : 24576
 	MaxCodeSize = 524288 // Maximum bytecode to permit for a contract
 

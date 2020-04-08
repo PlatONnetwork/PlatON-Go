@@ -1198,7 +1198,7 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 
 	gas := ctx.gasTable.Suicide
 	if ctx.evm.StateDB.Empty(addr) && ctx.evm.StateDB.GetBalance(contractAddr).Sign() != 0 {
-		gas += params.CreateBySelfdestructGas
+		gas += ctx.gasTable.CreateBySuicide
 	}
 
 	if !ctx.evm.StateDB.HasSuicided(ctx.contract.Address()) {
