@@ -95,6 +95,8 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 					if ctx.gp.Gas() < params.TxGas {
 						gasPoolEnough = false
 						break
+					} else {
+						ctx.gp.SubGas(params.TxGas)
 					}
 					exe.wg.Add(1)
 					_ = exe.workerPool.Invoke(originIdx)
@@ -125,6 +127,8 @@ func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 
 	fmt.Println(fmt.Sprintf("VerifyBlockTxs begin blockNumber=%d, gasPool=%d", ctx.header.Number.Uint64(), ctx.gp.Gas()))
 
+	gasPoolEnough := true
+
 	if len(ctx.txList) > 0 {
 		txDag := NewTxDag(exe.signer)
 		if err := txDag.MakeDagGraph(ctx.GetState(), ctx.txList); err != nil {
@@ -132,13 +136,24 @@ func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 		}
 
 		batchNo := 0
-		for txDag.HasNext() {
+		for gasPoolEnough && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
 			fmt.Println(fmt.Sprintf("VerifyBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
 			if len(parallelTxIdxs) == 1 {
 				exe.executeTransaction(parallelTxIdxs[0])
 			} else if len(parallelTxIdxs) > 1 {
 				for _, originIdx := range parallelTxIdxs {
+					if !gasPoolEnough {
+						break
+					}
+
+					if ctx.gp.Gas() < params.TxGas {
+						gasPoolEnough = false
+						break
+					} else {
+						ctx.gp.SubGas(params.TxGas)
+					}
+
 					exe.wg.Add(1)
 					//submit task
 					_ = exe.workerPool.Invoke(originIdx)
@@ -147,10 +162,10 @@ func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 				exe.wg.Wait()
 
 				exe.batchMerge(batchNo, parallelTxIdxs, true)
-				batchNo++
 			} else {
 				break
 			}
+			batchNo++
 		}
 
 		if ctx.GetEarnings().Cmp(big.NewInt(0)) > 0 {
@@ -279,6 +294,7 @@ func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStat
 	}
 	exe.ctx.SetResult(idx, result)
 
+	log.Debug("tx success", "txGas", txGasUsed)
 	//fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
 }
 
@@ -292,7 +308,7 @@ func (exe *Executor) executeTransaction(idx int) {
 	exe.ctx.GetState().Prepare(tx.Hash(), exe.ctx.GetBlockHash(), int(exe.ctx.GetState().TxIdx()))
 	receipt, _, err := ApplyTransaction(exe.chainConfig, exe.chainContext, exe.ctx.GetGasPool(), exe.ctx.GetState(), exe.ctx.GetHeader(), tx, exe.ctx.GetBlockGasUsedHolder(), vm.Config{})
 	if err != nil {
-		log.Error("Failed to commitTransaction on worker", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "err", err)
+		log.Error("Failed to commitTransaction on worker", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txGas", tx.Gas(), "err", err)
 		exe.ctx.GetState().RevertToSnapshot(snap)
 		return
 	}
