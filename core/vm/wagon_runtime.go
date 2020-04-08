@@ -2,6 +2,7 @@ package vm
 
 import (
 	"crypto/sha256"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -30,15 +31,6 @@ type VMContext struct {
 	Revert   bool
 	Log      *WasmLogger
 }
-
-//func NewVMContext(evm *EVM, contract *Contract, config Config, db StateDB) *VMContext {
-//	return &VMContext{
-//		evm:      evm,
-//		contract: contract,
-//		config:   config,
-//		db:       db,
-//	}
-//}
 
 func addFuncExport(m *wasm.Module, sig wasm.FunctionSig, function wasm.Function, export wasm.ExportEntry) {
 	typesLen := len(m.Types.Entries)
@@ -823,11 +815,17 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 	}
 
 	_, returnGas, err := ctx.evm.Call(ctx.contract, addr, nil, gas, bValue)
+
+	var status int32
+
 	if err != nil {
-		panic(err)
+		status = -1
+	} else {
+		status = 0
 	}
 	ctx.contract.Gas += returnGas
-	return 0
+
+	return status
 }
 
 // storage external function
@@ -1046,16 +1044,21 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 		}
 	}
 
-	//fmt.Println("Addr:", addr.String(), "Data:", input, "gas:", gas, "bCost:", bCost, "value:", value)
 	ret, returnGas, err := ctx.evm.Call(ctx.contract, addr, input, gas, bValue)
-	if err != nil {
-		panic(err)
-	}
 
+	var status int32
+
+	if err != nil {
+		status = -1
+	} else {
+		status = 0
+	}
+	if err == nil || err == errExecutionReverted {
+		ctx.CallOut = ret
+	}
 	ctx.contract.Gas += returnGas
 
-	ctx.CallOut = ret
-	return 0
+	return status
 }
 
 func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
@@ -1101,14 +1104,20 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 	gas = ctx.evm.callGasTemp
 
 	ret, returnGas, err := ctx.evm.DelegateCall(ctx.contract, addr, input, gas)
-	if err != nil {
-		panic(err)
-	}
 
+	var status int32
+
+	if err != nil {
+		status = -1
+	} else {
+		status = 0
+	}
+	if err == nil || err == errExecutionReverted {
+		ctx.CallOut = ret
+	}
 	ctx.contract.Gas += returnGas
 
-	ctx.CallOut = ret
-	return 0
+	return status
 }
 
 func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
@@ -1155,14 +1164,20 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	gas = ctx.evm.callGasTemp
 
 	ret, returnGas, err := ctx.evm.StaticCall(ctx.contract, addr, input, gas)
-	if err != nil {
-		panic(err)
-	}
 
+	var status int32
+
+	if err != nil {
+		status = -1
+	} else {
+		status = 0
+	}
+	if err == nil || err == errExecutionReverted {
+		ctx.CallOut = ret
+	}
 	ctx.contract.Gas += returnGas
 
-	ctx.CallOut = ret
-	return 0
+	return status
 }
 
 func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
@@ -1192,7 +1207,7 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 	checkGas(ctx, gas)
 
 	balance := ctx.evm.StateDB.GetBalance(contractAddr)
-	//fmt.Println("sender:", ctx.contract.Caller().String(), "to:", ctx.contract.Address().String(), "receive:", addr.String(), "value:", balance)
+
 	ctx.evm.StateDB.AddBalance(addr, balance)
 
 	ctx.evm.StateDB.Suicide(contractAddr)
