@@ -22,7 +22,8 @@ func NewTxDag(signer types.Signer) *TxDag {
 
 func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction) error {
 	txDag.dag = dag3.NewDag(len(txs))
-	tempMap := make(map[common.Address]int, 0)
+	//save all transfer addresses between two contracts(precompiled and user defined)
+	transferAddressMap := make(map[common.Address]int, 0)
 	latestPrecompiledIndex := -1
 	for curIdx, cur := range txs {
 		if vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
@@ -35,12 +36,11 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 				} else if curIdx-latestPrecompiledIndex == 1 {
 					txDag.dag.AddEdge(latestPrecompiledIndex, curIdx)
 				}
-				//txDag.dag.AddEdge(curIdx-1, curIdx)
 			}
 			latestPrecompiledIndex = curIdx
-			//reset tempMap
-			if len(tempMap) > 0 {
-				tempMap = make(map[common.Address]int, 0)
+			//reset transferAddressMap
+			if len(transferAddressMap) > 0 {
+				transferAddressMap = make(map[common.Address]int, 0)
 			}
 		} else {
 			dependFound := 0
@@ -51,11 +51,11 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 					cur.SetFromAddr(&from)
 				}
 			}
-			if dependIdx, ok := tempMap[*cur.GetFromAddr()]; ok {
+			if dependIdx, ok := transferAddressMap[*cur.GetFromAddr()]; ok {
 				txDag.dag.AddEdge(dependIdx, curIdx)
 				dependFound++
 			}
-			if dependIdx, ok := tempMap[*cur.To()]; ok {
+			if dependIdx, ok := transferAddressMap[*cur.To()]; ok {
 				txDag.dag.AddEdge(dependIdx, curIdx)
 				dependFound++
 			}
@@ -64,8 +64,8 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 				txDag.dag.AddEdge(latestPrecompiledIndex, curIdx)
 			}
 
-			tempMap[*cur.GetFromAddr()] = curIdx
-			tempMap[*cur.To()] = curIdx
+			transferAddressMap[*cur.GetFromAddr()] = curIdx
+			transferAddressMap[*cur.To()] = curIdx
 		}
 	}
 	return nil
