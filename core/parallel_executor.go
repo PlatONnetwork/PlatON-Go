@@ -58,6 +58,9 @@ func SetExecutor() *Executor {
 
 func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 	exe.ctx = ctx
+
+	fmt.Println(fmt.Sprintf("PackBlockTxs begin blockNumber=%d, gasPool=%d", ctx.header.Number.Uint64(), ctx.gp.Gas()))
+
 	gasPoolEnough := true
 	if len(ctx.txList) > 0 {
 		var bftEngine = exe.chainConfig.Cbft != nil
@@ -70,7 +73,7 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 
 		for gasPoolEnough && !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
-			fmt.Println(fmt.Sprintf("PackBlockTxs batch=%d, parallTxIds=%+v", batchNo, parallelTxIdxs))
+			fmt.Println(fmt.Sprintf("PackBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
 			//call executeTransaction if batch length == 1
 			if len(parallelTxIdxs) == 1 {
 				exe.executeTransaction(parallelTxIdxs[0])
@@ -119,6 +122,9 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 
 func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 	exe.ctx = ctx
+
+	fmt.Println(fmt.Sprintf("VerifyBlockTxs begin blockNumber=%d, gasPool=%d", ctx.header.Number.Uint64(), ctx.gp.Gas()))
+
 	if len(ctx.txList) > 0 {
 		txDag := NewTxDag(exe.signer)
 		if err := txDag.MakeDagGraph(ctx.GetState(), ctx.txList); err != nil {
@@ -128,7 +134,7 @@ func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 		batchNo := 0
 		for txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
-			fmt.Println(fmt.Sprintf("VerifyBlockTxs batch=%d, parallTxIds=%+v", batchNo, parallelTxIdxs))
+			fmt.Println(fmt.Sprintf("VerifyBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
 			if len(parallelTxIdxs) == 1 {
 				exe.executeTransaction(parallelTxIdxs[0])
 			} else if len(parallelTxIdxs) > 1 {
@@ -250,7 +256,7 @@ func (exe *Executor) buildTransferFailedResult(idx int, err error) {
 		err: err,
 	}
 	exe.ctx.SetResult(idx, result)
-	fmt.Println(fmt.Sprintf("---------- Fail. tx no=%d", idx))
+	//fmt.Println(fmt.Sprintf("---------- Fail. tx no=%d", idx))
 }
 func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStateObject *state.ParallelStateObject, txGasUsed uint64, minerEarnings *big.Int) {
 	tx := exe.ctx.GetTx(idx)
@@ -273,7 +279,7 @@ func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStat
 	}
 	exe.ctx.SetResult(idx, result)
 
-	fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
+	//fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
 }
 
 func (exe *Executor) executeTransaction(idx int) {
