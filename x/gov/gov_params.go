@@ -240,54 +240,6 @@ func initParam() []*GovernParam {
 				return nil
 			},
 		},
-	}
-}
-
-var ParamVerifierMap = make(map[string]ParamVerifier)
-
-func InitGenesisGovernParam(snapDB snapshotdb.BaseDB, genesisVersion uint32) error {
-	var paramItemList []*ParamItem
-
-	initParamList := queryInitParam()
-	if genesisVersion >= params.FORKVERSION_0_11_0 {
-		initParamList = append(initParamList, GetExtraGovernParams()...)
-		log.Info("Call InitGenesisGovernParam execution 0.11.0", "genesisVersion", genesisVersion)
-	}
-
-	for _, param := range initParamList {
-		paramItemList = append(paramItemList, param.ParamItem)
-
-		key := KeyParamValue(param.ParamItem.Module, param.ParamItem.Name)
-		value := common.MustRlpEncode(param.ParamValue)
-		if err := snapDB.PutBaseDB(key, value); err != nil {
-			return err
-		}
-	}
-
-	key := KeyParamItems()
-	value := common.MustRlpEncode(paramItemList)
-	if err := snapDB.PutBaseDB(key, value); err != nil {
-		return err
-	}
-	return nil
-}
-
-func RegisterGovernParamVerifiers() {
-	for _, param := range queryInitParam() {
-		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
-	}
-	RegisterExtraGovernParamVerifiers()
-}
-
-// Used when new governance parameters need to be added after the blockchain is running
-func RegisterExtraGovernParamVerifiers() {
-	for _, param := range GetExtraGovernParams() {
-		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
-	}
-}
-
-func GetExtraGovernParams() []*GovernParam {
-	return []*GovernParam{
 		{
 
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceCumulativeTime,
@@ -332,6 +284,37 @@ func GetExtraGovernParams() []*GovernParam {
 				return nil
 			},
 		},
+	}
+}
+
+var ParamVerifierMap = make(map[string]ParamVerifier)
+
+func InitGenesisGovernParam(snapDB snapshotdb.BaseDB, genesisVersion uint32) error {
+	var paramItemList []*ParamItem
+
+	initParamList := queryInitParam()
+
+	for _, param := range initParamList {
+		paramItemList = append(paramItemList, param.ParamItem)
+
+		key := KeyParamValue(param.ParamItem.Module, param.ParamItem.Name)
+		value := common.MustRlpEncode(param.ParamValue)
+		if err := snapDB.PutBaseDB(key, value); err != nil {
+			return err
+		}
+	}
+
+	key := KeyParamItems()
+	value := common.MustRlpEncode(paramItemList)
+	if err := snapDB.PutBaseDB(key, value); err != nil {
+		return err
+	}
+	return nil
+}
+
+func RegisterGovernParamVerifiers() {
+	for _, param := range queryInitParam() {
+		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
 	}
 }
 

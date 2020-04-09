@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sync"
 
@@ -159,7 +158,7 @@ const (
 	DefaultMainNet     = iota // PlatON default main net flag
 	DefaultTestNet            // PlatON default test net flag
 	DefaultDemoNet            // PlatON default demo net flag
-	DefaultUnitTestNet        // PlatON default unit test flag
+	DefaultUnitTestNet        // PlatON default unit test
 )
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
@@ -234,12 +233,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
 				MaxValidators:         uint64(101),
-				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
+				UnStakeFreezeDuration: uint64(2), // freezing 2 epoch
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
-				MaxEvidenceAge:             uint32(27),
+				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(15),
 				ZeroProduceNumberThreshold: uint16(3),
@@ -253,7 +252,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposalSupportRate:          float64(0.667),
 				CancelProposalVoteRate:           float64(0.50),
 				CancelProposalSupportRate:        float64(0.667),
-				ParamProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
+				ParamProposalVoteDurationSeconds: uint64(24 * 3600),
 				ParamProposalVoteRate:            float64(0.50),
 				ParamProposalSupportRate:         float64(0.667),
 			},
@@ -363,53 +362,54 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 		}
 	default: // DefaultTestNet
-		// Default is test net config
-		ec = &EconomicModel{
-			Common: commonConfig{
-				MaxEpochMinutes:     uint64(4),  // 3 minutes
-				NodeBlockTimeWindow: uint64(10), // 10 seconds
-				PerRoundBlocks:      uint64(10),
-				MaxConsensusVals:    uint64(4),
-				AdditionalCycleTime: uint64(28),
-			},
-			Staking: stakingConfig{
-				StakeThreshold:        new(big.Int).Set(MillionLAT),
-				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(25),
-				UnStakeFreezeDuration: uint64(2),
-			},
-			Slashing: slashingConfig{
-				SlashFractionDuplicateSign: uint32(10),
-				DuplicateSignReportReward:  uint32(50),
-				MaxEvidenceAge:             uint32(1),
-				SlashBlocksReward:          uint32(0),
-				ZeroProduceCumulativeTime:  uint16(3),
-				ZeroProduceNumberThreshold: uint16(2),
-			},
-			Gov: governanceConfig{
-				VersionProposalVoteDurationSeconds: uint64(160),
-				//VersionProposalActive_ConsensusRounds: uint64(5),
-				VersionProposalSupportRate:       float64(0.667),
-				TextProposalVoteDurationSeconds:  uint64(160),
-				TextProposalVoteRate:             float64(0.50),
-				TextProposalSupportRate:          float64(0.667),
-				CancelProposalVoteRate:           float64(0.50),
-				CancelProposalSupportRate:        float64(0.667),
-				ParamProposalVoteDurationSeconds: uint64(160),
-				ParamProposalVoteRate:            float64(0.50),
-				ParamProposalSupportRate:         float64(0.667),
-			},
-			Reward: rewardConfig{
-				NewBlockRate:         50,
-				PlatONFoundationYear: 1,
-			},
-			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        new(big.Int).Set(cdfundBalance),
-			},
-		}
+		log.Error("not support chainID", "netId", netId)
+		return nil
+		//ec = &EconomicModel{
+		//	Common: commonConfig{
+		//		MaxEpochMinutes:     uint64(4),  // 3 minutes
+		//		NodeBlockTimeWindow: uint64(10), // 10 seconds
+		//		PerRoundBlocks:      uint64(10),
+		//		MaxConsensusVals:    uint64(4),
+		//		AdditionalCycleTime: uint64(28),
+		//	},
+		//	Staking: stakingConfig{
+		//		StakeThreshold:        new(big.Int).Set(MillionLAT),
+		//		OperatingThreshold:    new(big.Int).Set(TenLAT),
+		//		MaxValidators:         uint64(25),
+		//		UnStakeFreezeDuration: uint64(2),
+		//	},
+		//	Slashing: slashingConfig{
+		//		SlashFractionDuplicateSign: uint32(10),
+		//		DuplicateSignReportReward:  uint32(50),
+		//		MaxEvidenceAge:             uint32(27),
+		//		SlashBlocksReward:          uint32(0),
+		//		ZeroProduceCumulativeTime:  uint16(15),
+		//		ZeroProduceNumberThreshold: uint16(3),
+		//	},
+		//	Gov: governanceConfig{
+		//		VersionProposalVoteDurationSeconds: uint64(160),
+		//		//VersionProposalActive_ConsensusRounds: uint64(5),
+		//		VersionProposalSupportRate:       float64(0.667),
+		//		TextProposalVoteDurationSeconds:  uint64(160),
+		//		TextProposalVoteRate:             float64(0.50),
+		//		TextProposalSupportRate:          float64(0.667),
+		//		CancelProposalVoteRate:           float64(0.50),
+		//		CancelProposalSupportRate:        float64(0.667),
+		//		ParamProposalVoteDurationSeconds: uint64(24 * 3600),
+		//		ParamProposalVoteRate:            float64(0.50),
+		//		ParamProposalSupportRate:         float64(0.667),
+		//	},
+		//	Reward: rewardConfig{
+		//		NewBlockRate:         50,
+		//		PlatONFoundationYear: 1,
+		//	},
+		//	InnerAcc: innerAccount{
+		//		PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+		//		PlatONFundBalance: new(big.Int).SetInt64(0),
+		//		CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+		//		CDFBalance:        new(big.Int).Set(cdfundBalance),
+		//	},
+		//}
 	}
 
 	return ec
@@ -568,19 +568,16 @@ func CheckEconomicModel(genesisVersion uint32) error {
 		return err
 	}
 
-	if genesisVersion >= params.FORKVERSION_0_11_0 {
-		epochSize := uint16(EpochSize())
-		if epochSize > maxZeroProduceCumulativeTime {
-			return fmt.Errorf("the number of consensus rounds in a settlement cycle cannot be greater than maxZeroProduceCumulativeTime(%d)", maxZeroProduceCumulativeTime)
-		}
+	if uint16(EpochSize()) > maxZeroProduceCumulativeTime {
+		return fmt.Errorf("the number of consensus rounds in a settlement cycle cannot be greater than maxZeroProduceCumulativeTime(%d)", maxZeroProduceCumulativeTime)
+	}
 
-		if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
-			return err
-		}
+	if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
+		return err
+	}
 
-		if err := CheckZeroProduceCumulativeTime(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
-			return err
-		}
+	if err := CheckZeroProduceCumulativeTime(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
+		return err
 	}
 
 	return nil

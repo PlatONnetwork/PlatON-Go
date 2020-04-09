@@ -168,7 +168,7 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 				return nil
 			}
 			return nil
-		}); err != nil {
+		}, nil, nil); err != nil {
 			t.Error(err)
 		}
 	}
@@ -234,7 +234,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 				t.Fatalf("call endBlock fail, err：%v", err)
 			}
 			return nil
-		}); err != nil {
+		}, nil, nil); err != nil {
 			t.Error(err)
 		}
 
@@ -326,10 +326,10 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 
 	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		return nil
-	})
+	}, nil, nil)
 	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		return nil
-	})
+	}, nil, nil)
 
 	type delegateInfo struct {
 		nodeID                                            discover.NodeID
@@ -375,14 +375,14 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 			}
 		}
 		return nil
-	}); err != nil {
+	}, nil, nil); err != nil {
 		t.Error(err)
 		return
 	}
 
 	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		return nil
-	})
+	}, nil, nil)
 
 	list, err := getDelegateRewardPerList(chain.CurrentHeader().Hash(), delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, 0, 2000, chain.SnapDB)
 	if err != nil {
@@ -413,7 +413,7 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 			return err
 		}
 		return nil
-	}); err != nil {
+	}, nil, nil); err != nil {
 		t.Error(err)
 		return
 	}
@@ -457,7 +457,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 			return err
 		}
 		return nil
-	}); err != nil {
+	}, nil, nil); err != nil {
 		t.Error(err)
 		return
 	}
@@ -478,7 +478,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 	for i := 0; i < int(xutil.CalcBlocksEachEpoch())-10; i++ {
 		if err := chain.AddBlockWithSnapDB(false, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 			return nil
-		}); err != nil {
+		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
@@ -510,7 +510,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 				}
 			}
 			return nil
-		}); err != nil {
+		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
@@ -527,7 +527,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 			return err
 		}
 		return nil
-	}); err != nil {
+	}, nil, nil); err != nil {
 		t.Error(err)
 		return
 	}
@@ -546,7 +546,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 				return err
 			}
 			return nil
-		}); err != nil {
+		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
@@ -634,7 +634,7 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 			return err
 		}
 		return nil
-	})
+	}, nil, nil)
 	rm := &RewardMgrPlugin{
 		db: chain.SnapDB,
 		stakingPlugin: &StakingPlugin{
@@ -676,7 +676,7 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 
 			}
 			return nil
-		}); err != nil {
+		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
@@ -738,7 +738,7 @@ func TestDelegateRewardPerUpdateAndAppend(t *testing.T) {
 		}
 
 		return nil
-	}); err != nil {
+	}, nil, nil); err != nil {
 		t.Error(err)
 		return
 	}
