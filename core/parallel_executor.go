@@ -118,6 +118,9 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 			ctx.state.AddMinerEarnings(ctx.header.Coinbase, ctx.GetEarnings())
 			//exe.ctx.GetHeader().GasUsed = ctx.GetBlockGasUsed()
 		}
+		for idx, tx := range ctx.GetPackedTxList() {
+			log.Debug("packed tx", "blockNumber", ctx.header.Number.Uint64(), "idx", idx, "txHash", tx.Hash())
+		}
 		ctx.state.Finalise(true)
 	}
 	return nil
@@ -167,6 +170,11 @@ func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 			ctx.state.AddMinerEarnings(ctx.header.Coinbase, ctx.GetEarnings())
 			exe.ctx.GetHeader().GasUsed = ctx.GetBlockGasUsed()
 		}
+
+		for idx, tx := range ctx.GetPackedTxList() {
+			log.Debug("verified tx", "blockNumber", ctx.header.Number.Uint64(), "idx", idx, "txHash", tx.Hash())
+		}
+
 		exe.ctx.GetState().Finalise(true)
 	}
 	return nil
@@ -259,13 +267,14 @@ func (exe *Executor) executeParallel(arg interface{}) {
 	}
 
 	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), msg.GasPrice())
-	fromObj.SubBalance(minerEarnings)
-	fromObj.SetNonce(fromObj.GetNonce() + 1)
-	if fromObj.GetBalance().Cmp(msg.Value()) < 0 {
+	subTotal := new(big.Int).Add(msg.Value(), minerEarnings)
+	if fromObj.GetBalance().Cmp(subTotal) < 0 {
 		exe.buildTransferFailedResult(idx, errInsufficientBalanceForGas)
 		return
 	}
-	fromObj.SubBalance(msg.Value())
+
+	fromObj.SubBalance(subTotal)
+	fromObj.SetNonce(fromObj.GetNonce() + 1)
 
 	toObj := exe.ctx.GetState().GetOrNewParallelStateObject(*msg.To())
 	toObj.AddBalance(msg.Value())
@@ -278,6 +287,9 @@ func (exe *Executor) buildTransferFailedResult(idx int, err error) {
 		err: err,
 	}
 	exe.ctx.SetResult(idx, result)
+
+	//log.Error("Failed to commitTransaction on worker", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txHash", tx.Hash().Hex(), "txGas", tx.Gas(), "err", err)
+
 	//fmt.Println(fmt.Sprintf("---------- Fail. tx no=%d", idx))
 }
 func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStateObject *state.ParallelStateObject, txGasUsed uint64, minerEarnings *big.Int) {
