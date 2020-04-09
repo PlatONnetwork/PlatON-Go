@@ -10,13 +10,15 @@ import (
 )
 
 type TxDag struct {
-	dag    *dag3.Dag
-	signer types.Signer
+	dag       *dag3.Dag
+	signer    types.Signer
+	contracts map[int]struct{}
 }
 
 func NewTxDag(signer types.Signer) *TxDag {
 	txDag := &TxDag{
-		signer: signer,
+		signer:    signer,
+		contracts: make(map[int]struct{}),
 	}
 	return txDag
 }
@@ -29,6 +31,7 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 	for curIdx, cur := range txs {
 		if vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
 			log.Debug("found contract tx", "idx", curIdx, "toAddr", cur.To().Hex())
+			txDag.contracts[curIdx] = struct{}{}
 			if curIdx > 0 {
 				if curIdx-latestPrecompiledIndex > 1 {
 					for begin := latestPrecompiledIndex + 1; begin < curIdx; begin++ {
@@ -44,7 +47,7 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 				transferAddressMap = make(map[common.Address]int, 0)
 			}
 		} else {
-			log.Debug("found transfer tx", "idx", curIdx, "toAddr", cur.To().Hex())
+			log.Debug("found transfer tx", "idx", curIdx, "txHash", cur.Hash().Hex(), "txGas", cur.Gas(), "toAddr", cur.To().Hex())
 			dependFound := 0
 			if cur.GetFromAddr() == nil {
 				if from, err := types.Sender(txDag.signer, cur); err != nil {
@@ -57,11 +60,13 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 				txDag.dag.AddEdge(dependIdx, curIdx)
 				dependFound++
 			}
+
+			//if cur.GetFromAddr().Hex() != cur.To().Hex() {
 			if dependIdx, ok := transferAddressMap[*cur.To()]; ok {
 				txDag.dag.AddEdge(dependIdx, curIdx)
 				dependFound++
 			}
-
+			//}
 			if dependFound == 0 && latestPrecompiledIndex >= 0 {
 				txDag.dag.AddEdge(latestPrecompiledIndex, curIdx)
 			}
@@ -79,4 +84,11 @@ func (txDag *TxDag) HasNext() bool {
 
 func (txDag *TxDag) Next() []int {
 	return txDag.dag.Next()
+}
+
+func (txDag *TxDag) IsContract(idx int) bool {
+	if _, ok := txDag.contracts[idx]; ok {
+		return true
+	}
+	return false
 }

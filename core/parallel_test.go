@@ -39,11 +39,11 @@ var (
 	toAccountList        []*account
 	contractAccountList  []*account
 	testTxList           types.Transactions
-	accountCount         = 5
-	contractAccountCount = 5
-	txCount              = 20
+	accountCount         = 200
+	contractAccountCount = 200
+	txCount              = 500
 	balance              = int64(7300000000000)
-	blockGasLimit        = uint64(1000000000000000000)
+	blockGasLimit        = uint64(25000000)
 	signer               = types.NewEIP155Signer(chainConfig.ChainID)
 
 	blockchain         *BlockChain
@@ -90,15 +90,55 @@ func initAccount() {
 		toAccountList[i] = toAccount
 	}
 }
+func initTx2() {
+	fromAccount := fromAccountList[rand.Intn(accountCount)]
+	toAccount := toAccountList[rand.Intn(accountCount)]
+
+	testTxList = make(types.Transactions, 2)
+
+	tx1, _ := types.SignTx(
+		types.NewTransaction(
+			fromAccount.nonce,
+			toAccount.address,
+			//vm.GovContractAddr,
+			big.NewInt(1),
+			//21000+9000+320000, // it is short.
+			21000+9000+320000+21000, // it is enough.
+			big.NewInt(1500000),
+			hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
+		signer,
+		fromAccount.priKey)
+
+	testTxList[0] = tx1
+	fromAccount.nonce++
+
+	tx2, _ := types.SignTx(
+		types.NewTransaction(
+			fromAccount.nonce,
+			toAccount.address,
+			//vm.GovContractAddr,
+			big.NewInt(1),
+			//21000+9000+320000, // it is short.
+			21000+9000+320000+21000, // it is enough.
+			big.NewInt(1500000),
+			hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
+		signer,
+		fromAccount.priKey)
+
+	testTxList[1] = tx2
+	fromAccount.nonce++
+}
 
 func initTx() {
 	testTxList = make(types.Transactions, txCount)
 	for i := 0; i < txCount; i++ {
 		fromAccount := fromAccountList[rand.Intn(accountCount)]
-		toAccount := toAccountList[rand.Intn(accountCount)]
-		//contractAccount := contractAccountList[rand.Intn(contractAccountCount)]
+		//toAccount := toAccountList[rand.Intn(accountCount)]
+		toAccount := fromAccountList[rand.Intn(accountCount)] //it is possible from=to
+		contractAccount := contractAccountList[rand.Intn(contractAccountCount)]
+		txType := rand.Intn(4)
 		var tx *types.Transaction
-		if i == 0 {
+		if txType == 0 || txType == 1 {
 			tx, _ = types.SignTx(
 				types.NewTransaction(
 					fromAccount.nonce,
@@ -106,68 +146,51 @@ func initTx() {
 					//contractAccount.address,
 					big.NewInt(1),
 					//21000+9000+320000, // it is short.
-					21000+9000+320000+21000, // it is enough.
+					//21000+9000+320000+21000, // it is enough.
+					uint64(rand.Intn(200000000)),
 					big.NewInt(1500000),
 					hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
 				signer,
 				fromAccount.priKey)
-		} else {
-			if i < txCount/4 {
-				tx, _ = types.SignTx(
-					types.NewTransaction(
-						fromAccount.nonce,
-						//contractAccount.address,
-						toAccount.address,
-						big.NewInt(1),
-						(21000+9000+320000+21000), // it is enough.
-						big.NewInt(1500000),
-						hexutil.MustDecode("0xf87303843b9aca008347e7c494e80cbe05d8b7de0b8b2e436deda5ea6a70e4bf90808ecd888f9af6c4c62d90d8830186a081eca09610dd9c17164e5675e593c1b7b59aa865a2f120ecc0287538cf18ba05d76a78a07f49582e1850d7cff2bad12b5acd333cd8d50f25eccc04fd896c93b97b75f66a")),
-					signer,
-					fromAccount.priKey)
-			} else if i >= txCount/4 && i < 2*txCount/4 {
-				tx, _ = types.SignTx(
-					types.NewTransaction(
-						fromAccount.nonce,
-						toAccount.address,
-						big.NewInt(1),
-						//21000+9000+320000, // it is short.
-						21000+9000+320000+21000, // it is enough.
-						big.NewInt(1500000),
-						hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
-					signer,
-					fromAccount.priKey)
-			} else if i >= 2*txCount/4 && i < 3*txCount/4 {
-				tx, _ = types.SignTx(
-					types.NewTransaction(
-						fromAccount.nonce,
-						//toAccount.address,
-						vm.GovContractAddr,
-						big.NewInt(1),
-						21000,
-						big.NewInt(10),
-						nil),
-					signer,
-					fromAccount.priKey)
-			} else {
-				tx, _ = types.SignTx(
-					types.NewTransaction(
-						fromAccount.nonce,
-						toAccount.address,
-						big.NewInt(1),
-						21000,
-						big.NewInt(10),
-						nil),
-					signer,
-					fromAccount.priKey)
-			}
-		}
 
+		} else if txType == 2 {
+			tx, _ = types.SignTx(
+				types.NewTransaction(
+					fromAccount.nonce,
+					//toAccount.address,
+					contractAccount.address,
+					big.NewInt(1),
+					//21000+9000+320000, // it is short.
+					//21000+9000+320000+21000, // it is enough.
+					uint64(rand.Intn(200000000)),
+					big.NewInt(1500000),
+					hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
+				signer,
+				fromAccount.priKey)
+		} else if txType == 3 {
+			tx, _ = types.SignTx(
+				types.NewTransaction(
+					fromAccount.nonce,
+					//toAccount.address,
+					vm.GovContractAddr,
+					big.NewInt(1),
+					//21000+9000+320000, // it is short.
+					//21000+9000+320000+21000, // it is enough.
+					uint64(rand.Intn(200000000)),
+					big.NewInt(1500000),
+					hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
+				signer,
+				fromAccount.priKey)
+		}
 		from, _ := types.Sender(signer, tx)
 		tx.SetFromAddr(&from)
 
 		testTxList[i] = tx
 		fromAccount.nonce++
 	}
+
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
 }
 
 func initChain() {
@@ -301,7 +324,7 @@ func parallelMode(t testing.TB) {
 	NewExecutor(chainConfig, blockchain, cvm.Config{})
 
 	start := time.Now()
-	gp := new(GasPool).AddGas(3200000)
+	gp := new(GasPool).AddGas(header.GasLimit)
 	ctx := NewPackBlockContext(stateDb, header, common.Hash{}, gp, time.Now(), time.Now().Add(200*time.Second))
 	ctx.SetTxList(testTxList)
 
@@ -316,7 +339,10 @@ func parallelMode(t testing.TB) {
 	if err != nil {
 		t.Fatal("Finalize block failed", "err", err)
 	}
+
+	t.Log("======================")
 	t.Logf("Finalize block cost(parallel mode): %d Nanoseconds.\n", time.Now().Sub(end).Nanoseconds())
+	t.Log("======================")
 
 	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
 		t.Fatal("Seal block failed", "err", err)
@@ -350,23 +376,26 @@ func serialMode(t testing.TB) {
 	initState := stateDb.Copy()
 	NewExecutor(chainConfig, blockchain, cvm.Config{})
 
-	gp := new(GasPool).AddGas(1000000000000000000)
+	gp := new(GasPool).AddGas(header.GasLimit)
 	start := time.Now()
+	txs := types.Transactions{}
 	var receipts = types.Receipts{}
 	for idx, tx := range testTxList {
 		stateDb.Prepare(tx.Hash(), common.Hash{}, idx)
 		receipt, _, err := ApplyTransaction(chainConfig, blockchain, gp, stateDb, header, tx, &header.GasUsed, cvm.Config{})
 
 		if err != nil {
-			t.Fatalf("apply tx error, err:%v", err)
+			t.Logf("apply tx error, err:%v", err)
+			continue
 		}
 		receipts = append(receipts, receipt)
+		txs = append(txs, tx)
 	}
 	end := time.Now()
 	executeTxsCost := end.Sub(start).Nanoseconds()
 	t.Logf("Executed txs cost(serial mode): %d Nanoseconds.\n", executeTxsCost)
 
-	finalizedBlock, err := Finalize(blockchain, header, stateDb, testTxList, receipts)
+	finalizedBlock, err := Finalize(blockchain, header, stateDb, txs, receipts)
 
 	if err != nil {
 		t.Fatal("Finalize block failed", "err", err)
