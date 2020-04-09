@@ -966,12 +966,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if bc.cacheConfig.Disabled {
 		limit := common.StorageSize(bc.cacheConfig.TrieNodeLimit) * 1024 * 1024
 		oversize := false
-
-		bc.cacheConfig.DBGCMpt = false
-
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
-			log.Trace("No gc mpt", "blockNumber", block.Number(), "blockHash", block.Hash().TerminalString(),
-				"root", currentBlock.Root().TerminalString())
 			triedb.Reference(root, common.Hash{})
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
@@ -986,8 +981,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
-			log.Trace("Deference trie start", "blockNumber", block.Number(), "blockHash", block.Hash().TerminalString(),
-				"root", currentBlock.Root().TerminalString())
+
 			triedb.DereferenceDB(currentBlock.Root())
 
 			if triedb.UselessSize() > bc.cacheConfig.DBGCBlock {

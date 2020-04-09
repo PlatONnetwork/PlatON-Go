@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 	"math/rand"
 
@@ -20,6 +21,16 @@ var (
 	testAddress = crypto.PubkeyToAddress(testKey.PublicKey)
 	testDB      = rawdb.NewMemoryDatabase()
 	testGenesis = core.GenesisBlockForTesting(testDB, testAddress, big.NewInt(1000000000))
+	//contract Store {
+	//    uint256[] arr = [4,9,5,6,8,7,1,2,3,10];
+	//
+	//    constructor() public {
+	//        for (uint256 i = 0; i < 10; i++) {
+	//            arr[i] = i;
+	//        }
+	//    }
+	//}
+	evmContract = hexutil.MustDecode("0x6080604052604051806101400160405280600460ff168152602001600960ff168152602001600560ff168152602001600660ff168152602001600860ff168152602001600760ff168152602001600160ff168152602001600260ff168152602001600360ff168152602001600a60ff16815250600090600a6100829291906100ce565b5034801561008f57600080fd5b5060008090505b600a8110156100c85780600082815481106100ad57fe5b90600052602060002001819055508080600101915050610096565b50610145565b82805482825590600052602060002090810192821561010f579160200282015b8281111561010e578251829060ff169055916020019190600101906100ee565b5b50905061011c9190610120565b5090565b61014291905b8082111561013e576000816000905550600101610126565b5090565b90565b603e806101536000396000f3fe6080604052600080fdfea265627a7a72315820d78ddbad6fa6c2fe65bc00b227816a5b7a4f17e0b43fc14f4122adebad43e3be64736f6c63430005100032")
 )
 
 const (
@@ -123,7 +134,8 @@ func (tc *testChain) generate(n int, seed byte, parent *types.Block, heavy bool)
 		// Include transactions to the miner to make blocks more interesting.
 		if parent == tc.genesis && i%22 == 0 {
 			signer := types.NewEIP155Signer(params.TestChainConfig.ChainID)
-			tx, err := types.SignTx(types.NewTransaction(block.TxNonce(testAddress), common.Address{seed}, big.NewInt(1000), params.TxGas, nil, nil), signer, testKey)
+			// evm contract generate more storage, convenient for fast sync
+			tx, err := types.SignTx(types.NewContractCreation(block.TxNonce(testAddress), big.NewInt(1000), params.TxGas*10, nil, evmContract), signer, testKey)
 			if err != nil {
 				panic(err)
 			}

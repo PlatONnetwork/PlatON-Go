@@ -21,7 +21,7 @@ wasm.log
 *~
 .project
 .settings
-./wasm.log
+wasm.log
 
 # used by the Makefile
 /build/_workspace/

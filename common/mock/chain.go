@@ -308,15 +308,6 @@ func (s *MockStateDB) GetCodeSize(addr common.Address) int {
 	return len(code)
 }
 
-func (s *MockStateDB) GetAbiHash(common.Address) common.Hash {
-	return common.ZeroHash
-}
-func (s *MockStateDB) GetAbi(common.Address) []byte {
-	return nil
-}
-func (s *MockStateDB) SetAbi(common.Address, []byte) {
-	return
-}
 
 func (s *MockStateDB) AddRefund(uint64) {
 	return
@@ -384,13 +375,13 @@ func (s *MockStateDB) AddPreimage(common.Hash, []byte) {
 	return
 }
 
-func (s *MockStateDB) ForEachStorage(addr common.Address, fn func([]byte, []byte) bool) {
+func (s *MockStateDB) ForEachStorage(addr common.Address, fn func(common.Hash, []byte) bool) {
 	state, ok := s.State[addr]
 	if !ok {
 		return
 	}
 	for k, v := range state {
-		fn([]byte(k), v)
+		fn(common.BytesToHash([]byte(k)), v)
 	}
 }
 

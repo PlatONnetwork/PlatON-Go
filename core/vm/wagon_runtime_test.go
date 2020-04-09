@@ -535,9 +535,8 @@ var testCase = []*Case{
 			count := 0
 			storage := make(map[string][]byte)
 			// check storage of newcontract
-			ctx.evm.StateDB.ForEachStorage(newContract, func(key, value []byte) bool {
-				//fmt.Println("key:", string(key), "value:", string(value))
-				storage[string(key)] = []byte("aaa")
+			ctx.evm.StateDB.ForEachStorage(newContract, func(key common.Hash, value []byte) bool {
+				storage[key.String()] = []byte("aaa")
 				count++
 				return false
 			})
