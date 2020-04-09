@@ -30,7 +30,7 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 	latestPrecompiledIndex := -1
 	for curIdx, cur := range txs {
 		if vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
-			log.Debug("found contract tx", "idx", curIdx, "toAddr", cur.To().Hex())
+			log.Debug("found contract tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
 			txDag.contracts[curIdx] = struct{}{}
 			if curIdx > 0 {
 				if curIdx-latestPrecompiledIndex > 1 {
@@ -47,7 +47,7 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 				transferAddressMap = make(map[common.Address]int, 0)
 			}
 		} else {
-			log.Debug("found transfer tx", "idx", curIdx, "txHash", cur.Hash().Hex(), "txGas", cur.Gas(), "toAddr", cur.To().Hex())
+			log.Debug("found transfer tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
 			dependFound := 0
 			if cur.GetFromAddr() == nil {
 				if from, err := types.Sender(txDag.signer, cur); err != nil {

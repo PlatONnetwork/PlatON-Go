@@ -228,6 +228,7 @@ func (exe *Executor) batchMerge(batchNo int, originIdxList []int, deleteEmptyObj
 				}
 			}
 		}
+		//exe.ctx.GetState().Finalise(true)
 	}
 }
 
@@ -288,7 +289,7 @@ func (exe *Executor) buildTransferFailedResult(idx int, err error) {
 	}
 	exe.ctx.SetResult(idx, result)
 
-	//log.Error("Failed to commitTransaction on worker", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txHash", tx.Hash().Hex(), "txGas", tx.Gas(), "err", err)
+	log.Info("buildTransferFailedResult", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txIdx", idx, "txHash", exe.ctx.GetTx(idx).Hash(), "txTo", *exe.ctx.GetTx(idx).To(), "txGas", exe.ctx.GetTx(idx).Gas(), "err", err)
 
 	//fmt.Println(fmt.Sprintf("---------- Fail. tx no=%d", idx))
 }
@@ -312,7 +313,7 @@ func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStat
 		err:             nil,
 	}
 	exe.ctx.SetResult(idx, result)
-	log.Debug("buildTransferSuccessResult", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "txTo", tx.To().Hex(), "dataLength", len(tx.Data()), "txUsedGas", txGasUsed)
+	log.Info("buildTransferSuccessResult", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txIdx", idx, "txHash", tx.Hash(), "txTo", *tx.To(), "txGas", exe.ctx.GetTx(idx).Gas(), "txUsedGas", txGasUsed)
 	//fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
 }
 
@@ -326,7 +327,7 @@ func (exe *Executor) executeTransaction(idx int) {
 	exe.ctx.GetState().Prepare(tx.Hash(), exe.ctx.GetBlockHash(), int(exe.ctx.GetState().TxIdx()))
 	receipt, _, err := ApplyTransaction(exe.chainConfig, exe.chainContext, exe.ctx.GetGasPool(), exe.ctx.GetState(), exe.ctx.GetHeader(), tx, exe.ctx.GetBlockGasUsedHolder(), vm.Config{})
 	if err != nil {
-		log.Error("Failed to commitTransaction on worker", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txHash", tx.Hash().Hex(), "txGas", tx.Gas(), "err", err)
+		log.Error("execute tx failed", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txHash", tx.Hash(), "gasPool", exe.ctx.GetGasPool().Gas(), "txGas", tx.Gas(), "err", err)
 		exe.ctx.GetState().RevertToSnapshot(snap)
 		return
 	}
