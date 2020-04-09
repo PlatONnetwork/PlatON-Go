@@ -77,8 +77,8 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 			for _, idx := range parallelTxIdxs {
 				txFromT := ctx.txList[idx].GetFromAddr().Hex() + "/" + ctx.txList[idx].To().Hex()
 				txFromToList = append(txFromToList, txFromT)
-			}
-			log.Debug(fmt.Sprintf("PackBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v, addressList=%s", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs, txFromToList))*/
+			}*/
+			log.Debug(fmt.Sprintf("PackBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
 			//call executeTransaction if batch length == 1
 			if len(parallelTxIdxs) == 1 {
 				exe.executeTransaction(parallelTxIdxs[0])
@@ -130,7 +130,7 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 	exe.ctx = ctx
 
-	//fmt.Println(fmt.Sprintf("VerifyBlockTxs begin blockNumber=%d, gasPool=%d", ctx.header.Number.Uint64(), ctx.gp.Gas()))
+	fmt.Println(fmt.Sprintf("VerifyBlockTxs begin blockNumber=%d, gasPool=%d", ctx.header.Number.Uint64(), ctx.gp.Gas()))
 
 	gasPoolEnough := true
 
@@ -143,7 +143,7 @@ func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 		batchNo := 0
 		for gasPoolEnough && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
-			//fmt.Println(fmt.Sprintf("VerifyBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
+			fmt.Println(fmt.Sprintf("VerifyBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
 			if len(parallelTxIdxs) == 1 {
 				exe.executeTransaction(parallelTxIdxs[0])
 			} else if len(parallelTxIdxs) > 1 {
@@ -300,7 +300,7 @@ func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStat
 	}
 	exe.ctx.SetResult(idx, result)
 
-	//log.Debug("tx packed success", "txHash", tx.Hash().Hex(), "txTo", tx.To().Hex(), "dataLength", len(tx.Data()), "toCodeSize", exe.ctx.GetState().GetCodeSize(*tx.To()), "txUsedGas", txGasUsed)
+	log.Debug("buildTransferSuccessResult", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "txTo", tx.To().Hex(), "dataLength", len(tx.Data()), "txUsedGas", txGasUsed)
 	//fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
 }
 
