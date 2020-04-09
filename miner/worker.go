@@ -507,6 +507,7 @@ func (w *worker) mainLoop() {
 		case req := <-w.newWorkCh:
 			if err := w.commitNewWork(req.interrupt, req.noempty, common.Millis(req.timestamp), req.commitBlock, req.blockDeadline); err != nil {
 				// If error during this commiting, the task ends and change the CommitStatus to idle to allow the next commiting to be triggered
+				log.Warn("Failed to commitNewWork", "baseBlockNumber", req.commitBlock.NumberU64(), "baseBlockHash", req.commitBlock.Hash(), "error", err)
 				w.commitWorkEnv.setCommitStatusIdle()
 			}
 

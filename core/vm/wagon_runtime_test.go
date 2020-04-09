@@ -5,11 +5,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
-	"golang.org/x/crypto/ripemd160"
 	"hash/fnv"
 	"io/ioutil"
 	"math/big"
 	"testing"
+
+	"golang.org/x/crypto/ripemd160"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
@@ -535,8 +536,8 @@ var testCase = []*Case{
 			count := 0
 			storage := make(map[string][]byte)
 			// check storage of newcontract
-			ctx.evm.StateDB.ForEachStorage(newContract, func(key common.Hash, value []byte) bool {
-				storage[key.String()] = []byte("aaa")
+			ctx.evm.StateDB.ForEachStorage(newContract, func(key []byte, value []byte) bool {
+				storage[string(key)] = []byte("aaa")
 				count++
 				return false
 			})
