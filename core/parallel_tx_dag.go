@@ -29,14 +29,15 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 	transferAddressMap := make(map[common.Address]int, 0)
 	latestPrecompiledIndex := -1
 	for curIdx, cur := range txs {
-		if vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
-			if cur.GetFromAddr() == nil {
-				if from, err := types.Sender(txDag.signer, cur); err != nil {
-					return err
-				} else {
-					cur.SetFromAddr(&from)
-				}
+		if cur.GetFromAddr() == nil {
+			if from, err := types.Sender(txDag.signer, cur); err != nil {
+				return err
+			} else {
+				cur.SetFromAddr(&from)
 			}
+		}
+
+		if vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
 
 			log.Debug("found contract tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
 			txDag.contracts[curIdx] = struct{}{}
