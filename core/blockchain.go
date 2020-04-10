@@ -190,11 +190,8 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	}
 
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
-	if common.AnyContains(common.LocalIPv4s(), []string{"192.168.112.30", "192.168.112.33"}) {
-		bc.SetProcessor(NewParallelStateProcessor(chainConfig, bc, engine))
-	} else {
-		bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
-	}
+	bc.SetProcessor(NewParallelStateProcessor(chainConfig, bc, engine))
+	//bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
 
 	var err error
 	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.getProcInterrupt)

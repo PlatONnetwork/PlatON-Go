@@ -247,11 +247,8 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, vmCo
 
 	worker.commitWorkEnv.nextBlockTime.Store(time.Now())
 
-	if common.AnyContains(common.LocalIPv4s(), []string{"192.168.112.30", "192.168.112.33"}) {
-		worker.setCommitter(NewParallelTxsCommitter(worker))
-	} else {
-		worker.setCommitter(NewTxsCommitter(worker))
-	}
+	worker.setCommitter(NewParallelTxsCommitter(worker))
+	//worker.setCommitter(NewTxsCommitter(worker))
 
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
