@@ -80,7 +80,6 @@ public class WithBackCallerTest extends ContractPrepareTest {
             collector.assertEqual(callerStringResult,"hellogashudenian");
 
             //调用被调用合约，指定gas不足
-            //调用被调用合约，指定足够的gas
             try {
                 tx2 = withBackCaller.callgetNameTestWithGas(calleeContractAddress, helloValue, new BigInteger("100")).send();
 
