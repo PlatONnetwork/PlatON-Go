@@ -18,12 +18,17 @@ CONTRACT cross_caller_noret : public platon::Contract {
             platon::bytes params = platon::cross_call_args("info");
 
             if (platon_call(Address(target_address), params, transfer_value, gasValue)) {
-
-                 return 1; // successed
+                 status = 0; // successed
              }
-             return 0; // failed
+             status = 1; //failed
         }
-       
+       CONST uint8_t get_status(){
+          return  status;
+       }
+
+       private:
+           uint64_t status = 0;
+
 };
 
-PLATON_DISPATCH(cross_caller_noret, (init)(callFeed))
+PLATON_DISPATCH(cross_caller_noret, (init)(callFeed)(get_status))
