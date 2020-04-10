@@ -46,6 +46,14 @@ contract WithBackCaller{
         callerStringResult = abi.decode(data,(string));
     }
 
+    function callgetNameTestWithGas(address other,string memory name,uint256 gasValue) public {
+        (bool success, bytes memory data) = other.call.gas(gasValue)(abi.encodeWithSignature("getName(string,string)","hellogas",name));
+        if(!success){
+            revert();
+        }
+        callerStringResult = abi.decode(data,(string));
+    }
+
     function getStringResult() view public returns(string memory){
         return callerStringResult;
     }
