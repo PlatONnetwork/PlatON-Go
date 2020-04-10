@@ -895,12 +895,21 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	s.Finalise(deleteEmptyObjects)
 	//return s.trie.Hash()
-	return s.trie.ParallelHash2()
+	if common.AnyContains(common.LocalIPv4s(), []string{"192.168.112.30", "192.168.112.33"}) {
+		return s.trie.ParallelHash2()
+	} else {
+		return s.trie.Hash()
+	}
+
 }
 
 func (s *StateDB) Root() common.Hash {
 	//return s.trie.Hash()
-	return s.trie.ParallelHash2()
+	if common.AnyContains(common.LocalIPv4s(), []string{"192.168.112.30", "192.168.112.33"}) {
+		return s.trie.ParallelHash2()
+	} else {
+		return s.trie.Hash()
+	}
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
@@ -951,20 +960,37 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		delete(s.stateObjectsDirty, addr)
 	}
 	// Write trie changes.
-	root, err = s.trie.ParallelCommit2(func(leaf []byte, parent common.Hash) error {
-		var account Account
-		if err := rlp.DecodeBytes(leaf, &account); err != nil {
+	if common.AnyContains(common.LocalIPv4s(), []string{"192.168.112.30", "192.168.112.33"}) {
+		root, err = s.trie.ParallelCommit2(func(leaf []byte, parent common.Hash) error {
+			var account Account
+			if err := rlp.DecodeBytes(leaf, &account); err != nil {
+				return nil
+			}
+			if account.Root != emptyState {
+				s.db.TrieDB().Reference(account.Root, parent)
+			}
+			code := common.BytesToHash(account.CodeHash)
+			if code != emptyCode {
+				s.db.TrieDB().Reference(code, parent)
+			}
 			return nil
-		}
-		if account.Root != emptyState {
-			s.db.TrieDB().Reference(account.Root, parent)
-		}
-		code := common.BytesToHash(account.CodeHash)
-		if code != emptyCode {
-			s.db.TrieDB().Reference(code, parent)
-		}
-		return nil
-	})
+		})
+	} else {
+		root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
+			var account Account
+			if err := rlp.DecodeBytes(leaf, &account); err != nil {
+				return nil
+			}
+			if account.Root != emptyState {
+				s.db.TrieDB().Reference(account.Root, parent)
+			}
+			code := common.BytesToHash(account.CodeHash)
+			if code != emptyCode {
+				s.db.TrieDB().Reference(code, parent)
+			}
+			return nil
+		})
+	}
 
 	log.Trace("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
