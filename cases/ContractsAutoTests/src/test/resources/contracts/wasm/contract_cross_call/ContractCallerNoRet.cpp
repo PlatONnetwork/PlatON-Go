@@ -11,7 +11,7 @@ CONTRACT cross_caller_noret : public platon::Contract {
     public:
         ACTION void init(){}
 
-        ACTION uint8_t callFeed(std::string target_address, uint64_t gasValue) {
+        ACTION void callFeed(std::string target_address, uint64_t gasValue) {
 
             uint64_t transfer_value = 0;
 
