@@ -80,6 +80,16 @@ public class AtomicSwap extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b) {
+        final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public List<InitiatedEventResponse> getInitiatedEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(INITIATED_EVENT, transactionReceipt);
         ArrayList<InitiatedEventResponse> responses = new ArrayList<InitiatedEventResponse>(valueList.size());
@@ -119,16 +129,6 @@ public class AtomicSwap extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(INITIATED_EVENT));
         return initiatedEventObservable(filter);
-    }
-
-    public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b) {
-        final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> add(BigInteger a, BigInteger b, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ADD, Arrays.asList(a,b), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<AddedEventResponse> getAddedEvents(TransactionReceipt transactionReceipt) {

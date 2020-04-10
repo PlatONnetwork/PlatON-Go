@@ -44,6 +44,16 @@ public class ContractInterface extends WasmContract {
         return executeRemoteCall(function, Uint64.class);
     }
 
+    public RemoteCall<TransactionReceipt> setCount(Uint64 count) {
+        final WasmFunction function = new WasmFunction(FUNC_SETCOUNT, Arrays.asList(count), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setCount(Uint64 count, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETCOUNT, Arrays.asList(count), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<ContractInterface> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractInterface.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -62,16 +72,6 @@ public class ContractInterface extends WasmContract {
     public static RemoteCall<ContractInterface> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractInterface.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> setCount(Uint64 count) {
-        final WasmFunction function = new WasmFunction(FUNC_SETCOUNT, Arrays.asList(count), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setCount(Uint64 count, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETCOUNT, Arrays.asList(count), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static ContractInterface load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
