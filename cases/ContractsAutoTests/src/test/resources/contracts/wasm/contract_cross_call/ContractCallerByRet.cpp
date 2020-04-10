@@ -15,7 +15,7 @@ CONTRACT cross_caller_byret : public platon::Contract {
 
             uint64_t transfer_value = 0;
             auto result = platon::platon_call<uint8_t>(Address(target_address), transfer_value, gasValue, "info");
-            if(!result.second){
+            if(result.second){
                 status = 0; // successed
             }
             status = 1; //failed
