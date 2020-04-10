@@ -38,9 +38,9 @@ var (
 	toAccountList        []*account
 	contractAccountList  []*account
 	testTxList           types.Transactions
-	accountCount         = 2000
-	contractAccountCount = 2000
-	txCount              = 200
+	accountCount         = 1000
+	contractAccountCount = 1000
+	txCount              = 100
 	balance              = int64(7300000000000)
 	blockGasLimit        = uint64(30000000)
 	signer               = types.NewEIP155Signer(chainConfig.ChainID)
@@ -216,7 +216,12 @@ func initChain() {
 	}
 	gspec.MustCommit(db)
 
-	blockchain, _ = NewBlockChain(db, nil, gspec.Config, engine, cvm.Config{}, nil)
+	vmConfig := cvm.Config{
+		ConsoleOutput: true,
+		WasmType:      cvm.Wagon,
+	}
+
+	blockchain, _ = NewBlockChain(db, nil, gspec.Config, engine, vmConfig, nil)
 
 	parent := blockchain.Genesis()
 	block, header = NewBlock(parent.Hash(), parent.NumberU64()+1)
@@ -311,6 +316,7 @@ func TestParallel_PackParallel_VerifyParallel(t *testing.T) {
 	initChain()
 	initTx()
 
+	header.GasLimit = blockGasLimit
 	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, engine))
 	parallelMode(t)
 }
@@ -320,6 +326,7 @@ func TestParallel_PackParallel_VerifySerial(t *testing.T) {
 	initChain()
 	initTx()
 
+	header.GasLimit = blockGasLimit
 	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, engine))
 	parallelMode(t)
 }
@@ -363,6 +370,7 @@ func TestParallel_PackSerial_VerifyParallel(t *testing.T) {
 	initAccount()
 	initChain()
 	initTx()
+	header.GasLimit = blockGasLimit
 
 	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, engine))
 	serialMode(t)
@@ -372,10 +380,7 @@ func TestParallel_PackSerial_VerifySerial(t *testing.T) {
 	initAccount()
 	initChain()
 	initTx()
-
-	/*parent := blockchain.Genesis()
-	block, header = NewBlock(parent.Hash(), parent.NumberU64()+1)
-	header.Coinbase = nodeID*/
+	header.GasLimit = blockGasLimit
 
 	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, engine))
 	serialMode(t)
