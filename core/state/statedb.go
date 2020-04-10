@@ -876,7 +876,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			// Thus, we can safely ignore it here
 			continue
 		}
-
+		log.Debug("state finalise", "addr", addr, "balance", stateObject.Balance().Uint64(), "root", stateObject.data.Root)
 		if stateObject.suicided || (deleteEmptyObjects && stateObject.empty()) {
 			s.deleteStateObject(stateObject)
 		} else {
@@ -894,11 +894,13 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 // goes into transaction receipts.
 func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	s.Finalise(deleteEmptyObjects)
-	return s.trie.Hash()
+	//return s.trie.Hash()
+	return s.trie.ParallelHash2()
 }
 
 func (s *StateDB) Root() common.Hash {
-	return s.trie.Hash()
+	//return s.trie.Hash()
+	return s.trie.ParallelHash2()
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
@@ -949,7 +951,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		delete(s.stateObjectsDirty, addr)
 	}
 	// Write trie changes.
-	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	root, err = s.trie.ParallelCommit2(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
