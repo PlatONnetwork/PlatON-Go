@@ -58,6 +58,26 @@ public class HomeBridge extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public static RemoteCall<HomeBridge> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
+        return deployRemoteCall(HomeBridge.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<HomeBridge> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
+        return deployRemoteCall(HomeBridge.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<HomeBridge> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
+        return deployRemoteCall(HomeBridge.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public static RemoteCall<HomeBridge> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
+        return deployRemoteCall(HomeBridge.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
     public List<GasConsumptionLimitsUpdatedEventResponse> getGasConsumptionLimitsUpdatedEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(GASCONSUMPTIONLIMITSUPDATED_EVENT, transactionReceipt);
         ArrayList<GasConsumptionLimitsUpdatedEventResponse> responses = new ArrayList<GasConsumptionLimitsUpdatedEventResponse>(valueList.size());
@@ -87,26 +107,6 @@ public class HomeBridge extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(GASCONSUMPTIONLIMITSUPDATED_EVENT));
         return gasConsumptionLimitsUpdatedEventObservable(filter);
-    }
-
-    public static RemoteCall<HomeBridge> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
-        return deployRemoteCall(HomeBridge.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<HomeBridge> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
-        return deployRemoteCall(HomeBridge.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<HomeBridge> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
-        return deployRemoteCall(HomeBridge.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public static RemoteCall<HomeBridge> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
-        return deployRemoteCall(HomeBridge.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
     public RemoteCall<TransactionReceipt> setGasLimitWithdrawRelay(BigInteger gas) {

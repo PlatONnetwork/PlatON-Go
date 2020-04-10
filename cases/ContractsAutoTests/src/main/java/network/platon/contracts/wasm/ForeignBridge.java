@@ -88,6 +88,16 @@ public class ForeignBridge extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<TransactionReceipt> setGasLimitDepositRelay(BigInteger gas) {
+        final WasmFunction function = new WasmFunction(FUNC_SETGASLIMITDEPOSITRELAY, Arrays.asList(gas), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setGasLimitDepositRelay(BigInteger gas, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETGASLIMITDEPOSITRELAY, Arrays.asList(gas), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public List<GasConsumptionLimitsUpdatedEventResponse> getGasConsumptionLimitsUpdatedEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(GASCONSUMPTIONLIMITSUPDATED_EVENT, transactionReceipt);
         ArrayList<GasConsumptionLimitsUpdatedEventResponse> responses = new ArrayList<GasConsumptionLimitsUpdatedEventResponse>(valueList.size());
@@ -119,16 +129,6 @@ public class ForeignBridge extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(GASCONSUMPTIONLIMITSUPDATED_EVENT));
         return gasConsumptionLimitsUpdatedEventObservable(filter);
-    }
-
-    public RemoteCall<TransactionReceipt> setGasLimitDepositRelay(BigInteger gas) {
-        final WasmFunction function = new WasmFunction(FUNC_SETGASLIMITDEPOSITRELAY, Arrays.asList(gas), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setGasLimitDepositRelay(BigInteger gas, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETGASLIMITDEPOSITRELAY, Arrays.asList(gas), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> setGasLimitWithdrawConfirm(BigInteger gas) {

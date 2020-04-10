@@ -26,9 +26,9 @@ public class CryptographicFunction extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_CALL_PLATON_RIPEMD160 = "call_platon_ripemd160";
-
     public static final String FUNC_CALL_PLATON_ECRECOVER = "call_platon_ecrecover";
+
+    public static final String FUNC_CALL_PLATON_RIPEMD160 = "call_platon_ripemd160";
 
     public static final String FUNC_CALL_PLATON_SHA256 = "call_platon_sha256";
 
@@ -40,13 +40,13 @@ public class CryptographicFunction extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<WasmAddress> call_platon_ripemd160(byte[] data) {
-        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_RIPEMD160, Arrays.asList(data, Void.class), WasmAddress.class);
+    public RemoteCall<WasmAddress> call_platon_ecrecover(byte[] hash, byte[] signature) {
+        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_ECRECOVER, Arrays.asList(hash,signature), WasmAddress.class);
         return executeRemoteCall(function, WasmAddress.class);
     }
 
-    public RemoteCall<WasmAddress> call_platon_ecrecover(byte[] hash, byte[] signature) {
-        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_ECRECOVER, Arrays.asList(hash,signature), WasmAddress.class);
+    public RemoteCall<WasmAddress> call_platon_ripemd160(byte[] data) {
+        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_RIPEMD160, Arrays.asList(data, Void.class), WasmAddress.class);
         return executeRemoteCall(function, WasmAddress.class);
     }
 

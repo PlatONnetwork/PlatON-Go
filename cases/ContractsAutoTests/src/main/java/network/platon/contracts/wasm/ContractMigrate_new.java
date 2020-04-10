@@ -100,6 +100,21 @@ public class ContractMigrate_new extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<Uint8> getUint8New() {
+        final WasmFunction function = new WasmFunction(FUNC_GETUINT8NEW, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
+    }
+
+    public RemoteCall<TransactionReceipt> setUint16(Uint16 input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETUINT16, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setUint16(Uint16 input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETUINT16, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<ContractMigrate_new> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Uint8 input, Uint16 input2) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(input,input2));
         return deployRemoteCall(ContractMigrate_new.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -118,21 +133,6 @@ public class ContractMigrate_new extends WasmContract {
     public static RemoteCall<ContractMigrate_new> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Uint8 input, Uint16 input2) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(input,input2));
         return deployRemoteCall(ContractMigrate_new.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<Uint8> getUint8New() {
-        final WasmFunction function = new WasmFunction(FUNC_GETUINT8NEW, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
-    }
-
-    public RemoteCall<TransactionReceipt> setUint16(Uint16 input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETUINT16, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setUint16(Uint16 input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETUINT16, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<Uint16> getUint16() {
