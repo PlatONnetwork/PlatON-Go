@@ -16,11 +16,11 @@ CONTRACT cross_caller_byret : public platon::Contract {
             uint64_t transfer_value = 0;
             auto result = platon::platon_call<uint8_t>(Address(target_address), transfer_value, gasValue, "info");
             if(result.second){
-                status = 0; // successed
+                status.self() = 0; // successed
 
                 DEBUG("cross_caller_byret call receiver_byret info has successed!")
             } else {
-                status = 1; //failed
+                status.self() = 1; //failed
 
                 DEBUG("cross_caller_byret call receiver_byret info has failed!")
             }
@@ -28,11 +28,11 @@ CONTRACT cross_caller_byret : public platon::Contract {
         }
 
         CONST uint64_t get_status(){
-           return  status;
+           return  status.self();
         }
 
     private:
-       uint64_t status = 0;
+       platon::StorageType<"status"_n, uint64_t> status;
 };
 
 PLATON_DISPATCH(cross_caller_byret, (init)(callFeed)(get_status))
