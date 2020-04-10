@@ -8,11 +8,10 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"os"
 	"runtime"
 	"testing"
 	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -39,11 +38,11 @@ var (
 	toAccountList        []*account
 	contractAccountList  []*account
 	testTxList           types.Transactions
-	accountCount         = 200
-	contractAccountCount = 200
-	txCount              = 500
+	accountCount         = 2000
+	contractAccountCount = 2000
+	txCount              = 200
 	balance              = int64(7300000000000)
-	blockGasLimit        = uint64(25000000)
+	blockGasLimit        = uint64(30000000)
 	signer               = types.NewEIP155Signer(chainConfig.ChainID)
 
 	blockchain         *BlockChain
@@ -135,7 +134,8 @@ func initTx() {
 		fromAccount := fromAccountList[rand.Intn(accountCount)]
 		//toAccount := toAccountList[rand.Intn(accountCount)]
 		toAccount := fromAccountList[rand.Intn(accountCount)] //it is possible from=to
-		contractAccount := contractAccountList[rand.Intn(contractAccountCount)]
+		//contractAccount := contractAccountList[rand.Intn(contractAccountCount)]
+		contractAccount := contractAccountList[1]
 		txType := rand.Intn(4)
 		var tx *types.Transaction
 		if txType == 0 || txType == 1 {
@@ -147,7 +147,7 @@ func initTx() {
 					big.NewInt(1),
 					//21000+9000+320000, // it is short.
 					//21000+9000+320000+21000, // it is enough.
-					uint64(rand.Intn(200000000)),
+					uint64(rand.Intn(20000000)),
 					big.NewInt(1500000),
 					hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
 				signer,
@@ -162,7 +162,7 @@ func initTx() {
 					big.NewInt(1),
 					//21000+9000+320000, // it is short.
 					//21000+9000+320000+21000, // it is enough.
-					uint64(rand.Intn(200000000)),
+					uint64(rand.Intn(20000000)),
 					big.NewInt(1500000),
 					hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
 				signer,
@@ -172,11 +172,12 @@ func initTx() {
 				types.NewTransaction(
 					fromAccount.nonce,
 					//toAccount.address,
-					vm.GovContractAddr,
+					//vm.GovContractAddr,
+					contractAccount.address,
 					big.NewInt(1),
 					//21000+9000+320000, // it is short.
 					//21000+9000+320000+21000, // it is enough.
-					uint64(rand.Intn(200000000)),
+					uint64(rand.Intn(20000000)),
 					big.NewInt(1500000),
 					hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
 				signer,
@@ -189,7 +190,7 @@ func initTx() {
 		fromAccount.nonce++
 	}
 
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 }
 
@@ -295,8 +296,12 @@ func Seal(chain consensus.ChainReader, block *types.Block) (sealedBlock *types.B
 }
 
 /*func TestMain(m *testing.M) {
-	//initTx()
-	initPrecompiledTx()
+	initAccount()
+	initChain()
+	initTx()
+
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
 	exitCode := m.Run()
 	os.Exit(exitCode)
 }*/
@@ -368,6 +373,10 @@ func TestParallel_PackSerial_VerifySerial(t *testing.T) {
 	initChain()
 	initTx()
 
+	/*parent := blockchain.Genesis()
+	block, header = NewBlock(parent.Hash(), parent.NumberU64()+1)
+	header.Coinbase = nodeID*/
+
 	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, engine))
 	serialMode(t)
 }
@@ -375,6 +384,8 @@ func TestParallel_PackSerial_VerifySerial(t *testing.T) {
 func serialMode(t testing.TB) {
 	initState := stateDb.Copy()
 	NewExecutor(chainConfig, blockchain, cvm.Config{})
+
+	t.Logf("begin to executed txs cost(serial mode): blockGasUsed: %d \n", header.GasUsed)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
 	start := time.Now()
@@ -393,7 +404,7 @@ func serialMode(t testing.TB) {
 	}
 	end := time.Now()
 	executeTxsCost := end.Sub(start).Nanoseconds()
-	t.Logf("Executed txs cost(serial mode): %d Nanoseconds.\n", executeTxsCost)
+	t.Logf("Executed txs cost(serial mode): %d Nanoseconds, blockGasUsed: %d, txCount: %d \n", executeTxsCost, header.GasUsed, len(txs))
 
 	finalizedBlock, err := Finalize(blockchain, header, stateDb, txs, receipts)
 
