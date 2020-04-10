@@ -40,6 +40,16 @@ public class VRF extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> randomValueFromVRFProof(byte[] proof) {
+        final WasmFunction function = new WasmFunction(FUNC_RANDOMVALUEFROMVRFPROOF, Arrays.asList(proof, Void.class), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> randomValueFromVRFProof(byte[] proof, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_RANDOMVALUEFROMVRFPROOF, Arrays.asList(proof, Void.class), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<VRF> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(VRF.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -58,16 +68,6 @@ public class VRF extends WasmContract {
     public static RemoteCall<VRF> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(VRF.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> randomValueFromVRFProof(byte[] proof) {
-        final WasmFunction function = new WasmFunction(FUNC_RANDOMVALUEFROMVRFPROOF, Arrays.asList(proof, Void.class), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> randomValueFromVRFProof(byte[] proof, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_RANDOMVALUEFROMVRFPROOF, Arrays.asList(proof, Void.class), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> newCandidateSecp256k1Point(byte[] bt) {

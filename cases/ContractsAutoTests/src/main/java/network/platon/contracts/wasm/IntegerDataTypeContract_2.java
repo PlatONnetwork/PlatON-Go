@@ -32,6 +32,8 @@ public class IntegerDataTypeContract_2 extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GETUINT8 = "getUint8";
+
     public static final String FUNC_SETINT8 = "setInt8";
 
     public static final String FUNC_GETINT8 = "getInt8";
@@ -45,8 +47,6 @@ public class IntegerDataTypeContract_2 extends WasmContract {
     public static final String FUNC_GETINT64 = "getInt64";
 
     public static final String FUNC_SETUINT8 = "setUint8";
-
-    public static final String FUNC_GETUINT8 = "getUint8";
 
     public static final String FUNC_SETUINT32 = "setUint32";
 
@@ -62,6 +62,21 @@ public class IntegerDataTypeContract_2 extends WasmContract {
 
     protected IntegerDataTypeContract_2(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Uint8> getUint8() {
+        final WasmFunction function = new WasmFunction(FUNC_GETUINT8, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
+    }
+
+    public RemoteCall<TransactionReceipt> setInt8(Int8 input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETINT8, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setInt8(Int8 input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETINT8, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<IntegerDataTypeContract_2> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -82,16 +97,6 @@ public class IntegerDataTypeContract_2 extends WasmContract {
     public static RemoteCall<IntegerDataTypeContract_2> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_2.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> setInt8(Int8 input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETINT8, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setInt8(Int8 input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETINT8, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<Int8> getInt8() {
@@ -137,11 +142,6 @@ public class IntegerDataTypeContract_2 extends WasmContract {
     public RemoteCall<TransactionReceipt> setUint8(Uint8 input, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SETUINT8, Arrays.asList(input), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint8> getUint8() {
-        final WasmFunction function = new WasmFunction(FUNC_GETUINT8, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> setUint32(Uint32 input) {

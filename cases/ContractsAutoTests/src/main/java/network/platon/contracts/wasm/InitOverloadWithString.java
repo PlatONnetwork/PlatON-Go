@@ -58,26 +58,6 @@ public class InitOverloadWithString extends WasmContract {
         return executeRemoteCall(function, Uint8.class);
     }
 
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Int8> string_compare(String strone, String strtwo) {
-        final WasmFunction function = new WasmFunction(FUNC_STRING_COMPARE, Arrays.asList(strone,strtwo), Int8.class);
-        return executeRemoteCall(function, Int8.class);
-    }
-
-    public RemoteCall<TransactionReceipt> string_reverse(String reverseStr) {
-        final WasmFunction function = new WasmFunction(FUNC_STRING_REVERSE, Arrays.asList(reverseStr), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> string_reverse(String reverseStr, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_STRING_REVERSE, Arrays.asList(reverseStr), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public static RemoteCall<InitOverloadWithString> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, String initStr) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(initStr));
         return deployRemoteCall(InitOverloadWithString.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -96,6 +76,26 @@ public class InitOverloadWithString extends WasmContract {
     public static RemoteCall<InitOverloadWithString> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, String initStr) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(initStr));
         return deployRemoteCall(InitOverloadWithString.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<Int8> string_compare(String strone, String strtwo) {
+        final WasmFunction function = new WasmFunction(FUNC_STRING_COMPARE, Arrays.asList(strone,strtwo), Int8.class);
+        return executeRemoteCall(function, Int8.class);
+    }
+
+    public RemoteCall<TransactionReceipt> string_reverse(String reverseStr) {
+        final WasmFunction function = new WasmFunction(FUNC_STRING_REVERSE, Arrays.asList(reverseStr), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> string_reverse(String reverseStr, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_STRING_REVERSE, Arrays.asList(reverseStr), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<Int8> string_find(String findStr) {
