@@ -22,7 +22,7 @@ CONTRACT cross_caller_noret : public platon::Contract {
              }
              status = 1; //failed
         }
-       CONST uint8_t get_status(){
+       CONST uint64_t get_status(){
           return  status;
        }
 
