@@ -29,13 +29,13 @@ public class InnerFunction_2 extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_SHA3 = "sha3";
+    public static final String FUNC_RRETURN = "rreturn";
 
     public static final String FUNC_TRANSFER = "transfer";
 
     public static final String FUNC_VALUE = "value";
 
-    public static final String FUNC_RRETURN = "rreturn";
+    public static final String FUNC_SHA3 = "sha3";
 
     public static final String FUNC_PANIC = "panic";
 
@@ -75,9 +75,8 @@ public class InnerFunction_2 extends WasmContract {
         return deployRemoteCall(InnerFunction_2.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<String> sha3(String str) {
-        final WasmFunction function = new WasmFunction(FUNC_SHA3, Arrays.asList(str), String.class);
-        return executeRemoteCall(function, String.class);
+    public void rreturn() {
+        throw new RuntimeException("cannot call constant function with void return type");
     }
 
     public RemoteCall<TransactionReceipt> transfer(String addr, Uint64 amount) {
@@ -95,8 +94,9 @@ public class InnerFunction_2 extends WasmContract {
         return executeRemoteCall(function, String.class);
     }
 
-    public void rreturn() {
-        throw new RuntimeException("cannot call constant function with void return type");
+    public RemoteCall<String> sha3(String str) {
+        final WasmFunction function = new WasmFunction(FUNC_SHA3, Arrays.asList(str), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> panic() {

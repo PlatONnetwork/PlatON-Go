@@ -40,6 +40,26 @@ public class ContractDistoryWithPermissionCheck extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public static RemoteCall<ContractDistoryWithPermissionCheck> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(ContractDistoryWithPermissionCheck.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<ContractDistoryWithPermissionCheck> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(ContractDistoryWithPermissionCheck.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<ContractDistoryWithPermissionCheck> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(ContractDistoryWithPermissionCheck.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public static RemoteCall<ContractDistoryWithPermissionCheck> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(ContractDistoryWithPermissionCheck.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
     public RemoteCall<TransactionReceipt> set_string(String name) {
         final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(name), Void.class);
         return executeRemoteCallTransaction(function);
@@ -63,26 +83,6 @@ public class ContractDistoryWithPermissionCheck extends WasmContract {
     public RemoteCall<String> get_string() {
         final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public static RemoteCall<ContractDistoryWithPermissionCheck> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(ContractDistoryWithPermissionCheck.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<ContractDistoryWithPermissionCheck> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(ContractDistoryWithPermissionCheck.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<ContractDistoryWithPermissionCheck> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(ContractDistoryWithPermissionCheck.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public static RemoteCall<ContractDistoryWithPermissionCheck> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(ContractDistoryWithPermissionCheck.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
     public static ContractDistoryWithPermissionCheck load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

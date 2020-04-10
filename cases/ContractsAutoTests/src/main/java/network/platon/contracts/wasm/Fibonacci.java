@@ -52,6 +52,16 @@ public class Fibonacci extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number) {
+        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<Fibonacci> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(Fibonacci.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -70,16 +80,6 @@ public class Fibonacci extends WasmContract {
     public static RemoteCall<Fibonacci> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(Fibonacci.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number) {
-        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<NotifyEventResponse> getNotifyEvents(TransactionReceipt transactionReceipt) {

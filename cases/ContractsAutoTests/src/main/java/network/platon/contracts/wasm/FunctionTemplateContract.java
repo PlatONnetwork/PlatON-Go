@@ -26,9 +26,9 @@ public class FunctionTemplateContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_LAMBDA_FUNCTION = "get_lambda_function";
-
     public static final String FUNC_GET_NORMAL_FUNCTION = "get_normal_function";
+
+    public static final String FUNC_GET_LAMBDA_FUNCTION = "get_lambda_function";
 
     public static final String FUNC_GET_CLASS_STATIC_FUNCTION = "get_class_static_function";
 
@@ -38,6 +38,11 @@ public class FunctionTemplateContract extends WasmContract {
 
     protected FunctionTemplateContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Uint8> get_normal_function() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_NORMAL_FUNCTION, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public static RemoteCall<FunctionTemplateContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -62,11 +67,6 @@ public class FunctionTemplateContract extends WasmContract {
 
     public RemoteCall<Uint8> get_lambda_function() {
         final WasmFunction function = new WasmFunction(FUNC_GET_LAMBDA_FUNCTION, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
-    }
-
-    public RemoteCall<Uint8> get_normal_function() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_NORMAL_FUNCTION, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
     }
 

@@ -27,13 +27,13 @@ public class TweetRegistry extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GETNAMEOFADDRESS = "getNameOfAddress";
+
     public static final String FUNC_REGISTRY = "registry";
 
     public static final String FUNC_GETNUMBEROFACCOUNTS = "getNumberOfAccounts";
 
     public static final String FUNC_GETADDRESSOFNAME = "getAddressOfName";
-
-    public static final String FUNC_GETNAMEOFADDRESS = "getNameOfAddress";
 
     public static final String FUNC_GETADDRESSOFID = "getAddressOfId";
 
@@ -57,6 +57,11 @@ public class TweetRegistry extends WasmContract {
 
     protected TweetRegistry(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<String> getNameOfAddress(WasmAddress addr) {
+        final WasmFunction function = new WasmFunction(FUNC_GETNAMEOFADDRESS, Arrays.asList(addr), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static RemoteCall<TweetRegistry> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -97,11 +102,6 @@ public class TweetRegistry extends WasmContract {
     public RemoteCall<WasmAddress> getAddressOfName(String name) {
         final WasmFunction function = new WasmFunction(FUNC_GETADDRESSOFNAME, Arrays.asList(name), WasmAddress.class);
         return executeRemoteCall(function, WasmAddress.class);
-    }
-
-    public RemoteCall<String> getNameOfAddress(WasmAddress addr) {
-        final WasmFunction function = new WasmFunction(FUNC_GETNAMEOFADDRESS, Arrays.asList(addr), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<WasmAddress> getAddressOfId(BigInteger id) {

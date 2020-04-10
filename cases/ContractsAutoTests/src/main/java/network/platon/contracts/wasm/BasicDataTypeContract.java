@@ -41,9 +41,9 @@ public class BasicDataTypeContract extends WasmContract {
 
     public static final String FUNC_SET_STRING = "set_string";
 
-    public static final String FUNC_SET_FLOAT_TYPE_LOCAL = "set_float_type_local";
-
     public static final String FUNC_GET_STRING = "get_string";
+
+    public static final String FUNC_SET_FLOAT_TYPE_LOCAL = "set_float_type_local";
 
     public static final String FUNC_GET_STRING_LENGTH = "get_string_length";
 
@@ -138,6 +138,11 @@ public class BasicDataTypeContract extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public RemoteCall<TransactionReceipt> set_float_type_local() {
         final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
@@ -146,11 +151,6 @@ public class BasicDataTypeContract extends WasmContract {
     public RemoteCall<TransactionReceipt> set_float_type_local(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<Uint8> get_string_length() {

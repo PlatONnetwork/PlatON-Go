@@ -39,6 +39,10 @@ public class LATToken extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GETNAME = "getName";
+
+    public static final String FUNC_GETSYMBOL = "getSymbol";
+
     public static final String FUNC_GETTOTALSUPPLY = "getTotalSupply";
 
     public static final String FUNC_BALANCEOF = "balanceOf";
@@ -51,11 +55,7 @@ public class LATToken extends WasmContract {
 
     public static final String FUNC_ALLOWANCE = "allowance";
 
-    public static final String FUNC_GETNAME = "getName";
-
     public static final String FUNC_GETDECIMALS = "getDecimals";
-
-    public static final String FUNC_GETSYMBOL = "getSymbol";
 
     public static final String FUNC_APPROVEANDCALL = "approveAndCall";
 
@@ -71,6 +71,16 @@ public class LATToken extends WasmContract {
 
     protected LATToken(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<String> getName() {
+        final WasmFunction function = new WasmFunction(FUNC_GETNAME, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<String> getSymbol() {
+        final WasmFunction function = new WasmFunction(FUNC_GETSYMBOL, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<Uint64> getTotalSupply() {
@@ -208,19 +218,9 @@ public class LATToken extends WasmContract {
         return deployRemoteCall(LATToken.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<String> getName() {
-        final WasmFunction function = new WasmFunction(FUNC_GETNAME, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
     public RemoteCall<Uint8> getDecimals() {
         final WasmFunction function = new WasmFunction(FUNC_GETDECIMALS, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
-    }
-
-    public RemoteCall<String> getSymbol() {
-        final WasmFunction function = new WasmFunction(FUNC_GETSYMBOL, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> approveAndCall(WasmAddress _spender, Uint64 _value, byte[] _extraData) {

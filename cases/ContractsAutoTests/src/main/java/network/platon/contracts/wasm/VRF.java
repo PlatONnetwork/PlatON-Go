@@ -28,9 +28,9 @@ public class VRF extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_RANDOMVALUEFROMVRFPROOF = "randomValueFromVRFProof";
-
     public static final String FUNC_NEWCANDIDATESECP256K1POINT = "newCandidateSecp256k1Point";
+
+    public static final String FUNC_RANDOMVALUEFROMVRFPROOF = "randomValueFromVRFProof";
 
     protected VRF(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -38,16 +38,6 @@ public class VRF extends WasmContract {
 
     protected VRF(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> randomValueFromVRFProof(byte[] proof) {
-        final WasmFunction function = new WasmFunction(FUNC_RANDOMVALUEFROMVRFPROOF, Arrays.asList(proof, Void.class), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> randomValueFromVRFProof(byte[] proof, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_RANDOMVALUEFROMVRFPROOF, Arrays.asList(proof, Void.class), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<VRF> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -77,6 +67,16 @@ public class VRF extends WasmContract {
 
     public RemoteCall<TransactionReceipt> newCandidateSecp256k1Point(byte[] bt, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_NEWCANDIDATESECP256K1POINT, Arrays.asList(bt, Void.class), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> randomValueFromVRFProof(byte[] proof) {
+        final WasmFunction function = new WasmFunction(FUNC_RANDOMVALUEFROMVRFPROOF, Arrays.asList(proof, Void.class), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> randomValueFromVRFProof(byte[] proof, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_RANDOMVALUEFROMVRFPROOF, Arrays.asList(proof, Void.class), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

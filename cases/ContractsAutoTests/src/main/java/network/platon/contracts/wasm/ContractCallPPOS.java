@@ -44,6 +44,16 @@ public class ContractCallPPOS extends WasmContract {
         return executeRemoteCall(function, String.class);
     }
 
+    public RemoteCall<TransactionReceipt> cross_call_ppos_send(String target_addr, String in, Uint64 value, Uint64 gas) {
+        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_PPOS_SEND, Arrays.asList(target_addr,in,value,gas), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> cross_call_ppos_send(String target_addr, String in, Uint64 value, Uint64 gas, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_PPOS_SEND, Arrays.asList(target_addr,in,value,gas), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<ContractCallPPOS> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractCallPPOS.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -62,16 +72,6 @@ public class ContractCallPPOS extends WasmContract {
     public static RemoteCall<ContractCallPPOS> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractCallPPOS.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> cross_call_ppos_send(String target_addr, String in, Uint64 value, Uint64 gas) {
-        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_PPOS_SEND, Arrays.asList(target_addr,in,value,gas), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> cross_call_ppos_send(String target_addr, String in, Uint64 value, Uint64 gas, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_PPOS_SEND, Arrays.asList(target_addr,in,value,gas), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static ContractCallPPOS load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
