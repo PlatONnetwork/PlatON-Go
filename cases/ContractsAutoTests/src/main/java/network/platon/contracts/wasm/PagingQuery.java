@@ -41,21 +41,6 @@ public class PagingQuery extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> insertVectorValue(String my_value) {
-        final WasmFunction function = new WasmFunction(FUNC_INSERTVECTORVALUE, Arrays.asList(my_value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> insertVectorValue(String my_value, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_INSERTVECTORVALUE, Arrays.asList(my_value), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint64> getVectorSize() {
-        final WasmFunction function = new WasmFunction(FUNC_GETVECTORSIZE, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
-    }
-
     public static RemoteCall<PagingQuery> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(PagingQuery.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -74,6 +59,21 @@ public class PagingQuery extends WasmContract {
     public static RemoteCall<PagingQuery> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(PagingQuery.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> insertVectorValue(String my_value) {
+        final WasmFunction function = new WasmFunction(FUNC_INSERTVECTORVALUE, Arrays.asList(my_value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> insertVectorValue(String my_value, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_INSERTVECTORVALUE, Arrays.asList(my_value), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Uint64> getVectorSize() {
+        final WasmFunction function = new WasmFunction(FUNC_GETVECTORSIZE, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<String> getPagingQuery(Uint64 CurrentPage, Uint64 PageMaxSize) {

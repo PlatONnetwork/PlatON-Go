@@ -36,6 +36,11 @@ public class MemoryReallocInt extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<Int32> getrealloc() {
+        final WasmFunction function = new WasmFunction(FUNC_GETREALLOC, Arrays.asList(), Int32.class);
+        return executeRemoteCall(function, Int32.class);
+    }
+
     public static RemoteCall<MemoryReallocInt> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(MemoryReallocInt.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -54,11 +59,6 @@ public class MemoryReallocInt extends WasmContract {
     public static RemoteCall<MemoryReallocInt> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(MemoryReallocInt.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<Int32> getrealloc() {
-        final WasmFunction function = new WasmFunction(FUNC_GETREALLOC, Arrays.asList(), Int32.class);
-        return executeRemoteCall(function, Int32.class);
     }
 
     public static MemoryReallocInt load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

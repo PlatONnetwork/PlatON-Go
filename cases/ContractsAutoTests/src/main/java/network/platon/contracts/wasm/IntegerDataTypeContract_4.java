@@ -27,9 +27,9 @@ public class IntegerDataTypeContract_4 extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_INITADDRESS = "initAddress";
-
     public static final String FUNC_SETADDRESS = "setAddress";
+
+    public static final String FUNC_INITADDRESS = "initAddress";
 
     public static final String FUNC_GETADDRESS = "getAddress";
 
@@ -69,16 +69,6 @@ public class IntegerDataTypeContract_4 extends WasmContract {
         return deployRemoteCall(IntegerDataTypeContract_4.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<TransactionReceipt> initAddress() {
-        final WasmFunction function = new WasmFunction(FUNC_INITADDRESS, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> initAddress(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_INITADDRESS, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<TransactionReceipt> setAddress(String input) {
         final WasmFunction function = new WasmFunction(FUNC_SETADDRESS, Arrays.asList(input), Void.class);
         return executeRemoteCallTransaction(function);
@@ -86,6 +76,16 @@ public class IntegerDataTypeContract_4 extends WasmContract {
 
     public RemoteCall<TransactionReceipt> setAddress(String input, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SETADDRESS, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> initAddress() {
+        final WasmFunction function = new WasmFunction(FUNC_INITADDRESS, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> initAddress(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_INITADDRESS, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
