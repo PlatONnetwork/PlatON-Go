@@ -2,6 +2,7 @@ package vm
 
 import (
 	"context"
+	"hash/fnv"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -40,7 +41,7 @@ func TestWasmRun(t *testing.T) {
 		contract: &Contract{
 			self:           &AccountRef{1, 2, 3},
 			Gas:            1000000,
-			Code:           deployData(t, "init", "./testdata/contract1.wasm"),
+			Code:           deployData(t, "init", "./testdata/contract_hello.wasm"),
 			CodeAddr:       &addr2,
 			CodeHash:       common.ZeroHash,
 			DeployContract: true,
@@ -105,7 +106,7 @@ func TestWasmRun(t *testing.T) {
 		contract: &Contract{
 			self:           &AccountRef{1, 2, 3},
 			Gas:            1000000,
-			Code:           deployData(t, "bad", "./testdata/contract1.wasm"),
+			Code:           deployData(t, "bad", "./testdata/contract_hello.wasm"),
 			CodeAddr:       &addr2,
 			CodeHash:       common.ZeroHash,
 			DeployContract: true,
@@ -191,10 +192,13 @@ func deployData(t *testing.T, funcName, filePath string) []byte {
 	buf, err := ioutil.ReadFile(filePath)
 	assert.Nil(t, err)
 
+	hash := fnv.New64()
+	hash.Write([]byte(funcName))
+	initUint64 := hash.Sum64()
 	params := struct {
-		FuncName string
+		FuncName uint64
 	}{
-		FuncName: funcName,
+		FuncName: initUint64,
 	}
 
 	bparams, err := rlp.EncodeToBytes(params)
@@ -220,11 +224,14 @@ func callData(t *testing.T, funcName string) []byte {
 		End  string
 	}
 
+	hash := fnv.New64()
+	hash.Write([]byte(funcName))
+	funcUint64 := hash.Sum64()
 	params := struct {
-		FuncName string
+		FuncName uint64
 		Msg      Message
 	}{
-		FuncName: funcName,
+		FuncName: funcUint64,
 		Msg: Message{
 			M: M{
 				Head: "Gavin",

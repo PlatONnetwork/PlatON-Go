@@ -104,11 +104,7 @@ public class ContractTweetAccountTest extends WASMContractPrepareTest {
             ownerBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Owner balance, after res: " + ownerBalance);
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("TweetAccount and could not call contract function");
-            }else{
-                collector.logStepFail("TweetAccount failure,exception msg:" , e.getMessage());
-            }
+            collector.logStepFail("TweetAccount failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

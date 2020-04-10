@@ -3,6 +3,7 @@ package vm
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
@@ -39,16 +40,16 @@ func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {
 	return compiled, nil
 }
 
-func decodeFuncAndParams(input []byte) (string, []byte, error) {
+func decodeFuncAndParams(input []byte) (uint64, []byte, error) {
 	content, _, err := rlp.SplitList(input)
 	if nil != err {
-		return "", nil, fmt.Errorf("failed to decode input funcName and params: %v", err)
+		return 0, nil, fmt.Errorf("failed to decode input funcName and params: %v", err)
 	}
 
 	funcName, params, err := rlp.SplitString(content)
 	if nil != err {
-		return "", nil, fmt.Errorf("failed to decode input funcName and params: %v", err)
+		return 0, nil, fmt.Errorf("failed to decode input funcName and params: %v", err)
 	}
-	return string(funcName), params, nil
-
+	return common.BytesToUint64(funcName), params, nil
 }
+

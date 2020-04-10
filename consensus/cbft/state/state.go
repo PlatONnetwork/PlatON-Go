@@ -311,6 +311,7 @@ func newView() *view {
 		viewVotes:          newViewVotes(),
 	}
 }
+
 func (v *view) Reset() {
 	atomic.StoreUint64(&v.epoch, 0)
 	atomic.StoreUint64(&v.viewNumber, 0)

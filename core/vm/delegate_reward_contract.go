@@ -35,10 +35,16 @@ type DelegateRewardContract struct {
 }
 
 func (rc *DelegateRewardContract) RequiredGas(input []byte) uint64 {
+	if checkInputEmpty(input) {
+		return 0
+	}
 	return params.DelegateRewardGas
 }
 
 func (rc *DelegateRewardContract) Run(input []byte) ([]byte, error) {
+	if checkInputEmpty(input) {
+		return nil, nil
+	}
 	return execPlatonContract(input, rc.FnSigns())
 }
 

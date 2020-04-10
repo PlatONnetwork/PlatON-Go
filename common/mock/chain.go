@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"fmt"
 	"math/big"
 	"math/rand"
 	"time"
@@ -56,10 +57,31 @@ func (c *Chain) SetCoinbaseGenerate(f func() common.Address) {
 
 func (c *Chain) AddBlockWithTxHashAndCommit(txHash common.Hash, miner bool, f func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error) error {
 	c.AddBlockWithTxHash(txHash)
-	return c.commitWithSnapshotDB(miner, f)
+	return c.commitWithSnapshotDB(miner, f, nil, nil)
 }
 
-func (c *Chain) commitWithSnapshotDB(miner bool, f func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error) error {
+func (c *Chain) execTx(miner bool, f Transaction) error {
+	c.StateDB.TxIndex++
+	c.StateDB.Prepare(f.Hash(), c.CurrentHeader().Hash(), c.StateDB.TxIndex)
+	if miner {
+		return f(common.ZeroHash, c.CurrentHeader(), c.StateDB, c.SnapDB)
+	} else {
+		return f(c.CurrentHeader().Hash(), c.CurrentHeader(), c.StateDB, c.SnapDB)
+	}
+}
+
+type Transaction func(blockHash common.Hash, header *types.Header, statedb *MockStateDB, sdb snapshotdb.DB) error
+
+func (T *Transaction) Hash() (h common.Hash) {
+	hw := sha3.NewKeccak256()
+	if err := rlp.Encode(hw, fmt.Sprint(T)); err != nil {
+		panic(err)
+	}
+	hw.Sum(h[:0])
+	return h
+}
+
+func (c *Chain) commitWithSnapshotDB(miner bool, beforeTxHook, afterTxHook func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error, txs []Transaction) error {
 	var useHash common.Hash
 	if miner {
 		useHash = common.ZeroHash
@@ -69,8 +91,21 @@ func (c *Chain) commitWithSnapshotDB(miner bool, f func(hash common.Hash, header
 	if err := c.SnapDB.NewBlock(c.CurrentHeader().Number, c.CurrentHeader().ParentHash, useHash); err != nil {
 		return err
 	}
-	if err := f(useHash, c.CurrentHeader(), c.SnapDB); err != nil {
-		return err
+	if beforeTxHook != nil {
+		if err := beforeTxHook(useHash, c.CurrentHeader(), c.SnapDB); err != nil {
+			return err
+		}
+	}
+
+	for _, tx := range txs {
+		if err := c.execTx(miner, tx); err != nil {
+			return err
+		}
+	}
+	if afterTxHook != nil {
+		if err := afterTxHook(useHash, c.CurrentHeader(), c.SnapDB); err != nil {
+			return err
+		}
 	}
 	if miner {
 		if err := c.SnapDB.Flush(c.CurrentHeader().Hash(), c.CurrentHeader().Number); err != nil {
@@ -83,9 +118,9 @@ func (c *Chain) commitWithSnapshotDB(miner bool, f func(hash common.Hash, header
 	return nil
 }
 
-func (c *Chain) AddBlockWithSnapDB(miner bool, f func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error) error {
+func (c *Chain) AddBlockWithSnapDB(miner bool, beforeTxHook, afterTxHook func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error, txs []Transaction) error {
 	c.AddBlock()
-	return c.commitWithSnapshotDB(miner, f)
+	return c.commitWithSnapshotDB(miner, beforeTxHook, afterTxHook, txs)
 }
 
 func (c *Chain) CurrentHeader() *types.Header {
@@ -196,7 +231,7 @@ func (s *MockStateDB) AddBalance(adr common.Address, amount *big.Int) {
 	if balance, ok := s.Balance[adr]; ok {
 		balance.Add(balance, amount)
 	} else {
-		s.Balance[adr] = amount
+		s.Balance[adr] = new(big.Int).Set(amount)
 	}
 }
 
@@ -271,16 +306,6 @@ func (s *MockStateDB) GetCodeSize(addr common.Address) int {
 		return 0
 	}
 	return len(code)
-}
-
-func (s *MockStateDB) GetAbiHash(common.Address) common.Hash {
-	return common.ZeroHash
-}
-func (s *MockStateDB) GetAbi(common.Address) []byte {
-	return nil
-}
-func (s *MockStateDB) SetAbi(common.Address, []byte) {
-	return
 }
 
 func (s *MockStateDB) AddRefund(uint64) {

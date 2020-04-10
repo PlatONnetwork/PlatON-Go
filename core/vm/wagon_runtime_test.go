@@ -3,10 +3,14 @@ package vm
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
+	"hash/fnv"
 	"io/ioutil"
 	"math/big"
 	"testing"
+
+	"golang.org/x/crypto/ripemd160"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
@@ -488,10 +492,14 @@ var testCase = []*Case{
 			Input: func() []byte {
 
 				code := readContractCode()
+
+				hash := fnv.New64()
+				hash.Write([]byte("init"))
+				initUint64 := hash.Sum64()
 				params := struct {
-					FuncName string
+					FuncName uint64
 				}{
-					FuncName: "init",
+					FuncName: initUint64,
 				}
 				input, err := rlp.EncodeToBytes(params)
 				if nil != err {
@@ -528,8 +536,7 @@ var testCase = []*Case{
 			count := 0
 			storage := make(map[string][]byte)
 			// check storage of newcontract
-			ctx.evm.StateDB.ForEachStorage(newContract, func(key, value []byte) bool {
-				//fmt.Println("key:", string(key), "value:", string(value))
+			ctx.evm.StateDB.ForEachStorage(newContract, func(key []byte, value []byte) bool {
 				storage[string(key)] = []byte("aaa")
 				count++
 				return false
@@ -697,6 +704,42 @@ var testCase = []*Case{
 			return true
 		},
 	},
+	{
+		ctx:      &VMContext{},
+		funcName: "platon_sha256_test",
+		check: func(ctx *VMContext, err error) bool {
+			input := []byte{1, 2, 3}
+			h := sha256.Sum256(input)
+			return bytes.Equal(h[:], ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "platon_ripemd160_test",
+		check: func(ctx *VMContext, err error) bool {
+			input := []byte{1, 2, 3}
+			rip := ripemd160.New()
+			rip.Write(input)
+			h160 := rip.Sum(nil)
+			return bytes.Equal(h160[:], ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "platon_ecrecover_test",
+		check: func(ctx *VMContext, err error) bool {
+			var testPrivHex = "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032"
+			key, _ := crypto.HexToECDSA(testPrivHex)
+			//addr := common.HexToAddress(testAddrHex)
+
+			msg := crypto.Keccak256([]byte("foo"))
+			sig, err := crypto.Sign(msg, key)
+			pubKey, _ := crypto.Ecrecover(msg, sig)
+
+			addr := crypto.Keccak256(pubKey[1:])[12:]
+			return bytes.Equal(addr[:], ctx.Output)
+		},
+	},
 }
 
 func TestExternalFunction(t *testing.T) {
@@ -743,6 +786,7 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 
 	index := int64(entry.Index)
 	vm.RecoverPanic = true
+
 	_, err = vm.ExecCode(index)
 
 	if c.funcName != "platon_panic_test" {
@@ -757,7 +801,7 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 }
 
 func readContractCode() []byte {
-	buf, err := ioutil.ReadFile("./testdata/contract1.wasm")
+	buf, err := ioutil.ReadFile("./testdata/contract_hello.wasm")
 	if nil != err {
 		panic(err)
 	}
@@ -765,10 +809,13 @@ func readContractCode() []byte {
 }
 
 func deployContract(ctx *VMContext, addr1, addr2 common.Address, code []byte) {
+	hash := fnv.New64()
+	hash.Write([]byte("init"))
+	initUint64 := hash.Sum64()
 	params := struct {
-		FuncName string
+		FuncName uint64
 	}{
-		FuncName: "init",
+		FuncName: initUint64,
 	}
 	input, err := rlp.EncodeToBytes(params)
 	if nil != err {
@@ -808,11 +855,14 @@ func callContractInput() []byte {
 		End  string
 	}
 
+	hash := fnv.New64()
+	hash.Write([]byte("add_message"))
+	funcUint64 := hash.Sum64()
 	params := struct {
-		FuncName string
+		FuncName uint64
 		Msg      Message
 	}{
-		FuncName: "add_message",
+		FuncName: funcUint64,
 		Msg: Message{
 			M: M{
 				Head: "Gavin",
@@ -822,22 +872,6 @@ func callContractInput() []byte {
 		},
 	}
 
-	bparams, err := rlp.EncodeToBytes(params)
-	if nil != err {
-		panic(err)
-	}
-
-	return bparams
-}
-
-func queryContractInput() []byte {
-	params := struct {
-		FuncName string
-		Name     string
-	}{
-		FuncName: "get_message",
-		Name:     "Gavin",
-	}
 	bparams, err := rlp.EncodeToBytes(params)
 	if nil != err {
 		panic(err)

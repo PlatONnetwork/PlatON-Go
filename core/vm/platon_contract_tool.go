@@ -27,7 +27,6 @@ import (
 )
 
 func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byte, err error) {
-
 	// verify the tx data by contracts method
 	_, fn, params, err := plugin.VerifyTxData(input, command)
 	if nil != err {
@@ -107,4 +106,12 @@ func IsBlank(i interface{}) bool {
 		}
 	}
 	return val.IsNil()
+}
+
+func checkInputEmpty(input []byte) bool {
+	if len(input) == 0 {
+		return true
+	} else {
+		return false
+	}
 }

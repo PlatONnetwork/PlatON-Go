@@ -57,6 +57,11 @@ func RestrictingInstance() *RestrictingPlugin {
 	return rt
 }
 
+func NewRestrictingPlugin(snapdb snapshotdb.DB) *RestrictingPlugin {
+	restrictLog := log.Root().New("package", "RestrictingPlugin")
+	return &RestrictingPlugin{restrictLog, snapdb}
+}
+
 // BeginBlock does something like check input params before execute transactions,
 // in RestrictingPlugin it does nothing.
 func (rp *RestrictingPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {

@@ -48,7 +48,7 @@ func TestNodeIteratorCoverage(t *testing.T) {
 	}
 	for _, hash := range db.TrieDB().Nodes() {
 		if _, ok := hashes[hash]; !ok {
-			if _, ok := valueKeys[hash]; !ok {
+			if _, ok := valueKeys[string(hash.Bytes())]; !ok {
 				t.Errorf("state entry not reported %x", hash)
 			}
 		}

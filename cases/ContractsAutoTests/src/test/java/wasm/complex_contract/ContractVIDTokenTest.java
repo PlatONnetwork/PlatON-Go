@@ -98,6 +98,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             // 0x493301712671Ada506ba6Ca7891F436D29185821
             // to: 0x1E1ae3407377F7897470FEf31a80873B4FD75cA1
             Credentials spendCredentials = Credentials.create("a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7");
+            t.sendFunds(spendCredentials.getAddress(), new BigDecimal(10), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
             TransactionManager spenderTM = transactionManager = new RawTransactionManager(web3j, spendCredentials, chainId);
             String to2 = "0x1E1ae3407377F7897470FEf31a80873B4FD75cA1";
             BigInteger valule2 = new BigInteger("10000");
@@ -191,12 +192,8 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " gasUsed: " + setWalltTr.getGasUsed() + " logs:" + setWalltTr.getLogs().size());
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("contract_VIDToken and could not call contract function");
-            }else{
-                collector.logStepFail("contract_VIDToken failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("contract_VIDToken failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 

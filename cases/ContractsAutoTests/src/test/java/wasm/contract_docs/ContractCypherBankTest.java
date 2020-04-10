@@ -42,7 +42,7 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
 
             // transfer
             Transfer t = new Transfer(web3j, transactionManager);
-            t.sendFunds(contractAddress, new BigDecimal("100000000000"), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            t.sendFunds(contractAddress, new BigDecimal("1"), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
             BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
 
@@ -126,12 +126,8 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
             collector.logStepPass("Call buyPrice, res: " + buyPrice);
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("contract_CypherBank and could not call contract function");
-            }else{
-                collector.logStepFail("contract_CypherBank failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("contract_CypherBank failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
