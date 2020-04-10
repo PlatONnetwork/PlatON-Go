@@ -67,7 +67,9 @@ type Trie interface {
 	TryUpdate(key, value []byte) error
 	TryDelete(key []byte) error
 	Commit(onleaf trie.LeafCallback) (common.Hash, error)
+	ParallelCommit2(onleaf trie.LeafCallback) (common.Hash, error)
 	Hash() common.Hash
+	ParallelHash2() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
 	Prove(key []byte, fromLevel uint, proofDb ethdb.Putter) error
@@ -191,6 +193,14 @@ type cachedTrie struct {
 
 func (m cachedTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
 	root, err := m.SecureTrie.Commit(onleaf)
+	if err == nil {
+		m.db.pushTrie(m.SecureTrie)
+	}
+	return root, err
+}
+
+func (m cachedTrie) ParallelCommit2(onleaf trie.LeafCallback) (common.Hash, error) {
+	root, err := m.SecureTrie.ParallelCommit2(onleaf)
 	if err == nil {
 		m.db.pushTrie(m.SecureTrie)
 	}
