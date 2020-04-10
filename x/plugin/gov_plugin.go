@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"math"
+	"math/big"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -35,6 +36,7 @@ var (
 )
 
 type GovPlugin struct {
+	chainID *big.Int
 }
 
 var govp *GovPlugin
@@ -47,6 +49,9 @@ func GovPluginInstance() *GovPlugin {
 	return govp
 }
 
+func (govPlugin *GovPlugin) SetChainID(chainId *big.Int) {
+	govPlugin.chainID = chainId
+}
 func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
@@ -62,7 +67,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 
 	if xutil.IsBeginOfEpoch(blockNumber) {
 		if err := accuVerifiersAtBeginOfSettlement(blockHash, blockNumber); err != nil {
-			log.Error("accumulates all distinct verifiers for voting proposal failed.", "err", err)
+			log.Error("accumulates all distinct verifiers for voting proposal failed.", "blockNumber", blockNumber, "err", err)
 			return err
 		}
 	}
@@ -97,7 +102,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 			tallyResult.Status = gov.Active
 
 			if err := gov.SetTallyResult(*tallyResult, state); err != nil {
-				log.Error("update version proposal tally result failed.", "preActiveVersionProposalID", preActiveVersionProposalID)
+				log.Error("update version proposal tally result failed.", "blockNumber", blockNumber, "preActiveVersionProposalID", preActiveVersionProposalID)
 				return err
 			}
 
@@ -115,7 +120,8 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				log.Error("save active version to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 				return err
 			}
-			log.Info("version proposal is active.", "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
+
+			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
 	}
 	return nil
@@ -271,14 +277,14 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 			return err
 		}
 		//log.Debug("call stk.ProposalPassedNotify", "proposalID", proposalID, "activeList", activeList)
-		if err := stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion); err != nil {
+		if err := stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion, state); err != nil {
 			log.Error("call stk.ProposalPassedNotify failed", "proposalID", proposalID, "blockHash", blockHash, "newVersion", proposal.NewVersion, "activeList", activeList)
 			return err
 		}
 
 	} else {
 		if err := gov.MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {
-			log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockHash", blockHash)
+			log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
 			return err
 		}
 		if err := gov.ClearActiveNodes(blockHash, proposalID); err != nil {
@@ -296,7 +302,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	}
 
 	if err := gov.SetTallyResult(*tallyResult, state); err != nil {
-		log.Error("save tally result failed", "proposalID", proposalID, "tallyResult", tallyResult)
+		log.Error("save tally result failed", "blockNumber", blockNumber, "blockHash", blockHash, "proposalID", proposalID, "tallyResult", tallyResult)
 		return err
 	}
 
@@ -307,7 +313,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 		return err
 	}*/
 
-	log.Info("version proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
+	log.Info("version proposal tally result", "blockNumber", blockNumber, "blockHash", blockHash, "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return nil
 }
 
@@ -366,7 +372,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 			tallyResult.CanceledBy = cp.ProposalID
 
 			if err := gov.SetTallyResult(*tallyResult, state); err != nil {
-				log.Error("to cancel a proposal failed, cannot save its tally result", "tallyResult", tallyResult)
+				log.Error("to cancel a proposal failed, cannot save its tally result", "blockNumber", blockNumber, "blockHash", blockHash, "proposalID", cp.ProposalID, "tallyResult", tallyResult)
 				return false, err
 			}
 
@@ -380,7 +386,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 				return false, err
 			}
 
-			log.Info("canceled a proposal success", "proposalID", cp.TobeCanceled, "tallyResult", tallyResult)
+			log.Info("canceled a proposal success", "blockNumber", blockNumber, "blockHash", blockHash, "proposalID", cp.TobeCanceled, "tallyResult", tallyResult)
 		}
 	}
 	return true, nil
@@ -454,7 +460,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 	}
 	//gov.MoveVotingProposalIDToEnd(blockHash, proposalID, state)
 	if err := gov.MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {
-		log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockHash", blockHash, "err", err)
+		log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash, "err", err)
 		return false, err
 	}
 
@@ -471,7 +477,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 		return false, err
 	}*/
 
-	log.Debug("proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
+	log.Debug("proposal tally result", "blockNumber", blockNumber, "blockHash", blockHash, "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return status == gov.Pass, nil
 }
 

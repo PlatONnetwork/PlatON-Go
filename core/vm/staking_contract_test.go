@@ -20,7 +20,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	_ "fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"testing"
 
@@ -857,7 +863,114 @@ func TestStakingContract_batchCreateStaking(t *testing.T) {
 
 }
 
-func TestStakingContract_cleanSnapshotDB(t *testing.T) {
-	sndb := snapshotdb.Instance()
-	sndb.Clear()
+func TestStakingContract_DelegateMerge(t *testing.T) {
+	index := 0
+	initGas := uint64(100000000)
+
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+	gov.AddActiveVersion(initProgramVersion, 0, chain.StateDB)
+	plugin.RewardMgrInstance()
+
+	if err := gov.InitGenesisGovernParam(chain.SnapDB, 2048); err != nil {
+		t.Error("error", err)
+	}
+	gov.RegisterGovernParamVerifiers()
+
+	privateKey, _ := crypto.GenerateKey()
+	stakingAdd := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	privateKey2, _ := crypto.GenerateKey()
+	delAdd := crypto.PubkeyToAddress(privateKey2.PublicKey)
+
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
+
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+
+	stakingAmount := new(big.Int).SetUint64(params.LAT)
+	stakingAmount.Mul(stakingAmount, new(big.Int).SetUint64(1000000))
+	chain.StateDB.AddBalance(stakingAdd, stakingAmount)
+	chain.StateDB.AddBalance(stakingAdd, new(big.Int).SetUint64(params.LAT))
+
+	delAmount := new(big.Int).SetUint64(params.LAT)
+	delAmount.Mul(delAmount, new(big.Int).SetUint64(100))
+	chain.StateDB.AddBalance(delAdd, delAmount)
+	chain.StateDB.AddBalance(delAdd, delAmount)
+	chain.StateDB.AddBalance(delAdd, new(big.Int).SetUint64(params.LAT))
+
+	createStaking := func(hash common.Hash, header *types.Header, statedb *mock.MockStateDB, sdb snapshotdb.DB) error {
+		toStaking := newStakingContact(stakingAdd, hash, header.Number, statedb, sdb, initGas)
+		if _, err := toStaking.createStaking(plugin.FreeVon, addrArr[index], nodeIdArr[index], "I am Xu !?", "cheng", "https://www.cheng.net",
+			"test node", new(big.Int).Set(stakingAmount), 100, initProgramVersion, versionSign, keyEntries, proofHex); err != nil {
+			return err
+		}
+		return nil
+	}
+	delegateFunc := func(hash common.Hash, header *types.Header, statedb *mock.MockStateDB, sdb snapshotdb.DB) error {
+		toDel := newStakingContact(delAdd, hash, header.Number, chain.StateDB, chain.SnapDB, initGas)
+		if _, err := toDel.delegate(plugin.FreeVon, nodeIdArr[index], new(big.Int).Set(delAmount)); err != nil {
+			return err
+		}
+		return nil
+	}
+	withDrewStaking := func(hash common.Hash, header *types.Header, statedb *mock.MockStateDB, sdb snapshotdb.DB) error {
+		toStaking := newStakingContact(stakingAdd, hash, header.Number, statedb, sdb, initGas)
+		if _, err := toStaking.withdrewStaking(nodeIdArr[index]); err != nil {
+			return err
+		}
+		return nil
+	}
+	execFunc := []mock.Transaction{createStaking, delegateFunc, withDrewStaking, createStaking, delegateFunc}
+
+	delLastAmount := new(big.Int).SetUint64(params.LAT)
+	delLastAmount.Mul(delLastAmount, new(big.Int).SetUint64(200))
+
+	afterTxHook := func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
+		del, err := plugin.NewStakingPlugin(sdb).GetDelegateInfo(hash, delAdd, nodeIdArr[index], header.Number.Uint64())
+		if err != nil {
+			return err
+		}
+		if del.ReleasedHes.Cmp(delLastAmount) != 0 {
+			return fmt.Errorf("ReleasedHes must same,want %v,have %v", delLastAmount, del.ReleasedHes)
+		}
+
+		return nil
+	}
+	if err := chain.AddBlockWithSnapDB(true, nil, afterTxHook, execFunc); err != nil {
+		t.Error(err)
+	}
+	lastBalsce := new(big.Int).Add(stakingAmount, delLastAmount)
+	if chain.StateDB.GetBalance(vm.StakingContractAddr).Cmp(lastBalsce) != 0 {
+		t.Error(fmt.Errorf("StakingContractAddr value must same,want %v,have %v", lastBalsce, chain.StateDB.GetBalance(vm.StakingContractAddr)))
+	}
+	return
+}
+
+func newStakingContact(add common.Address, blockHash common.Hash, blockNum *big.Int, statedb StateDB, sdb snapshotdb.DB, initGas uint64) *StakingContract {
+	callerAddress := AccountRef(add)
+	contact := new(StakingContract)
+	contact.Contract = NewContract(callerAddress, callerAddress, nil, initGas)
+	contact.Contract.CallerAddress = add
+	contact.Evm = &EVM{
+		StateDB: statedb,
+		Context: Context{
+			BlockNumber: blockNum,
+			BlockHash:   blockHash,
+		},
+	}
+	contact.Plugin = plugin.NewStakingPlugin(sdb)
+	return contact
 }

@@ -42,6 +42,10 @@ func NewStakingDBWithDB(db snapshotdb.DB) *StakingDB {
 	}
 }
 
+func (db *StakingDB) GetDB() snapshotdb.DB {
+	return db.db
+}
+
 func (db *StakingDB) get(blockHash common.Hash, key []byte) ([]byte, error) {
 	return db.db.Get(blockHash, key)
 }
@@ -60,6 +64,9 @@ func (db *StakingDB) del(blockHash common.Hash, key []byte) error {
 
 func (db *StakingDB) ranking(blockHash common.Hash, prefix []byte, ranges int) iterator.Iterator {
 	return db.db.Ranking(blockHash, prefix, ranges)
+}
+func (db *StakingDB) Del(blockHash common.Hash, key []byte) error {
+	return db.db.Del(blockHash, key)
 }
 
 func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {

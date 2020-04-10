@@ -39,11 +39,6 @@ type StateDB interface {
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
 
-	// todo: new func for abi of contract.
-	GetAbiHash(common.Address) common.Hash
-	GetAbi(common.Address) []byte
-	SetAbi(common.Address, []byte)
-
 	AddRefund(uint64)
 	SubRefund(uint64)
 	GetRefund() uint64

@@ -730,6 +730,10 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 		}
 		return viewNumber - minuend + 1
 	}
+	// last epoch and last viewNumber
+	// when cbft is started or fast synchronization ends, the preEpoch, preViewNumber defaults to 0, 0
+	// but cbft is now in the loading state and lastViewChangeQC is nil, does not save the lastViewChangeQC
+	preEpoch, preViewNumber := cbft.state.Epoch(), cbft.state.ViewNumber()
 	// syncingCache is belong to last view request, clear all sync cache
 	cbft.syncingCache.Purge()
 	cbft.csPool.Purge(epoch, viewNumber)
@@ -745,7 +749,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 
 	// write confirmed viewChange info to wal
 	if !cbft.isLoading() {
-		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
+		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC, preEpoch, preViewNumber)
 	}
 	cbft.clearInvalidBlocks(block)
 	cbft.evPool.Clear(epoch, viewNumber)

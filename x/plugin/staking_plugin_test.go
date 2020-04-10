@@ -22,6 +22,8 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	mrand "math/rand"
 	"testing"
@@ -434,7 +436,7 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 
 	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
 
-	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, 0, amount, delegateRewardPerList)
+	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, nil, canAddr, can, 0, amount, delegateRewardPerList)
 }
 
 func getDelegate(blockHash common.Hash, stakingNum uint64, index int, t *testing.T) *staking.Delegation {
@@ -1614,7 +1616,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	expectedCumulativeIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
 	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.LAT))
-	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
+	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, nil, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
 		t.Fatal("Failed to Delegate:", err)
 	}
 
@@ -1667,6 +1669,9 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 
 	// Delegate
 	del, err := delegate(state, blockHash, blockNumber, can, 0, index, t)
+
+	delegateRewardPoolBalance, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
+	state.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Mul(new(big.Int).Set(delegateRewardPoolBalance), new(big.Int).Set(delegateRewardPoolBalance)))
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to delegate: %v", err)) {
 		return
@@ -2719,7 +2724,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	Start DeclarePromoteNotify
 	*/
 	for i, can := range queue {
-		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion)
+		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion, state)
 
 		assert.Nil(t, err, fmt.Sprintf("Failed to DeclarePromoteNotify, index: %d, err: %v", i, err))
 	}
@@ -2887,7 +2892,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	/**
 	Start ProposalPassedNotify
 	*/
-	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
+	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion, state)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
 }
@@ -3454,10 +3459,57 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		time.Sleep(time.Microsecond * 10)
 	}
 
-	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces)
+	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, params.GenesisVersion)
 	assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 	assert.True(t, nil != result, "the result is nil")
 
+}
+
+func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T)  {
+	newPlugins()
+	handler.NewVrfHandler(make([]byte, 0))
+	defer func() {
+		slash.db.Clear()
+	}()
+
+	gov.InitGenesisGovernParam(slash.db, 2048)
+
+	privateKey, _ := crypto.GenerateKey()
+	vqList := make(staking.ValidatorQueue, 0)
+	dataList := make([][]byte, 0)
+	data := common.Int64ToBytes(time.Now().UnixNano())
+	if err := slash.db.NewBlock(new(big.Int).SetUint64(1), blockHash, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	for i := 0; i < int(xcom.MaxConsensusVals()); i++ {
+		vrfData, err := vrf.Prove(privateKey, data)
+		if nil != err {
+			t.Fatal(err)
+		}
+		data = vrf.ProofToHash(vrfData)
+		dataList = append(dataList, data)
+
+		tempPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		nodeId := discover.PubkeyID(&tempPrivateKey.PublicKey)
+		addr := crypto.PubkeyToAddress(tempPrivateKey.PublicKey)
+		v := &staking.Validator{
+			NodeAddress: addr,
+			NodeId:      nodeId,
+		}
+		vqList = append(vqList, v)
+	}
+	if enValue, err := rlp.EncodeToBytes(dataList); nil != err {
+		t.Fatal(err)
+	} else {
+		if err := slash.db.Put(common.ZeroHash, handler.NonceStorageKey, enValue); nil != err {
+			t.Fatal(err)
+		}
+	}
+	resultQueue, err := randomOrderValidatorQueue(1, common.ZeroHash, vqList)
+	if nil != err {
+		t.Fatal(err)
+	}
+	assert.True(t, len(resultQueue) == len(vqList))
 }
 
 /**

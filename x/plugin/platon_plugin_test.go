@@ -189,7 +189,7 @@ var (
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee9"),
 	}
 
-	initProgramVersion = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
+	initProgramVersion = uint32(0<<16 | 8<<8 | 0) // 65536, version: 0.8.0
 	promoteVersion     = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
 
 	balanceStr = []string{
@@ -649,7 +649,7 @@ func build_gov_data(state xcom.StateDB) {
 
 	//set a default active version
 	gov.AddActiveVersion(initProgramVersion, 0, state)
-	gov.InitGenesisGovernParam(snapshotdb.Instance())
+	gov.InitGenesisGovernParam(snapshotdb.Instance(), 2048)
 }
 
 func buildStateDB(t *testing.T) xcom.StateDB {
