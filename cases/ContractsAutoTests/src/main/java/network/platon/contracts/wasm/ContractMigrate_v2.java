@@ -37,11 +37,11 @@ public class ContractMigrate_v2 extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_STRING = "get_string";
-
     public static final String FUNC_MIGRATE_CONTRACT = "migrate_contract";
 
     public static final String FUNC_SET_STRING = "set_string";
+
+    public static final String FUNC_GET_STRING = "get_string";
 
     public static final WasmEvent TRANSFER_EVENT = new WasmEvent("transfer", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(String.class)));
     ;
@@ -52,11 +52,6 @@ public class ContractMigrate_v2 extends WasmContract {
 
     protected ContractMigrate_v2(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
@@ -92,6 +87,26 @@ public class ContractMigrate_v2 extends WasmContract {
         return transferEventObservable(filter);
     }
 
+    public RemoteCall<TransactionReceipt> migrate_contract(byte[] init_arg, Uint64 transfer_value, Uint64 gas_value) {
+        final WasmFunction function = new WasmFunction(FUNC_MIGRATE_CONTRACT, Arrays.asList(init_arg,transfer_value,gas_value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> migrate_contract(byte[] init_arg, Uint64 transfer_value, Uint64 gas_value, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_MIGRATE_CONTRACT, Arrays.asList(init_arg,transfer_value,gas_value), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> set_string(String one_name) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(one_name), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_string(String one_name, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(one_name), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<ContractMigrate_v2> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractMigrate_v2.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -112,24 +127,9 @@ public class ContractMigrate_v2 extends WasmContract {
         return deployRemoteCall(ContractMigrate_v2.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<TransactionReceipt> migrate_contract(byte[] init_arg, Uint64 transfer_value, Uint64 gas_value) {
-        final WasmFunction function = new WasmFunction(FUNC_MIGRATE_CONTRACT, Arrays.asList(init_arg,transfer_value,gas_value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> migrate_contract(byte[] init_arg, Uint64 transfer_value, Uint64 gas_value, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_MIGRATE_CONTRACT, Arrays.asList(init_arg,transfer_value,gas_value), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> set_string(String one_name) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(one_name), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_string(String one_name, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(one_name), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static ContractMigrate_v2 load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

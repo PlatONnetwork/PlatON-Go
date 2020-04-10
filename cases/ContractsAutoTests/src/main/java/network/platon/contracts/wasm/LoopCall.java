@@ -39,21 +39,6 @@ public class LoopCall extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> loopCallTest(Uint64 n) {
-        final WasmFunction function = new WasmFunction(FUNC_LOOPCALLTEST, Arrays.asList(n), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> loopCallTest(Uint64 n, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_LOOPCALLTEST, Arrays.asList(n), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint64> get_sum() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_SUM, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
-    }
-
     public static RemoteCall<LoopCall> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(LoopCall.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -72,6 +57,21 @@ public class LoopCall extends WasmContract {
     public static RemoteCall<LoopCall> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(LoopCall.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> loopCallTest(Uint64 n) {
+        final WasmFunction function = new WasmFunction(FUNC_LOOPCALLTEST, Arrays.asList(n), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> loopCallTest(Uint64 n, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_LOOPCALLTEST, Arrays.asList(n), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Uint64> get_sum() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_SUM, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public static LoopCall load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

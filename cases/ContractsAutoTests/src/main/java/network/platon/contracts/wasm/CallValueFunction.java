@@ -36,6 +36,11 @@ public class CallValueFunction extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<Uint8> get_platon_call_value() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_PLATON_CALL_VALUE, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
+    }
+
     public static RemoteCall<CallValueFunction> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(CallValueFunction.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -54,11 +59,6 @@ public class CallValueFunction extends WasmContract {
     public static RemoteCall<CallValueFunction> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(CallValueFunction.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<Uint8> get_platon_call_value() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_PLATON_CALL_VALUE, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public static CallValueFunction load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

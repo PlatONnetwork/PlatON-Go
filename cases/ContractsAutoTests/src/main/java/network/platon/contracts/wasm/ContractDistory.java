@@ -26,11 +26,11 @@ public class ContractDistory extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GET_STRING = "get_string";
+
     public static final String FUNC_DISTORY_CONTRACT = "distory_contract";
 
     public static final String FUNC_SET_STRING = "set_string";
-
-    public static final String FUNC_GET_STRING = "get_string";
 
     protected ContractDistory(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -40,24 +40,9 @@ public class ContractDistory extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> distory_contract() {
-        final WasmFunction function = new WasmFunction(FUNC_DISTORY_CONTRACT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> distory_contract(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_DISTORY_CONTRACT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> set_string(String name) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(name), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_string(String name, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(name), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static RemoteCall<ContractDistory> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -80,9 +65,24 @@ public class ContractDistory extends WasmContract {
         return deployRemoteCall(ContractDistory.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
+    public RemoteCall<TransactionReceipt> distory_contract() {
+        final WasmFunction function = new WasmFunction(FUNC_DISTORY_CONTRACT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> distory_contract(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_DISTORY_CONTRACT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> set_string(String name) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(name), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_string(String name, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(name), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static ContractDistory load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

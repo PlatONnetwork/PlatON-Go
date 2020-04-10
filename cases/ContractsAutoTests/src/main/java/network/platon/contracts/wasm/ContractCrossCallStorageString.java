@@ -27,9 +27,9 @@ public class ContractCrossCallStorageString extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_STRING = "get_string";
-
     public static final String FUNC_CALL_SET_STRING = "call_set_string";
+
+    public static final String FUNC_GET_STRING = "get_string";
 
     protected ContractCrossCallStorageString(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -37,21 +37,6 @@ public class ContractCrossCallStorageString extends WasmContract {
 
     protected ContractCrossCallStorageString(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<TransactionReceipt> call_set_string(String target_address, String name, Uint64 value, Uint64 gas) {
-        final WasmFunction function = new WasmFunction(FUNC_CALL_SET_STRING, Arrays.asList(target_address,name,value,gas), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> call_set_string(String target_address, String name, Uint64 value, Uint64 gas, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_CALL_SET_STRING, Arrays.asList(target_address,name,value,gas), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<ContractCrossCallStorageString> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -72,6 +57,21 @@ public class ContractCrossCallStorageString extends WasmContract {
     public static RemoteCall<ContractCrossCallStorageString> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractCrossCallStorageString.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> call_set_string(String target_address, String name, Uint64 value, Uint64 gas) {
+        final WasmFunction function = new WasmFunction(FUNC_CALL_SET_STRING, Arrays.asList(target_address,name,value,gas), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> call_set_string(String target_address, String name, Uint64 value, Uint64 gas, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_CALL_SET_STRING, Arrays.asList(target_address,name,value,gas), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static ContractCrossCallStorageString load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

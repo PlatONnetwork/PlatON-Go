@@ -29,11 +29,11 @@ public class IntegerDataTypeContract_3 extends WasmContract {
 
     public static final String FUNC_SETBOOL = "setBool";
 
-    public static final String FUNC_SETSTRING = "setString";
-
     public static final String FUNC_GETSTRING = "getString";
 
     public static final String FUNC_GETBOOL = "getBool";
+
+    public static final String FUNC_SETSTRING = "setString";
 
     public static final String FUNC_SETCHAR = "setChar";
 
@@ -45,6 +45,16 @@ public class IntegerDataTypeContract_3 extends WasmContract {
 
     protected IntegerDataTypeContract_3(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> setBool(Boolean input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETBOOL, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setBool(Boolean input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETBOOL, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<IntegerDataTypeContract_3> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -67,14 +77,14 @@ public class IntegerDataTypeContract_3 extends WasmContract {
         return deployRemoteCall(IntegerDataTypeContract_3.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<TransactionReceipt> setBool(Boolean input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETBOOL, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
+    public RemoteCall<String> getString() {
+        final WasmFunction function = new WasmFunction(FUNC_GETSTRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
-    public RemoteCall<TransactionReceipt> setBool(Boolean input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETBOOL, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
+    public RemoteCall<Boolean> getBool() {
+        final WasmFunction function = new WasmFunction(FUNC_GETBOOL, Arrays.asList(), Boolean.class);
+        return executeRemoteCall(function, Boolean.class);
     }
 
     public RemoteCall<TransactionReceipt> setString(String input) {
@@ -85,16 +95,6 @@ public class IntegerDataTypeContract_3 extends WasmContract {
     public RemoteCall<TransactionReceipt> setString(String input, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SETSTRING, Arrays.asList(input), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<String> getString() {
-        final WasmFunction function = new WasmFunction(FUNC_GETSTRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Boolean> getBool() {
-        final WasmFunction function = new WasmFunction(FUNC_GETBOOL, Arrays.asList(), Boolean.class);
-        return executeRemoteCall(function, Boolean.class);
     }
 
     public RemoteCall<TransactionReceipt> setChar(Int8 input) {
