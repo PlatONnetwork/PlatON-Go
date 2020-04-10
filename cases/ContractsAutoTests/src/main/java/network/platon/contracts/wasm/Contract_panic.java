@@ -53,26 +53,6 @@ public class Contract_panic extends WasmContract {
         return executeRemoteCall(function, String.class);
     }
 
-    public static RemoteCall<Contract_panic> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(Contract_panic.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<Contract_panic> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(Contract_panic.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<Contract_panic> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(Contract_panic.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public static RemoteCall<Contract_panic> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(Contract_panic.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
     public RemoteCall<TransactionReceipt> panic_contract(String name, Uint64 value) {
         final WasmFunction function = new WasmFunction(FUNC_PANIC_CONTRACT, Arrays.asList(name,value), Void.class);
         return executeRemoteCallTransaction(function);
@@ -91,6 +71,26 @@ public class Contract_panic extends WasmContract {
     public RemoteCall<TransactionReceipt> set_string_storage(String name, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SET_STRING_STORAGE, Arrays.asList(name), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public static RemoteCall<Contract_panic> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(Contract_panic.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<Contract_panic> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(Contract_panic.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<Contract_panic> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(Contract_panic.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public static RemoteCall<Contract_panic> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(Contract_panic.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
     public static Contract_panic load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

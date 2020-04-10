@@ -31,13 +31,13 @@ public class InnerFunction_2 extends WasmContract {
 
     public static final String FUNC_RRETURN = "rreturn";
 
+    public static final String FUNC_PANIC = "panic";
+
     public static final String FUNC_TRANSFER = "transfer";
 
     public static final String FUNC_VALUE = "value";
 
     public static final String FUNC_SHA3 = "sha3";
-
-    public static final String FUNC_PANIC = "panic";
 
     public static final String FUNC_REVERT = "revert";
 
@@ -79,6 +79,16 @@ public class InnerFunction_2 extends WasmContract {
         throw new RuntimeException("cannot call constant function with void return type");
     }
 
+    public RemoteCall<TransactionReceipt> panic() {
+        final WasmFunction function = new WasmFunction(FUNC_PANIC, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> panic(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_PANIC, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<TransactionReceipt> transfer(String addr, Uint64 amount) {
         final WasmFunction function = new WasmFunction(FUNC_TRANSFER, Arrays.asList(addr,amount), Void.class);
         return executeRemoteCallTransaction(function);
@@ -97,16 +107,6 @@ public class InnerFunction_2 extends WasmContract {
     public RemoteCall<String> sha3(String str) {
         final WasmFunction function = new WasmFunction(FUNC_SHA3, Arrays.asList(str), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<TransactionReceipt> panic() {
-        final WasmFunction function = new WasmFunction(FUNC_PANIC, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> panic(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_PANIC, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> revert(Int64 flag) {

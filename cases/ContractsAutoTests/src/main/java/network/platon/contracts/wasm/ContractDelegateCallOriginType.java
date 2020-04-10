@@ -27,9 +27,9 @@ public class ContractDelegateCallOriginType extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_DELEGATE_CALL_ADD_MESSAGE = "delegate_call_add_message";
-
     public static final String FUNC_GET_VECTOR_SIZE = "get_vector_size";
+
+    public static final String FUNC_DELEGATE_CALL_ADD_MESSAGE = "delegate_call_add_message";
 
     protected ContractDelegateCallOriginType(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -59,6 +59,11 @@ public class ContractDelegateCallOriginType extends WasmContract {
         return deployRemoteCall(ContractDelegateCallOriginType.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
+    public RemoteCall<Uint64> get_vector_size() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR_SIZE, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
     public RemoteCall<TransactionReceipt> delegate_call_add_message(String target_address, My_message one_message, Uint64 gas) {
         final WasmFunction function = new WasmFunction(FUNC_DELEGATE_CALL_ADD_MESSAGE, Arrays.asList(target_address,one_message,gas), Void.class);
         return executeRemoteCallTransaction(function);
@@ -67,11 +72,6 @@ public class ContractDelegateCallOriginType extends WasmContract {
     public RemoteCall<TransactionReceipt> delegate_call_add_message(String target_address, My_message one_message, Uint64 gas, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_DELEGATE_CALL_ADD_MESSAGE, Arrays.asList(target_address,one_message,gas), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint64> get_vector_size() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR_SIZE, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public static ContractDelegateCallOriginType load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

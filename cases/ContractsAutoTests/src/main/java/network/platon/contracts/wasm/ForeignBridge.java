@@ -39,8 +39,6 @@ public class ForeignBridge extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_RECEIVEAPPROVAL = "receiveApproval";
-
     public static final String FUNC_SETGASLIMITDEPOSITRELAY = "setGasLimitDepositRelay";
 
     public static final String FUNC_SETGASLIMITWITHDRAWCONFIRM = "setGasLimitWithdrawConfirm";
@@ -48,6 +46,8 @@ public class ForeignBridge extends WasmContract {
     public static final String FUNC_SETTOKENADDRESS = "setTokenAddress";
 
     public static final String FUNC_DEPOSIT = "deposit";
+
+    public static final String FUNC_RECEIVEAPPROVAL = "receiveApproval";
 
     public static final String FUNC_SUBMITSIGNATURE = "submitSignature";
 
@@ -76,16 +76,6 @@ public class ForeignBridge extends WasmContract {
 
     protected ForeignBridge(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> receiveApproval(WasmAddress _from, BigInteger _value, WasmAddress _tokenContract, byte[] _msg) {
-        final WasmFunction function = new WasmFunction(FUNC_RECEIVEAPPROVAL, Arrays.asList(_from,_value,_tokenContract,_msg), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> receiveApproval(WasmAddress _from, BigInteger _value, WasmAddress _tokenContract, byte[] _msg, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_RECEIVEAPPROVAL, Arrays.asList(_from,_value,_tokenContract,_msg), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> setGasLimitDepositRelay(BigInteger gas) {
@@ -313,6 +303,16 @@ public class ForeignBridge extends WasmContract {
     public static RemoteCall<ForeignBridge> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, BigInteger _requiredSignatures, WasmAddress[] _authorities, BigInteger _estimatedGasCostOfWithdraw) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_requiredSignatures,_authorities,_estimatedGasCostOfWithdraw));
         return deployRemoteCall(ForeignBridge.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> receiveApproval(WasmAddress _from, BigInteger _value, WasmAddress _tokenContract, byte[] _msg) {
+        final WasmFunction function = new WasmFunction(FUNC_RECEIVEAPPROVAL, Arrays.asList(_from,_value,_tokenContract,_msg), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> receiveApproval(WasmAddress _from, BigInteger _value, WasmAddress _tokenContract, byte[] _msg, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_RECEIVEAPPROVAL, Arrays.asList(_from,_value,_tokenContract,_msg), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> submitSignature(byte[] signature, byte[] message) {

@@ -28,9 +28,9 @@ public class ShellSort extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_SORT = "sort";
-
     public static final String FUNC_GET_ARRAY = "get_array";
+
+    public static final String FUNC_SORT = "sort";
 
     protected ShellSort(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -38,6 +38,11 @@ public class ShellSort extends WasmContract {
 
     protected ShellSort(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Int64[]> get_array() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_ARRAY, Arrays.asList(), Int64[].class);
+        return executeRemoteCall(function, Int64[].class);
     }
 
     public static RemoteCall<ShellSort> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -68,11 +73,6 @@ public class ShellSort extends WasmContract {
     public RemoteCall<TransactionReceipt> sort(Int64[] arr, Int32 n, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SORT, Arrays.asList(arr,n), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Int64[]> get_array() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_ARRAY, Arrays.asList(), Int64[].class);
-        return executeRemoteCall(function, Int64[].class);
     }
 
     public static ShellSort load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

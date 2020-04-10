@@ -47,9 +47,9 @@ public class VIDToken extends WasmContract {
 
     public static final String FUNC_BALANCEOF = "BalanceOf";
 
-    public static final String FUNC_VALIDATEFILE = "ValidateFile";
-
     public static final String FUNC_BURN = "Burn";
+
+    public static final String FUNC_FREEZE = "Freeze";
 
     public static final String FUNC_VALIDATEWALLET = "ValidateWallet";
 
@@ -60,6 +60,8 @@ public class VIDToken extends WasmContract {
     public static final String FUNC_TRANSFERFROM = "TransferFrom";
 
     public static final String FUNC_TRANSFERTOKEN = "TransferToken";
+
+    public static final String FUNC_VALIDATEFILE = "ValidateFile";
 
     public static final String FUNC_APPROVE = "Approve";
 
@@ -74,8 +76,6 @@ public class VIDToken extends WasmContract {
     public static final String FUNC_ALLOWANCE = "Allowance";
 
     public static final String FUNC_TOKENFALLBACK = "TokenFallback";
-
-    public static final String FUNC_FREEZE = "Freeze";
 
     public static final String FUNC_VALIDATEPUBLISHER = "ValidatePublisher";
 
@@ -145,16 +145,6 @@ public class VIDToken extends WasmContract {
     public RemoteCall<BigInteger> BalanceOf(String owner_addr) {
         final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(owner_addr), BigInteger.class);
         return executeRemoteCall(function, BigInteger.class);
-    }
-
-    public RemoteCall<TransactionReceipt> ValidateFile(String to_addr, BigInteger payment, String data, Boolean store, Boolean log) {
-        final WasmFunction function = new WasmFunction(FUNC_VALIDATEFILE, Arrays.asList(to_addr,payment,data,store,log), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> ValidateFile(String to_addr, BigInteger payment, String data, Boolean store, Boolean log, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_VALIDATEFILE, Arrays.asList(to_addr,payment,data,store,log), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<TransferEvEventResponse> getTransferEvEvents(TransactionReceipt transactionReceipt) {
@@ -300,6 +290,16 @@ public class VIDToken extends WasmContract {
 
     public RemoteCall<TransactionReceipt> Burn(BigInteger value, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_BURN, Arrays.asList(value), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> Freeze(String addr_s, Boolean state) {
+        final WasmFunction function = new WasmFunction(FUNC_FREEZE, Arrays.asList(addr_s,state), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> Freeze(String addr_s, Boolean state, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_FREEZE, Arrays.asList(addr_s,state), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
@@ -567,6 +567,16 @@ public class VIDToken extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<TransactionReceipt> ValidateFile(String to_addr, BigInteger payment, String data, Boolean store, Boolean log) {
+        final WasmFunction function = new WasmFunction(FUNC_VALIDATEFILE, Arrays.asList(to_addr,payment,data,store,log), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> ValidateFile(String to_addr, BigInteger payment, String data, Boolean store, Boolean log, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_VALIDATEFILE, Arrays.asList(to_addr,payment,data,store,log), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<TransactionReceipt> Approve(String spender_addr, BigInteger value) {
         final WasmFunction function = new WasmFunction(FUNC_APPROVE, Arrays.asList(spender_addr,value), Void.class);
         return executeRemoteCallTransaction(function);
@@ -629,16 +639,6 @@ public class VIDToken extends WasmContract {
 
     public RemoteCall<TransactionReceipt> TokenFallback(String from_addr, BigInteger value, String data, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_TOKENFALLBACK, Arrays.asList(from_addr,value,data), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> Freeze(String addr_s, Boolean state) {
-        final WasmFunction function = new WasmFunction(FUNC_FREEZE, Arrays.asList(addr_s,state), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> Freeze(String addr_s, Boolean state, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_FREEZE, Arrays.asList(addr_s,state), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
