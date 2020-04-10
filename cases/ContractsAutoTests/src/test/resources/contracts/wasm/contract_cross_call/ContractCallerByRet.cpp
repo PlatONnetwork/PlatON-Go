@@ -17,8 +17,14 @@ CONTRACT cross_caller_byret : public platon::Contract {
             auto result = platon::platon_call<uint8_t>(Address(target_address), transfer_value, gasValue, "info");
             if(result.second){
                 status = 0; // successed
+
+                DEBUG("cross_caller_byret call receiver_byret info has successed!")
+            } else {
+                status = 1; //failed
+
+                DEBUG("cross_caller_byret call receiver_byret info has failed!")
             }
-            status = 1; //failed
+
         }
 
         CONST uint64_t get_status(){
