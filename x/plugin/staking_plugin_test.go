@@ -22,12 +22,13 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	mrand "math/rand"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
@@ -3465,14 +3466,14 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 
 }
 
-func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T)  {
+func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 	newPlugins()
 	handler.NewVrfHandler(make([]byte, 0))
 	defer func() {
 		slash.db.Clear()
 	}()
 
-	gov.InitGenesisGovernParam(slash.db, 2048)
+	gov.InitGenesisGovernParam(common.ZeroHash, slash.db, 2048)
 
 	privateKey, _ := crypto.GenerateKey()
 	vqList := make(staking.ValidatorQueue, 0)
