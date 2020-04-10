@@ -22,13 +22,14 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "fmt"
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"math/big"
-	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
@@ -872,7 +873,7 @@ func TestStakingContract_DelegateMerge(t *testing.T) {
 	gov.AddActiveVersion(initProgramVersion, 0, chain.StateDB)
 	plugin.RewardMgrInstance()
 
-	if err := gov.InitGenesisGovernParam(chain.SnapDB, 2048); err != nil {
+	if _, err := gov.InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, 2048); err != nil {
 		t.Error("error", err)
 	}
 	gov.RegisterGovernParamVerifiers()
