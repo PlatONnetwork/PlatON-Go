@@ -65,6 +65,26 @@ public class IntegerDataTypeContract_1 extends WasmContract {
         return executeRemoteCall(function, Int64.class);
     }
 
+    public static RemoteCall<IntegerDataTypeContract_1> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(IntegerDataTypeContract_1.class, web3j, credentials, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<IntegerDataTypeContract_1> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(IntegerDataTypeContract_1.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
+    }
+
+    public static RemoteCall<IntegerDataTypeContract_1> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(IntegerDataTypeContract_1.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public static RemoteCall<IntegerDataTypeContract_1> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
+        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
+        return deployRemoteCall(IntegerDataTypeContract_1.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
     public RemoteCall<Uint32> uint32t(Uint32 input) {
         final WasmFunction function = new WasmFunction(FUNC_UINT32T, Arrays.asList(input), Uint32.class);
         return executeRemoteCall(function, Uint32.class);
@@ -93,26 +113,6 @@ public class IntegerDataTypeContract_1 extends WasmContract {
     public RemoteCall<String> u256t(Uint64 input) {
         final WasmFunction function = new WasmFunction(FUNC_U256T, Arrays.asList(input), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public static RemoteCall<IntegerDataTypeContract_1> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(IntegerDataTypeContract_1.class, web3j, credentials, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<IntegerDataTypeContract_1> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(IntegerDataTypeContract_1.class, web3j, transactionManager, contractGasProvider, encodedConstructor);
-    }
-
-    public static RemoteCall<IntegerDataTypeContract_1> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger initialVonValue) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(IntegerDataTypeContract_1.class, web3j, credentials, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public static RemoteCall<IntegerDataTypeContract_1> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
-        String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
-        return deployRemoteCall(IntegerDataTypeContract_1.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
     public static IntegerDataTypeContract_1 load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
