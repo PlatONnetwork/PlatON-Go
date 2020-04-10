@@ -325,7 +325,7 @@ func (exe *Executor) executeTransaction(idx int) {
 	snap := exe.ctx.GetState().Snapshot()
 	tx := exe.ctx.GetTx(idx)
 	exe.ctx.GetState().Prepare(tx.Hash(), exe.ctx.GetBlockHash(), int(exe.ctx.GetState().TxIdx()))
-	receipt, _, err := ApplyTransaction(exe.chainConfig, exe.chainContext, exe.ctx.GetGasPool(), exe.ctx.GetState(), exe.ctx.GetHeader(), tx, exe.ctx.GetBlockGasUsedHolder(), vm.Config{})
+	receipt, _, err := ApplyTransaction(exe.chainConfig, exe.chainContext, exe.ctx.GetGasPool(), exe.ctx.GetState(), exe.ctx.GetHeader(), tx, exe.ctx.GetBlockGasUsedHolder(), exe.vmCfg)
 	if err != nil {
 		log.Error("execute tx failed", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txHash", tx.Hash(), "gasPool", exe.ctx.GetGasPool().Gas(), "txGas", tx.Gas(), "err", err)
 		exe.ctx.GetState().RevertToSnapshot(snap)
