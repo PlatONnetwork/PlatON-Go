@@ -51,6 +51,8 @@ public class VIDToken extends WasmContract {
 
     public static final String FUNC_BURN = "Burn";
 
+    public static final String FUNC_VALIDATEWALLET = "ValidateWallet";
+
     public static final String FUNC_LISTFILES = "ListFiles";
 
     public static final String FUNC_TRANSFER = "Transfer";
@@ -76,8 +78,6 @@ public class VIDToken extends WasmContract {
     public static final String FUNC_FREEZE = "Freeze";
 
     public static final String FUNC_VALIDATEPUBLISHER = "ValidatePublisher";
-
-    public static final String FUNC_VALIDATEWALLET = "ValidateWallet";
 
     public static final WasmEvent TRANSFEREV_EVENT = new WasmEvent("TransferEv", Arrays.asList(), Arrays.asList(new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(BigInteger.class)));
     ;
@@ -334,6 +334,16 @@ public class VIDToken extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(VALIDATEFILEEV_EVENT));
         return validateFileEvEventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> ValidateWallet(String addr_s, Boolean state, String wallet) {
+        final WasmFunction function = new WasmFunction(FUNC_VALIDATEWALLET, Arrays.asList(addr_s,state,wallet), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> ValidateWallet(String addr_s, Boolean state, String wallet, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_VALIDATEWALLET, Arrays.asList(addr_s,state,wallet), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<ValidatePublisherEvEventResponse> getValidatePublisherEvEvents(TransactionReceipt transactionReceipt) {
@@ -639,16 +649,6 @@ public class VIDToken extends WasmContract {
 
     public RemoteCall<TransactionReceipt> ValidatePublisher(String addr_s, Boolean state, String publisher, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_VALIDATEPUBLISHER, Arrays.asList(addr_s,state,publisher), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> ValidateWallet(String addr_s, Boolean state, String wallet) {
-        final WasmFunction function = new WasmFunction(FUNC_VALIDATEWALLET, Arrays.asList(addr_s,state,wallet), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> ValidateWallet(String addr_s, Boolean state, String wallet, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_VALIDATEWALLET, Arrays.asList(addr_s,state,wallet), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

@@ -59,16 +59,6 @@ public class InitWithVector extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> add_vector(Uint64 one_age) {
-        final WasmFunction function = new WasmFunction(FUNC_ADD_VECTOR, Arrays.asList(one_age), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> add_vector(Uint64 one_age, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ADD_VECTOR, Arrays.asList(one_age), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public static RemoteCall<InitWithVector> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Uint16 age) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(age));
         return deployRemoteCall(InitWithVector.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -87,6 +77,16 @@ public class InitWithVector extends WasmContract {
     public static RemoteCall<InitWithVector> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Uint16 age) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(age));
         return deployRemoteCall(InitWithVector.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> add_vector(Uint64 one_age) {
+        final WasmFunction function = new WasmFunction(FUNC_ADD_VECTOR, Arrays.asList(one_age), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> add_vector(Uint64 one_age, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ADD_VECTOR, Arrays.asList(one_age), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<Uint64> get_vector_size() {

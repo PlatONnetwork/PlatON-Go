@@ -54,6 +54,8 @@ public class Bank extends WasmContract {
 
     public static final String FUNC_EXITFEE = "exitFee";
 
+    public static final String FUNC_CALCULATEETHEREUMRECEIVED = "calculateEthereumReceived";
+
     public static final String FUNC_WITHDRAW = "withdraw";
 
     public static final String FUNC_SELL = "sell";
@@ -75,8 +77,6 @@ public class Bank extends WasmContract {
     public static final String FUNC_BUYPRICE = "buyPrice";
 
     public static final String FUNC_CALCULATETOKENSRECEIVED = "calculateTokensReceived";
-
-    public static final String FUNC_CALCULATEETHEREUMRECEIVED = "calculateEthereumReceived";
 
     public static final WasmEvent ONTOKENPURCHASE_EVENT = new WasmEvent("onTokenPurchase", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(BigInteger.class) , new WasmEventParameter(BigInteger.class)));
     ;
@@ -102,26 +102,6 @@ public class Bank extends WasmContract {
 
     protected Bank(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> reinvest() {
-        final WasmFunction function = new WasmFunction(FUNC_REINVEST, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> reinvest(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_REINVEST, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> exit() {
-        final WasmFunction function = new WasmFunction(FUNC_EXIT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> exit(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_EXIT, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<OnTokenPurchaseEventResponse> getOnTokenPurchaseEvents(TransactionReceipt transactionReceipt) {
@@ -163,6 +143,26 @@ public class Bank extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(ONTOKENPURCHASE_EVENT));
         return onTokenPurchaseEventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> reinvest() {
+        final WasmFunction function = new WasmFunction(FUNC_REINVEST, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> reinvest(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_REINVEST, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> exit() {
+        final WasmFunction function = new WasmFunction(FUNC_EXIT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> exit(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_EXIT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<OnTokenSellEventResponse> getOnTokenSellEvents(TransactionReceipt transactionReceipt) {
@@ -404,6 +404,11 @@ public class Bank extends WasmContract {
         return executeRemoteCall(function, Uint8.class);
     }
 
+    public RemoteCall<BigInteger> calculateEthereumReceived(BigInteger _tokensToSell) {
+        final WasmFunction function = new WasmFunction(FUNC_CALCULATEETHEREUMRECEIVED, Arrays.asList(_tokensToSell), BigInteger.class);
+        return executeRemoteCall(function, BigInteger.class);
+    }
+
     public RemoteCall<TransactionReceipt> withdraw() {
         final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
@@ -471,11 +476,6 @@ public class Bank extends WasmContract {
 
     public RemoteCall<BigInteger> calculateTokensReceived(BigInteger _ethereumToSpend) {
         final WasmFunction function = new WasmFunction(FUNC_CALCULATETOKENSRECEIVED, Arrays.asList(_ethereumToSpend), BigInteger.class);
-        return executeRemoteCall(function, BigInteger.class);
-    }
-
-    public RemoteCall<BigInteger> calculateEthereumReceived(BigInteger _tokensToSell) {
-        final WasmFunction function = new WasmFunction(FUNC_CALCULATEETHEREUMRECEIVED, Arrays.asList(_tokensToSell), BigInteger.class);
         return executeRemoteCall(function, BigInteger.class);
     }
 

@@ -29,11 +29,11 @@ public class IntegerDataTypeContract_3 extends WasmContract {
 
     public static final String FUNC_SETBOOL = "setBool";
 
-    public static final String FUNC_SETSTRING = "setString";
-
     public static final String FUNC_GETSTRING = "getString";
 
     public static final String FUNC_GETBOOL = "getBool";
+
+    public static final String FUNC_SETSTRING = "setString";
 
     public static final String FUNC_SETCHAR = "setChar";
 
@@ -77,16 +77,6 @@ public class IntegerDataTypeContract_3 extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<TransactionReceipt> setString(String input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETSTRING, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setString(String input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETSTRING, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<String> getString() {
         final WasmFunction function = new WasmFunction(FUNC_GETSTRING, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
@@ -95,6 +85,16 @@ public class IntegerDataTypeContract_3 extends WasmContract {
     public RemoteCall<Boolean> getBool() {
         final WasmFunction function = new WasmFunction(FUNC_GETBOOL, Arrays.asList(), Boolean.class);
         return executeRemoteCall(function, Boolean.class);
+    }
+
+    public RemoteCall<TransactionReceipt> setString(String input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETSTRING, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setString(String input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETSTRING, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> setChar(Int8 input) {

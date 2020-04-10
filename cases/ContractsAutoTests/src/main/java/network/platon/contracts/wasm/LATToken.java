@@ -39,8 +39,6 @@ public class LATToken extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GETSYMBOL = "getSymbol";
-
     public static final String FUNC_GETTOTALSUPPLY = "getTotalSupply";
 
     public static final String FUNC_BALANCEOF = "balanceOf";
@@ -56,6 +54,8 @@ public class LATToken extends WasmContract {
     public static final String FUNC_GETNAME = "getName";
 
     public static final String FUNC_GETDECIMALS = "getDecimals";
+
+    public static final String FUNC_GETSYMBOL = "getSymbol";
 
     public static final String FUNC_APPROVEANDCALL = "approveAndCall";
 
@@ -73,13 +73,13 @@ public class LATToken extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> getSymbol() {
-        final WasmFunction function = new WasmFunction(FUNC_GETSYMBOL, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
     public RemoteCall<Uint64> getTotalSupply() {
         final WasmFunction function = new WasmFunction(FUNC_GETTOTALSUPPLY, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
+    public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
+        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(_owner), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
     }
 
@@ -116,11 +116,6 @@ public class LATToken extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
-    }
-
-    public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
-        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(_owner), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public List<ApprovalEventResponse> getApprovalEvents(TransactionReceipt transactionReceipt) {
@@ -221,6 +216,11 @@ public class LATToken extends WasmContract {
     public RemoteCall<Uint8> getDecimals() {
         final WasmFunction function = new WasmFunction(FUNC_GETDECIMALS, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
+    }
+
+    public RemoteCall<String> getSymbol() {
+        final WasmFunction function = new WasmFunction(FUNC_GETSYMBOL, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> approveAndCall(WasmAddress _spender, Uint64 _value, byte[] _extraData) {
