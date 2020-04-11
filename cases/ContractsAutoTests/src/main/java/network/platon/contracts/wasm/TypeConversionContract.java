@@ -36,9 +36,9 @@ public class TypeConversionContract extends WasmContract {
 
     public static final String FUNC_GET_PRAM_RETURN = "get_pram_return";
 
-    public static final String FUNC_GET_CONVERT = "get_convert";
-
     public static final String FUNC_GET_CONVERT_STATIC_CAST = "get_convert_static_cast";
+
+    public static final String FUNC_GET_CONVERT = "get_convert";
 
     public static final String FUNC_GET_CONVERT_CONST_CAST = "get_convert_const_cast";
 
@@ -90,13 +90,13 @@ public class TypeConversionContract extends WasmContract {
         return executeRemoteCall(function, Uint64.class);
     }
 
-    public RemoteCall<Uint8> get_convert() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_CONVERT, Arrays.asList(), Uint8.class);
+    public RemoteCall<Uint8> get_convert_static_cast() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_CONVERT_STATIC_CAST, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
     }
 
-    public RemoteCall<Uint8> get_convert_static_cast() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_CONVERT_STATIC_CAST, Arrays.asList(), Uint8.class);
+    public RemoteCall<Uint8> get_convert() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_CONVERT, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
     }
 

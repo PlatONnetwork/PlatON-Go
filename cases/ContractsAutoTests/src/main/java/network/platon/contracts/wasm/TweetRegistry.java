@@ -27,6 +27,8 @@ public class TweetRegistry extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_ADMINSETREGISTRATIONDISABLE = "adminSetRegistrationDisable";
+
     public static final String FUNC_REGISTRY = "registry";
 
     public static final String FUNC_GETNUMBEROFACCOUNTS = "getNumberOfAccounts";
@@ -40,8 +42,6 @@ public class TweetRegistry extends WasmContract {
     public static final String FUNC_UNREGISTER = "unregister";
 
     public static final String FUNC_ADMINUNREGISTER = "adminUnregister";
-
-    public static final String FUNC_ADMINSETREGISTRATIONDISABLE = "adminSetRegistrationDisable";
 
     public static final String FUNC_GETREGISTRATIONDISABLED = "getRegistrationDisabled";
 
@@ -57,6 +57,16 @@ public class TweetRegistry extends WasmContract {
 
     protected TweetRegistry(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> adminSetRegistrationDisable(Boolean registrationDisabled) {
+        final WasmFunction function = new WasmFunction(FUNC_ADMINSETREGISTRATIONDISABLE, Arrays.asList(registrationDisabled), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> adminSetRegistrationDisable(Boolean registrationDisabled, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ADMINSETREGISTRATIONDISABLE, Arrays.asList(registrationDisabled), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<TweetRegistry> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -126,16 +136,6 @@ public class TweetRegistry extends WasmContract {
 
     public RemoteCall<TransactionReceipt> adminUnregister(String name, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ADMINUNREGISTER, Arrays.asList(name), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> adminSetRegistrationDisable(Boolean registrationDisabled) {
-        final WasmFunction function = new WasmFunction(FUNC_ADMINSETREGISTRATIONDISABLE, Arrays.asList(registrationDisabled), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> adminSetRegistrationDisable(Boolean registrationDisabled, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ADMINSETREGISTRATIONDISABLE, Arrays.asList(registrationDisabled), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

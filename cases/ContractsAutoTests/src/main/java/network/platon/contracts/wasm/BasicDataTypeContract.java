@@ -29,6 +29,8 @@ public class BasicDataTypeContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_SET_FLOAT_TYPE_LOCAL = "set_float_type_local";
+
     public static final String FUNC_SET_BOOL = "set_bool";
 
     public static final String FUNC_GET_BOOL = "get_bool";
@@ -42,8 +44,6 @@ public class BasicDataTypeContract extends WasmContract {
     public static final String FUNC_GET_STRING = "get_string";
 
     public static final String FUNC_GET_STRING_LENGTH = "get_string_length";
-
-    public static final String FUNC_SET_FLOAT_TYPE_LOCAL = "set_float_type_local";
 
     public static final String FUNC_GET_ADDRESS = "get_address";
 
@@ -71,6 +71,16 @@ public class BasicDataTypeContract extends WasmContract {
 
     protected BasicDataTypeContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> set_float_type_local() {
+        final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_float_type_local(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<BasicDataTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -141,16 +151,6 @@ public class BasicDataTypeContract extends WasmContract {
     public RemoteCall<Uint8> get_string_length() {
         final WasmFunction function = new WasmFunction(FUNC_GET_STRING_LENGTH, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
-    }
-
-    public RemoteCall<TransactionReceipt> set_float_type_local() {
-        final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_float_type_local(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_FLOAT_TYPE_LOCAL, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<String> get_address() {
