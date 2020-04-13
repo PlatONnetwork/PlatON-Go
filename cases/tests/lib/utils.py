@@ -277,14 +277,23 @@ def get_validator_term(node):
     Get the nodeID with the highest term
     """
     msg = node.ppos.getValidatorList()
-    term = []
-    nodeid = []
+    term_list = []
+    nodeid_list = []
     for i in msg["Ret"]:
-        term.append(i["ValidatorTerm"])
-        nodeid.append(i["NodeId"])
-    max_term = (max(term))
-    term_nodeid_dict = dict(zip(term, nodeid))
-    return term_nodeid_dict[max_term]
+        term_list.append(i["ValidatorTerm"])
+        nodeid_list.append(i["NodeId"])
+
+    max_term = (max(term_list))
+    log.info("Maximum tenure{}".format(max_term))
+    term_nodeid_dict = dict(zip(nodeid_list, term_list))
+
+    max_term_nodeid = []
+
+    for key in term_nodeid_dict:
+        value = term_nodeid_dict[key]
+        if value == max_term:
+            max_term_nodeid.append(key)
+    return max_term_nodeid
 
 
 def get_max_staking_tx_index(node):

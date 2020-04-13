@@ -7,7 +7,7 @@ from hexbytes import HexBytes
 
 from common.log import log
 
-# @pytest.mark.skip("Test case process is random and needs to be executed multiple times manually")
+@pytest.mark.skip("Test case process is random and needs to be executed multiple times manually")
 def test_testnet_fast(global_test_env):
     test_node = copy(global_test_env.get_a_normal_node())
     test_node.clean()
@@ -30,7 +30,7 @@ def test_testnet_fast(global_test_env):
         t -= 10
     assert test_node.block_number >= 1000000
 
-# @pytest.mark.skip("Test case process is random and needs to be executed multiple times manually")
+@pytest.mark.skip("Test case process is random and needs to be executed multiple times manually")
 def test_testnet_full(global_test_env):
     test_node = copy(global_test_env.get_a_normal_node())
     test_node.clean()

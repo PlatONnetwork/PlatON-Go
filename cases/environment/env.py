@@ -96,7 +96,7 @@ class TestEnvironment:
 
     @property
     def version(self):
-        return "0.11.0"
+        return "0.12.0"
 
     @property
     def running(self) -> bool:
@@ -680,18 +680,27 @@ if __name__ == "__main__":
     from tests.lib import get_no_pledge_node, get_no_pledge_node_list, get_pledge_list, check_node_in_list
     node_filename = abspath("deploy/node/debug_4_4.yml")
     env = create_env(node_file=node_filename)
+    env.shutdown()
+    exit(0)
     # print(os.path.getctime(env.cfg.platon_bin_file))
     # new_cfg = copy.copy(env.cfg)
     # new_cfg.syncmode = "fast"
     # print(env.cfg.syncmode)
     log.info("测试部署")
-    env.deploy_all()
-    stop_nodes = env.consensus_node_list[:2]
-    for node in stop_nodes:
-        print(node.url)
-    time.sleep(50)
-    print(env.consensus_node_list[3].url)
-    env.stop_nodes(stop_nodes)
+    env.cfg.syncmode = "fast"
+    # env.deploy_all(abspath("deploy/tmp/genesis_0.8.0.json"))
+    for node in env.get_all_nodes():
+        node.admin.addPeer("enode://d203e37d86f1757ee4bbeafd7a0b0b6f7d4f22afaad3c63337e92d9056251dcca95515cb23d5a040e3416e1ebbb303aa52ea535103b9b8c8c2adc98ea3b41c01@10.10.8.195:16789")
+        print(node.web3.net.peerCount)
+    print(node.ppos.getCandidateList())
+    # env.deploy_all(abspath("deploy/tmp/genesis_0.8.0.json"))
+    # env.shutdown()
+    # stop_nodes = env.consensus_node_list[:2]
+    # for node in stop_nodes:
+    #     print(node.url)
+    # time.sleep(50)
+    # print(env.consensus_node_list[3].url)
+    # env.stop_nodes(stop_nodes)
     # node = env.get_consensus_node_by_index(0)
     # print(node.debug.economicConfig())
     # print(type(node.debug.economicConfig()))
