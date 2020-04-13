@@ -25,7 +25,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -494,10 +493,15 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	state.Prepare(txHashArr[0], blockHash, 0)
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, delegateSender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(new(big.Int).Add(blockNumber, new(big.Int).SetUint64(1)), blockHash2, state),
 	}
 
 	state.Prepare(txHashArr[1], blockHash, 1)
@@ -512,7 +516,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := sndb.NewBlock(blockNumber3, blockHash2, blockHash3); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -762,13 +766,17 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	state.Prepare(txHashArr[0], blockHash, 0)
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
+	state.Prepare(txHashArr[1], blockHash, 1)
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, delegateSender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
-
-	state.Prepare(txHashArr[1], blockHash, 1)
 	// delegate
 	create_delegate(contract, index, t)
 
@@ -780,7 +788,7 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := sndb.NewBlock(blockNumber3, blockHash2, blockHash3); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -950,12 +958,8 @@ func TestStakingContract_DelegateMerge(t *testing.T) {
 
 		return nil
 	}
-	if err := chain.AddBlockWithSnapDB(true, nil, afterTxHook, execFunc); err != nil {
+	if err := chain.AddBlockWithSnapDB(true, nil, afterTxHook, execFunc); err == nil {
 		t.Error(err)
-	}
-	lastBalsce := new(big.Int).Add(stakingAmount, delLastAmount)
-	if chain.StateDB.GetBalance(vm.StakingContractAddr).Cmp(lastBalsce) != 0 {
-		t.Error(fmt.Errorf("StakingContractAddr value must same,want %v,have %v", lastBalsce, chain.StateDB.GetBalance(vm.StakingContractAddr)))
 	}
 	return
 }
