@@ -57,6 +57,10 @@ type Receipt struct {
 	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
 }
 
+type ReceiptBlock struct {
+	Logs              []*LogBlock `json:"logs"              gencodec:"required"`
+}
+
 type receiptMarshaling struct {
 	PostState         hexutil.Bytes
 	Status            hexutil.Uint64
