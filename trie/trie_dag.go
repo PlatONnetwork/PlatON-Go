@@ -33,6 +33,8 @@ type trieDag struct {
 
 	cachegen   uint16
 	cachelimit uint16
+
+	loged bool
 }
 
 func newTrieDag() *trieDag {
@@ -41,6 +43,7 @@ func newTrieDag() *trieDag {
 		dag:        newDag(),
 		cachegen:   0,
 		cachelimit: 0,
+		loged:      false,
 	}
 }
 
@@ -92,6 +95,8 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 		//fmt.Printf("add short -> pprefix: %x, prefix: %x\n", pprefix, append(prefix, nc.Key...))
 		//fmt.Printf("add short -> id: %d, pid: %d\n", id, pid)
 
+		//log.Debug("Add short node", "id", id, "pid", pid, "prefix", fmt.Sprintf("%x", append(prefix, nc.Key...)), "vtxs", len(td.dag.vtxs))
+
 	case *fullNode:
 		collapsed, cached := nc.copy(), nc.copy()
 		cached.Children[16] = nc.Children[16]
@@ -114,12 +119,18 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 		//fmt.Printf("add full -> pprefix: %x, prefix: %x\n", pprefix, append(prefix, fullNodeSuffix...))
 		//fmt.Printf("add full -> id: %d, pid: %d\n", id, pid)
 
+		//log.Debug("Add full node", "id", id, "pid", pid, "prefix", fmt.Sprintf("%x", append(prefix, fullNodeSuffix...)), "vtxs", len(td.dag.vtxs))
+
 		if recursive {
 			for i := 0; i < 16; i++ {
-				if nc.Children[i] != nil {
-					cn := nc.Children[i]
-					//_, dirty := cn.cache()
-					//if !dirty {
+				if cached.Children[i] != nil {
+					cn := cached.Children[i]
+					//hash, _ := cn.cache()
+					//if len(hash) != 0 {
+					//	fmt.Printf("full: add children hash pid: %d i: %d prefix: %x hash: %s\n", id, i, prefix, hash.String())
+					//	collapsed.Children[i] = hash
+					//} else {
+					//fmt.Printf("full: add internal node pid: %d i: %d prefix:%x hash: %s\n", id, i, prefix, hash.String())
 					td.internalAddVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, byte(i)), cn, false)
 					//}
 				}
@@ -188,6 +199,8 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 
 	td.dag.generate()
 
+	log.Debug("Prepare do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
+
 	var wg sync.WaitGroup
 	var errDone common.AtomicBool
 	var e atomic.Value // error
@@ -237,6 +250,23 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 
 			hashed, cached, hasCache = cachedHash(n.collapsed, n.cached)
 			if !hasCache {
+				switch ct := n.collapsed.(type) {
+				case *fullNode:
+					for i := 0; i < 16; i++ {
+						if ct.Children[i] != nil {
+							nc := ct.Children[i]
+							if _, isHash := nc.(hashNode); !isHash {
+								h, _, hc := cachedHash(nc, nc)
+								if !hc {
+									log.Debug("Error children node", "id", id, "pid", n.pid, "n", n.collapsed.fstring(""), "nc", nc.fstring(""))
+									panic("error children node")
+								}
+								ct.Children[i] = h
+							}
+						}
+					}
+				}
+
 				hashed, err = hasher.store(n.collapsed, db, tmpForce)
 				if err != nil {
 					e.Store(err)
@@ -263,6 +293,10 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 						nc.Children[n.idx] = cached
 					}
 				}
+			}
+
+			if !td.loged {
+				log.Debug("Calc hash", "me", fmt.Sprintf("%p", td), "id", id, "pid", n.pid, "hash", hashed.fstring(""), "n", n.collapsed.fstring(""))
 			}
 
 			cachedHash, _ := hashed.(hashNode)
@@ -306,6 +340,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 
 	wg.Wait()
 	td.dag.reset()
+	td.loged = true
 
 	if e.Load() != nil && e.Load().(error) != nil {
 		return hashNode{}, nil, e.Load().(error)
