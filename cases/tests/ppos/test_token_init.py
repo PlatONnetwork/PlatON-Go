@@ -1522,3 +1522,84 @@ def test_PT_AC_001(client_consensus):
         dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2}
         list.append(dict)
     print(list)
+
+
+def test_RO_T_001(new_genesis_env, client_noconsensus):
+    """
+    同个块高里重复质押、委托、解质押
+    """
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.config.cbft.period = 30000
+    genesis.economicModel.common.maxEpochMinutes = 9
+    genesis.economicModel.common.additionalCycleTime = 40
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+
+    client = client_noconsensus
+    economic = client.economic
+    node = client.node
+    log.info("node ip : {}".format(node.node_mark))
+    node.ppos.need_analyze = False
+    staking_addres, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    entrust_addres, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    log.info("entrust_addres: {}".format(entrust_addres))
+    entrust_addres2, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    log.info("entrust_addres2: {}".format(entrust_addres2))
+    nonce1 = node.eth.getTransactionCount(Web3.toChecksumAddress(staking_addres))
+    nonce2 = node.eth.getTransactionCount(Web3.toChecksumAddress(entrust_addres))
+    nonce3 = node.eth.getTransactionCount(Web3.toChecksumAddress(staking_addres))
+    # nonce4 = node.eth.getTransactionCount(Web3.toChecksumAddress(entrust_addres2))
+    # cfg4 = {"gasPrice": 1700000000000, "nonce": nonce4}
+    gasPrice = 2000000000000
+    number = 0
+    cfg1 = {"gasPrice": gasPrice, "nonce": nonce1}
+    cfg2 = {"gasPrice": gasPrice, "nonce": nonce2}
+    cfg3 = {"gasPrice": gasPrice, "nonce": nonce3}
+    for i in range(3):
+        print(i)
+        # current_block = node.eth.blockNumber
+        cfg1['gasPrice'] = gasPrice
+        log.info("cfg1 gasPrice：{}".format(cfg1['gasPrice']))
+        client.staking.create_staking(0, staking_addres, staking_addres, transaction_cfg=cfg1)
+        cfg3['nonce'] = cfg1['nonce'] + 1
+        gasPrice = gasPrice - 1
+        cfg2['gasPrice'] = gasPrice
+        log.info("cfg2 gasPrice：{}".format(cfg2['gasPrice']))
+        client.delegate.delegate(0, entrust_addres, tansaction_cfg=cfg2)
+        client.delegate.delegate(0, entrust_addres2, tansaction_cfg=cfg2)
+        number = number + 2
+        gasPrice = gasPrice - 1
+        cfg2['nonce'] = cfg2['nonce'] + 1
+        cfg3['gasPrice'] = gasPrice
+        log.info("cfg3 gasPrice：{}".format(cfg3['gasPrice']))
+        client.staking.withdrew_staking(staking_addres, transaction_cfg=cfg3)
+        gasPrice = gasPrice - 1
+        cfg1['nonce'] = cfg3['nonce'] + 1
+        # cfg4['nonce'] = cfg4['nonce'] + 1
+        # client.delegate.withdrew_delegate(current_block, entrust_addres2, transaction_cfg=cfg4)
+        # cfg4['nonce'] = cfg4['nonce'] + 1
+        if i == 2:
+            client.staking.create_staking(0, staking_addres, staking_addres, transaction_cfg=cfg1)
+
+    time.sleep(10)
+    result = node.ppos.getCandidateInfo(node.node_id)
+    log.info("Candidate_information：{}".format(result))
+    assert result['Ret']['Shares'] == economic.create_staking_limit + von_amount(economic.delegate_limit, number)
+    assert result['Ret']['DelegateTotalHes'] == von_amount(economic.delegate_limit, number)
+
+    result = node.ppos.getDelegateInfo(result['Ret']['StakingBlockNum'], entrust_addres, node.node_id)
+    log.info("commission_information：{}".format(result))
+    assert result['Ret']['ReleasedHes'] == von_amount(economic.delegate_limit, number)
+
+    result = node.ppos.getDelegateInfo(result['Ret']['StakingBlockNum'], entrust_addres2, node.node_id)
+    log.info("commission_information：{}".format(result))
+    assert result['Ret']['ReleasedHes'] == von_amount(economic.delegate_limit, number)
+
+    node.ppos.need_analyze = True
+    economic.wait_settlement_blocknum(node, 1)
+
+
+def test111(client_consensus):
+    result = client_consensus.ppos.getCandidateInfo('2d25f7686573602334589ac2e606a3743d34fcae0c7d34c6eadc01dbecd21f349d93ec227b2c43a5f61eab7fff1e0382e8a9f61a2cce9cf8eb0730a697a98159')
+    print(result)

@@ -1,0 +1,31 @@
+[2020-04-12 06:31:11]-conftest.py-[line:190]: case execution completed
+[2020-04-12 06:31:11]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 06:31:11]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 06:31:11]-env.py-[line:595]: rewrite config.json
+[2020-04-12 06:31:11]-env.py-[line:647]: compression data
+[2020-04-12 06:31:11]-env.py-[line:436]: upload compression
+[2020-04-12 06:31:11]-env.py-[line:267]: deploy all node
+[2020-04-12 06:31:11]-env.py-[line:352]: deploy node
+[2020-04-12 06:31:14]-env.py-[line:269]: deploy success
+[2020-04-12 06:31:26]-utils.py-[line:266]: The current block height is 17, waiting until 80
+[2020-04-12 06:31:36]-utils.py-[line:266]: The current block height is 33, waiting until 80
+[2020-04-12 06:31:46]-utils.py-[line:266]: The current block height is 50, waiting until 80
+[2020-04-12 06:31:56]-utils.py-[line:266]: The current block height is 67, waiting until 80
+[2020-04-12 06:32:06]-test_punishment_related.py-[line:234]: Current block height: 82
+[2020-04-12 06:32:06]-test_punishment_related.py-[line:239]: Report information: {"prepareA":{"epoch":0,"viewNumber":0,"blockHash":"0xf2995a8b97fcf389f295cbbc126327e0be89d26b5a12b46a87e204581fa2e2d1","blockNumber":82,"blockIndex":0,"blockData":"0x31743db565a24d312c3d7d142cb701625a98d93b6e74c274eda1d3de5455d04e","validateNode":{"index":0,"address":"0xae7ac1355d6259647182e15f30cc325c77c8234a","nodeId":"17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82","blsPubKey":"9a96cb325530289bfb7c9af832f86ddaa5baebba659b357974e3f318b08607e38aaf19ec5be5c3d44396c8b38afbb1037d7588b1efd5dcfd47499ed81a4bf2000faada2407a4839765885cd7f6e6d03b277770f398587cda17ce983e39242c0b"},"signature":"0xf67346bfdcd5faa9b7b8f53577c32953aa5deb0ea07c9e201e8455d3652bac7e58c7616baf6291db38bc1a3d19ed1c9200000000000000000000000000000000"},"prepareB":{"epoch":0,"viewNumber":0,"blockHash":"0xadaa2f21fde6685207f113618526ffc0c9162010c7ce863e2b7f4b4d6814da26","blockNumber":82,"blockIndex":0,"blockData":"0x3540e9eaff8cda341b9b6beeeb646e9950738c49fd062b9284888ca993984fd6","validateNode":{"index":0,"address":"0xae7ac1355d6259647182e15f30cc325c77c8234a","nodeId":"17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82","blsPubKey":"9a96cb325530289bfb7c9af832f86ddaa5baebba659b357974e3f318b08607e38aaf19ec5be5c3d44396c8b38afbb1037d7588b1efd5dcfd47499ed81a4bf2000faada2407a4839765885cd7f6e6d03b277770f398587cda17ce983e39242c0b"},"signature":"0xc101fb3a8344c789bd582292544633c1068a0911e59f9fc998a79e385d3512dc603e174da2b23d85a0f1b6f72ffa869400000000000000000000000000000000"}}
+[2020-04-12 06:32:06]-utils.py-[line:370]: slashFractionDuplicateSign ParamValue: 100
+[2020-04-12 06:32:06]-utils.py-[line:371]: slashFractionDuplicateSign Param old Value: 
+[2020-04-12 06:32:06]-utils.py-[line:370]: duplicateSignReportReward ParamValue: 50
+[2020-04-12 06:32:06]-utils.py-[line:371]: duplicateSignReportReward Param old Value: 
+[2020-04-12 06:32:06]-test_punishment_related.py-[line:621]: Call contract to create a lockout plan consumption contract：194636
+[2020-04-12 06:32:06]-test_punishment_related.py-[line:623]: balance: 1000000000000000000000
+[2020-04-12 06:32:07]-test_punishment_related.py-[line:628]: balance1: 8499999980536400000000
+[2020-04-12 06:32:07]-test_punishment_related.py-[line:629]: proportion reward: 7500000000000000000000
+[2020-04-12 06:32:07]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 06:32:07]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 06:32:07]-env.py-[line:595]: rewrite config.json
+[2020-04-12 06:32:07]-env.py-[line:647]: compression data
+[2020-04-12 06:32:07]-env.py-[line:436]: upload compression
+[2020-04-12 06:32:07]-env.py-[line:267]: deploy all node
+[2020-04-12 06:32:07]-env.py-[line:352]: deploy node
+[2020-04-12 06:32:11]-env.py-[line:269]: deploy success

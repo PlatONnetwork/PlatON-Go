@@ -1,0 +1,20 @@
+[2020-04-11 21:16:49]-env.py-[line:569]: rewrite genesis.json
+[2020-04-11 21:16:49]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-11 21:16:49]-env.py-[line:595]: rewrite config.json
+[2020-04-11 21:16:49]-env.py-[line:647]: compression data
+[2020-04-11 21:16:49]-env.py-[line:436]: upload compression
+[2020-04-11 21:16:49]-env.py-[line:267]: deploy all node
+[2020-04-11 21:16:49]-env.py-[line:352]: deploy node
+[2020-04-11 21:16:52]-env.py-[line:269]: deploy success
+[2020-04-11 21:16:56]-test_Zero_out_penalty.py-[line:72]: Current connection node：192.168.10.224:16788
+[2020-04-11 21:16:56]-test_Zero_out_penalty.py-[line:73]: Start creating a pledge account Pledge_address
+[2020-04-11 21:16:56]-conftest.py-[line:199]: reset deploy.................
+[2020-04-11 21:16:56]-env.py-[line:569]: rewrite genesis.json
+[2020-04-11 21:16:56]-env.py-[line:569]: rewrite genesis.json
+[2020-04-11 21:16:56]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-11 21:16:56]-env.py-[line:595]: rewrite config.json
+[2020-04-11 21:16:56]-env.py-[line:647]: compression data
+[2020-04-11 21:16:56]-env.py-[line:436]: upload compression
+[2020-04-11 21:16:56]-env.py-[line:267]: deploy all node
+[2020-04-11 21:16:56]-env.py-[line:352]: deploy node
+[2020-04-11 21:17:00]-env.py-[line:269]: deploy success

@@ -1,0 +1,25 @@
+[2020-04-12 06:40:52]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 06:40:52]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 06:40:52]-conftest.py-[line:190]: case execution completed
+[2020-04-12 06:41:07]-utils.py-[line:266]: The current block height is 671, waiting until 800
+[2020-04-12 06:41:17]-utils.py-[line:266]: The current block height is 688, waiting until 800
+[2020-04-12 06:41:27]-utils.py-[line:266]: The current block height is 704, waiting until 800
+[2020-04-12 06:41:37]-utils.py-[line:266]: The current block height is 719, waiting until 800
+[2020-04-12 06:41:47]-utils.py-[line:266]: The current block height is 737, waiting until 800
+[2020-04-12 06:41:57]-utils.py-[line:266]: The current block height is 754, waiting until 800
+[2020-04-12 06:42:07]-utils.py-[line:266]: The current block height is 771, waiting until 800
+[2020-04-12 06:42:18]-utils.py-[line:266]: The current block height is 787, waiting until 800
+[2020-04-12 06:42:27]-test_punishment_related.py-[line:774]: Current node in consensus list status：False
+[2020-04-12 06:42:36]-utils.py-[line:266]: The current block height is 818, waiting until 840
+[2020-04-12 06:42:46]-utils.py-[line:266]: The current block height is 835, waiting until 840
+[2020-04-12 06:42:50]-test_punishment_related.py-[line:774]: Current node in consensus list status：True
+[2020-04-12 06:42:51]-test_punishment_related.py-[line:781]: Current block height: 845
+[2020-04-12 06:42:51]-test_punishment_related.py-[line:37]: Report information: {"prepareA":{"epoch":0,"viewNumber":0,"blockHash":"0x8103a32f9413069f9e45fd3317a2b1f8fc5312134b33b13864b70cd1a90650d7","blockNumber":845,"blockIndex":0,"blockData":"0x17ec8176a38b09fb55f99a763c3b48520668bdd1628f2a354fafd8e36a2958b0","validateNode":{"index":0,"address":"0x158a9805e6e215798a51c812408d131c699cc198","nodeId":"6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300","blsPubKey":"6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006"},"signature":"0x359fc82480d55fb4358bbf17654c2877eadc0a65a205e5d3b89d76031ea9e3c4b5207e02d8bdd9f0ca03aac6408e6b9600000000000000000000000000000000"},"prepareB":{"epoch":0,"viewNumber":0,"blockHash":"0x083d95954cfb986b847a6ef1d652a7a897925ad6e155c8604d8009e5a498bcca","blockNumber":845,"blockIndex":0,"blockData":"0xb50a4d7073ab549787666a52759dc7019a3c9a8d9a91e9e48878b4bd99002236","validateNode":{"index":0,"address":"0x158a9805e6e215798a51c812408d131c699cc198","nodeId":"6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300","blsPubKey":"6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006"},"signature":"0xc974e1bfaffd7cf2a1ab3270e090e2ddb100859f065ec775ccd8c9d99b8e55765bf73ba90d47947ad950201a5c80ea9800000000000000000000000000000000"}}
+[2020-04-12 06:42:53]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 06:42:53]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 06:42:53]-env.py-[line:595]: rewrite config.json
+[2020-04-12 06:42:53]-env.py-[line:647]: compression data
+[2020-04-12 06:42:53]-env.py-[line:436]: upload compression
+[2020-04-12 06:42:53]-env.py-[line:267]: deploy all node
+[2020-04-12 06:42:53]-env.py-[line:352]: deploy node
+[2020-04-12 06:42:57]-env.py-[line:269]: deploy success

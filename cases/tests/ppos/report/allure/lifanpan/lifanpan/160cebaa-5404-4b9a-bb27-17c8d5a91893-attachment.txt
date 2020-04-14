@@ -1,0 +1,39 @@
+[2020-04-12 06:06:30]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 06:06:30]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 06:06:49]-utils.py-[line:266]: The current block height is 2284, waiting until 2400
+[2020-04-12 06:06:59]-utils.py-[line:266]: The current block height is 2300, waiting until 2400
+[2020-04-12 06:07:09]-utils.py-[line:266]: The current block height is 2318, waiting until 2400
+[2020-04-12 06:07:19]-utils.py-[line:266]: The current block height is 2333, waiting until 2400
+[2020-04-12 06:07:29]-utils.py-[line:266]: The current block height is 2351, waiting until 2400
+[2020-04-12 06:07:39]-utils.py-[line:266]: The current block height is 2366, waiting until 2400
+[2020-04-12 06:07:49]-utils.py-[line:266]: The current block height is 2384, waiting until 2400
+[2020-04-12 06:07:59]-utils.py-[line:266]: The current block height is 2400, waiting until 2400
+[2020-04-12 06:08:12]-utils.py-[line:266]: The current block height is 2421, waiting until 2880
+[2020-04-12 06:08:22]-utils.py-[line:266]: The current block height is 2438, waiting until 2880
+[2020-04-12 06:08:32]-utils.py-[line:266]: The current block height is 2453, waiting until 2880
+[2020-04-12 06:08:42]-utils.py-[line:266]: The current block height is 2472, waiting until 2880
+[2020-04-12 06:08:52]-utils.py-[line:266]: The current block height is 2488, waiting until 2880
+[2020-04-12 06:09:02]-utils.py-[line:266]: The current block height is 2505, waiting until 2880
+[2020-04-12 06:09:12]-utils.py-[line:266]: The current block height is 2520, waiting until 2880
+[2020-04-12 06:09:22]-utils.py-[line:266]: The current block height is 2538, waiting until 2880
+[2020-04-12 06:09:32]-utils.py-[line:266]: The current block height is 2555, waiting until 2880
+[2020-04-12 06:09:42]-utils.py-[line:266]: The current block height is 2571, waiting until 2880
+[2020-04-12 06:09:52]-utils.py-[line:266]: The current block height is 2588, waiting until 2880
+[2020-04-12 06:10:02]-utils.py-[line:266]: The current block height is 2605, waiting until 2880
+[2020-04-12 06:10:12]-utils.py-[line:266]: The current block height is 2621, waiting until 2880
+[2020-04-12 06:10:23]-utils.py-[line:266]: The current block height is 2638, waiting until 2880
+[2020-04-12 06:10:33]-utils.py-[line:266]: The current block height is 2654, waiting until 2880
+[2020-04-12 06:10:43]-utils.py-[line:266]: The current block height is 2671, waiting until 2880
+[2020-04-12 06:10:53]-utils.py-[line:266]: The current block height is 2688, waiting until 2880
+[2020-04-12 06:11:03]-utils.py-[line:266]: The current block height is 2704, waiting until 2880
+[2020-04-12 06:11:13]-utils.py-[line:266]: The current block height is 2723, waiting until 2880
+[2020-04-12 06:11:23]-utils.py-[line:266]: The current block height is 2738, waiting until 2880
+[2020-04-12 06:11:33]-utils.py-[line:266]: The current block height is 2754, waiting until 2880
+[2020-04-12 06:11:43]-utils.py-[line:266]: The current block height is 2773, waiting until 2880
+[2020-04-12 06:11:53]-utils.py-[line:266]: The current block height is 2790, waiting until 2880
+[2020-04-12 06:12:03]-utils.py-[line:266]: The current block height is 2804, waiting until 2880
+[2020-04-12 06:12:13]-utils.py-[line:266]: The current block height is 2823, waiting until 2880
+[2020-04-12 06:12:23]-utils.py-[line:266]: The current block height is 2838, waiting until 2880
+[2020-04-12 06:12:33]-utils.py-[line:266]: The current block height is 2856, waiting until 2880
+[2020-04-12 06:12:44]-utils.py-[line:266]: The current block height is 2872, waiting until 2880
+[2020-04-12 06:12:49]-test_locked_position.py-[line:2309]: Pledge node information: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}

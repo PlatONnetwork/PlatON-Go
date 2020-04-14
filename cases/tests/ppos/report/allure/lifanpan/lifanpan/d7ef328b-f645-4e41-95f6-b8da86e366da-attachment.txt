@@ -1,0 +1,63 @@
+[2020-04-12 09:35:55]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 09:35:55]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 09:35:55]-env.py-[line:595]: rewrite config.json
+[2020-04-12 09:35:55]-env.py-[line:647]: compression data
+[2020-04-12 09:35:55]-env.py-[line:436]: upload compression
+[2020-04-12 09:35:55]-env.py-[line:267]: deploy all node
+[2020-04-12 09:35:55]-env.py-[line:352]: deploy node
+[2020-04-12 09:35:58]-env.py-[line:269]: deploy success
+[2020-04-12 09:35:58]-test_token_init.py-[line:705]: nodeid: 488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624
+[2020-04-12 09:36:00]-test_token_init.py-[line:707]: incentive_pool_balance: 104500000000000000000000000
+[2020-04-12 09:36:00]-test_token_init.py-[line:709]: staking_balance: 6000000000000000000000000
+[2020-04-12 09:36:10]-utils.py-[line:266]: The current block height is 17, waiting until 480
+[2020-04-12 09:36:20]-utils.py-[line:266]: The current block height is 33, waiting until 480
+[2020-04-12 09:36:30]-utils.py-[line:266]: The current block height is 50, waiting until 480
+[2020-04-12 09:36:41]-utils.py-[line:266]: The current block height is 67, waiting until 480
+[2020-04-12 09:36:51]-utils.py-[line:266]: The current block height is 83, waiting until 480
+[2020-04-12 09:37:01]-utils.py-[line:266]: The current block height is 100, waiting until 480
+[2020-04-12 09:37:11]-utils.py-[line:266]: The current block height is 117, waiting until 480
+[2020-04-12 09:37:21]-utils.py-[line:266]: The current block height is 134, waiting until 480
+[2020-04-12 09:37:31]-utils.py-[line:266]: The current block height is 150, waiting until 480
+[2020-04-12 09:37:41]-utils.py-[line:266]: The current block height is 167, waiting until 480
+[2020-04-12 09:37:51]-utils.py-[line:266]: The current block height is 184, waiting until 480
+[2020-04-12 09:38:01]-utils.py-[line:266]: The current block height is 200, waiting until 480
+[2020-04-12 09:38:11]-utils.py-[line:266]: The current block height is 217, waiting until 480
+[2020-04-12 09:38:21]-utils.py-[line:266]: The current block height is 234, waiting until 480
+[2020-04-12 09:38:31]-utils.py-[line:266]: The current block height is 251, waiting until 480
+[2020-04-12 09:38:41]-utils.py-[line:266]: The current block height is 267, waiting until 480
+[2020-04-12 09:38:51]-utils.py-[line:266]: The current block height is 284, waiting until 480
+[2020-04-12 09:39:02]-utils.py-[line:266]: The current block height is 301, waiting until 480
+[2020-04-12 09:39:12]-utils.py-[line:266]: The current block height is 317, waiting until 480
+[2020-04-12 09:39:22]-utils.py-[line:266]: The current block height is 334, waiting until 480
+[2020-04-12 09:39:32]-utils.py-[line:266]: The current block height is 350, waiting until 480
+[2020-04-12 09:39:42]-utils.py-[line:266]: The current block height is 367, waiting until 480
+[2020-04-12 09:39:52]-utils.py-[line:266]: The current block height is 382, waiting until 480
+[2020-04-12 09:40:02]-utils.py-[line:266]: The current block height is 399, waiting until 480
+[2020-04-12 09:40:12]-utils.py-[line:266]: The current block height is 416, waiting until 480
+[2020-04-12 09:40:22]-utils.py-[line:266]: The current block height is 432, waiting until 480
+[2020-04-12 09:40:32]-utils.py-[line:266]: The current block height is 450, waiting until 480
+[2020-04-12 09:40:42]-utils.py-[line:266]: The current block height is 466, waiting until 480
+[2020-04-12 09:40:53]-test_token_init.py-[line:720]: Account Balance： 0
+[2020-04-12 09:41:04]-utils.py-[line:266]: The current block height is 503, waiting until 640
+[2020-04-12 09:41:15]-utils.py-[line:266]: The current block height is 521, waiting until 640
+[2020-04-12 09:41:25]-utils.py-[line:266]: The current block height is 536, waiting until 640
+[2020-04-12 09:41:35]-utils.py-[line:266]: The current block height is 553, waiting until 640
+[2020-04-12 09:41:45]-utils.py-[line:266]: The current block height is 571, waiting until 640
+[2020-04-12 09:41:55]-utils.py-[line:266]: The current block height is 586, waiting until 640
+[2020-04-12 09:42:05]-utils.py-[line:266]: The current block height is 604, waiting until 640
+[2020-04-12 09:42:15]-utils.py-[line:266]: The current block height is 621, waiting until 640
+[2020-04-12 09:42:25]-utils.py-[line:266]: The current block height is 637, waiting until 640
+[2020-04-12 09:42:28]-test_token_init.py-[line:728]: block_reward: 43819475601604278074866 staking_reward: 1752779024064171122994652
+[2020-04-12 09:42:39]-utils.py-[line:266]: The current block height is 662, waiting until 800
+[2020-04-12 09:42:49]-utils.py-[line:266]: The current block height is 678, waiting until 800
+[2020-04-12 09:42:59]-utils.py-[line:266]: The current block height is 695, waiting until 800
+[2020-04-12 09:43:09]-utils.py-[line:266]: The current block height is 712, waiting until 800
+[2020-04-12 09:43:19]-utils.py-[line:266]: The current block height is 729, waiting until 800
+[2020-04-12 09:43:29]-utils.py-[line:266]: The current block height is 745, waiting until 800
+[2020-04-12 09:43:39]-utils.py-[line:266]: The current block height is 762, waiting until 800
+[2020-04-12 09:43:49]-utils.py-[line:266]: The current block height is 779, waiting until 800
+[2020-04-12 09:44:00]-utils.py-[line:266]: The current block height is 795, waiting until 800
+[2020-04-12 09:44:13]-utils.py-[line:266]: The current block height is 817, waiting until 840
+[2020-04-12 09:44:23]-utils.py-[line:266]: The current block height is 834, waiting until 840
+[2020-04-12 09:44:34]-test_token_init.py-[line:738]: blocknumber: 40
+[2020-04-12 09:44:34]-test_token_init.py-[line:741]: Account Balance： 3505558048128342245989292

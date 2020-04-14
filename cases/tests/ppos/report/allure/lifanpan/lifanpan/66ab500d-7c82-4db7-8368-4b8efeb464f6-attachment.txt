@@ -1,0 +1,39 @@
+[2020-04-12 07:29:51]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 07:29:51]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 07:29:51]-env.py-[line:595]: rewrite config.json
+[2020-04-12 07:29:51]-env.py-[line:647]: compression data
+[2020-04-12 07:29:51]-env.py-[line:436]: upload compression
+[2020-04-12 07:29:51]-env.py-[line:267]: deploy all node
+[2020-04-12 07:29:51]-env.py-[line:352]: deploy node
+[2020-04-12 07:29:54]-env.py-[line:269]: deploy success
+[2020-04-12 07:30:07]-test_voting_statistics.py-[line:44]: Node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 staking result : 0
+[2020-04-12 07:30:13]-test_voting_statistics.py-[line:44]: Node b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 staking result : 0
+[2020-04-12 07:30:16]-test_rewards_interface.py-[line:581]: Node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 staking block num : 18
+[2020-04-12 07:30:16]-test_rewards_interface.py-[line:583]: Node b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 staking block num : 28
+[2020-04-12 07:30:28]-utils.py-[line:266]: The current block height is 53, waiting until 320
+[2020-04-12 07:30:38]-utils.py-[line:266]: The current block height is 70, waiting until 320
+[2020-04-12 07:30:48]-utils.py-[line:266]: The current block height is 86, waiting until 320
+[2020-04-12 07:30:59]-utils.py-[line:266]: The current block height is 101, waiting until 320
+[2020-04-12 07:31:09]-utils.py-[line:266]: The current block height is 118, waiting until 320
+[2020-04-12 07:31:19]-utils.py-[line:266]: The current block height is 136, waiting until 320
+[2020-04-12 07:31:29]-utils.py-[line:266]: The current block height is 151, waiting until 320
+[2020-04-12 07:31:39]-utils.py-[line:266]: The current block height is 170, waiting until 320
+[2020-04-12 07:31:49]-utils.py-[line:266]: The current block height is 187, waiting until 320
+[2020-04-12 07:31:59]-utils.py-[line:266]: The current block height is 204, waiting until 320
+[2020-04-12 07:32:09]-utils.py-[line:266]: The current block height is 220, waiting until 320
+[2020-04-12 07:32:19]-utils.py-[line:266]: The current block height is 237, waiting until 320
+[2020-04-12 07:32:29]-utils.py-[line:266]: The current block height is 254, waiting until 320
+[2020-04-12 07:32:39]-utils.py-[line:266]: The current block height is 270, waiting until 320
+[2020-04-12 07:32:49]-utils.py-[line:266]: The current block height is 287, waiting until 320
+[2020-04-12 07:32:59]-utils.py-[line:266]: The current block height is 304, waiting until 320
+[2020-04-12 07:33:09]-utils.py-[line:266]: The current block height is 320, waiting until 320
+[2020-04-12 07:33:10]-test_rewards_interface.py-[line:587]: Not incoming nodeid, Address 0x20f293D8FeAC793B725f2EeE9cF9BD2Ea143003B reward information : {'Code': 0, 'Ret': [{'nodeID': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'reward': 271680748729946524064152, 'stakingNum': 18}, {'nodeID': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'reward': 113930636564171122994646, 'stakingNum': 28}]}
+[2020-04-12 07:33:10]-test_rewards_interface.py-[line:597]: incoming nodeid 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300, Address 0x20f293D8FeAC793B725f2EeE9cF9BD2Ea143003B reward information : {'Code': 0, 'Ret': [{'nodeID': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'reward': 271680748729946524064152, 'stakingNum': 18}]}
+[2020-04-12 07:33:10]-test_rewards_interface.py-[line:605]: incoming nodeid b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748, Address 0x20f293D8FeAC793B725f2EeE9cF9BD2Ea143003B reward information : {'Code': 0, 'Ret': [{'nodeID': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'reward': 113930636564171122994646, 'stakingNum': 28}]}
+[2020-04-12 07:33:11]-test_rewards_interface.py-[line:612]: incoming nodeid b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748, address 0xb408Dff14dE730C5f8Ed4BBA90518d3B9DFA7a68, reward information : {'Code': 0, 'Ret': [{'nodeID': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'reward': 113930636564171122994646, 'stakingNum': 28}]}
+[2020-04-12 07:33:11]-test_rewards_interface.py-[line:620]: Not incoming nodeid b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748, address 0xb408Dff14dE730C5f8Ed4BBA90518d3B9DFA7a68, reward information : {'Code': 0, 'Ret': [{'nodeID': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'reward': 113930636564171122994646, 'stakingNum': 28}]}
+[2020-04-12 07:33:11]-test_rewards_interface.py-[line:628]: Not incoming nodeid b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748, address 0xb408Dff14dE730C5f8Ed4BBA90518d3B9DFA7a68, reward information : {'Code': 305001, 'Ret': 'delegation info not found'}
+[2020-04-12 07:33:11]-test_rewards_interface.py-[line:633]: Incoming nodeid 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300，b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748, address 0xb408Dff14dE730C5f8Ed4BBA90518d3B9DFA7a68, reward information : {'Code': 0, 'Ret': [{'nodeID': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'reward': 113930636564171122994646, 'stakingNum': 28}]}
+[2020-04-12 07:33:11]-test_rewards_interface.py-[line:647]: Before getDelegateReward, the address 0x20f293D8FeAC793B725f2EeE9cF9BD2Ea143003B balance: 7999999990255200000000
+[2020-04-12 07:33:11]-test_rewards_interface.py-[line:649]: Address 0x20f293D8FeAC793B725f2EeE9cF9BD2Ea143003B delegate node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 reward : 271680748729946524064152
+[2020-04-12 07:33:13]-test_rewards_interface.py-[line:656]: Before getDelegateReward, the address 0x20f293D8FeAC793B725f2EeE9cF9BD2Ea143003B balance: 280558672720201724064152

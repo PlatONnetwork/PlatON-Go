@@ -1,0 +1,34 @@
+[2020-04-12 12:06:04]-conftest.py-[line:190]: case execution completed
+[2020-04-12 12:06:40]-utils.py-[line:266]: The current block height is 57, waiting until 160
+[2020-04-12 12:06:51]-utils.py-[line:266]: The current block height is 75, waiting until 160
+[2020-04-12 12:07:01]-utils.py-[line:266]: The current block height is 91, waiting until 160
+[2020-04-12 12:07:11]-utils.py-[line:266]: The current block height is 108, waiting until 160
+[2020-04-12 12:07:21]-utils.py-[line:266]: The current block height is 125, waiting until 160
+[2020-04-12 12:07:31]-utils.py-[line:266]: The current block height is 140, waiting until 160
+[2020-04-12 12:07:41]-utils.py-[line:266]: The current block height is 156, waiting until 160
+[2020-04-12 12:07:55]-utils.py-[line:266]: The current block height is 183, waiting until 320
+[2020-04-12 12:08:06]-utils.py-[line:266]: The current block height is 199, waiting until 320
+[2020-04-12 12:08:16]-utils.py-[line:266]: The current block height is 216, waiting until 320
+[2020-04-12 12:08:26]-utils.py-[line:266]: The current block height is 233, waiting until 320
+[2020-04-12 12:08:36]-utils.py-[line:266]: The current block height is 250, waiting until 320
+[2020-04-12 12:08:46]-utils.py-[line:266]: The current block height is 266, waiting until 320
+[2020-04-12 12:08:56]-utils.py-[line:266]: The current block height is 283, waiting until 320
+[2020-04-12 12:09:06]-utils.py-[line:266]: The current block height is 300, waiting until 320
+[2020-04-12 12:09:16]-utils.py-[line:266]: The current block height is 316, waiting until 320
+[2020-04-12 12:09:34]-utils.py-[line:266]: The current block height is 346, waiting until 480
+[2020-04-12 12:09:44]-utils.py-[line:266]: The current block height is 363, waiting until 480
+[2020-04-12 12:09:54]-utils.py-[line:266]: The current block height is 379, waiting until 480
+[2020-04-12 12:10:04]-utils.py-[line:266]: The current block height is 396, waiting until 480
+[2020-04-12 12:10:14]-utils.py-[line:266]: The current block height is 413, waiting until 480
+[2020-04-12 12:10:24]-utils.py-[line:266]: The current block height is 429, waiting until 480
+[2020-04-12 12:10:34]-utils.py-[line:266]: The current block height is 446, waiting until 480
+[2020-04-12 12:10:44]-utils.py-[line:266]: The current block height is 463, waiting until 480
+[2020-04-12 12:10:54]-utils.py-[line:266]: The current block height is 480, waiting until 480
+[2020-04-12 12:11:01]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 12:11:01]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 12:11:01]-env.py-[line:595]: rewrite config.json
+[2020-04-12 12:11:01]-env.py-[line:647]: compression data
+[2020-04-12 12:11:01]-env.py-[line:436]: upload compression
+[2020-04-12 12:11:01]-env.py-[line:267]: deploy all node
+[2020-04-12 12:11:01]-env.py-[line:352]: deploy node
+[2020-04-12 12:11:05]-env.py-[line:269]: deploy success

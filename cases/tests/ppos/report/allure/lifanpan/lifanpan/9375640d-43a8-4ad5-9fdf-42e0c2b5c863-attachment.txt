@@ -1,0 +1,3 @@
+[2020-04-12 04:52:58]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 04:52:58]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 04:53:01]-test_locked_position.py-[line:211]: Use case success, exception information：Did not find sedes handling type int

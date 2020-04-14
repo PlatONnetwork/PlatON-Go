@@ -1,0 +1,1 @@
+{"uuid": "48a817d1-9ae6-4746-b66e-84c25f740387", "children": ["33549f16-ad0a-4d72-89b5-cd007b7ba078"], "befores": [{"name": "new_validator_client", "status": "passed", "start": 1586652930510, "stop": 1586653030296}], "afters": [{"name": "new_validator_client::0", "status": "passed", "start": 1586653031955, "stop": 1586653031955}], "start": 1586652930510, "stop": 1586653031955}

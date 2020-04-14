@@ -1,0 +1,15 @@
+[2020-04-12 06:42:57]-conftest.py-[line:190]: case execution completed
+[2020-04-12 06:43:09]-utils.py-[line:266]: The current block height is 17, waiting until 80
+[2020-04-12 06:43:19]-utils.py-[line:266]: The current block height is 33, waiting until 80
+[2020-04-12 06:43:29]-utils.py-[line:266]: The current block height is 50, waiting until 80
+[2020-04-12 06:43:39]-utils.py-[line:266]: The current block height is 67, waiting until 80
+[2020-04-12 06:43:48]-test_punishment_related.py-[line:807]: Current block height: 82
+[2020-04-12 06:43:48]-test_punishment_related.py-[line:810]: Report information: {"prepareA":{"epoch":0,"viewNumber":0,"blockHash":"0x23159580a05bbe26ede105976b89c521f44fd3dccb00c257adb9f93632911848","blockNumber":82,"blockIndex":0,"blockData":"0x21feea60e837bd247c6ff59988bfb3893f4e1648f45a54fe0482099aba751f9f","validateNode":{"index":0,"address":"0x008eda32381f4e468f72c118c7df312650c3bd1d","nodeId":"cfdf43591661d0107b7389a0ef68a2681cdf67d93183e36201acb631920cee349d4c6d7e8557602e101df0fe6b2e6808c66e0a27a2942096348f96d192f0b2eb","blsPubKey":"b823674b30877e4cc163448e3852d367c4bf79ce8d8caac16f0eed09856b397c012e567c048d292f0e4e083c9183fb0ae7487ade5cfb7a9d28c1a264956976b564085b7edf64ccdea9a944019f58951cd1616021c0de07735cafde6021e79314"},"signature":"0xcc2ede51e99caef4ad70cdac8b32fc433a8abf76939eb4bd6d3608825a6a0c37f15e491c773a8921b705486290cd599300000000000000000000000000000000"},"prepareB":{"epoch":0,"viewNumber":0,"blockHash":"0x71675bb5e02434fff773099b7e8a65fe0337d455a2d7c9bbe827cef0d685684e","blockNumber":82,"blockIndex":0,"blockData":"0x5947599410dc338fe6ea677c446e800bd4df4c84c6d077225558626982aee487","validateNode":{"index":0,"address":"0x008eda32381f4e468f72c118c7df312650c3bd1d","nodeId":"cfdf43591661d0107b7389a0ef68a2681cdf67d93183e36201acb631920cee349d4c6d7e8557602e101df0fe6b2e6808c66e0a27a2942096348f96d192f0b2eb","blsPubKey":"b823674b30877e4cc163448e3852d367c4bf79ce8d8caac16f0eed09856b397c012e567c048d292f0e4e083c9183fb0ae7487ade5cfb7a9d28c1a264956976b564085b7edf64ccdea9a944019f58951cd1616021c0de07735cafde6021e79314"},"signature":"0x413f84774a643eae048c4ec80f23be5354b3a83b77b3f06aa1cb55772cb8182605fb4142e2d11cf0b8d4d905a26c808700000000000000000000000000000000"}}
+[2020-04-12 06:43:50]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 06:43:50]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 06:43:50]-env.py-[line:595]: rewrite config.json
+[2020-04-12 06:43:50]-env.py-[line:647]: compression data
+[2020-04-12 06:43:50]-env.py-[line:436]: upload compression
+[2020-04-12 06:43:50]-env.py-[line:267]: deploy all node
+[2020-04-12 06:43:50]-env.py-[line:352]: deploy node
+[2020-04-12 06:43:53]-env.py-[line:269]: deploy success

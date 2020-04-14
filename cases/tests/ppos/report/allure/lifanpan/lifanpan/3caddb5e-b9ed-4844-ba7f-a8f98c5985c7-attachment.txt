@@ -1,0 +1,54 @@
+[2020-04-12 02:21:27]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 02:21:27]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 02:21:27]-env.py-[line:595]: rewrite config.json
+[2020-04-12 02:21:27]-env.py-[line:647]: compression data
+[2020-04-12 02:21:27]-env.py-[line:436]: upload compression
+[2020-04-12 02:21:27]-env.py-[line:267]: deploy all node
+[2020-04-12 02:21:27]-env.py-[line:352]: deploy node
+[2020-04-12 02:21:31]-env.py-[line:269]: deploy success
+[2020-04-12 02:21:31]-conftest.py-[line:190]: case execution completed
+[2020-04-12 02:21:31]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 02:21:31]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 02:21:31]-env.py-[line:595]: rewrite config.json
+[2020-04-12 02:21:31]-env.py-[line:647]: compression data
+[2020-04-12 02:21:31]-env.py-[line:436]: upload compression
+[2020-04-12 02:21:31]-env.py-[line:267]: deploy all node
+[2020-04-12 02:21:31]-env.py-[line:352]: deploy node
+[2020-04-12 02:21:34]-env.py-[line:269]: deploy success
+[2020-04-12 02:21:42]-test_entrusted_income.py-[line:3336]: Create delegate account：0xbb9c5E3e9D5198d14C36E25F7A07488C43A86e52
+[2020-04-12 02:21:51]-test_entrusted_income.py-[line:3338]: Create first pledge node id :6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300
+[2020-04-12 02:21:51]-test_entrusted_income.py-[line:3339]: Create second pledge node id :b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748
+[2020-04-12 02:21:53]-test_entrusted_income.py-[line:3343]: Commissioned successfully, commissioned amount：100000000000000000000
+[2020-04-12 02:21:55]-test_entrusted_income.py-[line:3346]: Commissioned successfully, commissioned amount：100000000000000000000
+[2020-04-12 02:22:04]-utils.py-[line:266]: The current block height is 46, waiting until 160
+[2020-04-12 02:22:14]-utils.py-[line:266]: The current block height is 61, waiting until 160
+[2020-04-12 02:22:24]-utils.py-[line:266]: The current block height is 79, waiting until 160
+[2020-04-12 02:22:34]-utils.py-[line:266]: The current block height is 94, waiting until 160
+[2020-04-12 02:22:44]-utils.py-[line:266]: The current block height is 112, waiting until 160
+[2020-04-12 02:22:55]-utils.py-[line:266]: The current block height is 129, waiting until 160
+[2020-04-12 02:23:05]-utils.py-[line:266]: The current block height is 146, waiting until 160
+[2020-04-12 02:23:14]-test_entrusted_income.py-[line:3348]: Current block height：161
+[2020-04-12 02:23:14]-test_entrusted_income.py-[line:3351]: Entrusted account balance: 999799999990255200000000
+[2020-04-12 02:23:23]-utils.py-[line:266]: The current block height is 176, waiting until 320
+[2020-04-12 02:23:33]-utils.py-[line:266]: The current block height is 193, waiting until 320
+[2020-04-12 02:23:43]-utils.py-[line:266]: The current block height is 210, waiting until 320
+[2020-04-12 02:23:53]-utils.py-[line:266]: The current block height is 226, waiting until 320
+[2020-04-12 02:24:03]-utils.py-[line:266]: The current block height is 243, waiting until 320
+[2020-04-12 02:24:13]-utils.py-[line:266]: The current block height is 260, waiting until 320
+[2020-04-12 02:24:23]-utils.py-[line:266]: The current block height is 276, waiting until 320
+[2020-04-12 02:24:33]-utils.py-[line:266]: The current block height is 293, waiting until 320
+[2020-04-12 02:24:44]-utils.py-[line:266]: The current block height is 311, waiting until 320
+[2020-04-12 02:24:50]-test_entrusted_income.py-[line:3353]: Current settlement block height：321
+[2020-04-12 02:25:02]-test_entrusted_income.py-[line:82]: Commission information：{'Code': 0, 'Ret': {'Addr': '0xbb9c5e3e9d5198d14c36e25f7a07488c43a86e52', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 16, 'DelegateEpoch': 3, 'Released': 100000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 02:25:02]-test_entrusted_income.py-[line:82]: Commission information：{'Code': 0, 'Ret': {'Addr': '0xbb9c5e3e9d5198d14c36e25f7a07488c43a86e52', 'NodeId': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'StakingBlockNum': 25, 'DelegateEpoch': 3, 'Released': 100000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 02:25:02]-test_entrusted_income.py-[line:3369]: delegate1 account balance:1771022770575036494117626
+[2020-04-12 02:25:02]-test_entrusted_income.py-[line:3371]: gas:3454000000000
+[2020-04-12 02:25:04]-test_entrusted_income.py-[line:3377]: gas:3434000000000
+[2020-04-12 02:25:04]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 02:25:04]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 02:25:04]-env.py-[line:595]: rewrite config.json
+[2020-04-12 02:25:04]-env.py-[line:647]: compression data
+[2020-04-12 02:25:04]-env.py-[line:436]: upload compression
+[2020-04-12 02:25:04]-env.py-[line:267]: deploy all node
+[2020-04-12 02:25:04]-env.py-[line:352]: deploy node
+[2020-04-12 02:25:07]-env.py-[line:269]: deploy success

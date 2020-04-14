@@ -1,0 +1,21 @@
+[2020-04-12 05:34:11]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 05:34:11]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 05:34:11]-env.py-[line:595]: rewrite config.json
+[2020-04-12 05:34:11]-env.py-[line:647]: compression data
+[2020-04-12 05:34:11]-env.py-[line:436]: upload compression
+[2020-04-12 05:34:11]-env.py-[line:267]: deploy all node
+[2020-04-12 05:34:11]-env.py-[line:352]: deploy node
+[2020-04-12 05:34:14]-env.py-[line:269]: deploy success
+[2020-04-12 05:34:14]-conftest.py-[line:190]: case execution completed
+[2020-04-12 05:34:14]-test_locked_position.py-[line:1617]: Current linked client1: 192.168.10.224:16788
+[2020-04-12 05:34:14]-test_locked_position.py-[line:1619]: Current linked client2: 192.168.10.221:16788
+[2020-04-12 05:34:22]-test_locked_position.py-[line:1290]: Restricting Plan informtion: {'Code': 0, 'Ret': {'balance': 100000000000000000000, 'debt': 0, 'plans': [{'blockNumber': 160, 'amount': 100000000000000000000}], 'Pledge': 0}}
+[2020-04-12 05:34:33]-utils.py-[line:266]: The current block height is 25, waiting until 40
+[2020-04-12 05:34:43]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 05:34:43]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 05:34:43]-env.py-[line:595]: rewrite config.json
+[2020-04-12 05:34:43]-env.py-[line:647]: compression data
+[2020-04-12 05:34:43]-env.py-[line:436]: upload compression
+[2020-04-12 05:34:43]-env.py-[line:267]: deploy all node
+[2020-04-12 05:34:43]-env.py-[line:352]: deploy node
+[2020-04-12 05:34:47]-env.py-[line:269]: deploy success

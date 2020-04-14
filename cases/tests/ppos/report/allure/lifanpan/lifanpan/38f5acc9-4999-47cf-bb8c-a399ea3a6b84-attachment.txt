@@ -1,0 +1,42 @@
+[2020-04-12 08:35:27]-conftest.py-[line:140]: {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0x594f6e14b525f20f01fd336a3b0dcdddfa32111c', 'BenefitAddress': '0x594f6e14b525f20f01fd336a3b0dcdddfa32111c', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 1, 'StakingBlockNum': 12, 'Shares': 2000100000000000000000000, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 100000000000000000000, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 1673903967981283422459772, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 08:35:27]-conftest.py-[line:140]: {'Code': 0, 'Ret': {'NodeId': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'BlsPubKey': '40f0b11593cf518b42b6b9245e632ea395035f74c0b20370d60bc3e41683556867d05203c15414f49e82bc5b7bb3110d7061951f7f3b388aab16a75baf6812c04b2b42d208262b2794026289f917afbbbd8f7bde4632df1741614162eecbf486', 'StakingAddress': '0xf062d31d6984349090be84a3ca63fcd1787bd6ea', 'BenefitAddress': '0xf062d31d6984349090be84a3ca63fcd1787bd6ea', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 4, 'StakingBlockNum': 493, 'Shares': 2000000000000000000000000, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 4, 'DelegateTotal': 0, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 815042246189839572192456, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 08:35:27]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 08:35:27]-conftest.py-[line:142]: Current linked node: 192.168.10.222:16788
+[2020-04-12 08:35:27]-conftest.py-[line:190]: case execution completed
+[2020-04-12 08:35:34]-test_voting_statistics.py-[line:44]: Node bdd755871e2676ad6d2a8a0b6e8d407e5cd6896e01efc835101eef1f63ef1f7fa70ad472a85260497d9f9e1d83ae42ad4eae166f6eed283a6c7f2616fb4cdf5f staking result : 0
+[2020-04-12 08:35:36]-test_rewards_interface.py-[line:1478]: Address 0x04c621174FA305158199115a1f8f8E342FCb8203 balance : 8999999995121200000000
+[2020-04-12 08:35:45]-utils.py-[line:266]: The current block height is 1152, waiting until 1600
+[2020-04-12 08:35:55]-utils.py-[line:266]: The current block height is 1171, waiting until 1600
+[2020-04-12 08:36:05]-utils.py-[line:266]: The current block height is 1187, waiting until 1600
+[2020-04-12 08:36:15]-utils.py-[line:266]: The current block height is 1203, waiting until 1600
+[2020-04-12 08:36:25]-utils.py-[line:266]: The current block height is 1219, waiting until 1600
+[2020-04-12 08:36:35]-utils.py-[line:266]: The current block height is 1235, waiting until 1600
+[2020-04-12 08:36:45]-utils.py-[line:266]: The current block height is 1252, waiting until 1600
+[2020-04-12 08:36:55]-utils.py-[line:266]: The current block height is 1269, waiting until 1600
+[2020-04-12 08:37:05]-utils.py-[line:266]: The current block height is 1288, waiting until 1600
+[2020-04-12 08:37:16]-utils.py-[line:266]: The current block height is 1304, waiting until 1600
+[2020-04-12 08:37:26]-utils.py-[line:266]: The current block height is 1321, waiting until 1600
+[2020-04-12 08:37:36]-utils.py-[line:266]: The current block height is 1338, waiting until 1600
+[2020-04-12 08:37:46]-utils.py-[line:266]: The current block height is 1354, waiting until 1600
+[2020-04-12 08:37:56]-utils.py-[line:266]: The current block height is 1371, waiting until 1600
+[2020-04-12 08:38:06]-utils.py-[line:266]: The current block height is 1388, waiting until 1600
+[2020-04-12 08:38:16]-utils.py-[line:266]: The current block height is 1405, waiting until 1600
+[2020-04-12 08:38:26]-utils.py-[line:266]: The current block height is 1421, waiting until 1600
+[2020-04-12 08:38:36]-utils.py-[line:266]: The current block height is 1438, waiting until 1600
+[2020-04-12 08:38:46]-utils.py-[line:266]: The current block height is 1455, waiting until 1600
+[2020-04-12 08:38:56]-utils.py-[line:266]: The current block height is 1471, waiting until 1600
+[2020-04-12 08:39:06]-utils.py-[line:266]: The current block height is 1488, waiting until 1600
+[2020-04-12 08:39:16]-utils.py-[line:266]: The current block height is 1505, waiting until 1600
+[2020-04-12 08:39:26]-utils.py-[line:266]: The current block height is 1521, waiting until 1600
+[2020-04-12 08:39:36]-utils.py-[line:266]: The current block height is 1538, waiting until 1600
+[2020-04-12 08:39:47]-utils.py-[line:266]: The current block height is 1555, waiting until 1600
+[2020-04-12 08:39:57]-utils.py-[line:266]: The current block height is 1572, waiting until 1600
+[2020-04-12 08:40:07]-utils.py-[line:266]: The current block height is 1588, waiting until 1600
+[2020-04-12 08:40:18]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 08:40:18]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 08:40:18]-env.py-[line:595]: rewrite config.json
+[2020-04-12 08:40:18]-env.py-[line:647]: compression data
+[2020-04-12 08:40:18]-env.py-[line:436]: upload compression
+[2020-04-12 08:40:18]-env.py-[line:267]: deploy all node
+[2020-04-12 08:40:18]-env.py-[line:352]: deploy node
+[2020-04-12 08:40:22]-env.py-[line:269]: deploy success

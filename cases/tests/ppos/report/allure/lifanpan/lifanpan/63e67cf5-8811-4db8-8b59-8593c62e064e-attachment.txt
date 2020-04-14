@@ -1,0 +1,29 @@
+[2020-04-12 09:55:21]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 09:55:21]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 09:55:21]-test_token_init.py-[line:755]: Transfer accounts: 2000000000000000000000000
+[2020-04-12 09:55:21]-test_token_init.py-[line:759]: address: 0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD accounts: 9614188018999995800000000000
+[2020-04-12 09:55:23]-test_token_init.py-[line:764]: address: 0xca9a7D4d5f15885E2FE43c6EF19A9FfDFF836943 ,amount: 2000000000000000000000000
+[2020-04-12 09:55:23]-test_token_init.py-[line:767]: address: 0x8e3052696213CA229eE6cc4A54cB426da24fC3fF ,amount: 0
+[2020-04-12 09:55:25]-test_token_init.py-[line:773]: Pledge node information: {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0xca9a7d4d5f15885e2fe43c6ef19a9ffdff836943', 'BenefitAddress': '0x8e3052696213ca229ee6cc4a54cb426da24fc3ff', 'RewardPer': 0, 'NextRewardPer': 0, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 5, 'StakingBlockNum': 701, 'Shares': 1300000000000000000000000, 'Released': 0, 'ReleasedHes': 1300000000000000000000000, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 0, 'DelegateTotal': 0, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 09:55:27]-test_token_init.py-[line:899]: benifit_balance: 0
+[2020-04-12 09:55:36]-utils.py-[line:266]: The current block height is 717, waiting until 800
+[2020-04-12 09:55:46]-utils.py-[line:266]: The current block height is 735, waiting until 800
+[2020-04-12 09:55:56]-utils.py-[line:266]: The current block height is 750, waiting until 800
+[2020-04-12 09:56:06]-utils.py-[line:266]: The current block height is 768, waiting until 800
+[2020-04-12 09:56:16]-utils.py-[line:266]: The current block height is 786, waiting until 800
+[2020-04-12 09:56:26]-test_token_init.py-[line:905]: block_reward: 43819475601604278074866 staking_reward: 1402223219251336898395722
+[2020-04-12 09:56:26]-test_token_init.py-[line:908]: Current node in consensus list status：False
+[2020-04-12 09:56:35]-utils.py-[line:266]: The current block height is 816, waiting until 840
+[2020-04-12 09:56:45]-utils.py-[line:266]: The current block height is 833, waiting until 840
+[2020-04-12 09:56:50]-test_token_init.py-[line:908]: Current node in consensus list status：True
+[2020-04-12 09:57:01]-utils.py-[line:266]: The current block height is 860, waiting until 960
+[2020-04-12 09:57:11]-utils.py-[line:266]: The current block height is 876, waiting until 960
+[2020-04-12 09:57:21]-utils.py-[line:266]: The current block height is 893, waiting until 960
+[2020-04-12 09:57:31]-utils.py-[line:266]: The current block height is 910, waiting until 960
+[2020-04-12 09:57:41]-utils.py-[line:266]: The current block height is 927, waiting until 960
+[2020-04-12 09:57:51]-utils.py-[line:266]: The current block height is 943, waiting until 960
+[2020-04-12 09:58:01]-utils.py-[line:266]: The current block height is 960, waiting until 960
+[2020-04-12 09:58:11]-utils.py-[line:266]: The current block height is 977, waiting until 1000
+[2020-04-12 09:58:21]-utils.py-[line:266]: The current block height is 993, waiting until 1000
+[2020-04-12 09:58:35]-test_token_init.py-[line:845]: blocknumber: 40
+[2020-04-12 09:58:35]-test_token_init.py-[line:914]: benifit_balance: 3155002243315508021390362

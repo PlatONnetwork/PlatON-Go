@@ -1,0 +1,2 @@
+[2020-04-12 07:16:12]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 07:16:12]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788

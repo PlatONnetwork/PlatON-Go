@@ -1,0 +1,35 @@
+[2020-04-12 08:00:07]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 08:00:07]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 08:00:07]-env.py-[line:595]: rewrite config.json
+[2020-04-12 08:00:07]-env.py-[line:647]: compression data
+[2020-04-12 08:00:07]-env.py-[line:436]: upload compression
+[2020-04-12 08:00:07]-env.py-[line:267]: deploy all node
+[2020-04-12 08:00:07]-env.py-[line:352]: deploy node
+[2020-04-12 08:00:10]-env.py-[line:269]: deploy success
+[2020-04-12 08:00:22]-test_voting_statistics.py-[line:44]: Node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 staking result : 0
+[2020-04-12 08:00:28]-test_voting_statistics.py-[line:44]: Node b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 staking result : 0
+[2020-04-12 08:00:42]-utils.py-[line:266]: The current block height is 48, waiting until 280
+[2020-04-12 08:00:53]-utils.py-[line:266]: The current block height is 66, waiting until 280
+[2020-04-12 08:01:03]-utils.py-[line:266]: The current block height is 81, waiting until 280
+[2020-04-12 08:01:13]-utils.py-[line:266]: The current block height is 99, waiting until 280
+[2020-04-12 08:01:23]-utils.py-[line:266]: The current block height is 115, waiting until 280
+[2020-04-12 08:01:33]-utils.py-[line:266]: The current block height is 133, waiting until 280
+[2020-04-12 08:01:43]-utils.py-[line:266]: The current block height is 149, waiting until 280
+[2020-04-12 08:01:53]-utils.py-[line:266]: The current block height is 167, waiting until 280
+[2020-04-12 08:02:03]-utils.py-[line:266]: The current block height is 184, waiting until 280
+[2020-04-12 08:02:13]-utils.py-[line:266]: The current block height is 200, waiting until 280
+[2020-04-12 08:02:23]-utils.py-[line:266]: The current block height is 217, waiting until 280
+[2020-04-12 08:02:33]-utils.py-[line:266]: The current block height is 234, waiting until 280
+[2020-04-12 08:02:43]-utils.py-[line:266]: The current block height is 250, waiting until 280
+[2020-04-12 08:02:53]-utils.py-[line:266]: The current block height is 267, waiting until 280
+[2020-04-12 08:03:03]-test_rewards_interface.py-[line:1039]: Nodeid 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 candiate information : {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0x279614b2f9a70d3244561383ab37582896c23410', 'BenefitAddress': '0x279614b2f9a70d3244561383ab37582896c23410', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 33, 'StakingEpoch': 2, 'StakingBlockNum': 16, 'Shares': 0, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 1000000000000000000000, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 08:03:12]-utils.py-[line:266]: The current block height is 299, waiting until 320
+[2020-04-12 08:03:22]-utils.py-[line:266]: The current block height is 315, waiting until 320
+[2020-04-12 08:03:26]-test_rewards_interface.py-[line:1042]: Nodeid 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 candiate information : {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0x279614b2f9a70d3244561383ab37582896c23410', 'BenefitAddress': '0x279614b2f9a70d3244561383ab37582896c23410', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 33, 'StakingEpoch': 2, 'StakingBlockNum': 16, 'Shares': 0, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 1000000000000000000000, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 271680748729946524064152, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 08:03:26]-test_rewards_interface.py-[line:1044]: Address 0x747374dfA9623eE8523bC68CE64EFa5d2A4D2FCE delegate node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 reward 271680748729946524064152
+[2020-04-12 08:03:26]-test_rewards_interface.py-[line:1047]: Address 0x747374dfA9623eE8523bC68CE64EFa5d2A4D2FCE delegate node b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 reward 113930636564171122994646
+[2020-04-12 08:03:26]-test_rewards_interface.py-[line:1050]: Address 0x5f7D5126Aef1d2C12a75D0053fAd91c4d734E371 delegate reward : 113930636564171122994646
+[2020-04-12 08:03:26]-test_rewards_interface.py-[line:1053]: Before withdraw reward, address 0x747374dfA9623eE8523bC68CE64EFa5d2A4D2FCE balance 7999999990255200000000
+[2020-04-12 08:03:26]-test_rewards_interface.py-[line:1055]: Before withdraw reward, address 0x5f7D5126Aef1d2C12a75D0053fAd91c4d734E371 balance 8999999995121200000000
+[2020-04-12 08:03:30]-test_rewards_interface.py-[line:1063]: Address 0x747374dfA9623eE8523bC68CE64EFa5d2A4D2FCE balance : 393611385280918847058798
+[2020-04-12 08:03:30]-test_rewards_interface.py-[line:1065]: Address 0x5f7D5126Aef1d2C12a75D0053fAd91c4d734E371 balance : 122930636555948322994646

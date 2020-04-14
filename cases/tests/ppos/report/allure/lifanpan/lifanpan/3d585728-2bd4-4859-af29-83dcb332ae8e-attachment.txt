@@ -1,0 +1,10 @@
+[2020-04-12 10:29:14]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 10:29:14]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 10:29:25]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 10:29:25]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 10:29:25]-env.py-[line:595]: rewrite config.json
+[2020-04-12 10:29:25]-env.py-[line:647]: compression data
+[2020-04-12 10:29:25]-env.py-[line:436]: upload compression
+[2020-04-12 10:29:25]-env.py-[line:267]: deploy all node
+[2020-04-12 10:29:25]-env.py-[line:352]: deploy node
+[2020-04-12 10:29:28]-env.py-[line:269]: deploy success

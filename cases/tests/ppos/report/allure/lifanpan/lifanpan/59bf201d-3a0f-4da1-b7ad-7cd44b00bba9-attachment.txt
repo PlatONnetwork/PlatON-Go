@@ -1,0 +1,13 @@
+[2020-04-12 12:27:54]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 12:27:54]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 12:28:00]-test_unlock_period.py-[line:57]: Account balance: 999999999992933600000000
+[2020-04-12 12:28:09]-utils.py-[line:266]: The current block height is 21, waiting until 160
+[2020-04-12 12:28:19]-utils.py-[line:266]: The current block height is 38, waiting until 160
+[2020-04-12 12:28:29]-utils.py-[line:266]: The current block height is 55, waiting until 160
+[2020-04-12 12:28:39]-utils.py-[line:266]: The current block height is 73, waiting until 160
+[2020-04-12 12:28:49]-utils.py-[line:266]: The current block height is 89, waiting until 160
+[2020-04-12 12:28:59]-utils.py-[line:266]: The current block height is 104, waiting until 160
+[2020-04-12 12:29:09]-utils.py-[line:266]: The current block height is 123, waiting until 160
+[2020-04-12 12:29:19]-utils.py-[line:266]: The current block height is 138, waiting until 160
+[2020-04-12 12:29:30]-utils.py-[line:266]: The current block height is 155, waiting until 160
+[2020-04-12 12:29:33]-test_unlock_period.py-[line:62]: Account balance: 1999999999992933600000000

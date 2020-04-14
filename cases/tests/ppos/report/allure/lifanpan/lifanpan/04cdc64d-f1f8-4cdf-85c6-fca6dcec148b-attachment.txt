@@ -1,0 +1,18 @@
+[2020-04-12 10:15:02]-test_token_init.py-[line:1239]: Start resetting the chain
+[2020-04-12 10:15:02]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 10:15:02]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 10:15:02]-env.py-[line:595]: rewrite config.json
+[2020-04-12 10:15:02]-env.py-[line:647]: compression data
+[2020-04-12 10:15:02]-env.py-[line:436]: upload compression
+[2020-04-12 10:15:02]-env.py-[line:267]: deploy all node
+[2020-04-12 10:15:02]-env.py-[line:352]: deploy node
+[2020-04-12 10:15:06]-env.py-[line:269]: deploy success
+[2020-04-12 10:15:11]-test_token_init.py-[line:1243]: Get the initial value of the incentive pool：262215742000000000000000000
+[2020-04-12 10:15:11]-test_token_init.py-[line:1245]: Number of current additional settlement cycles：11
+[2020-04-12 10:15:11]-test_token_init.py-[line:1247]: Block height of current issuance cycle: 1760
+[2020-04-12 10:15:11]-test_token_init.py-[line:1215]: Get incentive pool to allocate block reward ratio: 0.5
+[2020-04-12 10:15:11]-test_token_init.py-[line:1218]: Number of verification nodes in the current settlement cycle： 4
+[2020-04-12 10:15:11]-test_token_init.py-[line:1222]: Total block rewards: 11918897363636363636363636 Each block reward: 74493108522727272727272
+[2020-04-12 10:15:11]-test_token_init.py-[line:1226]: Total pledged rewards: 11918897363636363636363636 Amount of pledged rewards in current settlement cycle: 2979724340909090909090909
+[2020-04-12 10:15:11]-test_token_init.py-[line:1250]: Block rewards on the chain： 74493108522727272727272
+[2020-04-12 10:15:11]-test_token_init.py-[line:1251]: Pledge rewards on the chain：2979724340909090909090909

@@ -1,0 +1,46 @@
+[2020-04-12 11:02:43]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 11:02:43]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 11:02:43]-conftest.py-[line:190]: case execution completed
+[2020-04-12 11:03:01]-utils.py-[line:266]: The current block height is 30, waiting until 160
+[2020-04-12 11:03:11]-utils.py-[line:266]: The current block height is 45, waiting until 160
+[2020-04-12 11:03:21]-utils.py-[line:266]: The current block height is 63, waiting until 160
+[2020-04-12 11:03:32]-utils.py-[line:266]: The current block height is 78, waiting until 160
+[2020-04-12 11:03:42]-utils.py-[line:266]: The current block height is 96, waiting until 160
+[2020-04-12 11:03:52]-utils.py-[line:266]: The current block height is 113, waiting until 160
+[2020-04-12 11:04:02]-utils.py-[line:266]: The current block height is 128, waiting until 160
+[2020-04-12 11:04:12]-utils.py-[line:266]: The current block height is 146, waiting until 160
+[2020-04-12 11:04:30]-utils.py-[line:266]: The current block height is 177, waiting until 320
+[2020-04-12 11:04:40]-utils.py-[line:266]: The current block height is 193, waiting until 320
+[2020-04-12 11:04:50]-utils.py-[line:266]: The current block height is 210, waiting until 320
+[2020-04-12 11:05:00]-utils.py-[line:266]: The current block height is 227, waiting until 320
+[2020-04-12 11:05:10]-utils.py-[line:266]: The current block height is 244, waiting until 320
+[2020-04-12 11:05:20]-utils.py-[line:266]: The current block height is 260, waiting until 320
+[2020-04-12 11:05:30]-utils.py-[line:266]: The current block height is 277, waiting until 320
+[2020-04-12 11:05:40]-utils.py-[line:266]: The current block height is 294, waiting until 320
+[2020-04-12 11:05:51]-utils.py-[line:266]: The current block height is 310, waiting until 320
+[2020-04-12 11:06:12]-utils.py-[line:266]: The current block height is 346, waiting until 480
+[2020-04-12 11:06:22]-utils.py-[line:266]: The current block height is 362, waiting until 480
+[2020-04-12 11:06:32]-utils.py-[line:266]: The current block height is 379, waiting until 480
+[2020-04-12 11:06:42]-utils.py-[line:266]: The current block height is 396, waiting until 480
+[2020-04-12 11:06:52]-utils.py-[line:266]: The current block height is 413, waiting until 480
+[2020-04-12 11:07:02]-utils.py-[line:266]: The current block height is 429, waiting until 480
+[2020-04-12 11:07:12]-utils.py-[line:266]: The current block height is 446, waiting until 480
+[2020-04-12 11:07:22]-utils.py-[line:266]: The current block height is 463, waiting until 480
+[2020-04-12 11:07:32]-utils.py-[line:266]: The current block height is 479, waiting until 480
+[2020-04-12 11:07:45]-utils.py-[line:266]: The current block height is 500, waiting until 640
+[2020-04-12 11:07:55]-utils.py-[line:266]: The current block height is 517, waiting until 640
+[2020-04-12 11:08:05]-utils.py-[line:266]: The current block height is 533, waiting until 640
+[2020-04-12 11:08:15]-utils.py-[line:266]: The current block height is 550, waiting until 640
+[2020-04-12 11:08:25]-utils.py-[line:266]: The current block height is 567, waiting until 640
+[2020-04-12 11:08:35]-utils.py-[line:266]: The current block height is 583, waiting until 640
+[2020-04-12 11:08:45]-utils.py-[line:266]: The current block height is 600, waiting until 640
+[2020-04-12 11:08:55]-utils.py-[line:266]: The current block height is 617, waiting until 640
+[2020-04-12 11:09:06]-utils.py-[line:266]: The current block height is 634, waiting until 640
+[2020-04-12 11:09:11]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 11:09:11]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 11:09:11]-env.py-[line:595]: rewrite config.json
+[2020-04-12 11:09:11]-env.py-[line:647]: compression data
+[2020-04-12 11:09:11]-env.py-[line:436]: upload compression
+[2020-04-12 11:09:11]-env.py-[line:267]: deploy all node
+[2020-04-12 11:09:11]-env.py-[line:352]: deploy node
+[2020-04-12 11:09:14]-env.py-[line:269]: deploy success

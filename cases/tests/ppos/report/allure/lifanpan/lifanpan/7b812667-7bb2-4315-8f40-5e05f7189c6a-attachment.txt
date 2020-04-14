@@ -1,0 +1,2 @@
+[2020-04-11 22:56:51]-env.py-[line:298]: stop all node
+[2020-04-11 22:56:53]-node.py-[line:144]: Node-192.168.10.222:16789 do init failed:Fatal: Failed CheckEconomicModel configuration: The settlement period must be more than four times the consensus period

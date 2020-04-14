@@ -1,0 +1,45 @@
+[2020-04-12 07:43:09]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 07:43:09]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 07:43:09]-env.py-[line:595]: rewrite config.json
+[2020-04-12 07:43:09]-env.py-[line:647]: compression data
+[2020-04-12 07:43:09]-env.py-[line:436]: upload compression
+[2020-04-12 07:43:09]-env.py-[line:267]: deploy all node
+[2020-04-12 07:43:09]-env.py-[line:352]: deploy node
+[2020-04-12 07:43:12]-env.py-[line:269]: deploy success
+[2020-04-12 07:43:12]-conftest.py-[line:190]: case execution completed
+[2020-04-12 07:43:21]-test_voting_statistics.py-[line:44]: Node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 staking result : 0
+[2020-04-12 07:43:29]-test_voting_statistics.py-[line:44]: Node b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 staking result : 0
+[2020-04-12 07:43:43]-utils.py-[line:266]: The current block height is 46, waiting until 320
+[2020-04-12 07:43:53]-utils.py-[line:266]: The current block height is 64, waiting until 320
+[2020-04-12 07:44:03]-utils.py-[line:266]: The current block height is 81, waiting until 320
+[2020-04-12 07:44:13]-utils.py-[line:266]: The current block height is 96, waiting until 320
+[2020-04-12 07:44:23]-utils.py-[line:266]: The current block height is 115, waiting until 320
+[2020-04-12 07:44:33]-utils.py-[line:266]: The current block height is 129, waiting until 320
+[2020-04-12 07:44:43]-utils.py-[line:266]: The current block height is 146, waiting until 320
+[2020-04-12 07:44:54]-utils.py-[line:266]: The current block height is 165, waiting until 320
+[2020-04-12 07:45:04]-utils.py-[line:266]: The current block height is 181, waiting until 320
+[2020-04-12 07:45:14]-utils.py-[line:266]: The current block height is 198, waiting until 320
+[2020-04-12 07:45:24]-utils.py-[line:266]: The current block height is 215, waiting until 320
+[2020-04-12 07:45:34]-utils.py-[line:266]: The current block height is 232, waiting until 320
+[2020-04-12 07:45:44]-utils.py-[line:266]: The current block height is 248, waiting until 320
+[2020-04-12 07:45:54]-utils.py-[line:266]: The current block height is 265, waiting until 320
+[2020-04-12 07:46:04]-utils.py-[line:266]: The current block height is 282, waiting until 320
+[2020-04-12 07:46:14]-utils.py-[line:266]: The current block height is 298, waiting until 320
+[2020-04-12 07:46:24]-utils.py-[line:266]: The current block height is 315, waiting until 320
+[2020-04-12 07:46:28]-test_rewards_interface.py-[line:824]: Address 0xe381C9741587fE4B534093940C1a89e3Bd7dd6E3 delegate rewards : 113930636564171122994646
+[2020-04-12 07:46:28]-test_rewards_interface.py-[line:826]: Address 0x20E0ccD601435D60AE2CE8d13E8d1704F8C98392 delegate rewards : 385611385294117647058798
+[2020-04-12 07:46:28]-test_rewards_interface.py-[line:828]: Address 0x20E0ccD601435D60AE2CE8d13E8d1704F8C98392 delegate nodeid 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 rewards : 113930636564171122994646
+[2020-04-12 07:46:28]-test_rewards_interface.py-[line:831]: Address 0xe381C9741587fE4B534093940C1a89e3Bd7dd6E3 before withdraw delegate balance : 8999999995134000000000
+[2020-04-12 07:46:28]-test_rewards_interface.py-[line:833]: Address 0xe381C9741587fE4B534093940C1a89e3Bd7dd6E3 before withdraw delegate balance : 7999999990255200000000
+[2020-04-12 07:46:32]-test_rewards_interface.py-[line:24]: Address 0x20E0ccD601435D60AE2CE8d13E8d1704F8C98392 delegate information {'Code': 0, 'Ret': {'Addr': '0x20e0ccd601435d60ae2ce8d13e8d1704f8c98392', 'NodeId': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'StakingBlockNum': 24, 'DelegateEpoch': 1, 'Released': 1000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 07:46:32]-test_rewards_interface.py-[line:842]: data b'\xf8T\x83\x82\x03\xed\x0b\xb8B\xb8@k\x84\xcc\xae\xae\xd0\xa9\xbf[\xf7\xc6\xf5\xfb*\xbb\xee\xa3TmeW\xce\xc0)\x92\xf7u?\x99\xc2\xe3\x9f\x87\xfd\xbd\xb6(\r\x7f\xc8\xa2CQ\x8e\xf2x4\xe5^\xb0:\xd6\xd8\xef/b{\x8f\x00\x01\xee\x18S\x00\x8a\x8965\xc9\xad\xc5\xde\xa0\x00\x00'
+[2020-04-12 07:46:32]-test_rewards_interface.py-[line:850]: Address 0xe381C9741587fE4B534093940C1a89e3Bd7dd6E3 before withdraw delegate balance : 123930636555235922994646
+[2020-04-12 07:46:32]-test_rewards_interface.py-[line:852]: Address 0xe381C9741587fE4B534093940C1a89e3Bd7dd6E3 before withdraw delegate balance : 122930636550357122994646
+[2020-04-12 07:46:34]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 07:46:34]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 07:46:34]-env.py-[line:595]: rewrite config.json
+[2020-04-12 07:46:34]-env.py-[line:647]: compression data
+[2020-04-12 07:46:34]-env.py-[line:436]: upload compression
+[2020-04-12 07:46:34]-env.py-[line:267]: deploy all node
+[2020-04-12 07:46:34]-env.py-[line:352]: deploy node
+[2020-04-12 07:46:37]-env.py-[line:269]: deploy success

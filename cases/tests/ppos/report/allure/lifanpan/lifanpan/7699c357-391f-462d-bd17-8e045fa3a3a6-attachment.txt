@@ -1,0 +1,4 @@
+[2020-04-12 04:52:36]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 04:52:36]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 04:52:37]-test_locked_position.py-[line:135]: address: 01Cbb84Fa0202E290756b5B779aC5699a37deC47
+[2020-04-12 04:52:37]-test_locked_position.py-[line:144]: gas_total: 92348

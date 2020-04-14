@@ -1,0 +1,50 @@
+[2020-04-12 02:43:05]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 02:43:05]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 02:43:05]-env.py-[line:595]: rewrite config.json
+[2020-04-12 02:43:05]-env.py-[line:647]: compression data
+[2020-04-12 02:43:05]-env.py-[line:436]: upload compression
+[2020-04-12 02:43:05]-env.py-[line:267]: deploy all node
+[2020-04-12 02:43:05]-env.py-[line:352]: deploy node
+[2020-04-12 02:43:08]-env.py-[line:269]: deploy success
+[2020-04-12 02:43:08]-test_general_punishment.py-[line:195]: Current connection node1: 192.168.10.224:16788
+[2020-04-12 02:43:08]-test_general_punishment.py-[line:197]: Current connection node2: 192.168.10.221:16788
+[2020-04-12 02:43:34]-utils.py-[line:266]: The current block height is 40, waiting until 160
+[2020-04-12 02:43:45]-utils.py-[line:266]: The current block height is 56, waiting until 160
+[2020-04-12 02:43:55]-utils.py-[line:266]: The current block height is 73, waiting until 160
+[2020-04-12 02:44:05]-utils.py-[line:266]: The current block height is 89, waiting until 160
+[2020-04-12 02:44:15]-utils.py-[line:266]: The current block height is 106, waiting until 160
+[2020-04-12 02:44:25]-utils.py-[line:266]: The current block height is 122, waiting until 160
+[2020-04-12 02:44:35]-utils.py-[line:266]: The current block height is 139, waiting until 160
+[2020-04-12 02:44:45]-utils.py-[line:266]: The current block height is 156, waiting until 160
+[2020-04-12 02:44:48]-test_general_punishment.py-[line:18]: Pledge node information: {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0x60ba06501c1f25953c592c1f72634c4e2475ce3a', 'BenefitAddress': '0x60ba06501c1f25953c592c1f72634c4e2475ce3a', 'RewardPer': 0, 'NextRewardPer': 0, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 1, 'StakingBlockNum': 16, 'Shares': 1001010000000000000000000, 'Released': 0, 'ReleasedHes': 0, 'RestrictingPlan': 1000010000000000000000000, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 1000000000000000000000, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 02:44:48]-test_general_punishment.py-[line:21]: block: 162
+[2020-04-12 02:44:48]-test_general_punishment.py-[line:23]: block_reward: 43819475601604278074866 staking_reward: 1402223219251336898395722
+[2020-04-12 02:44:48]-utils.py-[line:370]: slashBlocksReward ParamValue: 5
+[2020-04-12 02:44:48]-utils.py-[line:371]: slashBlocksReward Param old Value: 
+[2020-04-12 02:44:48]-test_general_punishment.py-[line:227]: Current block height: 162
+[2020-04-12 02:44:48]-test_general_punishment.py-[line:50]: Start stopping the current node ：http://192.168.10.224:6788 process
+[2020-04-12 02:44:48]-test_general_punishment.py-[line:52]: Start waiting for the end of the three consensus rounds
+[2020-04-12 02:44:57]-utils.py-[line:266]: The current block height is 175, waiting until 320
+[2020-04-12 02:45:07]-utils.py-[line:266]: The current block height is 194, waiting until 320
+[2020-04-12 02:45:18]-utils.py-[line:266]: The current block height is 208, waiting until 320
+[2020-04-12 02:45:28]-utils.py-[line:266]: The current block height is 212, waiting until 320
+[2020-04-12 02:45:38]-utils.py-[line:266]: The current block height is 228, waiting until 320
+[2020-04-12 02:45:48]-utils.py-[line:266]: The current block height is 245, waiting until 320
+[2020-04-12 02:45:58]-utils.py-[line:266]: The current block height is 248, waiting until 320
+[2020-04-12 02:46:08]-utils.py-[line:266]: The current block height is 262, waiting until 320
+[2020-04-12 02:46:18]-utils.py-[line:266]: The current block height is 278, waiting until 320
+[2020-04-12 02:46:28]-utils.py-[line:266]: The current block height is 295, waiting until 320
+[2020-04-12 02:46:38]-utils.py-[line:266]: The current block height is 311, waiting until 320
+[2020-04-12 02:46:44]-test_general_punishment.py-[line:54]: Current block height: 321
+[2020-04-12 02:46:44]-test_general_punishment.py-[line:56]: Current billing cycle certifier list: {'Code': 0, 'Ret': [{'NodeId': '488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624', 'BlsPubKey': 'fa340928f6edfb9f4c3d9815b87464227221d4ba588e828e02e9035049dbf7031321f1a95072aeb2918693b9ce6d3f0cf76395a16040f0b3f9d1272bf137733c1348c7883ccfcdd1d529929fc329086164286613a95880332be843b705baf28a', 'StakingAddress': '0x54a7a3c6822eb222c53f76443772a60b0f9a8bab', 'BenefitAddress': '0x1000000000000000000000000000000000000003', 'RewardPer': 0, 'NextRewardPer': 0, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'StakingBlockNum': 0, 'Shares': 1500000000000000000000000, 'ExternalId': '', 'NodeName': 'platon.node.1', 'Website': 'www.platon.network', 'Details': 'The PlatON Node', 'ValidatorTerm': 0, 'DelegateTotal': '0x0', 'DelegateRewardTotal': '0x0'}, {'NodeId': 'cfdf43591661d0107b7389a0ef68a2681cdf67d93183e36201acb631920cee349d4c6d7e8557602e101df0fe6b2e6808c66e0a27a2942096348f96d192f0b2eb', 'BlsPubKey': 'b823674b30877e4cc163448e3852d367c4bf79ce8d8caac16f0eed09856b397c012e567c048d292f0e4e083c9183fb0ae7487ade5cfb7a9d28c1a264956976b564085b7edf64ccdea9a944019f58951cd1616021c0de07735cafde6021e79314', 'StakingAddress': '0x54a7a3c6822eb222c53f76443772a60b0f9a8bab', 'BenefitAddress': '0x1000000000000000000000000000000000000003', 'RewardPer': 0, 'NextRewardPer': 0, 'StakingTxIndex': 1, 'ProgramVersion': 3072, 'StakingBlockNum': 0, 'Shares': 1500000000000000000000000, 'ExternalId': '', 'NodeName': 'platon.node.2', 'Website': 'www.platon.network', 'Details': 'The PlatON Node', 'ValidatorTerm': 0, 'DelegateTotal': '0x0', 'DelegateRewardTotal': '0x0'}, {'NodeId': '17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82', 'BlsPubKey': '9a96cb325530289bfb7c9af832f86ddaa5baebba659b357974e3f318b08607e38aaf19ec5be5c3d44396c8b38afbb1037d7588b1efd5dcfd47499ed81a4bf2000faada2407a4839765885cd7f6e6d03b277770f398587cda17ce983e39242c0b', 'StakingAddress': '0x54a7a3c6822eb222c53f76443772a60b0f9a8bab', 'BenefitAddress': '0x1000000000000000000000000000000000000003', 'RewardPer': 0, 'NextRewardPer': 0, 'StakingTxIndex': 2, 'ProgramVersion': 3072, 'StakingBlockNum': 0, 'Shares': 1500000000000000000000000, 'ExternalId': '', 'NodeName': 'platon.node.3', 'Website': 'www.platon.network', 'Details': 'The PlatON Node', 'ValidatorTerm': 0, 'DelegateTotal': '0x0', 'DelegateRewardTotal': '0x0'}, {'NodeId': 'd025077152db2046a77afb48a13f875c17d674421eda9c5345c32d9378490326d628e9f9b60392fcf7832ba82c9ebf5953573d6f93878c24f77e9cb53ee59fec', 'BlsPubKey': 'd24a269fb63fb105d74dd853197ad9c6d7d9576c389692c05a1ff8befeefea61f4cf5723f30c32bf0823a00fd05b5a1404deb498776c2e060457a9103ade26ee106d4217b96aa54009ffa655cea68ae81f44515483d9f5a939d31a9e0d34bd02', 'StakingAddress': '0x54a7a3c6822eb222c53f76443772a60b0f9a8bab', 'BenefitAddress': '0x1000000000000000000000000000000000000003', 'RewardPer': 0, 'NextRewardPer': 0, 'StakingTxIndex': 3, 'ProgramVersion': 3072, 'StakingBlockNum': 0, 'Shares': 1500000000000000000000000, 'ExternalId': '', 'NodeName': 'platon.node.4', 'Website': 'www.platon.network', 'Details': 'The PlatON Node', 'ValidatorTerm': 0, 'DelegateTotal': '0x0', 'DelegateRewardTotal': '0x0'}]}
+[2020-04-12 02:46:44]-test_general_punishment.py-[line:58]: stopped pledge node information： {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0x60ba06501c1f25953c592c1f72634c4e2475ce3a', 'BenefitAddress': '0x60ba06501c1f25953c592c1f72634c4e2475ce3a', 'RewardPer': 0, 'NextRewardPer': 0, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 17, 'StakingEpoch': 1, 'StakingBlockNum': 16, 'Shares': 0, 'Released': 0, 'ReleasedHes': 0, 'RestrictingPlan': 561815243983957219251340, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 1000000000000000000000, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 02:46:44]-test_general_punishment.py-[line:61]: Low block rate penalty amount: 219097378008021390374330
+[2020-04-12 02:46:44]-test_general_punishment.py-[line:230]: Check amount completed
+[2020-04-12 02:46:44]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 02:46:44]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 02:46:44]-env.py-[line:595]: rewrite config.json
+[2020-04-12 02:46:44]-env.py-[line:647]: compression data
+[2020-04-12 02:46:44]-env.py-[line:436]: upload compression
+[2020-04-12 02:46:44]-env.py-[line:267]: deploy all node
+[2020-04-12 02:46:44]-env.py-[line:352]: deploy node
+[2020-04-12 02:46:48]-env.py-[line:269]: deploy success

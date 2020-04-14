@@ -1,0 +1,55 @@
+[2020-04-12 01:38:07]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 01:38:07]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 01:38:07]-conftest.py-[line:190]: case execution completed
+[2020-04-12 01:38:15]-test_entrusted_income.py-[line:2437]: Create delegate account：0x048cd086785f3f26573163dd20A23ABAC3757a3e
+[2020-04-12 01:38:19]-test_entrusted_income.py-[line:2439]: Create pledge node id :6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300
+[2020-04-12 01:38:31]-utils.py-[line:266]: The current block height is 36, waiting until 160
+[2020-04-12 01:38:41]-utils.py-[line:266]: The current block height is 52, waiting until 160
+[2020-04-12 01:38:51]-utils.py-[line:266]: The current block height is 70, waiting until 160
+[2020-04-12 01:39:01]-utils.py-[line:266]: The current block height is 88, waiting until 160
+[2020-04-12 01:39:11]-utils.py-[line:266]: The current block height is 104, waiting until 160
+[2020-04-12 01:39:21]-utils.py-[line:266]: The current block height is 121, waiting until 160
+[2020-04-12 01:39:31]-utils.py-[line:266]: The current block height is 136, waiting until 160
+[2020-04-12 01:39:41]-utils.py-[line:266]: The current block height is 154, waiting until 160
+[2020-04-12 01:39:47]-test_entrusted_income.py-[line:2447]: Current settlement block height：163
+[2020-04-12 01:39:50]-test_entrusted_income.py-[line:82]: Commission information：{'Code': 0, 'Ret': {'Addr': '0x048cd086785f3f26573163dd20a23abac3757a3e', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 18, 'DelegateEpoch': 1, 'Released': 100000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 01:39:50]-test_entrusted_income.py-[line:91]: {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0x87ec7d3714eef4c8d3e0150e14b922f070cdaa28', 'BenefitAddress': '0x87ec7d3714eef4c8d3e0150e14b922f070cdaa28', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 33, 'StakingEpoch': 2, 'StakingBlockNum': 18, 'Shares': 0, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 100000000000000000000, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 01:39:50]-test_entrusted_income.py-[line:92]: Current pledged node pledge information：{'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0x87ec7d3714eef4c8d3e0150e14b922f070cdaa28', 'BenefitAddress': '0x87ec7d3714eef4c8d3e0150e14b922f070cdaa28', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 33, 'StakingEpoch': 2, 'StakingBlockNum': 18, 'Shares': 0, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 100000000000000000000, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 01:39:59]-utils.py-[line:266]: The current block height is 184, waiting until 640
+[2020-04-12 01:40:09]-utils.py-[line:266]: The current block height is 200, waiting until 640
+[2020-04-12 01:40:19]-utils.py-[line:266]: The current block height is 217, waiting until 640
+[2020-04-12 01:40:29]-utils.py-[line:266]: The current block height is 234, waiting until 640
+[2020-04-12 01:40:39]-utils.py-[line:266]: The current block height is 251, waiting until 640
+[2020-04-12 01:40:49]-utils.py-[line:266]: The current block height is 267, waiting until 640
+[2020-04-12 01:40:59]-utils.py-[line:266]: The current block height is 284, waiting until 640
+[2020-04-12 01:41:10]-utils.py-[line:266]: The current block height is 301, waiting until 640
+[2020-04-12 01:41:20]-utils.py-[line:266]: The current block height is 317, waiting until 640
+[2020-04-12 01:41:30]-utils.py-[line:266]: The current block height is 334, waiting until 640
+[2020-04-12 01:41:40]-utils.py-[line:266]: The current block height is 351, waiting until 640
+[2020-04-12 01:41:50]-utils.py-[line:266]: The current block height is 367, waiting until 640
+[2020-04-12 01:42:00]-utils.py-[line:266]: The current block height is 384, waiting until 640
+[2020-04-12 01:42:10]-utils.py-[line:266]: The current block height is 401, waiting until 640
+[2020-04-12 01:42:20]-utils.py-[line:266]: The current block height is 417, waiting until 640
+[2020-04-12 01:42:30]-utils.py-[line:266]: The current block height is 434, waiting until 640
+[2020-04-12 01:42:40]-utils.py-[line:266]: The current block height is 450, waiting until 640
+[2020-04-12 01:42:50]-utils.py-[line:266]: The current block height is 468, waiting until 640
+[2020-04-12 01:43:00]-utils.py-[line:266]: The current block height is 484, waiting until 640
+[2020-04-12 01:43:10]-utils.py-[line:266]: The current block height is 499, waiting until 640
+[2020-04-12 01:43:20]-utils.py-[line:266]: The current block height is 518, waiting until 640
+[2020-04-12 01:43:30]-utils.py-[line:266]: The current block height is 534, waiting until 640
+[2020-04-12 01:43:41]-utils.py-[line:266]: The current block height is 550, waiting until 640
+[2020-04-12 01:43:51]-utils.py-[line:266]: The current block height is 567, waiting until 640
+[2020-04-12 01:44:01]-utils.py-[line:266]: The current block height is 583, waiting until 640
+[2020-04-12 01:44:11]-utils.py-[line:266]: The current block height is 601, waiting until 640
+[2020-04-12 01:44:21]-utils.py-[line:266]: The current block height is 616, waiting until 640
+[2020-04-12 01:44:31]-utils.py-[line:266]: The current block height is 634, waiting until 640
+[2020-04-12 01:44:35]-test_entrusted_income.py-[line:2472]: Current settlement block height：641
+[2020-04-12 01:44:35]-test_entrusted_income.py-[line:2474]: Entrusted account balance： 999899999991800000000000
+[2020-04-12 01:44:38]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 01:44:38]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 01:44:38]-env.py-[line:595]: rewrite config.json
+[2020-04-12 01:44:38]-env.py-[line:647]: compression data
+[2020-04-12 01:44:38]-env.py-[line:436]: upload compression
+[2020-04-12 01:44:39]-env.py-[line:267]: deploy all node
+[2020-04-12 01:44:39]-env.py-[line:352]: deploy node
+[2020-04-12 01:44:42]-env.py-[line:269]: deploy success

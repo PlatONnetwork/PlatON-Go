@@ -1,0 +1,15 @@
+[2020-04-12 09:17:35]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 09:17:35]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 09:17:35]-test_token_init.py-[line:209]: Node ID：6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300
+[2020-04-12 09:17:35]-test_token_init.py-[line:210]: Current connection node： 192.168.10.224:16788
+[2020-04-12 09:17:37]-test_token_init.py-[line:219]: Balance of Restriction plan : 259096239000000000000000000
+[2020-04-12 09:17:37]-test_token_init.py-[line:220]: Balance of Staking : 6000000000000000000000000
+[2020-04-12 09:17:37]-test_token_init.py-[line:221]: Balance of punishment : 0
+[2020-04-12 09:17:37]-test_token_init.py-[line:222]: Balance of pip : 0
+[2020-04-12 09:17:37]-test_token_init.py-[line:223]: Balance of Entrust reward pool : 0
+[2020-04-12 09:17:37]-test_token_init.py-[line:225]: Transfer amount：1000000000000000000000
+[2020-04-12 09:17:48]-test_token_init.py-[line:246]: Balance of Restriction plan : 259097239000000000000000000
+[2020-04-12 09:17:48]-test_token_init.py-[line:247]: Balance of Staking : 6001000000000000000000000
+[2020-04-12 09:17:48]-test_token_init.py-[line:248]: Balance of punishment : 1000000000000000000000
+[2020-04-12 09:17:48]-test_token_init.py-[line:249]: Balance of pip : 1000000000000000000000
+[2020-04-12 09:17:48]-test_token_init.py-[line:250]: Balance of Entrust reward pool : 1000000000000000000000

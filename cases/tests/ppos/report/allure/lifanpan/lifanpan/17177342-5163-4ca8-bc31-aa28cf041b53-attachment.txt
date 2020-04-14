@@ -1,0 +1,43 @@
+[2020-04-12 04:24:20]-conftest.py-[line:190]: case execution completed
+[2020-04-12 04:24:20]-test_governance_penalty_parameters.py-[line:501]: Current connection non-consensus node：192.168.10.221:16789
+[2020-04-12 04:24:21]-utils.py-[line:370]: slashFractionDuplicateSign ParamValue: 100
+[2020-04-12 04:24:21]-utils.py-[line:371]: slashFractionDuplicateSign Param old Value: 
+[2020-04-12 04:24:23]-conftest.py-[line:217]: submit param proposal result : 0
+[2020-04-12 04:24:23]-conftest.py-[line:220]: param proposalinfo : {'ProposalID': '0xb58ff30b1ce157ae749b7d3a24c0b6aac43e05036225dd7937db9692961e0623', 'ProposalType': 3, 'PIPID': '1586636661.268997', 'SubmitBlock': 2, 'EndVotingBlock': 320, 'Proposer': '488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624', 'Module': 'slashing', 'Name': 'slashFractionDuplicateSign', 'NewValue': '10000'}
+[2020-04-12 04:24:23]-conftest.py-[line:227]: verifierlist : ['488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624', 'cfdf43591661d0107b7389a0ef68a2681cdf67d93183e36201acb631920cee349d4c6d7e8557602e101df0fe6b2e6808c66e0a27a2942096348f96d192f0b2eb', '17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82', 'd025077152db2046a77afb48a13f875c17d674421eda9c5345c32d9378490326d628e9f9b60392fcf7832ba82c9ebf5953573d6f93878c24f77e9cb53ee59fec']
+[2020-04-12 04:24:24]-conftest.py-[line:237]: Node 488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624 vote proposal result : 0
+[2020-04-12 04:24:26]-conftest.py-[line:237]: Node cfdf43591661d0107b7389a0ef68a2681cdf67d93183e36201acb631920cee349d4c6d7e8557602e101df0fe6b2e6808c66e0a27a2942096348f96d192f0b2eb vote proposal result : 0
+[2020-04-12 04:24:28]-conftest.py-[line:237]: Node 17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82 vote proposal result : 0
+[2020-04-12 04:24:30]-conftest.py-[line:237]: Node d025077152db2046a77afb48a13f875c17d674421eda9c5345c32d9378490326d628e9f9b60392fcf7832ba82c9ebf5953573d6f93878c24f77e9cb53ee59fec vote proposal result : 0
+[2020-04-12 04:24:39]-utils.py-[line:266]: The current block height is 29, waiting until 320
+[2020-04-12 04:24:49]-utils.py-[line:266]: The current block height is 45, waiting until 320
+[2020-04-12 04:24:59]-utils.py-[line:266]: The current block height is 62, waiting until 320
+[2020-04-12 04:25:09]-utils.py-[line:266]: The current block height is 79, waiting until 320
+[2020-04-12 04:25:19]-utils.py-[line:266]: The current block height is 96, waiting until 320
+[2020-04-12 04:25:30]-utils.py-[line:266]: The current block height is 113, waiting until 320
+[2020-04-12 04:25:40]-utils.py-[line:266]: The current block height is 129, waiting until 320
+[2020-04-12 04:25:50]-utils.py-[line:266]: The current block height is 146, waiting until 320
+[2020-04-12 04:26:00]-utils.py-[line:266]: The current block height is 163, waiting until 320
+[2020-04-12 04:26:10]-utils.py-[line:266]: The current block height is 180, waiting until 320
+[2020-04-12 04:26:20]-utils.py-[line:266]: The current block height is 196, waiting until 320
+[2020-04-12 04:26:30]-utils.py-[line:266]: The current block height is 213, waiting until 320
+[2020-04-12 04:26:40]-utils.py-[line:266]: The current block height is 230, waiting until 320
+[2020-04-12 04:26:50]-utils.py-[line:266]: The current block height is 246, waiting until 320
+[2020-04-12 04:27:00]-utils.py-[line:266]: The current block height is 263, waiting until 320
+[2020-04-12 04:27:10]-utils.py-[line:266]: The current block height is 280, waiting until 320
+[2020-04-12 04:27:20]-utils.py-[line:266]: The current block height is 297, waiting until 320
+[2020-04-12 04:27:30]-utils.py-[line:266]: The current block height is 313, waiting until 320
+[2020-04-12 04:27:35]-conftest.py-[line:242]: blockNumber 320, the slashFractionDuplicateSign has become 10000
+[2020-04-12 04:27:35]-utils.py-[line:370]: slashFractionDuplicateSign ParamValue: 10000
+[2020-04-12 04:27:35]-utils.py-[line:371]: slashFractionDuplicateSign Param old Value: 100
+[2020-04-12 04:27:37]-test_governance_penalty_parameters.py-[line:517]: Current block height: 325
+[2020-04-12 04:27:37]-test_governance_penalty_parameters.py-[line:404]: Report information: {"prepareA":{"epoch":0,"viewNumber":0,"blockHash":"0xed8b875a74378f535bd8ad43d2aa071b54c0022915607d73e8b0616e04be0e75","blockNumber":325,"blockIndex":0,"blockData":"0x3fc77bb91d089a68ff69ca2313a07a9aeb4b257fb0672f40f0925b590a7213fe","validateNode":{"index":0,"address":"0xb0215d916efea919aeafd2b746254a3611731711","nodeId":"488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624","blsPubKey":"fa340928f6edfb9f4c3d9815b87464227221d4ba588e828e02e9035049dbf7031321f1a95072aeb2918693b9ce6d3f0cf76395a16040f0b3f9d1272bf137733c1348c7883ccfcdd1d529929fc329086164286613a95880332be843b705baf28a"},"signature":"0xf63509a989e8e220ad55b8af7a739aeb56efd596956f2bab3f5144db7613afadb799ec93cb6579e53f191a8ba248458900000000000000000000000000000000"},"prepareB":{"epoch":0,"viewNumber":0,"blockHash":"0x2f20104202a211e51c8ef82e9340a8905c0c92cdf306238e1ef4645a72d41b2b","blockNumber":325,"blockIndex":0,"blockData":"0x5d6561701399c75ade597a7d94935fa235795d2bf013e0f0da65959cfefb3a15","validateNode":{"index":0,"address":"0xb0215d916efea919aeafd2b746254a3611731711","nodeId":"488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624","blsPubKey":"fa340928f6edfb9f4c3d9815b87464227221d4ba588e828e02e9035049dbf7031321f1a95072aeb2918693b9ce6d3f0cf76395a16040f0b3f9d1272bf137733c1348c7883ccfcdd1d529929fc329086164286613a95880332be843b705baf28a"},"signature":"0x963d8ccde070874ee4f93c93e0ca814a1c0332b4dd7791c65df71796cc0c5c0f5262376aa6bf835f6ecc186a7908ae8700000000000000000000000000000000"}}
+[2020-04-12 04:27:39]-test_governance_penalty_parameters.py-[line:412]: Whistleblower benefits：750000000000000000000000 Incentive pool income：750000000000000000000000
+[2020-04-12 04:27:39]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 04:27:39]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 04:27:39]-env.py-[line:595]: rewrite config.json
+[2020-04-12 04:27:39]-env.py-[line:647]: compression data
+[2020-04-12 04:27:39]-env.py-[line:436]: upload compression
+[2020-04-12 04:27:39]-env.py-[line:267]: deploy all node
+[2020-04-12 04:27:39]-env.py-[line:352]: deploy node
+[2020-04-12 04:27:42]-env.py-[line:269]: deploy success

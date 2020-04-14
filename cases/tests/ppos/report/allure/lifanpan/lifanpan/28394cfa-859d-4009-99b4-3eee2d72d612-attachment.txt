@@ -1,0 +1,35 @@
+[2020-04-11 23:21:09]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-11 23:21:09]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-11 23:21:09]-conftest.py-[line:190]: case execution completed
+[2020-04-11 23:21:18]-test_entrusted_income.py-[line:477]: Create delegate account：0x6bBa6B859F124ab93A53bFD882eea8d5d49c29ae
+[2020-04-11 23:21:22]-test_entrusted_income.py-[line:479]: Create pledge node id :6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300
+[2020-04-11 23:21:24]-test_entrusted_income.py-[line:483]: Commissioned successfully, commissioned amount：10000000000000000000
+[2020-04-11 23:21:34]-utils.py-[line:266]: The current block height is 38, waiting until 160
+[2020-04-11 23:21:44]-utils.py-[line:266]: The current block height is 56, waiting until 160
+[2020-04-11 23:21:54]-utils.py-[line:266]: The current block height is 73, waiting until 160
+[2020-04-11 23:22:04]-utils.py-[line:266]: The current block height is 89, waiting until 160
+[2020-04-11 23:22:14]-utils.py-[line:266]: The current block height is 106, waiting until 160
+[2020-04-11 23:22:24]-utils.py-[line:266]: The current block height is 121, waiting until 160
+[2020-04-11 23:22:34]-utils.py-[line:266]: The current block height is 139, waiting until 160
+[2020-04-11 23:22:44]-utils.py-[line:266]: The current block height is 155, waiting until 160
+[2020-04-11 23:22:56]-utils.py-[line:266]: The current block height is 177, waiting until 320
+[2020-04-11 23:23:06]-utils.py-[line:266]: The current block height is 193, waiting until 320
+[2020-04-11 23:23:16]-utils.py-[line:266]: The current block height is 210, waiting until 320
+[2020-04-11 23:23:26]-utils.py-[line:266]: The current block height is 227, waiting until 320
+[2020-04-11 23:23:36]-utils.py-[line:266]: The current block height is 243, waiting until 320
+[2020-04-11 23:23:46]-utils.py-[line:266]: The current block height is 260, waiting until 320
+[2020-04-11 23:23:57]-utils.py-[line:266]: The current block height is 277, waiting until 320
+[2020-04-11 23:24:07]-utils.py-[line:266]: The current block height is 294, waiting until 320
+[2020-04-11 23:24:17]-utils.py-[line:266]: The current block height is 311, waiting until 320
+[2020-04-11 23:24:23]-test_entrusted_income.py-[line:487]: Current block height：321
+[2020-04-11 23:24:30]-test_entrusted_income.py-[line:82]: Commission information：{'Code': 0, 'Ret': {'Addr': '0x6bba6b859f124ab93a53bfd882eea8d5d49c29ae', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 21, 'DelegateEpoch': 3, 'Released': 0, 'ReleasedHes': 0, 'RestrictingPlan': 90000000000000000000, 'RestrictingPlanHes': 0, 'CumulativeIncome': 271680748729946524064152}}
+[2020-04-11 23:24:30]-test_entrusted_income.py-[line:91]: {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0xf536fcaea9dfa57ec2146fcac389d40f1e3cf0c5', 'BenefitAddress': '0xf536fcaea9dfa57ec2146fcac389d40f1e3cf0c5', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 1, 'StakingBlockNum': 21, 'Shares': 2000090000000000000000000, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 90000000000000000000, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 271680748729946524064152, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-11 23:24:30]-test_entrusted_income.py-[line:92]: Current pledged node pledge information：{'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0xf536fcaea9dfa57ec2146fcac389d40f1e3cf0c5', 'BenefitAddress': '0xf536fcaea9dfa57ec2146fcac389d40f1e3cf0c5', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 1, 'StakingBlockNum': 21, 'Shares': 2000090000000000000000000, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 90000000000000000000, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 271680748729946524064152, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-11 23:24:30]-env.py-[line:569]: rewrite genesis.json
+[2020-04-11 23:24:30]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-11 23:24:30]-env.py-[line:595]: rewrite config.json
+[2020-04-11 23:24:30]-env.py-[line:647]: compression data
+[2020-04-11 23:24:30]-env.py-[line:436]: upload compression
+[2020-04-11 23:24:30]-env.py-[line:267]: deploy all node
+[2020-04-11 23:24:30]-env.py-[line:352]: deploy node
+[2020-04-11 23:24:34]-env.py-[line:269]: deploy success

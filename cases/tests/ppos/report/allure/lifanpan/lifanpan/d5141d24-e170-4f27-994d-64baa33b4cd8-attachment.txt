@@ -1,0 +1,56 @@
+[2020-04-12 09:44:53]-conftest.py-[line:140]: {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0xf38886dab5266f5a901b10f9283af92719a099fe', 'BenefitAddress': '0xd55b39f2b1fdcfd2c3dcab87284db128c4d7e88a', 'RewardPer': 0, 'NextRewardPer': 0, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 6, 'StakingBlockNum': 861, 'Shares': 1000000000000000000000000, 'Released': 0, 'ReleasedHes': 1000000000000000000000000, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 0, 'DelegateTotal': 0, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 09:44:53]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 09:44:53]-conftest.py-[line:142]: Current linked node: 192.168.10.221:16788
+[2020-04-12 09:44:53]-conftest.py-[line:190]: case execution completed
+[2020-04-12 09:44:53]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 09:44:53]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 09:44:53]-env.py-[line:595]: rewrite config.json
+[2020-04-12 09:44:53]-env.py-[line:647]: compression data
+[2020-04-12 09:44:53]-env.py-[line:436]: upload compression
+[2020-04-12 09:44:53]-env.py-[line:267]: deploy all node
+[2020-04-12 09:44:53]-env.py-[line:352]: deploy node
+[2020-04-12 09:44:57]-env.py-[line:269]: deploy success
+[2020-04-12 09:44:57]-test_token_init.py-[line:755]: Transfer accounts: 2000000000000000000000000
+[2020-04-12 09:44:58]-test_token_init.py-[line:759]: address: 0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD accounts: 9618188019000000000000000000
+[2020-04-12 09:45:00]-test_token_init.py-[line:764]: address: 0x17DeC67aa777EB1c7f621846f89d9a0a41E2A807 ,amount: 2000000000000000000000000
+[2020-04-12 09:45:00]-test_token_init.py-[line:767]: address: 0x8a420c198731d7b49573AA3d60706106189B5798 ,amount: 0
+[2020-04-12 09:45:03]-test_token_init.py-[line:773]: Pledge node information: {'Code': 0, 'Ret': {'NodeId': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'BlsPubKey': '40f0b11593cf518b42b6b9245e632ea395035f74c0b20370d60bc3e41683556867d05203c15414f49e82bc5b7bb3110d7061951f7f3b388aab16a75baf6812c04b2b42d208262b2794026289f917afbbbd8f7bde4632df1741614162eecbf486', 'StakingAddress': '0x17dec67aa777eb1c7f621846f89d9a0a41e2a807', 'BenefitAddress': '0x8a420c198731d7b49573aa3d60706106189b5798', 'RewardPer': 0, 'NextRewardPer': 0, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 1, 'StakingBlockNum': 5, 'Shares': 1000000000000000000000000, 'Released': 0, 'ReleasedHes': 1000000000000000000000000, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 0, 'DelegateTotal': 0, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 09:45:03]-test_token_init.py-[line:819]: benifit_balance: 0
+[2020-04-12 09:45:12]-utils.py-[line:266]: The current block height is 20, waiting until 320
+[2020-04-12 09:45:22]-utils.py-[line:266]: The current block height is 38, waiting until 320
+[2020-04-12 09:45:32]-utils.py-[line:266]: The current block height is 55, waiting until 320
+[2020-04-12 09:45:42]-utils.py-[line:266]: The current block height is 71, waiting until 320
+[2020-04-12 09:45:52]-utils.py-[line:266]: The current block height is 88, waiting until 320
+[2020-04-12 09:46:02]-utils.py-[line:266]: The current block height is 104, waiting until 320
+[2020-04-12 09:46:12]-utils.py-[line:266]: The current block height is 121, waiting until 320
+[2020-04-12 09:46:22]-utils.py-[line:266]: The current block height is 136, waiting until 320
+[2020-04-12 09:46:32]-utils.py-[line:266]: The current block height is 153, waiting until 320
+[2020-04-12 09:46:42]-utils.py-[line:266]: The current block height is 171, waiting until 320
+[2020-04-12 09:46:52]-utils.py-[line:266]: The current block height is 188, waiting until 320
+[2020-04-12 09:47:02]-utils.py-[line:266]: The current block height is 204, waiting until 320
+[2020-04-12 09:47:12]-utils.py-[line:266]: The current block height is 221, waiting until 320
+[2020-04-12 09:47:23]-utils.py-[line:266]: The current block height is 236, waiting until 320
+[2020-04-12 09:47:33]-utils.py-[line:266]: The current block height is 254, waiting until 320
+[2020-04-12 09:47:43]-utils.py-[line:266]: The current block height is 272, waiting until 320
+[2020-04-12 09:47:53]-utils.py-[line:266]: The current block height is 288, waiting until 320
+[2020-04-12 09:48:03]-utils.py-[line:266]: The current block height is 305, waiting until 320
+[2020-04-12 09:48:13]-utils.py-[line:266]: The current block height is 320, waiting until 320
+[2020-04-12 09:48:14]-test_token_init.py-[line:824]: benifit_balance: 0
+[2020-04-12 09:48:14]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 09:48:14]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 09:48:14]-env.py-[line:595]: rewrite config.json
+[2020-04-12 09:48:14]-env.py-[line:647]: compression data
+[2020-04-12 09:48:14]-env.py-[line:436]: upload compression
+[2020-04-12 09:48:14]-env.py-[line:267]: deploy all node
+[2020-04-12 09:48:14]-env.py-[line:352]: deploy node
+[2020-04-12 09:48:17]-env.py-[line:269]: deploy success
+[2020-04-12 09:48:17]-conftest.py-[line:199]: reset deploy.................
+[2020-04-12 09:48:17]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 09:48:17]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 09:48:17]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 09:48:17]-env.py-[line:595]: rewrite config.json
+[2020-04-12 09:48:17]-env.py-[line:647]: compression data
+[2020-04-12 09:48:17]-env.py-[line:436]: upload compression
+[2020-04-12 09:48:17]-env.py-[line:267]: deploy all node
+[2020-04-12 09:48:17]-env.py-[line:352]: deploy node
+[2020-04-12 09:48:21]-env.py-[line:269]: deploy success

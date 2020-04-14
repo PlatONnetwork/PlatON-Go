@@ -1,0 +1,23 @@
+[2020-04-12 04:19:49]-conftest.py-[line:190]: case execution completed
+[2020-04-12 04:19:49]-test_governance_penalty_parameters.py-[line:432]: Current connection non-consensus node：192.168.10.221:16789
+[2020-04-12 04:19:50]-utils.py-[line:370]: slashFractionDuplicateSign ParamValue: 100
+[2020-04-12 04:19:50]-utils.py-[line:371]: slashFractionDuplicateSign Param old Value: 
+[2020-04-12 04:19:52]-conftest.py-[line:267]: submit param proposal result : 0
+[2020-04-12 04:19:52]-conftest.py-[line:270]: param proposalinfo : {'ProposalID': '0xa235b54f39c63edc12e57498d64670fa4ce12582b132eee17cfbf5d033c1aa5e', 'ProposalType': 3, 'PIPID': '1586636390.8625906', 'SubmitBlock': 2, 'EndVotingBlock': 320, 'Proposer': '488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624', 'Module': 'slashing', 'Name': 'slashFractionDuplicateSign', 'NewValue': '1000'}
+[2020-04-12 04:19:52]-conftest.py-[line:277]: verifierlist : ['488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624', 'cfdf43591661d0107b7389a0ef68a2681cdf67d93183e36201acb631920cee349d4c6d7e8557602e101df0fe6b2e6808c66e0a27a2942096348f96d192f0b2eb', '17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82', 'd025077152db2046a77afb48a13f875c17d674421eda9c5345c32d9378490326d628e9f9b60392fcf7832ba82c9ebf5953573d6f93878c24f77e9cb53ee59fec']
+[2020-04-12 04:19:52]-conftest.py-[line:291]: The proposal endvoting block is 320
+[2020-04-12 04:19:52]-utils.py-[line:370]: slashFractionDuplicateSign ParamValue: 100
+[2020-04-12 04:19:52]-utils.py-[line:371]: slashFractionDuplicateSign Param old Value: 
+[2020-04-12 04:20:01]-utils.py-[line:266]: The current block height is 17, waiting until 40
+[2020-04-12 04:20:11]-utils.py-[line:266]: The current block height is 33, waiting until 40
+[2020-04-12 04:20:18]-test_governance_penalty_parameters.py-[line:451]: Current block height: 45
+[2020-04-12 04:20:18]-test_governance_penalty_parameters.py-[line:404]: Report information: {"prepareA":{"epoch":0,"viewNumber":0,"blockHash":"0x7f3cad4306c7107678fa6d860f3ff2baf55d995f0c96f93aea79cc8718e8b35c","blockNumber":45,"blockIndex":0,"blockData":"0x3137af83d90d0b9f99ec7f60cd0d4490dbebdb69d01f42a9e3364df658f1d643","validateNode":{"index":0,"address":"0xb0215d916efea919aeafd2b746254a3611731711","nodeId":"488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624","blsPubKey":"fa340928f6edfb9f4c3d9815b87464227221d4ba588e828e02e9035049dbf7031321f1a95072aeb2918693b9ce6d3f0cf76395a16040f0b3f9d1272bf137733c1348c7883ccfcdd1d529929fc329086164286613a95880332be843b705baf28a"},"signature":"0x954f7dbc4efdad2fc35e97ad02110416ecd82b4abb8ebf1631ae5b3cc0ca331ce2a59993d8c602885fe52cca859ac18200000000000000000000000000000000"},"prepareB":{"epoch":0,"viewNumber":0,"blockHash":"0x40d288ffb97a116dabcb8e8f78c8c42c25a344c7ec5b2da7dd5998cb3e6851bf","blockNumber":45,"blockIndex":0,"blockData":"0xc1a78b049133e74cb6bd42ea6184013b15242e647841979fd388e0c8f4ddfe93","validateNode":{"index":0,"address":"0xb0215d916efea919aeafd2b746254a3611731711","nodeId":"488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624","blsPubKey":"fa340928f6edfb9f4c3d9815b87464227221d4ba588e828e02e9035049dbf7031321f1a95072aeb2918693b9ce6d3f0cf76395a16040f0b3f9d1272bf137733c1348c7883ccfcdd1d529929fc329086164286613a95880332be843b705baf28a"},"signature":"0xe2fd6a73aa15baf713e1812929646d63db0f341ecf8f887604ae92a8a52ff8226d518b5d7e316f4f4f22cbdae640528500000000000000000000000000000000"}}
+[2020-04-12 04:20:20]-test_governance_penalty_parameters.py-[line:412]: Whistleblower benefits：7500000000000000000000 Incentive pool income：7500000000000000000000
+[2020-04-12 04:20:20]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 04:20:20]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 04:20:20]-env.py-[line:595]: rewrite config.json
+[2020-04-12 04:20:20]-env.py-[line:647]: compression data
+[2020-04-12 04:20:20]-env.py-[line:436]: upload compression
+[2020-04-12 04:20:20]-env.py-[line:267]: deploy all node
+[2020-04-12 04:20:20]-env.py-[line:352]: deploy node
+[2020-04-12 04:20:23]-env.py-[line:269]: deploy success

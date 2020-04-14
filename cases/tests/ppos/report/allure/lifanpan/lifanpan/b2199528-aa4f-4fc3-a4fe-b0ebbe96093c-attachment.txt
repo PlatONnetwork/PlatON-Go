@@ -1,0 +1,27 @@
+[2020-04-12 07:11:06]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 07:11:06]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 07:11:19]-utils.py-[line:266]: The current block height is 54, waiting until 160
+[2020-04-12 07:11:29]-utils.py-[line:266]: The current block height is 71, waiting until 160
+[2020-04-12 07:11:39]-utils.py-[line:266]: The current block height is 90, waiting until 160
+[2020-04-12 07:11:49]-utils.py-[line:266]: The current block height is 106, waiting until 160
+[2020-04-12 07:11:59]-utils.py-[line:266]: The current block height is 121, waiting until 160
+[2020-04-12 07:12:10]-utils.py-[line:266]: The current block height is 139, waiting until 160
+[2020-04-12 07:12:20]-utils.py-[line:266]: The current block height is 156, waiting until 160
+[2020-04-12 07:12:37]-utils.py-[line:266]: The current block height is 186, waiting until 320
+[2020-04-12 07:12:47]-utils.py-[line:266]: The current block height is 202, waiting until 320
+[2020-04-12 07:12:57]-utils.py-[line:266]: The current block height is 219, waiting until 320
+[2020-04-12 07:13:07]-utils.py-[line:266]: The current block height is 236, waiting until 320
+[2020-04-12 07:13:17]-utils.py-[line:266]: The current block height is 253, waiting until 320
+[2020-04-12 07:13:27]-utils.py-[line:266]: The current block height is 269, waiting until 320
+[2020-04-12 07:13:38]-utils.py-[line:266]: The current block height is 286, waiting until 320
+[2020-04-12 07:13:48]-utils.py-[line:266]: The current block height is 303, waiting until 320
+[2020-04-12 07:13:58]-utils.py-[line:266]: The current block height is 319, waiting until 320
+[2020-04-12 07:14:09]-utils.py-[line:266]: The current block height is 339, waiting until 480
+[2020-04-12 07:14:19]-utils.py-[line:266]: The current block height is 355, waiting until 480
+[2020-04-12 07:14:29]-utils.py-[line:266]: The current block height is 372, waiting until 480
+[2020-04-12 07:14:39]-utils.py-[line:266]: The current block height is 389, waiting until 480
+[2020-04-12 07:14:50]-utils.py-[line:266]: The current block height is 405, waiting until 480
+[2020-04-12 07:15:00]-utils.py-[line:266]: The current block height is 422, waiting until 480
+[2020-04-12 07:15:10]-utils.py-[line:266]: The current block height is 439, waiting until 480
+[2020-04-12 07:15:20]-utils.py-[line:266]: The current block height is 456, waiting until 480
+[2020-04-12 07:15:30]-utils.py-[line:266]: The current block height is 472, waiting until 480

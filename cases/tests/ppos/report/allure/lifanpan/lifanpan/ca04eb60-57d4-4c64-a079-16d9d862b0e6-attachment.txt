@@ -1,0 +1,39 @@
+[2020-04-12 02:28:43]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 02:28:43]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 02:28:43]-conftest.py-[line:190]: case execution completed
+[2020-04-12 02:28:52]-test_entrusted_income.py-[line:3451]: Create delegate account：0x78030411EbC36B17B000b9a150ce20a5E71Dd7E1
+[2020-04-12 02:28:58]-test_entrusted_income.py-[line:3453]: Create pledge node id :http://192.168.10.224:6788
+[2020-04-12 02:29:00]-test_entrusted_income.py-[line:3457]: Commissioned successfully, commissioned amount：10000000000000000000
+[2020-04-12 02:29:09]-utils.py-[line:266]: The current block height is 40, waiting until 160
+[2020-04-12 02:29:19]-utils.py-[line:266]: The current block height is 56, waiting until 160
+[2020-04-12 02:29:29]-utils.py-[line:266]: The current block height is 73, waiting until 160
+[2020-04-12 02:29:39]-utils.py-[line:266]: The current block height is 89, waiting until 160
+[2020-04-12 02:29:49]-utils.py-[line:266]: The current block height is 106, waiting until 160
+[2020-04-12 02:29:59]-utils.py-[line:266]: The current block height is 124, waiting until 160
+[2020-04-12 02:30:09]-utils.py-[line:266]: The current block height is 141, waiting until 160
+[2020-04-12 02:30:19]-utils.py-[line:266]: The current block height is 157, waiting until 160
+[2020-04-12 02:30:21]-test_entrusted_income.py-[line:3459]: Current settlement block height：161
+[2020-04-12 02:30:23]-test_entrusted_income.py-[line:3465]: Commission information：{'Code': 0, 'Ret': {'Addr': '0x78030411ebc36b17b000b9a150ce20a5e71dd7e1', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 21, 'DelegateEpoch': 2, 'Released': 100000000000000000000, 'ReleasedHes': 100000000000000000000, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 02:30:33]-utils.py-[line:266]: The current block height is 180, waiting until 320
+[2020-04-12 02:30:43]-utils.py-[line:266]: The current block height is 196, waiting until 320
+[2020-04-12 02:30:53]-utils.py-[line:266]: The current block height is 213, waiting until 320
+[2020-04-12 02:31:03]-utils.py-[line:266]: The current block height is 230, waiting until 320
+[2020-04-12 02:31:13]-utils.py-[line:266]: The current block height is 246, waiting until 320
+[2020-04-12 02:31:23]-utils.py-[line:266]: The current block height is 263, waiting until 320
+[2020-04-12 02:31:33]-utils.py-[line:266]: The current block height is 280, waiting until 320
+[2020-04-12 02:31:43]-utils.py-[line:266]: The current block height is 297, waiting until 320
+[2020-04-12 02:31:53]-utils.py-[line:266]: The current block height is 313, waiting until 320
+[2020-04-12 02:31:58]-test_entrusted_income.py-[line:3470]: Current settlement block height：322
+[2020-04-12 02:32:05]-test_entrusted_income.py-[line:3478]: Commission information：{'Code': 0, 'Ret': {'Addr': '0x78030411ebc36b17b000b9a150ce20a5e71dd7e1', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 21, 'DelegateEpoch': 3, 'Released': 200000000000000000000, 'ReleasedHes': 100000000000000000000, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 271680748729946524064152}}
+[2020-04-12 02:32:05]-test_entrusted_income.py-[line:3480]: delegate amount balance: 999699999985392000000000
+[2020-04-12 02:32:07]-test_entrusted_income.py-[line:82]: Commission information：{'Code': 0, 'Ret': {'Addr': '0x78030411ebc36b17b000b9a150ce20a5e71dd7e1', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 21, 'DelegateEpoch': 3, 'Released': 200000000000000000000, 'ReleasedHes': 100000000000000000000, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 02:32:07]-test_entrusted_income.py-[line:3488]: delegate amount balance: 1271380748712004524064152
+[2020-04-12 02:32:08]-test_entrusted_income.py-[line:3494]: delegate amount balance: 1271380748708670524064152
+[2020-04-12 02:32:08]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 02:32:08]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 02:32:08]-env.py-[line:595]: rewrite config.json
+[2020-04-12 02:32:08]-env.py-[line:647]: compression data
+[2020-04-12 02:32:08]-env.py-[line:436]: upload compression
+[2020-04-12 02:32:08]-env.py-[line:267]: deploy all node
+[2020-04-12 02:32:08]-env.py-[line:352]: deploy node
+[2020-04-12 02:32:12]-env.py-[line:269]: deploy success

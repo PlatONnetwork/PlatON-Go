@@ -1,0 +1,1 @@
+{"uuid": "822cbf84-ac9a-41dc-9e97-65ced848e057", "children": ["5ddbf2fa-5db5-481c-b900-ae212b537f31"], "befores": [{"name": "delegate_node_client", "status": "passed", "start": 1586658554086, "stop": 1586658564992}], "afters": [{"name": "delegate_node_client::0", "status": "passed", "start": 1586658565014, "stop": 1586658568293}], "start": 1586658554086, "stop": 1586658568293}

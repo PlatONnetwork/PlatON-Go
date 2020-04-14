@@ -1,0 +1,1 @@
+[2020-04-11 22:58:26]-node.py-[line:144]: Node-192.168.10.224:16789 do init failed:Fatal: invalid genesis file: math/big: cannot unmarshal "\"\"" into a *big.Int

@@ -1,0 +1,39 @@
+[2020-04-12 03:01:41]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 03:01:41]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 03:01:41]-env.py-[line:595]: rewrite config.json
+[2020-04-12 03:01:41]-env.py-[line:647]: compression data
+[2020-04-12 03:01:41]-env.py-[line:436]: upload compression
+[2020-04-12 03:01:41]-env.py-[line:267]: deploy all node
+[2020-04-12 03:01:41]-env.py-[line:352]: deploy node
+[2020-04-12 03:01:44]-env.py-[line:269]: deploy success
+[2020-04-12 03:01:44]-test_general_punishment.py-[line:367]: Current connection node1: 192.168.10.224:16788
+[2020-04-12 03:01:44]-test_general_punishment.py-[line:369]: Current connection node2: 192.168.10.221:16788
+[2020-04-12 03:01:58]-utils.py-[line:266]: The current block height is 19, waiting until 160
+[2020-04-12 03:02:09]-utils.py-[line:266]: The current block height is 34, waiting until 160
+[2020-04-12 03:02:19]-utils.py-[line:266]: The current block height is 53, waiting until 160
+[2020-04-12 03:02:29]-utils.py-[line:266]: The current block height is 68, waiting until 160
+[2020-04-12 03:02:39]-utils.py-[line:266]: The current block height is 86, waiting until 160
+[2020-04-12 03:02:49]-utils.py-[line:266]: The current block height is 102, waiting until 160
+[2020-04-12 03:02:59]-utils.py-[line:266]: The current block height is 118, waiting until 160
+[2020-04-12 03:03:09]-utils.py-[line:266]: The current block height is 135, waiting until 160
+[2020-04-12 03:03:19]-utils.py-[line:266]: The current block height is 152, waiting until 160
+[2020-04-12 03:03:34]-utils.py-[line:266]: The current block height is 178, waiting until 320
+[2020-04-12 03:03:45]-utils.py-[line:266]: The current block height is 195, waiting until 320
+[2020-04-12 03:03:55]-utils.py-[line:266]: The current block height is 208, waiting until 320
+[2020-04-12 03:04:05]-utils.py-[line:266]: The current block height is 213, waiting until 320
+[2020-04-12 03:04:15]-utils.py-[line:266]: The current block height is 230, waiting until 320
+[2020-04-12 03:04:25]-utils.py-[line:266]: The current block height is 246, waiting until 320
+[2020-04-12 03:04:35]-utils.py-[line:266]: The current block height is 248, waiting until 320
+[2020-04-12 03:04:45]-utils.py-[line:266]: The current block height is 262, waiting until 320
+[2020-04-12 03:04:55]-utils.py-[line:266]: The current block height is 279, waiting until 320
+[2020-04-12 03:05:05]-utils.py-[line:266]: The current block height is 297, waiting until 320
+[2020-04-12 03:05:15]-utils.py-[line:266]: The current block height is 313, waiting until 320
+[2020-04-12 03:05:21]-test_general_punishment.py-[line:383]: Current block height: 323
+[2020-04-12 03:05:24]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 03:05:24]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 03:05:24]-env.py-[line:595]: rewrite config.json
+[2020-04-12 03:05:24]-env.py-[line:647]: compression data
+[2020-04-12 03:05:24]-env.py-[line:436]: upload compression
+[2020-04-12 03:05:24]-env.py-[line:267]: deploy all node
+[2020-04-12 03:05:24]-env.py-[line:352]: deploy node
+[2020-04-12 03:05:27]-env.py-[line:269]: deploy success

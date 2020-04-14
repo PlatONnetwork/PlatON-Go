@@ -1,0 +1,1 @@
+[2020-04-11 22:56:58]-node.py-[line:144]: Node-192.168.10.222:16789 do init failed:Fatal: Failed CheckEconomicModel configuration: Invalid parameter:The MaxValidators must be [4, 201]

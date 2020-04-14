@@ -1,0 +1,37 @@
+[2020-04-12 02:08:46]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 02:08:46]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 02:08:46]-conftest.py-[line:190]: case execution completed
+[2020-04-12 02:08:59]-test_entrusted_income.py-[line:2985]: Create delegate account：0x61f84F8f44d0c19a8eb50149e1a80C2A1fe332Fa
+[2020-04-12 02:08:59]-test_entrusted_income.py-[line:2986]: Create delegate account：0x3ccD222D93596655b007B3E22711d77390A67603
+[2020-04-12 02:09:05]-test_entrusted_income.py-[line:2988]: Create pledge node id :6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300
+[2020-04-12 02:09:10]-test_entrusted_income.py-[line:2994]: Commissioned successfully, commissioned amount：10000000000000000000
+[2020-04-12 02:09:19]-utils.py-[line:266]: The current block height is 53, waiting until 160
+[2020-04-12 02:09:29]-utils.py-[line:266]: The current block height is 68, waiting until 160
+[2020-04-12 02:09:39]-utils.py-[line:266]: The current block height is 86, waiting until 160
+[2020-04-12 02:09:49]-utils.py-[line:266]: The current block height is 102, waiting until 160
+[2020-04-12 02:09:59]-utils.py-[line:266]: The current block height is 119, waiting until 160
+[2020-04-12 02:10:10]-utils.py-[line:266]: The current block height is 136, waiting until 160
+[2020-04-12 02:10:20]-utils.py-[line:266]: The current block height is 154, waiting until 160
+[2020-04-12 02:10:25]-test_entrusted_income.py-[line:2996]: Current settlement block height：162
+[2020-04-12 02:10:36]-utils.py-[line:266]: The current block height is 181, waiting until 320
+[2020-04-12 02:10:46]-utils.py-[line:266]: The current block height is 197, waiting until 320
+[2020-04-12 02:10:56]-utils.py-[line:266]: The current block height is 214, waiting until 320
+[2020-04-12 02:11:06]-utils.py-[line:266]: The current block height is 231, waiting until 320
+[2020-04-12 02:11:16]-utils.py-[line:266]: The current block height is 247, waiting until 320
+[2020-04-12 02:11:26]-utils.py-[line:266]: The current block height is 264, waiting until 320
+[2020-04-12 02:11:36]-utils.py-[line:266]: The current block height is 281, waiting until 320
+[2020-04-12 02:11:46]-utils.py-[line:266]: The current block height is 298, waiting until 320
+[2020-04-12 02:11:56]-utils.py-[line:266]: The current block height is 314, waiting until 320
+[2020-04-12 02:12:00]-test_entrusted_income.py-[line:3003]: Current settlement block height：321
+[2020-04-12 02:12:11]-test_entrusted_income.py-[line:82]: Commission information：{'Code': 0, 'Ret': {'Addr': '0x61f84f8f44d0c19a8eb50149e1a80c2a1fe332fa', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 29, 'DelegateEpoch': 3, 'Released': 90000000000000000000, 'ReleasedHes': 100000000000000000000, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 128690880977343090346177}}
+[2020-04-12 02:12:11]-test_entrusted_income.py-[line:82]: Commission information：{'Code': 0, 'Ret': {'Addr': '0x3ccd222d93596655b007b3e22711d77390a67603', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 29, 'DelegateEpoch': 3, 'Released': 90000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 142989867752603433717974}}
+[2020-04-12 02:12:11]-test_entrusted_income.py-[line:91]: {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0xdd3bac0cfa8e1c5c25a5cb83adcb7aa257826bdf', 'BenefitAddress': '0xdd3bac0cfa8e1c5c25a5cb83adcb7aa257826bdf', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 1, 'StakingBlockNum': 29, 'Shares': 2000280000000000000000000, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 3, 'DelegateTotal': 180000000000000000000, 'DelegateTotalHes': 100000000000000000000, 'DelegateRewardTotal': 271680748729946524064152, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 02:12:11]-test_entrusted_income.py-[line:92]: Current pledged node pledge information：{'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0xdd3bac0cfa8e1c5c25a5cb83adcb7aa257826bdf', 'BenefitAddress': '0xdd3bac0cfa8e1c5c25a5cb83adcb7aa257826bdf', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 1, 'StakingBlockNum': 29, 'Shares': 2000280000000000000000000, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 3, 'DelegateTotal': 180000000000000000000, 'DelegateTotalHes': 100000000000000000000, 'DelegateRewardTotal': 271680748729946524064152, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-12 02:12:11]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 02:12:11]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 02:12:11]-env.py-[line:595]: rewrite config.json
+[2020-04-12 02:12:11]-env.py-[line:647]: compression data
+[2020-04-12 02:12:11]-env.py-[line:436]: upload compression
+[2020-04-12 02:12:11]-env.py-[line:267]: deploy all node
+[2020-04-12 02:12:11]-env.py-[line:352]: deploy node
+[2020-04-12 02:12:14]-env.py-[line:269]: deploy success

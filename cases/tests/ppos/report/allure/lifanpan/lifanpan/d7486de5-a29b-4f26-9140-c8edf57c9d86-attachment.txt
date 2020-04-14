@@ -1,0 +1,9 @@
+[2020-04-12 04:52:17]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 04:52:17]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 04:52:17]-env.py-[line:595]: rewrite config.json
+[2020-04-12 04:52:17]-env.py-[line:647]: compression data
+[2020-04-12 04:52:17]-env.py-[line:436]: upload compression
+[2020-04-12 04:52:17]-env.py-[line:267]: deploy all node
+[2020-04-12 04:52:17]-env.py-[line:352]: deploy node
+[2020-04-12 04:52:20]-env.py-[line:269]: deploy success
+[2020-04-12 04:52:22]-test_locked_position.py-[line:27]: Lock in contract amount: 259096239000000000000000000

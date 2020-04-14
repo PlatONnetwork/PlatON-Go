@@ -1,0 +1,21 @@
+[2020-04-12 09:18:08]-conftest.py-[line:18]: The environment is not running, redeploying the environment
+[2020-04-12 09:18:08]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 09:18:08]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 09:18:08]-env.py-[line:595]: rewrite config.json
+[2020-04-12 09:18:08]-env.py-[line:647]: compression data
+[2020-04-12 09:18:08]-env.py-[line:436]: upload compression
+[2020-04-12 09:18:08]-env.py-[line:267]: deploy all node
+[2020-04-12 09:18:08]-env.py-[line:352]: deploy node
+[2020-04-12 09:18:11]-env.py-[line:269]: deploy success
+[2020-04-12 09:18:11]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 09:18:11]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 09:18:11]-env.py-[line:595]: rewrite config.json
+[2020-04-12 09:18:11]-env.py-[line:647]: compression data
+[2020-04-12 09:18:11]-env.py-[line:436]: upload compression
+[2020-04-12 09:18:11]-env.py-[line:267]: deploy all node
+[2020-04-12 09:18:11]-env.py-[line:352]: deploy node
+[2020-04-12 09:18:14]-env.py-[line:269]: deploy success
+[2020-04-12 09:18:17]-test_token_init.py-[line:375]: balance: 0
+[2020-04-12 09:18:17]-test_token_init.py-[line:378]: nonce: 0
+[2020-04-12 09:18:19]-test_token_init.py-[line:384]: Use case success, exception information：{'code': -32000, 'message': 'insufficient funds for gas * price + value'} 
+[2020-04-12 09:18:22]-test_token_init.py-[line:387]: Account balance after transfer： 500000000000000000000

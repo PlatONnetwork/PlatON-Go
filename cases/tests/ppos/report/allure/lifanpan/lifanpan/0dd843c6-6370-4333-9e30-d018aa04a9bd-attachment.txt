@@ -1,0 +1,24 @@
+[2020-04-11 23:52:35]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-11 23:52:35]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-11 23:52:35]-conftest.py-[line:190]: case execution completed
+[2020-04-11 23:52:43]-test_entrusted_income.py-[line:1065]: Create delegate account：0x2EfeE8c0CCDD0B4B7d4d92412B10dD3EE6F34e21
+[2020-04-11 23:52:49]-test_entrusted_income.py-[line:1067]: Create pledge node id :6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300
+[2020-04-11 23:52:51]-test_entrusted_income.py-[line:1071]: Commissioned successfully, commissioned amount：10000000000000000000
+[2020-04-11 23:53:01]-utils.py-[line:266]: The current block height is 40, waiting until 160
+[2020-04-11 23:53:11]-utils.py-[line:266]: The current block height is 58, waiting until 160
+[2020-04-11 23:53:21]-utils.py-[line:266]: The current block height is 74, waiting until 160
+[2020-04-11 23:53:31]-utils.py-[line:266]: The current block height is 91, waiting until 160
+[2020-04-11 23:53:41]-utils.py-[line:266]: The current block height is 106, waiting until 160
+[2020-04-11 23:53:51]-utils.py-[line:266]: The current block height is 123, waiting until 160
+[2020-04-11 23:54:11]-utils.py-[line:266]: The current block height is 157, waiting until 160
+[2020-04-11 23:54:13]-test_entrusted_income.py-[line:1073]: Current settlement block height：162
+[2020-04-11 23:54:15]-test_entrusted_income.py-[line:91]: {'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0xfd53cf0b54402711b4626def8d8acb70d72e4dfc', 'BenefitAddress': '0xfd53cf0b54402711b4626def8d8acb70d72e4dfc', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 1, 'StakingBlockNum': 21, 'Shares': 2000000000000000000000000, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 0, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-11 23:54:15]-test_entrusted_income.py-[line:92]: Current pledged node pledge information：{'Code': 0, 'Ret': {'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'BlsPubKey': '6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006', 'StakingAddress': '0xfd53cf0b54402711b4626def8d8acb70d72e4dfc', 'BenefitAddress': '0xfd53cf0b54402711b4626def8d8acb70d72e4dfc', 'RewardPer': 1000, 'NextRewardPer': 1000, 'StakingTxIndex': 0, 'ProgramVersion': 3072, 'Status': 0, 'StakingEpoch': 1, 'StakingBlockNum': 21, 'Shares': 2000000000000000000000000, 'Released': 2000000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'DelegateEpoch': 1, 'DelegateTotal': 0, 'DelegateTotalHes': 0, 'DelegateRewardTotal': 0, 'ExternalId': 'externalId', 'NodeName': 'nodeName', 'Website': 'website', 'Details': 'details'}}
+[2020-04-11 23:54:15]-env.py-[line:569]: rewrite genesis.json
+[2020-04-11 23:54:15]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-11 23:54:15]-env.py-[line:595]: rewrite config.json
+[2020-04-11 23:54:15]-env.py-[line:647]: compression data
+[2020-04-11 23:54:15]-env.py-[line:436]: upload compression
+[2020-04-11 23:54:15]-env.py-[line:267]: deploy all node
+[2020-04-11 23:54:15]-env.py-[line:352]: deploy node
+[2020-04-11 23:54:18]-env.py-[line:269]: deploy success

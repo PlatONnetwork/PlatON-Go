@@ -1,0 +1,5 @@
+[2020-04-12 09:17:48]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 09:17:48]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 09:17:51]-test_token_init.py-[line:300]: first_staking_balance : 6001000000000000000000000
+[2020-04-12 09:17:51]-test_token_init.py-[line:317]: gas: 86644
+[2020-04-12 09:17:54]-test_token_init.py-[line:323]: second_staking_balance : 7002000000000000000000000

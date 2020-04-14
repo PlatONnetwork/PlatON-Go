@@ -1,0 +1,11 @@
+[2020-04-12 12:31:11]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 12:31:11]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 12:31:26]-utils.py-[line:266]: The current block height is 350, waiting until 480
+[2020-04-12 12:31:36]-utils.py-[line:266]: The current block height is 366, waiting until 480
+[2020-04-12 12:31:46]-utils.py-[line:266]: The current block height is 382, waiting until 480
+[2020-04-12 12:31:56]-utils.py-[line:266]: The current block height is 400, waiting until 480
+[2020-04-12 12:32:06]-utils.py-[line:266]: The current block height is 415, waiting until 480
+[2020-04-12 12:32:17]-utils.py-[line:266]: The current block height is 433, waiting until 480
+[2020-04-12 12:32:27]-utils.py-[line:266]: The current block height is 449, waiting until 480
+[2020-04-12 12:32:37]-utils.py-[line:266]: The current block height is 464, waiting until 480
+[2020-04-12 12:32:46]-test_unlock_period.py-[line:148]: restricting plan informtion: {'Code': 0, 'Ret': {'balance': 1000000000000000000000000, 'debt': 1000000000000000000000000, 'plans': None, 'Pledge': 1000000000000000000000000}}

@@ -1,0 +1,1 @@
+[2020-04-11 22:57:22]-node.py-[line:144]: Node-192.168.10.223:16789 do init failed:Fatal: Failed CheckEconomicModel configuration: Invalid parameter:The UnStakeFreezeDuration must be (1, 112]

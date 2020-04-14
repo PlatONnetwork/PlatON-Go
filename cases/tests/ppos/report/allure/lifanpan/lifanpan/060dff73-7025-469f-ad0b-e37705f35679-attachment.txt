@@ -1,0 +1,32 @@
+[2020-04-12 04:06:44]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 04:06:44]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 04:06:44]-env.py-[line:595]: rewrite config.json
+[2020-04-12 04:06:44]-env.py-[line:647]: compression data
+[2020-04-12 04:06:44]-env.py-[line:436]: upload compression
+[2020-04-12 04:06:44]-env.py-[line:267]: deploy all node
+[2020-04-12 04:06:44]-env.py-[line:352]: deploy node
+[2020-04-12 04:06:47]-env.py-[line:269]: deploy success
+[2020-04-12 04:06:47]-test_governance_penalty_parameters.py-[line:232]: Current connection non-consensus node：192.168.10.223:16789
+[2020-04-12 04:06:49]-utils.py-[line:370]: maxEvidenceAge ParamValue: 2
+[2020-04-12 04:06:49]-utils.py-[line:371]: maxEvidenceAge Param old Value: 
+[2020-04-12 04:06:50]-conftest.py-[line:267]: submit param proposal result : 0
+[2020-04-12 04:06:50]-conftest.py-[line:270]: param proposalinfo : {'ProposalID': '0xee5e22eafe3e9ba0509a8bc1a73aab9f4fc4366fa4e5ad940f3498c2f99e3a4f', 'ProposalType': 3, 'PIPID': '1586635609.2579966', 'SubmitBlock': 2, 'EndVotingBlock': 320, 'Proposer': '17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82', 'Module': 'slashing', 'Name': 'maxEvidenceAge', 'NewValue': '1'}
+[2020-04-12 04:06:50]-conftest.py-[line:277]: verifierlist : ['488fb1c783f7ac6a20d320e8442ddebe8cf983f5eda7effd00b919afdcf31dcd10e6b2bcee158245fef3a587e0248bea8cf8f6905af833623d03ac15477a7624', 'cfdf43591661d0107b7389a0ef68a2681cdf67d93183e36201acb631920cee349d4c6d7e8557602e101df0fe6b2e6808c66e0a27a2942096348f96d192f0b2eb', '17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82', 'd025077152db2046a77afb48a13f875c17d674421eda9c5345c32d9378490326d628e9f9b60392fcf7832ba82c9ebf5953573d6f93878c24f77e9cb53ee59fec']
+[2020-04-12 04:06:50]-conftest.py-[line:291]: The proposal endvoting block is 320
+[2020-04-12 04:06:50]-utils.py-[line:370]: maxEvidenceAge ParamValue: 2
+[2020-04-12 04:06:50]-utils.py-[line:371]: maxEvidenceAge Param old Value: 
+[2020-04-12 04:07:01]-utils.py-[line:266]: The current block height is 20, waiting until 40
+[2020-04-12 04:07:11]-utils.py-[line:266]: The current block height is 36, waiting until 40
+[2020-04-12 04:07:14]-test_governance_penalty_parameters.py-[line:249]: Current block: 41
+[2020-04-12 04:07:14]-test_governance_penalty_parameters.py-[line:251]: Effective block height: 41
+[2020-04-12 04:07:14]-test_governance_penalty_parameters.py-[line:254]: Report information: {"prepareA":{"epoch":0,"viewNumber":0,"blockHash":"0x836380eb1cb82c45dd6b457d2dab50c38cf9d98dcc5ac7e2a570d2d6d068cd07","blockNumber":41,"blockIndex":0,"blockData":"0x2d4419048959e91de5f2358032a26c33d5ebad8d010fe2aeae220904147e5dfb","validateNode":{"index":0,"address":"0xae7ac1355d6259647182e15f30cc325c77c8234a","nodeId":"17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82","blsPubKey":"9a96cb325530289bfb7c9af832f86ddaa5baebba659b357974e3f318b08607e38aaf19ec5be5c3d44396c8b38afbb1037d7588b1efd5dcfd47499ed81a4bf2000faada2407a4839765885cd7f6e6d03b277770f398587cda17ce983e39242c0b"},"signature":"0x331e1a31ad029b29dda79d1dfc9acb3130e4fb9ce352a6bc922db1ba771893d8c5aa18a12dbb371ee0bcd7498871af0700000000000000000000000000000000"},"prepareB":{"epoch":0,"viewNumber":0,"blockHash":"0x2e21b4d44d051d079e26e91ddc144751ecb078abfd71371bbf213af8c9de1518","blockNumber":41,"blockIndex":0,"blockData":"0x1f014ebaad8f52b6881c2e1a44c3071c6c1465060597ff9cd3f2c81120ef1d60","validateNode":{"index":0,"address":"0xae7ac1355d6259647182e15f30cc325c77c8234a","nodeId":"17b9e223469a0366b572c7e4f70e83aeef1ad446e30510df650b9fb2ff22423b07c5595be7bef769cd7d77d7b094f56133a04b9bda34b49bcfdb43c454e34f82","blsPubKey":"9a96cb325530289bfb7c9af832f86ddaa5baebba659b357974e3f318b08607e38aaf19ec5be5c3d44396c8b38afbb1037d7588b1efd5dcfd47499ed81a4bf2000faada2407a4839765885cd7f6e6d03b277770f398587cda17ce983e39242c0b"},"signature":"0x89f60909ea6a523bdaada44ed46f91f4e19ae7211463ac7cfddaf3a6f75e565bc0efd199e18d9453df07f31e9dff701100000000000000000000000000000000"}}
+[2020-04-12 04:07:16]-conftest.py-[line:199]: reset deploy.................
+[2020-04-12 04:07:16]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 04:07:16]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 04:07:16]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 04:07:16]-env.py-[line:595]: rewrite config.json
+[2020-04-12 04:07:16]-env.py-[line:647]: compression data
+[2020-04-12 04:07:16]-env.py-[line:436]: upload compression
+[2020-04-12 04:07:16]-env.py-[line:267]: deploy all node
+[2020-04-12 04:07:16]-env.py-[line:352]: deploy node
+[2020-04-12 04:07:20]-env.py-[line:269]: deploy success

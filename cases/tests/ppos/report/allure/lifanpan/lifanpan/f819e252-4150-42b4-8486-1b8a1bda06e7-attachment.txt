@@ -1,0 +1,35 @@
+[2020-04-12 08:10:09]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 08:10:09]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 08:10:09]-env.py-[line:595]: rewrite config.json
+[2020-04-12 08:10:09]-env.py-[line:647]: compression data
+[2020-04-12 08:10:09]-env.py-[line:436]: upload compression
+[2020-04-12 08:10:09]-env.py-[line:267]: deploy all node
+[2020-04-12 08:10:09]-env.py-[line:352]: deploy node
+[2020-04-12 08:10:12]-env.py-[line:269]: deploy success
+[2020-04-12 08:10:23]-test_voting_statistics.py-[line:44]: Node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 staking result : 0
+[2020-04-12 08:10:31]-test_voting_statistics.py-[line:44]: Node b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 staking result : 0
+[2020-04-12 08:10:45]-utils.py-[line:266]: The current block height is 52, waiting until 280
+[2020-04-12 08:10:55]-utils.py-[line:266]: The current block height is 66, waiting until 280
+[2020-04-12 08:11:05]-utils.py-[line:266]: The current block height is 85, waiting until 280
+[2020-04-12 08:11:16]-utils.py-[line:266]: The current block height is 101, waiting until 280
+[2020-04-12 08:11:26]-utils.py-[line:266]: The current block height is 116, waiting until 280
+[2020-04-12 08:11:36]-utils.py-[line:266]: The current block height is 134, waiting until 280
+[2020-04-12 08:11:46]-utils.py-[line:266]: The current block height is 151, waiting until 280
+[2020-04-12 08:11:56]-utils.py-[line:266]: The current block height is 169, waiting until 280
+[2020-04-12 08:12:06]-utils.py-[line:266]: The current block height is 185, waiting until 280
+[2020-04-12 08:12:16]-utils.py-[line:266]: The current block height is 202, waiting until 280
+[2020-04-12 08:12:26]-utils.py-[line:266]: The current block height is 219, waiting until 280
+[2020-04-12 08:12:36]-utils.py-[line:266]: The current block height is 235, waiting until 280
+[2020-04-12 08:12:46]-utils.py-[line:266]: The current block height is 252, waiting until 280
+[2020-04-12 08:12:56]-utils.py-[line:266]: The current block height is 269, waiting until 280
+[2020-04-12 08:13:03]-test_rewards_interface.py-[line:1136]: Report information: {"prepareA":{"epoch":0,"viewNumber":0,"blockHash":"0xf78b9fc9689b29c99dec3c3557dd1db267e0607ee0363b9ea193abfb379277cc","blockNumber":270,"blockIndex":0,"blockData":"0x06516d773002b6bdb785a58c0ed4fadbc647065181622340e905129189fa5712","validateNode":{"index":0,"address":"0x158a9805e6e215798a51c812408d131c699cc198","nodeId":"6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300","blsPubKey":"6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006"},"signature":"0xa72c7af24c9754b8672ca8c1f723f434a34aaecca14900facc0bfc0c449d71432da96f7f5efdbba68169dd047540d28e00000000000000000000000000000000"},"prepareB":{"epoch":0,"viewNumber":0,"blockHash":"0x8ade9ebbf1f722e4f57aac1a527506f5e35a69dab0a170299be169365c9fbd69","blockNumber":270,"blockIndex":0,"blockData":"0xdb5da0914773beab68588a62193abde20d34910d0b4d9e8cd0d00cbc336cfcfb","validateNode":{"index":0,"address":"0x158a9805e6e215798a51c812408d131c699cc198","nodeId":"6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300","blsPubKey":"6b17b62a0ead315541f2d1094433e4413ca5c5c642ad3b8909bf4ded2784ca104d570831b20e0bac5d6644076c794e053a5838d25b03a095b75c6296cf2f50ee216b0ef86da62f2370f303507e60c9d830db271208733a88e85796fc7a050006"},"signature":"0x57868b88aef87d50823b5daa69e9b6b157f4696ae45997ebff1474e18bf0176ebf79d745799229262b66db5384b08b9500000000000000000000000000000000"}}
+[2020-04-12 08:13:07]-test_rewards_interface.py-[line:1139]: Node duplicate block result : 0
+[2020-04-12 08:13:16]-utils.py-[line:266]: The current block height is 302, waiting until 320
+[2020-04-12 08:13:26]-utils.py-[line:266]: The current block height is 318, waiting until 320
+[2020-04-12 08:13:28]-test_rewards_interface.py-[line:1143]: Address 0xd028fE7175C6dc7dF230280Ee1a5cfBc88b6473E delegate node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 reward is 0
+[2020-04-12 08:13:28]-test_rewards_interface.py-[line:1147]: Address 0xd028fE7175C6dc7dF230280Ee1a5cfBc88b6473E delegate node b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 reward is 306736329211229946524045
+[2020-04-12 08:13:28]-test_rewards_interface.py-[line:1150]: Address 0x1072B6AD6A9E351427CA38487D585F90E9dcF772 reward is 0
+[2020-04-12 08:13:28]-test_rewards_interface.py-[line:1153]: Address 0xd028fE7175C6dc7dF230280Ee1a5cfBc88b6473E before withdraw balance 7999999990255200000000
+[2020-04-12 08:13:28]-test_rewards_interface.py-[line:1155]: Address 0x1072B6AD6A9E351427CA38487D585F90E9dcF772 before withdraw balance 8999999995134000000000
+[2020-04-12 08:13:32]-test_rewards_interface.py-[line:1163]: Address 0xd028fE7175C6dc7dF230280Ee1a5cfBc88b6473E before withdraw balance 314736329198041146524045
+[2020-04-12 08:13:32]-test_rewards_interface.py-[line:1165]: Address 0x1072B6AD6A9E351427CA38487D585F90E9dcF772 before withdraw balance 8999999991800000000000

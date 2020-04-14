@@ -1,0 +1,10 @@
+[2020-04-12 05:50:20]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 05:50:20]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 05:50:39]-utils.py-[line:266]: The current block height is 673, waiting until 800
+[2020-04-12 05:50:49]-utils.py-[line:266]: The current block height is 690, waiting until 800
+[2020-04-12 05:50:59]-utils.py-[line:266]: The current block height is 709, waiting until 800
+[2020-04-12 05:51:10]-utils.py-[line:266]: The current block height is 726, waiting until 800
+[2020-04-12 05:51:20]-utils.py-[line:266]: The current block height is 741, waiting until 800
+[2020-04-12 05:51:30]-utils.py-[line:266]: The current block height is 757, waiting until 800
+[2020-04-12 05:51:40]-utils.py-[line:266]: The current block height is 776, waiting until 800
+[2020-04-12 05:51:50]-utils.py-[line:266]: The current block height is 791, waiting until 800

@@ -1,0 +1,27 @@
+[2020-04-12 11:45:56]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 11:45:56]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 11:46:20]-utils.py-[line:266]: The current block height is 36, waiting until 160
+[2020-04-12 11:46:30]-utils.py-[line:266]: The current block height is 52, waiting until 160
+[2020-04-12 11:46:40]-utils.py-[line:266]: The current block height is 69, waiting until 160
+[2020-04-12 11:46:50]-utils.py-[line:266]: The current block height is 86, waiting until 160
+[2020-04-12 11:47:00]-utils.py-[line:266]: The current block height is 104, waiting until 160
+[2020-04-12 11:47:10]-utils.py-[line:266]: The current block height is 119, waiting until 160
+[2020-04-12 11:47:20]-utils.py-[line:266]: The current block height is 138, waiting until 160
+[2020-04-12 11:47:30]-utils.py-[line:266]: The current block height is 154, waiting until 160
+[2020-04-12 11:47:43]-utils.py-[line:266]: The current block height is 176, waiting until 320
+[2020-04-12 11:47:53]-utils.py-[line:266]: The current block height is 193, waiting until 320
+[2020-04-12 11:48:03]-utils.py-[line:266]: The current block height is 210, waiting until 320
+[2020-04-12 11:48:13]-utils.py-[line:266]: The current block height is 226, waiting until 320
+[2020-04-12 11:48:23]-utils.py-[line:266]: The current block height is 243, waiting until 320
+[2020-04-12 11:48:34]-utils.py-[line:266]: The current block height is 260, waiting until 320
+[2020-04-12 11:48:44]-utils.py-[line:266]: The current block height is 276, waiting until 320
+[2020-04-12 11:48:54]-utils.py-[line:266]: The current block height is 293, waiting until 320
+[2020-04-12 11:49:04]-utils.py-[line:266]: The current block height is 310, waiting until 320
+[2020-04-12 11:49:14]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 11:49:14]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 11:49:14]-env.py-[line:595]: rewrite config.json
+[2020-04-12 11:49:14]-env.py-[line:647]: compression data
+[2020-04-12 11:49:14]-env.py-[line:436]: upload compression
+[2020-04-12 11:49:14]-env.py-[line:267]: deploy all node
+[2020-04-12 11:49:14]-env.py-[line:352]: deploy node
+[2020-04-12 11:49:18]-env.py-[line:269]: deploy success

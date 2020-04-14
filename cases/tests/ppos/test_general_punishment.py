@@ -552,7 +552,7 @@ def test_VP_GPFV_013(new_genesis_env, clients_consensus):
     pledge_amount2 = candidate_info['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
-    assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+    assert pledge_amount2 == pledge_amount1 - von_amount(punishment_amonut, 2), "ErrMsg:Consensus Amount of pledge {}".format(
         pledge_amount2)
 
 
@@ -805,7 +805,7 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert pledge_amount3 == economic.create_staking_limit - (punishment_amonut - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert pledge_amount3 == economic.create_staking_limit - (von_amount(punishment_amonut, 2) - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 #

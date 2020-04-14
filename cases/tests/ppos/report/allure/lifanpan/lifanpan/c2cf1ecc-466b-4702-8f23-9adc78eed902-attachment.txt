@@ -1,0 +1,45 @@
+[2020-04-12 07:38:10]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 07:38:10]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 07:38:10]-env.py-[line:595]: rewrite config.json
+[2020-04-12 07:38:10]-env.py-[line:647]: compression data
+[2020-04-12 07:38:10]-env.py-[line:436]: upload compression
+[2020-04-12 07:38:10]-env.py-[line:267]: deploy all node
+[2020-04-12 07:38:10]-env.py-[line:352]: deploy node
+[2020-04-12 07:38:13]-env.py-[line:269]: deploy success
+[2020-04-12 07:38:26]-test_voting_statistics.py-[line:44]: Node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 staking result : 0
+[2020-04-12 07:38:33]-test_voting_statistics.py-[line:44]: Node b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 staking result : 0
+[2020-04-12 07:38:44]-utils.py-[line:266]: The current block height is 46, waiting until 160
+[2020-04-12 07:38:54]-utils.py-[line:266]: The current block height is 65, waiting until 160
+[2020-04-12 07:39:04]-utils.py-[line:266]: The current block height is 79, waiting until 160
+[2020-04-12 07:39:14]-utils.py-[line:266]: The current block height is 96, waiting until 160
+[2020-04-12 07:39:24]-utils.py-[line:266]: The current block height is 113, waiting until 160
+[2020-04-12 07:39:34]-utils.py-[line:266]: The current block height is 131, waiting until 160
+[2020-04-12 07:39:45]-utils.py-[line:266]: The current block height is 146, waiting until 160
+[2020-04-12 07:40:05]-utils.py-[line:266]: The current block height is 182, waiting until 480
+[2020-04-12 07:40:15]-utils.py-[line:266]: The current block height is 198, waiting until 480
+[2020-04-12 07:40:25]-utils.py-[line:266]: The current block height is 215, waiting until 480
+[2020-04-12 07:40:35]-utils.py-[line:266]: The current block height is 232, waiting until 480
+[2020-04-12 07:40:45]-utils.py-[line:266]: The current block height is 249, waiting until 480
+[2020-04-12 07:40:55]-utils.py-[line:266]: The current block height is 265, waiting until 480
+[2020-04-12 07:41:05]-utils.py-[line:266]: The current block height is 282, waiting until 480
+[2020-04-12 07:41:15]-utils.py-[line:266]: The current block height is 299, waiting until 480
+[2020-04-12 07:41:25]-utils.py-[line:266]: The current block height is 315, waiting until 480
+[2020-04-12 07:41:35]-utils.py-[line:266]: The current block height is 332, waiting until 480
+[2020-04-12 07:41:45]-utils.py-[line:266]: The current block height is 349, waiting until 480
+[2020-04-12 07:41:56]-utils.py-[line:266]: The current block height is 365, waiting until 480
+[2020-04-12 07:42:06]-utils.py-[line:266]: The current block height is 382, waiting until 480
+[2020-04-12 07:42:16]-utils.py-[line:266]: The current block height is 399, waiting until 480
+[2020-04-12 07:42:26]-utils.py-[line:266]: The current block height is 416, waiting until 480
+[2020-04-12 07:42:36]-utils.py-[line:266]: The current block height is 432, waiting until 480
+[2020-04-12 07:42:46]-utils.py-[line:266]: The current block height is 449, waiting until 480
+[2020-04-12 07:42:56]-utils.py-[line:266]: The current block height is 466, waiting until 480
+[2020-04-12 07:43:05]-test_rewards_interface.py-[line:780]: Address 0x13c8A27461C60C77743991Bd9076095Dcd3c628D before withdraw balance : 7999999990255200000000
+[2020-04-12 07:43:05]-test_rewards_interface.py-[line:782]: Address 0x13c8A27461C60C77743991Bd9076095Dcd3c628D before withdraw balance : 8999999995121200000000
+[2020-04-12 07:43:05]-test_rewards_interface.py-[line:784]: Address rewards : 635382396223262032085520
+[2020-04-12 07:43:05]-test_rewards_interface.py-[line:786]: Address rewards : 407521123094919786096228
+[2020-04-12 07:43:05]-test_rewards_interface.py-[line:790]: Address delegate nodeid 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 information : {'Code': 0, 'Ret': {'Addr': '0x13c8a27461c60c77743991bd9076095dcd3c628d', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 16, 'DelegateEpoch': 1, 'Released': 1000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 07:43:05]-test_rewards_interface.py-[line:792]: Address delegate nodeid b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 information : {'Code': 0, 'Ret': {'Addr': '0x13c8a27461c60c77743991bd9076095dcd3c628d', 'NodeId': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'StakingBlockNum': 30, 'DelegateEpoch': 2, 'Released': 1000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 07:43:09]-test_rewards_interface.py-[line:24]: Address 0x13c8A27461C60C77743991Bd9076095Dcd3c628D delegate information {'Code': 0, 'Ret': {'Addr': '0x13c8a27461c60c77743991bd9076095dcd3c628d', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 16, 'DelegateEpoch': 4, 'Released': 1000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 07:43:09]-test_rewards_interface.py-[line:24]: Address 0x13c8A27461C60C77743991Bd9076095Dcd3c628D delegate information {'Code': 0, 'Ret': {'Addr': '0x13c8a27461c60c77743991bd9076095dcd3c628d', 'NodeId': 'b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748', 'StakingBlockNum': 30, 'DelegateEpoch': 4, 'Released': 1000000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 07:43:09]-test_rewards_interface.py-[line:803]: After withdraw address 0x13c8A27461C60C77743991Bd9076095Dcd3c628D balance : 643382396210053232085520
+[2020-04-12 07:43:09]-test_rewards_interface.py-[line:805]: After withdraw address 0x98d49E5B7eb423f9006280527798d1860Bc6a0FD balance : 416521123086686986096228

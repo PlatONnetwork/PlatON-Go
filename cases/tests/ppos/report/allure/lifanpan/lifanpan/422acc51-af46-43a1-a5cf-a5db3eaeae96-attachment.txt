@@ -1,0 +1,36 @@
+[2020-04-12 02:32:13]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 02:32:13]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 02:32:13]-conftest.py-[line:190]: case execution completed
+[2020-04-12 02:32:19]-test_entrusted_income.py-[line:3510]: Create delegate account：0x0eDCbD05b32BD5A6047D6896F4cE8e0a9475d149
+[2020-04-12 02:32:24]-test_entrusted_income.py-[line:3512]: Create pledge node id :http://192.168.10.224:6788
+[2020-04-12 02:32:28]-test_entrusted_income.py-[line:3516]: Commissioned successfully, commissioned amount：10000000000000000000
+[2020-04-12 02:32:37]-utils.py-[line:266]: The current block height is 36, waiting until 160
+[2020-04-12 02:32:47]-utils.py-[line:266]: The current block height is 53, waiting until 160
+[2020-04-12 02:32:57]-utils.py-[line:266]: The current block height is 71, waiting until 160
+[2020-04-12 02:33:07]-utils.py-[line:266]: The current block height is 86, waiting until 160
+[2020-04-12 02:33:17]-utils.py-[line:266]: The current block height is 103, waiting until 160
+[2020-04-12 02:33:27]-utils.py-[line:266]: The current block height is 121, waiting until 160
+[2020-04-12 02:33:37]-utils.py-[line:266]: The current block height is 138, waiting until 160
+[2020-04-12 02:33:47]-utils.py-[line:266]: The current block height is 152, waiting until 160
+[2020-04-12 02:33:51]-test_entrusted_income.py-[line:3518]: Current settlement block height：161
+[2020-04-12 02:33:51]-test_entrusted_income.py-[line:3522]: Commission information：{'Code': 0, 'Ret': {'Addr': '0x0edcbd05b32bd5a6047d6896f4ce8e0a9475d149', 'NodeId': '6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300', 'StakingBlockNum': 16, 'DelegateEpoch': 1, 'Released': 100000000000000000000, 'ReleasedHes': 0, 'RestrictingPlan': 0, 'RestrictingPlanHes': 0, 'CumulativeIncome': 0}}
+[2020-04-12 02:34:00]-utils.py-[line:266]: The current block height is 176, waiting until 320
+[2020-04-12 02:34:10]-utils.py-[line:266]: The current block height is 193, waiting until 320
+[2020-04-12 02:34:21]-utils.py-[line:266]: The current block height is 210, waiting until 320
+[2020-04-12 02:34:31]-utils.py-[line:266]: The current block height is 226, waiting until 320
+[2020-04-12 02:34:41]-utils.py-[line:266]: The current block height is 243, waiting until 320
+[2020-04-12 02:34:51]-utils.py-[line:266]: The current block height is 260, waiting until 320
+[2020-04-12 02:35:01]-utils.py-[line:266]: The current block height is 276, waiting until 320
+[2020-04-12 02:35:11]-utils.py-[line:266]: The current block height is 293, waiting until 320
+[2020-04-12 02:35:21]-utils.py-[line:266]: The current block height is 310, waiting until 320
+[2020-04-12 02:35:28]-test_entrusted_income.py-[line:3527]: Current settlement block height：321
+[2020-04-12 02:35:35]-test_entrusted_income.py-[line:3535]: delegate amount balance: 1271680748721011324064152
+[2020-04-12 02:35:35]-test_entrusted_income.py-[line:3541]: delegate amount balance: 1271680748721011324064152
+[2020-04-12 02:35:36]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 02:35:36]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 02:35:36]-env.py-[line:595]: rewrite config.json
+[2020-04-12 02:35:36]-env.py-[line:647]: compression data
+[2020-04-12 02:35:36]-env.py-[line:436]: upload compression
+[2020-04-12 02:35:37]-env.py-[line:267]: deploy all node
+[2020-04-12 02:35:37]-env.py-[line:352]: deploy node
+[2020-04-12 02:35:40]-env.py-[line:269]: deploy success

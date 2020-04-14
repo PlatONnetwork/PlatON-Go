@@ -1,0 +1,26 @@
+[2020-04-12 09:11:41]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 09:11:41]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 09:11:41]-env.py-[line:595]: rewrite config.json
+[2020-04-12 09:11:41]-env.py-[line:647]: compression data
+[2020-04-12 09:11:41]-env.py-[line:436]: upload compression
+[2020-04-12 09:11:41]-env.py-[line:267]: deploy all node
+[2020-04-12 09:11:41]-env.py-[line:352]: deploy node
+[2020-04-12 09:11:45]-env.py-[line:269]: deploy success
+[2020-04-12 09:11:53]-test_slashing_zero.py-[line:82]: use node: http://192.168.10.224:6788 node id: 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300
+[2020-04-12 09:12:02]-utils.py-[line:266]: The current block height is 23, waiting until 160
+[2020-04-12 09:12:12]-utils.py-[line:266]: The current block height is 40, waiting until 160
+[2020-04-12 09:12:22]-utils.py-[line:266]: The current block height is 56, waiting until 160
+[2020-04-12 09:12:32]-utils.py-[line:266]: The current block height is 75, waiting until 160
+[2020-04-12 09:12:42]-utils.py-[line:266]: The current block height is 90, waiting until 160
+[2020-04-12 09:12:52]-utils.py-[line:266]: The current block height is 108, waiting until 160
+[2020-04-12 09:13:02]-utils.py-[line:266]: The current block height is 125, waiting until 160
+[2020-04-12 09:13:12]-utils.py-[line:266]: The current block height is 141, waiting until 160
+[2020-04-12 09:13:22]-utils.py-[line:266]: The current block height is 158, waiting until 160
+[2020-04-12 09:13:26]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 09:13:26]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 09:13:26]-env.py-[line:595]: rewrite config.json
+[2020-04-12 09:13:26]-env.py-[line:647]: compression data
+[2020-04-12 09:13:26]-env.py-[line:436]: upload compression
+[2020-04-12 09:13:26]-env.py-[line:267]: deploy all node
+[2020-04-12 09:13:26]-env.py-[line:352]: deploy node
+[2020-04-12 09:13:30]-env.py-[line:269]: deploy success

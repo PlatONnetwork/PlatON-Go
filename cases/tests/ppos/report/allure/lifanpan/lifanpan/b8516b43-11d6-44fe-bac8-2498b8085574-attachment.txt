@@ -1,0 +1,51 @@
+[2020-04-12 07:55:08]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 07:55:08]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 07:55:08]-env.py-[line:595]: rewrite config.json
+[2020-04-12 07:55:08]-env.py-[line:647]: compression data
+[2020-04-12 07:55:08]-env.py-[line:436]: upload compression
+[2020-04-12 07:55:08]-env.py-[line:267]: deploy all node
+[2020-04-12 07:55:08]-env.py-[line:352]: deploy node
+[2020-04-12 07:55:12]-env.py-[line:269]: deploy success
+[2020-04-12 07:55:19]-test_rewards_interface.py-[line:965]: Address 0xCa3F124B10c1384d36BB7a7A9Bb83783d50064d8 after withdraw reward balance 9999999996766000000000
+[2020-04-12 07:55:24]-test_voting_statistics.py-[line:44]: Node 6b84ccaeaed0a9bf5bf7c6f5fb2abbeea3546d6557cec02992f7753f99c2e39f87fdbdb6280d7fc8a243518ef27834e55eb03ad6d8ef2f627b8f0001ee185300 staking result : 0
+[2020-04-12 07:55:31]-test_voting_statistics.py-[line:44]: Node b42045bc981dcb6fe4e866fb62ea3e1dc3e0919b630a69d293a575de6e152901355615126aa0b29950742fa3b7e6a0d2bc9cbe39284702dc55a7e2cb6ac2f748 staking result : 0
+[2020-04-12 07:55:44]-utils.py-[line:266]: The current block height is 48, waiting until 320
+[2020-04-12 07:55:54]-utils.py-[line:266]: The current block height is 66, waiting until 320
+[2020-04-12 07:56:05]-utils.py-[line:266]: The current block height is 83, waiting until 320
+[2020-04-12 07:56:15]-utils.py-[line:266]: The current block height is 100, waiting until 320
+[2020-04-12 07:56:25]-utils.py-[line:266]: The current block height is 116, waiting until 320
+[2020-04-12 07:56:35]-utils.py-[line:266]: The current block height is 133, waiting until 320
+[2020-04-12 07:56:45]-utils.py-[line:266]: The current block height is 151, waiting until 320
+[2020-04-12 07:56:55]-utils.py-[line:266]: The current block height is 168, waiting until 320
+[2020-04-12 07:57:05]-utils.py-[line:266]: The current block height is 185, waiting until 320
+[2020-04-12 07:57:15]-utils.py-[line:266]: The current block height is 201, waiting until 320
+[2020-04-12 07:57:25]-utils.py-[line:266]: The current block height is 218, waiting until 320
+[2020-04-12 07:57:35]-utils.py-[line:266]: The current block height is 235, waiting until 320
+[2020-04-12 07:57:45]-utils.py-[line:266]: The current block height is 252, waiting until 320
+[2020-04-12 07:57:55]-utils.py-[line:266]: The current block height is 268, waiting until 320
+[2020-04-12 07:58:05]-utils.py-[line:266]: The current block height is 285, waiting until 320
+[2020-04-12 07:58:15]-utils.py-[line:266]: The current block height is 302, waiting until 320
+[2020-04-12 07:58:26]-utils.py-[line:266]: The current block height is 318, waiting until 320
+[2020-04-12 07:58:28]-test_rewards_interface.py-[line:974]: Address 0xCa3F124B10c1384d36BB7a7A9Bb83783d50064d8 reward : 385611385294117647058798
+[2020-04-12 07:58:28]-test_rewards_interface.py-[line:977]: Address 0xD6AF2318cb0CeB3Be4e9fF01f23DC47693c16065 reward : 113930636564171122994646
+[2020-04-12 07:58:28]-test_rewards_interface.py-[line:980]: Before withdraw reward Address 0xCa3F124B10c1384d36BB7a7A9Bb83783d50064d8 balance : 7999999987021200000000
+[2020-04-12 07:58:28]-test_rewards_interface.py-[line:982]: Before withdraw reward Address 0xD6AF2318cb0CeB3Be4e9fF01f23DC47693c16065 balance : 8999999995121200000000
+[2020-04-12 07:58:31]-test_rewards_interface.py-[line:988]: Withdraw reward address gas : 3454000000000
+[2020-04-12 07:58:31]-test_rewards_interface.py-[line:990]: Withdraw reward address gas : 3344000000000
+[2020-04-12 07:58:31]-test_rewards_interface.py-[line:993]: After withdraw reward Address 0xCa3F124B10c1384d36BB7a7A9Bb83783d50064d8 balance : 393611385277684847058798
+[2020-04-12 07:58:31]-test_rewards_interface.py-[line:995]: After withdraw reward Address 0xD6AF2318cb0CeB3Be4e9fF01f23DC47693c16065 balance : 122930636555948322994646
+[2020-04-12 07:58:40]-utils.py-[line:266]: The current block height is 343, waiting until 480
+[2020-04-12 07:58:50]-utils.py-[line:266]: The current block height is 359, waiting until 480
+[2020-04-12 07:59:00]-utils.py-[line:266]: The current block height is 376, waiting until 480
+[2020-04-12 07:59:10]-utils.py-[line:266]: The current block height is 393, waiting until 480
+[2020-04-12 07:59:20]-utils.py-[line:266]: The current block height is 409, waiting until 480
+[2020-04-12 07:59:30]-utils.py-[line:266]: The current block height is 426, waiting until 480
+[2020-04-12 07:59:40]-utils.py-[line:266]: The current block height is 443, waiting until 480
+[2020-04-12 07:59:51]-utils.py-[line:266]: The current block height is 460, waiting until 480
+[2020-04-12 08:00:01]-utils.py-[line:266]: The current block height is 476, waiting until 480
+[2020-04-12 08:00:04]-test_rewards_interface.py-[line:1002]: Address 0xCa3F124B10c1384d36BB7a7A9Bb83783d50064d8 reward : 407521123094919786096228
+[2020-04-12 08:00:04]-test_rewards_interface.py-[line:1005]: Address 0xD6AF2318cb0CeB3Be4e9fF01f23DC47693c16065 reward : 135840374364973262032076
+[2020-04-12 08:00:07]-test_rewards_interface.py-[line:1013]: Withdraw reward address gas : 3454000000000
+[2020-04-12 08:00:07]-test_rewards_interface.py-[line:1015]: Withdraw reward address gas : 3344000000000
+[2020-04-12 08:00:07]-test_rewards_interface.py-[line:1018]: After withdraw reward Address 0xCa3F124B10c1384d36BB7a7A9Bb83783d50064d8 balance : 801132508369150633155026
+[2020-04-12 08:00:07]-test_rewards_interface.py-[line:1020]: After withdraw reward Address 0xD6AF2318cb0CeB3Be4e9fF01f23DC47693c16065 balance : 258771010917577585026722

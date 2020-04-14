@@ -1,0 +1,29 @@
+[2020-04-12 06:13:32]-conftest.py-[line:190]: case execution completed
+[2020-04-12 06:13:32]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 06:13:32]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 06:13:32]-env.py-[line:595]: rewrite config.json
+[2020-04-12 06:13:32]-env.py-[line:647]: compression data
+[2020-04-12 06:13:32]-env.py-[line:436]: upload compression
+[2020-04-12 06:13:32]-env.py-[line:267]: deploy all node
+[2020-04-12 06:13:32]-env.py-[line:352]: deploy node
+[2020-04-12 06:13:35]-env.py-[line:269]: deploy success
+[2020-04-12 06:13:37]-utils.py-[line:370]: slashFractionDuplicateSign ParamValue: 100
+[2020-04-12 06:13:37]-utils.py-[line:371]: slashFractionDuplicateSign Param old Value: 
+[2020-04-12 06:13:37]-utils.py-[line:370]: duplicateSignReportReward ParamValue: 50
+[2020-04-12 06:13:37]-utils.py-[line:371]: duplicateSignReportReward Param old Value: 
+[2020-04-12 06:13:38]-test_punishment_related.py-[line:64]: report account amount:1000000000000000000000 
+[2020-04-12 06:13:38]-test_punishment_related.py-[line:67]: incentive pool account1 amount:262215742000002100000000000 
+[2020-04-12 06:13:47]-utils.py-[line:266]: The current block height is 17, waiting until 40
+[2020-04-12 06:13:57]-utils.py-[line:266]: The current block height is 33, waiting until 40
+[2020-04-12 06:14:02]-test_punishment_related.py-[line:72]: Current block height: 42
+[2020-04-12 06:14:02]-test_punishment_related.py-[line:37]: Report information: {"voteA":{"epoch":0,"viewNumber":0,"blockHash":"0x549bdab924e6aa43fef9eec80d78e99dc70d69fa3795ae2f71e4683a52ffa575","blockNumber":42,"blockIndex":0,"validateNode":{"index":0,"address":"0xff0b0cd0f7b618de2ac4b9a3e90300ef724e2005","nodeId":"d025077152db2046a77afb48a13f875c17d674421eda9c5345c32d9378490326d628e9f9b60392fcf7832ba82c9ebf5953573d6f93878c24f77e9cb53ee59fec","blsPubKey":"d24a269fb63fb105d74dd853197ad9c6d7d9576c389692c05a1ff8befeefea61f4cf5723f30c32bf0823a00fd05b5a1404deb498776c2e060457a9103ade26ee106d4217b96aa54009ffa655cea68ae81f44515483d9f5a939d31a9e0d34bd02"},"signature":"0xc9c799c898c3af52c01c0fbce358f1c13bc6ccb2afc5e5bd2d860dabd66afedf53dce959d23bbe3c7bc318f8aa99af9400000000000000000000000000000000"},"voteB":{"epoch":0,"viewNumber":0,"blockHash":"0xde21d2e5819a2fb8f75f4a912baf6215eeaf5b22ce01effa3a192c1fb06dc7c3","blockNumber":42,"blockIndex":0,"validateNode":{"index":0,"address":"0xff0b0cd0f7b618de2ac4b9a3e90300ef724e2005","nodeId":"d025077152db2046a77afb48a13f875c17d674421eda9c5345c32d9378490326d628e9f9b60392fcf7832ba82c9ebf5953573d6f93878c24f77e9cb53ee59fec","blsPubKey":"d24a269fb63fb105d74dd853197ad9c6d7d9576c389692c05a1ff8befeefea61f4cf5723f30c32bf0823a00fd05b5a1404deb498776c2e060457a9103ade26ee106d4217b96aa54009ffa655cea68ae81f44515483d9f5a939d31a9e0d34bd02"},"signature":"0x25cd962d3e2f819bc424e39150a4039d19bef66aee5b4450d4fba2cebb9de76dfe443a7f28f44bc3664a984c79d3518b00000000000000000000000000000000"}}
+[2020-04-12 06:14:04]-test_punishment_related.py-[line:80]: report account amount:8499999981678800000000 
+[2020-04-12 06:14:04]-test_punishment_related.py-[line:83]: incentive pool account1 amount:262223242000020421200000000
+[2020-04-12 06:14:04]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 06:14:04]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 06:14:04]-env.py-[line:595]: rewrite config.json
+[2020-04-12 06:14:04]-env.py-[line:647]: compression data
+[2020-04-12 06:14:04]-env.py-[line:436]: upload compression
+[2020-04-12 06:14:04]-env.py-[line:267]: deploy all node
+[2020-04-12 06:14:04]-env.py-[line:352]: deploy node
+[2020-04-12 06:14:07]-env.py-[line:269]: deploy success

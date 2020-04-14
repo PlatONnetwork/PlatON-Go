@@ -1,0 +1,32 @@
+[2020-04-12 10:25:52]-conftest.py-[line:140]: {'Code': 301204, 'Ret': 'Query candidate info failed:Candidate info is not found'}
+[2020-04-12 10:25:52]-conftest.py-[line:142]: Current linked node: 192.168.10.224:16788
+[2020-04-12 10:26:09]-utils.py-[line:266]: The current block height is 27, waiting until 160
+[2020-04-12 10:26:19]-utils.py-[line:266]: The current block height is 42, waiting until 160
+[2020-04-12 10:26:29]-utils.py-[line:266]: The current block height is 60, waiting until 160
+[2020-04-12 10:26:39]-utils.py-[line:266]: The current block height is 75, waiting until 160
+[2020-04-12 10:26:49]-utils.py-[line:266]: The current block height is 93, waiting until 160
+[2020-04-12 10:26:59]-utils.py-[line:266]: The current block height is 108, waiting until 160
+[2020-04-12 10:27:09]-utils.py-[line:266]: The current block height is 126, waiting until 160
+[2020-04-12 10:27:20]-utils.py-[line:266]: The current block height is 143, waiting until 160
+[2020-04-12 10:27:30]-utils.py-[line:266]: The current block height is 159, waiting until 160
+[2020-04-12 10:27:31]-test_total_reward.py-[line:188]: starting amount:2999999999991451600000000
+[2020-04-12 10:27:31]-test_total_reward.py-[line:190]: query block reward and pledge reward：43819475601604278074866，1402223219251336898395722
+[2020-04-12 10:27:40]-utils.py-[line:266]: The current block height is 178, waiting until 320
+[2020-04-12 10:27:50]-utils.py-[line:266]: The current block height is 195, waiting until 320
+[2020-04-12 10:28:00]-utils.py-[line:266]: The current block height is 211, waiting until 320
+[2020-04-12 10:28:10]-utils.py-[line:266]: The current block height is 228, waiting until 320
+[2020-04-12 10:28:20]-utils.py-[line:266]: The current block height is 245, waiting until 320
+[2020-04-12 10:28:30]-utils.py-[line:266]: The current block height is 261, waiting until 320
+[2020-04-12 10:28:40]-utils.py-[line:266]: The current block height is 278, waiting until 320
+[2020-04-12 10:28:50]-utils.py-[line:266]: The current block height is 295, waiting until 320
+[2020-04-12 10:29:00]-utils.py-[line:266]: The current block height is 312, waiting until 320
+[2020-04-12 10:29:06]-test_total_reward.py-[line:193]: end balance:5716807487290916840641702
+[2020-04-12 10:29:09]-test_total_reward.py-[line:195]: This node generates blocks in this settlement cycle:30
+[2020-04-12 10:29:09]-env.py-[line:569]: rewrite genesis.json
+[2020-04-12 10:29:09]-env.py-[line:585]: rewrite static-nodes.json
+[2020-04-12 10:29:09]-env.py-[line:595]: rewrite config.json
+[2020-04-12 10:29:09]-env.py-[line:647]: compression data
+[2020-04-12 10:29:09]-env.py-[line:436]: upload compression
+[2020-04-12 10:29:09]-env.py-[line:267]: deploy all node
+[2020-04-12 10:29:09]-env.py-[line:352]: deploy node
+[2020-04-12 10:29:12]-env.py-[line:269]: deploy success
