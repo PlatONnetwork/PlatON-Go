@@ -614,30 +614,26 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return nil, err
 	}
 
+	if canBase.StakingBlockNum == blockNumber.Uint64() {
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+			fmt.Sprintf("delegate fail,can't not delgate in the staking block:%d", blockNumber.Uint64()),
+			TxDelegate, int(staking.ErrCanNoExist.Code)), nil
+	}
+
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, canBase.StakingBlockNum)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to delegate by GetDelegateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
-	var delShouldMerge *staking.Delegation
 	if del.IsEmpty() {
 		// build delegate
+		del = new(staking.Delegation)
 		// Prevent null pointer initialization
-		del = staking.NewDelegation()
-	} else {
-		if del.StakingTxIndex != canBase.StakingTxIndex {
-			//if in a block have many staking with diffent StakingTxIndex,
-			// delegate many times in a block will treat  as one delegate,
-			// the older will merge to new one
-			delShouldMerge = new(staking.Delegation)
-			delShouldMerge.ReleasedHes = new(big.Int).Set(del.ReleasedHes)
-			delShouldMerge.RestrictingPlanHes = new(big.Int).Set(del.RestrictingPlanHes)
-
-			// rebuild delegate
-			del = staking.NewDelegation()
-			log.Debug("Call delegate of stakingContract:the older delegate should merge to the new delegate",
-				"oldStakingTxIndex", del.StakingTxIndex, "newStakingTxIndex", canBase.StakingTxIndex, "releasedHes", delShouldMerge.ReleasedHes, "restrictingPlanHes", delShouldMerge.RestrictingPlanHes)
-		}
+		del.Released = new(big.Int).SetInt64(0)
+		del.RestrictingPlan = new(big.Int).SetInt64(0)
+		del.ReleasedHes = new(big.Int).SetInt64(0)
+		del.RestrictingPlanHes = new(big.Int).SetInt64(0)
+		del.CumulativeIncome = new(big.Int).SetInt64(0)
 	}
 	var delegateRewardPerList []*reward.DelegateRewardPer
 	if del.DelegateEpoch > 0 {
@@ -685,7 +681,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	can.CandidateBase = canBase
 	can.CandidateMutable = canMutable
 
-	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, delShouldMerge, canAddr, can, typ, amount, delegateRewardPerList)
+	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, canAddr, can, typ, amount, delegateRewardPerList)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
