@@ -259,7 +259,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 								h, _, hc := cachedHash(nc, nc)
 								if !hc {
 									log.Debug("Error children node", "id", id, "pid", n.pid, "n", n.collapsed.fstring(""), "nc", nc.fstring(""))
-									panic("error children node")
+									//panic("error children node")
 								}
 								ct.Children[i] = h
 							}
