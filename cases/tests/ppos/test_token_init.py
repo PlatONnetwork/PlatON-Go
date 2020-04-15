@@ -1557,8 +1557,6 @@ def test_RO_T_001(new_genesis_env, client_noconsensus):
     cfg2 = {"gasPrice": gasPrice, "nonce": nonce2}
     cfg3 = {"gasPrice": gasPrice, "nonce": nonce3}
     for i in range(3):
-        print(i)
-        # current_block = node.eth.blockNumber
         cfg1['gasPrice'] = gasPrice
         log.info("cfg1 gasPrice：{}".format(cfg1['gasPrice']))
         client.staking.create_staking(0, staking_addres, staking_addres, transaction_cfg=cfg1)
@@ -1581,20 +1579,48 @@ def test_RO_T_001(new_genesis_env, client_noconsensus):
         # cfg4['nonce'] = cfg4['nonce'] + 1
         if i == 2:
             client.staking.create_staking(0, staking_addres, staking_addres, transaction_cfg=cfg1)
+            cfg3['nonce'] = cfg1['nonce'] + 1
+            gasPrice = gasPrice - 1
+            cfg2['gasPrice'] = gasPrice
+            log.info("cfg2 gasPrice：{}".format(cfg2['gasPrice']))
+    time.sleep(1)
+    for i in range(2):
+        client.delegate.delegate(0, entrust_addres, tansaction_cfg=cfg2)
+        client.delegate.delegate(0, entrust_addres2, tansaction_cfg=cfg2)
+        gasPrice = gasPrice - 1
+        cfg2['nonce'] = cfg2['nonce'] + 1
+        cfg3['gasPrice'] = gasPrice
+        log.info("cfg3 gasPrice：{}".format(cfg3['gasPrice']))
+        client.staking.withdrew_staking(staking_addres, transaction_cfg=cfg3)
+        gasPrice = gasPrice - 1
+        cfg1['nonce'] = cfg3['nonce'] + 1
+        cfg1['gasPrice'] = gasPrice
+        log.info("cfg1 gasPrice：{}".format(cfg1['gasPrice']))
+        client.staking.create_staking(0, staking_addres, staking_addres, transaction_cfg=cfg1)
+        cfg3['nonce'] = cfg1['nonce'] + 1
+        gasPrice = gasPrice - 1
+        cfg2['gasPrice'] = gasPrice
+        log.info("cfg2 gasPrice：{}".format(cfg2['gasPrice']))
 
     time.sleep(10)
-    result = node.ppos.getCandidateInfo(node.node_id)
-    log.info("Candidate_information：{}".format(result))
-    assert result['Ret']['Shares'] == economic.create_staking_limit + von_amount(economic.delegate_limit, number)
-    assert result['Ret']['DelegateTotalHes'] == von_amount(economic.delegate_limit, number)
+    candidate_info1 = node.ppos.getCandidateInfo(node.node_id)
+    log.info("Candidate_information：{}".format(candidate_info1))
+    assert candidate_info1['Ret']['Shares'] == economic.create_staking_limit
+    assert candidate_info1['Ret']['DelegateTotalHes'] == 0
 
-    result = node.ppos.getDelegateInfo(result['Ret']['StakingBlockNum'], entrust_addres, node.node_id)
-    log.info("commission_information：{}".format(result))
-    assert result['Ret']['ReleasedHes'] == von_amount(economic.delegate_limit, number)
+    result = node.ppos.getDelegateInfo(candidate_info1['Ret']['StakingBlockNum'], entrust_addres, node.node_id)
+    log.info("entrust_addres commission_information1：{}".format(result))
+    assert_code(result, 301205)
+    result = node.ppos.getDelegateInfo(11, entrust_addres, node.node_id)
+    log.info("entrust_addres commission_information2：{}".format(result))
+    assert result['Ret']['ReleasedHes'] == economic.delegate_limit
 
-    result = node.ppos.getDelegateInfo(result['Ret']['StakingBlockNum'], entrust_addres2, node.node_id)
-    log.info("commission_information：{}".format(result))
-    assert result['Ret']['ReleasedHes'] == von_amount(economic.delegate_limit, number)
+    result = node.ppos.getDelegateInfo(candidate_info1['Ret']['StakingBlockNum'], entrust_addres2, node.node_id)
+    log.info("entrust_addres2 commission_information1：{}".format(result))
+    assert_code(result, 301205)
+    result = node.ppos.getDelegateInfo(11, entrust_addres2, node.node_id)
+    log.info("entrust_addres2 commission_information2：{}".format(result))
+    assert result['Ret']['ReleasedHes'] == economic.delegate_limit
 
     node.ppos.need_analyze = True
     economic.wait_settlement_blocknum(node, 1)

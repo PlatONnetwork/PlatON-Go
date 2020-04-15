@@ -1162,13 +1162,7 @@ def test_VP_PVF_009(client_new_node, reset_environment):
 
 def test_VP_PVF_010(client_consensus):
     """
-    举报验证人区块双签:VP_PV_001 prepareBlock类型
-                    VP_PV_002 prepareVote类型
-                    VP_PV_003 viewChange类型
-    :param client_consensus:
-    :param repor_type:
-    :param reset_environment:
-    :return:
+
     """
     client = client_consensus
     economic = client.economic
@@ -1206,19 +1200,25 @@ def test_VP_PVF_010(client_consensus):
     assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
         incentive_pool_account2)
 
+    result = node.ppos.getCandidateInfo(node.node_id)
+    log.info("Candidate Info:{} ".format(result))
+    pledge_amount2 = result['Ret']['Released']
     result = verification_duplicate_sign(client, 1, 1, report_address, current_block + 1)
     assert_code(result, 0)
+
+    # view Amount of penalty
+    proportion_reward2, incentive_pool_reward2 = economic.get_report_reward(pledge_amount2, penalty_ratio,
+                                                                          proportion_ratio)
 
     # view report amount again
     report_amount3 = node.eth.getBalance(report_address)
     log.info("report account amount:{} ".format(report_amount3))
-    result = node.ppos.getCandidateInfo(node.node_id)
-    log.info("Candidate Info:{} ".format(result))
+
     # view Incentive pool account again
     incentive_pool_account3 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive pool account1 amount:{} ".format(incentive_pool_account3))
     # assert account reward
-    assert report_amount2 + proportion_reward - report_amount3 < node.web3.toWei(1,'ether'), "ErrMsg:report amount {}".format(
-        report_amount2)
-    assert incentive_pool_account3 == incentive_pool_account2 + incentive_pool_reward + (report_amount2 + proportion_reward - report_amount3), "ErrMsg:Incentive pool account {}".format(
+    assert report_amount2 + proportion_reward2 - report_amount3 < node.web3.toWei(1, 'ether'), "ErrMsg:report amount {}".format(
+        report_amount2 + proportion_reward2 - report_amount3)
+    assert incentive_pool_account3 == incentive_pool_account2 + incentive_pool_reward2 + (report_amount2 + proportion_reward2 - report_amount3), "ErrMsg:Incentive pool account {}".format(
         incentive_pool_account2)
