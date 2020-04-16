@@ -27,6 +27,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
+// in genesis.json, the config value of the supportRate( and voteRate...) is the real value * 10000.
+// the RateCoefficient is used to calculate the supportRate (and voteRate) of a proposal correctly.
 const RateCoefficient = uint64(10000)
 
 type ProposalType uint8
