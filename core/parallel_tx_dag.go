@@ -37,8 +37,7 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 			}
 		}
 
-		if vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
-
+		if cur.To() == nil || vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
 			log.Debug("found contract tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
 			txDag.contracts[curIdx] = struct{}{}
 			if curIdx > 0 {
