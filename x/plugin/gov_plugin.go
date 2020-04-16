@@ -17,13 +17,9 @@
 package plugin
 
 import (
-	"fmt"
 	"math"
 	"math/big"
-	"strconv"
 	"sync"
-
-	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
@@ -125,33 +121,6 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 
-			if govPlugin.chainID != nil && (govPlugin.chainID.Uint64() == uint64(101) || govPlugin.chainID.Uint64() == uint64(299)) &&
-				versionProposal.NewVersion == params.FORKVERSION_0_10_0 {
-				if err = gov.UpdateGovernParamValue(gov.ModuleSlashing, gov.KeyMaxEvidenceAge, "1", blockNumber, blockHash); err != nil {
-					log.Error("Version(0.10.0) proposal is active, but update slashing.maxEvidenceAge to 1 failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
-					return err
-				}
-				if err = gov.UpdateGovernParamValue(gov.ModuleStaking, gov.KeyUnStakeFreezeDuration, "2", blockNumber, blockHash); err != nil {
-					log.Error("Version(0.10.0) proposal is active, but update staking.unStakeFreezeDuration to 2 failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
-					return err
-				}
-				log.Debug("Version(0.10.0) proposal is active, and update govern-parameters success")
-			}
-			if versionProposal.NewVersion == params.FORKVERSION_0_11_0 {
-				zeroProduceCumulativeTime := 15
-				zeroProduceNumberThreshold := 3
-				if zeroProduceCumulativeTime > int(xutil.EpochSize()) {
-					zeroProduceCumulativeTime = int(xutil.EpochSize() - 1)
-					zeroProduceNumberThreshold = 2
-				}
-				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [zeroProduceNumberThreshold, %d]", uint16(xutil.EpochSize())), strconv.Itoa(zeroProduceCumulativeTime), blockNumber, blockHash); nil != err {
-					return err
-				}
-				if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, fmt.Sprintf("Number of zero production blocks, range: [1, zeroProduceCumulativeTime]"), strconv.Itoa(zeroProduceNumberThreshold), blockNumber, blockHash); nil != err {
-					return err
-				}
-				log.Debug("Version(0.11.0) proposal is active, and update govern-parameters success", "blockNumber", blockNumber,)
-			}
 			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
 	}
@@ -269,22 +238,22 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	if err != nil {
 		return err
 	}
-	verifiersCnt := uint16(len(verifierList))
+	verifiersCnt := uint64(len(verifierList))
 
 	voteList, err := gov.ListVoteValue(proposalID, blockHash)
 	if err != nil {
 		return err
 	}
 
-	voteCnt := uint16(len(voteList))
+	voteCnt := uint64(len(voteList))
 	yeas := voteCnt //`voteOption` can be ignored in version proposal, set voteCount to passCount as default.
 
 	status := gov.Failed
-	supportRate := float64(yeas) / float64(verifiersCnt)
+	supportRate := (yeas * gov.RateCoefficient) / verifiersCnt
 
 	//log.Debug("version proposal", "supportRate", supportRate, "required", Decimal(xcom.VersionProposalSupportRate()))
 
-	if Decimal(supportRate) >= Decimal(xcom.VersionProposal_SupportRate()) {
+	if supportRate >= xcom.VersionProposal_SupportRate() {
 		status = gov.PreActive
 
 		if err := gov.AddPIPID(proposal.GetPIPID(), state); err != nil {
@@ -308,7 +277,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 			return err
 		}
 		//log.Debug("call stk.ProposalPassedNotify", "proposalID", proposalID, "activeList", activeList)
-		if err := stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion, state); err != nil {
+		if err := stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion); err != nil {
 			log.Error("call stk.ProposalPassedNotify failed", "proposalID", proposalID, "blockHash", blockHash, "newVersion", proposal.NewVersion, "activeList", activeList)
 			return err
 		}
@@ -387,14 +356,14 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 			if err != nil {
 				return false, err
 			}
-			verifiersCnt := uint16(len(verifierList))
+			verifiersCnt := uint64(len(verifierList))
 
 			voteList, err := gov.ListVoteValue(cp.TobeCanceled, blockHash)
 			if err != nil {
 				return false, err
 			}
 
-			voteCnt := uint16(len(voteList))
+			voteCnt := uint64(len(voteList))
 			yeas := voteCnt
 
 			tallyResult.Yeas = yeas
@@ -442,7 +411,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 		return false, err
 	}
 
-	verifiersCnt := uint16(len(verifierList))
+	verifiersCnt := uint64(len(verifierList))
 
 	status := gov.Voting
 
@@ -451,27 +420,27 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 		return false, err
 	}
 
-	voteRate := Decimal(float64(yeas+nays+abstentions) / float64(verifiersCnt))
-	supportRate := Decimal(float64(yeas) / float64(yeas+nays+abstentions))
+	voteRate := (yeas + nays + abstentions) * gov.RateCoefficient / verifiersCnt
+	supportRate := (yeas * gov.RateCoefficient) / (yeas + nays + abstentions)
 
 	switch proposalType {
 	case gov.Text:
 		//log.Debug("text proposal", "voteRate", voteRate, "required", xcom.TextProposalVoteRate(), "supportRate", supportRate, "required", Decimal(xcom.TextProposalSupportRate()))
-		if voteRate > Decimal(xcom.TextProposal_VoteRate()) && supportRate >= Decimal(xcom.TextProposal_SupportRate()) {
+		if voteRate > xcom.TextProposal_VoteRate() && supportRate >= xcom.TextProposal_SupportRate() {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Cancel:
 		//log.Debug("cancel proposal", "voteRate", voteRate, "required", xcom.CancelProposalVoteRate(), "supportRate", supportRate, "required", Decimal(xcom.CancelProposalSupportRate()))
-		if voteRate > Decimal(xcom.CancelProposal_VoteRate()) && supportRate >= Decimal(xcom.CancelProposal_SupportRate()) {
+		if voteRate > xcom.CancelProposal_VoteRate() && supportRate >= xcom.CancelProposal_SupportRate() {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Param:
 		//log.Debug("param proposal", "voteRate", voteRate, "required", xcom.ParamProposalVoteRate(), "supportRate", supportRate, "required", Decimal(xcom.ParamProposalSupportRate()))
-		if voteRate > Decimal(xcom.ParamProposal_VoteRate()) && supportRate >= Decimal(xcom.ParamProposal_SupportRate()) {
+		if voteRate > xcom.ParamProposal_VoteRate() && supportRate >= xcom.ParamProposal_SupportRate() {
 			status = gov.Pass
 		} else {
 			status = gov.Failed

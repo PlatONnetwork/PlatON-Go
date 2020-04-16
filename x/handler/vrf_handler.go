@@ -124,9 +124,9 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 		hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()), "nonce", hex.EncodeToString(nonce))
 	nonces := make([][]byte, 0)
 
-	maxVlidatorsNum, err := gov.GovernMaxValidators(blockNumber.Uint64(), blockHash)
+	maxValidatorsNum, err := gov.GovernMaxValidators(blockNumber.Uint64(), blockHash)
 	if nil != err {
-		log.Error("Failed to Storage VRF nonce", "err", err)
+		log.Error("Failed to Storage VRF nonce", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 		return err
 	}
 
@@ -138,9 +138,11 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 			copy(nonces, value)
 			log.Debug("Storage previous nonce", "current blockNumber", blockNumber.Uint64(), "parentHash",
 				hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()), "valueLength",
-				len(value), "MaxValidators", maxVlidatorsNum)
-			if uint64(len(nonces)) == maxVlidatorsNum {
+				len(value), "MaxValidators", maxValidatorsNum)
+			if uint64(len(nonces)) == maxValidatorsNum {
 				nonces = nonces[1:]
+			} else if uint64(len(nonces)) > maxValidatorsNum {
+				nonces = nonces[uint64(len(nonces)+1) - maxValidatorsNum:]
 			}
 		}
 	}
@@ -159,7 +161,7 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 		}
 		log.Info("Storage previous nonce Success", "current blockNumber", blockNumber.Uint64(),
 			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()),
-			"valueLength", len(nonces), "MaxValidators", maxVlidatorsNum, "nonce", hex.EncodeToString(nonce),
+			"valueLength", len(nonces), "MaxValidators", maxValidatorsNum, "nonce", hex.EncodeToString(nonce),
 			"firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}
 	return nil

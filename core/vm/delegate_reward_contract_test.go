@@ -116,7 +116,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 			return err
 		}
 		return nil
-	})
+	}, nil, nil)
 	initGas := uint64(10000)
 
 	contact := newRewardContact(delegateRewardAdd, chain, initGas)
@@ -153,7 +153,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 
 			}
 			return nil
-		}); err != nil {
+		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}

@@ -26,8 +26,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -83,6 +81,16 @@ func StakingInstance() *StakingPlugin {
 		log.Info("Init Staking plugin ...")
 		stk = &StakingPlugin{
 			db: staking.NewStakingDB(),
+		}
+	})
+	return stk
+}
+
+func NewStakingPlugin(db snapshotdb.DB) *StakingPlugin {
+	stakePlnOnce.Do(func() {
+		log.Info("Init Staking plugin ...")
+		stk = &StakingPlugin{
+			db: staking.NewStakingDBWithDB(db),
 		}
 	})
 	return stk
@@ -799,7 +807,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
-	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
+	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, sk.db.GetDB()); err != nil {
 		return err
 	}
 
@@ -1145,26 +1153,14 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			return err
 		}
 
-		if currentVersion >= params.FORKVERSION_0_11_0 {
-			if xutil.CalcVersion(canBase.ProgramVersion) < currVersion {
-				log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
-					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
-					"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
-					canBase.ProgramVersion, "currVersion", currVersion)
+		if xutil.CalcVersion(canBase.ProgramVersion) < currVersion {
+			log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
+				"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
+				canBase.ProgramVersion, "currVersion", currVersion)
 
-				// Low program version cannot be elected for epoch validator
-				continue
-			}
-		} else {
-			if canBase.ProgramVersion < currVersion {
-				log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
-					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
-					"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
-					canBase.ProgramVersion, "currVersion", currVersion)
-
-				// Low program version cannot be elected for epoch validator
-				continue
-			}
+			// Low program version cannot be elected for epoch validator
+			continue
 		}
 
 		addr := common.BytesToAddress(addrSuffix)
@@ -1777,16 +1773,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		// Collect candidate who need to be removed
 		// from the validators because the version is too low
 
-		if currentVersion >= params.FORKVERSION_0_11_0 {
-			if xutil.CalcVersion(can.ProgramVersion) < currVersion {
-				removeCans[v.NodeId] = can
-				needRMLowVersionLen++
-			}
-		} else {
-			if can.ProgramVersion < currVersion {
-				removeCans[v.NodeId] = can
-				needRMLowVersionLen++
-			}
+		if xutil.CalcVersion(can.ProgramVersion) < currVersion {
+			removeCans[v.NodeId] = can
+			needRMLowVersionLen++
 		}
 
 		currMap[v.NodeId] = v.Shares
@@ -1824,14 +1813,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 
 		// Ignore the low version
-		if currentVersion >= params.FORKVERSION_0_11_0 {
-			if xutil.CalcVersion(can.ProgramVersion) < currVersion {
-				continue
-			}
-		} else {
-			if can.ProgramVersion < currVersion {
-				continue
-			}
+		if xutil.CalcVersion(can.ProgramVersion) < currVersion {
+			continue
 		}
 
 		diffQueue = append(diffQueue, v)
@@ -1862,7 +1845,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	//
 	invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
 
-	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
+	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue, blockNumber uint64, parentHash common.Hash) (staking.ValidatorQueue, error) {
 
 		// increase term and use new shares  one by one
 		for i, v := range currQueue {
@@ -1877,7 +1860,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		copyCurrQueue := make(staking.ValidatorQueue, len(currQueue)-invalidLen)
 		// Remove the invalid validators
 		copy(copyCurrQueue, currQueue[invalidLen:])
-		return shuffleQueue(copyCurrQueue, vrfQueue)
+		return shuffleQueue(copyCurrQueue, vrfQueue, blockNumber, parentHash)
 	}
 
 	var vrfQueue staking.ValidatorQueue
@@ -1906,7 +1889,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
 		"vrfQueueLen", len(vrfQueue))
 
-	nextQueue := shuffle(invalidLen, currqueen, vrfQueue)
+	nextQueue, err := shuffle(invalidLen, currqueen, vrfQueue, blockNumber, header.ParentHash)
+	if nil != err {
+		return err
+	}
 
 	if len(nextQueue) == 0 {
 		panic("The Next Round Validator is empty, blockNumber: " + fmt.Sprint(blockNumber))
@@ -1952,7 +1938,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	return nil
 }
 
-func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
+func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue, blockNumber uint64, parentHash common.Hash) (staking.ValidatorQueue, error) {
 
 	remainLen := len(remainCurrQueue)
 	totalQueue := append(remainCurrQueue, vrfQueue...)
@@ -1970,9 +1956,80 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.Vali
 
 	copy(next, totalQueue)
 
-	// re-sort before store next validators
-	next.ValidatorSort(nil, staking.CompareForStore)
-	return next
+	// Divide all consensus nodes into two groups, the front and back positions of each group are not changed,
+	// but random ordering is performed in each group
+	// The first group: the first f nodes
+	// The second group: the last 2f + 1 nodes
+	next, err := randomOrderValidatorQueue(blockNumber, parentHash, next)
+	if nil != err {
+		return nil, err
+	}
+	return next, nil
+}
+
+type randomOrderValidator struct {
+	validator *staking.Validator
+	value     *big.Int
+}
+type randomOrderValidatorList []*randomOrderValidator
+
+func (r randomOrderValidatorList) Len() int {
+	return len(r)
+}
+
+func (r randomOrderValidatorList) Less(i, j int) bool {
+	return r[i].value.Cmp(r[j].value) > 0
+}
+
+func (r randomOrderValidatorList) Swap(i, j int) {
+	r[i], r[j] = r[j], r[i]
+}
+
+// Randomly sort nodes
+func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue staking.ValidatorQueue) (staking.ValidatorQueue, error) {
+	preNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
+	if nil != err {
+		return nil, err
+	}
+	if len(preNonces) < len(queue) {
+		log.Error("Failed to randomOrderValidatorQueue on Election", "blockNumber", blockNumber, "validatorListSize", len(queue),
+			"preNoncesSize", len(preNonces), "parentHash", parentHash.TerminalString())
+		return nil, staking.ErrWrongFuncParams
+	}
+	if len(preNonces) > len(queue) {
+		preNonces = preNonces[len(preNonces)-len(queue):]
+	}
+
+	if len(queue) <= int(xcom.ShiftValidatorNum()) {
+		return queue, nil
+	}
+
+	orderList := make(randomOrderValidatorList, len(queue))
+	for i, v := range queue {
+		value := new(big.Int).Xor(new(big.Int).SetBytes(v.NodeAddress.Bytes()), new(big.Int).SetBytes(preNonces[i][:common.AddressLength]))
+		orderList[i] = &randomOrderValidator{
+			validator: v,
+			value:     value,
+		}
+		log.Debug("Call randomOrderValidatorQueue xor", "nodeId", v.NodeId.TerminalString(), "nodeAddress", v.NodeAddress.Hex(), "nonce", hexutil.Encode(preNonces[i]), "xorValue", value)
+	}
+
+	frontPart := orderList[:xcom.ShiftValidatorNum()]
+	backPart := orderList[xcom.ShiftValidatorNum():]
+
+	sort.Sort(frontPart)
+	sort.Sort(backPart)
+
+	orderList = make(randomOrderValidatorList, 0)
+	orderList = append(orderList, frontPart...)
+	orderList = append(orderList, backPart...)
+
+	resultQueue := make(staking.ValidatorQueue, len(orderList))
+	for i, v := range orderList {
+		resultQueue[i] = v.validator
+	}
+	log.Debug("Call randomOrderValidatorQueue success", "blockNumber", blockNumber, "parentHash", parentHash.TerminalString(), "resultQueueSize", len(resultQueue))
+	return resultQueue, nil
 }
 
 // NotifyPunishedVerifiers
@@ -2320,7 +2377,7 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 }
 
 func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
-	programVersion uint32, state xcom.StateDB) error {
+	programVersion uint32) error {
 
 	log.Info("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
@@ -2342,11 +2399,9 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			continue
 		}
 
-		if gov.CheckForkPIP0_11_0(state) || programVersion == params.FORKVERSION_0_11_0 {
-			if can.IsInvalid() {
-				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
-				continue
-			}
+		if can.IsInvalid() {
+			log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
+			continue
 		}
 
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
@@ -2375,7 +2430,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 }
 
 func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
-	programVersion uint32, state xcom.StateDB) error {
+	programVersion uint32) error {
 
 	log.Info("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", xutil.CalcVersion(programVersion), "nodeId", nodeId.String())
@@ -2395,7 +2450,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		return nil
 	}
 
-	if gov.CheckForkPIP0_11_0(state) && can.IsInvalid() {
+	if can.IsInvalid() {
 		log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
 		return nil
 	}
@@ -2788,26 +2843,16 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 
 	log.Debug("Call probabilityElection, sort probability queue", "blockNumber", blockNumber, "currentVersion", currentVersion, "list", svList)
 
-	if currentVersion >= params.FORKVERSION_0_11_0 {
-		nsvList := make(newSortValidatorQueue, len(svList))
-		for index, sv := range svList {
-			nsvList[index] = sv
+	nsvList := make(newSortValidatorQueue, len(svList))
+	for index, sv := range svList {
+		nsvList[index] = sv
+	}
+	sort.Sort(nsvList)
+	for index, sv := range nsvList {
+		if index == shiftLen {
+			break
 		}
-		sort.Sort(nsvList)
-		for index, sv := range nsvList {
-			if index == shiftLen {
-				break
-			}
-			vrfQueue[index] = sv.v
-		}
-	} else {
-		sort.Sort(svList)
-		for index, sv := range svList {
-			if index == shiftLen {
-				break
-			}
-			vrfQueue[index] = sv.v
-		}
+		vrfQueue[index] = sv.v
 	}
 
 	log.Debug("Call probabilityElection finished", "blockNumber", blockNumber, "currentVersion", currentVersion, "vrfQueue", vrfQueue)

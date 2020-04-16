@@ -27,6 +27,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
@@ -2722,7 +2725,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	Start DeclarePromoteNotify
 	*/
 	for i, can := range queue {
-		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion, state)
+		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion)
 
 		assert.Nil(t, err, fmt.Sprintf("Failed to DeclarePromoteNotify, index: %d, err: %v", i, err))
 	}
@@ -2890,7 +2893,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	/**
 	Start ProposalPassedNotify
 	*/
-	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion, state)
+	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
 }
@@ -3461,6 +3464,53 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 	assert.True(t, nil != result, "the result is nil")
 
+}
+
+func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
+	newPlugins()
+	handler.NewVrfHandler(make([]byte, 0))
+	defer func() {
+		slash.db.Clear()
+	}()
+
+	gov.InitGenesisGovernParam(common.ZeroHash, slash.db, 2048)
+
+	privateKey, _ := crypto.GenerateKey()
+	vqList := make(staking.ValidatorQueue, 0)
+	dataList := make([][]byte, 0)
+	data := common.Int64ToBytes(time.Now().UnixNano())
+	if err := slash.db.NewBlock(new(big.Int).SetUint64(1), blockHash, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	for i := 0; i < int(xcom.MaxConsensusVals()); i++ {
+		vrfData, err := vrf.Prove(privateKey, data)
+		if nil != err {
+			t.Fatal(err)
+		}
+		data = vrf.ProofToHash(vrfData)
+		dataList = append(dataList, data)
+
+		tempPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		nodeId := discover.PubkeyID(&tempPrivateKey.PublicKey)
+		addr := crypto.PubkeyToAddress(tempPrivateKey.PublicKey)
+		v := &staking.Validator{
+			NodeAddress: addr,
+			NodeId:      nodeId,
+		}
+		vqList = append(vqList, v)
+	}
+	if enValue, err := rlp.EncodeToBytes(dataList); nil != err {
+		t.Fatal(err)
+	} else {
+		if err := slash.db.Put(common.ZeroHash, handler.NonceStorageKey, enValue); nil != err {
+			t.Fatal(err)
+		}
+	}
+	resultQueue, err := randomOrderValidatorQueue(1, common.ZeroHash, vqList)
+	if nil != err {
+		t.Fatal(err)
+	}
+	assert.True(t, len(resultQueue) == len(vqList))
 }
 
 /**

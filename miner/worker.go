@@ -25,8 +25,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -509,6 +507,7 @@ func (w *worker) mainLoop() {
 		case req := <-w.newWorkCh:
 			if err := w.commitNewWork(req.interrupt, req.noempty, common.Millis(req.timestamp), req.commitBlock, req.blockDeadline); err != nil {
 				// If error during this commiting, the task ends and change the CommitStatus to idle to allow the next commiting to be triggered
+				log.Warn("Failed to commitNewWork", "baseBlockNumber", req.commitBlock.NumberU64(), "baseBlockHash", req.commitBlock.Hash(), "error", err)
 				w.commitWorkEnv.setCommitStatusIdle()
 			}
 
@@ -1150,21 +1149,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	startTime := time.Now()
 	var pending map[common.Address]types.Transactions
 
-	if plugin.IsForkBlock(header.Number.Uint64(), header.ParentHash.String()) {
-		list, err := plugin.StakingInstance().GetVerifierList(common.ZeroHash, header.Number.Uint64(), plugin.QueryStartNotIrr)
-		if err != nil {
-			log.Error("Failed to commitNewWork on worker: get  staking validator list failed", "blockNumber", header.Number, "err", err)
-			return err
-		}
-		accounts := make(map[common.Address]struct{})
-		for _, value := range list {
-			accounts[value.StakingAddress] = struct{}{}
-		}
-		pending, err = w.eth.TxPool().PendingLimitedByAccounts(accounts)
-	} else {
-		pending, err = w.eth.TxPool().PendingLimited()
-	}
-
+	pending, err = w.eth.TxPool().PendingLimited()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
 		return err

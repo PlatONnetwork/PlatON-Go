@@ -74,14 +74,14 @@ type StakingContract struct {
 }
 
 func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
-	if checkForkPIP0_11_0(stkc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return 0
 	}
 	return params.StakingGas
 }
 
 func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
-	if checkForkPIP0_11_0(stkc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return nil, nil
 	}
 	return execPlatonContract(input, stkc.FnSigns())
@@ -597,32 +597,34 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	}
 
 	if canMutable.IsEmpty() {
-		if txHash == common.ZeroHash {
-			return nil, nil
-		} else {
-			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
-				"can is nil", TxDelegate, int(staking.ErrCanNoExist.Code)), nil
-		}
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+			"can is nil", TxDelegate, int(staking.ErrCanNoExist.Code)), nil
 	}
 
 	if canMutable.IsInvalid() {
-		if txHash == common.ZeroHash {
-			return nil, nil
-		} else {
-			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
-				fmt.Sprintf("can status is: %d", canMutable.Status),
-				TxDelegate, int(staking.ErrCanStatusInvalid.Code)), nil
-		}
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+			fmt.Sprintf("can status is: %d", canMutable.Status),
+			TxDelegate, int(staking.ErrCanStatusInvalid.Code)), nil
 	}
 
+	// the can base must exist if canMutable is exist,so no need check if canBase==nil
 	canBase, err := stkc.Plugin.GetCanBase(blockHash, canAddr)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		log.Error("Failed to delegate by GetCandidateBase", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+		return nil, err
+	}
+
+	if canBase.StakingBlockNum == blockNumber.Uint64() {
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+			fmt.Sprintf("delegate fail,can't not delgate in the staking block:%d", blockNumber.Uint64()),
+			TxDelegate, int(staking.ErrCanNoExist.Code)), nil
+	}
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, canBase.StakingBlockNum)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to delegate by GetDelegateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
-
 	if del.IsEmpty() {
 		// build delegate
 		del = new(staking.Delegation)

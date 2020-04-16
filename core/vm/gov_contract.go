@@ -57,14 +57,14 @@ type GovContract struct {
 }
 
 func (gc *GovContract) RequiredGas(input []byte) uint64 {
-	if checkForkPIP0_11_0(gc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return 0
 	}
 	return params.GovGas
 }
 
 func (gc *GovContract) Run(input []byte) ([]byte, error) {
-	if checkForkPIP0_11_0(gc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return nil, nil
 	}
 	return execPlatonContract(input, gc.FnSigns())
@@ -415,7 +415,7 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
 	}
 
-	returnValue := []uint16{uint16(len(list)), yeas, nays, abstentions}
+	returnValue := []uint64{uint64(len(list)), yeas, nays, abstentions}
 	return gc.callHandler("getAccuVerifiesCount", returnValue, nil)
 }
 
