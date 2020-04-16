@@ -27,6 +27,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
+const RateCoefficient = uint64(10000)
+
 type ProposalType uint8
 
 const (

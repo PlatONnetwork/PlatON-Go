@@ -19,8 +19,10 @@ package vm
 import (
 	"encoding/json"
 	"fmt"
-	"math"
+	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	//"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -807,11 +809,6 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
 	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())+1), t, gov.EndVotingRoundsTooLarge)
 }
 
-func TestGovContract_Float(t *testing.T) {
-	t.Log(int(math.Ceil(0.667 * 1000)))
-	t.Log(int(math.Floor(0.5 * 1000)))
-}
-
 func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
@@ -1220,6 +1217,8 @@ func TestGovContract_SubmitText_passed_PIPID_exist(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[3])
+
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
 }
 
