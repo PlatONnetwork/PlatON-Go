@@ -338,7 +338,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		panic("Failed to hash economic config")
 	}
 
-	if initDataStateHash, err = genesisGovernParamData(g.EconomicModel, initDataStateHash, sdb, genesisVersion); err != nil {
+	if initDataStateHash, err = genesisGovernParamData(initDataStateHash, sdb, genesisVersion); err != nil {
 		log.Error("Failed to init govern parameter in snapshotdb", "err", err)
 		panic("Failed to init govern parameter in snapshotdb")
 	}

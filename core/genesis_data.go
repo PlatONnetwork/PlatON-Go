@@ -314,7 +314,7 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.Ba
 	return nil
 }
 
-func genesisGovernParamData(economicModel *xcom.EconomicModel, prevHash common.Hash, snapdb snapshotdb.BaseDB, genesisVersion uint32) (common.Hash, error) {
+func genesisGovernParamData(prevHash common.Hash, snapdb snapshotdb.BaseDB, genesisVersion uint32) (common.Hash, error) {
 	return gov.InitGenesisGovernParam(prevHash, snapdb, genesisVersion)
 }
 
