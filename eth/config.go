@@ -123,7 +123,7 @@ type Config struct {
 	DBGCMpt            bool
 	DBGCBlock          int
 	DBDisabledCache    bool
-	DBCacheEpoch       int
+	DBCacheEpoch       uint64
 
 	// VM options
 	VMWasmType        string

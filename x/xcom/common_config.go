@@ -83,7 +83,7 @@ type commonConfig struct {
 	MaxConsensusVals    uint64 `json:"maxConsensusVals"`    // The consensus validators count
 	AdditionalCycleTime uint64 `json:"additionalCycleTime"` // Additional cycle time (uint: minutes)
 	DBDisabledCache  bool
-	DBCacheEpoch    int
+	DBCacheEpoch    uint64
 
 }
 
@@ -558,7 +558,7 @@ func SetPerRoundBlocks(amount uint64) {
 		ec.Common.PerRoundBlocks = amount
 	}
 }
-func SetDBCache(dbDisabledCache bool,dbCacheEpoch int) {
+func SetDBCache(dbDisabledCache bool,dbCacheEpoch uint64) {
 	if ec != nil {
 		ec.Common.DBDisabledCache = dbDisabledCache
 		ec.Common.DBCacheEpoch = dbCacheEpoch

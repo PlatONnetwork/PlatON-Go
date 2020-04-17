@@ -622,7 +622,7 @@ var (
 		Name:  "db.nochache",
 		Usage: "Disable database storage of special data",
 	}
-	DBCacheEpochFlag = cli.IntFlag{
+	DBCacheEpochFlag = cli.Uint64Flag{
 		Name:  "db.chache_epoch",
 		Usage: "Number of cache epoch states, default 10",
 		Value: eth.DefaultConfig.DBCacheEpoch,
@@ -1242,7 +1242,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.DBDisabledCache = ctx.GlobalBool(DBNoCacheFlag.Name)
 	}
 	if ctx.GlobalIsSet(DBCacheEpochFlag.Name) {
-		b := ctx.GlobalInt(DBCacheEpochFlag.Name)
+		b := ctx.GlobalUint64(DBCacheEpochFlag.Name)
 		if b > 0 {
 			cfg.DBCacheEpoch = b
 		}
