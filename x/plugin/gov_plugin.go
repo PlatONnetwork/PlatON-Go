@@ -249,7 +249,10 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	yeas := voteCnt //`voteOption` can be ignored in version proposal, set voteCount to passCount as default.
 
 	status := gov.Failed
-	supportRate := (yeas * gov.RateCoefficient) / verifiersCnt
+	var supportRate uint64 = 0
+	if verifiersCnt > 0 {
+		supportRate = (yeas * gov.RateCoefficient) / verifiersCnt
+	}
 
 	//log.Debug("version proposal", "supportRate", supportRate, "required", Decimal(xcom.VersionProposalSupportRate()))
 
@@ -419,9 +422,12 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 	if err != nil {
 		return false, err
 	}
-
-	voteRate := (yeas + nays + abstentions) * gov.RateCoefficient / verifiersCnt
-	supportRate := (yeas * gov.RateCoefficient) / (yeas + nays + abstentions)
+	var voteRate uint64 = 0
+	var supportRate uint64 = 0
+	if yeas+nays+abstentions > 0 && verifiersCnt > 0 {
+		voteRate = (yeas + nays + abstentions) * gov.RateCoefficient / verifiersCnt
+		supportRate = (yeas * gov.RateCoefficient) / (yeas + nays + abstentions)
+	}
 
 	switch proposalType {
 	case gov.Text:
