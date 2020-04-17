@@ -82,8 +82,6 @@ type commonConfig struct {
 	PerRoundBlocks      uint64 `json:"perRoundBlocks"`      // blocks each validator will create per consensus epoch
 	MaxConsensusVals    uint64 `json:"maxConsensusVals"`    // The consensus validators count
 	AdditionalCycleTime uint64 `json:"additionalCycleTime"` // Additional cycle time (uint: minutes)
-	DBDisabledCache  bool
-	DBCacheEpoch    uint64
 
 }
 
@@ -558,22 +556,6 @@ func SetPerRoundBlocks(amount uint64) {
 		ec.Common.PerRoundBlocks = amount
 	}
 }
-func SetDBCache(dbDisabledCache bool,dbCacheEpoch uint64) {
-	if ec != nil {
-		ec.Common.DBDisabledCache = dbDisabledCache
-		ec.Common.DBCacheEpoch = dbCacheEpoch
-	}
-}
-
-func GetDBDisabledCache() bool{
-	return  ec.Common.DBDisabledCache
-}
-
-//return block of db cache
-func GetDBCacheEpoch() uint64{
-	return  uint64(ec.Common.DBCacheEpoch)
-}
-
 func Interval() uint64 {
 	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 }
