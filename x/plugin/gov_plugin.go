@@ -238,22 +238,25 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	if err != nil {
 		return err
 	}
-	verifiersCnt := uint16(len(verifierList))
+	verifiersCnt := uint64(len(verifierList))
 
 	voteList, err := gov.ListVoteValue(proposalID, blockHash)
 	if err != nil {
 		return err
 	}
 
-	voteCnt := uint16(len(voteList))
+	voteCnt := uint64(len(voteList))
 	yeas := voteCnt //`voteOption` can be ignored in version proposal, set voteCount to passCount as default.
 
 	status := gov.Failed
-	supportRate := float64(yeas) / float64(verifiersCnt)
+	var supportRate uint64 = 0
+	if verifiersCnt > 0 {
+		supportRate = (yeas * gov.RateCoefficient) / verifiersCnt
+	}
 
 	//log.Debug("version proposal", "supportRate", supportRate, "required", Decimal(xcom.VersionProposalSupportRate()))
 
-	if Decimal(supportRate) >= Decimal(xcom.VersionProposal_SupportRate()) {
+	if supportRate >= xcom.VersionProposal_SupportRate() {
 		status = gov.PreActive
 
 		if err := gov.AddPIPID(proposal.GetPIPID(), state); err != nil {
@@ -356,14 +359,14 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 			if err != nil {
 				return false, err
 			}
-			verifiersCnt := uint16(len(verifierList))
+			verifiersCnt := uint64(len(verifierList))
 
 			voteList, err := gov.ListVoteValue(cp.TobeCanceled, blockHash)
 			if err != nil {
 				return false, err
 			}
 
-			voteCnt := uint16(len(voteList))
+			voteCnt := uint64(len(voteList))
 			yeas := voteCnt
 
 			tallyResult.Yeas = yeas
@@ -411,7 +414,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 		return false, err
 	}
 
-	verifiersCnt := uint16(len(verifierList))
+	verifiersCnt := uint64(len(verifierList))
 
 	status := gov.Voting
 
@@ -419,28 +422,31 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 	if err != nil {
 		return false, err
 	}
-
-	voteRate := Decimal(float64(yeas+nays+abstentions) / float64(verifiersCnt))
-	supportRate := Decimal(float64(yeas) / float64(yeas+nays+abstentions))
+	var voteRate uint64 = 0
+	var supportRate uint64 = 0
+	if yeas+nays+abstentions > 0 && verifiersCnt > 0 {
+		voteRate = (yeas + nays + abstentions) * gov.RateCoefficient / verifiersCnt
+		supportRate = (yeas * gov.RateCoefficient) / (yeas + nays + abstentions)
+	}
 
 	switch proposalType {
 	case gov.Text:
 		//log.Debug("text proposal", "voteRate", voteRate, "required", xcom.TextProposalVoteRate(), "supportRate", supportRate, "required", Decimal(xcom.TextProposalSupportRate()))
-		if voteRate > Decimal(xcom.TextProposal_VoteRate()) && supportRate >= Decimal(xcom.TextProposal_SupportRate()) {
+		if voteRate > xcom.TextProposal_VoteRate() && supportRate >= xcom.TextProposal_SupportRate() {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Cancel:
 		//log.Debug("cancel proposal", "voteRate", voteRate, "required", xcom.CancelProposalVoteRate(), "supportRate", supportRate, "required", Decimal(xcom.CancelProposalSupportRate()))
-		if voteRate > Decimal(xcom.CancelProposal_VoteRate()) && supportRate >= Decimal(xcom.CancelProposal_SupportRate()) {
+		if voteRate > xcom.CancelProposal_VoteRate() && supportRate >= xcom.CancelProposal_SupportRate() {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Param:
 		//log.Debug("param proposal", "voteRate", voteRate, "required", xcom.ParamProposalVoteRate(), "supportRate", supportRate, "required", Decimal(xcom.ParamProposalSupportRate()))
-		if voteRate > Decimal(xcom.ParamProposal_VoteRate()) && supportRate >= Decimal(xcom.ParamProposal_SupportRate()) {
+		if voteRate > xcom.ParamProposal_VoteRate() && supportRate >= xcom.ParamProposal_SupportRate() {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
