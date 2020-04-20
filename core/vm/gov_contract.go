@@ -415,7 +415,7 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
 	}
 
-	returnValue := []uint16{uint16(len(list)), yeas, nays, abstentions}
+	returnValue := []uint64{uint64(len(list)), yeas, nays, abstentions}
 	return gc.callHandler("getAccuVerifiesCount", returnValue, nil)
 }
 

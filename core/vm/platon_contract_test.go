@@ -321,7 +321,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB
 	evm.Context = context
 
 	//set a default active version
-	gov.InitGenesisGovernParam(sndb, 2048)
+	gov.InitGenesisGovernParam(common.ZeroHash, sndb, 2048)
 	gov.AddActiveVersion(initProgramVersion, 0, state)
 
 	return evm

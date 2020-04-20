@@ -38,7 +38,7 @@ type Staking interface {
 	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
 	GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error)
 	GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error)
-	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32, state xcom.StateDB) error
+	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
 }
 
 const (
@@ -266,7 +266,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		} else if declaredVersion>>8 == activeVersion>>8 {
 			//there's a voting-version-proposal, if the declared version equals the current active version, notify staking immediately
 			log.Debug("call stk.DeclarePromoteNotify(not voted, declaredVersion==activeVersion)", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion, state); err != nil {
+			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
 				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 				return NotifyStakingDeclaredVersionError
 			}
@@ -288,7 +288,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			log.Debug("there is no version proposal at pre-active stage")
 			if declaredVersion>>8 == activeVersion>>8 {
 				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion, state); err != nil {
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
 					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 					return NotifyStakingDeclaredVersionError
 				}
@@ -300,7 +300,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			log.Debug("there is a version proposal at pre-active stage", "preActiveVersion", preActiveVersion)
 			if declaredVersion>>8 == preActiveVersion>>8 {
 				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion, state); err != nil {
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
 					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 					return NotifyStakingDeclaredVersionError
 				}

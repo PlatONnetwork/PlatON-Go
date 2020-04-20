@@ -23,10 +23,10 @@ import (
 
 type TallyResult struct {
 	ProposalID    common.Hash    `json:"proposalID"`
-	Yeas          uint16         `json:"yeas"`
-	Nays          uint16         `json:"nays"`
-	Abstentions   uint16         `json:"abstentions"`
-	AccuVerifiers uint16         `json:"accuVerifiers"`
+	Yeas          uint64         `json:"yeas"`
+	Nays          uint64         `json:"nays"`
+	Abstentions   uint64         `json:"abstentions"`
+	AccuVerifiers uint64         `json:"accuVerifiers"`
 	Status        ProposalStatus `json:"status"`
 	CanceledBy    common.Hash    `json:"canceledBy"`
 }
