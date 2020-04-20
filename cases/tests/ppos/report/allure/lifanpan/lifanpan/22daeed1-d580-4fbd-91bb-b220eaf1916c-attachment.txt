@@ -1,1 +1,0 @@
-[2020-04-11 22:58:15]-node.py-[line:144]: Node-192.168.10.223:16789 do init failed:Fatal: invalid genesis file: hex string has length 0, want 40 for common.Address

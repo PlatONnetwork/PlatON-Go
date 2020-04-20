@@ -1,1 +1,0 @@
-{"uuid": "609d1814-f4d4-41fb-b08c-262dde349498", "children": ["3eb64271-b1c1-43ec-86c7-668ab6bc5739"], "befores": [{"name": "global_running_env", "status": "passed", "start": 1586617243790, "stop": 1586617243969}], "afters": [{"name": "global_running_env::0", "status": "passed", "start": 1586617402738, "stop": 1586617402738}], "start": 1586617243790, "stop": 1586617402738}

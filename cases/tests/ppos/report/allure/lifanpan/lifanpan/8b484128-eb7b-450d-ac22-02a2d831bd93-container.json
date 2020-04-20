@@ -1,1 +1,0 @@
-{"uuid": "bbfebf74-9e11-4ff0-9ec5-4c84d43d42f7", "children": ["47409598-4aaa-4335-8f7b-77002a0523c9"], "befores": [{"name": "staking_node_client", "status": "passed", "start": 1586658234405, "stop": 1586658241289}], "afters": [{"name": "staking_node_client::0", "status": "passed", "start": 1586658241296, "stop": 1586658244592}], "start": 1586658234405, "stop": 1586658244592}

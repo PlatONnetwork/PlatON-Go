@@ -1,2 +1,0 @@
-[2020-04-12 09:17:34]-test_token_init.py-[line:197]: Account balance after transfer： 262215842000021000000000000
-[2020-04-12 09:17:34]-test_token_init.py-[line:198]: Transaction fee： 2100000000000

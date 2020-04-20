@@ -1,2 +1,0 @@
-[2020-04-12 09:32:08]-test_token_init.py-[line:606]: incentive_pool_balance: 262215742000022794800000000
-[2020-04-12 09:32:10]-test_token_init.py-[line:611]: incentive_pool_balance: 262215742000024894800000000

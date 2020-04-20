@@ -1,1 +1,0 @@
-[2020-04-12 09:17:19]-test_token_init.py-[line:97]: transaction address：0xCE57224A72Aa45C7ce3DDacdcC5Ae2b7bF067632,account：1
