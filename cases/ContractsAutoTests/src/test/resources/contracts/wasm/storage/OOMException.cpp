@@ -8,7 +8,7 @@ CONTRACT OOMException : public platon::Contract{
     ACTION void init() {}
 
     ACTION void memory_limit() {
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 6 * 1024; i++) {
           int* p = (int*)malloc(1024 * 1024);
           *p = i;
           printf("%d\t\n", *p);

@@ -27,13 +27,13 @@ public class IntegerDataTypeContract_4 extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_SETU256 = "setU256";
+
     public static final String FUNC_SETADDRESS = "setAddress";
 
     public static final String FUNC_INITADDRESS = "initAddress";
 
     public static final String FUNC_GETADDRESS = "getAddress";
-
-    public static final String FUNC_SETU256 = "setU256";
 
     public static final String FUNC_GETU256 = "getU256";
 
@@ -47,6 +47,16 @@ public class IntegerDataTypeContract_4 extends WasmContract {
 
     protected IntegerDataTypeContract_4(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> setU256(Uint64 input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setU256(Uint64 input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> setAddress(String input) {
@@ -72,16 +82,6 @@ public class IntegerDataTypeContract_4 extends WasmContract {
     public RemoteCall<String> getAddress() {
         final WasmFunction function = new WasmFunction(FUNC_GETADDRESS, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<TransactionReceipt> setU256(Uint64 input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setU256(Uint64 input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<String> getU256() {

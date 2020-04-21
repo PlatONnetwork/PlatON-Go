@@ -45,6 +45,16 @@ public class CryptographicFunction extends WasmContract {
         return executeRemoteCall(function, byte[].class);
     }
 
+    public RemoteCall<WasmAddress> call_platon_ecrecover(byte[] hash, byte[] signature) {
+        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_ECRECOVER, Arrays.asList(hash,signature), WasmAddress.class);
+        return executeRemoteCall(function, WasmAddress.class);
+    }
+
+    public RemoteCall<WasmAddress> call_platon_ripemd160(byte[] data) {
+        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_RIPEMD160, Arrays.asList(data, Void.class), WasmAddress.class);
+        return executeRemoteCall(function, WasmAddress.class);
+    }
+
     public static RemoteCall<CryptographicFunction> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(CryptographicFunction.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -63,16 +73,6 @@ public class CryptographicFunction extends WasmContract {
     public static RemoteCall<CryptographicFunction> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(CryptographicFunction.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<WasmAddress> call_platon_ecrecover(byte[] hash, byte[] signature) {
-        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_ECRECOVER, Arrays.asList(hash,signature), WasmAddress.class);
-        return executeRemoteCall(function, WasmAddress.class);
-    }
-
-    public RemoteCall<WasmAddress> call_platon_ripemd160(byte[] data) {
-        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_RIPEMD160, Arrays.asList(data, Void.class), WasmAddress.class);
-        return executeRemoteCall(function, WasmAddress.class);
     }
 
     public static CryptographicFunction load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

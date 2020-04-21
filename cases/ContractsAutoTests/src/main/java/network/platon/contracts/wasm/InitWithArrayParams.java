@@ -29,11 +29,11 @@ public class InitWithArrayParams extends WasmContract {
 
     public static final String FUNC_GET_ARRAY_SIZE = "get_array_size";
 
-    public static final String FUNC_GET_ARRAY_CONTAIN_ELEMENT = "get_array_contain_element";
-
     public static final String FUNC_SET_ARRAY = "set_array";
 
     public static final String FUNC_GET_ARRAY = "get_array";
+
+    public static final String FUNC_GET_ARRAY_CONTAIN_ELEMENT = "get_array_contain_element";
 
     protected InitWithArrayParams(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -46,11 +46,6 @@ public class InitWithArrayParams extends WasmContract {
     public RemoteCall<Uint8> get_array_size() {
         final WasmFunction function = new WasmFunction(FUNC_GET_ARRAY_SIZE, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
-    }
-
-    public RemoteCall<Boolean> get_array_contain_element(String value) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_ARRAY_CONTAIN_ELEMENT, Arrays.asList(value), Boolean.class);
-        return executeRemoteCall(function, Boolean.class);
     }
 
     public static RemoteCall<InitWithArrayParams> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, String[] inArray) {
@@ -86,6 +81,11 @@ public class InitWithArrayParams extends WasmContract {
     public RemoteCall<String[]> get_array() {
         final WasmFunction function = new WasmFunction(FUNC_GET_ARRAY, Arrays.asList(), String[].class);
         return executeRemoteCall(function, String[].class);
+    }
+
+    public RemoteCall<Boolean> get_array_contain_element(String value) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_ARRAY_CONTAIN_ELEMENT, Arrays.asList(value), Boolean.class);
+        return executeRemoteCall(function, Boolean.class);
     }
 
     public static InitWithArrayParams load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
