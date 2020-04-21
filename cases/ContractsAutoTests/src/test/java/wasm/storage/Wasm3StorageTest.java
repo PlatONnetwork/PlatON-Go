@@ -35,7 +35,7 @@
 //
 //        try {
 //            prepare();
-//            String contractAddress1 = "0xae53d160854dccccb4c4a4c74037c75f1c030b58";
+//            String contractAddress1 = "0x987e5c82151e6d6ebf5788e8aef3631881894906";
 //            WasmStorage wasmStorage3 = WasmStorage.deploy(web3j, transactionManager, provider).send();
 //            String contractAddress3 = wasmStorage3.getContractAddress();
 //            String transactionHash3 = wasmStorage3.getTransactionReceipt().get().getTransactionHash();
