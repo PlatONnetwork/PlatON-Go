@@ -1520,7 +1520,7 @@ class TestDV:
         log.info('Node {} declare version result {}'.format(pip_ca.node.node_id, result))
         assert_code(result, 302028)
         result = clients_consensus[1].pip.submitVersion(clients_consensus[1].node.node_id, str(time.time()),
-                                                        pip_ca.cfg.version8, 2,
+                                                        pip_ca.cfg.version8, 4,
                                                         clients_consensus[1].node.staking_address,
                                                         transaction_cfg=pip_ca.cfg.transaction_cfg)
         log.info('Node {} submit version proposal result : {}'.format(clients_consensus[1].node.node_id, result))
@@ -1626,7 +1626,7 @@ class TestVotedCADV:
     @allure.title('Voted candidate, Declare version')
     def test_DE_CA_021_026_035_047_049_051_053_055(self, new_genesis_env, clients_consensus, clients_noconsensus,
                                                    all_clients):
-        verison = struct.pack('>I', pip.chain_version)
+        verison = struct.pack('>I', clients_consensus[0].pip.chain_version)
         if verison[3] != 0:
             genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
             genesis.economicModel.gov.versionProposalVoteDurationSeconds = 2000

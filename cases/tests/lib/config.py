@@ -32,8 +32,8 @@ class PipConfig:
     version1 = 1537
     version2 = 3072
     version3 = 3081
-    version4 = 3072
-    version5 = 3328
+    version4 = 3328
+    version5 = 3329
     version6 = 3337
     version7 = 3584
     version8 = 591617
