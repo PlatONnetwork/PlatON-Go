@@ -19,7 +19,9 @@ package common
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -37,7 +39,31 @@ func TestBytesConversion(t *testing.T) {
 	}
 }
 
-func TestIsHexAddress(t *testing.T) {
+func TestIsStringAddress(t *testing.T) {
+	tests := []struct {
+		str string
+		exp bool
+	}{
+		{"lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", true},
+		{"lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", true},
+		{"lao1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
+		{"lam1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
+		{"lat1x4w7852dxs70sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
+		{"lat1x4w7852dxs69sy2mgf8w0s7tmv", false},
+		{"0x5aaeb6053f3e94c9b9a09f33669435e7ef1beae", false},
+		{"5aaeb6053f3e94c9b9a09f33669435e7ef1beaed11", false},
+		{"0xxaaeb6053f3e94c9b9a09f33669435e7ef1beaed", false},
+	}
+
+	for _, test := range tests {
+		if result := IsStringAddress(GetAddressPrefix(), test.str); result != test.exp {
+			t.Errorf("IsHexAddress(%s) == %v; expected %v",
+				test.str, result, test.exp)
+		}
+	}
+}
+
+/*func TestIsHexAddress(t *testing.T) {
 	tests := []struct {
 		str string
 		exp bool
@@ -59,7 +85,7 @@ func TestIsHexAddress(t *testing.T) {
 				test.str, result, test.exp)
 		}
 	}
-}
+}*/
 
 func TestHashJsonValidation(t *testing.T) {
 	var tests = []struct {
@@ -91,6 +117,7 @@ func TestHashJsonValidation(t *testing.T) {
 }
 
 func TestAddressUnmarshalJSON(t *testing.T) {
+	byteInt, _ := new(big.Int).SetString("455388181697342066163436334753136357013203417500", 10)
 	var tests = []struct {
 		Input     string
 		ShouldErr bool
@@ -101,9 +128,11 @@ func TestAddressUnmarshalJSON(t *testing.T) {
 		{`"0x"`, true, nil},
 		{`"0x00"`, true, nil},
 		{`"0xG000000000000000000000000000000000000000"`, true, nil},
-		{`"0x0000000000000000000000000000000000000000"`, false, big.NewInt(0)},
-		{`"0x0000000000000000000000000000000000000010"`, false, big.NewInt(16)},
+		{`"lax1flzyluu23zjknw70duwd00z6u9jgx7vug9n7t4"`, true, nil},
+		{`"lat1flzyluu23zjknw70duwd00z6u9jgx7vug9n7t4"`, false, byteInt},
 	}
+
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	for i, test := range tests {
 		var v Address
 		err := json.Unmarshal([]byte(test.Input), &v)

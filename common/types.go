@@ -21,6 +21,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/bech32util"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -28,6 +30,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/btcsuite/btcutil/bech32"
 )
 
 // Lengths of hashes and addresses in bytes.
@@ -179,14 +182,20 @@ func BytesToAddress(b []byte) Address {
 	return a
 }
 
+func GetAddressPrefix() string {
+	return "lat"
+}
+
 // BigToAddress returns Address with byte values of b.
 // If b is larger than len(h), b will be cropped from the left.
 func BigToAddress(b *big.Int) Address { return BytesToAddress(b.Bytes()) }
 
 // HexToAddress returns Address with byte values of s.
 // If s is larger than len(h), s will be cropped from the left.
+//todo
 func HexToAddress(s string) Address { return BytesToAddress(FromHex(s)) }
 
+// Deprecated: address to string is use bech32 now
 // IsHexAddress verifies whether a string can represent a valid hex-encoded
 // Ethereum address or not.
 func IsHexAddress(s string) bool {
@@ -194,6 +203,17 @@ func IsHexAddress(s string) bool {
 		s = s[2:]
 	}
 	return len(s) == 2*AddressLength && isHex(s)
+}
+
+func IsStringAddress(Prefix, s string) bool {
+	hrp, _, err := bech32.Decode(s)
+	if err != nil {
+		return false
+	}
+	if hrp != Prefix {
+		return false
+	}
+	return true
 }
 
 // Bytes gets the string representation of the underlying address.
@@ -205,6 +225,7 @@ func (a Address) Big() *big.Int { return new(big.Int).SetBytes(a[:]) }
 // Hash converts an address to a hash by left-padding it with zeros.
 func (a Address) Hash() Hash { return BytesToHash(a[:]) }
 
+// Deprecated: address to string is use bech32 now
 // Hex returns an EIP55-compliant hex string representation of the address.
 func (a Address) Hex() string {
 	unchecksummed := hex.EncodeToString(a[:])
@@ -227,6 +248,7 @@ func (a Address) Hex() string {
 	return "0x" + string(result)
 }
 
+// Deprecated: address to string is use bech32 now
 func (a Address) HexWithNoPrefix() string {
 	unchecksummed := hex.EncodeToString(a[:])
 	sha := sha3.NewKeccak256()
@@ -250,7 +272,16 @@ func (a Address) HexWithNoPrefix() string {
 
 // String implements fmt.Stringer.
 func (a Address) String() string {
-	return a.Hex()
+	return a.Bech32()
+}
+
+func (a Address) Bech32() string {
+	if v, err := bech32util.ConvertAndEncode(GetAddressPrefix(), a.Bytes()); err != nil {
+		log.Error("address can't ConvertAndEncode to string", "err", err, "add", a.Bytes())
+		return ""
+	} else {
+		return v
+	}
 }
 
 // Format implements fmt.Formatter, forcing the byte slice to be formatted as is,
@@ -270,17 +301,46 @@ func (a *Address) SetBytes(b []byte) {
 
 // MarshalText returns the hex representation of a.
 func (a Address) MarshalText() ([]byte, error) {
-	return hexutil.Bytes(a[:]).MarshalText()
+	v, err := bech32util.ConvertAndEncode(GetAddressPrefix(), a.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	return []byte(v), nil
+	//return hexutil.Bytes(a[:]).MarshalText()
 }
 
 // UnmarshalText parses a hash in hex syntax.
 func (a *Address) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("Address", input, a[:])
+	hrpDecode, converted, err := bech32util.DecodeAndConvert(string(input))
+	if err != nil {
+		return err
+	}
+	if hrpDecode != GetAddressPrefix() {
+		return fmt.Errorf("the address not compare current net,want %v,have %v", GetAddressPrefix(), string(input))
+	}
+	a.SetBytes(converted)
+	return nil
+	//return hexutil.UnmarshalFixedText("Address", input, a[:])
 }
 
 // UnmarshalJSON parses a hash in hex syntax.
 func (a *Address) UnmarshalJSON(input []byte) error {
-	return hexutil.UnmarshalFixedJSON(addressT, input, a[:])
+	if !isString(input) {
+		return &json.UnmarshalTypeError{Value: "non-string", Type: addressT}
+	}
+	hrpDecode, v, err := bech32util.DecodeAndConvert(string(input[1 : len(input)-1]))
+	if err != nil {
+		return &json.UnmarshalTypeError{Value: err.Error(), Type: addressT}
+	}
+	if hrpDecode != GetAddressPrefix() {
+		return &json.UnmarshalTypeError{Value: fmt.Sprintf("hrpDecode not compare the current net,want %v,have %v", GetAddressPrefix(), hrpDecode), Type: addressT}
+	}
+	a.SetBytes(v)
+	return nil
+}
+
+func isString(input []byte) bool {
+	return len(input) >= 2 && input[0] == '"' && input[len(input)-1] == '"'
 }
 
 // Scan implements Scanner for database/sql.
