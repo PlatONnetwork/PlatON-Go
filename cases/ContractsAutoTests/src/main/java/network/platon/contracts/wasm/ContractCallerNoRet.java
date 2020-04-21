@@ -49,6 +49,11 @@ public class ContractCallerNoRet extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<Uint64> get_status() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STATUS, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
     public static RemoteCall<ContractCallerNoRet> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractCallerNoRet.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -67,11 +72,6 @@ public class ContractCallerNoRet extends WasmContract {
     public static RemoteCall<ContractCallerNoRet> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractCallerNoRet.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<Uint64> get_status() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STATUS, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public static ContractCallerNoRet load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

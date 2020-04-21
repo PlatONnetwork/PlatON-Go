@@ -36,11 +36,6 @@ public class ComputeDate extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<Int32> MonthsBetween2Date(String date1, String date2) {
-        final WasmFunction function = new WasmFunction(FUNC_MONTHSBETWEEN2DATE, Arrays.asList(date1,date2), Int32.class);
-        return executeRemoteCall(function, Int32.class);
-    }
-
     public static RemoteCall<ComputeDate> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ComputeDate.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -59,6 +54,11 @@ public class ComputeDate extends WasmContract {
     public static RemoteCall<ComputeDate> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ComputeDate.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<Int32> MonthsBetween2Date(String date1, String date2) {
+        final WasmFunction function = new WasmFunction(FUNC_MONTHSBETWEEN2DATE, Arrays.asList(date1,date2), Int32.class);
+        return executeRemoteCall(function, Int32.class);
     }
 
     public static ComputeDate load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
