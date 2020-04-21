@@ -29,6 +29,7 @@ type OptionsConfig struct {
 	NodeID     discover.NodeID   `json:"nodeID"`
 	BlsPriKey  *bls.SecretKey    `json:"-"`
 	WalMode    bool              `json:"walMode"`
+	Mcd        uint64            `json:"mcd"`
 
 	PeerMsgQueueSize  uint64 `json:"peerMsgQueueSize"`
 	EvidenceDir       string `json:"evidenceDir"`

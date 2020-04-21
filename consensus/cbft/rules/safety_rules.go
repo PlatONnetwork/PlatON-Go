@@ -29,10 +29,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-const (
-	riseTimeLimit = 200 * time.Millisecond
-)
-
 type SafetyError interface {
 	error
 	Common() bool
@@ -201,11 +197,12 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 				parentBlock.Hash().String(), parentBlock.NumberU64(), parentBlock.Time().Int64(), block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64()))
 		}
 
-		// prepareBlock time cannot exceed system time by 200 ms
+		// prepareBlock time cannot exceed system time by 200 ms(default)
 		sysTime := time.Now()
+		riseTimeLimit := time.Duration(r.config.Option.Mcd) * time.Millisecond
 		if !blockTime.Before(sysTime.Add(riseTimeLimit)) {
-			return newCommonError(fmt.Sprintf("prepareBlock time is advance(blockHash:%s, blockNum:%d, blockTime:%d, sysTime:%d)",
-				block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64(), common.Millis(sysTime)))
+			return newCommonError(fmt.Sprintf("prepareBlock time is advance(blockHash:%s, blockNum:%d, blockTime:%d, sysTime:%d, riseTimeLimit:%d)",
+				block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64(), common.Millis(sysTime), r.config.Option.Mcd))
 		}
 		return nil
 	}

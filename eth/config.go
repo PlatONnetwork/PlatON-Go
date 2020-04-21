@@ -41,6 +41,7 @@ var DefaultConfig = Config{
 		BlacklistDeadline: 60,
 		Period:            20000,
 		Amount:            10,
+		Mcd:               200, // 200 millisecond
 	},
 	NetworkId:     1,
 	LightPeers:    100,
