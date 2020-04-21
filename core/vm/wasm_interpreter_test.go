@@ -38,7 +38,7 @@ func TestWASMInterpreterRun(t *testing.T) {
 	contract := &Contract{
 		self:           &AccountRef{1, 2, 3},
 		Gas:            1000000,
-		Code:           deployData(t, "init", "./testdata/contract1.wasm"),
+		Code:           deployData(t, "init", "./testdata/contract_hello.wasm"),
 		CodeAddr:       &addr2,
 		CodeHash:       common.ZeroHash,
 		DeployContract: true,

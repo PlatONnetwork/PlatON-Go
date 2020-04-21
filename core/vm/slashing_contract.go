@@ -45,10 +45,16 @@ type SlashingContract struct {
 }
 
 func (sc *SlashingContract) RequiredGas(input []byte) uint64 {
+	if checkInputEmpty(input) {
+		return 0
+	}
 	return params.SlashingGas
 }
 
 func (sc *SlashingContract) Run(input []byte) ([]byte, error) {
+	if checkInputEmpty(input) {
+		return nil, nil
+	}
 	return execPlatonContract(input, sc.FnSigns())
 }
 

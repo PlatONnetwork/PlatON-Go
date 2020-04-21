@@ -49,7 +49,7 @@ var (
 // As a bridge layer for cbft and wal.
 type Bridge interface {
 	UpdateChainState(qcState, lockState, commitState *protocols.State)
-	ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC)
+	ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC, preEpoch, preViewNumber uint64)
 	SendViewChange(view *protocols.ViewChange)
 	SendPrepareBlock(pb *protocols.PrepareBlock)
 	SendPrepareVote(block *types.Block, vote *protocols.PrepareVote)
@@ -65,7 +65,7 @@ type emptyBridge struct {
 func (b *emptyBridge) UpdateChainState(qcState, lockState, commitState *protocols.State) {
 }
 
-func (b *emptyBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
+func (b *emptyBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC, preEpoch, preViewNumber uint64) {
 }
 
 func (b *emptyBridge) SendViewChange(view *protocols.ViewChange) {
@@ -178,8 +178,9 @@ func (b *baseBridge) addQCState(qc *protocols.State, chainState *protocols.Chain
 // ConfirmViewChange tries to update ConfirmedViewChange consensus msg to wal.
 // at the same time we will record the current fileID and fileSequence.
 // the next time the platon node restart, we will recovery the msg from this check point.
-func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
+func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC, preEpoch, preViewNumber uint64) {
 	tStart := time.Now()
+	// save the identity location of the wal message in the file system
 	meta := &wal.ViewChangeMessage{
 		Epoch:      epoch,
 		ViewNumber: viewNumber,
@@ -187,6 +188,7 @@ func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Bl
 	if err := b.cbft.wal.UpdateViewChange(meta); err != nil {
 		panic(fmt.Sprintf("update viewChange meta error, err:%s", err.Error()))
 	}
+	// save ConfirmedViewChange message, the viewChangeQC is last viewChangeQC
 	vc := &protocols.ConfirmedViewChange{
 		Epoch:        epoch,
 		ViewNumber:   viewNumber,
@@ -197,8 +199,9 @@ func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Bl
 	if err := b.cbft.wal.WriteSync(vc); err != nil {
 		panic(fmt.Sprintf("write confirmed viewChange error, err:%s", err.Error()))
 	}
+	// save last viewChangeQC, for viewChangeQC synchronization
 	if viewChangeQC != nil {
-		b.cbft.wal.UpdateViewChangeQC(epoch, viewNumber, viewChangeQC)
+		b.cbft.wal.UpdateViewChangeQC(preEpoch, preViewNumber, viewChangeQC)
 	}
 	log.Debug("Success to confirm viewChange", "confirmedViewChange", vc.String(), "elapsed", time.Since(tStart))
 }

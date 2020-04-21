@@ -507,6 +507,7 @@ func (w *worker) mainLoop() {
 		case req := <-w.newWorkCh:
 			if err := w.commitNewWork(req.interrupt, req.noempty, common.Millis(req.timestamp), req.commitBlock, req.blockDeadline); err != nil {
 				// If error during this commiting, the task ends and change the CommitStatus to idle to allow the next commiting to be triggered
+				log.Warn("Failed to commitNewWork", "baseBlockNumber", req.commitBlock.NumberU64(), "baseBlockHash", req.commitBlock.Hash(), "error", err)
 				w.commitWorkEnv.setCommitStatusIdle()
 			}
 
@@ -1146,8 +1147,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	// Fill the block with all available pending transactions.
 	startTime := time.Now()
-	pending, err := w.eth.TxPool().PendingLimited()
+	var pending map[common.Address]types.Transactions
 
+	pending, err = w.eth.TxPool().PendingLimited()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
 		return err

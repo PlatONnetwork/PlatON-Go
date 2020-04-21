@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"math/big"
 	"testing"
 	"time"
@@ -41,10 +42,10 @@ func (account) Balance() *big.Int                                   { return nil
 func (account) Address() common.Address                             { return common.Address{} }
 func (account) ReturnGas(*big.Int)                                  {}
 func (account) SetCode(common.Hash, []byte)                         {}
-func (account) ForEachStorage(cb func(key, value common.Hash) bool) {}
+func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
 func runTrace(tracer *Tracer) (json.RawMessage, error) {
-	env := vm.NewEVM(vm.Context{Ctx: context.TODO(), BlockNumber: big.NewInt(1)}, nil, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
+	env := vm.NewEVM(vm.Context{Ctx: context.TODO(), BlockNumber: big.NewInt(1)}, &mock.MockStateDB{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
 
 	contract := vm.NewContract(account{}, account{}, big.NewInt(0), 10000)
 	contract.Code = []byte{byte(vm.PUSH1), 0x1, byte(vm.PUSH1), 0x1, 0x0}
@@ -129,7 +130,7 @@ func TestHaltBetweenSteps(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	env := vm.NewEVM(vm.Context{BlockNumber: big.NewInt(1)}, nil, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
+	env := vm.NewEVM(vm.Context{BlockNumber: big.NewInt(1)}, &mock.MockStateDB{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
 	contract := vm.NewContract(&account{}, &account{}, big.NewInt(0), 0)
 
 	tracer.CaptureState(env, 0, 0, 0, 0, nil, nil, contract, 0, nil)

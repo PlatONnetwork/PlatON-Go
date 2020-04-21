@@ -40,10 +40,16 @@ type RestrictingContract struct {
 }
 
 func (rc *RestrictingContract) RequiredGas(input []byte) uint64 {
+	if checkInputEmpty(input) {
+		return 0
+	}
 	return params.RestrictingPlanGas
 }
 
 func (rc *RestrictingContract) Run(input []byte) ([]byte, error) {
+	if checkInputEmpty(input) {
+		return nil, nil
+	}
 	return execPlatonContract(input, rc.FnSigns())
 }
 

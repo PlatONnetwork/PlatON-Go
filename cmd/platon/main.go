@@ -76,7 +76,6 @@ var (
 		utils.TxPoolGlobalTxCountFlag,
 		utils.TxPoolLifetimeFlag,
 		utils.SyncModeFlag,
-		utils.GCModeFlag,
 		utils.LightServFlag,
 		utils.LightPeersFlag,
 		utils.LightKDFFlag,
@@ -109,7 +108,7 @@ var (
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
-		utils.EthStatsURLFlag,
+		//utils.EthStatsURLFlag,
 		utils.MetricsEnabledFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
@@ -198,7 +197,6 @@ func init() {
 		monitorCommand,
 		// See accountcmd.go:
 		accountCommand,
-		walletCommand,
 		// See consolecmd.go:
 		consoleCommand,
 		attachCommand,

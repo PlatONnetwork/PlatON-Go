@@ -602,6 +602,11 @@ func (n *Node) ResolvePath(x string) string {
 	return n.config.ResolvePath(x)
 }
 
+// GenesisPath returns the absolute path of a genesis file in the instance directory.
+func (n *Node) GenesisPath() string {
+	return n.config.GenesisPath()
+}
+
 // apis returns the collection of RPC descriptors this node offers.
 func (n *Node) apis() []rpc.API {
 	return []rpc.API{

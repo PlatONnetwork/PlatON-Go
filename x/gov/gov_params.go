@@ -240,14 +240,61 @@ func initParam() []*GovernParam {
 				return nil
 			},
 		},
+		{
+
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceCumulativeTime,
+				fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [ZeroProduceNumberThreshold, %d]", int(xcom.EpochSize()))},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceCumulativeTime())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				roundNumber, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed ZeroProduceCumulativeTime is failed")
+				}
+
+				numberThreshold, err := GovernZeroProduceNumberThreshold(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckZeroProduceCumulativeTime(uint16(roundNumber), numberThreshold); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceNumberThreshold,
+				fmt.Sprintf("Number of zero production blocks, range: [1, ZeroProduceCumulativeTime]")},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceNumberThreshold())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed ZeroProduceNumberThreshold is failed")
+				}
+
+				roundNumber, err := GovernZeroProduceCumulativeTime(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckZeroProduceNumberThreshold(roundNumber, uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
 	}
 }
 
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
-func InitGenesisGovernParam(snapDB snapshotdb.DB) error {
+func InitGenesisGovernParam(snapDB snapshotdb.BaseDB, genesisVersion uint32) error {
 	var paramItemList []*ParamItem
-	for _, param := range queryInitParam() {
+
+	initParamList := queryInitParam()
+
+	for _, param := range initParamList {
 		paramItemList = append(paramItemList, param.ParamItem)
 
 		key := KeyParamValue(param.ParamItem.Module, param.ParamItem.Name)

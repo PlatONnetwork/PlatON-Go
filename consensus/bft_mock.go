@@ -348,6 +348,11 @@ func (bm *BftMock) GetBlockByHash(hash common.Hash) *types.Block {
 	return nil
 }
 
+// GetBlockByHash get the specified block by hash and number.
+func (bm *BftMock) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
+	return nil
+}
+
 // Status is a fake interface, no need to implement.
 func (bm *BftMock) Status() string {
 	return ""

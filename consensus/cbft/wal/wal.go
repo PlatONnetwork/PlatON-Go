@@ -86,6 +86,10 @@ type Wal interface {
 type emptyWal struct {
 }
 
+func WalDir(ctx *node.ServiceContext) string {
+	return ctx.ResolvePath(walDir)
+}
+
 func (w *emptyWal) UpdateChainState(chainState *protocols.ChainState) error {
 	return nil
 }
@@ -146,7 +150,7 @@ func NewWal(ctx *node.ServiceContext, specifiedPath string) (Wal, error) {
 		err        error
 	)
 	if originPath == "" {
-		originPath = ctx.ResolvePath(walDir)
+		originPath = WalDir(ctx)
 	}
 
 	// Make sure the wal directory exists,If not exist create it.

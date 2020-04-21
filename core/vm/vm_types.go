@@ -42,3 +42,27 @@ func (t *InterpType) SetBytes(b []byte) {
 	}
 	copy(t[InterpTypeLen-len(b):], b)
 }
+
+func CanUseEVMInterp (b []byte) bool {
+	if len(b) != 0 {
+		magicNum := BytesToInterpType(b[:InterpTypeLen])
+		if magicNum == EvmInterpOld || magicNum == EvmInterpNew {
+			return true
+		}
+		// default interpreter is evm.
+		if magicNum != EvmInterpOld && magicNum != EvmInterpNew && magicNum != WasmInterp {
+			return true
+		}
+	}
+	return false
+}
+
+func CanUseWASMInterp (b []byte) bool {
+	if len(b) != 0 {
+		magicNum := BytesToInterpType(b[:InterpTypeLen])
+		if magicNum == WasmInterp {
+			return true
+		}
+	}
+	return false
+}

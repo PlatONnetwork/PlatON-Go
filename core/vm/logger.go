@@ -275,8 +275,11 @@ func NewWasmLogger(cfg Config, root log.Logger) *WasmLogger {
 
 	level := log.LvlInfo
 
-	if cfg.Debug || log.GetWasmLogLevel() >= log.LvlDebug {
+	if cfg.Debug {
 		level = log.LvlDebug
+	}
+	if log.GetWasmLogLevel() >= log.LvlDebug {
+		level = log.GetWasmLogLevel()
 	}
 
 	l.logger.SetHandler(log.LvlFilterHandler(level, log.StreamHandler(l.buf, log.FormatFunc(func(r *log.Record) []byte {

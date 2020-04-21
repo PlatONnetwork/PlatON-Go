@@ -43,6 +43,10 @@ int32_t platon_migrate(uint8_t newAddr[20], const uint8_t* args, size_t argsLen,
 void platon_event(const uint8_t* topic, size_t topicLen, const uint8_t* args, size_t argsLen);
 
 
+void platon_sha256(const uint8_t *input, uint32_t input_len, uint8_t hash[32]);
+void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t addr[20]);
+int32_t platon_ecrecover(const uint8_t hash[32], const uint8_t* sig, const uint8_t sig_len, uint8_t addr[20]);
+
 
 
 WASM_EXPORT
@@ -268,4 +272,35 @@ void platon_event3_test () {
     uint8_t topics[10] = {201, 130, 116, 49, 130, 116, 50, 130, 116, 51};
 
     platon_event(topics, 10, data, len);
+}
+void platon_sha256(const uint8_t *input, uint32_t input_len, uint8_t hash[32]);
+void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t addr[20]);
+int32_t platon_ecrecover(const uint8_t hash[32], const uint8_t* sig, const uint8_t sig_len, uint8_t addr[20]);
+WASM_EXPORT
+void platon_sha256_test() {
+    uint8_t input[3] = {1,2,3};
+//    uint8_t hash[32] = {3,144,88,198,242,192,203,73,44,83,59,10,77,20,239,119,204,15,120,171,204,206,213,40,125,132,161,162,1,28,251,129};
+    uint8_t res[32] = {0};
+    platon_sha256(input, 3, res);
+    platon_return(res, 32);
+}
+
+WASM_EXPORT
+void platon_ripemd160_test() {
+    uint8_t input[3] = {1,2,3};
+//    uint8_t addr[20] = {121,249,1,218,38,9,240,32,173,173,191,46,95,104,161,108,140,63,125,87};
+    uint8_t res[20] = {0};
+    platon_ripemd160(input, 3, res);
+    platon_return(res, 20);
+}
+
+WASM_EXPORT
+void platon_ecrecover_test() {
+    uint8_t hash[32] = {65,177,160,100,151,82,175,27,40,179,220,41,161,85,110,238,120,30,74,76,58,31,127,83,249,15,168,52,222,9,140,77};
+    uint8_t sig[65] = {209,85,233,67,5,175,126,7,221,140,50,135,62,92,3,203,149,201,224,89,96,239,133,190,156,7,246,113,218,88,199,55,24,193,154,220,57,122,33,26,169,232,126,81,158,32,56,197,163,182,88,97,141,179,53,247,79,128,11,142,12,254,239,68,1,}
+
+//    uint8_t addr[20] = {151,14,129,40,171,131,78,142,172,23,171,142,56,18,240,16,103,140,247,145};
+    uint8_t res[20] = {0};
+    platon_ecrecover(hash, sig, 65, res);
+    platon_return(res, 20);
 }
