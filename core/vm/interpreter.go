@@ -261,15 +261,5 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 // CanRun tells if the contract, passed as an argument, can be
 // run by the current interpreter.
 func (in *EVMInterpreter) CanRun(code []byte) bool {
-	if len(code) != 0 {
-		magicNum := BytesToInterpType(code[:InterpTypeLen])
-		if magicNum == EvmInterpOld || magicNum == EvmInterpNew {
-			return true
-		}
-		// default interpreter is evm.
-		if magicNum != EvmInterpOld && magicNum != EvmInterpNew && magicNum != WasmInterp {
-			return true
-		}
-	}
-	return false
+	return CanUseEVMInterp(code)
 }

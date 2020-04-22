@@ -6,31 +6,30 @@
 //import network.platon.autotest.junit.enums.DataSourceType;
 //import network.platon.autotest.utils.FileUtil;
 //import network.platon.contracts.SimpleStorage;
-//import network.platon.contracts.SpaceComplexity;
 //import network.platon.utils.DataChangeUtil;
 //import network.platon.utils.OneselfFileUtil;
 //import org.junit.Test;
 //import org.web3j.crypto.Credentials;
-//import org.web3j.protocol.Web3j;
 //import org.web3j.protocol.core.methods.response.TransactionReceipt;
-//import org.web3j.protocol.http.HttpService;
 //import org.web3j.tx.RawTransactionManager;
-//import org.web3j.tx.gas.ContractGasProvider;
-//
-//import java.math.BigInteger;
 //import java.nio.file.Paths;
-//import java.util.Arrays;
 //import java.util.concurrent.CountDownLatch;
 //import java.util.concurrent.ExecutorService;
 //import java.util.concurrent.Executors;
 //import java.util.concurrent.Semaphore;
 //
+///**
+// * @title SimpleStorageTest
+// * @description blockhash的测试验证
+// * @author qcxiao
+// * @updateTime 2020/4/1 9:54
+// */
 //public class SimpleStorageTest extends ContractPrepareTest {
 //    private String contractAddress;
 //
 //    @Test
 //    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-//            author = "qcxiao", showName = "exec_efficiency.SimpleStorageTest-blockHash", sourcePrefix = "evm")
+//            author = "qcxiao", showName = "exec_efficiency.SimpleStorageTest-blockHash验证", sourcePrefix = "evm")
 //    public void test() {
 //        prepare();
 //
@@ -47,7 +46,7 @@
 //            JSONArray jsonArray = JSONArray.parseArray(jsonContent);
 //            ExecutorService executorService = Executors.newCachedThreadPool();
 //            // 同时并发执行的线程数
-//            final Semaphore semaphore = new Semaphore(20);
+//            final Semaphore semaphore = new Semaphore(100);
 //            // 请求总数
 //            CountDownLatch countDownLatch = new CountDownLatch(jsonArray.size());
 //

@@ -74,12 +74,8 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
             + " arg1: " + withevent.arg1);
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("contract_HomeBridge and could not call contract function");
-            }else{
-                collector.logStepFail("contract_HomeBridge failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("contract_HomeBridge failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -123,12 +119,8 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
 
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("contract_ForeignBridge and could not call contract function");
-            }else{
-                collector.logStepFail("contract_ForeignBridge failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("contract_ForeignBridge failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 

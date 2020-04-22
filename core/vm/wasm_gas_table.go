@@ -3,12 +3,6 @@ package vm
 import "math"
 
 const (
-	IndirectCallGas    = uint64(1)
-	Sha3DataGas        = uint64(1)
-	StoreLenGas        = uint64(1)
-	StoreGas           = uint64(1)
-	ExternalDataGas    = uint64(1)
-	CallContractGas    = uint64(700)
 	MigrateContractGas = uint64(68000)
 )
 
@@ -64,7 +58,7 @@ func init() {
 	WasmGasCostTable[I64Store32] = 3
 
 	WasmGasCostTable[CurrentMemory] = 3
-	WasmGasCostTable[GrowMemory] = 64 * 1024
+	WasmGasCostTable[GrowMemory] = 1024
 
 	WasmGasCostTable[I32Const] = 0
 	WasmGasCostTable[I64Const] = 0

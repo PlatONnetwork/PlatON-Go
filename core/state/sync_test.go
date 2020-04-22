@@ -36,11 +36,11 @@ type testAccount struct {
 }
 
 // makeTestState create a sample test state to test node-wise reconstruction.
-func makeTestState() (Database, common.Hash, []*testAccount, map[common.Hash][]byte) {
+func makeTestState() (Database, common.Hash, []*testAccount, map[string][]byte) {
 	// Create an empty state
 	db := NewDatabase(ethdb.NewMemDatabase())
 	state, _ := New(common.Hash{}, db)
-	valueKeys := make(map[common.Hash][]byte)
+	valueKeys := make(map[string][]byte)
 	// Fill it with some arbitrary data
 	accounts := []*testAccount{}
 	for i := byte(0); i < 96; i++ {
@@ -59,9 +59,9 @@ func makeTestState() (Database, common.Hash, []*testAccount, map[common.Hash][]b
 		}
 		key := randString(10)
 		value := []byte(randString(20))
-		valueKey := crypto.Keccak256Hash(value)
-		obj.setState(key, valueKey, value)
-		valueKeys[valueKey] = value
+		//valueKey := crypto.Keccak256Hash(value)
+		obj.setState([]byte(key), value)
+		valueKeys[key] = value
 		state.updateStateObject(obj)
 		accounts = append(accounts, acc)
 	}
@@ -350,7 +350,7 @@ func TestIncompleteStateSync(t *testing.T) {
 		dstDb.Delete(key)
 
 		// Skip value key
-		if _, ok := valueKeys[common.BytesToHash(key)]; !ok {
+		if _, ok := valueKeys[string(key)]; !ok {
 			if err := checkStateConsistency(dstDb, added[0]); err == nil {
 				t.Fatalf("trie inconsistency not caught, missing: %x", key)
 			}

@@ -55,7 +55,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 		vh.db.Clear()
 	}()
 
-	gov.InitGenesisGovernParam(vh.db)
+	gov.InitGenesisGovernParam(vh.db, 2048)
 
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))

@@ -187,12 +187,8 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.assertEqual(getChar.getValue(), expectByte.byteValue());
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract_3 and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract_3 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("IntegerDataTypeContract_3 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -242,12 +238,8 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             //collector.assertEqual(getH256, expectH256);
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract_4 and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -420,12 +412,8 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             }
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract_02 and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract_02 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("IntegerDataTypeContract_02 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 }

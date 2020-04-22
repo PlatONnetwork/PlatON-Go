@@ -45,15 +45,8 @@ public class ContractFibonacciTest extends WASMContractPrepareTest {
             Uint64 result = contract.fibonacci_call(Uint64.of(number)).send();
             collector.logStepPass("To invoke fibonacci success, result: " + result.toString());
 
-
-
-
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("Fibonacci and could not call contract function");
-            }else{
-                collector.logStepFail("Fibonacci failure,exception msg:" , e.getMessage());
-            }
+            collector.logStepFail("Fibonacci failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

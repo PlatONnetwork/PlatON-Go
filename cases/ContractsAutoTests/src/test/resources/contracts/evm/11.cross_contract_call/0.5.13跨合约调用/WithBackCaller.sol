@@ -3,7 +3,7 @@ pragma solidity ^0.5.13;
  * 跨合约调用注意事项：方法签名必须用全名，而不是别名。返回的数据是16进制，所以数据要进行转换。
  *
  * @author hudenian
- * @dev 2019/12/25 11:09
+ * @dev 2020/04/14 11:09
  */
 contract WithBackCaller{
 
@@ -40,6 +40,14 @@ contract WithBackCaller{
 
     function callgetNameTest(address other,string memory name) public {
         (bool success, bytes memory data) = other.call(abi.encodeWithSignature("getName(string,string)","hello",name));
+        if(!success){
+            revert();
+        }
+        callerStringResult = abi.decode(data,(string));
+    }
+
+    function callgetNameTestWithGas(address other,string memory name,uint256 gasValue) public {
+        (bool success, bytes memory data) = other.call.gas(gasValue)(abi.encodeWithSignature("getName(string,string)","hellogas",name));
         if(!success){
             revert();
         }

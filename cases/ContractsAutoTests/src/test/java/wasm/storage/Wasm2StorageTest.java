@@ -35,35 +35,38 @@
 //    public void test() {
 //
 //        try {
-//            String contractAddress2 = "0x8a4c045bf6c8c58ee2b9b335db3d01300c3c167b";
-//            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "all_addr_and_private_keys_4000_evm.json").toUri().getPath());
+//            String contractAddress2 = "0x1e0a33f92a280ff7396df8603e1d7a354723b6bc";
+//            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "all_addr_and_private_keys.json").toUri().getPath());
 //            String jsonContent = OneselfFileUtil.readFile(filePath);
 //
 //            JSONArray jsonArray = JSONArray.parseArray(jsonContent);
 //            ExecutorService executorService = Executors.newCachedThreadPool();
 //            // 同时并发执行的线程数
-//            final Semaphore semaphore = new Semaphore(100);
+//            final Semaphore semaphore = new Semaphore(30);
 //            // 请求总数
-//            CountDownLatch countDownLatch = new CountDownLatch(150000);
-//            for (int j = 0; j < 50; j++) {
-//                for (int i = 0; i < 3000; i++) {
+//            CountDownLatch countDownLatch = new CountDownLatch(jsonArray.size() * 1);
+//            chainId = Integer.valueOf(driverService.param.get("chainId"));
+//            web3j = Web3j.build(new HttpService(driverService.param.get("nodeUrl")));
+//            provider = new ContractGasProvider(new BigInteger(gasPrice), new BigInteger(gasLimit));
+//
+//            for (int j = 0; j < 1; j++) {
+//                int finalJ = j;
+//                for (int i = 0; i < jsonArray.size(); i++) {
 //                    int finalI = i;
-//                    int finalJ = j;
 //                    executorService.execute(() -> {
 //                        try {
 //                            semaphore.acquire();
-//                            chainId = Integer.valueOf(driverService.param.get("chainId"));
-//                            web3j = Web3j.build(new HttpService(driverService.param.get("nodeUrl")));
 //                            credentials = Credentials.create(jsonArray.getJSONObject(finalI).getString("private_key"));
-//                            provider = new ContractGasProvider(new BigInteger(gasPrice), new BigInteger(gasLimit));
+//
 //                            transactionManager = new RawTransactionManager(web3j, credentials, chainId);
 //
 //                            TransactionReceipt transactionReceipt = WasmStorage.load(contractAddress2, web3j, transactionManager, provider).random_data().send();
-//                            collector.logStepPass("transactionHash: " + transactionReceipt.getTransactionHash() + ",this time: " + finalI + ", j: " + finalJ);
+//                            collector.logStepPass("transactionHash: " + transactionReceipt.getTransactionHash() +
+//                                    ",this time: " + finalI + ", j: " + finalJ);
 //                            //WasmStorage.load(contractAddress2, web3j, transactionManager, provider).debug().send();
 //                        } catch (Exception e) {
 //                            //e.printStackTrace();
-//                            collector.logStepFail("call fail. this time: " + finalI + ", j: " + finalJ, e.toString());
+//                            collector.logStepFail("call fail. this time: " + finalI + ", j: " + finalJ + ", addr:" + jsonArray.getJSONObject(finalI).getString("address"), e.toString());
 //                        } finally {
 //                            semaphore.release();
 //                            countDownLatch.countDown();

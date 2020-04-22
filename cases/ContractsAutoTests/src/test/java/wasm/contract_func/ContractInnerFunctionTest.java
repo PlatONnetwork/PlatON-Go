@@ -58,12 +58,8 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("InnerFunction and could not call contract function");
-            }else{
-                collector.logStepFail("InnerFunction failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("InnerFunction failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -103,12 +99,8 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke coinbase success, coinbase: " + coinbase.getAddress());
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("InnerFunction_1 and could not call contract function");
-            }else{
-                collector.logStepFail("InnerFunction_1 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("InnerFunction_1 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -177,12 +169,8 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke destory success, receiveBalance: " + receiveBalance);
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("InnerFunction and could not call contract function");
-            }else{
-                collector.logStepFail("InnerFunction failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("InnerFunction failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 }

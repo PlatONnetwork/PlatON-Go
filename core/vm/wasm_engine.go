@@ -2,6 +2,10 @@ package vm
 
 import (
 	"context"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
+	"hash/fnv"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -16,7 +20,7 @@ const (
 	callEntryName = "invoke"
 	initFn        = "init"
 )
-const memoryLimit = 16 * 1014 * 1024
+const memoryLimit = 16 * 1024 * 1024
 
 const (
 	verifyModule   = true
@@ -26,10 +30,11 @@ const (
 type wagonEngineCreator struct {
 }
 
-func (w *wagonEngineCreator) Create(evm *EVM, config Config, contract *Contract) (wasmEngine, error) {
+func (w *wagonEngineCreator) Create(evm *EVM, config Config, gasTable params.GasTable, contract *Contract) (wasmEngine, error) {
 	return &wagonEngine{
 		evm:      evm,
 		config:   config,
+		gasTable: gasTable,
 		contract: contract,
 	}, nil
 }
@@ -41,6 +46,7 @@ type wasmEngine interface {
 type wagonEngine struct {
 	evm      *EVM
 	config   Config
+	gasTable params.GasTable
 	vm       *exec.CompileVM
 	contract *Contract
 }
@@ -98,7 +104,7 @@ func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
 
 	go func(ctx context.Context) {
 		<-ctx.Done()
-		// shutdown vm, change th vm.abort mark
+		// shutdown vm, change the vm.abort mark
 		engine.vm.Close()
 	}(engine.evm.Ctx)
 
@@ -116,11 +122,12 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte) er
 	if nil != err {
 		return err
 	}
-	vm.RecoverPanic = true
+	vm.RecoverPanic = false // NOTE: There is no need for wagon vm to handle err and panic and it will be handled by wagon engine.
 	ctx := &VMContext{
 		evm:      engine.EVM(),
 		contract: engine.Contract(),
 		config:   engine.Config(),
+		gasTable: engine.gasTable,
 		db:       engine.StateDB(),
 		Input:    input, //set input bytes
 		Log:      NewWasmLogger(engine.config, log.WasmRoot()),
@@ -136,8 +143,20 @@ func (engine *wagonEngine) prepare(module *exec.CompiledModule, input []byte) er
 	return nil
 }
 
-func (engine *wagonEngine) exec(index int64) ([]byte, error) {
-	_, err := engine.vm.ExecCode(index)
+func (engine *wagonEngine) exec(index int64) (ret []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			switch e := r.(type) {
+			case error:
+				ret, err =  nil, e
+			default:
+				log.Error("Failed to exec wagon vm", "the undefined err", fmt.Sprintf("%v", e))
+				ret, err = nil, ErrWASMUndefinedPanic
+			}
+		}
+	}()
+
+	_, err = engine.vm.ExecCode(index)
 	if err != nil {
 		return nil, errors.Wrap(err, "execute function code")
 	}
@@ -148,10 +167,8 @@ func (engine *wagonEngine) exec(index int64) ([]byte, error) {
 		return nil, errExecutionReverted
 	case engine.vm.Abort():
 		return nil, ErrAbort
-	case err != nil:
-		return nil, errors.Wrap(err, "execute function code")
 	}
-	return ctx.Output, err
+	return ctx.Output, nil
 }
 
 func (engine *wagonEngine) MakeModule(deploy bool) (*exec.CompiledModule, int64, error) {
@@ -170,12 +187,21 @@ func validateFunc(input []byte, deploy bool) error {
 	}
 }
 
+func fnNameHashUint() uint64 {
+	hash := fnv.New64()
+	_, err := hash.Write([]byte(initFn))
+	if nil != err {
+		panic(err)
+	}
+	return hash.Sum64()
+}
+
 func validateDeployFunc(input []byte) error {
 	funcName, _, err := decodeFuncAndParams(input)
 	if nil != err {
 		return err
 	}
-	if funcName != initFn {
+	if funcName != fnNameHashUint() {
 		return errors.New("deploy contract must be call init func")
 	}
 	return nil
@@ -186,7 +212,7 @@ func validateCallFunc(input []byte) error {
 	if nil != err {
 		return err
 	}
-	if funcName == initFn {
+	if funcName == fnNameHashUint() {
 		return errors.New("init func can only be called when deploy contract")
 	}
 	return nil

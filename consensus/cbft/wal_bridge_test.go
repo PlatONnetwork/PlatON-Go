@@ -176,7 +176,7 @@ func TestRecordCbftMsg(t *testing.T) {
 	viewNumber := node.engine.state.ViewNumber()
 	_, qc := makePrepareQC(epoch, viewNumber, parent, 0)
 	viewChangeQC := makeViewChangeQC(epoch, viewNumber, parent.NumberU64())
-	node.engine.bridge.ConfirmViewChange(epoch, viewNumber, parent, qc, viewChangeQC)
+	node.engine.bridge.ConfirmViewChange(epoch, viewNumber, parent, qc, viewChangeQC, epoch, viewNumber)
 	for i := 0; i < 10; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, node)
 		assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())

@@ -454,7 +454,13 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// be stored due to not enough gas set an error and let it be handled
 	// by the error checking condition below.
 	if err == nil && !maxCodeSizeExceeded {
-		createDataGas := uint64(len(ret)) * params.CreateDataGas
+		var createDataGas uint64
+		if CanUseWASMInterp(ret) {
+			createDataGas = uint64(len(ret)) * params.CreateWasmDataGas
+		} else {
+			createDataGas = uint64(len(ret)) * params.CreateDataGas
+		}
+
 		if contract.UseGas(createDataGas) {
 			evm.StateDB.SetCode(address, ret)
 		} else {

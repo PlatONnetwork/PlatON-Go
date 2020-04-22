@@ -68,6 +68,10 @@ func (ctx *ServiceContext) ResolvePath(path string) string {
 	return ctx.config.ResolvePath(path)
 }
 
+func (ctx *ServiceContext) GenesisPath() string {
+	return ctx.config.GenesisPath()
+}
+
 // Service retrieves a currently running service registered of a specific type.
 func (ctx *ServiceContext) Service(service interface{}) error {
 	element := reflect.ValueOf(service).Elem()
