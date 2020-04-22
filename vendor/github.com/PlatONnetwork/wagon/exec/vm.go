@@ -76,6 +76,9 @@ type VM struct {
 	hostCtx interface{}
 
 	useGas func(byte)
+
+	//memory limitation
+	MemoryLimitation uint64
 }
 
 // As per the WebAssembly spec: https://github.com/WebAssembly/design/blob/27ac254c854994103c24834a994be16f74f54186/Semantics.md#linear-memory
