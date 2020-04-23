@@ -2711,36 +2711,6 @@ func (svs sortValidatorQueue) Len() int {
 }
 
 func (svs sortValidatorQueue) Less(i, j int) bool {
-	if svs[i].version == svs[j].version {
-		if svs[i].x == svs[j].x {
-			if svs[i].blockNumber == svs[j].blockNumber {
-				if svs[i].txIndex == svs[j].txIndex {
-					return false
-				} else {
-					return svs[i].txIndex < svs[j].txIndex
-				}
-			} else {
-				return svs[i].blockNumber < svs[j].blockNumber
-			}
-		} else {
-			return svs[i].x > svs[j].x
-		}
-	} else {
-		return svs[i].version > svs[j].version
-	}
-}
-
-func (svs sortValidatorQueue) Swap(i, j int) {
-	svs[i], svs[j] = svs[j], svs[i]
-}
-
-type newSortValidatorQueue []*sortValidator
-
-func (svs newSortValidatorQueue) Len() int {
-	return len(svs)
-}
-
-func (svs newSortValidatorQueue) Less(i, j int) bool {
 	if xutil.CalcVersion(svs[i].version) == xutil.CalcVersion(svs[j].version) {
 		if svs[i].x == svs[j].x {
 			if svs[i].blockNumber == svs[j].blockNumber {
@@ -2760,7 +2730,7 @@ func (svs newSortValidatorQueue) Less(i, j int) bool {
 	}
 }
 
-func (svs newSortValidatorQueue) Swap(i, j int) {
+func (svs sortValidatorQueue) Swap(i, j int) {
 	svs[i], svs[j] = svs[j], svs[i]
 }
 
@@ -2843,12 +2813,8 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 
 	log.Debug("Call probabilityElection, sort probability queue", "blockNumber", blockNumber, "currentVersion", currentVersion, "list", svList)
 
-	nsvList := make(newSortValidatorQueue, len(svList))
+	sort.Sort(svList)
 	for index, sv := range svList {
-		nsvList[index] = sv
-	}
-	sort.Sort(nsvList)
-	for index, sv := range nsvList {
 		if index == shiftLen {
 			break
 		}
