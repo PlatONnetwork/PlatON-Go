@@ -216,10 +216,11 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
             String reportDuplicateSignDataHex = reportDuplicateSignReceipt.getLogs().get(0).getData();
             String reportDuplicateSignDataStr = DataChangeUtil.decodeSystemContractRlp(reportDuplicateSignDataHex);
-            String reportDuplicateSignExpectData = "303003";
+            String reportDuplicateSignExpectData = "0";
+            boolean actual = reportDuplicateSignDataStr.equals(reportDuplicateSignExpectData);
 
             collector.logStepPass("delegate_call_ppos reportDuplicateSign successfully txHash:" + reportDuplicateSignReceipt.getTransactionHash());
-            collector.assertEqual(reportDuplicateSignDataStr, reportDuplicateSignExpectData);
+            collector.assertEqual(actual, false);
 
 
             /**
