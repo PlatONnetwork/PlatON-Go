@@ -43,15 +43,15 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	addr := common.HexToAddress("0x195667cdefcad94c521bdff0bf85079761e0f8f3")
+	addr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
 	nodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
 	}
 	build_staking_data(genesis.Hash())
 	newKey := staking.GetRoundValAddrArrKey(1)
-	newValue := make([]common.Address, 0, 1)
-	newValue = append(newValue, addr)
+	newValue := make([]common.NodeAddress, 0, 1)
+	newValue = append(newValue, common.NodeAddress(addr))
 	if err := staking.NewStakingDB().StoreRoundValidatorAddrs(blockHash, newKey, newValue); nil != err {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber2, blockHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := plugin.StakingInstance().CreateCandidate(state, common.ZeroHash, blockNumber2, can.Shares, 0, addr, can); nil != err {
+	if err := plugin.StakingInstance().CreateCandidate(state, common.ZeroHash, blockNumber2, can.Shares, 0, common.NodeAddress(addr), can); nil != err {
 		t.Fatal(err)
 	}
 	runContract(contract, buf.Bytes(), t)
@@ -177,7 +177,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(3001))
 	typ, _ := rlp.EncodeToBytes(uint8(1))
-	addr, _ := rlp.EncodeToBytes(common.HexToAddress("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257"))
+	addr, _ := rlp.EncodeToBytes(common.MustBech32ToAddress("lax1nclq7rekdvntje0n4gldvasrldyqkyjhkvgrqr"))
 	blockNumber, _ := rlp.EncodeToBytes(uint16(1))
 
 	params = append(params, fnType)

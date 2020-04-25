@@ -204,7 +204,7 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId dis
 		}
 		header.Coinbase = can.BenefitAddress
 		log.Info("SetWorkerCoinBase Successfully", "blockNumber", header.Number,
-			"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "coinbase", header.Coinbase.Hex())
+			"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "coinbase", header.Coinbase.String())
 	}
 
 }
