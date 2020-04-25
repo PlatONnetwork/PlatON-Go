@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	sender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	sender = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
 	nodeID = discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384")
 
 	priKey = crypto.HexMustToECDSA("0c6ccec28e36dc5581ea3d8af1303c774b51523da397f55cdc4acd9d2b988132")
@@ -85,15 +85,15 @@ func (stk *MockStaking) GetCanBaseList(blockHash common.Hash, blockNumber uint64
 	return []*staking.CandidateBase{candidate}, nil
 }
 
-func (stk *MockStaking) GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error) {
+func (stk *MockStaking) GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error) {
 	return nil, nil
 }
 
-func (stk *MockStaking) GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error) {
+func (stk *MockStaking) GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error) {
 	return nil, nil
 }
 
-func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error) {
+func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error) {
 	can := &staking.CandidateMutable{Status: staking.Valided}
 	return can, nil
 }

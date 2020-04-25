@@ -75,7 +75,7 @@ func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
 
 // about candidate ...
 
-func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.Address) (*Candidate, error) {
+func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.NodeAddress) (*Candidate, error) {
 	base, err := db.GetCanBaseStore(blockHash, addr)
 	if nil != err {
 		return nil, err
@@ -91,7 +91,7 @@ func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.Addres
 	return can, nil
 }
 
-func (db *StakingDB) GetCandidateStoreByIrr(addr common.Address) (*Candidate, error) {
+func (db *StakingDB) GetCandidateStoreByIrr(addr common.NodeAddress) (*Candidate, error) {
 	base, err := db.GetCanBaseStoreByIrr(addr)
 	if nil != err {
 		return nil, err
@@ -139,7 +139,7 @@ func (db *StakingDB) GetCandidateStoreByIrrWithSuffix(suffix []byte) (*Candidate
 	return can, nil
 }
 
-func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
+func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
 
 	if err := db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 		return err
@@ -150,7 +150,7 @@ func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.Addres
 	return nil
 }
 
-func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.Address) error {
+func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.NodeAddress) error {
 	if err := db.DelCanBaseStore(blockHash, addr); nil != err {
 		return err
 	}
@@ -162,7 +162,7 @@ func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.Addres
 
 // about canbase ...
 
-func (db *StakingDB) GetCanBaseStore(blockHash common.Hash, addr common.Address) (*CandidateBase, error) {
+func (db *StakingDB) GetCanBaseStore(blockHash common.Hash, addr common.NodeAddress) (*CandidateBase, error) {
 
 	key := CanBaseKeyByAddr(addr)
 
@@ -180,7 +180,7 @@ func (db *StakingDB) GetCanBaseStore(blockHash common.Hash, addr common.Address)
 	return &can, nil
 }
 
-func (db *StakingDB) GetCanBaseStoreByIrr(addr common.Address) (*CandidateBase, error) {
+func (db *StakingDB) GetCanBaseStoreByIrr(addr common.NodeAddress) (*CandidateBase, error) {
 	key := CanBaseKeyByAddr(addr)
 	canByte, err := db.getFromCommitted(key)
 
@@ -226,7 +226,7 @@ func (db *StakingDB) GetCanBaseStoreByIrrWithSuffix(suffix []byte) (*CandidateBa
 	return &can, nil
 }
 
-func (db *StakingDB) SetCanBaseStore(blockHash common.Hash, addr common.Address, can *CandidateBase) error {
+func (db *StakingDB) SetCanBaseStore(blockHash common.Hash, addr common.NodeAddress, can *CandidateBase) error {
 
 	key := CanBaseKeyByAddr(addr)
 
@@ -238,14 +238,14 @@ func (db *StakingDB) SetCanBaseStore(blockHash common.Hash, addr common.Address,
 	}
 }
 
-func (db *StakingDB) DelCanBaseStore(blockHash common.Hash, addr common.Address) error {
+func (db *StakingDB) DelCanBaseStore(blockHash common.Hash, addr common.NodeAddress) error {
 	key := CanBaseKeyByAddr(addr)
 	return db.del(blockHash, key)
 }
 
 // about canmutable ...
 
-func (db *StakingDB) GetCanMutableStore(blockHash common.Hash, addr common.Address) (*CandidateMutable, error) {
+func (db *StakingDB) GetCanMutableStore(blockHash common.Hash, addr common.NodeAddress) (*CandidateMutable, error) {
 
 	key := CanMutableKeyByAddr(addr)
 
@@ -263,7 +263,7 @@ func (db *StakingDB) GetCanMutableStore(blockHash common.Hash, addr common.Addre
 	return &can, nil
 }
 
-func (db *StakingDB) GetCanMutableStoreByIrr(addr common.Address) (*CandidateMutable, error) {
+func (db *StakingDB) GetCanMutableStoreByIrr(addr common.NodeAddress) (*CandidateMutable, error) {
 	key := CanMutableKeyByAddr(addr)
 	canByte, err := db.getFromCommitted(key)
 
@@ -309,7 +309,7 @@ func (db *StakingDB) GetCanMutableStoreByIrrWithSuffix(suffix []byte) (*Candidat
 	return &can, nil
 }
 
-func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, addr common.Address, can *CandidateMutable) error {
+func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, addr common.NodeAddress, can *CandidateMutable) error {
 
 	key := CanMutableKeyByAddr(addr)
 
@@ -321,14 +321,14 @@ func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, addr common.Addre
 	}
 }
 
-func (db *StakingDB) DelCanMutableStore(blockHash common.Hash, addr common.Address) error {
+func (db *StakingDB) DelCanMutableStore(blockHash common.Hash, addr common.NodeAddress) error {
 	key := CanMutableKeyByAddr(addr)
 	return db.del(blockHash, key)
 }
 
 // about candidate power ...
 
-func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
+func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
 
 	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
 
@@ -343,7 +343,7 @@ func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) err
 
 // about UnStakeItem ...
 
-func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.Address, stakeBlockNumber uint64) error {
+func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64) error {
 
 	count_key := GetUnStakeCountKey(epoch)
 
@@ -753,7 +753,7 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 
 // about round validator's addrs ...
 
-func (db *StakingDB) StoreRoundValidatorAddrs(blockHash common.Hash, key []byte, arry []common.Address) error {
+func (db *StakingDB) StoreRoundValidatorAddrs(blockHash common.Hash, key []byte, arry []common.NodeAddress) error {
 	value, err := rlp.EncodeToBytes(arry)
 	if nil != err {
 		return err

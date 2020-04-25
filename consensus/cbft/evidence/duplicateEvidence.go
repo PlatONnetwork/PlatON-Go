@@ -115,7 +115,7 @@ func (d DuplicatePrepareBlockEvidence) Validate() error {
 	return nil
 }
 
-func (d DuplicatePrepareBlockEvidence) Address() common.Address {
+func (d DuplicatePrepareBlockEvidence) Address() common.NodeAddress {
 	return d.PrepareA.ValidateNode.Address
 }
 
@@ -214,7 +214,7 @@ func (d DuplicatePrepareVoteEvidence) Validate() error {
 	return nil
 }
 
-func (d DuplicatePrepareVoteEvidence) Address() common.Address {
+func (d DuplicatePrepareVoteEvidence) Address() common.NodeAddress {
 	return d.VoteA.ValidateNode.Address
 }
 
@@ -310,7 +310,7 @@ func (d DuplicateViewChangeEvidence) Validate() error {
 	return nil
 }
 
-func (d DuplicateViewChangeEvidence) Address() common.Address {
+func (d DuplicateViewChangeEvidence) Address() common.NodeAddress {
 	return d.ViewA.ValidateNode.Address
 }
 

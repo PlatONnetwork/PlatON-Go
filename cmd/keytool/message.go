@@ -84,10 +84,11 @@ To sign a message contained in a file, use the --msgfile flag.
 
 type outputVerify struct {
 	Success            bool
-	RecoveredAddress   string
+	RecoveredAddress   common.AddressOutput
 	RecoveredPublicKey string
 }
 
+//todo
 var commandVerifyMessage = cli.Command{
 	Name:      "verifymessage",
 	Usage:     "verify the signature of a signed message",
@@ -104,10 +105,10 @@ It is possible to refer to a file containing the message.`,
 		signatureHex := ctx.Args().Get(1)
 		message := getMessage(ctx, 2)
 
-		if !common.IsHexAddress(addressStr) {
+		if !common.IsBech32Address(addressStr) {
 			utils.Fatalf("Invalid address: %s", addressStr)
 		}
-		address := common.HexToAddress(addressStr)
+		address := common.MustBech32ToAddress(addressStr)
 		signature, err := hex.DecodeString(signatureHex)
 		if err != nil {
 			utils.Fatalf("Signature encoding is not hexadecimal: %v", err)
@@ -124,7 +125,7 @@ It is possible to refer to a file containing the message.`,
 		out := outputVerify{
 			Success:            success,
 			RecoveredPublicKey: hex.EncodeToString(recoveredPubkeyBytes),
-			RecoveredAddress:   recoveredAddress.Hex(),
+			RecoveredAddress:   common.NewAddressOutput(recoveredAddress),
 		}
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)
@@ -135,7 +136,8 @@ It is possible to refer to a file containing the message.`,
 				fmt.Println("Signature verification failed!")
 			}
 			fmt.Println("Recovered public key:", out.RecoveredPublicKey)
-			fmt.Println("Recovered address:", out.RecoveredAddress)
+			fmt.Println("Recovered main net address:", out.RecoveredAddress.MainNet)
+			fmt.Println("Recovered test net address:", out.RecoveredAddress.TestNet)
 		}
 		return nil
 	},

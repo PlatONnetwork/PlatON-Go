@@ -72,7 +72,7 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.PrivateKey, blsKey bls.SecretKey, t *testing.T, stateDb xcom.StateDB) {
 	stakingDB := staking.NewStakingDB()
 
-	sender := common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	sender := common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
 
 	buildDbRestrictingPlan(sender, t, stateDb)
 
@@ -496,7 +496,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
           }
          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
-	stakingAddr := common.HexToAddress("0x195667cdefcad94c521bdff0bf85079761e0f8f3")
+	stakingAddr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
 	stakingNodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
@@ -537,7 +537,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber, commitHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, stakingAddr, can); nil != err {
+	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, common.NodeAddress(stakingAddr), can); nil != err {
 		t.Fatal(err)
 	}
 	normalEvidence, err := si.DecodeEvidence(1, normalData)
@@ -550,7 +550,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := si.Slash(normalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender); nil != err {
 		t.Fatal(err)
 	}
-	if value, err := si.CheckDuplicateSign(common.HexToAddress("0x85396cdef1d2800c621361437c2439c59c934038"), common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
+	if value, err := si.CheckDuplicateSign(common.HexToNodeAddress("0x85396cdef1d2800c621361437c2439c59c934038"), common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Fatal(err)
 	}
 	abnormalEvidence, err := si.DecodeEvidence(1, abnormalData)
@@ -583,7 +583,7 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
+	addr := common.HexToNodeAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
 	if _, err := si.CheckDuplicateSign(addr, 1, 1, stateDB); nil != err {
 		t.Fatal(err)
 	}
@@ -689,8 +689,8 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		CandidateBase: &staking.CandidateBase{
 			NodeId:          nodeIdArr[6],
 			BlsPubKey:       blsKeyHex,
-			StakingAddress:  canAddr,
-			BenefitAddress:  canAddr,
+			StakingAddress:  common.Address(canAddr),
+			BenefitAddress:  common.Address(canAddr),
 			StakingBlockNum: blockNumber.Uint64(),
 			StakingTxIndex:  1,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),

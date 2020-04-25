@@ -583,10 +583,10 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 			"nodeId", canBase.NodeId.TerminalString(), "type", evidence.Type(), "err", err)
 		return slashing.ErrDuplicateSignVerify
 	}
-	addr := crypto.PubkeyToAddress(*pk)
+	addr := crypto.PubkeyToNodeAddress(*pk)
 	if addr != evidence.Address() {
 		log.Error("slashing failed Mismatch addr", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "candidateNodeId", canBase.NodeId.TerminalString(),
-			"candidateAddr", addr.Hex(), "evidenceAddr", evidence.Address().Hex(), "type", evidence.Type())
+			"candidateAddr", addr, "evidenceAddr", evidence.Address().Hex(), "type", evidence.Type())
 		return slashing.ErrAddrMismatch
 	}
 
@@ -634,7 +634,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 
 	log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 		"nodeId", canBase.NodeId.TerminalString(), "totalBalance", totalBalance, "fraction", fraction, "rewardFraction", rewardFraction,
-		"slashAmount", slashAmount, "reporter", caller.Hex())
+		"slashAmount", slashAmount, "reporter", caller)
 
 	toCallerAmount := calcAmountByRate(slashAmount, uint64(rewardFraction), HundredDenominator)
 	toCallerItem := &staking.SlashNodeItem{
@@ -665,23 +665,23 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	return nil
 }
 
-func (sp *SlashingPlugin) CheckDuplicateSign(addr common.Address, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) ([]byte, error) {
+func (sp *SlashingPlugin) CheckDuplicateSign(addr common.NodeAddress, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) ([]byte, error) {
 	if value := sp.getSlashTxHash(addr, blockNumber, dupType, stateDB); len(value) > 0 {
 		return value, nil
 	}
 	return nil, nil
 }
 
-func (sp *SlashingPlugin) putSlashTxHash(addr common.Address, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) {
+func (sp *SlashingPlugin) putSlashTxHash(addr common.NodeAddress, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) {
 	stateDB.SetState(vm.SlashingContractAddr, duplicateSignKey(addr, blockNumber, dupType), stateDB.TxHash().Bytes())
 }
 
-func (sp *SlashingPlugin) getSlashTxHash(addr common.Address, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) []byte {
+func (sp *SlashingPlugin) getSlashTxHash(addr common.NodeAddress, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) []byte {
 	return stateDB.GetState(vm.SlashingContractAddr, duplicateSignKey(addr, blockNumber, dupType))
 }
 
 // duplicate signature result key format addr+blockNumber+_+type
-func duplicateSignKey(addr common.Address, blockNumber uint64, dupType consensus.EvidenceType) []byte {
+func duplicateSignKey(addr common.NodeAddress, blockNumber uint64, dupType consensus.EvidenceType) []byte {
 	return append(append(addr.Bytes(), common.Uint64ToBytes(blockNumber)...), common.Uint16ToBytes(uint16(dupType))...)
 }
 

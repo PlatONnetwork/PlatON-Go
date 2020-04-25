@@ -32,7 +32,7 @@ type Evidence interface {
 	Epoch() uint64
 	ViewNumber() uint64
 	Hash() []byte
-	Address() common.Address
+	Address() common.NodeAddress
 	NodeID() discover.NodeID
 	BlsPubKey() *bls.PublicKey
 	Validate() error

@@ -203,6 +203,7 @@ func TestApi(t *testing.T) {
 	defer tester.Close(t)
 	fmt.Fprintf(tester.console.printer, "Welcome to the PlatON JavaScript console!\n\n")
 	_, err := tester.console.jsre.Run(`
+		console.log("aaaaaaa");
 		console.log("instance: " + web3.version.node);
 		console.log("at block: " + platon.blockNumber + " (" + new Date(1000 * platon.getBlock(platon.blockNumber).timestamp) + ")");
 		console.log(" datadir: " + admin.datadir);
@@ -213,9 +214,9 @@ func TestApi(t *testing.T) {
 		console.log("gasPrice",platon.gasPrice)
 		console.log("accounts",platon.accounts)
 		console.log("blockNumber",platon.blockNumber)
-		console.log("getBalance",platon.getBalance("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
-		console.log("getStorageAt",platon.getStorageAt("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
-		console.log("getTransactionCount",platon.getTransactionCount("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
+		console.log("getBalance",platon.getBalance("lax1sczumw7md5ny4f6zuaczph9utr7decvzstap70"))
+		console.log("getStorageAt",platon.getStorageAt("lax1sczumw7md5ny4f6zuaczph9utr7decvzstap70"))
+		console.log("getTransactionCount",platon.getTransactionCount("lax1sczumw7md5ny4f6zuaczph9utr7decvzstap70"))
 		console.log("getBlockTransactionCountByHash or ByNumber",platon.getBlockTransactionCount("1234"))
 		//console.log("getCode",platon.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
 		//adr = personal.newAccount("123456")
