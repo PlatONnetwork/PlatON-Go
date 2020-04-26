@@ -233,6 +233,8 @@ type CandidateMutable struct {
 	RewardPer uint16
 	// Delegate reward amount percent for next settlement cycle
 	NextRewardPer uint16
+	// Number of settlement cycles when changing the commission reward percentage
+	RewardPerChangeEpoch uint32
 
 	// current epoch  total Delegate reward
 	CurrentEpochDelegateReward *big.Int
@@ -264,7 +266,7 @@ func (can *CandidateMutable) ShouldGiveDelegateReward() bool {
 }
 
 func (can *CandidateMutable) String() string {
-	return fmt.Sprintf(`{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d,"RewardPer": %d,"NextRewardPer": %d}`,
+	return fmt.Sprintf(`{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d,"RewardPer": %d,"NextRewardPer": %d,"RewardPerChangeEpoch": %d}`,
 		can.Status,
 		can.StakingEpoch,
 		can.Shares,
@@ -276,7 +278,8 @@ func (can *CandidateMutable) String() string {
 		can.DelegateTotal,
 		can.DelegateTotalHes,
 		can.RewardPer,
-		can.NextRewardPer)
+		can.NextRewardPer,
+		can.RewardPerChangeEpoch)
 }
 
 func (can *CandidateMutable) CleanLowRatioStatus() {
@@ -385,37 +388,39 @@ func (can *CandidateMutable) IsInvalidWithdrew() bool {
 
 // Display amount field using 0x hex
 type CandidateHex struct {
-	NodeId              discover.NodeID
-	BlsPubKey           bls.PublicKeyHex
-	StakingAddress      common.Address
-	BenefitAddress      common.Address
-	RewardPer           uint16
-	NextRewardPer       uint16
-	StakingTxIndex      uint32
-	ProgramVersion      uint32
-	Status              CandidateStatus
-	StakingEpoch        uint32
-	StakingBlockNum     uint64
-	Shares              *hexutil.Big
-	Released            *hexutil.Big
-	ReleasedHes         *hexutil.Big
-	RestrictingPlan     *hexutil.Big
-	RestrictingPlanHes  *hexutil.Big
-	DelegateEpoch       uint32
-	DelegateTotal       *hexutil.Big
-	DelegateTotalHes    *hexutil.Big
-	DelegateRewardTotal *hexutil.Big
+	NodeId               discover.NodeID
+	BlsPubKey            bls.PublicKeyHex
+	StakingAddress       common.Address
+	BenefitAddress       common.Address
+	RewardPer            uint16
+	NextRewardPer        uint16
+	RewardPerChangeEpoch uint32
+	StakingTxIndex       uint32
+	ProgramVersion       uint32
+	Status               CandidateStatus
+	StakingEpoch         uint32
+	StakingBlockNum      uint64
+	Shares               *hexutil.Big
+	Released             *hexutil.Big
+	ReleasedHes          *hexutil.Big
+	RestrictingPlan      *hexutil.Big
+	RestrictingPlanHes   *hexutil.Big
+	DelegateEpoch        uint32
+	DelegateTotal        *hexutil.Big
+	DelegateTotalHes     *hexutil.Big
+	DelegateRewardTotal  *hexutil.Big
 	Description
 }
 
 func (can *CandidateHex) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","DelegateEpoch": "%d","DelegateTotal": "%s","DelegateTotalHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateRewardTotal": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","DelegateEpoch": "%d","DelegateTotal": "%s","DelegateTotalHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateRewardTotal": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
 		can.RewardPer,
 		can.NextRewardPer,
+		can.RewardPerChangeEpoch,
 		can.StakingTxIndex,
 		can.ProgramVersion,
 		can.Status,
@@ -955,6 +960,8 @@ type ValidatorEx struct {
 	RewardPer uint16
 	// Delegate reward amount percent for next settlement cycle
 	NextRewardPer uint16
+	// Number of settlement cycles when changing the commission reward percentage
+	RewardPerChangeEpoch uint32
 	// The tx index at the time of staking
 	StakingTxIndex uint32
 	// The version of the node process
@@ -976,7 +983,7 @@ type ValidatorEx struct {
 }
 
 func (vex *ValidatorEx) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d,"DelegateTotal": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d,"DelegateTotal": "%s"}`,
 		vex.NodeId.String(),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BlsPubKey.Bytes()),
@@ -984,6 +991,7 @@ func (vex *ValidatorEx) String() string {
 		fmt.Sprintf("%x", vex.BenefitAddress.Bytes()),
 		vex.RewardPer,
 		vex.NextRewardPer,
+		vex.RewardPerChangeEpoch,
 		vex.StakingTxIndex,
 		vex.ProgramVersion,
 		vex.StakingBlockNum,

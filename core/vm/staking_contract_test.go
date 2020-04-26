@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
 	"testing"
 
@@ -239,7 +240,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, state),
 	}
 
 	// get CandidateInfo
@@ -255,7 +256,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 
 	benefitAddress, _ := rlp.EncodeToBytes(addrArr[0])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
-	rewardPer, _ := rlp.EncodeToBytes(uint64(8000))
+	rewardPer, _ := rlp.EncodeToBytes(uint64(5001))
 	externalId, _ := rlp.EncodeToBytes("I am Xu !?")
 	nodeName, _ := rlp.EncodeToBytes("Xu, China")
 	website, _ := rlp.EncodeToBytes("https://www.Xu.net")

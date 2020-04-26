@@ -61,6 +61,8 @@ const (
 	KeyMaxTxDataLimit             = "maxTxDataLimit"
 	KeyZeroProduceNumberThreshold = "zeroProduceNumberThreshold"
 	KeyZeroProduceCumulativeTime  = "zeroProduceCumulativeTime"
+	KeyRewardPerMaxChangeRange    = "rewardPerMaxChangeRange"
+	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
 )
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
@@ -816,4 +818,32 @@ func GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) 
 	}
 
 	return uint16(value), nil
+}
+
+func GovernRewardPerMaxChangeRange(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerMaxChangeRange, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerChangeInterval, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint32(value), nil
 }

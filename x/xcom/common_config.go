@@ -85,10 +85,12 @@ type commonConfig struct {
 }
 
 type stakingConfig struct {
-	StakeThreshold        *big.Int `json:"stakeThreshold"`        // The Staking minimum threshold allowed
-	OperatingThreshold    *big.Int `json:"operatingThreshold"`    // The (incr, decr) delegate or incr staking minimum threshold allowed
-	MaxValidators         uint64   `json:"maxValidators"`         // The epoch (billing cycle) validators count
-	UnStakeFreezeDuration uint64   `json:"unStakeFreezeDuration"` // The freeze period of the withdrew Staking (unit is  epochs)
+	StakeThreshold          *big.Int `json:"stakeThreshold"`          // The Staking minimum threshold allowed
+	OperatingThreshold      *big.Int `json:"operatingThreshold"`      // The (incr, decr) delegate or incr staking minimum threshold allowed
+	MaxValidators           uint64   `json:"maxValidators"`           // The epoch (billing cycle) validators count
+	UnStakeFreezeDuration   uint64   `json:"unStakeFreezeDuration"`   // The freeze period of the withdrew Staking (unit is  epochs)
+	RewardPerMaxChangeRange uint16   `json:"rewardPerMaxChangeRange"` // The maximum amount of commission reward ratio that can be modified each time
+	RewardPerChangeInterval uint32   `json:"rewardPerChangeInterval"` // The interval for each modification of the commission reward ratio (unit: epoch)
 }
 
 type slashingConfig struct {
@@ -183,10 +185,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:        new(big.Int).Set(MillionLAT),
-				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(101),
-				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
+				StakeThreshold:          new(big.Int).Set(MillionLAT),
+				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				MaxValidators:           uint64(101),
+				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
+				RewardPerMaxChangeRange: uint16(10),
+				RewardPerChangeInterval: uint32(4),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
@@ -230,10 +234,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:        new(big.Int).Set(MillionLAT),
-				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(101),
-				UnStakeFreezeDuration: uint64(2), // freezing 2 epoch
+				StakeThreshold:          new(big.Int).Set(MillionLAT),
+				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				MaxValidators:           uint64(101),
+				UnStakeFreezeDuration:   uint64(2), // freezing 2 epoch
+				RewardPerMaxChangeRange: uint16(10),
+				RewardPerChangeInterval: uint32(4),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
@@ -277,10 +283,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:        new(big.Int).Set(MillionLAT),
-				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(25),
-				UnStakeFreezeDuration: uint64(2),
+				StakeThreshold:          new(big.Int).Set(MillionLAT),
+				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				MaxValidators:           uint64(25),
+				UnStakeFreezeDuration:   uint64(2),
+				RewardPerMaxChangeRange: uint16(10),
+				RewardPerChangeInterval: uint32(4),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
@@ -324,10 +332,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:        new(big.Int).Set(MillionLAT),
-				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(101),
-				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
+				StakeThreshold:          new(big.Int).Set(MillionLAT),
+				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				MaxValidators:           uint64(101),
+				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
+				RewardPerMaxChangeRange: uint16(10),
+				RewardPerChangeInterval: uint32(4),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
@@ -442,6 +452,13 @@ func CheckZeroProduceNumberThreshold(zeroProduceCumulativeTime uint16, zeroProdu
 	return nil
 }
 
+func CheckRewardPerMaxChangeRange(rewardPerMaxChangeRange uint16) error {
+	if rewardPerMaxChangeRange > 10000 {
+		return common.InvalidParameter.Wrap("The RewardPerMaxChangeRange must be [0, 10000]")
+	}
+	return nil
+}
+
 func CheckEconomicModel(genesisVersion uint32) error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
@@ -534,6 +551,10 @@ func CheckEconomicModel(genesisVersion uint32) error {
 		return err
 	}
 
+	if err := CheckRewardPerMaxChangeRange(ec.Staking.RewardPerMaxChangeRange); nil != err {
+		return err
+	}
+
 	return nil
 }
 
@@ -613,6 +634,14 @@ func ElectionDistance() uint64 {
 
 func UnStakeFreezeDuration() uint64 {
 	return ec.Staking.UnStakeFreezeDuration
+}
+
+func RewardPerMaxChangeRange() uint16 {
+	return ec.Staking.RewardPerMaxChangeRange
+}
+
+func RewardPerChangeInterval() uint32 {
+	return ec.Staking.RewardPerChangeInterval
 }
 
 /******
