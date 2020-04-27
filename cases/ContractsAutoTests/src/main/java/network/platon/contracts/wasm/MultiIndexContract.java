@@ -27,9 +27,9 @@ public class MultiIndexContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GETMULTIINDEXINDEX = "getMultiIndexIndex";
-
     public static final String FUNC_MULTIINDEXMODIFY = "MultiIndexModify";
+
+    public static final String FUNC_GETMULTIINDEXINDEX = "getMultiIndexIndex";
 
     public static final String FUNC_ADDINITMULTIINDEX = "addInitMultiIndex";
 
@@ -51,11 +51,6 @@ public class MultiIndexContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<Boolean> getMultiIndexIndex(Uint8 my_age) {
-        final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXINDEX, Arrays.asList(my_age), Boolean.class);
-        return executeRemoteCall(function, Boolean.class);
-    }
-
     public RemoteCall<TransactionReceipt> MultiIndexModify(String my_name) {
         final WasmFunction function = new WasmFunction(FUNC_MULTIINDEXMODIFY, Arrays.asList(my_name), Void.class);
         return executeRemoteCallTransaction(function);
@@ -64,6 +59,11 @@ public class MultiIndexContract extends WasmContract {
     public RemoteCall<TransactionReceipt> MultiIndexModify(String my_name, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_MULTIINDEXMODIFY, Arrays.asList(my_name), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Boolean> getMultiIndexIndex(Uint8 my_age) {
+        final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXINDEX, Arrays.asList(my_age), Boolean.class);
+        return executeRemoteCall(function, Boolean.class);
     }
 
     public static RemoteCall<MultiIndexContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

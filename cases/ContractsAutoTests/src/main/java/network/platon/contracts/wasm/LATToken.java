@@ -39,8 +39,6 @@ public class LATToken extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GETNAME = "getName";
-
     public static final String FUNC_GETTOTALSUPPLY = "getTotalSupply";
 
     public static final String FUNC_BALANCEOF = "balanceOf";
@@ -52,6 +50,8 @@ public class LATToken extends WasmContract {
     public static final String FUNC_APPROVE = "approve";
 
     public static final String FUNC_ALLOWANCE = "allowance";
+
+    public static final String FUNC_GETNAME = "getName";
 
     public static final String FUNC_GETDECIMALS = "getDecimals";
 
@@ -73,13 +73,13 @@ public class LATToken extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> getName() {
-        final WasmFunction function = new WasmFunction(FUNC_GETNAME, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
     public RemoteCall<Uint64> getTotalSupply() {
         final WasmFunction function = new WasmFunction(FUNC_GETTOTALSUPPLY, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
+    public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
+        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(_owner), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
     }
 
@@ -116,11 +116,6 @@ public class LATToken extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
-    }
-
-    public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
-        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(_owner), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public List<ApprovalEventResponse> getApprovalEvents(TransactionReceipt transactionReceipt) {
@@ -211,6 +206,11 @@ public class LATToken extends WasmContract {
     public static RemoteCall<LATToken> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Uint64 _initialAmount, String _tokenName, Uint8 _decimalUnits, String _tokenSymbol) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(_initialAmount,_tokenName,_decimalUnits,_tokenSymbol));
         return deployRemoteCall(LATToken.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<String> getName() {
+        final WasmFunction function = new WasmFunction(FUNC_GETNAME, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<Uint8> getDecimals() {

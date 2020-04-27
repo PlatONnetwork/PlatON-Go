@@ -43,6 +43,11 @@ public class OneInherit extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<Uint8> get_my_message_size() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_SIZE, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
+    }
+
     public static RemoteCall<OneInherit> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(OneInherit.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -61,11 +66,6 @@ public class OneInherit extends WasmContract {
     public static RemoteCall<OneInherit> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(OneInherit.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<Uint8> get_my_message_size() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_MY_MESSAGE_SIZE, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<TransactionReceipt> add_my_message(My_message one_message) {

@@ -35,6 +35,11 @@ public class CoinbaseFunction extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<String> get_platon_coinbase() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_PLATON_COINBASE, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public static RemoteCall<CoinbaseFunction> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(CoinbaseFunction.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -53,11 +58,6 @@ public class CoinbaseFunction extends WasmContract {
     public static RemoteCall<CoinbaseFunction> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(CoinbaseFunction.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<String> get_platon_coinbase() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_PLATON_COINBASE, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public static CoinbaseFunction load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

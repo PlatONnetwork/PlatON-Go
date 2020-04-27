@@ -85,21 +85,6 @@ public class ContractMigrate_old extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<TransactionReceipt> setUint8(Uint8 input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETUINT8, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setUint8(Uint8 input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETUINT8, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint8> getUint8() {
-        final WasmFunction function = new WasmFunction(FUNC_GETUINT8, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
-    }
-
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
         ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
@@ -131,6 +116,21 @@ public class ContractMigrate_old extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> setUint8(Uint8 input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETUINT8, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setUint8(Uint8 input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETUINT8, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Uint8> getUint8() {
+        final WasmFunction function = new WasmFunction(FUNC_GETUINT8, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public static ContractMigrate_old load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
