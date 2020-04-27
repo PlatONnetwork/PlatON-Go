@@ -59,6 +59,39 @@ public class ContractMigrate_v2 extends WasmContract {
         return executeRemoteCall(function, String.class);
     }
 
+    public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
+        ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
+            TransferEventResponse typedResponse = new TransferEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Observable<TransferEventResponse> transferEventObservable(PlatonFilter filter) {
+        return web3j.platonLogObservable(filter).map(new Func1<Log, TransferEventResponse>() {
+            @Override
+            public TransferEventResponse call(Log log) {
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER_EVENT, log);
+                TransferEventResponse typedResponse = new TransferEventResponse();
+                typedResponse.log = log;
+                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
+                return typedResponse;
+            }
+        });
+    }
+
+    public Observable<TransferEventResponse> transferEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
+        return transferEventObservable(filter);
+    }
+
     public static RemoteCall<ContractMigrate_v2> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractMigrate_v2.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -97,39 +130,6 @@ public class ContractMigrate_v2 extends WasmContract {
     public RemoteCall<TransactionReceipt> set_string(String one_name, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SET_STRING, Arrays.asList(one_name), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
-        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
-        ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
-        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
-            TransferEventResponse typedResponse = new TransferEventResponse();
-            typedResponse.log = eventValues.getLog();
-            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
-            responses.add(typedResponse);
-        }
-        return responses;
-    }
-
-    public Observable<TransferEventResponse> transferEventObservable(PlatonFilter filter) {
-        return web3j.platonLogObservable(filter).map(new Func1<Log, TransferEventResponse>() {
-            @Override
-            public TransferEventResponse call(Log log) {
-                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER_EVENT, log);
-                TransferEventResponse typedResponse = new TransferEventResponse();
-                typedResponse.log = log;
-                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg1 = (String) eventValues.getNonIndexedValues().get(0);
-                return typedResponse;
-            }
-        });
-    }
-
-    public Observable<TransferEventResponse> transferEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
-        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
-        return transferEventObservable(filter);
     }
 
     public static ContractMigrate_v2 load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

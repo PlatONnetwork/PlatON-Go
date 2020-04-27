@@ -28,11 +28,11 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_SETBYTESARRAY = "setBytesArray";
+
     public static final String FUNC_GETARRAYUINTSIZE = "getArrayUintSize";
 
     public static final String FUNC_SETINITARRAY = "setInitArray";
-
-    public static final String FUNC_SETBYTESARRAY = "setBytesArray";
 
     public static final String FUNC_GETARRAYSTRINGINDEX = "getArrayStringIndex";
 
@@ -44,6 +44,16 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
 
     protected ReferenceDataTypeArrayContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> setBytesArray() {
+        final WasmFunction function = new WasmFunction(FUNC_SETBYTESARRAY, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setBytesArray(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETBYTESARRAY, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<Uint8> getArrayUintSize() {
@@ -58,16 +68,6 @@ public class ReferenceDataTypeArrayContract extends WasmContract {
 
     public RemoteCall<TransactionReceipt> setInitArray(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SETINITARRAY, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> setBytesArray() {
-        final WasmFunction function = new WasmFunction(FUNC_SETBYTESARRAY, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setBytesArray(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETBYTESARRAY, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

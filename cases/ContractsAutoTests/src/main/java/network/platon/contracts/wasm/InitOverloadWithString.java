@@ -30,13 +30,13 @@ public class InitOverloadWithString extends WasmContract {
 
     public static final String FUNC_STRING_SPLICE = "string_splice";
 
-    public static final String FUNC_STRING_COMPARE = "string_compare";
-
-    public static final String FUNC_STRING_REVERSE = "string_reverse";
+    public static final String FUNC_STRING_LENGTH = "string_length";
 
     public static final String FUNC_GET_STRING = "get_string";
 
-    public static final String FUNC_STRING_LENGTH = "string_length";
+    public static final String FUNC_STRING_COMPARE = "string_compare";
+
+    public static final String FUNC_STRING_REVERSE = "string_reverse";
 
     public static final String FUNC_STRING_FIND = "string_find";
 
@@ -73,6 +73,16 @@ public class InitOverloadWithString extends WasmContract {
         return deployRemoteCall(InitOverloadWithString.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
+    public RemoteCall<Uint8> string_length() {
+        final WasmFunction function = new WasmFunction(FUNC_STRING_LENGTH, Arrays.asList(), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
+    }
+
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public RemoteCall<Int8> string_compare(String strone, String strtwo) {
         final WasmFunction function = new WasmFunction(FUNC_STRING_COMPARE, Arrays.asList(strone,strtwo), Int8.class);
         return executeRemoteCall(function, Int8.class);
@@ -86,16 +96,6 @@ public class InitOverloadWithString extends WasmContract {
     public RemoteCall<TransactionReceipt> string_reverse(String reverseStr, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_STRING_REVERSE, Arrays.asList(reverseStr), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Uint8> string_length() {
-        final WasmFunction function = new WasmFunction(FUNC_STRING_LENGTH, Arrays.asList(), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public RemoteCall<Int8> string_find(String findStr) {

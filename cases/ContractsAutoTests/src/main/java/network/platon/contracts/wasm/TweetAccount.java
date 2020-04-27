@@ -28,6 +28,8 @@ public class TweetAccount extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_CADDR = "caddr";
+
     public static final String FUNC_ISADMIN = "isAdmin";
 
     public static final String FUNC_TWEET = "tweet";
@@ -42,8 +44,6 @@ public class TweetAccount extends WasmContract {
 
     public static final String FUNC_ADMINRETRIEVEDONATIONS = "adminRetrieveDonations";
 
-    public static final String FUNC_CADDR = "caddr";
-
     public static final String FUNC_CADDRBALANCE = "caddrBalance";
 
     public static final String FUNC_ADMINDELETEACCOUNT = "adminDeleteAccount";
@@ -54,6 +54,11 @@ public class TweetAccount extends WasmContract {
 
     protected TweetAccount(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<WasmAddress> caddr() {
+        final WasmFunction function = new WasmFunction(FUNC_CADDR, Arrays.asList(), WasmAddress.class);
+        return executeRemoteCall(function, WasmAddress.class);
     }
 
     public static RemoteCall<TweetAccount> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -119,11 +124,6 @@ public class TweetAccount extends WasmContract {
     public RemoteCall<TransactionReceipt> adminRetrieveDonations(WasmAddress receiver, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ADMINRETRIEVEDONATIONS, Arrays.asList(receiver), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<WasmAddress> caddr() {
-        final WasmFunction function = new WasmFunction(FUNC_CADDR, Arrays.asList(), WasmAddress.class);
-        return executeRemoteCall(function, WasmAddress.class);
     }
 
     public RemoteCall<String> caddrBalance(WasmAddress receiver) {

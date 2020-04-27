@@ -31,9 +31,9 @@ public class InnerFunction_1 extends WasmContract {
 
     public static final String FUNC_COINBASE = "coinbase";
 
-    public static final String FUNC_GAS = "gas";
-
     public static final String FUNC_NONCE = "nonce";
+
+    public static final String FUNC_GAS = "gas";
 
     public static final String FUNC_BALANCEOF = "balanceOf";
 
@@ -55,13 +55,13 @@ public class InnerFunction_1 extends WasmContract {
         return executeRemoteCall(function, WasmAddress.class);
     }
 
-    public RemoteCall<Uint64> gas() {
-        final WasmFunction function = new WasmFunction(FUNC_GAS, Arrays.asList(), Uint64.class);
+    public RemoteCall<Uint64> nonce() {
+        final WasmFunction function = new WasmFunction(FUNC_NONCE, Arrays.asList(), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
     }
 
-    public RemoteCall<Uint64> nonce() {
-        final WasmFunction function = new WasmFunction(FUNC_NONCE, Arrays.asList(), Uint64.class);
+    public RemoteCall<Uint64> gas() {
+        final WasmFunction function = new WasmFunction(FUNC_GAS, Arrays.asList(), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
     }
 

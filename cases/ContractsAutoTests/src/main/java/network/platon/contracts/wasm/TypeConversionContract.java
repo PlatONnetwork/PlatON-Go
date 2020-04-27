@@ -28,13 +28,13 @@ public class TypeConversionContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GET_PRAM_RETURN = "get_pram_return";
+
     public static final String FUNC_GET_ADD = "get_add";
 
     public static final String FUNC_GET_DIFFERENT_TYPE_ = "get_different_type_";
 
     public static final String FUNC_GET_PRAM_TYPE = "get_pram_type";
-
-    public static final String FUNC_GET_PRAM_RETURN = "get_pram_return";
 
     public static final String FUNC_GET_CONVERT = "get_convert";
 
@@ -48,6 +48,11 @@ public class TypeConversionContract extends WasmContract {
 
     protected TypeConversionContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<Uint64> get_pram_return(Uint8 a, Uint8 b) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_PRAM_RETURN, Arrays.asList(a,b), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public static RemoteCall<TypeConversionContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -83,11 +88,6 @@ public class TypeConversionContract extends WasmContract {
     public RemoteCall<Uint32> get_pram_type() {
         final WasmFunction function = new WasmFunction(FUNC_GET_PRAM_TYPE, Arrays.asList(), Uint32.class);
         return executeRemoteCall(function, Uint32.class);
-    }
-
-    public RemoteCall<Uint64> get_pram_return(Uint8 a, Uint8 b) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_PRAM_RETURN, Arrays.asList(a,b), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<Uint8> get_convert() {

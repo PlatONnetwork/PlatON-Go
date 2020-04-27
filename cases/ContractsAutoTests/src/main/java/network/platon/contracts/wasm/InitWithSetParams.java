@@ -39,6 +39,16 @@ public class InitWithSetParams extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> add_set(Set<String> inSet) {
+        final WasmFunction function = new WasmFunction(FUNC_ADD_SET, Arrays.asList(inSet), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> add_set(Set<String> inSet, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ADD_SET, Arrays.asList(inSet), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<InitWithSetParams> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Set<String> inSet) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(inSet));
         return deployRemoteCall(InitWithSetParams.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -57,16 +67,6 @@ public class InitWithSetParams extends WasmContract {
     public static RemoteCall<InitWithSetParams> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Set<String> inSet) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(inSet));
         return deployRemoteCall(InitWithSetParams.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> add_set(Set<String> inSet) {
-        final WasmFunction function = new WasmFunction(FUNC_ADD_SET, Arrays.asList(inSet), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> add_set(Set<String> inSet, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ADD_SET, Arrays.asList(inSet), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<Set> get_set() {
