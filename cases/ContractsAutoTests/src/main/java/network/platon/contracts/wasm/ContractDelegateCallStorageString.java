@@ -39,16 +39,6 @@ public class ContractDelegateCallStorageString extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<TransactionReceipt> delegate_call_set_string(String target_address, String name, Uint64 gas) {
-        final WasmFunction function = new WasmFunction(FUNC_DELEGATE_CALL_SET_STRING, Arrays.asList(target_address,name,gas), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> delegate_call_set_string(String target_address, String name, Uint64 gas, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_DELEGATE_CALL_SET_STRING, Arrays.asList(target_address,name,gas), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public static RemoteCall<ContractDelegateCallStorageString> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractDelegateCallStorageString.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -67,6 +57,16 @@ public class ContractDelegateCallStorageString extends WasmContract {
     public static RemoteCall<ContractDelegateCallStorageString> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractDelegateCallStorageString.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> delegate_call_set_string(String target_address, String name, Uint64 gas) {
+        final WasmFunction function = new WasmFunction(FUNC_DELEGATE_CALL_SET_STRING, Arrays.asList(target_address,name,gas), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> delegate_call_set_string(String target_address, String name, Uint64 gas, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_DELEGATE_CALL_SET_STRING, Arrays.asList(target_address,name,gas), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<String> get_string() {

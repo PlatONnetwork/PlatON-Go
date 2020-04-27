@@ -30,9 +30,9 @@ public class SolSimulation extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_ACTION = "action";
-
     public static final String FUNC_GETCOUNTER = "getCounter";
+
+    public static final String FUNC_ACTION = "action";
 
     public static final String FUNC_DEBUG = "debug";
 
@@ -68,6 +68,11 @@ public class SolSimulation extends WasmContract {
         return deployRemoteCall(SolSimulation.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
+    public RemoteCall<Uint64> getCounter() {
+        final WasmFunction function = new WasmFunction(FUNC_GETCOUNTER, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
     public RemoteCall<TransactionReceipt> action() {
         final WasmFunction function = new WasmFunction(FUNC_ACTION, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function);
@@ -76,11 +81,6 @@ public class SolSimulation extends WasmContract {
     public RemoteCall<TransactionReceipt> action(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ACTION, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint64> getCounter() {
-        final WasmFunction function = new WasmFunction(FUNC_GETCOUNTER, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<TransactionReceipt> debug() {

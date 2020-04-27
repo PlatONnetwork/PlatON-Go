@@ -28,6 +28,8 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GET_NAME = "get_name";
+
     public static final String FUNC_SET_STUDENT_ID = "set_student_id";
 
     public static final String FUNC_GET_STUDENT_ID = "get_student_id";
@@ -37,8 +39,6 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
     public static final String FUNC_GET_SEX = "get_sex";
 
     public static final String FUNC_SET_NAME = "set_name";
-
-    public static final String FUNC_GET_NAME = "get_name";
 
     public static final String FUNC_SET_AGE = "set_age";
 
@@ -56,6 +56,11 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
 
     protected ReferenceDataTypeComplexContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<String> get_name() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_NAME, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static RemoteCall<ReferenceDataTypeComplexContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -116,11 +121,6 @@ public class ReferenceDataTypeComplexContract extends WasmContract {
     public RemoteCall<TransactionReceipt> set_name(String name, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SET_NAME, Arrays.asList(name), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<String> get_name() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_NAME, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> set_age(Uint8 age) {

@@ -28,13 +28,13 @@ public class ContractStart extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_HELLO2 = "hello2";
-
     public static final String FUNC_TIMER_CALLBACK = "Timer_callback";
 
     public static final String FUNC_TESTSCHEDULE = "testschedule";
 
     public static final String FUNC_HELLO = "hello";
+
+    public static final String FUNC_HELLO2 = "hello2";
 
     public static final String FUNC_TRANSFER = "transfer";
 
@@ -46,16 +46,6 @@ public class ContractStart extends WasmContract {
 
     protected ContractStart(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> hello2(Dummy_action_hello payload) {
-        final WasmFunction function = new WasmFunction(FUNC_HELLO2, Arrays.asList(payload), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> hello2(Dummy_action_hello payload, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_HELLO2, Arrays.asList(payload), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<ContractStart> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -105,6 +95,16 @@ public class ContractStart extends WasmContract {
 
     public RemoteCall<TransactionReceipt> hello(Dummy_action_hello payload, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_HELLO, Arrays.asList(payload), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> hello2(Dummy_action_hello payload) {
+        final WasmFunction function = new WasmFunction(FUNC_HELLO2, Arrays.asList(payload), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> hello2(Dummy_action_hello payload, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_HELLO2, Arrays.asList(payload), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

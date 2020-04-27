@@ -39,6 +39,21 @@ public class SimpleStorage extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> set(Uint64 input) {
+        final WasmFunction function = new WasmFunction(FUNC_SET, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set(Uint64 input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Uint64> get() {
+        final WasmFunction function = new WasmFunction(FUNC_GET, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
     public static RemoteCall<SimpleStorage> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(SimpleStorage.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -57,21 +72,6 @@ public class SimpleStorage extends WasmContract {
     public static RemoteCall<SimpleStorage> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(SimpleStorage.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> set(Uint64 input) {
-        final WasmFunction function = new WasmFunction(FUNC_SET, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set(Uint64 input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint64> get() {
-        final WasmFunction function = new WasmFunction(FUNC_GET, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public static SimpleStorage load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

@@ -27,9 +27,9 @@ public class Contract_termination extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_TRANSFER_ASSERT = "transfer_assert";
-
     public static final String FUNC_GET_STRING_STORAGE = "get_string_storage";
+
+    public static final String FUNC_TRANSFER_ASSERT = "transfer_assert";
 
     protected Contract_termination(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -37,16 +37,6 @@ public class Contract_termination extends WasmContract {
 
     protected Contract_termination(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> transfer_assert(String name, Uint64 value) {
-        final WasmFunction function = new WasmFunction(FUNC_TRANSFER_ASSERT, Arrays.asList(name,value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> transfer_assert(String name, Uint64 value, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_TRANSFER_ASSERT, Arrays.asList(name,value), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<String> get_string_storage() {
@@ -72,6 +62,16 @@ public class Contract_termination extends WasmContract {
     public static RemoteCall<Contract_termination> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(Contract_termination.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> transfer_assert(String name, Uint64 value) {
+        final WasmFunction function = new WasmFunction(FUNC_TRANSFER_ASSERT, Arrays.asList(name,value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> transfer_assert(String name, Uint64 value, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_TRANSFER_ASSERT, Arrays.asList(name,value), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static Contract_termination load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

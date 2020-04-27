@@ -26,11 +26,11 @@ public class CryptographicFunction extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_CALL_PLATON_SHA256 = "call_platon_sha256";
-
     public static final String FUNC_CALL_PLATON_ECRECOVER = "call_platon_ecrecover";
 
     public static final String FUNC_CALL_PLATON_RIPEMD160 = "call_platon_ripemd160";
+
+    public static final String FUNC_CALL_PLATON_SHA256 = "call_platon_sha256";
 
     protected CryptographicFunction(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -38,11 +38,6 @@ public class CryptographicFunction extends WasmContract {
 
     protected CryptographicFunction(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<byte[]> call_platon_sha256(byte[] data) {
-        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_SHA256, Arrays.asList(data, Void.class), byte[].class);
-        return executeRemoteCall(function, byte[].class);
     }
 
     public static RemoteCall<CryptographicFunction> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -73,6 +68,11 @@ public class CryptographicFunction extends WasmContract {
     public RemoteCall<WasmAddress> call_platon_ripemd160(byte[] data) {
         final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_RIPEMD160, Arrays.asList(data, Void.class), WasmAddress.class);
         return executeRemoteCall(function, WasmAddress.class);
+    }
+
+    public RemoteCall<byte[]> call_platon_sha256(byte[] data) {
+        final WasmFunction function = new WasmFunction(FUNC_CALL_PLATON_SHA256, Arrays.asList(data, Void.class), byte[].class);
+        return executeRemoteCall(function, byte[].class);
     }
 
     public static CryptographicFunction load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
