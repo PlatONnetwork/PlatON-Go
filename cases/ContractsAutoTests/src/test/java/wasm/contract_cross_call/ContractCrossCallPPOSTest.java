@@ -234,10 +234,11 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
             String reportDuplicateSignDataHex = reportDuplicateSignReceipt.getLogs().get(0).getData();
             String reportDuplicateSignDataStr = DataChangeUtil.decodeSystemContractRlp(reportDuplicateSignDataHex);
-            String reportDuplicateSignExpectData = "303003";
+            String reportDuplicateSignExpectData = "0";
+            boolean expectFlag = reportDuplicateSignDataStr.equals(reportDuplicateSignExpectData);
 
             collector.logStepPass("cross_call_ppos reportDuplicateSign successfully txHash:" + reportDuplicateSignReceipt.getTransactionHash());
-            collector.assertEqual(reportDuplicateSignDataStr, reportDuplicateSignExpectData);
+            collector.assertEqual(expectFlag, false);
 
 
             /**
