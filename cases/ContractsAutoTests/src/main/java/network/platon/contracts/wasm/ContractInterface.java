@@ -27,9 +27,9 @@ public class ContractInterface extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GETCOUNT = "getCount";
-
     public static final String FUNC_SETCOUNT = "setCount";
+
+    public static final String FUNC_GETCOUNT = "getCount";
 
     protected ContractInterface(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -37,6 +37,16 @@ public class ContractInterface extends WasmContract {
 
     protected ContractInterface(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> setCount(Uint64 count) {
+        final WasmFunction function = new WasmFunction(FUNC_SETCOUNT, Arrays.asList(count), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setCount(Uint64 count, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETCOUNT, Arrays.asList(count), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<Uint64> getCount() {
@@ -62,16 +72,6 @@ public class ContractInterface extends WasmContract {
     public static RemoteCall<ContractInterface> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractInterface.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> setCount(Uint64 count) {
-        final WasmFunction function = new WasmFunction(FUNC_SETCOUNT, Arrays.asList(count), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setCount(Uint64 count, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETCOUNT, Arrays.asList(count), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static ContractInterface load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

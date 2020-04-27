@@ -42,11 +42,6 @@ public class InitOverload extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<Uint64> get_vector_size() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR_SIZE, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
-    }
-
     public static RemoteCall<InitOverload> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(InitOverload.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -65,6 +60,11 @@ public class InitOverload extends WasmContract {
     public static RemoteCall<InitOverload> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(InitOverload.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<Uint64> get_vector_size() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_VECTOR_SIZE, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<TransactionReceipt> add_vector(String one_name) {
