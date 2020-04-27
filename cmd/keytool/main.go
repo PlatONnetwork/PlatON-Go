@@ -43,6 +43,7 @@ func init() {
 		commandVerifyMessage,
 		commandGenkeypair,
 		commandGenblskeypair,
+		commandAddressHexToBech32,
 	}
 }
 
@@ -59,6 +60,7 @@ var (
 )
 
 func main() {
+	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

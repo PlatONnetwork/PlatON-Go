@@ -70,9 +70,11 @@ SUBCOMMANDS:
 {{range $categorized.Flags}}{{"\t"}}{{.}}
 {{end}}
 {{end}}{{end}}`
+	OriginCommandHelpTemplate = ""
 )
 
 func init() {
+	OriginCommandHelpTemplate = cli.CommandHelpTemplate
 	cli.AppHelpTemplate = `{{.Name}} {{if .Flags}}[global options] {{end}}command{{if .Flags}} [command options]{{end}} [arguments...]
 
 VERSION:

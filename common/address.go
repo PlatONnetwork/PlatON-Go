@@ -6,13 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
+	"strings"
+
+	"github.com/btcsuite/btcutil/bech32"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/bech32util"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/btcsuite/btcutil/bech32"
-	"math/big"
-	"strings"
 )
 
 const (

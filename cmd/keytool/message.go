@@ -21,11 +21,12 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"gopkg.in/urfave/cli.v1"
 )
 
 type outputSign struct {
@@ -88,7 +89,6 @@ type outputVerify struct {
 	RecoveredPublicKey string
 }
 
-//todo
 var commandVerifyMessage = cli.Command{
 	Name:      "verifymessage",
 	Usage:     "verify the signature of a signed message",
@@ -108,7 +108,10 @@ It is possible to refer to a file containing the message.`,
 		if !common.IsBech32Address(addressStr) {
 			utils.Fatalf("Invalid address: %s", addressStr)
 		}
-		address := common.MustBech32ToAddress(addressStr)
+		address, err := common.Bech32ToAddress(addressStr)
+		if err != nil {
+			utils.Fatalf("decode address fail: %s", addressStr)
+		}
 		signature, err := hex.DecodeString(signatureHex)
 		if err != nil {
 			utils.Fatalf("Signature encoding is not hexadecimal: %v", err)
