@@ -92,6 +92,16 @@ public class ContractEmitEvent2 extends WasmContract {
         return transferEventObservable(filter);
     }
 
+    public RemoteCall<TransactionReceipt> two_emit_event2(String name, String nationality, Uint32 value) {
+        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2, Arrays.asList(name,nationality,value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> two_emit_event2(String name, String nationality, Uint32 value, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2, Arrays.asList(name,nationality,value), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER2_EVENT, transactionReceipt);
         ArrayList<Transfer2EventResponse> responses = new ArrayList<Transfer2EventResponse>(valueList.size());
@@ -151,16 +161,6 @@ public class ContractEmitEvent2 extends WasmContract {
     public static RemoteCall<ContractEmitEvent2> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractEmitEvent2.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> two_emit_event2(String name, String nationality, Uint32 value) {
-        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2, Arrays.asList(name,nationality,value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> two_emit_event2(String name, String nationality, Uint32 value, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_TWO_EMIT_EVENT2, Arrays.asList(name,nationality,value), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> two_emit_event2_args4(String name, String nationality, Uint32 value1, Uint32 value2, String name1, String name2) {

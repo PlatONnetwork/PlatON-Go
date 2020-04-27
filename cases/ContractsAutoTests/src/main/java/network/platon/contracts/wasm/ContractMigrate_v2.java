@@ -37,11 +37,11 @@ public class ContractMigrate_v2 extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_GET_STRING = "get_string";
+
     public static final String FUNC_MIGRATE_CONTRACT = "migrate_contract";
 
     public static final String FUNC_SET_STRING = "set_string";
-
-    public static final String FUNC_GET_STRING = "get_string";
 
     public static final WasmEvent TRANSFER_EVENT = new WasmEvent("transfer", Arrays.asList(new WasmEventParameter(String.class, true)), Arrays.asList(new WasmEventParameter(String.class)));
     ;
@@ -52,6 +52,11 @@ public class ContractMigrate_v2 extends WasmContract {
 
     protected ContractMigrate_v2(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static RemoteCall<ContractMigrate_v2> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -125,11 +130,6 @@ public class ContractMigrate_v2 extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
-    }
-
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public static ContractMigrate_v2 load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

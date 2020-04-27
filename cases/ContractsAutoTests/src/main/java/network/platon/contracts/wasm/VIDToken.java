@@ -55,15 +55,13 @@ public class VIDToken extends WasmContract {
 
     public static final String FUNC_LISTFILES = "ListFiles";
 
-    public static final String FUNC_TOKENFALLBACK = "TokenFallback";
+    public static final String FUNC_APPROVE = "Approve";
 
     public static final String FUNC_TRANSFER = "Transfer";
 
     public static final String FUNC_TRANSFERFROM = "TransferFrom";
 
     public static final String FUNC_TRANSFERTOKEN = "TransferToken";
-
-    public static final String FUNC_APPROVE = "Approve";
 
     public static final String FUNC_INCREASEAPPROVAL = "IncreaseApproval";
 
@@ -74,6 +72,8 @@ public class VIDToken extends WasmContract {
     public static final String FUNC_DECREASEAPPROVAL = "DecreaseApproval";
 
     public static final String FUNC_ALLOWANCE = "Allowance";
+
+    public static final String FUNC_TOKENFALLBACK = "TokenFallback";
 
     public static final String FUNC_FREEZE = "Freeze";
 
@@ -537,13 +537,13 @@ public class VIDToken extends WasmContract {
         return deployRemoteCall(VIDToken.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<TransactionReceipt> TokenFallback(String from_addr, BigInteger value, String data) {
-        final WasmFunction function = new WasmFunction(FUNC_TOKENFALLBACK, Arrays.asList(from_addr,value,data), Void.class);
+    public RemoteCall<TransactionReceipt> Approve(String spender_addr, BigInteger value) {
+        final WasmFunction function = new WasmFunction(FUNC_APPROVE, Arrays.asList(spender_addr,value), Void.class);
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> TokenFallback(String from_addr, BigInteger value, String data, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_TOKENFALLBACK, Arrays.asList(from_addr,value,data), Void.class);
+    public RemoteCall<TransactionReceipt> Approve(String spender_addr, BigInteger value, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_APPROVE, Arrays.asList(spender_addr,value), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
@@ -574,16 +574,6 @@ public class VIDToken extends WasmContract {
 
     public RemoteCall<TransactionReceipt> TransferToken(String token_addr_s, BigInteger tokens, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_TRANSFERTOKEN, Arrays.asList(token_addr_s,tokens), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> Approve(String spender_addr, BigInteger value) {
-        final WasmFunction function = new WasmFunction(FUNC_APPROVE, Arrays.asList(spender_addr,value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> Approve(String spender_addr, BigInteger value, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_APPROVE, Arrays.asList(spender_addr,value), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
@@ -630,6 +620,16 @@ public class VIDToken extends WasmContract {
     public RemoteCall<BigInteger> Allowance(String owner, String spender) {
         final WasmFunction function = new WasmFunction(FUNC_ALLOWANCE, Arrays.asList(owner,spender), BigInteger.class);
         return executeRemoteCall(function, BigInteger.class);
+    }
+
+    public RemoteCall<TransactionReceipt> TokenFallback(String from_addr, BigInteger value, String data) {
+        final WasmFunction function = new WasmFunction(FUNC_TOKENFALLBACK, Arrays.asList(from_addr,value,data), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> TokenFallback(String from_addr, BigInteger value, String data, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_TOKENFALLBACK, Arrays.asList(from_addr,value,data), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> Freeze(String addr_s, Boolean state) {

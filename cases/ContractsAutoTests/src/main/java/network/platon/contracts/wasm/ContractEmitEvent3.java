@@ -57,6 +57,16 @@ public class ContractEmitEvent3 extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> three_emit_event3(String name, String nationality, String city, Uint32 value) {
+        final WasmFunction function = new WasmFunction(FUNC_THREE_EMIT_EVENT3, Arrays.asList(name,nationality,city,value), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> three_emit_event3(String name, String nationality, String city, Uint32 value, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_THREE_EMIT_EVENT3, Arrays.asList(name,nationality,city,value), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER2_EVENT, transactionReceipt);
         ArrayList<Transfer2EventResponse> responses = new ArrayList<Transfer2EventResponse>(valueList.size());
@@ -118,16 +128,6 @@ public class ContractEmitEvent3 extends WasmContract {
     public static RemoteCall<ContractEmitEvent3> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractEmitEvent3.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> three_emit_event3(String name, String nationality, String city, Uint32 value) {
-        final WasmFunction function = new WasmFunction(FUNC_THREE_EMIT_EVENT3, Arrays.asList(name,nationality,city,value), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> three_emit_event3(String name, String nationality, String city, Uint32 value, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_THREE_EMIT_EVENT3, Arrays.asList(name,nationality,city,value), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
