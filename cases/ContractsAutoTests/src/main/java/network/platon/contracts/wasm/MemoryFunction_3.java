@@ -35,6 +35,11 @@ public class MemoryFunction_3 extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<String> getcalloc() {
+        final WasmFunction function = new WasmFunction(FUNC_GETCALLOC, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
     public static RemoteCall<MemoryFunction_3> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(MemoryFunction_3.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -53,11 +58,6 @@ public class MemoryFunction_3 extends WasmContract {
     public static RemoteCall<MemoryFunction_3> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(MemoryFunction_3.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<String> getcalloc() {
-        final WasmFunction function = new WasmFunction(FUNC_GETCALLOC, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public static MemoryFunction_3 load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

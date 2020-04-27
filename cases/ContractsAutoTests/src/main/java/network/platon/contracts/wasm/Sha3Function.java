@@ -36,11 +36,6 @@ public class Sha3Function extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<Uint32> Sha3Result() {
-        final WasmFunction function = new WasmFunction(FUNC_SHA3RESULT, Arrays.asList(), Uint32.class);
-        return executeRemoteCall(function, Uint32.class);
-    }
-
     public static RemoteCall<Sha3Function> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(Sha3Function.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -59,6 +54,11 @@ public class Sha3Function extends WasmContract {
     public static RemoteCall<Sha3Function> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(Sha3Function.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<Uint32> Sha3Result() {
+        final WasmFunction function = new WasmFunction(FUNC_SHA3RESULT, Arrays.asList(), Uint32.class);
+        return executeRemoteCall(function, Uint32.class);
     }
 
     public static Sha3Function load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

@@ -52,6 +52,16 @@ public class Fibonacci extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
+    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number) {
+        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<Fibonacci> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(Fibonacci.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -70,21 +80,6 @@ public class Fibonacci extends WasmContract {
     public static RemoteCall<Fibonacci> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(Fibonacci.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number) {
-        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> fibonacci_notify(Uint64 number, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_NOTIFY, Arrays.asList(number), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Uint64> fibonacci_call(Uint64 number) {
-        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_CALL, Arrays.asList(number), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public List<NotifyEventResponse> getNotifyEvents(TransactionReceipt transactionReceipt) {
@@ -120,6 +115,11 @@ public class Fibonacci extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(NOTIFY_EVENT));
         return notifyEventObservable(filter);
+    }
+
+    public RemoteCall<Uint64> fibonacci_call(Uint64 number) {
+        final WasmFunction function = new WasmFunction(FUNC_FIBONACCI_CALL, Arrays.asList(number), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public static Fibonacci load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

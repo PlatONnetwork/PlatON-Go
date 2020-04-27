@@ -118,6 +118,11 @@ public class LATToken extends WasmContract {
         return transferEventObservable(filter);
     }
 
+    public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
+        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(_owner), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
+    }
+
     public List<ApprovalEventResponse> getApprovalEvents(TransactionReceipt transactionReceipt) {
         List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(APPROVAL_EVENT, transactionReceipt);
         ArrayList<ApprovalEventResponse> responses = new ArrayList<ApprovalEventResponse>(valueList.size());
@@ -151,11 +156,6 @@ public class LATToken extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(APPROVAL_EVENT));
         return approvalEventObservable(filter);
-    }
-
-    public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
-        final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(_owner), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
     }
 
     public RemoteCall<TransactionReceipt> transfer(WasmAddress _to, Uint64 _value) {

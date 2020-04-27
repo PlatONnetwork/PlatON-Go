@@ -47,8 +47,6 @@ public class VIDToken extends WasmContract {
 
     public static final String FUNC_BALANCEOF = "BalanceOf";
 
-    public static final String FUNC_VALIDATEFILE = "ValidateFile";
-
     public static final String FUNC_BURN = "Burn";
 
     public static final String FUNC_VALIDATEWALLET = "ValidateWallet";
@@ -60,6 +58,8 @@ public class VIDToken extends WasmContract {
     public static final String FUNC_TRANSFERFROM = "TransferFrom";
 
     public static final String FUNC_TRANSFERTOKEN = "TransferToken";
+
+    public static final String FUNC_VALIDATEFILE = "ValidateFile";
 
     public static final String FUNC_APPROVE = "Approve";
 
@@ -145,16 +145,6 @@ public class VIDToken extends WasmContract {
     public RemoteCall<BigInteger> BalanceOf(String owner_addr) {
         final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(owner_addr), BigInteger.class);
         return executeRemoteCall(function, BigInteger.class);
-    }
-
-    public RemoteCall<TransactionReceipt> ValidateFile(String to_addr, BigInteger payment, String data, Boolean store, Boolean log) {
-        final WasmFunction function = new WasmFunction(FUNC_VALIDATEFILE, Arrays.asList(to_addr,payment,data,store,log), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> ValidateFile(String to_addr, BigInteger payment, String data, Boolean store, Boolean log, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_VALIDATEFILE, Arrays.asList(to_addr,payment,data,store,log), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<TransferEvEventResponse> getTransferEvEvents(TransactionReceipt transactionReceipt) {
@@ -564,6 +554,16 @@ public class VIDToken extends WasmContract {
 
     public RemoteCall<TransactionReceipt> TransferToken(String token_addr_s, BigInteger tokens, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_TRANSFERTOKEN, Arrays.asList(token_addr_s,tokens), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> ValidateFile(String to_addr, BigInteger payment, String data, Boolean store, Boolean log) {
+        final WasmFunction function = new WasmFunction(FUNC_VALIDATEFILE, Arrays.asList(to_addr,payment,data,store,log), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> ValidateFile(String to_addr, BigInteger payment, String data, Boolean store, Boolean log, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_VALIDATEFILE, Arrays.asList(to_addr,payment,data,store,log), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

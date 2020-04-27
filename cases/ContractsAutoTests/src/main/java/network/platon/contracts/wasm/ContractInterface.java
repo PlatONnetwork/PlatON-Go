@@ -49,11 +49,6 @@ public class ContractInterface extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<Uint64> getCount() {
-        final WasmFunction function = new WasmFunction(FUNC_GETCOUNT, Arrays.asList(), Uint64.class);
-        return executeRemoteCall(function, Uint64.class);
-    }
-
     public static RemoteCall<ContractInterface> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractInterface.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -72,6 +67,11 @@ public class ContractInterface extends WasmContract {
     public static RemoteCall<ContractInterface> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractInterface.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<Uint64> getCount() {
+        final WasmFunction function = new WasmFunction(FUNC_GETCOUNT, Arrays.asList(), Uint64.class);
+        return executeRemoteCall(function, Uint64.class);
     }
 
     public static ContractInterface load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
