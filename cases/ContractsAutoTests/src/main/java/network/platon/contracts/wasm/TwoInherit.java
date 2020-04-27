@@ -31,9 +31,9 @@ public class TwoInherit extends WasmContract {
 
     public static final String FUNC_ADD_SUB_MY_MESSAGE = "add_sub_my_message";
 
-    public static final String FUNC_GET_SUB_MY_MESSAGE_HEAD = "get_sub_my_message_head";
-
     public static final String FUNC_GET_SUB_MY_MESSAGE_FROM = "get_sub_my_message_from";
+
+    public static final String FUNC_GET_SUB_MY_MESSAGE_HEAD = "get_sub_my_message_head";
 
     protected TwoInherit(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -78,13 +78,13 @@ public class TwoInherit extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<String> get_sub_my_message_head(Uint8 index) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_SUB_MY_MESSAGE_HEAD, Arrays.asList(index), String.class);
+    public RemoteCall<String> get_sub_my_message_from(Uint8 index) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_SUB_MY_MESSAGE_FROM, Arrays.asList(index), String.class);
         return executeRemoteCall(function, String.class);
     }
 
-    public RemoteCall<String> get_sub_my_message_from(Uint8 index) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_SUB_MY_MESSAGE_FROM, Arrays.asList(index), String.class);
+    public RemoteCall<String> get_sub_my_message_head(Uint8 index) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_SUB_MY_MESSAGE_HEAD, Arrays.asList(index), String.class);
         return executeRemoteCall(function, String.class);
     }
 

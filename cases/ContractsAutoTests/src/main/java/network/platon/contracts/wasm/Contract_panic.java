@@ -43,16 +43,6 @@ public class Contract_panic extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public RemoteCall<String> get_string_storage() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING_STORAGE, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<String> get_string_storage1() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING_STORAGE1, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
     public static RemoteCall<Contract_panic> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(Contract_panic.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -71,6 +61,16 @@ public class Contract_panic extends WasmContract {
     public static RemoteCall<Contract_panic> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(Contract_panic.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<String> get_string_storage() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING_STORAGE, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<String> get_string_storage1() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING_STORAGE1, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> panic_contract(String name, Uint64 value) {

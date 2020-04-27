@@ -11,9 +11,9 @@ CONTRACT OOMException : public platon::Contract{
         for (int i = 0; i < 6 * 1024; i++) {
           p = (int*)malloc(1024 * 1024);
           *p = i;
-          printf("%d\t\n", *p);
+          printf("i = %d,block_number = %d\t\n", *p,platon_block_number()); 
         }
-	printf("%d\t\n", *p);
+	printf("i = %d,block_number = %d\t\n", *p,platon_block_number());
     }
 };
 
