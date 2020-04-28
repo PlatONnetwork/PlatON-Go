@@ -31,7 +31,7 @@ public class ContractPrepareTest {
     protected ContractGasProvider provider;
     protected String walletAddress;
     protected String gasLimit = "4712388";
-    protected String gasPrice = "10000000000000";
+    protected String gasPrice = "90000000000000";
 
     /**
      * 合约部署相关准备工作
