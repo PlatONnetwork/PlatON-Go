@@ -183,7 +183,6 @@ func (ev *EvidenceView) Verify() error {
 // EvidenceNode mainly used to save node BlsPubKey
 type EvidenceNode struct {
 	Index     uint32             `json:"index"`
-	Address   common.NodeAddress `json:"address"`
 	NodeID    discover.NodeID    `json:"nodeId"`
 	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
 }
@@ -191,7 +190,6 @@ type EvidenceNode struct {
 func NewEvidenceNode(node *cbfttypes.ValidateNode) *EvidenceNode {
 	return &EvidenceNode{
 		Index:     node.Index,
-		Address:   node.Address,
 		NodeID:    node.NodeID,
 		BlsPubKey: node.BlsPubKey,
 	}
