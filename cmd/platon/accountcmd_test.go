@@ -17,7 +17,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -106,35 +105,10 @@ Repeat passphrase: {{.InputLine "foobar2"}}
 `)
 }
 
-func TestWalletImport(t *testing.T) {
-	geth := runGeth(t, "wallet", "import", "--lightkdf", "testdata/guswallet.json")
-	defer geth.ExpectExit()
-	geth.Expect(`
-!! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "foo"}}
-Address: {d4584b5f6229b7be90727b0fc8c6b91bb427821f}
-`)
-
-	files, err := ioutil.ReadDir(filepath.Join(geth.Datadir, "keystore"))
-	if len(files) != 1 {
-		t.Errorf("expected one key file in keystore directory, found %d files (error: %v)", len(files), err)
-	}
-}
-
-func TestWalletImportBadPassword(t *testing.T) {
-	geth := runGeth(t, "wallet", "import", "--lightkdf", "testdata/guswallet.json")
-	defer geth.ExpectExit()
-	geth.Expect(`
-!! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "wrong"}}
-Fatal: could not decrypt key with given passphrase
-`)
-}
-
 func TestUnlockFlag(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	geth := runGeth(t,
-		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
+		"--datadir", datadir, "--ipcdisable", "--testnet", "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a",
 		"js", "testdata/empty.js")
 	geth.Expect(`
@@ -158,7 +132,7 @@ Passphrase: {{.InputLine "foobar"}}
 func TestUnlockFlagWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	geth := runGeth(t,
-		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
+		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0", "--ipcdisable", "--testnet",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a")
 	defer geth.ExpectExit()
 	geth.Expect(`
@@ -177,7 +151,7 @@ Fatal: Failed to unlock account f466859ead1932d743d622cb74fc058882e8648a (could 
 func TestUnlockFlagMultiIndex(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	geth := runGeth(t,
-		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
+		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0", "--ipcdisable", "--testnet",
 		"--unlock", "0,2",
 		"js", "testdata/empty.js")
 	geth.Expect(`
@@ -205,7 +179,7 @@ func TestUnlockFlagPasswordFile(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	geth := runGeth(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
-		"--password", "testdata/passwords.txt", "--unlock", "0,2",
+		"--password", "testdata/passwords.txt", "--unlock", "0,2", "--ipcdisable", "--testnet",
 		"js", "testdata/empty.js")
 	geth.ExpectExit()
 
@@ -224,7 +198,7 @@ func TestUnlockFlagPasswordFile(t *testing.T) {
 func TestUnlockFlagPasswordFileWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	geth := runGeth(t,
-		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
+		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0", "--ipcdisable", "--testnet",
 		"--password", "testdata/wrong-passwords.txt", "--unlock", "0,2")
 	defer geth.ExpectExit()
 	geth.Expect(`
@@ -235,7 +209,7 @@ Fatal: Failed to unlock account 0 (could not decrypt key with given passphrase)
 func TestUnlockFlagAmbiguous(t *testing.T) {
 	store := filepath.Join("..", "..", "accounts", "keystore", "testdata", "dupes")
 	geth := runGeth(t,
-		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
+		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0", "--ipcdisable", "--testnet",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a",
 		"js", "testdata/empty.js")
 	defer geth.ExpectExit()
@@ -273,7 +247,7 @@ In order to avoid this warning, you need to remove the following duplicate key f
 func TestUnlockFlagAmbiguousWrongPassword(t *testing.T) {
 	store := filepath.Join("..", "..", "accounts", "keystore", "testdata", "dupes")
 	geth := runGeth(t,
-		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
+		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0", "--ipcdisable", "--testnet",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a")
 	defer geth.ExpectExit()
 

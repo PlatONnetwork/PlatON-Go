@@ -52,6 +52,8 @@ var (
 	vpEndVotingRounds = uint64(2)
 
 	tempActiveVersion = uint32(0<<16 | 9<<8 | 4)
+
+	chainID = big.NewInt(100)
 )
 
 type MockStaking struct {
@@ -95,7 +97,7 @@ func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.Address
 	can := &staking.CandidateMutable{Status: staking.Valided}
 	return can, nil
 }
-func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error {
+func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32, state xcom.StateDB) error {
 	if stk.DeclaeredVodes == nil {
 		stk.DeclaeredVodes = make(map[discover.NodeID]uint32)
 	}
@@ -178,7 +180,7 @@ func setup(t *testing.T) *mock.Chain {
 		fmt.Println("newBlock, %", err)
 	}
 
-	if err := InitGenesisGovernParam(chain.SnapDB); err != nil {
+	if err := InitGenesisGovernParam(chain.SnapDB, 2048); err != nil {
 		t.Error("InitGenesisGovernParam, error", err)
 	}
 	RegisterGovernParamVerifiers()
@@ -202,7 +204,7 @@ func submitText(t *testing.T, chain *mock.Chain) Proposal {
 		ProposalID:   tpProposalID,
 		Proposer:     nodeID,
 	}
-	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), NewMockStaking(), chain.StateDB); err != nil {
+	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), NewMockStaking(), chain.StateDB, chainID); err != nil {
 		t.Error("submitText, err", err)
 	}
 	return p
@@ -218,7 +220,7 @@ func submitVersion(t *testing.T, chain *mock.Chain, stk *MockStaking) Proposal {
 		NewVersion:      tempActiveVersion,
 		EndVotingRounds: vpEndVotingRounds,
 	}
-	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
+	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB, chainID); err != nil {
 		t.Error("submitVersion, err", err)
 	}
 	return p

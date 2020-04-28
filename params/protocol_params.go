@@ -32,11 +32,12 @@ const (
 	CallNewAccountGas    uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	// todo: pre value: 53000
-	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	TxDataZeroGas         uint64 = 4     // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
-	QuadCoeffDiv          uint64 = 512   // Divisor for the quadratic particle of the memory cost equation.
-	LogDataGas            uint64 = 8     // Per byte in a LOG* operation's data.
-	CallStipend           uint64 = 2300  // Free gas given at beginning of call.
+	TxGasContractCreation   uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
+	TxDataZeroGas           uint64 = 4     // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
+	TxDataZeroWasmDeployGas uint64 = 1     // Per byte of data attached to a transaction that equals zero for wasm deploying. NOTE: Not payable on data of calls between transactions.
+	QuadCoeffDiv            uint64 = 512   // Divisor for the quadratic particle of the memory cost equation.
+	LogDataGas              uint64 = 8     // Per byte in a LOG* operation's data.
+	CallStipend             uint64 = 2300  // Free gas given at beginning of call.
 
 	Sha3Gas     uint64 = 30 // Once per SHA3 operation.
 	Sha3WordGas uint64 = 6  // Once per word of the SHA3 operation's data.
@@ -55,23 +56,26 @@ const (
 	NetSstoreResetRefund      uint64 = 4800  // Once per SSTORE operation for resetting to the original non-zero value
 	NetSstoreResetClearRefund uint64 = 19800 // Once per SSTORE operation for resetting to the original zero value
 
-	JumpdestGas      uint64 = 1     // Refunded gas, once per SSTORE operation if the zeroness changes to zero.
-	EpochDuration    uint64 = 30000 // Duration between proof-of-work epochs.
-	CallGas          uint64 = 40    // Once per CALL operation & message call transaction.
-	CreateDataGas    uint64 = 20    //
-	CallCreateDepth  uint64 = 1024  // Maximum depth of call/create stack.
-	ExpGas           uint64 = 10    // Once per EXP instruction
-	LogGas           uint64 = 375   // Per LOG* operation.
-	CopyGas          uint64 = 3     //
-	StackLimit       uint64 = 1024  // Maximum size of VM stack allowed.
-	TierStepGas      uint64 = 0     // Once per operation, for a selection of them.
-	LogTopicGas      uint64 = 375   // Multiplied by the * of the LOG*, per LOG transaction. e.g. LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
-	CreateGas        uint64 = 32000 // Once per CREATE operation & contract-creation transaction.
-	Create2Gas       uint64 = 32000 // Once per CREATE2 operation
-	SuicideRefundGas uint64 = 24000 // Refunded following a suicide operation.
-	MemoryGas        uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
-	TxDataNonZeroGas uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
-
+	JumpdestGas                uint64 = 1     // Refunded gas, once per SSTORE operation if the zeroness changes to zero.
+	EpochDuration              uint64 = 30000 // Duration between proof-of-work epochs.
+	CallGas                    uint64 = 40    // Once per CALL operation & message call transaction.
+	CreateDataGas              uint64 = 20    //
+	CreateWasmDataGas          uint64 = 4
+	CallCreateDepth            uint64 = 1024  // Maximum depth of call/create stack.
+	ExpGas                     uint64 = 10    // Once per EXP instruction
+	LogGas                     uint64 = 375   // Per LOG* operation.
+	CopyGas                    uint64 = 3     //
+	StackLimit                 uint64 = 1024  // Maximum size of VM stack allowed.
+	TierStepGas                uint64 = 0     // Once per operation, for a selection of them.
+	LogTopicGas                uint64 = 375   // Multiplied by the * of the LOG*, per LOG transaction. e.g. LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
+	CreateGas                  uint64 = 32000 // Once per CREATE operation & contract-creation transaction.
+	Create2Gas                 uint64 = 32000 // Once per CREATE2 operation
+	SuicideRefundGas           uint64 = 24000 // Refunded following a suicide operation.
+	MemoryGas                  uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
+	TxDataNonZeroGas           uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
+	TxDataNonZeroWasmDeployGas uint64 = 4     // Per byte of data attached to a transaction that is not equal to zero for wasm deploying. NOTE: Not payable on data of calls between transactions.
+	SelfdestructGas            uint64 = 5000  // Cost of SELFDESTRUCT post EIP 150 (Tangerine)
+	CreateBySelfdestructGas    uint64 = 25000 // CreateBySelfdestructGas is used when the refunded account is one that does not exist. This logic is similar to call.Introduced in Tangerine Whistle (Eip 150)
 	// todo: MAX CODE SIZE. pre value : 24576
 	MaxCodeSize = 524288 // Maximum bytecode to permit for a contract
 
@@ -90,7 +94,7 @@ const (
 	Bn256PairingBaseGas     uint64 = 100000 // Base price for an elliptic curve pairing check
 	Bn256PairingPerPointGas uint64 = 80000  // Per-point price for an elliptic curve pairing check
 
-	// PlatONPrecompiled contract gas prices
+	// PlatONPrecompiled contract gas
 
 	StakingGas          uint64 = 6000  // Gas needed for precompiled contract: stakingContract
 	CreateStakeGas      uint64 = 32000 // Gas needed for createStaking
@@ -114,6 +118,11 @@ const (
 	RestrictingPlanGas       uint64 = 18000 // Gas needed for precompiled contract: restrictingPlanContract
 	CreateRestrictingPlanGas uint64 = 8000  // Gas needed for createRestrictingPlan
 	ReleasePlanGas           uint64 = 21000 // Gas consumed every time the von of the restrictPlan is released
+
+	DelegateRewardGas         uint64 = 3000 // Gas needed for  delegate reward
+	WithdrawDelegateRewardGas uint64 = 8000 // Gas needed for withdraw  delegate reward
+	WithdrawDelegateNodeGas   uint64 = 1000 // Gas needed for withdraw  delegate reward Node Count
+	WithdrawDelegateEpochGas  uint64 = 100  // Gas needed for withdraw  delegate reward epoch Count
 )
 
 var (

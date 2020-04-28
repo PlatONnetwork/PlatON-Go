@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"os"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -927,7 +926,7 @@ func TestGovDB_setPreactiveProposalID(t *testing.T) {
 func TestGovDB_Version(t *testing.T) {
 	version := uint32(0<<16 | 7<<8 | 4)
 	fmt.Println(version)
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	log.Warn("Store version for gov into genesis statedb", "genesis version", fmt.Sprintf("%d/%s", version, params.FormatVersion(version)))
 
 	var hash common.Hash

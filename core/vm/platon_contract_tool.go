@@ -20,6 +20,9 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -27,19 +30,18 @@ import (
 )
 
 func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byte, err error) {
-
 	// verify the tx data by contracts method
 	_, fn, params, err := plugin.VerifyTxData(input, command)
 	if nil != err {
 		log.Error("Failed to verify contract tx before exec", "err", err)
-		return xcom.NewFailedResult(common.InvalidParameter), err
+		return xcom.NewResult(common.InvalidParameter, nil), err
 	}
 
 	// execute contracts method
 	result := reflect.ValueOf(fn).Call(params)
 	if err, ok := result[1].Interface().(error); ok {
 		log.Error("Failed to execute contract tx", "err", err)
-		return xcom.NewFailedResult(common.InternalError), err
+		return xcom.NewResult(common.InternalError, nil), err
 	}
 	return result[0].Bytes(), nil
 }
@@ -57,6 +59,19 @@ func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string
 	return []byte(receipt)
 }
 
+func txResultHandlerWithRes(contractAddr common.Address, evm *EVM, title, reason string, fncode, errCode int, res interface{}) []byte {
+	event := strconv.Itoa(fncode)
+	receipt := strconv.Itoa(errCode)
+	blockNumber := evm.BlockNumber.Uint64()
+	if errCode != 0 {
+		txHash := evm.StateDB.TxHash()
+		log.Error("Failed to "+title, "txHash", txHash.Hex(),
+			"blockNumber", blockNumber, "receipt: ", receipt, "the reason", reason)
+	}
+	xcom.AddLogWithRes(evm.StateDB, blockNumber, contractAddr, event, receipt, res)
+	return []byte(receipt)
+}
+
 func callResultHandler(evm *EVM, title string, resultValue interface{}, err *common.BizError) []byte {
 	txHash := evm.StateDB.TxHash()
 	blockNumber := evm.BlockNumber.Uint64()
@@ -64,16 +79,16 @@ func callResultHandler(evm *EVM, title string, resultValue interface{}, err *com
 	if nil != err {
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
 			"blockNumber", blockNumber, "the reason", err.Error())
-		return xcom.NewFailedResult(err)
+		return xcom.NewResult(err, nil)
 	}
 
 	if IsBlank(resultValue) {
-		return xcom.NewFailedResult(common.NotFound)
+		return xcom.NewResult(common.NotFound, nil)
 	}
 
 	log.Debug("Call "+title+" finished", "blockNumber", blockNumber,
 		"txHash", txHash, "result", resultValue)
-	return xcom.NewOkResult(resultValue)
+	return xcom.NewResult(nil, resultValue)
 }
 
 func IsBlank(i interface{}) bool {
@@ -94,4 +109,13 @@ func IsBlank(i interface{}) bool {
 		}
 	}
 	return val.IsNil()
+}
+
+func checkForkPIP0_11_0(state StateDB, input []byte) bool {
+	currentVersion := gov.GetCurrentActiveVersion(state)
+	if currentVersion >= params.FORKVERSION_0_11_0 && len(input) == 0 {
+		return true
+	} else {
+		return false
+	}
 }

@@ -28,6 +28,7 @@ import (
 	"strings"
 	"testing"
 	"testing/quick"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -75,6 +76,34 @@ func TestUpdateLeaks(t *testing.T) {
 		value, _ := db.Get(key)
 		t.Errorf("State leaked into database: %x -> %x", key, value)
 	}
+}
+
+func TestClearParentReference(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+	state, _ := New(common.Hash{}, NewDatabase(db))
+	count := 10000
+
+	for i := 0; i < count; i++ {
+		st := state.NewStateDB()
+		if i%2 == 0 {
+			go func() {
+				st.ClearParentReference()
+			}()
+		}
+	}
+	time.Sleep(2 * time.Second)
+	assert.Len(t, state.clearReferenceFunc, count)
+
+	clear := 0
+	for i := 0; i < count; i++ {
+		if i%2 == 0 {
+			fn := state.clearReferenceFunc[i]
+			if fn == nil {
+				clear++
+			}
+		}
+	}
+	assert.Equal(t, clear, count/2)
 }
 
 func TestNewStateDBAndCopy(t *testing.T) {
@@ -670,14 +699,14 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		checkeq("GetCodeHash", state.GetCodeHash(addr), checkstate.GetCodeHash(addr))
 		checkeq("GetCodeSize", state.GetCodeSize(addr), checkstate.GetCodeSize(addr))
 		// Check storage.
-		//if obj := state.getStateObject(addr); obj != nil {
-		//	state.ForEachStorage(addr, func(key, value common.Hash) bool {
-		//		return checkeq("GetState("+key.Hex()+")", checkstate.GetState(addr, key), value)
-		//	})
-		//	checkstate.ForEachStorage(addr, func(key, value common.Hash) bool {
-		//		return checkeq("GetState("+key.Hex()+")", checkstate.GetState(addr, key), value)
-		//	})
-		//}
+		if obj := state.getStateObject(addr); obj != nil {
+			state.ForEachStorage(addr, func(key, value []byte) bool {
+				return checkeq("GetState("+string(key)+")", checkstate.GetState(addr, key), value)
+			})
+			checkstate.ForEachStorage(addr, func(key, value []byte) bool {
+				return checkeq("GetState("+string(key)+")", checkstate.GetState(addr, key), value)
+			})
+		}
 		if err != nil {
 			return err
 		}

@@ -17,10 +17,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"io"
 
 	"os"
 	"runtime"
@@ -74,7 +73,6 @@ It expects the genesis file as argument.`,
 			utils.DataDirFlag,
 			utils.CacheFlag,
 			utils.SyncModeFlag,
-			utils.GCModeFlag,
 			utils.CacheDatabaseFlag,
 			utils.CacheGCFlag,
 		},
@@ -184,46 +182,10 @@ func initGenesis(ctx *cli.Context) error {
 	if len(genesisPath) == 0 {
 		utils.Fatalf("Must supply path to genesis JSON file")
 	}
-	file, err := os.Open(genesisPath)
-	if err != nil {
-		utils.Fatalf("Failed to read genesis file: %v", err)
-	}
-	defer file.Close()
 
 	genesis := new(core.Genesis)
-
-	// init EconomicModel config
-	if err := json.NewDecoder(file).Decode(&genesis); err != nil {
-		utils.Fatalf("invalid genesis file: %v", err)
-	}
-
-	if nil == genesis || nil == genesis.Config {
-		utils.Fatalf("genesis configuration is missed")
-	}
-	if nil == genesis.Config.Cbft {
-		utils.Fatalf("cbft configuration is missed")
-	}
-	if genesis.Config.Cbft.Period == 0 {
-		utils.Fatalf("cbft.period configuration is missed")
-	}
-	if genesis.Config.Cbft.Amount == 0 {
-		utils.Fatalf("cbft.amount configuration is missed")
-	}
-	if nil == genesis.EconomicModel {
-		utils.Fatalf("economic configuration is missed")
-	}
-	if genesis.Config.GenesisVersion == 0 {
-		utils.Fatalf("genesis version configuration is missed")
-	}
-
-	xcom.ResetEconomicDefaultConfig(genesis.EconomicModel)
-	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
-	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
-	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
-
-	// check EconomicModel configuration
-	if err := xcom.CheckEconomicModel(); nil != err {
-		utils.Fatalf("Failed CheckEconomicModel configuration: %v", err)
+	if err := genesis.InitAndSetEconomicConfig(genesisPath); err != nil {
+		utils.Fatalf(err.Error())
 	}
 
 	// Open an initialise both full and light databases
@@ -234,18 +196,42 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		var spath string
+		var sdb snapshotdb.DB
 		if name == "chaindata" {
-			spath = stack.ResolvePath(snapshotdb.DBPath)
+			sdb, err = snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
+			if err != nil {
+				utils.Fatalf("Failed to open snapshotdb: %v", err)
+			}
+
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, spath, genesis)
+		_, hash, err := core.SetupGenesisBlock(chaindb, sdb, genesis)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
 		log.Info("Successfully wrote genesis state", "database", name, "hash", hash.Hex())
-
+		if sdb != nil {
+			if err := sdb.Close(); err != nil {
+				utils.Fatalf("close base db fail: %v", err)
+			}
+		}
 		chaindb.Close()
 	}
+	genesisFile, err := os.Create(stack.GenesisPath())
+	if err != nil {
+		utils.Fatalf("Failed create Genesis file: %v", err)
+	}
+	defer genesisFile.Close()
+
+	file, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+
+	if _, err := io.Copy(genesisFile, file); err != nil {
+		utils.Fatalf("Failed Copy Genesis file: %v", err)
+	}
+
 	return nil
 }
 
@@ -286,7 +272,7 @@ func importChain(ctx *cli.Context) error {
 			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
 		}
 
-		miner := miner.New(bc, chain.Config(), minningConfig, stack.EventMux(), c, gethConfig.Eth.MinerRecommit, gethConfig.Eth.MinerGasFloor /*gethConfig.Eth.MinerGasCeil,*/, nil, blockChainCache)
+		miner := miner.New(bc, chain.Config(), minningConfig, &vm.Config{}, stack.EventMux(), c, gethConfig.Eth.MinerRecommit, gethConfig.Eth.MinerGasFloor, nil, blockChainCache, gethConfig.Eth.VmTimeoutDuration)
 		c.Start(chain, nil, nil, agency)
 		defer c.Close()
 		defer miner.Stop()
@@ -464,7 +450,7 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	peerSnapshotDB, err := snapshotdb.Open(ctx.Args().Get(1), ctx.GlobalInt(utils.CacheFlag.Name), 256)
+	peerSnapshotDB, err := snapshotdb.Open(ctx.Args().Get(1), ctx.GlobalInt(utils.CacheFlag.Name), 256, false)
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sync"
 
@@ -36,6 +37,7 @@ const (
 	RestrictingRule
 	RewardRule
 	GovernanceRule
+	CollectDeclareVersionRule
 )
 
 const (
@@ -70,6 +72,9 @@ var (
 	TenMillionLAT, _ = new(big.Int).SetString("10000000000000000000000000", 10)
 
 	BillionLAT, _ = new(big.Int).SetString("1000000000000000000000000000", 10)
+
+	// The maximum time range for the cumulative number of zero blocks
+	maxZeroProduceCumulativeTime uint16 = 64
 )
 
 type commonConfig struct {
@@ -92,7 +97,8 @@ type slashingConfig struct {
 	DuplicateSignReportReward  uint32 `json:"duplicateSignReportReward"`  // The percentage of rewards for whistleblowers, calculated from the penalty
 	MaxEvidenceAge             uint32 `json:"maxEvidenceAge"`             // Validity period of evidence (unit is  epochs)
 	SlashBlocksReward          uint32 `json:"slashBlocksReward"`          // the number of blockReward to slashing per round
-
+	ZeroProduceCumulativeTime  uint16 `json:"zeroProduceCumulativeTime"`  // Count the number of zero-production blocks in this time range and check it. If it reaches a certain number of times, it can be punished (unit is consensus round)
+	ZeroProduceNumberThreshold uint16 `json:"zeroProduceNumberThreshold"` // Threshold for the number of zero production blocks. punishment is reached within the specified time range
 }
 
 type governanceConfig struct {
@@ -150,8 +156,10 @@ func ResetEconomicDefaultConfig(newEc *EconomicModel) {
 }
 
 const (
-	DefaultMainNet = iota // PlatON default main net flag
-	DefaultTestNet        // PlatON default test net flag
+	DefaultMainNet     = iota // PlatON default main net flag
+	DefaultTestNet            // PlatON default test net flag
+	DefaultDemoNet            // PlatON default demo net flag
+	DefaultUnitTestNet        // PlatON default unit test flag
 )
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
@@ -186,6 +194,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(27),
 				SlashBlocksReward:          uint32(0),
+				ZeroProduceCumulativeTime:  uint16(15),
+				ZeroProduceNumberThreshold: uint16(3),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -211,8 +221,54 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
-
 	case DefaultTestNet:
+		ec = &EconomicModel{
+			Common: commonConfig{
+				MaxEpochMinutes:     uint64(360), // 6 hours
+				NodeBlockTimeWindow: uint64(20),  // 20 seconds
+				PerRoundBlocks:      uint64(10),
+				MaxConsensusVals:    uint64(25),
+				AdditionalCycleTime: uint64(525960),
+			},
+			Staking: stakingConfig{
+				StakeThreshold:        new(big.Int).Set(MillionLAT),
+				OperatingThreshold:    new(big.Int).Set(TenLAT),
+				MaxValidators:         uint64(101),
+				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
+			},
+			Slashing: slashingConfig{
+				SlashFractionDuplicateSign: uint32(10),
+				DuplicateSignReportReward:  uint32(50),
+				MaxEvidenceAge:             uint32(27),
+				SlashBlocksReward:          uint32(0),
+				ZeroProduceCumulativeTime:  uint16(15),
+				ZeroProduceNumberThreshold: uint16(3),
+			},
+			Gov: governanceConfig{
+				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
+				//VersionProposalActive_ConsensusRounds: uint64(5),
+				VersionProposalSupportRate:       float64(0.667),
+				TextProposalVoteDurationSeconds:  uint64(14 * 24 * 3600),
+				TextProposalVoteRate:             float64(0.50),
+				TextProposalSupportRate:          float64(0.667),
+				CancelProposalVoteRate:           float64(0.50),
+				CancelProposalSupportRate:        float64(0.667),
+				ParamProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
+				ParamProposalVoteRate:            float64(0.50),
+				ParamProposalSupportRate:         float64(0.667),
+			},
+			Reward: rewardConfig{
+				NewBlockRate:         50,
+				PlatONFoundationYear: 10,
+			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x01c71cecaeff76b78325577e6a74a94d24a86be2"),
+				PlatONFundBalance: new(big.Int).SetInt64(0),
+				CDFAccount:        common.HexToAddress("0x02cdda362dca508709a651fde1513b22d3c2a4e5"),
+				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
+	case DefaultUnitTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
 				MaxEpochMinutes:     uint64(6),  // 6 minutes
@@ -232,6 +288,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
+				ZeroProduceCumulativeTime:  uint16(3),
+				ZeroProduceNumberThreshold: uint16(2),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(160),
@@ -257,7 +315,53 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
-
+	case DefaultDemoNet:
+		ec = &EconomicModel{
+			Common: commonConfig{
+				MaxEpochMinutes:     uint64(360), // 6 hours
+				NodeBlockTimeWindow: uint64(20),  // 20 seconds
+				PerRoundBlocks:      uint64(10),
+				MaxConsensusVals:    uint64(25),
+				AdditionalCycleTime: uint64(525960),
+			},
+			Staking: stakingConfig{
+				StakeThreshold:        new(big.Int).Set(MillionLAT),
+				OperatingThreshold:    new(big.Int).Set(TenLAT),
+				MaxValidators:         uint64(101),
+				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
+			},
+			Slashing: slashingConfig{
+				SlashFractionDuplicateSign: uint32(10),
+				DuplicateSignReportReward:  uint32(50),
+				MaxEvidenceAge:             uint32(27),
+				SlashBlocksReward:          uint32(0),
+				ZeroProduceCumulativeTime:  uint16(15),
+				ZeroProduceNumberThreshold: uint16(3),
+			},
+			Gov: governanceConfig{
+				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
+				//VersionProposalActive_ConsensusRounds: uint64(5),
+				VersionProposalSupportRate:       float64(0.667),
+				TextProposalVoteDurationSeconds:  uint64(14 * 24 * 3600),
+				TextProposalVoteRate:             float64(0.50),
+				TextProposalSupportRate:          float64(0.667),
+				CancelProposalVoteRate:           float64(0.50),
+				CancelProposalSupportRate:        float64(0.667),
+				ParamProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
+				ParamProposalVoteRate:            float64(0.50),
+				ParamProposalSupportRate:         float64(0.667),
+			},
+			Reward: rewardConfig{
+				NewBlockRate:         50,
+				PlatONFoundationYear: 10,
+			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x72188da050f4B3dD9a991b209221DBFE0A0fdC42"),
+				PlatONFundBalance: new(big.Int).SetInt64(0),
+				CDFAccount:        common.HexToAddress("0x8BAb06a9706F7613188d4Fb6310b1E5117dfd914"),
+				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
 	default: // DefaultTestNet
 		// Default is test net config
 		ec = &EconomicModel{
@@ -279,6 +383,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
+				ZeroProduceCumulativeTime:  uint16(3),
+				ZeroProduceNumberThreshold: uint16(2),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(160),
@@ -368,7 +474,21 @@ func CheckSlashBlocksReward(rewards int) error {
 	return nil
 }
 
-func CheckEconomicModel() error {
+func CheckZeroProduceCumulativeTime(zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) error {
+	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > uint16(EpochSize()) {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d]", zeroProduceNumberThreshold, uint16(EpochSize())))
+	}
+	return nil
+}
+
+func CheckZeroProduceNumberThreshold(zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) error {
+	if zeroProduceNumberThreshold < 1 || zeroProduceNumberThreshold > zeroProduceCumulativeTime {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceNumberThreshold must be [%d, %d]", 1, zeroProduceCumulativeTime))
+	}
+	return nil
+}
+
+func CheckEconomicModel(genesisVersion uint32) error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
 	}
@@ -448,6 +568,21 @@ func CheckEconomicModel() error {
 		return err
 	}
 
+	if genesisVersion >= params.FORKVERSION_0_11_0 {
+		epochSize := uint16(EpochSize())
+		if epochSize > maxZeroProduceCumulativeTime {
+			return fmt.Errorf("the number of consensus rounds in a settlement cycle cannot be greater than maxZeroProduceCumulativeTime(%d)", maxZeroProduceCumulativeTime)
+		}
+
+		if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
+			return err
+		}
+
+		if err := CheckZeroProduceCumulativeTime(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -482,6 +617,19 @@ func MaxConsensusVals() uint64 {
 
 func AdditionalCycleTime() uint64 {
 	return ec.Common.AdditionalCycleTime
+}
+
+func ConsensusSize() uint64 {
+	return BlocksWillCreate() * MaxConsensusVals()
+}
+
+func EpochSize() uint64 {
+	consensusSize := ConsensusSize()
+	em := MaxEpochMinutes()
+	i := Interval()
+
+	epochSize := em * 60 / (i * consensusSize)
+	return epochSize
 }
 
 /******
@@ -533,6 +681,14 @@ func MaxEvidenceAge() uint32 {
 
 func SlashBlocksReward() uint32 {
 	return ec.Slashing.SlashBlocksReward
+}
+
+func ZeroProduceCumulativeTime() uint16 {
+	return ec.Slashing.ZeroProduceCumulativeTime
+}
+
+func ZeroProduceNumberThreshold() uint16 {
+	return ec.Slashing.ZeroProduceNumberThreshold
 }
 
 /******

@@ -39,18 +39,10 @@ type ChainContext interface {
 
 // NewEVMContext creates a new context for use in the EVM.
 func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Context {
-	// If we don't have an explicit author (i.e. not mining), extract from the header
-	beneficiary := header.Coinbase // we're must use header validation
 
-	/*var beneficiary common.Address
-	if author == nil {
-		beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
-	} else {
-		beneficiary = *author
-	}*/
+	beneficiary := header.Coinbase // we're must using header validation
 
 	blockHash := common.ZeroHash
-
 	// store the sign in  header.Extra[32:97]
 	if !xutil.IsWorker(header.Extra) {
 		blockHash = header.Hash()
@@ -67,6 +59,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Con
 		GasLimit:    header.GasLimit,
 		GasPrice:    new(big.Int).Set(msg.GasPrice()),
 		BlockHash:   blockHash,
+		Difficulty:  new(big.Int).SetUint64(0), // This one must not be deleted, otherwise the solidity contract will be failed
 	}
 }
 
@@ -86,10 +79,16 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 			return hash
 		}
 		// Not cached, iterate the blocks and cache the hashes
-		for header := chain.GetHeader(ref.ParentHash, ref.Number.Uint64()-1); header != nil; header = chain.GetHeader(header.ParentHash, header.Number.Uint64()-1) {
+		/*for header := chain.GetHeader(ref.ParentHash, ref.Number.Uint64()-1); header != nil; header = chain.GetHeader(header.ParentHash, header.Number.Uint64()-1) {
 			cache[header.Number.Uint64()-1] = header.ParentHash
 			if n == header.Number.Uint64()-1 {
 				return header.ParentHash
+			}
+		}*/
+		for block := chain.Engine().GetBlockByHashAndNum(ref.ParentHash, ref.Number.Uint64()-1); block != nil; block = chain.Engine().GetBlockByHashAndNum(block.Header().ParentHash, block.Header().Number.Uint64()-1) {
+			cache[block.Header().Number.Uint64()-1] = block.Header().ParentHash
+			if n == block.Header().Number.Uint64()-1 {
+				return block.Header().ParentHash
 			}
 		}
 		return common.Hash{}

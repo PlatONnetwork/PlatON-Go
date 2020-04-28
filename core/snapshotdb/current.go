@@ -178,7 +178,11 @@ func (c *current) saveCurrentToBaseDB(currentType string, db *leveldb.DB, init b
 	if init {
 		batch.Put([]byte(CurrentSet), []byte(CurrentSet))
 	}
-	logger.Debug("save current to baseDB", "height", c.highest, "base", c.base, "type", currentType)
+	if c.highest != nil && c.base != nil {
+		logger.Debug("save current to baseDB", "height", c.highest.Num, "hash", c.highest.Hash, "base", c.base.Num, "type", currentType)
+	} else {
+		logger.Debug("save current to baseDB", "height", c.highest, "base", c.base, "type", currentType)
+	}
 	if err := db.Write(batch, nil); err != nil {
 		return fmt.Errorf("write %v  to base db fail:%v", currentType, err)
 	}

@@ -131,9 +131,17 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
 		Value: eth.DefaultConfig.NetworkId,
 	}
+	MainFlag = cli.BoolFlag{
+		Name:  "main",
+		Usage: "Mainnet network: pre-configured main network (default network)",
+	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
 		Usage: "Testnet network: pre-configured test network",
+	}
+	DemonetFlag = cli.BoolFlag{
+		Name:  "demonet",
+		Usage: "Demonet network: pre-configured demo network",
 	}
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",
@@ -153,11 +161,6 @@ var (
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
 		Value: &defaultSyncMode,
-	}
-	GCModeFlag = cli.StringFlag{
-		Name:  "gcmode",
-		Usage: `Blockchain garbage collection mode ("full", "archive")`,
-		Value: "full",
 	}
 	LightServFlag = cli.IntFlag{
 		Name:  "lightserv",
@@ -601,6 +604,20 @@ var (
 		Usage: "Number of cache block states, default 10",
 		Value: eth.DefaultConfig.DBGCBlock,
 	}
+
+	VMWasmType = cli.StringFlag{
+		Name:   "vm.wasm_type",
+		Usage:  "The actual implementation type of the wasm instance",
+		EnvVar: "",
+		Value:  eth.DefaultConfig.VMWasmType,
+	}
+
+	VmTimeoutDuration = cli.Uint64Flag{
+		Name:   "vm.timeout_duration",
+		Usage:  "The VM execution timeout duration (uint: ms)",
+		EnvVar: "",
+		Value:  eth.DefaultConfig.VmTimeoutDuration,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -608,10 +625,12 @@ var (
 // the a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.GlobalString(DataDirFlag.Name); path != "" {
+
 		if ctx.GlobalBool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
+		} else if ctx.GlobalBool(DemonetFlag.Name) {
+			return filepath.Join(path, "demonet")
 		}
-
 		return path
 	}
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
@@ -665,6 +684,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		}
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
+	case ctx.GlobalBool(DemonetFlag.Name):
+		urls = params.DemonetBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -934,6 +955,8 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
+	case ctx.GlobalBool(DemonetFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "demonet")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
@@ -1123,10 +1146,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 	cfg.DatabaseHandles = makeDatabaseHandles()
 
-	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
-		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
-	}
-	cfg.NoPruning = /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true
+	cfg.NoPruning = true
 
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1167,9 +1187,15 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Test NetWork
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 103
+			cfg.NetworkId = 2000
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+	// Demo NetWork
+	case ctx.GlobalBool(DemonetFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 5000
+		}
+		cfg.Genesis = core.DefaultDemonetGenesisBlock()
 	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
@@ -1194,6 +1220,15 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.DBGCBlock = b
 		}
 	}
+
+	// vm options
+	if ctx.GlobalIsSet(VMWasmType.Name) {
+		cfg.VMWasmType = ctx.GlobalString(VMWasmType.Name)
+	}
+	if ctx.GlobalIsSet(VmTimeoutDuration.Name) {
+		cfg.VmTimeoutDuration = ctx.GlobalUint64(VmTimeoutDuration.Name)
+	}
+
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
@@ -1329,6 +1364,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		genesis = core.DefaultTestnetGenesisBlock()
+	case ctx.GlobalBool(DemonetFlag.Name):
+		genesis = core.DefaultDemonetGenesisBlock()
 	}
 	return genesis
 }
@@ -1337,19 +1374,23 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-
-	config, _, err := core.SetupGenesisBlock(chainDb, stack.ResolvePath(snapshotdb.DBPath), MakeGenesis(ctx))
+	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
 	if err != nil {
+		Fatalf("%v", err)
+	}
+	config, _, err := core.SetupGenesisBlock(chainDb, basedb, MakeGenesis(ctx))
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	if err := basedb.Close(); err != nil {
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine
 	//todo: Merge confirmation.
 	engine = consensus.NewFaker()
-	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
-		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
-	}
+
 	cache := &core.CacheConfig{
-		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
+		Disabled:        true,
 		TrieNodeLimit:   eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
@@ -1374,9 +1415,15 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeCfg *node.Config) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-
-	config, _, err := core.SetupGenesisBlock(chainDb, stack.ResolvePath(snapshotdb.DBPath), MakeGenesis(ctx))
+	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
 	if err != nil {
+		Fatalf("%v", err)
+	}
+	config, _, err := core.SetupGenesisBlock(chainDb, basedb, MakeGenesis(ctx))
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	if err := basedb.Close(); err != nil {
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine
@@ -1385,11 +1432,8 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 		engine = eth.CreateConsensusEngine(sc, config, false, chainDb, &cfg.CbftConfig, stack.EventMux())
 	}
 
-	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
-		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
-	}
 	cache := &core.CacheConfig{
-		Disabled:        ctx.GlobalString(GCModeFlag.Name) == "archive",
+		Disabled:        true,
 		TrieNodeLimit:   eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,

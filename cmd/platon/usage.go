@@ -72,10 +72,11 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.KeyStoreDirFlag,
 			utils.NoUSBFlag,
 			utils.NetworkIdFlag,
+			utils.MainFlag,
 			utils.TestnetFlag,
+			utils.DemonetFlag,
 			utils.SyncModeFlag,
-			utils.GCModeFlag,
-			utils.EthStatsURLFlag,
+			//	utils.EthStatsURLFlag,
 			utils.IdentityFlag,
 			utils.LightServFlag,
 			utils.LightPeersFlag,
@@ -251,6 +252,13 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DBGCTimeoutFlag,
 			utils.DBGCMptFlag,
 			utils.DBGCBlockFlag,
+		},
+	},
+	{
+		Name: "VM",
+		Flags: []cli.Flag{
+			utils.VMWasmType,
+			utils.VmTimeoutDuration,
 		},
 	},
 	{

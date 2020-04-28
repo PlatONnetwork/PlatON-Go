@@ -476,7 +476,7 @@ func HexSign(in string) (VersionSign, error) {
 	return vs, nil
 }
 
-// MustHexID converts a hex string to a NodeID.
+/*// MustHexID converts a hex string to a NodeID.
 // It panics if the string is not a valid NodeID.
 func MustHexSign(in string) VersionSign {
 	vs, err := HexSign(in)
@@ -484,4 +484,4 @@ func MustHexSign(in string) VersionSign {
 		panic(err)
 	}
 	return vs
-}
+}*/

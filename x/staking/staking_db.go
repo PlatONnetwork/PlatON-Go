@@ -36,6 +36,12 @@ func NewStakingDB() *StakingDB {
 	}
 }
 
+func NewStakingDBWithDB(db snapshotdb.DB) *StakingDB {
+	return &StakingDB{
+		db: db,
+	}
+}
+
 func (db *StakingDB) get(blockHash common.Hash, key []byte) ([]byte, error) {
 	return db.db.Get(blockHash, key)
 }
@@ -54,6 +60,9 @@ func (db *StakingDB) del(blockHash common.Hash, key []byte) error {
 
 func (db *StakingDB) ranking(blockHash common.Hash, prefix []byte, ranges int) iterator.Iterator {
 	return db.db.Ranking(blockHash, prefix, ranges)
+}
+func (db *StakingDB) Del(blockHash common.Hash, key []byte) error {
+	return db.db.Del(blockHash, key)
 }
 
 func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
@@ -445,6 +454,31 @@ func (db *StakingDB) GetDelegateStoreBySuffix(blockHash common.Hash, keySuffix [
 		return nil, err
 	}
 	return &del, nil
+}
+
+type DelegationInfo struct {
+	NodeID           discover.NodeID
+	StakeBlockNumber uint64
+	Delegation       *Delegation
+}
+
+func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Address) ([]*DelegationInfo, error) {
+	key := GetDelegateKeyBySuffix(delAddr.Bytes())
+	itr := db.ranking(blockHash, key, 0)
+	if itr.Error() != nil {
+		return nil, itr.Error()
+	}
+	infos := make([]*DelegationInfo, 0)
+	for itr.Next() {
+		info := new(DelegationInfo)
+		_, info.NodeID, info.StakeBlockNumber = DecodeDelegateKey(itr.Key())
+		info.Delegation = new(Delegation)
+		if err := rlp.DecodeBytes(itr.Value(), info.Delegation); err != nil {
+			return nil, err
+		}
+		infos = append(infos, info)
+	}
+	return infos, nil
 }
 
 func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,

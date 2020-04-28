@@ -18,10 +18,11 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
@@ -54,6 +55,11 @@ func RestrictingInstance() *RestrictingPlugin {
 		rt = &RestrictingPlugin{restrictLog, snapshotdb.Instance()}
 	})
 	return rt
+}
+
+func NewRestrictingPlugin(snapdb snapshotdb.DB) *RestrictingPlugin {
+	restrictLog := log.Root().New("package", "RestrictingPlugin")
+	return &RestrictingPlugin{restrictLog, snapdb}
 }
 
 // BeginBlock does something like check input params before execute transactions,
@@ -597,18 +603,6 @@ func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, 
 func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) (*restricting.Result, *common.BizError) {
 	return rp.getRestrictingInfoToReturn(account, state)
 }
-
-// state DB operation
-//func SetLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
-//	key := restricting.GetLatestEpochKey()
-//	stateDb.SetState(vm.RestrictingContractAddr, key, common.Uint64ToBytes(epoch))
-//}
-//
-//func GetLatestEpoch(stateDb xcom.StateDB) uint64 {
-//	key := restricting.GetLatestEpochKey()
-//	bEpoch := stateDb.GetState(vm.RestrictingContractAddr, key)
-//	return common.BytesToUint64(bEpoch)
-//}
 
 func GetBlockNumberByEpoch(epoch uint64) uint64 {
 	return epoch * xutil.CalcBlocksEachEpoch()

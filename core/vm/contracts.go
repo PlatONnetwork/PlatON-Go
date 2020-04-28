@@ -93,6 +93,7 @@ var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.SlashingContractAddr:    &SlashingContract{},
 	vm.GovContractAddr:         &GovContract{},
 	vm.RewardManagerPoolAddr:   &rewardEmpty{},
+	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
@@ -110,6 +111,28 @@ func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, con
 		return p.Run(input)
 	}
 	return nil, ErrOutOfGas
+}
+
+func IsEVMPrecompiledContract(addr common.Address) bool {
+	if _, ok := PrecompiledContractsHomestead[addr]; ok {
+		return true
+	}
+	return false
+}
+
+func IsPlatONPrecompiledContract(addr common.Address) bool {
+	if _, ok := PlatONPrecompiledContracts[addr]; ok {
+		return true
+	}
+	return false
+}
+
+func IsPrecompiledContract(addr common.Address) bool {
+	if IsEVMPrecompiledContract(addr) {
+		return true
+	} else {
+		return IsPlatONPrecompiledContract(addr)
+	}
 }
 
 // ECRECOVER implemented as a native contract.
@@ -134,8 +157,13 @@ func (c *ecrecover) Run(input []byte) ([]byte, error) {
 	if !allZero(input[32:63]) || !crypto.ValidateSignatureValues(v, r, s, false) {
 		return nil, nil
 	}
+	// We must make sure not to modify the 'input', so placing the 'v' along with
+	// the signature needs to be done on a new allocation
+	sig := make([]byte, 65)
+	copy(sig, input[64:128])
+	sig[64] = v
 	// v needs to be at the end for libsecp256k1
-	pubKey, err := crypto.Ecrecover(input[:32], append(input[64:128], v))
+	pubKey, err := crypto.Ecrecover(input[:32], sig)
 	// make sure the public key is a valid one
 	if err != nil {
 		return nil, nil

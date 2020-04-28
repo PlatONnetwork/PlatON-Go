@@ -52,14 +52,16 @@ func TestFetch(t *testing.T) {
 	}
 
 	result := make(chan *types.Block, 1)
-
+	complete := make(chan struct{}, 1)
 	var fetchBlock *types.Block
 	qcBlocks := &protocols.QCBlockList{}
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 3; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
+
 		fetchBlock = block
 		qcBlocks.Blocks = append(qcBlocks.Blocks, block)
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
@@ -138,13 +140,16 @@ SYNC:
 func TestSyncBlock(t *testing.T) {
 	nodes := Mock4NodePipe(false)
 	result := make(chan *types.Block, 1)
+	complete := make(chan struct{}, 1)
 	var fetchBlock *types.Block
 	qcBlocks := &protocols.QCBlockList{}
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 3; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
+
 		fetchBlock = block
 		qcBlocks.Blocks = append(qcBlocks.Blocks, block)
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())

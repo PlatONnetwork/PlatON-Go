@@ -14,13 +14,14 @@
 */**/*tx_database*
 */**/*dapps*
 build/_vendor/pkg
-
+wasm.log
 #*
 .#*
 *#
 *~
 .project
 .settings
+./wasm.log
 
 # used by the Makefile
 /build/_workspace/

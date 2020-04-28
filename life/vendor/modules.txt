@@ -1,9 +1,0 @@
-# github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wagon v0.3.1-0.20180825141017-f8cb99b55a39
-github.com/go-interpreter/wagon/exec
-github.com/go-interpreter/wagon/validate
-github.com/go-interpreter/wagon/wasm
-github.com/go-interpreter/wagon/disasm
-github.com/go-interpreter/wagon/wasm/leb128
-github.com/go-interpreter/wagon/wasm/operators
-github.com/go-interpreter/wagon/exec/internal/compile
-github.com/go-interpreter/wagon/wasm/internal/readpos

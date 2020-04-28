@@ -17,10 +17,15 @@
 package core
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -74,7 +79,7 @@ type Message interface {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation bool, state vm.StateDB) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if contractCreation {
@@ -82,6 +87,17 @@ func IntrinsicGas(data []byte, contractCreation bool) (uint64, error) {
 	} else {
 		gas = params.TxGas
 	}
+
+	currVersion := gov.GetCurrentActiveVersion(state)
+	var noZeroGas, zeroGas uint64
+	if contractCreation && vm.CanUseWASMInterp(data) && currVersion >= params.FORKVERSION_0_11_0 {
+		noZeroGas = params.TxDataNonZeroWasmDeployGas
+		zeroGas = params.TxDataZeroWasmDeployGas
+	} else {
+		noZeroGas = params.TxDataNonZeroGas
+		zeroGas = params.TxDataZeroGas
+	}
+
 	// Bump the required gas by the amount of transactional data
 	if len(data) > 0 {
 		// Zero and non-zero bytes are priced differently
@@ -92,16 +108,16 @@ func IntrinsicGas(data []byte, contractCreation bool) (uint64, error) {
 			}
 		}
 		// Make sure we don't exceed uint64 for all data combinations
-		if (math.MaxUint64-gas)/params.TxDataNonZeroGas < nz {
+		if (math.MaxUint64-gas)/noZeroGas < nz {
 			return 0, vm.ErrOutOfGas
 		}
-		gas += nz * params.TxDataNonZeroGas
+		gas += nz * noZeroGas
 
 		z := uint64(len(data)) - nz
-		if (math.MaxUint64-gas)/params.TxDataZeroGas < z {
+		if (math.MaxUint64-gas)/zeroGas < z {
 			return 0, vm.ErrOutOfGas
 		}
-		gas += z * params.TxDataZeroGas
+		gas += z * zeroGas
 	}
 	return gas, nil
 }
@@ -179,6 +195,7 @@ func (st *StateTransition) preCheck() error {
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
+
 	// init initialGas value = txMsg.gas
 	if err = st.preCheck(); err != nil {
 		return
@@ -188,10 +205,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	contractCreation := msg.To() == nil
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation)
+	gas, err := IntrinsicGas(st.data, contractCreation, st.state)
 	if err != nil {
 		return nil, 0, false, err
 	}
+
 	if err = st.useGas(gas); err != nil {
 		return nil, 0, false, err
 	}
@@ -204,28 +222,54 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		vmerr error
 	)
 
-	// todo: shield contract to created in temporary
-	if contractCreation {
-		return nil, params.TxGasContractCreation, false, fmt.Errorf("contract creation is not allowed")
+	// Limit the time it takes for a virtual machine to execute the smart contract,
+	// Except precompiled contracts.
+	ctx := context.Background()
+	var cancelFn context.CancelFunc
+	if evm.GetVMConfig().VmTimeoutDuration > 0 &&
+		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()))) {
+
+		timeout := time.Duration(evm.GetVMConfig().VmTimeoutDuration) * time.Millisecond
+		ctx, cancelFn = context.WithTimeout(ctx, timeout)
+	} else {
+		ctx, cancelFn = context.WithCancel(ctx)
 	}
+	defer cancelFn()
+	// set req context to vm context
+	evm.Ctx = ctx
 
 	if contractCreation {
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		//log.Debug("Nonce tracking: SetNonce", "from", msg.From(), "nonce", st.state.GetNonce(sender.Address()))
-		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
+
+		var needSkipExec bool
+		to := *(msg.To())
+		currVersion := gov.GetCurrentActiveVersion(st.state)
+		if currVersion >= params.FORKVERSION_0_11_0 && state.IsBadContract(to) {
+			needSkipExec = true
+		}
+
+		if needSkipExec {
+			vmerr = vm.ErrExecBadContract
+			log.Debug("execute bad contract", "blockNumber", evm.BlockNumber, "txHash", evm.StateDB.TxHash().TerminalString(), "contractAddr", to.String())
+		} else {
+			ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		}
 	}
+
 	if vmerr != nil {
-		log.Debug("VM returned with error", "err", vmerr)
-		// The only possible consensus-error would be if there wasn't
+		log.Error("VM returned with error", "blockNumber", evm.BlockNumber, "txHash", evm.StateDB.TxHash().TerminalString(), "err", vmerr)
+		// A possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
-		if vmerr == vm.ErrInsufficientBalance {
+		// And vm was aborted.
+		if vmerr == vm.ErrInsufficientBalance || vmerr == vm.ErrAbort || vmerr == vm.ErrWASMUndefinedPanic {
 			return nil, 0, false, vmerr
 		}
 	}
+
 	st.refundGas()
 
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))

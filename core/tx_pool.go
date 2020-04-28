@@ -725,6 +725,29 @@ func (pool *TxPool) PendingLimited() (map[common.Address]types.Transactions, err
 	return pending, nil
 }
 
+// PendingLimited retrieves `pool.config.GlobalTxCount` processable transactions,
+// grouped by origin account and stored by nonce. The returned transaction set
+// is a copy and can be freely modified by calling code.
+func (pool *TxPool) PendingLimitedByAccounts(accounts map[common.Address]struct{}) (map[common.Address]types.Transactions, error) {
+	now := time.Now()
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	txCount := 0
+	pending := make(map[common.Address]types.Transactions)
+	for addr, list := range pool.pending {
+		if _, ok := accounts[addr]; ok {
+			pending[addr] = list.Flatten()
+			txCount += len(pending[addr])
+		}
+		if txCount >= int(pool.config.GlobalTxCount) {
+			break
+		}
+	}
+	log.Debug("Get pending By Accounts", "duration", time.Since(now))
+	return pending, nil
+}
+
 // Locals retrieves the accounts currently considered local by the pool.
 func (pool *TxPool) Locals() []common.Address {
 	pool.mu.Lock()
@@ -752,11 +775,6 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // validateTx checks whether a transaction is valid according to the consensus
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
-
-	// todo: shield contract to created in temporary
-	if tx.To() == nil {
-		return fmt.Errorf("contract creation is not allowed")
-	}
 
 	// Heuristic limit, reject transactions over 1MB to prevent DOS attacks
 	if tx.Size() > 1024*1024 {
@@ -790,7 +808,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.currentState)
 	if err != nil {
 		return err
 	}

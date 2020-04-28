@@ -222,7 +222,7 @@ func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *stat
 //
 // Note, the method returns immediately and will send the result async. More
 // than one result may also be returned depending on the consensus algorithm.
-func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) error {
 
 	header := block.Header()
 	if block.NumberU64() == 0 {
@@ -231,6 +231,7 @@ func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *t
 	sign := header.SealHash().Bytes()
 	copy(header.Extra[len(header.Extra)-ExtraSeal:], sign[:])
 	sealBlock := block.WithSeal(header)
+	complete <- struct{}{}
 	results <- sealBlock
 	bm.EventMux.Post(cbfttypes.CbftResult{
 		Block: sealBlock,
@@ -344,6 +345,11 @@ func (bm *BftMock) GetBlockByHash(hash common.Hash) *types.Block {
 		return bm.Blocks[index]
 	}
 
+	return nil
+}
+
+// GetBlockByHash get the specified block by hash and number.
+func (bm *BftMock) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
 	return nil
 }
 

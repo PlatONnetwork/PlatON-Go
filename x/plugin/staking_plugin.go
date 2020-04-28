@@ -19,11 +19,16 @@ package plugin
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
 	"strconv"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 
@@ -91,33 +96,40 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 	// adjust rewardPer and nextRewardPer
 	blockNumber := header.Number.Uint64()
 	if xutil.IsBeginOfEpoch(blockNumber) {
-		current, err := sk.getVerifierList(header.Hash(), blockNumber, QueryStartNotIrr)
+		current, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 		if err != nil {
 			log.Error("Failed to query current round validators on stakingPlugin BeginBlock",
-				"blockNumber", blockNumber, "blockHash", header.Hash().TerminalString(), "err", err)
+				"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
 		for _, v := range current.Arr {
-			canOld, err := sk.GetCandidateInfo(blockHash, v.NodeAddress)
+			canOld, err := sk.GetCanMutable(blockHash, v.NodeAddress)
 			if snapshotdb.NonDbNotFoundErr(err) || canOld.IsEmpty() {
 				log.Error("Failed to get candidate info on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
-					"blockNumber", blockNumber, "blockHash", header.Hash().TerminalString(), "err", err)
-				return fmt.Errorf("Failed to get candidate info on stakingPlugin BeginBlock, nodeAddress:%s, blockNumber:%d, blockHash:%s", v.NodeAddress.String(), blockNumber, header.Hash().TerminalString())
+					"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+				return fmt.Errorf("Failed to get candidate info on stakingPlugin BeginBlock, nodeAddress:%s, blockNumber:%d, blockHash:%s", v.NodeAddress.String(), blockNumber, blockHash.TerminalString())
 			}
 			if canOld.IsInvalid() {
 				continue
 			}
-
-			should := lazyCalcNodeTotalDelegateAmount(xutil.CalculateEpoch(blockNumber), canOld.CandidateMutable)
-			if canOld.RewardPer != canOld.NextRewardPer || should {
+			var changed bool
+			changed = lazyCalcNodeTotalDelegateAmount(xutil.CalculateEpoch(blockNumber), canOld)
+			if canOld.RewardPer != canOld.NextRewardPer {
 				canOld.RewardPer = canOld.NextRewardPer
-				err = sk.EditCandidate(blockHash, header.Number, v.NodeAddress, canOld)
-				if err != nil {
+				changed = true
+			}
+			if canOld.CurrentEpochDelegateReward.Cmp(common.Big0) > 0 {
+				canOld.CleanCurrentEpochDelegateReward()
+				changed = true
+			}
+			if changed {
+				if err = sk.db.SetCanMutableStore(blockHash, v.NodeAddress, canOld); err != nil {
 					log.Error("Failed to editCandidate on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
-						"blockNumber", blockNumber, "blockHash", header.Hash().TerminalString(), "err", err)
+						"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
 			}
+
 		}
 	}
 	return nil
@@ -218,7 +230,9 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 
 func (sk *StakingPlugin) addConsensusNode(nodes staking.ValidatorQueue) {
 	for _, node := range nodes {
-		sk.eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: node.NodeId})
+		if err := sk.eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: node.NodeId}); nil != err {
+			log.Error("post AddValidatorEvent failed", "nodeId", node.NodeId.TerminalString(), "err", err)
+		}
 	}
 }
 
@@ -243,7 +257,6 @@ func (sk *StakingPlugin) GetCandidateCompactInfo(blockHash common.Hash, blockNum
 	epoch := xutil.CalculateEpoch(blockNumber)
 	lazyCalcStakeAmount(epoch, can.CandidateMutable)
 	canHex := buildCanHex(can)
-
 	return canHex, nil
 }
 
@@ -695,6 +708,10 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 	return nil
 }
 
+func (sk *StakingPlugin) GetDelegatesInfo(blockHash common.Hash, delAddr common.Address) ([]*staking.DelegationInfo, error) {
+	return sk.db.GetDelegatesInfo(blockHash, delAddr)
+}
+
 func (sk *StakingPlugin) GetDelegateInfo(blockHash common.Hash, delAddr common.Address,
 	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.Delegation, error) {
 	return sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
@@ -776,13 +793,13 @@ func (sk *StakingPlugin) GetDelegateExInfoByIrr(delAddr common.Address,
 
 func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	delAddr common.Address, del *staking.Delegation, canAddr common.Address, can *staking.Candidate,
-	typ uint16, amount *big.Int) error {
+	typ uint16, amount *big.Int, delegateRewardPerList []*reward.DelegateRewardPer) error {
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
-	if err := calcDelegateIncome(blockNumber.Uint64(), blockHash, can.NodeId, uint32(epoch), del); nil != err {
-		log.Error("Failed to calcDelegateIncome", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "epoch", epoch,
-			"delAddr", delAddr.Hash(), "nodeID", can.NodeId.TerminalString())
+	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
+
+	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, rm.db); err != nil {
 		return err
 	}
 
@@ -856,14 +873,14 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 }
 
 func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
-	delAddr common.Address, nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation) error {
-
+	delAddr common.Address, nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer) (*big.Int, error) {
+	issueIncome := new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: nodeId parse addr failed",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
-		return err
+		return nil, err
 	}
 
 	can, err := sk.db.GetCandidateStore(blockHash, canAddr)
@@ -871,7 +888,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: Query candidate info failed",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
-		return err
+		return nil, err
 	}
 
 	total := calcDelegateTotalAmount(del)
@@ -881,21 +898,23 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "delegate amount", total,
 			"withdrew amount", amount)
-		return staking.ErrDelegateVonNoEnough
+		return nil, staking.ErrDelegateVonNoEnough
 	}
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 	refundAmount := calcRealRefund(blockNumber.Uint64(), blockHash, total, amount)
 	realSub := refundAmount
 
-	if err := calcDelegateIncome(blockNumber.Uint64(), blockHash, can.NodeId, uint32(epoch), del); nil != err {
-		log.Error("Failed to calcDelegateIncome", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "epoch", epoch,
-			"delAddr", delAddr.Hash(), "nodeID", can.NodeId.TerminalString())
-		return err
+	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
+
+	if err := UpdateDelegateRewardPer(blockHash, nodeId, stakingBlockNum, rewardsReceive, rm.db); err != nil {
+		return nil, err
 	}
 
 	// Update total delegate
-	lazyCalcNodeTotalDelegateAmount(epoch, can.CandidateMutable)
+	if can.IsNotEmpty() {
+		lazyCalcNodeTotalDelegateAmount(epoch, can.CandidateMutable)
+	}
 
 	del.DelegateEpoch = uint32(epoch)
 
@@ -906,7 +925,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "fn.stakeBlockNum", stakingBlockNum,
 			"can.stakeBlockNum", can.StakingBlockNum)
-		return staking.ErrBlockNumberDisordered
+		return nil, staking.ErrBlockNumberDisordered
 	default:
 		log.Debug("Call WithdrewDelegate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
@@ -919,9 +938,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				log.Error("Failed  to WithdrewDelegate, refund the hesitate balance is failed", "blockNumber", blockNumber,
 					"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
 					"refund balance", refundAmount, "releaseHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes, "err", err)
-				return err
+				return nil, err
 			}
-			can.DelegateTotalHes = new(big.Int).Sub(can.DelegateTotalHes, new(big.Int).Sub(refundAmount, rm))
+			if can.IsNotEmpty() {
+				can.DelegateTotalHes = new(big.Int).Sub(can.DelegateTotalHes, new(big.Int).Sub(refundAmount, rm))
+			}
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
 		}
 
@@ -932,9 +953,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				log.Error("Failed  to WithdrewDelegate, refund the no hesitate balance is failed", "blockNumber", blockNumber,
 					"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
 					"refund balance", refundAmount, "release", del.Released, "restrictingPlan", del.RestrictingPlan, "err", err)
-				return err
+				return nil, err
 			}
-			can.DelegateTotal = new(big.Int).Sub(can.DelegateTotal, new(big.Int).Sub(refundAmount, rm))
+			if can.IsNotEmpty() {
+				can.DelegateTotal = new(big.Int).Sub(can.DelegateTotal, new(big.Int).Sub(refundAmount, rm))
+			}
 			refundAmount, del.Released, del.RestrictingPlan = rm, rbalance, lbalance
 		}
 
@@ -943,61 +966,73 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 				"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "del balance", total,
 				"withdrew balance", amount, "realSub amount", realSub, "withdrew remain", refundAmount)
-			return staking.ErrWrongWithdrewDelVonCalc
+			return nil, staking.ErrWrongWithdrewDelVonCalc
 		}
 
 		// If tatol had full sub,
 		// then clean the delegate info
 		if total.Cmp(realSub) == 0 {
+			// When the entrusted information is deleted, the entrusted proceeds need to be issued automatically
+			issueIncome = issueIncome.Add(issueIncome, del.CumulativeIncome)
+			if err := rm.ReturnDelegateReward(delAddr, del.CumulativeIncome, state); err != nil {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: return delegate reward is failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
+					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
+				return nil, common.InternalError
+			}
+			log.Debug("Successful ReturnDelegateReward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.TerminalString(),
+				"delAddr", delAddr.Hex(), "cumulativeIncome", issueIncome)
 			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
 				log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete detegate is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
-				return err
+				return nil, err
 			}
 		} else {
 			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del); nil != err {
 				log.Error("Failed to WithdrewDelegate on stakingPlugin: Store detegate is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	if can.IsNotEmpty() && stakingBlockNum == can.StakingBlockNum && can.IsValid() {
-		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete candidate old power is failed", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
-				"stakingBlockNum", stakingBlockNum, "err", err)
-			return err
-		}
+	if can.IsNotEmpty() && stakingBlockNum == can.StakingBlockNum {
+		if can.IsValid() {
+			if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete candidate old power is failed", "blockNumber",
+					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
+					"stakingBlockNum", stakingBlockNum, "err", err)
+				return nil, err
+			}
 
-		// change candidate shares
-		if can.Shares.Cmp(realSub) > 0 {
-			can.SubShares(realSub)
-		} else {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: the candidate shares is no enough", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNum",
-				stakingBlockNum, "can shares", can.Shares, "real withdrew delegate amount", realSub)
-			panic("the candidate shares is no enough")
+			// change candidate shares
+			if can.Shares.Cmp(realSub) > 0 {
+				can.SubShares(realSub)
+			} else {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: the candidate shares is no enough", "blockNumber",
+					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNum",
+					stakingBlockNum, "can shares", can.Shares, "real withdrew delegate amount", realSub)
+				panic("the candidate shares is no enough")
+			}
+
+			if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: Store candidate old power is failed", "blockNumber",
+					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
+					"stakingBlockNum", stakingBlockNum, "err", err)
+				return nil, err
+			}
 		}
 
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: Store CandidateMutable info is failed", "blockNumber",
 				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
-				"stakingBlockNum", stakingBlockNum, "err", err)
-			return err
-		}
-
-		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: Store candidate old power is failed", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
-				"stakingBlockNum", stakingBlockNum, "err", err)
-			return err
+				"stakingBlockNum", stakingBlockNum, "candidateMutable", can.CandidateMutable, "err", err)
+			return nil, err
 		}
 	}
-	return nil
+	return issueIncome, nil
 }
 
 func rufundDelegateFn(refundBalance, aboutRelease, aboutRestrictingPlan *big.Int, delAddr common.Address, state xcom.StateDB) (*big.Int, *big.Int, *big.Int, error) {
@@ -1070,6 +1105,12 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	currOriginVersion := gov.GetVersionForStaking(blockHash, state)
 	currVersion := xutil.CalcVersion(currOriginVersion)
 
+	currentVersion := gov.GetCurrentActiveVersion(state)
+	if currentVersion == 0 {
+		log.Error("Failed to ElectNextVerifierList, GetCurrentActiveVersion is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString())
+		return errors.New("Failed to get CurrentActiveVersion")
+	}
+
 	maxvalidators, err := gov.GovernMaxValidators(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to ElectNextVerifierList: query govern params `maxvalidators` is failed", "blockNumber",
@@ -1089,25 +1130,41 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 	for iter.Valid(); iter.Next(); {
 
-		// todo test
-		log.Debug("ElectNextVerifierList: iter", "key", hex.EncodeToString(iter.Key()))
-
 		addrSuffix := iter.Value()
 		canBase, err := sk.db.GetCanBaseStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
 			log.Error("Failed to ElectNextVerifierList: Query CandidateBase info is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			if err == snapshotdb.ErrNotFound {
+				if err := sk.db.Del(blockHash, iter.Key()); err != nil {
+					return err
+				}
+				// for fix bug Power exist, bug Base is del
+				continue
+			}
 			return err
 		}
 
-		if canBase.ProgramVersion < currVersion {
-			log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
-				"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
-				canBase.ProgramVersion, "currVersion", currVersion)
+		if currentVersion >= params.FORKVERSION_0_11_0 {
+			if xutil.CalcVersion(canBase.ProgramVersion) < currVersion {
+				log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
+					"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
+					canBase.ProgramVersion, "currVersion", currVersion)
 
-			// Low program version cannot be elected for epoch validator
-			continue
+				// Low program version cannot be elected for epoch validator
+				continue
+			}
+		} else {
+			if canBase.ProgramVersion < currVersion {
+				log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
+					"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
+					canBase.ProgramVersion, "currVersion", currVersion)
+
+				// Low program version cannot be elected for epoch validator
+				continue
+			}
 		}
 
 		addr := common.BytesToAddress(addrSuffix)
@@ -1150,6 +1207,34 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	return nil
 }
 
+func (sk *StakingPlugin) GetVerifierCandidateInfo(blockHash common.Hash, blockNumber uint64) ([]*staking.Candidate, error) {
+	verifierList, err := sk.getVerifierList(blockHash, blockNumber, false)
+	if nil != err {
+		return nil, err
+	}
+
+	if blockNumber < verifierList.Start || blockNumber > verifierList.End {
+		log.Error("Failed to GetVerifierList", "start", verifierList.Start,
+			"end", verifierList.End, "currentNumer", blockNumber)
+		return nil, staking.ErrBlockNumberDisordered
+	}
+
+	queue := make([]*staking.Candidate, len(verifierList.Arr))
+
+	for i, v := range verifierList.Arr {
+		//var can *staking.CandidateBase
+		c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
+		if nil != err {
+			log.Error("Failed to call GetVerifierList, Query Candidate Store info is failed",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(),
+				"canAddr", v.NodeAddress.Hex(), "err", err.Error())
+			return nil, err
+		}
+		queue[i] = c
+	}
+	return queue, nil
+}
+
 func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
 	verifierList, err := sk.getVerifierList(blockHash, blockNumber, isCommit)
 	if nil != err {
@@ -1173,7 +1258,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			//c, err := sk.db.GetCanBaseStore(blockHash, v.NodeAddress)
 			c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
 			if nil != err {
-				log.Error("Failed to call GetVerifierList, Quey Candidate Store info is failed",
+				log.Error("Failed to call GetVerifierList, Query Candidate Store info is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(),
 					"canAddr", v.NodeAddress.Hex(), "isCommit", isCommit, "err", err.Error())
 				return nil, err
@@ -1183,7 +1268,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			//c, err := sk.db.GetCanBaseStoreByIrr(v.NodeAddress)
 			c, err := sk.db.GetCandidateStoreByIrr(v.NodeAddress)
 			if nil != err {
-				log.Error("Failed to call GetVerifierList, Quey Candidate Store info is failed",
+				log.Error("Failed to call GetVerifierList, Query Candidate Store info is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(),
 					"canAddr", v.NodeAddress.Hex(), "isCommit", isCommit, "err", err.Error())
 				return nil, err
@@ -1194,19 +1279,20 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
 
 		valEx := &staking.ValidatorEx{
-			NodeId:          can.NodeId,
-			BlsPubKey:       can.BlsPubKey,
-			StakingAddress:  can.StakingAddress,
-			BenefitAddress:  can.BenefitAddress,
-			RewardPer:       can.RewardPer,
-			NextRewardPer:   can.NextRewardPer,
-			StakingTxIndex:  can.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion,
-			StakingBlockNum: can.StakingBlockNum,
-			Shares:          (*hexutil.Big)(v.Shares),
-			Description:     can.Description,
-			ValidatorTerm:   v.ValidatorTerm,
-			DelegateTotal:   (*hexutil.Big)(can.DelegateTotal),
+			NodeId:              can.NodeId,
+			BlsPubKey:           can.BlsPubKey,
+			StakingAddress:      can.StakingAddress,
+			BenefitAddress:      can.BenefitAddress,
+			RewardPer:           can.RewardPer,
+			NextRewardPer:       can.NextRewardPer,
+			StakingTxIndex:      can.StakingTxIndex,
+			ProgramVersion:      can.ProgramVersion,
+			StakingBlockNum:     can.StakingBlockNum,
+			Shares:              (*hexutil.Big)(v.Shares),
+			Description:         can.Description,
+			ValidatorTerm:       v.ValidatorTerm,
+			DelegateTotal:       (*hexutil.Big)(can.DelegateTotal),
+			DelegateRewardTotal: (*hexutil.Big)(can.DelegateRewardTotal),
 		}
 		queue[i] = valEx
 	}
@@ -1350,19 +1436,20 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 		}
 
 		valEx := &staking.ValidatorEx{
-			NodeId:          can.NodeId,
-			BlsPubKey:       can.BlsPubKey,
-			StakingAddress:  can.StakingAddress,
-			BenefitAddress:  can.BenefitAddress,
-			RewardPer:       can.RewardPer,
-			NextRewardPer:   can.NextRewardPer,
-			StakingTxIndex:  can.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion,
-			StakingBlockNum: can.StakingBlockNum,
-			Shares:          (*hexutil.Big)(v.Shares),
-			Description:     can.Description,
-			ValidatorTerm:   v.ValidatorTerm,
-			DelegateTotal:   (*hexutil.Big)(can.DelegateTotal),
+			NodeId:              can.NodeId,
+			BlsPubKey:           can.BlsPubKey,
+			StakingAddress:      can.StakingAddress,
+			BenefitAddress:      can.BenefitAddress,
+			RewardPer:           can.RewardPer,
+			NextRewardPer:       can.NextRewardPer,
+			StakingTxIndex:      can.StakingTxIndex,
+			ProgramVersion:      can.ProgramVersion,
+			StakingBlockNum:     can.StakingBlockNum,
+			Shares:              (*hexutil.Big)(v.Shares),
+			Description:         can.Description,
+			ValidatorTerm:       v.ValidatorTerm,
+			DelegateTotal:       (*hexutil.Big)(can.DelegateTotal),
+			DelegateRewardTotal: (*hexutil.Big)(can.DelegateRewardTotal),
 		}
 		queue[i] = valEx
 	}
@@ -1645,7 +1732,14 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			status.IsInvalidDuplicateSign()
 	}
 
+	currentVersion := gov.GetCurrentActiveVersion(state)
+	if currentVersion == 0 {
+		log.Error("Failed to Election, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
+		return errors.New("Failed to get CurrentActiveVersion")
+	}
+
 	currMap := make(map[discover.NodeID]*big.Int, len(curr.Arr))
+	currqueen := make([]*staking.Validator, 0)
 	for _, v := range curr.Arr {
 
 		canAddr, _ := xutil.NodeId2Addr(v.NodeId)
@@ -1653,6 +1747,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to Query Candidate Info on Election", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
+			if err == snapshotdb.ErrNotFound {
+				// for fix bug Power exist, bug Base is del
+				continue
+			}
 			return err
 		}
 
@@ -1678,12 +1776,21 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 		// Collect candidate who need to be removed
 		// from the validators because the version is too low
-		if can.ProgramVersion < currVersion {
-			removeCans[v.NodeId] = can
-			needRMLowVersionLen++
+
+		if currentVersion >= params.FORKVERSION_0_11_0 {
+			if xutil.CalcVersion(can.ProgramVersion) < currVersion {
+				removeCans[v.NodeId] = can
+				needRMLowVersionLen++
+			}
+		} else {
+			if can.ProgramVersion < currVersion {
+				removeCans[v.NodeId] = can
+				needRMLowVersionLen++
+			}
 		}
 
 		currMap[v.NodeId] = v.Shares
+		currqueen = append(currqueen, v)
 	}
 
 	// Exclude the current consensus round validators from the validators of the Epoch
@@ -1704,6 +1811,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to Get Candidate on Election", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
+			if err == snapshotdb.ErrNotFound {
+				// for fix bug Power exist, bug Base is del
+				continue
+			}
 			return err
 		}
 
@@ -1713,8 +1824,14 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 
 		// Ignore the low version
-		if can.ProgramVersion < currVersion {
-			continue
+		if currentVersion >= params.FORKVERSION_0_11_0 {
+			if xutil.CalcVersion(can.ProgramVersion) < currVersion {
+				continue
+			}
+		} else {
+			if can.ProgramVersion < currVersion {
+				continue
+			}
 		}
 
 		diffQueue = append(diffQueue, v)
@@ -1772,7 +1889,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	}
 
 	if vrfLen != 0 {
-		if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
+		if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash, blockNumber, currentVersion); nil != err {
 			log.Error("Failed to VrfElection on Election",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
@@ -1789,7 +1906,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
 		"vrfQueueLen", len(vrfQueue))
 
-	nextQueue := shuffle(invalidLen, curr.Arr, vrfQueue)
+	nextQueue := shuffle(invalidLen, currqueen, vrfQueue)
 
 	if len(nextQueue) == 0 {
 		panic("The Next Round Validator is empty, blockNumber: " + fmt.Sprint(blockNumber))
@@ -1931,7 +2048,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	// Balance that can only be effective for Slash
 	total := new(big.Int).Add(can.Released, can.RestrictingPlan)
 
-	if total.Cmp(slashItem.Amount) < 0 {
+	if slashItem.Amount != nil && total.Cmp(slashItem.Amount) < 0 {
 		log.Error("Warned to SlashCandidates: the candidate total staking amount is not enough",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(),
 			"candidate total amount", total, "slashing amount", slashItem.Amount)
@@ -2005,6 +2122,13 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	log.Debug("Call SlashCandidates: the status", "needInvalid", needInvalid,
 		"needRemove", needRemove, "current can.Status", can.Status, "need to superpose status", changeStatus)
+
+	if needRemove {
+		if err := rm.ReturnDelegateReward(can.BenefitAddress, can.CurrentEpochDelegateReward, state); err != nil {
+			log.Error("Call SlashCandidates:return delegateReward", "err", err)
+		}
+		can.CleanCurrentEpochDelegateReward()
+	}
 
 	if needInvalid && can.IsValid() {
 
@@ -2092,12 +2216,11 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 
 		if _, ok := slashNodeIdMap[val.NodeId]; ok {
 
-			log.Debug("Call SlashCandidates, Delete the validator", "blockNumber", blockNumber,
+			log.Info("Call SlashCandidates, Delete the validator", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", val.NodeId.String())
 
 			verifier.Arr = append(verifier.Arr[:i], verifier.Arr[i+1:]...)
 			i--
-			break
 		}
 	}
 
@@ -2197,13 +2320,14 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 }
 
 func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
-	programVersion uint32) error {
+	programVersion uint32, state xcom.StateDB) error {
 
-	log.Debug("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
+	log.Info("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
 
 	for _, nodeId := range nodeIds {
-
+		log.Info("Call ProposalPassedNotify itr nodeId", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "nodeid", nodeId)
 		addr, _ := xutil.NodeId2Addr(nodeId)
 		can, err := sk.db.GetCandidateStore(blockHash, addr)
 		if snapshotdb.NonDbNotFoundErr(err) {
@@ -2216,6 +2340,13 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			log.Error("Failed to ProposalPassedNotify: Promote candidate programVersion failed, the can is empty",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 			continue
+		}
+
+		if gov.CheckForkPIP0_11_0(state) || programVersion == params.FORKVERSION_0_11_0 {
+			if can.IsInvalid() {
+				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
+				continue
+			}
 		}
 
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
@@ -2244,9 +2375,9 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 }
 
 func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
-	programVersion uint32) error {
+	programVersion uint32, state xcom.StateDB) error {
 
-	log.Debug("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
+	log.Info("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", xutil.CalcVersion(programVersion), "nodeId", nodeId.String())
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
@@ -2261,6 +2392,11 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		log.Error("Failed to DeclarePromoteNotify: Promote candidate programVersion failed, the can is empty",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 			"version", programVersion)
+		return nil
+	}
+
+	if gov.CheckForkPIP0_11_0(state) && can.IsInvalid() {
+		log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
 		return nil
 	}
 
@@ -2371,6 +2507,9 @@ func buildCbftValidators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Va
 }
 
 func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
+	if can.IsEmpty() {
+		return
+	}
 
 	changeAmountEpoch := can.StakingEpoch
 
@@ -2399,6 +2538,9 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
 
 // The total delegate amount of the compute node
 func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable) bool {
+	if can.IsEmpty() {
+		return false
+	}
 	changeAmountEpoch := can.DelegateEpoch
 	sub := epoch - uint64(changeAmountEpoch)
 	log.Debug("lazyCalcNodeTotalDelegateAmount before", "current epoch", epoch, "canMutable", can)
@@ -2416,6 +2558,9 @@ func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable
 }
 
 func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
+	if del.IsEmpty() {
+		return
+	}
 
 	// When the first time, there was no previous changeAmountEpoch
 	if del.DelegateEpoch == 0 {
@@ -2447,29 +2592,52 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 }
 
 // Calculating Total Entrusted Income
-func calcDelegateIncome(blockNumber uint64, blockHash common.Hash, nodeID discover.NodeID, epoch uint32, del *staking.Delegation) error {
+func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.DelegateRewardPer) []reward.DelegateRewardReceipt {
+	if del.IsEmpty() {
+		return nil
+	}
 	// Triggered again in the same cycle, no need to calculate revenue
-	if del.DelegateEpoch == epoch {
+	if uint64(del.DelegateEpoch) == epoch {
 		return nil
 	}
-	rewardPerList, err := GetDelegateRewardPerList(blockNumber, blockHash, nodeID, del.DelegateEpoch, epoch)
-	if nil != err {
-		return err
-	}
-	if rewardPerList == nil {
+	// When the settlement period when the first delegation is the same as the settlement period when the node is staking,
+	// and when the delegation is performed again in the next settlement cycle,
+	// the "per" value of the node is not available at this time, so you need to directly lazy
+	if len(per) == 0 {
+		lazyCalcDelegateAmount(epoch, del)
 		return nil
+	}
+
+	delegateRewardReceives := make([]reward.DelegateRewardReceipt, 0)
+	// When the settlement period at the first delegation is the same as the settlement period at the node's staking,
+	// , And when a second delegation is made after multiple billing cycles,
+	// For example: the node staking when the settlement period = 1, and the delegation is also in this settlement period. At this time,
+	// the node's "per" value only starts when the settlement period = 2; now it is the settlement period = 5, and this time it needs to be calculated When entrusting the income,
+	// you need to convert the entrustment from the hesitation period to the lock-in period before calculating.
+	if per[0].Epoch > uint64(del.DelegateEpoch) {
+		lazyCalcDelegateAmount(epoch, del)
 	}
 	totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
-	for i, rewardPer := range *rewardPerList {
+	for i, rewardPer := range per {
 		if totalReleased.Cmp(common.Big0) > 0 {
-			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, new(big.Int).Mul(totalReleased, rewardPer.Amount))
-			// TODO 这里需要调用rewardPerList的减值操作
+			if nil == del.CumulativeIncome {
+				del.CumulativeIncome = new(big.Int)
+			}
+			delegateRewardReceive := reward.DelegateRewardReceipt{
+				Epoch:    rewardPer.Epoch,
+				Delegate: new(big.Int).Set(totalReleased),
+			}
+			delegateRewardReceives = append(delegateRewardReceives, delegateRewardReceive)
+			del.CumulativeIncome = new(big.Int).Add(del.CumulativeIncome, rewardPer.CalDelegateReward(totalReleased))
 		}
 		if i == 0 {
-			lazyCalcDelegateAmount(uint64(epoch), del)
+			lazyCalcDelegateAmount(epoch, del)
+			totalReleased = new(big.Int).Add(del.Released, del.RestrictingPlan)
 		}
 	}
-	return nil
+	log.Debug("Call calcDelegateIncome end", "currEpoch", epoch, "perLen", len(per), "delegateRewardReceivesLen", len(delegateRewardReceives),
+		"totalDelegate", totalReleased, "totalHes", new(big.Int).Add(del.ReleasedHes, del.RestrictingPlanHes), "income", del.CumulativeIncome)
+	return delegateRewardReceives
 }
 
 type sortValidator struct {
@@ -2511,29 +2679,59 @@ func (svs sortValidatorQueue) Swap(i, j int) {
 	svs[i], svs[j] = svs[j], svs[i]
 }
 
+type newSortValidatorQueue []*sortValidator
+
+func (svs newSortValidatorQueue) Len() int {
+	return len(svs)
+}
+
+func (svs newSortValidatorQueue) Less(i, j int) bool {
+	if xutil.CalcVersion(svs[i].version) == xutil.CalcVersion(svs[j].version) {
+		if svs[i].x == svs[j].x {
+			if svs[i].blockNumber == svs[j].blockNumber {
+				if svs[i].txIndex == svs[j].txIndex {
+					return false
+				} else {
+					return svs[i].txIndex < svs[j].txIndex
+				}
+			} else {
+				return svs[i].blockNumber < svs[j].blockNumber
+			}
+		} else {
+			return svs[i].x > svs[j].x
+		}
+	} else {
+		return xutil.CalcVersion(svs[i].version) > xutil.CalcVersion(svs[j].version)
+	}
+}
+
+func (svs newSortValidatorQueue) Swap(i, j int) {
+	svs[i], svs[j] = svs[j], svs[i]
+}
+
 // Elected verifier by vrf random election
 // validatorList：Waiting for the elected node
 // nonce：Vrf proof of the current block
 // parentHash：Parent block hash
-func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byte, parentHash common.Hash) (staking.ValidatorQueue, error) {
+func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byte, parentHash common.Hash, blockNumber uint64, currentVersion uint32) (staking.ValidatorQueue, error) {
 	preNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
 	if nil != err {
 		return nil, err
 	}
 	if len(preNonces) < len(validatorList) {
-		log.Error("Failed to vrfElection on Election", "validatorListSize", len(validatorList),
+		log.Error("Failed to vrfElection on Election", "blockNumber", blockNumber, "validatorListSize", len(validatorList),
 			"nonceSize", len(nonce), "preNoncesSize", len(preNonces), "parentHash", hex.EncodeToString(parentHash.Bytes()))
 		return nil, staking.ErrWrongFuncParams
 	}
 	if len(preNonces) > len(validatorList) {
 		preNonces = preNonces[len(preNonces)-len(validatorList):]
 	}
-	return probabilityElection(validatorList, shiftLen, vrf.ProofToHash(nonce), preNonces)
+	return probabilityElection(validatorList, shiftLen, vrf.ProofToHash(nonce), preNonces, blockNumber, currentVersion)
 }
 
-func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
+func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte, blockNumber uint64, currentVersion uint32) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
-		log.Error("Failed to probabilityElection", "validators Size", len(validatorList),
+		log.Error("Failed to probabilityElection", "blockNumber", blockNumber, "currentVersion", currentVersion, "validators Size", len(validatorList),
 			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces))
 		return nil, staking.ErrWrongFuncParams
 	}
@@ -2562,7 +2760,7 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 	// todo This is an empirical formula, and the follow-up will make a better determination.
 	p := float64(xcom.ShiftValidatorNum()) * float64(xcom.MaxConsensusVals()) / sumWeightsFloat
 
-	log.Debug("Call probabilityElection Basic parameter on Election", "validatorListSize", len(validatorList),
+	log.Debug("Call probabilityElection Basic parameter on Election", "blockNumber", blockNumber, "currentVersion", currentVersion, "validatorListSize", len(validatorList),
 		"p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen)
 
 	for index, sv := range svList {
@@ -2579,25 +2777,40 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 		}
 		sv.x = x
 
-		//log.Debug("Call probabilityElection, calculated probability on Election", "nodeId", sv.v.NodeId.TerminalString(),
-		//	"addr", sv.v.NodeAddress.Hex(), "index", index, "currentNonce",
-		//	hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]),
-		//	"target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version,
-		//	"blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
+		log.Debug("Call probabilityElection, calculated probability on Election", "nodeId", sv.v.NodeId.TerminalString(),
+			"addr", sv.v.NodeAddress.Hex(), "index", index, "currentNonce",
+			hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]),
+			"target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version,
+			"blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
-	sort.Sort(svList)
-
-	log.Debug("Call probabilityElection, sort probability queue", "list", svList)
 
 	vrfQueue := make(staking.ValidatorQueue, shiftLen)
-	for index, sv := range svList {
-		if index == shiftLen {
-			break
+
+	log.Debug("Call probabilityElection, sort probability queue", "blockNumber", blockNumber, "currentVersion", currentVersion, "list", svList)
+
+	if currentVersion >= params.FORKVERSION_0_11_0 {
+		nsvList := make(newSortValidatorQueue, len(svList))
+		for index, sv := range svList {
+			nsvList[index] = sv
 		}
-		vrfQueue[index] = sv.v
+		sort.Sort(nsvList)
+		for index, sv := range nsvList {
+			if index == shiftLen {
+				break
+			}
+			vrfQueue[index] = sv.v
+		}
+	} else {
+		sort.Sort(svList)
+		for index, sv := range svList {
+			if index == shiftLen {
+				break
+			}
+			vrfQueue[index] = sv.v
+		}
 	}
 
-	log.Debug("Call probabilityElection finished", "vrfQueue", vrfQueue)
+	log.Debug("Call probabilityElection finished", "blockNumber", blockNumber, "currentVersion", currentVersion, "vrfQueue", vrfQueue)
 
 	return vrfQueue, nil
 }
@@ -2936,8 +3149,7 @@ func (sk *StakingPlugin) setRoundValListByIndex(blockNumber uint64, blockHash co
 
 	if !hasIndex {
 		log.Error("Not Found current validatorList index", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "input Start", valArr.Start, "input End", valArr.End)
-		xcom.PrintObjForErr("The history round indexs arr is", queue)
+			"blockHash", blockHash.Hex(), "input Start", valArr.Start, "input End", valArr.End, "queue", queue)
 		return staking.ErrValidatorNoExist
 	}
 
@@ -3260,26 +3472,27 @@ func calcRealRefund(blockNumber uint64, blockHash common.Hash, realtotal, amount
 
 func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 	return &staking.CandidateHex{
-		NodeId:             can.NodeId,
-		BlsPubKey:          can.BlsPubKey,
-		StakingAddress:     can.StakingAddress,
-		BenefitAddress:     can.BenefitAddress,
-		RewardPer:          can.RewardPer,
-		NextRewardPer:      can.NextRewardPer,
-		StakingTxIndex:     can.StakingTxIndex,
-		ProgramVersion:     can.ProgramVersion,
-		Status:             can.Status,
-		StakingEpoch:       can.StakingEpoch,
-		StakingBlockNum:    can.StakingBlockNum,
-		Shares:             (*hexutil.Big)(can.Shares),
-		Released:           (*hexutil.Big)(can.Released),
-		ReleasedHes:        (*hexutil.Big)(can.ReleasedHes),
-		RestrictingPlan:    (*hexutil.Big)(can.RestrictingPlan),
-		RestrictingPlanHes: (*hexutil.Big)(can.RestrictingPlanHes),
-		DelegateEpoch:      can.DelegateEpoch,
-		DelegateTotal:      (*hexutil.Big)(can.DelegateTotal),
-		DelegateTotalHes:   (*hexutil.Big)(can.DelegateTotalHes),
-		Description:        can.Description,
+		NodeId:              can.NodeId,
+		BlsPubKey:           can.BlsPubKey,
+		StakingAddress:      can.StakingAddress,
+		BenefitAddress:      can.BenefitAddress,
+		RewardPer:           can.RewardPer,
+		NextRewardPer:       can.NextRewardPer,
+		StakingTxIndex:      can.StakingTxIndex,
+		ProgramVersion:      can.ProgramVersion,
+		Status:              can.Status,
+		StakingEpoch:        can.StakingEpoch,
+		StakingBlockNum:     can.StakingBlockNum,
+		Shares:              (*hexutil.Big)(can.Shares),
+		Released:            (*hexutil.Big)(can.Released),
+		ReleasedHes:         (*hexutil.Big)(can.ReleasedHes),
+		RestrictingPlan:     (*hexutil.Big)(can.RestrictingPlan),
+		RestrictingPlanHes:  (*hexutil.Big)(can.RestrictingPlanHes),
+		DelegateEpoch:       can.DelegateEpoch,
+		DelegateTotal:       (*hexutil.Big)(can.DelegateTotal),
+		DelegateTotalHes:    (*hexutil.Big)(can.DelegateTotalHes),
+		Description:         can.Description,
+		DelegateRewardTotal: (*hexutil.Big)(can.DelegateRewardTotal),
 	}
 }
 
