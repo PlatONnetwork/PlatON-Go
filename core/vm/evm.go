@@ -457,7 +457,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		var createDataGas uint64
 		if CanUseWASMInterp(ret) {
 			createDataGas = uint64(len(ret)) * params.CreateWasmDataGas
-		}else {
+		} else {
 			createDataGas = uint64(len(ret)) * params.CreateDataGas
 		}
 

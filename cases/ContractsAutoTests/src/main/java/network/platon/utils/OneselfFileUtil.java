@@ -2,7 +2,7 @@ package network.platon.utils;
 
 import network.platon.autotest.utils.FileUtil;
 
-import java.io.File;
+import java.io.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -96,5 +96,31 @@ public class OneselfFileUtil {
             }
         }
         return files;
+    }
+
+    public static String readFile(String Path){
+        BufferedReader reader = null;
+        String laststr = "";
+        try{
+            FileInputStream fileInputStream = new FileInputStream(Path);
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+            reader = new BufferedReader(inputStreamReader);
+            String tempString = null;
+            while((tempString = reader.readLine()) != null){
+                laststr += tempString;
+            }
+            reader.close();
+        }catch(IOException e){
+            e.printStackTrace();
+        }finally{
+            if(reader != null){
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return laststr;
     }
 }

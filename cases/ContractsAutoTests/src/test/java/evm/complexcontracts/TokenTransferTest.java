@@ -70,7 +70,7 @@ public class TokenTransferTest {
         }
 
 
-        ContractGasProvider provider = new ContractGasProvider(new BigInteger("50000000000"), new BigInteger("3000000"));
+        ContractGasProvider provider = new ContractGasProvider(new BigInteger("5000000000000"), new BigInteger("3000000"));
         RawTransactionManager transactionManager = new RawTransactionManager(web3j, credentials, chainId);
 
         try {

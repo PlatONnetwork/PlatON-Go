@@ -187,12 +187,8 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.assertEqual(getChar.getValue(), expectByte.byteValue());
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract_3 and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract_3 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("IntegerDataTypeContract_3 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -209,6 +205,13 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("IntegerDataTypeContract_4 issued successfully.contractAddress:"
                     + contractAddress + ", hash:" + transactionHash
                     + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
+
+            // init address
+            TransactionReceipt initTr = contract.initAddress().send();
+            collector.logStepPass("To invoke initAddress success, txHash: " + initTr.getTransactionHash());
+            String afterInitAddress = contract.getAddress().send();
+            collector.logStepPass("To invoke getAddress success, getAddress: " + afterInitAddress);
+            collector.assertEqual(afterInitAddress.toLowerCase(), "0xf674172E619af9C09C126a568CF2838d243cE7F7".toLowerCase());
 
             // test: store address
             Address expectAddr = new Address("0x5b05e7a3e2a688c5e5cc491545a84a1efc66c1b1");
@@ -235,12 +238,8 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             //collector.assertEqual(getH256, expectH256);
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract_4 and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -413,12 +412,8 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             }
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract_02 and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract_02 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("IntegerDataTypeContract_02 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 }

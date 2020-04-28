@@ -42,12 +42,8 @@ public class OverrideContractTest extends WASMContractPrepareTest {
             collector.assertEqual(area02.getValue(), BigInteger.valueOf(10000));
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("OverrideContract and could not call contract function");
-            }else{
-                collector.logStepFail("OverrideContract failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("OverrideContract failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 }

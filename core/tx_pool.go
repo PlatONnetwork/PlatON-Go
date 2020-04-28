@@ -785,7 +785,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.currentState)
 	if err != nil {
 		return err
 	}

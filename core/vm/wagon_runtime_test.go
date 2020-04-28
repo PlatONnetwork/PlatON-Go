@@ -11,6 +11,8 @@ import (
 	"math/big"
 	"testing"
 
+	"golang.org/x/crypto/ripemd160"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -535,8 +537,7 @@ var testCase = []*Case{
 			count := 0
 			storage := make(map[string][]byte)
 			// check storage of newcontract
-			ctx.evm.StateDB.ForEachStorage(newContract, func(key, value []byte) bool {
-				//fmt.Println("key:", string(key), "value:", string(value))
+			ctx.evm.StateDB.ForEachStorage(newContract, func(key []byte, value []byte) bool {
 				storage[string(key)] = []byte("aaa")
 				count++
 				return false

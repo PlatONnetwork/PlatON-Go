@@ -28,7 +28,7 @@ public class ContractPanicWithSmalllGasTest extends WASMContractPrepareTest {
         try {
             prepare();
             //gas设置过小
-            provider = new ContractGasProvider(BigInteger.valueOf(50L), BigInteger.valueOf(90000000L));
+//            provider = new ContractGasProvider(BigInteger.valueOf(50L), BigInteger.valueOf(90000000L));
             Contract_panic contractPanic = Contract_panic.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contractPanic.getContractAddress();
             String transactionHash = contractPanic.getTransactionReceipt().get().getTransactionHash();

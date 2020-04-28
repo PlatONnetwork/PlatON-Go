@@ -42,7 +42,6 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            provider = new ContractGasProvider(BigInteger.valueOf(50000000004L), BigInteger.valueOf(90000000L));
             ContractMigrate_v1 contractMigratev1 = ContractMigrate_v1.deploy(web3j, transactionManager, provider).send();
             String contractAddress = contractMigratev1.getContractAddress();
             String transactionHash = contractMigratev1.getTransactionReceipt().get().getTransactionHash();
