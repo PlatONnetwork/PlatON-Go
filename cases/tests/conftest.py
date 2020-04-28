@@ -290,3 +290,9 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
             blocknum = client.node.block_number
     log.info('The proposal endvoting block is {}'.format(proposalinfo.get('EndVotingBlock')))
     return proposalinfo.get('EndVotingBlock')
+
+
+
+
+
+

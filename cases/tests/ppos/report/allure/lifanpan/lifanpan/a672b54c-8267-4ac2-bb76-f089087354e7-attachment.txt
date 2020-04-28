@@ -1,1 +1,0 @@
-[2020-04-11 22:57:24]-node.py-[line:144]: Node-192.168.10.224:16789 do init failed:Fatal: invalid genesis file: json: cannot unmarshal string into Go struct field stakingConfig.economicModel.staking.unStakeFreezeDuration of type uint64

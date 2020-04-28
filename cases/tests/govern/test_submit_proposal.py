@@ -1774,5 +1774,23 @@ class TestGas:
         assert_code(result, 0)
 
 
+def TP_TE_004(new_genesis_env, client_consensus):
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.gov.textProposalVoteDurationSeconds = 0
+    new_genesis_env.set_genesis(genesis.to_dict())
+    new_genesis_env.deploy_all()
+    client = client_consensus
+    consensus_size = client.economic.consensus_size
+    log.info(consensus_size)
+    while True:
+        if client.node.block_number % consensus_size > consensus_size - 20:
+            log.info(client.node.block_number)
+            result = client.pip.submitText(client.node.node_id, str(time.time()), client.node.staking_address,
+                                           transaction_cfg=client.pip.cfg.transaction_cfg)
+            log.info('Submit text proposal result : {}'.format(result))
+            log.info(client.pip.pip.listProposal())
+            assert_code(result, 1)
+            break
+
 if __name__ == '__main__':
     pytest.main(['./tests/govern/', '-s', '-q', '--alluredir', './report/report'])

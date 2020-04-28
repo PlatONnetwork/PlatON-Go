@@ -1,1 +1,0 @@
-[2020-04-11 22:57:52]-node.py-[line:144]: Node-192.168.10.223:16789 do init failed:Fatal: invalid genesis file: json: cannot unmarshal string into Go struct field rewardConfig.economicModel.reward.newBlockRate of type uint64

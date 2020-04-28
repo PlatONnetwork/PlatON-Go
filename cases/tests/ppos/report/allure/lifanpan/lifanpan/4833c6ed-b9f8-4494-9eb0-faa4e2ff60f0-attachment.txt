@@ -1,1 +1,0 @@
-[2020-04-12 09:17:25]-test_token_init.py-[line:137]: Use case success, exception information：{'code': -32000, 'message': 'insufficient funds for gas * price + value'}

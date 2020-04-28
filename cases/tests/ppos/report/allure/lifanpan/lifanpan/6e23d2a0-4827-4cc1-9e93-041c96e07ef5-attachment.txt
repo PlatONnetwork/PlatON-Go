@@ -1,1 +1,0 @@
-[2020-04-11 22:57:33]-node.py-[line:144]: Node-192.168.10.221:16789 do init failed:Fatal: invalid genesis file: json: cannot unmarshal string into Go struct field rewardConfig.economicModel.reward.platonFoundationYear of type uint32

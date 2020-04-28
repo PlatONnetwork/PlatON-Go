@@ -1,1 +1,0 @@
-[2020-04-11 22:58:08]-node.py-[line:144]: Node-192.168.10.221:16789 do init failed:Fatal: invalid genesis file: json: cannot unmarshal number 0.1 into Go struct field CbftConfig.config.cbft.period of type uint64

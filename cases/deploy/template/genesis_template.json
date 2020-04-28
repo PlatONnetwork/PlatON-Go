@@ -4,7 +4,7 @@
         "eip155Block": 3,
         "cbft": {
             "initialNodes": [
-            ],
+                ],
             "amount": 10,
             "period": 10000,
             "validatorMode": "ppos"
@@ -34,7 +34,7 @@
         "gov": {
             "versionProposalVoteDurationSeconds": 1600,
             "versionProposalSupportRate": 6670,
-            "textProposalVoteDurationSeconds": 1,
+            "textProposalVoteDurationSeconds": 160,
             "textProposalVoteRate": 5000,
             "textProposalSupportRate": 6670,
             "cancelProposalVoteRate": 5000,

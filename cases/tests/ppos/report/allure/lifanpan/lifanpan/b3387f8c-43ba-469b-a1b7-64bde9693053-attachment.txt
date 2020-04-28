@@ -1,3 +1,0 @@
-[2020-04-12 09:35:55]-test_token_init.py-[line:679]: incentive_pool_balance: 262215742000000000000000000
-[2020-04-12 09:35:55]-utils.py-[line:259]: current block 0 is greater than block 0
-[2020-04-12 09:35:55]-test_token_init.py-[line:686]: incentive_pool_balance: 262215742000000000000000000

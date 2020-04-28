@@ -1524,7 +1524,7 @@ def test_PT_AC_001(client_consensus):
     print(list)
 
 
-def test_RO_T_001(new_genesis_env, client_noconsensus):
+def RO_T_001(new_genesis_env, client_noconsensus):
     """
     同个块高里重复质押、委托、解质押
     """
@@ -1624,8 +1624,3 @@ def test_RO_T_001(new_genesis_env, client_noconsensus):
 
     node.ppos.need_analyze = True
     economic.wait_settlement_blocknum(node, 1)
-
-
-def test111(client_consensus):
-    result = client_consensus.ppos.getCandidateInfo('2d25f7686573602334589ac2e606a3743d34fcae0c7d34c6eadc01dbecd21f349d93ec227b2c43a5f61eab7fff1e0382e8a9f61a2cce9cf8eb0730a697a98159')
-    print(result)

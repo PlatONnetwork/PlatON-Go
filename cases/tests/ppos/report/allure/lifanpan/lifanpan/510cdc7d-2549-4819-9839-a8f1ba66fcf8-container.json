@@ -1,1 +1,0 @@
-{"uuid": "90d3e311-2b5c-41e1-aed1-0387c6bc5740", "children": ["e861850b-4b9a-4c0b-b33f-f7028c3390e4"], "befores": [{"name": "new_genesis_env", "status": "passed", "start": 1586616255132, "stop": 1586616255132}], "afters": [{"name": "new_genesis_env::0", "status": "passed", "start": 1586616360145, "stop": 1586616363547}], "start": 1586616255132, "stop": 1586616363547}

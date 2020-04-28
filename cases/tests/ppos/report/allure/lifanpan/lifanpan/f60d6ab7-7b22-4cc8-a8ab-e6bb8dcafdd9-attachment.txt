@@ -1,1 +1,0 @@
-[2020-04-11 22:57:14]-node.py-[line:144]: Node-192.168.10.224:16789 do init failed:Fatal: Failed CheckEconomicModel configuration: Invalid parameter:The OperatingThreshold must be [10000000000000000000, 10000000000000000000000] LAT

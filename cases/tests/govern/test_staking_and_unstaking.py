@@ -608,13 +608,13 @@ class TestSlashing:
         log.info('Stop the node {}'.format(pip.node.node_id))
         shares = clients_consensus[1].staking.get_staking_amount(pip_test.node)
         pip.node.stop()
-        wait_block_number(pip_test.node, 4 * pip_test.economic.settlement_size)
-        balance_before = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size - 1)
-        log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size - 1,
+        wait_block_number(pip_test.node, 3 * pip_test.economic.settlement_size)
+        balance_before = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size - 1)
+        log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size - 1,
                                                                      balance_before))
-        balance_after = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size)
+        balance_after = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size)
 
-        log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size,
+        log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size,
                                                                      balance_after))
         assert balance_after - balance_before == shares
 
@@ -987,6 +987,9 @@ class TestSlashing:
             assert balance_after_lockup == balance_before_lockup
 
 def test_fixbug(new_genesis_env, clients_consensus):
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.gov.versionProposalVoteDurationSeconds = 1000
+    new_genesis_env.set_genesis(genesis.to_dict())
     new_genesis_env.deploy_all()
     pip_stop = clients_consensus[0].pip
     pip = clients_consensus[1].pip
@@ -1014,7 +1017,7 @@ def test_fixbug(new_genesis_env, clients_consensus):
     assert pip_stop.node.node_id not in validator_list
     result = clients_consensus[1].ppos.getCandidateInfo(pip_stop.node.node_id)
     log.info('Get nodeid {} candidate infor {}'.format(pip_stop.node.node_id, result))
-    assert_code(result, '301204')
+    assert_code(result, 301204)
     assert result.get('Ret') == 'Query candidate info failed:Candidate info is not found'
 
 

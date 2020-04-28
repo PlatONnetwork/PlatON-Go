@@ -1,1 +1,0 @@
-[2020-04-11 22:58:01]-node.py-[line:144]: Node-192.168.10.223:16789 do init failed:Fatal: invalid genesis file: json: cannot unmarshal number into Go struct field CbftConfig.config.cbft.validatorMode of type string
