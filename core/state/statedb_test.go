@@ -28,6 +28,7 @@ import (
 	"strings"
 	"testing"
 	"testing/quick"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -77,6 +78,34 @@ func TestUpdateLeaks(t *testing.T) {
 	}
 }
 
+func TestClearParentReference(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+	state, _ := New(common.Hash{}, NewDatabase(db))
+	count := 10000
+
+	for i := 0; i < count; i++ {
+		st := state.NewStateDB()
+		if i%2 == 0 {
+			go func() {
+				st.ClearParentReference()
+			}()
+		}
+	}
+	time.Sleep(2 * time.Second)
+	assert.Len(t, state.clearReferenceFunc, count)
+
+	clear := 0
+	for i := 0; i < count; i++ {
+		if i%2 == 0 {
+			fn := state.clearReferenceFunc[i]
+			if fn == nil {
+				clear++
+			}
+		}
+	}
+	assert.Equal(t, clear, count/2)
+}
+
 func TestNewStateDBAndCopy(t *testing.T) {
 	storages := make(map[common.Address]map[string]string)
 	db := ethdb.NewMemDatabase()
@@ -105,9 +134,13 @@ func TestNewStateDBAndCopy(t *testing.T) {
 			maps[key] = value
 			storages[addr] = maps
 		}
+		//if bytes.Equal([]byte{}, []byte(value)) || bytes.Equal([]byte(nil), []byte(value)) {
+		//	fmt.Println("xaxaxaxaxaxaxaxa", "addr", addr.String(),  "key", key, "value", value, "[]byte{}",  bytes.Equal([]byte{}, []byte(value)), "[]byte(nil)",  bytes.Equal([]byte(nil), []byte(value)))
+		//	fmt.Println("xaxaxaxaxaxaxaxa", bytes.Equal([]byte{}, []byte(nil)))
+		//}
 		//fmt.Println("addr", addr.String(), "key", key, "value", value)
 	}
-	for i := 0; i < 255; i++ {
+	for i := 1; i < 255; i++ {
 		modify(s1, s1c, common.Address{byte(i)}, i)
 	}
 
@@ -115,6 +148,10 @@ func TestNewStateDBAndCopy(t *testing.T) {
 	for addr, storage := range storages {
 		for k, v := range storage {
 			value := st.GetState(addr, []byte(k))
+			//fmt.Println("storage :::: ", "k", k, "v", v, "state v", string(value))
+			//if bytes.Equal([]byte{}, []byte(v)) || bytes.Equal(value, []byte(nil)) {
+			//	fmt.Println("lalalalala", "k", k, "v", v, "state v", string(value))
+			//}
 			assert.Equal(t, []byte(v), value)
 		}
 	}
@@ -187,7 +224,7 @@ func TestNewStateDBAndCopy(t *testing.T) {
 	assert.Len(t, s1cc.clearReferenceFunc, 0)
 	assert.Nil(t, s1cc.parent)
 
-	for i := 0; i < 255; i++ {
+	for i := 1; i < 255; i++ {
 		modify(s3, s1cc, common.Address{byte(i)}, i)
 	}
 
@@ -333,7 +370,7 @@ func TestStateStorageRevert(t *testing.T) {
 
 	assert.Equal(t, value1, s1.GetState(addr, key1))
 	obj := s1.getStateObject(addr)
-	assert.Equal(t, 0, len(obj.dirtyValueStorage))
+	assert.Equal(t, 0, len(obj.dirtyStorage))
 }
 
 func TestStateStorageValueUpdate(t *testing.T) {
@@ -349,7 +386,7 @@ func TestStateStorageValueUpdate(t *testing.T) {
 	s1.SetState(addr, key1, value1)
 	s1.SetState(addr, key1, value2)
 	obj := s1.getStateObject(addr)
-	assert.Equal(t, 1, len(obj.dirtyValueStorage))
+	assert.Equal(t, 1, len(obj.dirtyStorage))
 }
 
 // Tests that no intermediate state of an object is stored into the database,
@@ -670,14 +707,16 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		checkeq("GetCodeHash", state.GetCodeHash(addr), checkstate.GetCodeHash(addr))
 		checkeq("GetCodeSize", state.GetCodeSize(addr), checkstate.GetCodeSize(addr))
 		// Check storage.
-		//if obj := state.getStateObject(addr); obj != nil {
-		//	state.ForEachStorage(addr, func(key, value common.Hash) bool {
-		//		return checkeq("GetState("+key.Hex()+")", checkstate.GetState(addr, key), value)
-		//	})
-		//	checkstate.ForEachStorage(addr, func(key, value common.Hash) bool {
-		//		return checkeq("GetState("+key.Hex()+")", checkstate.GetState(addr, key), value)
-		//	})
-		//}
+		if obj := state.getStateObject(addr); obj != nil {
+			state.ForEachStorage(addr, func(key []byte, value []byte) bool {
+				cobj := checkstate.getStateObject(addr)
+				return checkeq("GetState("+hex.EncodeToString(key)+")", cobj.GetState(checkstate.db, key), value)
+			})
+			checkstate.ForEachStorage(addr, func(key []byte, value []byte) bool {
+				cobj := checkstate.getStateObject(addr)
+				return checkeq("GetState("+hex.EncodeToString(key)+")", cobj.GetState(checkstate.db, key), value)
+			})
+		}
 		if err != nil {
 			return err
 		}

@@ -17,11 +17,12 @@
 package vm
 
 import (
+	"context"
 	"fmt"
 	"hash"
 	"sync/atomic"
 
-        "github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
@@ -108,6 +109,13 @@ func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, st
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
 func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+
+	go func(ctx context.Context) {
+		<-ctx.Done()
+		// shutdown vm, change th vm.abort mark
+		in.evm.Cancel()
+	}(in.evm.Ctx)
+
 	if in.intPool == nil {
 		in.intPool = poolOfIntPools.get()
 		defer func() {
@@ -131,10 +139,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// as every returning call will return new data anyway.
 	in.returnData = nil
 
-	// Don't bother with the execution if there's no code.
-	if len(contract.Code) == 0 {
-		return nil, nil
-	}
+	//// Don't bother with the execution if there's no code.
+	//if len(contract.Code) == 0 {
+	//	return nil, nil
+	//}
 
 	var (
 		op    OpCode        // current opcode
@@ -244,11 +252,14 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			pc++
 		}
 	}
+	if atomic.LoadInt32(&in.evm.abort) == 1 {
+		return nil, ErrAbort
+	}
 	return nil, nil
 }
 
 // CanRun tells if the contract, passed as an argument, can be
 // run by the current interpreter.
 func (in *EVMInterpreter) CanRun(code []byte) bool {
-	return true
+	return CanUseEVMInterp(code)
 }

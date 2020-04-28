@@ -840,3 +840,101 @@ func TestDeepCopy(t *testing.T) {
 	assert.Nil(t, triedb.Commit(cpyRoot, false, false))
 	triedb.DereferenceDB(cpyRoot)
 }
+
+type Case struct {
+	hash  []byte
+	value []byte
+}
+
+func TestOneTrieCollision(t *testing.T) {
+	trieData1 := []Case{
+		{common.BytesToHash([]byte{2, 1, 1, 2}).Bytes(), []byte{2, 2, 2, 2, 2, 2}},
+		{common.BytesToHash([]byte{2, 1, 1, 3}).Bytes(), []byte{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}},
+		{common.BytesToHash([]byte{1, 1, 2, 0}).Bytes()[:31], []byte{2, 2, 2, 2, 2, 2}},
+		{common.BytesToHash([]byte{1, 1, 3, 0}).Bytes()[:31], []byte{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}},
+	}
+
+	checkTrie := func(trie *Trie) error {
+		iter := trie.NodeIterator(nil)
+
+		for iter.Next(true) {
+		}
+		if iter.Error() != nil {
+			return iter.Error()
+		}
+		return nil
+	}
+
+	mem := ethdb.NewMemDatabase()
+	memdb := NewDatabase(mem)
+	trie, _ := New(common.Hash{}, memdb)
+	for _, d := range trieData1 {
+		trie.Update(d.hash, d.value)
+	}
+	root, _ := trie.Commit(nil)
+	memdb.Commit(root, false, false)
+
+	assert.Nil(t, checkTrie(trie))
+	reopenMemdb := NewDatabase(mem)
+
+	reopenTrie, _ := New(root, reopenMemdb)
+	reopenTrie.Delete(trieData1[0].hash)
+
+	reopenRoot, _ := reopenTrie.Commit(nil)
+	reopenMemdb.Commit(reopenRoot, false, false)
+	reopenTrie.Update(trieData1[0].hash, trieData1[0].value)
+	reopenRoot, _ = reopenTrie.Commit(nil)
+	reopenMemdb.Commit(reopenRoot, false, false)
+	reopenMemdb.Reference(root, common.Hash{})
+
+	reopenTrie.Delete(trieData1[0].hash)
+	reopenRoot, _ = reopenTrie.Commit(nil)
+	reopenMemdb.Commit(reopenRoot, false, false)
+	reopenMemdb.Reference(reopenRoot, common.Hash{})
+	reopenMemdb.DereferenceDB(root)
+	reopenMemdb.UselessGC(1)
+
+	assert.NotNil(t, checkTrie(reopenTrie))
+
+}
+
+func TestTwoTrieCollision(t *testing.T) {
+	trieData1 := []Case{
+		{common.BytesToHash([]byte{1, 2}).Bytes(), []byte{1, 1, 1, 1, 1}},
+		{common.BytesToHash([]byte{1, 3}).Bytes(), []byte{2, 2, 2, 2, 2, 2}},
+		{common.BytesToHash([]byte{1, 0}).Bytes()[:31], []byte{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}},
+	}
+	trieData2 := []Case{
+		{common.BytesToHash([]byte{2, 2}).Bytes(), []byte{1, 1, 1, 1, 1}},
+		{common.BytesToHash([]byte{2, 3}).Bytes(), []byte{2, 2, 2, 2, 2, 2}},
+		{common.BytesToHash([]byte{2, 0}).Bytes()[:31], []byte{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}},
+	}
+
+	mem1 := ethdb.NewMemDatabase()
+	memdb1 := NewDatabase(mem1)
+	mem2 := ethdb.NewMemDatabase()
+	memdb2 := NewDatabase(mem2)
+	trie1, _ := New(common.Hash{}, memdb1)
+	trie2, _ := New(common.Hash{}, memdb2)
+	for _, d := range trieData1 {
+		trie1.Update(d.hash, d.value)
+	}
+	for _, d := range trieData2 {
+		trie2.Update(d.hash, d.value)
+	}
+
+	root1, _ := trie1.Commit(nil)
+	root2, _ := trie2.Commit(nil)
+
+	memdb1.Commit(root1, false, false)
+	memdb2.Commit(root2, false, false)
+
+	dup := 0
+	for _, k := range mem1.Keys() {
+		_, err := mem2.Get(k)
+		if err != nil {
+			dup++
+		}
+	}
+	assert.NotZero(t, dup)
+}

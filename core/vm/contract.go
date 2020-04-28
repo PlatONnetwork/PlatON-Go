@@ -63,6 +63,7 @@ type Contract struct {
 
 	Gas   uint64
 	value *big.Int
+	DeployContract bool
 }
 
 // NewContract returns a new contract environment for the execution of EVM.

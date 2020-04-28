@@ -188,6 +188,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		vmConfig:       vmConfig,
 		badBlocks:      badBlocks,
 	}
+
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
 	bc.SetProcessor(NewParallelStateProcessor(chainConfig, bc, engine))
 	//bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))

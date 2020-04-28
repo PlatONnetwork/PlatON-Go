@@ -240,29 +240,90 @@ func initParam() []*GovernParam {
 				return nil
 			},
 		},
+		{
+
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceCumulativeTime,
+				fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [ZeroProduceNumberThreshold, %d]", int(xcom.EpochSize()))},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceCumulativeTime())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				roundNumber, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed ZeroProduceCumulativeTime is failed")
+				}
+
+				numberThreshold, err := GovernZeroProduceNumberThreshold(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckZeroProduceCumulativeTime(uint16(roundNumber), numberThreshold); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceNumberThreshold,
+				fmt.Sprintf("Number of zero production blocks, range: [1, ZeroProduceCumulativeTime]")},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceNumberThreshold())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed ZeroProduceNumberThreshold is failed")
+				}
+
+				roundNumber, err := GovernZeroProduceCumulativeTime(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckZeroProduceNumberThreshold(roundNumber, uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
 	}
 }
 
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
-func InitGenesisGovernParam(snapDB snapshotdb.DB) error {
+func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, genesisVersion uint32) (common.Hash, error) {
 	var paramItemList []*ParamItem
-	for _, param := range queryInitParam() {
+
+	initParamList := queryInitParam()
+
+	putBasedb_genKVHash_Fn := func(key, val []byte, hash common.Hash) (common.Hash, error) {
+		if err := snapDB.PutBaseDB(key, val); nil != err {
+			return common.ZeroHash, err
+		}
+		newHash := common.GenerateKVHash(key, val, hash)
+		return newHash, nil
+	}
+
+	var lastHash = prevHash
+	var err error
+	for _, param := range initParamList {
 		paramItemList = append(paramItemList, param.ParamItem)
 
 		key := KeyParamValue(param.ParamItem.Module, param.ParamItem.Name)
 		value := common.MustRlpEncode(param.ParamValue)
-		if err := snapDB.PutBaseDB(key, value); err != nil {
-			return err
+		lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
+		if nil != err {
+			return lastHash, fmt.Errorf("failed to Store govern parameter: PutBaseDB failed. ParamItem:%s, ParamValue:%s, error:%s", param.ParamItem.Module, param.ParamItem.Name, err.Error())
 		}
 	}
 
 	key := KeyParamItems()
 	value := common.MustRlpEncode(paramItemList)
-	if err := snapDB.PutBaseDB(key, value); err != nil {
-		return err
+	lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
+	if nil != err {
+		return lastHash, fmt.Errorf("failed to Store govern parameter list: PutBaseDB failed. error:%s", err.Error())
 	}
-	return nil
+
+	//stateDB.SetState(vm.GovContractAddr, KeyGovernHASHKey(), lastHash.Bytes())
+	return lastHash, nil
 }
 
 func RegisterGovernParamVerifiers() {

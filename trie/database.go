@@ -127,9 +127,11 @@ type rawShortNode struct {
 	Val node
 }
 
-func (n rawShortNode) canUnload(uint16, uint16) bool { panic("this should never end up in a live trie") }
-func (n rawShortNode) cache() (hashNode, bool)       { panic("this should never end up in a live trie") }
-func (n rawShortNode) fstring(ind string) string     { panic("this should never end up in a live trie") }
+func (n rawShortNode) canUnload(uint16, uint16) bool {
+	panic("this should never end up in a live trie")
+}
+func (n rawShortNode) cache() (hashNode, bool)   { panic("this should never end up in a live trie") }
+func (n rawShortNode) fstring(ind string) string { panic("this should never end up in a live trie") }
 
 // cachedNode is all the information we know about a single cached node in the
 // memory database write layer.
@@ -389,7 +391,7 @@ func (db *Database) node(hash common.Hash, cachegen uint16) node {
 // Node retrieves an encoded cached trie node from memory. If it cannot be found
 // cached, the method queries the persistent database for the content.
 func (db *Database) Node(hash common.Hash) ([]byte, error) {
-	log.Debug("Database node", "hash", hash)
+	//log.Debug("Database node", "hash", hash)
 	// Retrieve the node from cache if available
 	db.lock.RLock()
 	node := db.nodes[hash]
@@ -419,7 +421,7 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 // preimage retrieves a cached trie node pre-image from memory. If it cannot be
 // found cached, the method queries the persistent database for the content.
 func (db *Database) Preimage(hash common.Hash) ([]byte, error) {
-	log.Debug("Database Preimage", "hash", hash)
+	//log.Debug("Database Preimage", "hash", hash)
 	// Retrieve the node from cache if available
 	db.lock.RLock()
 	preimage := db.preimages[hash]
@@ -645,8 +647,12 @@ func (db *Database) dereference(child common.Hash, parent common.Hash, clearFn f
 			db.dereference(hash, child, clearFn)
 		}
 		delete(db.nodes, child)
+
 		if clearFn != nil {
-			clearFn(child.Bytes())
+			// rawNode is contract code, only remove trie node
+			if _, ok := node.node.(rawNode); !ok {
+				clearFn(child.Bytes())
+			}
 		}
 		db.nodesSize -= common.StorageSize(common.HashLength + int(node.size))
 	}

@@ -9,13 +9,10 @@ func TestGetDefaultEMConfig(t *testing.T) {
 	if getDefaultEMConfig(DefaultTestNet) == nil {
 		t.Error("DefaultTestNet can't be nil config")
 	}
-	if getDefaultEMConfig(DefaultRallyNet) == nil {
-		t.Error("DefaultRallyNet can't be nil config")
-	}
 	if getDefaultEMConfig(DefaultDemoNet) == nil {
 		t.Error("DefaultDemoNet can't be nil config")
 	}
-	if getDefaultEMConfig(10) == nil {
-		t.Error("DefaultDemoNet can't be nil config")
+	if getDefaultEMConfig(10) != nil {
+		t.Error("the chain config not support")
 	}
 }

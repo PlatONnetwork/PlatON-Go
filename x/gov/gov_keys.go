@@ -37,6 +37,7 @@ var (
 	keyPrefixPIPIDs            = []byte("PIPIDs")
 	keyPrefixParamItems        = []byte("ParamItems")
 	keyPrefixParamValue        = []byte("ParamValue")
+	keyGovernHASHKey           = []byte("GovernHASH")
 )
 
 func KeyProposal(proposalID common.Hash) []byte {
@@ -107,4 +108,8 @@ func KeyParamValue(module, name string) []byte {
 		keyPrefixParamValue,
 		[]byte(module + "/" + name),
 	}, KeyDelimiter)
+}
+
+func KeyGovernHASHKey() []byte {
+	return keyGovernHASHKey
 }

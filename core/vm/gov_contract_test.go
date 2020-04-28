@@ -299,7 +299,7 @@ func setup(t *testing.T) *mock.Chain {
 	gc.Plugin = govPlugin
 	build_staking_data_new(chain)
 
-	if err := gov.InitGenesisGovernParam(chain.SnapDB); err != nil {
+	if _, err := gov.InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, 2048); err != nil {
 		t.Error("error", err)
 	}
 	gov.RegisterGovernParamVerifiers()
@@ -1455,6 +1455,101 @@ func TestGovContract_VersionProposal_Active(t *testing.T) {
 	} else {
 		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
 	}
+}
+
+func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	//submit a proposal and vote for it. proposalID= txHashArr[1]
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, defaultProposalID, gov.Yes)
+	commit_sndb(chain)
+
+	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+	p := pTemp.(*gov.VersionProposal)
+
+	//skip empty block
+	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
+
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
+	build_staking_data_more(chain)
+	endBlock(chain, t)
+
+	commit_sndb(chain)
+
+	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	} else if result.Status == gov.PreActive {
+		t.Log("the result status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	} else {
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	}
+
+	//skip empty block
+	skip_emptyBlock(chain, p.GetActiveBlock()-1)
+
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
+	build_staking_data_more(chain)
+
+	// the version proposal is not be active yet, so the new extra gov parameters do not exist
+	govParam, err := gov.FindGovernParam(gov.ModuleStaking, gov.KeyZeroProduceNumberThreshold, chain.CurrentHeader().Hash())
+	if err != nil {
+		t.Fatal("find govern param err", err)
+	}
+	assert.Nil(t, govParam)
+
+	govParam, err = gov.FindGovernParam(gov.ModuleStaking, gov.KeyZeroProduceCumulativeTime, chain.CurrentHeader().Hash())
+	if err != nil {
+		t.Fatal("find govern param err", err)
+	}
+	assert.Nil(t, govParam)
+
+	beginBlock(chain, t)
+	commit_sndb(chain)
+
+	//prepair_sndb(chain, common.ZeroHash)
+
+	result, err = gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Fatal("get tally result err", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	}
+	assert.Equal(t, gov.Active, result.Status)
+
+	// the version proposal is active, so the new extra gov parameters are existing also
+	govParam, err = gov.FindGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, chain.CurrentHeader().Hash())
+	if err != nil {
+		t.Fatal("find govern param err", err)
+	}
+	if govParam == nil {
+		t.Fatal("cannot find the extra param: slashing.zeroProduceNumberThreshold")
+	} else {
+		assert.Equal(t, "2", govParam.ParamValue.Value)
+	}
+
+	govParam, err = gov.FindGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, chain.CurrentHeader().Hash())
+	if err != nil {
+		t.Fatal("find govern param err", err)
+	}
+	if govParam == nil {
+		t.Fatal("cannot find the extra param: slashing.zeroProduceCumulativeTime")
+	} else {
+		assert.Equal(t, "3", govParam.ParamValue.Value)
+	}
+
 }
 
 func TestGovContract_ListProposal(t *testing.T) {

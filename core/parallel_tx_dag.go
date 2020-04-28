@@ -6,61 +6,80 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 type TxDag struct {
-	dag    *dag3.Dag
-	signer types.Signer
+	dag       *dag3.Dag
+	signer    types.Signer
+	contracts map[int]struct{}
 }
 
 func NewTxDag(signer types.Signer) *TxDag {
 	txDag := &TxDag{
-		signer: signer,
+		signer:    signer,
+		contracts: make(map[int]struct{}),
 	}
 	return txDag
 }
 
 func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction) error {
 	txDag.dag = dag3.NewDag(len(txs))
-	tempMap := make(map[common.Address]int, 0)
+	//save all transfer addresses between two contracts(precompiled and user defined)
+	transferAddressMap := make(map[common.Address]int, 0)
 	latestPrecompiledIndex := -1
 	for curIdx, cur := range txs {
-		if vm.IsPrecompiled(*cur.To()) || state.IsContract(*cur.To()) {
+		if cur.GetFromAddr() == nil {
+			if from, err := types.Sender(txDag.signer, cur); err != nil {
+				return err
+			} else {
+				cur.SetFromAddr(&from)
+			}
+		}
+
+		if cur.To() == nil || vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
+			if cur.To() == nil {
+				log.Debug("found contract creation tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr())
+			} else {
+				log.Debug("found contract tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
+			}
+
+			txDag.contracts[curIdx] = struct{}{}
 			if curIdx > 0 {
-				for begin := latestPrecompiledIndex + 1; begin < curIdx; begin++ {
-					txDag.dag.AddEdge(begin, curIdx)
+				if curIdx-latestPrecompiledIndex > 1 {
+					for begin := latestPrecompiledIndex + 1; begin < curIdx; begin++ {
+						txDag.dag.AddEdge(begin, curIdx)
+					}
+				} else if curIdx-latestPrecompiledIndex == 1 {
+					txDag.dag.AddEdge(latestPrecompiledIndex, curIdx)
 				}
-				//txDag.dag.AddEdge(curIdx-1, curIdx)
 			}
 			latestPrecompiledIndex = curIdx
-			//reset tempMap
-			if len(tempMap) > 0 {
-				tempMap = make(map[common.Address]int, 0)
+			//reset transferAddressMap
+			if len(transferAddressMap) > 0 {
+				transferAddressMap = make(map[common.Address]int, 0)
 			}
 		} else {
+			log.Debug("found transfer tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
 			dependFound := 0
-			if cur.GetFromAddr() == nil {
-				if from, err := types.Sender(txDag.signer, cur); err != nil {
-					return err
-				} else {
-					cur.SetFromAddr(&from)
-				}
-			}
-			if dependIdx, ok := tempMap[*cur.GetFromAddr()]; ok {
-				txDag.dag.AddEdge(dependIdx, curIdx)
-				dependFound++
-			}
-			if dependIdx, ok := tempMap[*cur.To()]; ok {
+
+			if dependIdx, ok := transferAddressMap[*cur.GetFromAddr()]; ok {
 				txDag.dag.AddEdge(dependIdx, curIdx)
 				dependFound++
 			}
 
+			//if cur.GetFromAddr().Hex() != cur.To().Hex() {
+			if dependIdx, ok := transferAddressMap[*cur.To()]; ok {
+				txDag.dag.AddEdge(dependIdx, curIdx)
+				dependFound++
+			}
+			//}
 			if dependFound == 0 && latestPrecompiledIndex >= 0 {
 				txDag.dag.AddEdge(latestPrecompiledIndex, curIdx)
 			}
 
-			tempMap[*cur.GetFromAddr()] = curIdx
-			tempMap[*cur.To()] = curIdx
+			transferAddressMap[*cur.GetFromAddr()] = curIdx
+			transferAddressMap[*cur.To()] = curIdx
 		}
 	}
 	return nil
@@ -72,4 +91,11 @@ func (txDag *TxDag) HasNext() bool {
 
 func (txDag *TxDag) Next() []int {
 	return txDag.dag.Next()
+}
+
+func (txDag *TxDag) IsContract(idx int) bool {
+	if _, ok := txDag.contracts[idx]; ok {
+		return true
+	}
+	return false
 }

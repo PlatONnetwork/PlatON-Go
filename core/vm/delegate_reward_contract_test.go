@@ -34,7 +34,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	canMu.Released = big.NewInt(10000)
 	canMu.RewardPer = rewardPer
 	canMu.DelegateTotal = delegateTotal
-	canMu.CurrentEpochDelegateReward = delegateTotal
+	canMu.CurrentEpochDelegateReward = new(big.Int)
 
 	var canBase staking.CandidateBase
 	privateKey, err := crypto.GenerateKey()
@@ -116,7 +116,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 			return err
 		}
 		return nil
-	})
+	}, nil, nil)
 	initGas := uint64(10000)
 
 	contact := newRewardContact(delegateRewardAdd, chain, initGas)
@@ -124,7 +124,6 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 	contact.Plugin.SetCurrentNodeID(can.NodeId)
 
 	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
-	chain.StateDB.AddBalance(vm.RewardManagerPoolAddr, big.NewInt(100000000000000))
 
 	for i := 0; i < int(xutil.CalcBlocksEachEpoch()); i++ {
 		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
@@ -154,7 +153,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 
 			}
 			return nil
-		}); err != nil {
+		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
@@ -171,7 +170,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 			return err
 		}
 		var m [][]byte
-		if err := rlp.DecodeBytes(chain.StateDB.GetLog()[0].Data, &m); err != nil {
+		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash)[0].Data, &m); err != nil {
 			return err
 		}
 		var code string
@@ -236,14 +235,15 @@ func TestWithdrawDelegateRewardWithEmptyReward(t *testing.T) {
 	defer chain.SnapDB.Clear()
 	initGas := uint64(10000)
 	contact := newRewardContact(add, chain, initGas)
-	chain.AddBlockWithTxHash(common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22"))
+	txHash := common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")
+	chain.AddBlockWithTxHash(txHash)
 	if _, err := contact.withdrawDelegateReward(); err != nil {
 		t.Error(err)
 		return
 	}
 
 	var m [][]byte
-	if err := rlp.DecodeBytes(chain.StateDB.GetLog()[0].Data, &m); err != nil {
+	if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txHash)[0].Data, &m); err != nil {
 		t.Error(err)
 		return
 	}

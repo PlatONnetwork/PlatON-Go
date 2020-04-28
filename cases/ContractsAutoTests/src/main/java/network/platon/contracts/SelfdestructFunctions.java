@@ -22,16 +22,16 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.7.5.0.
+ * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
  */
 public class SelfdestructFunctions extends Contract {
-    private static final String BINARY = "60806040526000805534801561001457600080fd5b5033600160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506101b4806100656000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80633ae2119b14610046578063a87d942c14610050578063d09de08a1461006e575b600080fd5b61004e610078565b005b61005861010b565b6040518082815260200191505060405180910390f35b610076610114565b005b3373ffffffffffffffffffffffffffffffffffffffff16600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16141561010957600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16ff5b565b60008054905090565b6000600590503373ffffffffffffffffffffffffffffffffffffffff16600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16141561017c5780600054016000819055505b5056fea265627a7a723158209a09392134f9f5998004ba0c97276cddb61b36042d400c4fb9d0526dfef5ce4664736f6c634300050d0032";
+    private static final String BINARY = "60806040526000805534801561001457600080fd5b5033600160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506101ab806100656000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80633ae2119b14610046578063a87d942c14610050578063d09de08a1461006e575b600080fd5b61004e610078565b005b61005861010b565b6040518082815260200191505060405180910390f35b610076610114565b005b3373ffffffffffffffffffffffffffffffffffffffff16600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16141561010957600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16ff5b565b60008054905090565b6000600590503373ffffffffffffffffffffffffffffffffffffffff16600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16141561017c5780600054016000819055505b5056fea165627a7a723058207fd551a502dfb56cda5316dc4cf2b1c0f99329444d304bf68dde6b7fa8bac5540029";
+
+    public static final String FUNC_SELFKILL = "selfKill";
 
     public static final String FUNC_GETCOUNT = "getCount";
 
     public static final String FUNC_INCREMENT = "increment";
-
-    public static final String FUNC_SELFKILL = "selfKill";
 
     @Deprecated
     protected SelfdestructFunctions(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
@@ -51,22 +51,12 @@ public class SelfdestructFunctions extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static RemoteCall<SelfdestructFunctions> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(SelfdestructFunctions.class, web3j, credentials, contractGasProvider, BINARY, "");
-    }
-
-    public static RemoteCall<SelfdestructFunctions> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(SelfdestructFunctions.class, web3j, transactionManager, contractGasProvider, BINARY, "");
-    }
-
-    @Deprecated
-    public static RemoteCall<SelfdestructFunctions> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(SelfdestructFunctions.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static RemoteCall<SelfdestructFunctions> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(SelfdestructFunctions.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
+    public RemoteCall<TransactionReceipt> selfKill() {
+        final Function function = new Function(
+                FUNC_SELFKILL, 
+                Arrays.<Type>asList(), 
+                Collections.<TypeReference<?>>emptyList());
+        return executeRemoteCallTransaction(function);
     }
 
     public RemoteCall<BigInteger> getCount() {
@@ -84,12 +74,22 @@ public class SelfdestructFunctions extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> selfKill() {
-        final Function function = new Function(
-                FUNC_SELFKILL, 
-                Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+    public static RemoteCall<SelfdestructFunctions> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
+        return deployRemoteCall(SelfdestructFunctions.class, web3j, credentials, contractGasProvider, BINARY, "");
+    }
+
+    public static RemoteCall<SelfdestructFunctions> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
+        return deployRemoteCall(SelfdestructFunctions.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    }
+
+    @Deprecated
+    public static RemoteCall<SelfdestructFunctions> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
+        return deployRemoteCall(SelfdestructFunctions.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    }
+
+    @Deprecated
+    public static RemoteCall<SelfdestructFunctions> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+        return deployRemoteCall(SelfdestructFunctions.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
     }
 
     @Deprecated

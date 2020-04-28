@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -187,10 +189,10 @@ var (
 	//initProgramVersion      = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 	//initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
 
-	initProgramVersion      = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
+	initProgramVersion      = uint32(0<<16 | 8<<8 | 0) // version: 0.8.0
 	initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
 
-	promoteVersion      = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
+	promoteVersion      = params.FORKVERSION_0_11_0 // version: 0.11.0
 	promoteVersionBytes = common.Uint32ToBytes(promoteVersion)
 
 	balanceStr = []string{
@@ -309,7 +311,8 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB
 		state, _, _ = newChainState()
 	}
 	evm := &EVM{
-		StateDB: state,
+		StateDB:     state,
+		chainConfig: &params.ChainConfig{},
 	}
 	context := Context{
 		BlockNumber: blockNumber,
@@ -318,7 +321,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB
 	evm.Context = context
 
 	//set a default active version
-	gov.InitGenesisGovernParam(sndb)
+	gov.InitGenesisGovernParam(common.ZeroHash, sndb, 2048)
 	gov.AddActiveVersion(initProgramVersion, 0, state)
 
 	return evm

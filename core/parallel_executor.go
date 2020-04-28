@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -57,9 +58,9 @@ func SetExecutor() *Executor {
 
 func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 	exe.ctx = ctx
-	gasPoolEnough := true
-	mergeCost := int64(0)
-	finaliseCost := int64(0)
+
+	log.Debug(fmt.Sprintf("PackBlockTxs begin blockNumber=%d, gasPool=%d", ctx.header.Number.Uint64(), ctx.gp.Gas()))
+
 	if len(ctx.txList) > 0 {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
@@ -69,39 +70,46 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 		}
 		batchNo := 0
 
-		for gasPoolEnough && !ctx.IsTimeout() && txDag.HasNext() {
+		for !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
+			/*txFromToList := make([]string, 0)
+			for _, idx := range parallelTxIdxs {
+				txFromT := ctx.txList[idx].GetFromAddr().Hex() + "/" + ctx.txList[idx].To().Hex()
+				txFromToList = append(txFromToList, txFromT)
+			}*/
+			log.Debug(fmt.Sprintf("PackBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
 			//call executeTransaction if batch length == 1
-			if len(parallelTxIdxs) == 1 {
-				exe.executeTransaction(parallelTxIdxs[0])
-			} else if len(parallelTxIdxs) > 1 {
-				for _, originIdx := range parallelTxIdxs {
-					from := ctx.GetTx(originIdx).GetFromAddr()
-					if _, popped := ctx.poppedAddresses[from]; popped {
-						break
-					}
+			if len(parallelTxIdxs) > 0 {
+				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
+					exe.executeTransaction(parallelTxIdxs[0])
+				} else {
+					for _, originIdx := range parallelTxIdxs {
+						if bftEngine && ctx.IsTimeout() {
+							log.Debug("ctx.IsTimeout() is TRUE")
+							break
+						}
 
-					if bftEngine && ctx.IsTimeout() {
-						break
-					}
+						tx := exe.ctx.GetTx(originIdx)
+						from := tx.GetFromAddr()
+						if _, popped := ctx.poppedAddresses[from]; popped {
+							log.Debug("popped!", "from", from.Hex())
+							continue
+						}
 
-					if ctx.gp.Gas() < params.TxGas {
-						gasPoolEnough = false
-						break
+						if err := ctx.gp.SubGas(tx.Gas()); err != nil {
+							exe.buildTransferFailedResult(originIdx, err)
+							continue
+						}
+
+						exe.wg.Add(1)
+						_ = exe.workerPool.Invoke(originIdx)
 					}
-					exe.wg.Add(1)
-					_ = exe.workerPool.Invoke(originIdx)
+					// waiting for current batch done
+					exe.wg.Wait()
+					exe.batchMerge(batchNo, parallelTxIdxs, true)
+
 				}
-				// waiting for current batch done
-				exe.wg.Wait()
-				mergeStart := time.Now()
-				exe.batchMerge(batchNo, parallelTxIdxs, true)
-				mergeCost += time.Since(mergeStart).Milliseconds()
-
-			} else {
-				break
 			}
-
 			batchNo++
 		}
 		//add balance for miner
@@ -110,15 +118,19 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 			ctx.state.AddMinerEarnings(ctx.header.Coinbase, ctx.GetEarnings())
 			//exe.ctx.GetHeader().GasUsed = ctx.GetBlockGasUsed()
 		}
-		finaliseStart := time.Now()
+		for idx, tx := range ctx.GetPackedTxList() {
+			log.Debug("packed tx", "blockNumber", ctx.header.Number.Uint64(), "idx", idx, "txHash", tx.Hash())
+		}
 		ctx.state.Finalise(true)
-		finaliseCost += time.Since(finaliseStart).Milliseconds()
 	}
 	return nil
 }
 
 func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 	exe.ctx = ctx
+
+	log.Debug(fmt.Sprintf("VerifyBlockTxs begin blockNumber=%d, gasPool=%d", ctx.header.Number.Uint64(), ctx.gp.Gas()))
+
 	if len(ctx.txList) > 0 {
 		txDag := NewTxDag(exe.signer)
 		if err := txDag.MakeDagGraph(ctx.GetState(), ctx.txList); err != nil {
@@ -128,29 +140,41 @@ func (exe *Executor) VerifyBlockTxs(ctx *VerifyBlockContext) error {
 		batchNo := 0
 		for txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
+			log.Debug(fmt.Sprintf("VerifyBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
+			if len(parallelTxIdxs) > 0 {
+				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
+					exe.executeTransaction(parallelTxIdxs[0])
+				} else {
+					for _, originIdx := range parallelTxIdxs {
+						tx := exe.ctx.GetTx(originIdx)
 
-			if len(parallelTxIdxs) == 1 {
-				exe.executeTransaction(parallelTxIdxs[0])
-			} else if len(parallelTxIdxs) > 1 {
-				for _, originIdx := range parallelTxIdxs {
-					exe.wg.Add(1)
-					//submit task
-					_ = exe.workerPool.Invoke(originIdx)
+						if err := ctx.gp.SubGas(tx.Gas()); err != nil {
+							exe.buildTransferFailedResult(originIdx, err)
+							continue
+						}
+
+						exe.wg.Add(1)
+						//submit task
+						_ = exe.workerPool.Invoke(originIdx)
+					}
+					// waiting for current batch done
+					exe.wg.Wait()
+
+					exe.batchMerge(batchNo, parallelTxIdxs, true)
 				}
-				// waiting for current batch done
-				exe.wg.Wait()
-
-				exe.batchMerge(batchNo, parallelTxIdxs, true)
-				batchNo++
-			} else {
-				break
 			}
+			batchNo++
 		}
 
 		if ctx.GetEarnings().Cmp(big.NewInt(0)) > 0 {
 			ctx.state.AddMinerEarnings(ctx.header.Coinbase, ctx.GetEarnings())
 			exe.ctx.GetHeader().GasUsed = ctx.GetBlockGasUsed()
 		}
+
+		for idx, tx := range ctx.GetPackedTxList() {
+			log.Debug("verified tx", "blockNumber", ctx.header.Number.Uint64(), "idx", idx, "txHash", tx.Hash())
+		}
+
 		exe.ctx.GetState().Finalise(true)
 	}
 	return nil
@@ -168,9 +192,11 @@ func (exe *Executor) batchMerge(batchNo int, originIdxList []int, deleteEmptyObj
 					// Set the receipt logs and create a bloom for filtering
 					// reset log's logIndex and txIndex
 					receipt := resultList[idx].receipt
+					tx := exe.ctx.GetTx(idx)
 
 					//total with all txs(not only all parallel txs)
 					exe.ctx.CumulateBlockGasUsed(receipt.GasUsed)
+					//log.Debug("tx packed success", "txHash", exe.ctx.GetTx(idx).Hash().Hex(), "txUsedGas", receipt.GasUsed)
 
 					//reset receipt.CumulativeGasUsed
 					receipt.CumulativeGasUsed = exe.ctx.GetBlockGasUsed()
@@ -185,12 +211,16 @@ func (exe *Executor) batchMerge(batchNo int, originIdxList []int, deleteEmptyObj
 
 					// Cumulate the miner's earnings
 					exe.ctx.AddEarnings(resultList[idx].minerEarnings)
+
+					// refund to gasPool
+					exe.ctx.AddGasPool(tx.Gas() - receipt.GasUsed)
+
 				} else {
 					//log.Debug("to merge result, stateCpy/receipt is nil", "stateCpy is Nil", resultList[idx].stateCpy != nil, "receipt is Nil", resultList[idx].receipt != nil)
 				}
 			} else {
 				switch resultList[idx].err {
-				case ErrGasLimitReached, ErrNonceTooHigh:
+				case ErrGasLimitReached, ErrNonceTooHigh, vm.ErrAbort:
 					// pop error
 					exe.ctx.SetPoppedAddress(exe.ctx.GetTx(idx).GetFromAddr())
 				default:
@@ -198,6 +228,7 @@ func (exe *Executor) batchMerge(batchNo int, originIdxList []int, deleteEmptyObj
 				}
 			}
 		}
+		//exe.ctx.GetState().Finalise(true)
 	}
 }
 
@@ -216,6 +247,12 @@ func (exe *Executor) executeParallel(arg interface{}) {
 	}
 	fromObj := exe.ctx.GetState().GetOrNewParallelStateObject(msg.From())
 
+	mgval := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
+	if fromObj.GetBalance().Cmp(mgval) < 0 {
+		exe.buildTransferFailedResult(idx, errInsufficientBalanceForGas)
+		return
+	}
+
 	if fromObj.GetNonce() < msg.Nonce() {
 		exe.buildTransferFailedResult(idx, ErrNonceTooHigh)
 		return
@@ -224,20 +261,21 @@ func (exe *Executor) executeParallel(arg interface{}) {
 		return
 	}
 
-	intrinsicGas, err := IntrinsicGas(msg.Data(), false)
+	intrinsicGas, err := IntrinsicGas(msg.Data(), false, exe.ctx.GetState())
 	if err != nil {
 		exe.buildTransferFailedResult(idx, err)
 		return
 	}
 
 	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), msg.GasPrice())
-	fromObj.SubBalance(minerEarnings)
-	fromObj.SetNonce(fromObj.GetNonce() + 1)
-	if fromObj.GetBalance().Cmp(msg.Value()) < 0 {
+	subTotal := new(big.Int).Add(msg.Value(), minerEarnings)
+	if fromObj.GetBalance().Cmp(subTotal) < 0 {
 		exe.buildTransferFailedResult(idx, errInsufficientBalanceForGas)
 		return
 	}
-	fromObj.SubBalance(msg.Value())
+
+	fromObj.SubBalance(subTotal)
+	fromObj.SetNonce(fromObj.GetNonce() + 1)
 
 	toObj := exe.ctx.GetState().GetOrNewParallelStateObject(*msg.To())
 	toObj.AddBalance(msg.Value())
@@ -250,6 +288,10 @@ func (exe *Executor) buildTransferFailedResult(idx int, err error) {
 		err: err,
 	}
 	exe.ctx.SetResult(idx, result)
+
+	log.Info("buildTransferFailedResult", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txIdx", idx, "txHash", exe.ctx.GetTx(idx).Hash(), "txTo", *exe.ctx.GetTx(idx).To(), "txGas", exe.ctx.GetTx(idx).Gas(), "err", err)
+
+	//fmt.Println(fmt.Sprintf("---------- Fail. tx no=%d", idx))
 }
 func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStateObject *state.ParallelStateObject, txGasUsed uint64, minerEarnings *big.Int) {
 	tx := exe.ctx.GetTx(idx)
@@ -271,6 +313,8 @@ func (exe *Executor) buildTransferSuccessResult(idx int, fromStateObject, toStat
 		err:             nil,
 	}
 	exe.ctx.SetResult(idx, result)
+	log.Info("buildTransferSuccessResult", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txIdx", idx, "txHash", tx.Hash(), "txTo", *tx.To(), "txGas", exe.ctx.GetTx(idx).Gas(), "txUsedGas", txGasUsed)
+	//fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
 }
 
 func (exe *Executor) executeTransaction(idx int) {
@@ -281,9 +325,9 @@ func (exe *Executor) executeTransaction(idx int) {
 	snap := exe.ctx.GetState().Snapshot()
 	tx := exe.ctx.GetTx(idx)
 	exe.ctx.GetState().Prepare(tx.Hash(), exe.ctx.GetBlockHash(), int(exe.ctx.GetState().TxIdx()))
-	receipt, _, err := ApplyTransaction(exe.chainConfig, exe.chainContext, exe.ctx.GetGasPool(), exe.ctx.GetState(), exe.ctx.GetHeader(), tx, exe.ctx.GetBlockGasUsedHolder(), vm.Config{})
+	receipt, _, err := ApplyTransaction(exe.chainConfig, exe.chainContext, exe.ctx.GetGasPool(), exe.ctx.GetState(), exe.ctx.GetHeader(), tx, exe.ctx.GetBlockGasUsedHolder(), exe.vmCfg)
 	if err != nil {
-		log.Error("Failed to commitTransaction on worker", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "err", err)
+		log.Error("execute tx failed", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txHash", tx.Hash(), "gasPool", exe.ctx.GetGasPool().Gas(), "txGas", tx.Gas(), "err", err)
 		exe.ctx.GetState().RevertToSnapshot(snap)
 		return
 	}

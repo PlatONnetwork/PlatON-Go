@@ -77,7 +77,6 @@ var (
 		utils.TxPoolGlobalTxCountFlag,
 		utils.TxPoolLifetimeFlag,
 		utils.SyncModeFlag,
-		utils.GCModeFlag,
 		utils.LightServFlag,
 		utils.LightPeersFlag,
 		utils.LightKDFFlag,
@@ -106,12 +105,11 @@ var (
 		utils.DeveloperPeriodFlag,
 		utils.MainFlag,
 		utils.TestnetFlag,
-		utils.RallynetFlag,
 		utils.DemonetFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
-		utils.EthStatsURLFlag,
+		//utils.EthStatsURLFlag,
 		utils.MetricsEnabledFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
@@ -174,6 +172,11 @@ var (
 		utils.DBGCMptFlag,
 		utils.DBGCBlockFlag,
 	}
+
+	vmFlags = []cli.Flag{
+		utils.VMWasmType,
+		utils.VmTimeoutDuration,
+	}
 )
 
 func init() {
@@ -195,7 +198,6 @@ func init() {
 		monitorCommand,
 		// See accountcmd.go:
 		accountCommand,
-		walletCommand,
 		// See consolecmd.go:
 		consoleCommand,
 		attachCommand,
@@ -222,6 +224,7 @@ func init() {
 	// for cbft
 	app.Flags = append(app.Flags, cbftFlags...)
 	app.Flags = append(app.Flags, dbFlags...)
+	app.Flags = append(app.Flags, vmFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -236,10 +239,9 @@ func init() {
 		}
 
 		//init wasm logfile
-
-		//if err := debug.SetupWasmLog(ctx); err != nil {
-		//	return err
-		//}
+		if err := debug.SetupWasmLog(ctx); err != nil {
+			return err
+		}
 
 		// Cap the cache allowance and tune the garbage collector
 		var mem gosigar.Mem

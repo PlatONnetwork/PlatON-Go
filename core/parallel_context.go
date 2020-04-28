@@ -40,6 +40,7 @@ type Context interface {
 	AddEarnings(*big.Int)
 	SetTimeout(isTimeout bool)
 	IsTimeout() bool
+	AddGasPool(refundAmount uint64)
 }
 
 type Result struct {
@@ -210,6 +211,10 @@ func (ctx *PackBlockContext) IsTimeout() bool {
 	return ctx.timeout.IsSet()
 }
 
+func (ctx *PackBlockContext) AddGasPool(amount uint64) {
+	ctx.gp.AddGas(amount)
+}
+
 type VerifyBlockContext struct {
 	state              *state.StateDB
 	header             *types.Header
@@ -357,4 +362,8 @@ func (ctx *VerifyBlockContext) SetTimeout(isTimeout bool) {
 
 func (ctx *VerifyBlockContext) IsTimeout() bool {
 	return false
+}
+
+func (ctx *VerifyBlockContext) AddGasPool(amount uint64) {
+	ctx.gp.AddGas(amount)
 }

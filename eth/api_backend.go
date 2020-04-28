@@ -49,6 +49,7 @@ type EthAPIBackend struct {
 func (b *EthAPIBackend) ChainConfig() *params.ChainConfig {
 	return b.eth.chainConfig
 }
+
 func (b *EthAPIBackend) Engine() consensus.Engine {
 	return b.eth.engine
 }
@@ -231,4 +232,8 @@ func (b *EthAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.Ma
 	for i := 0; i < bloomFilterThreads; i++ {
 		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, b.eth.bloomRequests)
 	}
+}
+
+func (b *EthAPIBackend) WasmType() string {
+	return b.eth.config.VMWasmType
 }

@@ -17,8 +17,8 @@
 package vm
 
 import (
+	"context"
 	"math/big"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -101,7 +101,10 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 
 			}
 		}
-
+	}
+	// Don't bother with the execution if there's no code.
+	if len(contract.Code) == 0 {
+		return nil, nil
 	}
 
 	for _, interpreter := range evm.interpreters {
@@ -140,9 +143,11 @@ type Context struct {
 	GasLimit    uint64         // Provides information for GASLIMIT
 	BlockNumber *big.Int       // Provides information for NUMBER
 	Time        *big.Int       // Provides information for TIME
-	Difficulty  *big.Int       // Provides information for DIFFICULTY
+	Difficulty  *big.Int       // Provides information for DIFFICULTY  (This one must not be deleted, otherwise the solidity contract will be failed)
 
 	BlockHash common.Hash // Only, the value will be available after the current block has been sealed.
+
+	Ctx context.Context
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -194,14 +199,8 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		interpreters: make([]Interpreter, 0, 1),
 	}
 
-	// vmConfig.EVMInterpreter will be used by EVM-C, it won't be checked here
-	// as we always want to have the built-in EVM as the failover option.
-	// todo: replace the evm to wasm for the interpreter.
-	if !strings.EqualFold("wasm", chainConfig.VMInterpreter) {
-		evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
-	} else {
-		evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
-	}
+	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
+	evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
 	evm.interpreter = evm.interpreters[0]
 	return evm
 }
@@ -242,7 +241,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
 
-		if precompiles[addr] == nil && PlatONPrecompiledContracts[addr] == nil && value.Sign() == 0 {
+		if precompiles[addr] == nil && !IsPlatONPrecompiledContract(addr) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
@@ -252,6 +251,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
+
 	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
@@ -434,6 +434,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// only.
 	contract := NewContract(caller, AccountRef(address), value, gas)
 	contract.SetCodeOptionalHash(&address, codeAndHash)
+	contract.DeployContract = true
 
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, address, gas, nil
@@ -453,7 +454,13 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// be stored due to not enough gas set an error and let it be handled
 	// by the error checking condition below.
 	if err == nil && !maxCodeSizeExceeded {
-		createDataGas := uint64(len(ret)) * params.CreateDataGas
+		var createDataGas uint64
+		if CanUseWASMInterp(ret) {
+			createDataGas = uint64(len(ret)) * params.CreateWasmDataGas
+		} else {
+			createDataGas = uint64(len(ret)) * params.CreateDataGas
+		}
+
 		if contract.UseGas(createDataGas) {
 			evm.StateDB.SetCode(address, ret)
 		} else {
@@ -508,6 +515,6 @@ func (evm *EVM) GetEvm() *EVM {
 	return evm
 }
 
-func (evm *EVM) GetConfig() Config {
+func (evm *EVM) GetVMConfig() Config {
 	return evm.vmConfig
 }

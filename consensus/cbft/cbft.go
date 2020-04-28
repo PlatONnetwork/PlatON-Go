@@ -699,7 +699,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 // Seal is used to generate a block, and block data is
 // passed to the execution channel.
-func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) error {
 	cbft.log.Info("Seal block", "number", block.Number(), "parentHash", block.ParentHash())
 	header := block.Header()
 	if block.NumberU64() == 0 {
@@ -717,13 +717,15 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 	sealBlock := block.WithSeal(header)
 
 	cbft.asyncCallCh <- func() {
-		cbft.OnSeal(sealBlock, results, stop)
+		cbft.OnSeal(sealBlock, results, stop, complete)
 	}
 	return nil
 }
 
 // OnSeal is used to process the blocks that have already been generated.
-func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
+func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) {
+	// When the seal ends, the completion signal will be passed to the goroutine of worker
+	defer func() { complete <- struct{}{} }()
 
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
 		cbft.log.Warn("Futile block cause highest executed block changed", "number", block.Number(), "parentHash", block.ParentHash(),
@@ -973,6 +975,34 @@ func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 			}
 		}
 		result <- block
+	}
+	return <-result
+}
+
+// GetBlockByHash get the specified block by hash and number.
+func (cbft *Cbft) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
+
+	callBlock := func() *types.Block {
+		// First extract from the confirmed block.
+		block := cbft.blockTree.FindBlockByHash(hash)
+		if block == nil {
+			// Extract from view state.
+			block = cbft.state.FindBlock(hash, number)
+		}
+		if block == nil {
+			header := cbft.blockChain.GetHeaderByHash(hash)
+			if header != nil {
+				block = cbft.blockChain.GetBlock(header.Hash(), header.Number.Uint64())
+			}
+		}
+		return block
+	}
+	if !cbft.isStart() {
+		return callBlock()
+	}
+	result := make(chan *types.Block, 1)
+	cbft.asyncCallCh <- func() {
+		result <- callBlock()
 	}
 	return <-result
 }

@@ -65,17 +65,12 @@ func ProgramVersion2Str(programVersion uint32) string {
 
 // ConsensusSize returns how many blocks per consensus round.
 func ConsensusSize() uint64 {
-	return xcom.BlocksWillCreate() * xcom.MaxConsensusVals()
+	return xcom.ConsensusSize()
 }
 
 // EpochSize returns how many consensus rounds per epoch.
 func EpochSize() uint64 {
-	consensusSize := ConsensusSize()
-	em := xcom.MaxEpochMinutes()
-	i := xcom.Interval()
-
-	epochSize := em * 60 / (i * consensusSize)
-	return epochSize
+	return xcom.EpochSize()
 }
 
 // EpochsPerYear returns how many epochs per year

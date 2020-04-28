@@ -18,8 +18,12 @@ package cbft
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -44,14 +48,21 @@ func TestViewChange(t *testing.T) {
 }
 
 func testTryViewChange(t *testing.T, nodes []*TestCBFT) {
+	tempDir, _ := ioutil.TempDir("", "wal")
+	defer os.RemoveAll(tempDir)
 
 	result := make(chan *types.Block, 1)
-
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
+
+	nodes[0].engine.wal, _ = wal.NewWal(nil, tempDir)
+	nodes[0].engine.bridge, _ = NewBridge(nodes[0].engine.nodeServiceContext, nodes[0].engine)
+
 	for i := 0; i < 4; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {
@@ -97,9 +108,15 @@ func testTryViewChange(t *testing.T, nodes []*TestCBFT) {
 		}))
 	}
 	assert.NotNil(t, nodes[0].engine.state.LastViewChangeQC())
-
 	assert.Equal(t, uint64(1), nodes[0].engine.state.ViewNumber())
-
+	lastViewChangeQC, _ := nodes[0].engine.bridge.GetViewChangeQC(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber())
+	assert.Nil(t, lastViewChangeQC)
+	lastViewChangeQC, _ = nodes[0].engine.bridge.GetViewChangeQC(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()-1)
+	assert.NotNil(t, lastViewChangeQC)
+	epoch, viewNumber, _, _, _, blockNumber := lastViewChangeQC.MaxBlock()
+	assert.Equal(t, nodes[0].engine.state.Epoch(), epoch)
+	assert.Equal(t, nodes[0].engine.state.ViewNumber()-1, viewNumber)
+	assert.Equal(t, uint64(4), blockNumber)
 }
 
 func testTryChangeViewByViewChange(t *testing.T, nodes []*TestCBFT) {
@@ -205,12 +222,13 @@ func testRichViewChangeQCCase(t *testing.T, c testCase) {
 	}
 
 	result := make(chan *types.Block, 1)
-
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 4; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {
@@ -289,12 +307,13 @@ func TestViewChangeBySwitchPoint(t *testing.T) {
 	}
 
 	result := make(chan *types.Block, 1)
-
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 10; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {

@@ -19,7 +19,6 @@ package xcom
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -43,10 +42,6 @@ type StateDB interface {
 	GetCode(common.Address) []byte
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
-
-	GetAbiHash(common.Address) common.Hash
-	GetAbi(common.Address) []byte
-	SetAbi(common.Address, []byte)
 
 	AddRefund(uint64)
 	SubRefund(uint64)
@@ -74,7 +69,7 @@ type StateDB interface {
 	AddLog(*types.Log)
 	AddPreimage(common.Hash, []byte)
 
-	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
+	ForEachStorage(common.Address, func([]byte, []byte) bool)
 
 	//ppos add
 	TxHash() common.Hash
@@ -108,7 +103,6 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 func AddLogWithRes(state StateDB, blockNumber uint64, contractAddr common.Address, event, code string, res interface{}) {
 	buf := new(bytes.Buffer)
 	if res == nil {
-		fmt.Print("aaaaaaaa")
 		if err := rlp.Encode(buf, [][]byte{[]byte(code)}); nil != err {
 			log.Error("Cannot RlpEncode the log data", "data", code, "err", err)
 			panic("Cannot RlpEncode the log data")

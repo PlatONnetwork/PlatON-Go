@@ -59,7 +59,6 @@ type Database interface {
 	// TrieDB retrieves the low level trie database used for data storage.
 	TrieDB() *trie.Database
 
-	ContractAbi(addrHash, abiHash common.Hash) ([]byte, error)
 }
 
 // Trie is a Ethereum Merkle Trie.
@@ -171,11 +170,6 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 	return code, err
 }
 
-// ContractAbi retrieves a particular contract's abi.
-func (db *cachingDB) ContractAbi(addrHash, abiHash common.Hash) ([]byte, error) {
-	abi, err := db.db.Node(abiHash)
-	return abi, err
-}
 
 // ContractCodeSize retrieves a particular contracts code's size.
 func (db *cachingDB) ContractCodeSize(addrHash, codeHash common.Hash) (int, error) {

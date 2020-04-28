@@ -18,11 +18,14 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
@@ -58,7 +61,7 @@ func (s *StateSuite) TestDump(c *checker.C) {
 	// check that dump contains the state objects that are in trie
 	got := string(s.state.Dump())
 	want := `{
-    "root": "1d75ab73e172edb7c3b3c0fd004d9896992fb96b617f6f954641d7618159e5e4",
+    "root": "32d937466d6678befa41bcd94571dde0c612392ee2d2fa21a0d420b8f2b803bc",
     "accounts": {
         "0000000000000000000000000000000000000001": {
             "balance": "22",
@@ -186,7 +189,8 @@ func TestSnapshot2(t *testing.T) {
 
 	so0Restored := state.getStateObject(stateobjaddr0)
 	// Update lazily-loaded values before comparing.
-	key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
+	//key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
+	key := storageaddr.Bytes()
 	so0Restored.GetState(state.db, key)
 	so0Restored.Code(state.db)
 	// non-deleted is equal (restored)
@@ -223,12 +227,12 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 		t.Errorf("Dirty storage size mismatch: have %d, want %d", len(so1.dirtyStorage), len(so0.dirtyStorage))
 	}
 	for k, v := range so1.dirtyStorage {
-		if so0.dirtyStorage[k] != v {
+		if !bytes.Equal(so0.dirtyStorage[k], v) {
 			t.Errorf("Dirty storage key %x mismatch: have %v, want %v", k, so0.dirtyStorage[k], v)
 		}
 	}
 	for k, v := range so0.dirtyStorage {
-		if so1.dirtyStorage[k] != v {
+		if !bytes.Equal(so1.dirtyStorage[k], v) {
 			t.Errorf("Dirty storage key %x mismatch: have %v, want none.", k, v)
 		}
 	}
@@ -236,12 +240,12 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 		t.Errorf("Origin storage size mismatch: have %d, want %d", len(so1.originStorage), len(so0.originStorage))
 	}
 	for k, v := range so1.originStorage {
-		if so0.originStorage[k] != v {
+		if !bytes.Equal(so0.originStorage[k], v) {
 			t.Errorf("Origin storage key %x mismatch: have %v, want %v", k, so0.originStorage[k], v)
 		}
 	}
 	for k, v := range so0.originStorage {
-		if so1.originStorage[k] != v {
+		if !bytes.Equal(so1.originStorage[k], v) {
 			t.Errorf("Origin storage key %x mismatch: have %v, want none.", k, v)
 		}
 	}
@@ -305,4 +309,111 @@ func TestEmptyByte(t *testing.T) {
 		fmt.Println(so.db.trie.GetKey(it.Value))
 	}
 
+}
+
+func TestForEachStorage(t *testing.T) {
+	tmpDir, _ := ioutil.TempDir("", "platon")
+	defer os.Remove(tmpDir)
+	db, _ := ethdb.NewLDBDatabase(tmpDir, 0, 0)
+	state, _ := New(common.Hash{}, NewDatabase(db))
+
+	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	state.CreateAccount(address)
+
+	key := []byte("a")
+	fvalue := []byte("A")
+
+	fmt.Printf("before Commit, key: %v, value: %v \n", key, fvalue)
+
+	//s.state.SetState(address, common.Hash{}, value)
+	state.SetState(address, key, fvalue)
+	state.Commit(false)
+
+	svalue := []byte("B")
+
+	fmt.Printf("after Commit, key: %v, value: %v \n", key, svalue)
+	state.SetState(address, key, svalue)
+
+	state.ForEachStorage(address, func(key []byte, value []byte) bool {
+		fmt.Println("load out, key:", hex.EncodeToString(key), "value:", string(value))
+		fmt.Printf("load out, key: %v, value: %v \n", key, value /*Bytes2Bits(key), Bytes2Bits(value)*/)
+		return true
+	})
+}
+
+func TestMigrateStorage(t *testing.T) {
+
+	tmpDir, _ := ioutil.TempDir("", "platon")
+	defer os.Remove(tmpDir)
+	db, _ := ethdb.NewLDBDatabase(tmpDir, 0, 0)
+	state, _ := New(common.Hash{}, NewDatabase(db))
+
+	from := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	state.CreateAccount(from)
+
+	to := common.HexToAddress("0x723040710bf13990e4500136726d6e66")
+	state.CreateAccount(to)
+
+	state.SetState(from, []byte("a"), []byte("fromA"))
+	state.SetState(from, []byte("b"), []byte("fromB"))
+	state.SetState(from, []byte("c"), []byte("fromC"))
+
+	state.SetState(to, []byte("a"), []byte("I am  A of to"))
+	state.SetState(to, []byte("b"), []byte("I am  B of to"))
+	state.SetState(to, []byte("d"), []byte("I am  D of to"))
+	state.SetState(to, []byte("e"), []byte("I am  E of to"))
+
+	state.Commit(false)
+
+	state.SetState(from, []byte("c"), []byte("fromC2"))
+	state.SetState(from, []byte("d"), []byte("fromD2"))
+	state.SetState(to, []byte("e"), []byte("I am  E2 of to"))
+	state.SetState(to, []byte("f"), []byte("I am  F of to"))
+
+	// test MigrateStorage
+	//
+	// expect:
+	//
+	// {
+	//		"a": "fromA",
+	//		"b": "fromB",
+	//		"c": "fromC2",
+	// 		"d": "fromD2",
+	//		"e": "",
+	// 		"f": "",
+	// }
+	//
+	state.MigrateStorage(from, to)
+
+	for _, key := range [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e"), []byte("f")} {
+		value := state.GetState(to, key)
+
+		switch string(key) {
+		case "a":
+			assert.Equal(t, "fromA", string(value))
+		case "b":
+			assert.Equal(t, "fromB", string(value))
+		case "c":
+			assert.Equal(t, "fromC2", string(value))
+		case "d":
+			assert.Equal(t, "fromD2", string(value))
+		case "e":
+			assert.Equal(t, "", string(value))
+		case "f":
+			assert.Equal(t, "", string(value))
+		}
+
+		//fmt.Println("key:", string(key), "value:", string(value))
+	}
+}
+
+func Bytes2Bits(data []byte) []int {
+	dst := make([]int, 0)
+	for _, v := range data {
+		for i := 0; i < 8; i++ {
+			move := uint(7 - i)
+			dst = append(dst, int((v>>move)&1))
+		}
+	}
+	return dst
 }

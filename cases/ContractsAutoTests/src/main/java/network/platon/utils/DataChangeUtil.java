@@ -1,7 +1,10 @@
 package network.platon.utils;
 
 
+import com.platon.rlp.RLPCodec;
+import com.platon.rlp.RLPList;
 import org.apache.commons.lang.StringUtils;
+import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 
@@ -19,6 +22,7 @@ public class DataChangeUtil {
      * @return  转换后的byte数组结果
      */
     public static byte[] hexToByteArray(String inHex){
+        if(inHex.startsWith("0x"))inHex = inHex.substring(2);
         int hexlen = inHex.length();
         byte[] result;
         if (hexlen % 2 == 1){
@@ -116,6 +120,23 @@ public class DataChangeUtil {
     }
 
 
+    /**
+     * ppos系统约data字段rlp解码处理
+     * 系统合约的最外层是一个RLPList
+     * RlpList里面放实际的RLP编码值
+     *
+     * @param hexRlp
+     * @return
+     */
+    public static String decodeSystemContractRlp(String hexRlp) {
+        byte[] data = Numeric.hexStringToByteArray(hexRlp);
+        RLPList rlpList = RLPCodec.decode(data,RLPList.class);
+        return RLPCodec.decode(rlpList.get(0),String.class);
+    }
+
+
+
+
     public static void main(String[] args) {
 //        String hexvalue = "aaaa";
 //        byte bytess = hexToByte(hexvalue);
@@ -158,6 +179,17 @@ public class DataChangeUtil {
      */
     public static String binary(byte[] bytes, int radix){
         return new BigInteger(1, bytes).toString(radix);// 这里的1代表正数
+    }
+
+
+    public static byte[] toPrimitives(Byte[] oBytes){
+        byte[] bytes = new byte[oBytes.length];
+
+        for(int i = 0; i < oBytes.length; i++) {
+            bytes[i] = oBytes[i];
+        }
+
+        return bytes;
     }
 
 }

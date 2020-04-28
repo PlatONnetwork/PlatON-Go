@@ -73,10 +73,15 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
+		//preUsedGas := uint64(0)
+
 		receipt, _, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
+			log.Error("Failed to execute tx on StateProcessor", "blockNumber", block.Number(),
+				"blockHash", block.Hash().TerminalString(), "txHash", tx.Hash().String(), "err", err)
 			return nil, nil, 0, err
 		}
+		//log.Debug("tx process success", "txHash", tx.Hash().Hex(), "txTo", tx.To().Hex(), "dataLength", len(tx.Data()), "toCodeSize", statedb.GetCodeSize(*tx.To()), "txUsedGas", *usedGas-preUsedGas)
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
@@ -85,7 +90,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		// EndBlocker()
 		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
 			log.Error("Failed to call EndBlocker on StateProcessor", "blockNumber", block.Number(),
-				"blockHash", block.Hash(), "err", err)
+				"blockHash", block.Hash().TerminalString(), "err", err)
 			return nil, nil, 0, err
 		}
 	}
@@ -100,7 +105,10 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
+	statedb *state.StateDB, header *types.Header, tx *types.Transaction,
+	usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+
 	msg, err := tx.AsMessage(types.NewEIP155Signer(config.ChainID))
 
 	if err != nil {
@@ -111,6 +119,9 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool, 
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
+
+	log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
+
 	// Apply the transaction to the current state (included in the env)
 	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
 	if err != nil {
