@@ -93,7 +93,11 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 			parallelTxIdxs := txDag.Next()
 			for _, idx := range parallelTxIdxs {
 				tx := ctx.GetTx(idx)
-				log.Debug(fmt.Sprintf("PackBlockTxs(batch tx info), blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, idx, tx.GetFromAddr().Hex(), tx.To().Hex(), tx.Hash().Hex()))
+				toAddr := common.ZeroAddr.Hex()
+				if tx.To() != nil {
+					toAddr = tx.To().Hex()
+				}
+				log.Debug(fmt.Sprintf("PackBlockTxs(batch tx info), blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, idx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
 			}
 			if len(parallelTxIdxs) > 0 {
 				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
