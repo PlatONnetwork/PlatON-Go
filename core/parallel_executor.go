@@ -68,17 +68,19 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 		if err := txDag.MakeDagGraph(ctx.GetState(), ctx.txList); err != nil {
 			return err
 		}
+
+		for idx, tx := range ctx.txList {
+			log.Debug(fmt.Sprintf("PackBlockTxs(all tx info), blockNumber=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), idx, tx.GetFromAddr().Hex(), tx.To().Hex(), tx.Hash().Hex()))
+		}
+
 		batchNo := 0
 
 		for !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
-			/*txFromToList := make([]string, 0)
 			for _, idx := range parallelTxIdxs {
-				txFromT := ctx.txList[idx].GetFromAddr().Hex() + "/" + ctx.txList[idx].To().Hex()
-				txFromToList = append(txFromToList, txFromT)
-			}*/
-			//log.Debug(fmt.Sprintf("PackBlockTxs blockNumber=%d, batch=%d, parallTxIds=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
-			//call executeTransaction if batch length == 1
+				tx := ctx.GetTx(idx)
+				log.Debug(fmt.Sprintf("PackBlockTxs(batch tx info), blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, idx, tx.GetFromAddr().Hex(), tx.To().Hex(), tx.Hash().Hex()))
+			}
 			if len(parallelTxIdxs) > 0 {
 				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
 					exe.executeTransaction(parallelTxIdxs[0])
@@ -90,6 +92,8 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 						}
 
 						tx := exe.ctx.GetTx(originIdx)
+						log.Debug(fmt.Sprintf("PackBlockTxs(to execute tx info), blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), tx.To().Hex(), tx.Hash().Hex()))
+
 						from := tx.GetFromAddr()
 						if _, popped := ctx.poppedAddresses[from]; popped {
 							log.Debug("popped!", "from", from.Hex())
@@ -327,7 +331,7 @@ func (exe *Executor) executeTransaction(idx int) {
 	exe.ctx.GetState().Prepare(tx.Hash(), exe.ctx.GetBlockHash(), int(exe.ctx.GetState().TxIdx()))
 	receipt, _, err := ApplyTransaction(exe.chainConfig, exe.chainContext, exe.ctx.GetGasPool(), exe.ctx.GetState(), exe.ctx.GetHeader(), tx, exe.ctx.GetBlockGasUsedHolder(), exe.vmCfg)
 	if err != nil {
-		log.Error("execute tx failed", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txHash", tx.Hash(), "gasPool", exe.ctx.GetGasPool().Gas(), "txGas", tx.Gas(), "err", err)
+		log.Error("execute tx failed", "blockNumber", exe.ctx.GetHeader().Number.Uint64(), "gasPool", exe.ctx.GetGasPool().Gas(), "txHash", tx.Hash(), "txGas", tx.Gas(), "err", err)
 		exe.ctx.GetState().RevertToSnapshot(snap)
 		return
 	}
