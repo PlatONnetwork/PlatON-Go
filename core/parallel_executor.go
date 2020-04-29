@@ -110,7 +110,11 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 						}
 
 						tx := exe.ctx.GetTx(originIdx)
-						log.Debug(fmt.Sprintf("PackBlockTxs(to execute tx info), blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), tx.To().Hex(), tx.Hash().Hex()))
+						toAddr := common.ZeroAddr.Hex()
+						if tx.To() != nil {
+							toAddr = tx.To().Hex()
+						}
+						log.Debug(fmt.Sprintf("PackBlockTxs(to execute tx info), blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
 
 						from := tx.GetFromAddr()
 						if _, popped := ctx.poppedAddresses[from]; popped {
