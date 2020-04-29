@@ -17,7 +17,6 @@
 package consensus
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
@@ -32,7 +31,7 @@ type Evidence interface {
 	Epoch() uint64
 	ViewNumber() uint64
 	Hash() []byte
-	Address() common.NodeAddress
+	//Address() common.NodeAddress
 	NodeID() discover.NodeID
 	BlsPubKey() *bls.PublicKey
 	Validate() error
