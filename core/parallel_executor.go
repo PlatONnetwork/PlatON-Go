@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -65,12 +67,24 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
 
+		for idx, tx := range ctx.txList {
+			toAddr := common.ZeroAddr.Hex()
+			if tx.To() != nil {
+				toAddr = tx.To().Hex()
+			}
+			log.Debug(fmt.Sprintf("PackBlockTxs(all tx info), blockNumber=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s, txGas=%d", ctx.header.Number.Uint64(), idx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex(), tx.Gas()))
+		}
+
 		if err := txDag.MakeDagGraph(ctx.GetState(), ctx.txList); err != nil {
 			return err
 		}
 
 		for idx, tx := range ctx.txList {
-			log.Debug(fmt.Sprintf("PackBlockTxs(all tx info), blockNumber=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), idx, tx.GetFromAddr().Hex(), tx.To().Hex(), tx.Hash().Hex()))
+			toAddr := common.ZeroAddr.Hex()
+			if tx.To() != nil {
+				toAddr = tx.To().Hex()
+			}
+			log.Debug(fmt.Sprintf("PackBlockTxs(all tx info), blockNumber=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s, txGas=%d", ctx.header.Number.Uint64(), idx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex(), tx.Gas()))
 		}
 
 		batchNo := 0
@@ -217,7 +231,12 @@ func (exe *Executor) batchMerge(batchNo int, originIdxList []int, deleteEmptyObj
 					exe.ctx.AddEarnings(resultList[idx].minerEarnings)
 
 					// refund to gasPool
-					exe.ctx.AddGasPool(tx.Gas() - receipt.GasUsed)
+					if tx.Gas() >= receipt.GasUsed {
+						exe.ctx.AddGasPool(tx.Gas() - receipt.GasUsed)
+					} else {
+						log.Error("gas < gasUsed", "txIdx", idx, "gas", tx.Gas(), "gasUsed", receipt.GasUsed)
+						panic("gas < gasUsed")
+					}
 
 				} else {
 					//log.Debug("to merge result, stateCpy/receipt is nil", "stateCpy is Nil", resultList[idx].stateCpy != nil, "receipt is Nil", resultList[idx].receipt != nil)
@@ -268,6 +287,11 @@ func (exe *Executor) executeParallel(arg interface{}) {
 	intrinsicGas, err := IntrinsicGas(msg.Data(), false, exe.ctx.GetState())
 	if err != nil {
 		exe.buildTransferFailedResult(idx, err)
+		return
+	}
+
+	if msg.Gas() < intrinsicGas {
+		exe.buildTransferFailedResult(idx, vm.ErrOutOfGas)
 		return
 	}
 
