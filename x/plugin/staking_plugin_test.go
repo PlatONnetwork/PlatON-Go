@@ -22,12 +22,13 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	mrand "math/rand"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
@@ -436,7 +437,7 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 
 	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
 
-	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, nil, canAddr, can, 0, amount, delegateRewardPerList)
+	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, 0, amount, delegateRewardPerList)
 }
 
 func getDelegate(blockHash common.Hash, stakingNum uint64, index int, t *testing.T) *staking.Delegation {
@@ -1616,7 +1617,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	expectedCumulativeIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
 	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.LAT))
-	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, nil, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
+	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
 		t.Fatal("Failed to Delegate:", err)
 	}
 
@@ -2724,7 +2725,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	Start DeclarePromoteNotify
 	*/
 	for i, can := range queue {
-		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion, state)
+		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion)
 
 		assert.Nil(t, err, fmt.Sprintf("Failed to DeclarePromoteNotify, index: %d, err: %v", i, err))
 	}
@@ -2892,7 +2893,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	/**
 	Start ProposalPassedNotify
 	*/
-	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion, state)
+	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
 }
@@ -3465,14 +3466,14 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 
 }
 
-func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T)  {
+func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 	newPlugins()
 	handler.NewVrfHandler(make([]byte, 0))
 	defer func() {
 		slash.db.Clear()
 	}()
 
-	gov.InitGenesisGovernParam(slash.db, 2048)
+	gov.InitGenesisGovernParam(common.ZeroHash, slash.db, 2048)
 
 	privateKey, _ := crypto.GenerateKey()
 	vqList := make(staking.ValidatorQueue, 0)

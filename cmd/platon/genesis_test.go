@@ -74,15 +74,15 @@ var customGenesisTests = []struct {
         },
          "gov": {
             "versionProposalVoteDurationSeconds": 160,
-            "versionProposalSupportRate": 0.667,
+            "versionProposalSupportRate": 6670,
             "textProposalVoteDurationSeconds": 160,
-            "textProposalVoteRate": 0.5,
-            "textProposalSupportRate": 0.667,          
-            "cancelProposalVoteRate": 0.50,
-            "cancelProposalSupportRate": 0.667,
+            "textProposalVoteRate": 5000,
+            "textProposalSupportRate": 6670,          
+            "cancelProposalVoteRate": 5000,
+            "cancelProposalSupportRate": 6670,
             "paramProposalVoteDurationSeconds": 160,
-            "paramProposalVoteRate": 0.50,
-            "paramProposalSupportRate": 0.667      
+            "paramProposalVoteRate": 5000,
+            "paramProposalSupportRate": 6670      
         },
         "reward":{
             "newBlockRate": 50,
@@ -164,15 +164,15 @@ var customGenesisTests = []struct {
         },
          "gov": {
             "versionProposalVoteDurationSeconds": 160,
-            "versionProposalSupportRate": 0.667,
+            "versionProposalSupportRate": 6670,
             "textProposalVoteDurationSeconds": 160,
-            "textProposalVoteRate": 0.5,
-            "textProposalSupportRate": 0.667,          
-            "cancelProposalVoteRate": 0.50,
-            "cancelProposalSupportRate": 0.667,
+            "textProposalVoteRate": 5000,
+            "textProposalSupportRate": 6670,          
+            "cancelProposalVoteRate": 5000,
+            "cancelProposalSupportRate": 6670,
             "paramProposalVoteDurationSeconds": 160,
-            "paramProposalVoteRate": 0.50,
-            "paramProposalSupportRate": 0.667      
+            "paramProposalVoteRate": 5000,
+            "paramProposalSupportRate": 6670      
         },
         "reward":{
             "newBlockRate": 50,
@@ -254,15 +254,15 @@ var customGenesisTests = []struct {
         },
          "gov": {
             "versionProposalVoteDurationSeconds": 160,
-            "versionProposalSupportRate": 0.667,
+            "versionProposalSupportRate": 6670,
             "textProposalVoteDurationSeconds": 160,
-            "textProposalVoteRate": 0.5,
-            "textProposalSupportRate": 0.667,          
-            "cancelProposalVoteRate": 0.50,
-            "cancelProposalSupportRate": 0.667,
+            "textProposalVoteRate": 5000,
+            "textProposalSupportRate": 6670,          
+            "cancelProposalVoteRate": 5000,
+            "cancelProposalSupportRate": 6670,
             "paramProposalVoteDurationSeconds": 160,
-            "paramProposalVoteRate": 0.50,
-            "paramProposalSupportRate": 0.667      
+            "paramProposalVoteRate": 5000,
+            "paramProposalSupportRate": 6670      
         },
         "reward":{
             "newBlockRate": 50,

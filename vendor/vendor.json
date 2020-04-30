@@ -35,56 +35,56 @@
 		{
 			"checksumSHA1": "wZ+WWZIshZoI1x9juG2EjapEtVQ=",
 			"path": "github.com/PlatONnetwork/wagon/disasm",
-			"revision": "75427ffa0430058fbfe4535ad2b3fff6c7d13c30",
-			"revisionTime": "2020-01-09T01:11:01Z"
+			"revision": "d2bccc71e67373394837ab032013fe8ff708aaa4",
+			"revisionTime": "2020-04-22T07:49:10Z"
 		},
 		{
-			"checksumSHA1": "zHw5DX1U8jpSePNe+FFYD7zhFVo=",
+			"checksumSHA1": "Q6irOk0RchPc9TZubAiZlJ288Fg=",
 			"path": "github.com/PlatONnetwork/wagon/exec",
-			"revision": "75427ffa0430058fbfe4535ad2b3fff6c7d13c30",
-			"revisionTime": "2020-01-09T01:11:01Z"
+			"revision": "d2bccc71e67373394837ab032013fe8ff708aaa4",
+			"revisionTime": "2020-04-22T07:49:10Z"
 		},
 		{
 			"checksumSHA1": "hLj7snjfe815wLsFDbZcXq+nDvk=",
 			"path": "github.com/PlatONnetwork/wagon/exec/internal/compile",
-			"revision": "75427ffa0430058fbfe4535ad2b3fff6c7d13c30",
-			"revisionTime": "2020-01-09T01:11:01Z"
+			"revision": "d2bccc71e67373394837ab032013fe8ff708aaa4",
+			"revisionTime": "2020-04-22T07:49:10Z"
 		},
 		{
 			"checksumSHA1": "FyK8Rx1WOG8r4G2IaDWtr5X6Eqc=",
 			"path": "github.com/PlatONnetwork/wagon/internal/stack",
-			"revision": "75427ffa0430058fbfe4535ad2b3fff6c7d13c30",
-			"revisionTime": "2020-01-09T01:11:01Z"
+			"revision": "d2bccc71e67373394837ab032013fe8ff708aaa4",
+			"revisionTime": "2020-04-22T07:49:10Z"
 		},
 		{
 			"checksumSHA1": "PwtES2QVnqUVpkCXgVxpoYoi9/k=",
 			"path": "github.com/PlatONnetwork/wagon/validate",
-			"revision": "75427ffa0430058fbfe4535ad2b3fff6c7d13c30",
-			"revisionTime": "2020-01-09T01:11:01Z"
+			"revision": "d2bccc71e67373394837ab032013fe8ff708aaa4",
+			"revisionTime": "2020-04-22T07:49:10Z"
 		},
 		{
 			"checksumSHA1": "PeYtfBnFLYhfrYVg9FKPukRIRiM=",
 			"path": "github.com/PlatONnetwork/wagon/wasm",
-			"revision": "75427ffa0430058fbfe4535ad2b3fff6c7d13c30",
-			"revisionTime": "2020-01-09T01:11:01Z"
+			"revision": "d2bccc71e67373394837ab032013fe8ff708aaa4",
+			"revisionTime": "2020-04-22T07:49:10Z"
 		},
 		{
 			"checksumSHA1": "TZyhL68QQsfD8MZrppI2Mo4jWso=",
 			"path": "github.com/PlatONnetwork/wagon/wasm/internal/readpos",
-			"revision": "75427ffa0430058fbfe4535ad2b3fff6c7d13c30",
-			"revisionTime": "2020-01-09T01:11:01Z"
+			"revision": "d2bccc71e67373394837ab032013fe8ff708aaa4",
+			"revisionTime": "2020-04-22T07:49:10Z"
 		},
 		{
 			"checksumSHA1": "0je+61/qQM/fUdQw1Und9SbAAD4=",
 			"path": "github.com/PlatONnetwork/wagon/wasm/leb128",
-			"revision": "75427ffa0430058fbfe4535ad2b3fff6c7d13c30",
-			"revisionTime": "2020-01-09T01:11:01Z"
+			"revision": "d2bccc71e67373394837ab032013fe8ff708aaa4",
+			"revisionTime": "2020-04-22T07:49:10Z"
 		},
 		{
 			"checksumSHA1": "L8FHFqCzL96vm4GO6ea0J8kEtmk=",
 			"path": "github.com/PlatONnetwork/wagon/wasm/operators",
-			"revision": "75427ffa0430058fbfe4535ad2b3fff6c7d13c30",
-			"revisionTime": "2020-01-09T01:11:01Z"
+			"revision": "d2bccc71e67373394837ab032013fe8ff708aaa4",
+			"revisionTime": "2020-04-22T07:49:10Z"
 		},
 		{
 			"checksumSHA1": "QC55lHNOv1+UAL2xtIHw17MJ8J8=",
@@ -141,10 +141,10 @@
 			"revisionTime": "2018-06-25T18:44:42Z"
 		},
 		{
-			"checksumSHA1": "zYnPsNAVm1/ViwCkN++dX2JQhBo=",
+			"checksumSHA1": "Vdaftt1J1nSEmhiLz4m90YY+S0A=",
 			"path": "github.com/edsrzf/mmap-go",
-			"revision": "935e0e8a636ca4ba70b713f3e38a19e1b77739e8",
-			"revisionTime": "2016-05-12T03:30:02Z"
+			"revision": "904c4ced31cdffe19e971afa0b3d319ff06d9c72",
+			"revisionTime": "2018-12-22T14:20:22Z"
 		},
 		{
 			"checksumSHA1": "jElNoLEe7m/iaoF1vYIHyNaS2SE=",
@@ -201,60 +201,60 @@
 			"revisionTime": "2018-08-13T16:29:53Z"
 		},
 		{
-			"checksumSHA1": "jk9eNsouqxduXv1+qzXvMmrAzJ4=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/disasm",
+			"checksumSHA1": "S++rQC+OZxRCaYc8P+yVilwn3R0=",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/vendor/github.com/go-interpreter/wagon/disasm",
 			"path": "github.com/go-interpreter/wagon/disasm",
-			"revision": "43b046490d5f52c392f46ba19c70246fe2e89014",
-			"revisionTime": "2020-01-08T08:12:08Z"
+			"revision": "1b439614789968a94e5419151d88151635b662e9",
+			"revisionTime": "2020-04-18T16:51:54Z"
 		},
 		{
-			"checksumSHA1": "liSTT+2c8gy/07ueALb5+d5+cY8=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/exec",
+			"checksumSHA1": "dYME7u3X7Fy05DL+s51JeXG+ZrY=",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/vendor/github.com/go-interpreter/wagon/exec",
 			"path": "github.com/go-interpreter/wagon/exec",
-			"revision": "43b046490d5f52c392f46ba19c70246fe2e89014",
-			"revisionTime": "2020-01-08T08:12:08Z"
+			"revision": "1b439614789968a94e5419151d88151635b662e9",
+			"revisionTime": "2020-04-18T16:51:54Z"
 		},
 		{
-			"checksumSHA1": "4yRxeKi6k5yIf87EwOXzbSTlTRU=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/exec/internal/compile",
+			"checksumSHA1": "runHfCObLIkTj5WpYD1K3Pn3zsA=",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/vendor/github.com/go-interpreter/wagon/exec/internal/compile",
 			"path": "github.com/go-interpreter/wagon/exec/internal/compile",
-			"revision": "43b046490d5f52c392f46ba19c70246fe2e89014",
-			"revisionTime": "2020-01-08T08:12:08Z"
+			"revision": "1b439614789968a94e5419151d88151635b662e9",
+			"revisionTime": "2020-04-18T16:51:54Z"
 		},
 		{
-			"checksumSHA1": "nKawEPA06hZUgof0kPD3pwkdDPo=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/validate",
+			"checksumSHA1": "7Wa9TxmlsiCAs50eaE1RAgAj2s0=",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/vendor/github.com/go-interpreter/wagon/validate",
 			"path": "github.com/go-interpreter/wagon/validate",
-			"revision": "43b046490d5f52c392f46ba19c70246fe2e89014",
-			"revisionTime": "2020-01-08T08:12:08Z"
+			"revision": "1b439614789968a94e5419151d88151635b662e9",
+			"revisionTime": "2020-04-18T16:51:54Z"
 		},
 		{
-			"checksumSHA1": "W0V+L9piYpdmXZ2sFxPkMZ49pjY=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm",
+			"checksumSHA1": "VwNV/6ip5pdhBtML27M9Zlsaav0=",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/vendor/github.com/go-interpreter/wagon/wasm",
 			"path": "github.com/go-interpreter/wagon/wasm",
-			"revision": "43b046490d5f52c392f46ba19c70246fe2e89014",
-			"revisionTime": "2020-01-08T08:12:08Z"
+			"revision": "1b439614789968a94e5419151d88151635b662e9",
+			"revisionTime": "2020-04-18T16:51:54Z"
 		},
 		{
-			"checksumSHA1": "kRHgYIzF9xTBn1Ai9h5H0wcPfp8=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm/internal/readpos",
+			"checksumSHA1": "npxMed6sSWAvTOE67YkqxZvTWQ8=",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/vendor/github.com/go-interpreter/wagon/wasm/internal/readpos",
 			"path": "github.com/go-interpreter/wagon/wasm/internal/readpos",
-			"revision": "43b046490d5f52c392f46ba19c70246fe2e89014",
-			"revisionTime": "2020-01-08T08:12:08Z"
+			"revision": "1b439614789968a94e5419151d88151635b662e9",
+			"revisionTime": "2020-04-18T16:51:54Z"
 		},
 		{
-			"checksumSHA1": "PwuCAZewDWGOeIK2Ya8vh2ux3ik=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm/leb128",
+			"checksumSHA1": "wZP6rdjRhxSXPfEI0OFnlH0I7eI=",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/vendor/github.com/go-interpreter/wagon/wasm/leb128",
 			"path": "github.com/go-interpreter/wagon/wasm/leb128",
-			"revision": "43b046490d5f52c392f46ba19c70246fe2e89014",
-			"revisionTime": "2020-01-08T08:12:08Z"
+			"revision": "1b439614789968a94e5419151d88151635b662e9",
+			"revisionTime": "2020-04-18T16:51:54Z"
 		},
 		{
-			"checksumSHA1": "eaISibWdQ9N489Att4HG3Xbg+jw=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm/operators",
+			"checksumSHA1": "Je0Fm7Gyo2vRxT86Ru4cpGQexBc=",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/vendor/github.com/go-interpreter/wagon/wasm/operators",
 			"path": "github.com/go-interpreter/wagon/wasm/operators",
-			"revision": "43b046490d5f52c392f46ba19c70246fe2e89014",
-			"revisionTime": "2020-01-08T08:12:08Z"
+			"revision": "1b439614789968a94e5419151d88151635b662e9",
+			"revisionTime": "2020-04-18T16:51:54Z"
 		},
 		{
 			"checksumSHA1": "gxV/cPPLkByTdY8y172t7v4qcZA=",

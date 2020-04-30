@@ -47,6 +47,7 @@ type context struct {
 	stack   []uint64
 	locals  []uint64
 	code    []byte
+	asm     []asmBlock
 	pc      int64
 	curFunc int64
 }
@@ -70,6 +71,8 @@ type VM struct {
 	RecoverPanic bool
 
 	abort bool // Flag for host functions to terminate execution
+
+	nativeBackend *nativeCompiler
 }
 
 // As per the WebAssembly spec: https://github.com/WebAssembly/design/blob/27ac254c854994103c24834a994be16f74f54186/Semantics.md#linear-memory
@@ -77,10 +80,30 @@ const wasmPageSize = 65536 // (64 KB)
 
 var endianess = binary.LittleEndian
 
-// NewVM creates a new VM from a given module. If the module defines a
-// start function, it will be executed.
-func NewVM(module *wasm.Module) (*VM, error) {
+type config struct {
+	EnableAOT bool
+}
+
+// VMOption describes a customization that can be applied to the VM.
+type VMOption func(c *config)
+
+// EnableAOT enables ahead-of-time compilation of supported opcodes
+// into runs of native instructions, if wagon supports native compilation
+// for the current architecture.
+func EnableAOT(v bool) VMOption {
+	return func(c *config) {
+		c.EnableAOT = v
+	}
+}
+
+// NewVM creates a new VM from a given module and options. If the module defines
+// a start function, it will be executed.
+func NewVM(module *wasm.Module, opts ...VMOption) (*VM, error) {
 	var vm VM
+	var options config
+	for _, opt := range opts {
+		opt(&options)
+	}
 
 	if module.Memory != nil && len(module.Memory.Entries) != 0 {
 		if len(module.Memory.Entries) > 1 {
@@ -112,7 +135,7 @@ func NewVM(module *wasm.Module) (*VM, error) {
 			continue
 		}
 
-		disassembly, err := disasm.Disassemble(fn, module)
+		disassembly, err := disasm.NewDisassembly(fn, module)
 		if err != nil {
 			return nil, err
 		}
@@ -122,10 +145,11 @@ func NewVM(module *wasm.Module) (*VM, error) {
 		for _, entry := range fn.Body.Locals {
 			totalLocalVars += int(entry.Count)
 		}
-		code, table := compile.Compile(disassembly.Code)
+		code, meta := compile.Compile(disassembly.Code)
 		vm.funcs[i] = compiledFunction{
+			codeMeta:       meta,
 			code:           code,
-			branchTables:   table,
+			branchTables:   meta.BranchTables,
 			maxDepth:       disassembly.MaxDepth,
 			totalLocalVars: totalLocalVars,
 			args:           len(fn.Sig.ParamTypes),
@@ -133,10 +157,35 @@ func NewVM(module *wasm.Module) (*VM, error) {
 		}
 	}
 
-	for i, global := range module.GlobalIndexSpace {
-		val, err := module.ExecInitExpr(global.Init)
+	if err := vm.resetGlobals(); err != nil {
+		return nil, err
+	}
+
+	if module.Start != nil {
+		_, err := vm.ExecCode(int64(module.Start.Index))
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	if options.EnableAOT {
+		supportedBackend, backend := nativeBackend()
+		if supportedBackend {
+			vm.nativeBackend = backend
+			if err := vm.tryNativeCompile(); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return &vm, nil
+}
+
+func (vm *VM) resetGlobals() error {
+	for i, global := range vm.module.GlobalIndexSpace {
+		val, err := vm.module.ExecInitExpr(global.Init)
+		if err != nil {
+			return err
 		}
 		switch v := val.(type) {
 		case int32:
@@ -150,19 +199,32 @@ func NewVM(module *wasm.Module) (*VM, error) {
 		}
 	}
 
-	if module.Start != nil {
-		_, err := vm.ExecCode(int64(module.Start.Index))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &vm, nil
+	return nil
 }
 
 // Memory returns the linear memory space for the VM.
 func (vm *VM) Memory() []byte {
 	return vm.memory
+}
+
+// GetExportEntry returns ExportEntry of this VM's Wasm module.
+func (vm *VM) GetExportEntry(name string) (wasm.ExportEntry, bool) {
+	entry, ok := vm.module.Export.Entries[name]
+	return entry, ok
+}
+
+// GetGlobal returns the global value represented as uint64 defined in this VM's Wasm module.
+func (vm *VM) GetGlobal(name string) (uint64, bool) {
+	entry, ok := vm.GetExportEntry(name)
+	if !ok {
+		return 0, false
+	}
+	index := entry.Index
+	if int64(index) >= int64(len(vm.globals)) {
+		return 0, false
+	}
+
+	return vm.globals[index], true
 }
 
 func (vm *VM) pushBool(v bool) {
@@ -238,6 +300,11 @@ func (vm *VM) popFloat32() float32 {
 }
 
 func (vm *VM) pushUint64(i uint64) {
+	if debugStackDepth {
+		if len(vm.ctx.stack) >= cap(vm.ctx.stack) {
+			panic("stack exceeding max depth: " + fmt.Sprintf("len=%d,cap=%d", len(vm.ctx.stack), cap(vm.ctx.stack)))
+		}
+	}
 	vm.ctx.stack = append(vm.ctx.stack, i)
 }
 
@@ -289,12 +356,18 @@ func (vm *VM) ExecCode(fnIndex int64, args ...uint64) (rtrn interface{}, err err
 	if !ok {
 		panic(fmt.Sprintf("exec: function at index %d is not a compiled function", fnIndex))
 	}
-	if len(vm.ctx.stack) < compiled.maxDepth {
-		vm.ctx.stack = make([]uint64, 0, compiled.maxDepth)
+
+	depth := compiled.maxDepth + 1
+	if cap(vm.ctx.stack) < depth {
+		vm.ctx.stack = make([]uint64, 0, depth)
+	} else {
+		vm.ctx.stack = vm.ctx.stack[:0]
 	}
+
 	vm.ctx.locals = make([]uint64, compiled.totalLocalVars)
 	vm.ctx.pc = 0
 	vm.ctx.code = compiled.code
+	vm.ctx.asm = compiled.asm
 	vm.ctx.curFunc = fnIndex
 
 	for i, arg := range args {
@@ -390,15 +463,37 @@ outer:
 			place := vm.fetchInt64()
 			vm.ctx.stack = vm.ctx.stack[:len(vm.ctx.stack)-int(place)]
 			vm.pushUint64(top)
+
+		case ops.WagonNativeExec:
+			i := vm.fetchUint32()
+			vm.nativeCodeInvocation(i)
 		default:
 			vm.funcTable[op]()
 		}
 	}
 
-	if compiled.returns {
+	if compiled.returns && !vm.abort {
 		return vm.ctx.stack[len(vm.ctx.stack)-1]
 	}
 	return 0
+}
+
+// Restart readies the VM for another run.
+func (vm *VM) Restart() {
+	vm.resetGlobals()
+	vm.ctx.locals = make([]uint64, 0)
+	vm.abort = false
+}
+
+// Close frees any resources managed by the VM.
+func (vm *VM) Close() error {
+	vm.abort = true // prevents further use.
+	if vm.nativeBackend != nil {
+		if err := vm.nativeBackend.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Process is a proxy passed to host functions in order to access
@@ -454,6 +549,11 @@ func (proc *Process) WriteAt(p []byte, off int64) (int, error) {
 	}
 
 	return length, err
+}
+
+// MemSize returns the current allocated memory size in bytes.
+func (proc *Process) MemSize() int {
+	return len(proc.vm.Memory())
 }
 
 // Terminate stops the execution of the current module.

@@ -800,7 +800,7 @@ func (sk *StakingPlugin) GetDelegateExInfoByIrr(delAddr common.Address,
 }
 
 func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
-	delAddr common.Address, del, delShouldMerge *staking.Delegation, canAddr common.Address, can *staking.Candidate,
+	delAddr common.Address, del *staking.Delegation, canAddr common.Address, can *staking.Candidate,
 	typ uint16, amount *big.Int, delegateRewardPerList []*reward.DelegateRewardPer) error {
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
@@ -841,19 +841,6 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	}
 
 	del.DelegateEpoch = uint32(epoch)
-	if delShouldMerge != nil {
-		//if in the same block have many staking with diffent StakingTxIndex,
-		// delegate many times in the same block will treat  as one delegate,
-		//the older del will merge to new del without transfer to StakingContractAddr
-		log.Debug("Call delegate :merge to the new delegate before", "amount", amount, "releasedHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes)
-		del.ReleasedHes.Add(del.ReleasedHes, delShouldMerge.ReleasedHes)
-		del.RestrictingPlanHes.Add(del.RestrictingPlanHes, delShouldMerge.RestrictingPlanHes)
-		amount.Add(amount, delShouldMerge.ReleasedHes)
-		amount.Add(amount, delShouldMerge.RestrictingPlanHes)
-		log.Debug("Call delegate :merge to the new delegate after", "amount", amount, "releasedHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes)
-	}
-
-	del.StakingTxIndex = can.StakingTxIndex
 
 	// set new delegate info
 	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del); nil != err {
@@ -1980,10 +1967,9 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue, blockNumber 
 	return next, nil
 }
 
-
 type randomOrderValidator struct {
 	validator *staking.Validator
-	value	*big.Int
+	value     *big.Int
 }
 type randomOrderValidatorList []*randomOrderValidator
 
@@ -2020,10 +2006,10 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 
 	orderList := make(randomOrderValidatorList, len(queue))
 	for i, v := range queue {
-		value :=  new(big.Int).Xor(new(big.Int).SetBytes(v.NodeAddress.Bytes()), new(big.Int).SetBytes(preNonces[i][:common.AddressLength]))
+		value := new(big.Int).Xor(new(big.Int).SetBytes(v.NodeAddress.Bytes()), new(big.Int).SetBytes(preNonces[i][:common.AddressLength]))
 		orderList[i] = &randomOrderValidator{
-			validator:v,
-			value:value,
+			validator: v,
+			value:     value,
 		}
 		log.Debug("Call randomOrderValidatorQueue xor", "nodeId", v.NodeId.TerminalString(), "nodeAddress", v.NodeAddress.Hex(), "nonce", hexutil.Encode(preNonces[i]), "xorValue", value)
 	}
@@ -2391,7 +2377,7 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 }
 
 func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
-	programVersion uint32, state xcom.StateDB) error {
+	programVersion uint32) error {
 
 	log.Info("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
@@ -2444,7 +2430,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 }
 
 func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
-	programVersion uint32, state xcom.StateDB) error {
+	programVersion uint32) error {
 
 	log.Info("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", xutil.CalcVersion(programVersion), "nodeId", nodeId.String())

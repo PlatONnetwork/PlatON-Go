@@ -27,6 +27,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
+// in genesis.json, the config value of the supportRate( and voteRate...) is the real value * 10000.
+// the RateCoefficient is used to calculate the supportRate (and voteRate) of a proposal correctly.
+const RateCoefficient = uint64(10000)
+
 type ProposalType uint8
 
 const (
@@ -146,6 +150,10 @@ func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state 
 	}
 
 	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, xutil.EstimateConsensusRoundsForGov(xcom.TextProposalVote_DurationSeconds()))
+	if endVotingBlock <= submitBlock {
+		log.Error("the end-voting-block is lower than submit-block. Please check configuration")
+		return common.InternalError
+	}
 	tp.EndVotingBlock = endVotingBlock
 
 	log.Debug("verify Text Proposal", "PIPID", tp.PIPID, "voteDuration", xcom.TextProposalVote_DurationSeconds(), "endVotingBlock", endVotingBlock, "blockNumber", submitBlock, "blockHash", blockHash)
@@ -229,7 +237,10 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 	}
 
 	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, vp.EndVotingRounds)
-
+	if endVotingBlock <= submitBlock {
+		log.Error("the end-voting-block is lower than submit-block. Please check configuration")
+		return common.InternalError
+	}
 	activeBlock := xutil.CalActiveBlock(endVotingBlock)
 
 	vp.EndVotingBlock = endVotingBlock
@@ -329,6 +340,10 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 	}
 
 	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, cp.EndVotingRounds)
+	if endVotingBlock <= submitBlock {
+		log.Error("the end-voting-block is lower than submit-block. Please check configuration")
+		return common.InternalError
+	}
 	cp.EndVotingBlock = endVotingBlock
 
 	if exist, err := FindVotingProposal(blockHash, state, Cancel); err != nil {
@@ -459,8 +474,11 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 	var voteDuration = xcom.ParamProposalVote_DurationSeconds()
 
 	endVotingBlock := xutil.EstimateEndVotingBlockForParaProposal(submitBlock, voteDuration)
+	if endVotingBlock <= submitBlock {
+		log.Error("the end-voting-block is lower than submit-block. Please check configuration")
+		return common.InternalError
+	}
 	pp.EndVotingBlock = endVotingBlock
-
 	log.Debug("verify Parameter Proposal", "PIPID", pp.PIPID, "voteDuration", voteDuration, "endVotingBlock", endVotingBlock, "blockNumber", submitBlock, "blockHash", blockHash)
 
 	return nil

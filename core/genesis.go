@@ -332,6 +332,12 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	if g.Config != nil {
 		genesisVersion = g.Config.GenesisVersion
 	}
+
+	if initDataStateHash, err = hashEconomicConfig(g.EconomicModel, initDataStateHash); err != nil {
+		log.Error("Failed to hash economic config", "err", err)
+		panic("Failed to hash economic config")
+	}
+
 	if initDataStateHash, err = genesisGovernParamData(initDataStateHash, sdb, genesisVersion); err != nil {
 		log.Error("Failed to init govern parameter in snapshotdb", "err", err)
 		panic("Failed to init govern parameter in snapshotdb")
@@ -340,7 +346,6 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	if g.configEmpty() {
 		log.Warn("the genesis config or cbft or initialNodes is nil, don't build staking data And don't store plugin genesis state")
 	} else {
-
 		if g.Config.GenesisVersion == 0 {
 			log.Error("genesis version is zero")
 			panic("genesis version is zero")

@@ -317,3 +317,14 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.Ba
 func genesisGovernParamData(prevHash common.Hash, snapdb snapshotdb.BaseDB, genesisVersion uint32) (common.Hash, error) {
 	return gov.InitGenesisGovernParam(prevHash, snapdb, genesisVersion)
 }
+
+func hashEconomicConfig(economicModel *xcom.EconomicModel, prevHash common.Hash) (common.Hash, error) {
+	if economicModel != nil {
+		bytes, err := rlp.EncodeToBytes(economicModel)
+		if err != nil {
+			return prevHash, err
+		}
+		prevHash = common.GenerateKVHash([]byte("economicConfig"), bytes, prevHash)
+	}
+	return prevHash, nil
+}

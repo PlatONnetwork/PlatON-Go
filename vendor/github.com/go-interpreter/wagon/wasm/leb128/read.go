@@ -7,86 +7,101 @@
 package leb128
 
 import (
+	"errors"
 	"io"
 )
 
-// ReadVarUint32Size reads a LEB128 encoded unsigned 32-bit integer from r.
-// It returns the integer value, the size of the encoded value (in bytes), and
-// the error (if any).
-func ReadVarUint32Size(r io.Reader) (res uint32, size uint, err error) {
-	b := make([]byte, 1)
+// readVarUint reads an unsigned integer of size n defined in https://webassembly.github.io/spec/core/binary/values.html#binary-int
+// readVarUint panics if n>64.
+func readVarUint(r io.Reader, n uint) (uint64, error) {
+	if n > 64 {
+		panic(errors.New("leb128: n must <= 64"))
+	}
+	p := make([]byte, 1)
+	var res uint64
 	var shift uint
 	for {
-		if _, err = io.ReadFull(r, b); err != nil {
-			return
+		_, err := io.ReadFull(r, p)
+		if err != nil {
+			return 0, err
 		}
-
-		size++
-
-		cur := uint32(b[0])
-		res |= (cur & 0x7f) << (shift)
-		if cur&0x80 == 0 {
-			return res, size, nil
+		b := uint64(p[0])
+		switch {
+		// note: can not use b < 1<<n, when n == 64, 1<<n will overflow to 0
+		case b < 1<<7 && b <= 1<<n-1:
+			res += (1 << shift) * b
+			return res, nil
+		case b >= 1<<7 && n > 7:
+			res += (1 << shift) * (b - 1<<7)
+			shift += 7
+			n -= 7
+		default:
+			return 0, errors.New("leb128: invalid uint")
 		}
-		shift += 7
+	}
+}
+
+// readVarint reads a signed integer of size n, defined in https://webassembly.github.io/spec/core/binary/values.html#binary-int
+// readVarint panics if n>64.
+func readVarint(r io.Reader, n uint) (int64, error) {
+	if n > 64 {
+		panic(errors.New("leb128: n must <= 64"))
+	}
+	p := make([]byte, 1)
+	var res int64
+	var shift uint
+	for {
+		_, err := io.ReadFull(r, p)
+		if err != nil {
+			return 0, err
+		}
+		b := int64(p[0])
+		switch {
+		case b < 1<<6 && uint64(b) < uint64(1<<(n-1)):
+			res += (1 << shift) * b
+			return res, nil
+		case b >= 1<<6 && b < 1<<7 && uint64(b)+1<<(n-1) >= 1<<7:
+			res += (1 << shift) * (b - 1<<7)
+			return res, nil
+		case b >= 1<<7 && n > 7:
+			res += (1 << shift) * (b - 1<<7)
+			shift += 7
+			n -= 7
+		default:
+			return 0, errors.New("leb128: invalid int")
+		}
 	}
 }
 
 // ReadVarUint32 reads a LEB128 encoded unsigned 32-bit integer from r, and
 // returns the integer value, and the error (if any).
 func ReadVarUint32(r io.Reader) (uint32, error) {
-	n, _, err := ReadVarUint32Size(r)
-	return n, err
-}
-
-// ReadVarint32Size reads a LEB128 encoded signed 32-bit integer from r, and
-// returns the integer value, the size of the encoded value, and the error
-// (if any)
-func ReadVarint32Size(r io.Reader) (res int32, size uint, err error) {
-	res64, size, err := ReadVarint64Size(r)
-	res = int32(res64)
-	return
+	n, err := readVarUint(r, 32)
+	if err != nil {
+		return 0, err
+	}
+	return uint32(n), nil
 }
 
 // ReadVarint32 reads a LEB128 encoded signed 32-bit integer from r, and
 // returns the integer value, and the error (if any).
 func ReadVarint32(r io.Reader) (int32, error) {
-	n, _, err := ReadVarint32Size(r)
-	return n, err
-}
-
-// ReadVarint64Size reads a LEB128 encoded signed 64-bit integer from r, and
-// returns the integer value, the size of the encoded value, and the error
-// (if any)
-func ReadVarint64Size(r io.Reader) (res int64, size uint, err error) {
-	var shift uint
-	var sign int64 = -1
-	b := make([]byte, 1)
-
-	for {
-		if _, err = io.ReadFull(r, b); err != nil {
-			return
-		}
-		size++
-
-		cur := int64(b[0])
-		res |= (cur & 0x7f) << shift
-		shift += 7
-		sign <<= 7
-		if cur&0x80 == 0 {
-			break
-		}
+	n, err := readVarint(r, 32)
+	if err != nil {
+		return 0, err
 	}
 
-	if ((sign >> 1) & res) != 0 {
-		res |= sign
-	}
-	return res, size, nil
+	return int32(n), nil
 }
 
 // ReadVarint64 reads a LEB128 encoded signed 64-bit integer from r, and
 // returns the integer value, and the error (if any).
 func ReadVarint64(r io.Reader) (int64, error) {
-	n, _, err := ReadVarint64Size(r)
-	return n, err
+	return readVarint(r, 64)
+}
+
+// ReadVarUint64 reads a LEB128 encoded unsigned 64-bit integer from r, and
+// returns the integer value, and the error (if any).
+func ReadVarUint64(r io.Reader) (uint64, error) {
+	return readVarUint(r, 64)
 }

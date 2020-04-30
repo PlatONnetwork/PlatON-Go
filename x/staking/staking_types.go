@@ -1039,9 +1039,6 @@ type Delegation struct {
 	RestrictingPlanHes *big.Int
 	// Cumulative delegate income (Waiting for withdrawal)
 	CumulativeIncome *big.Int
-
-	// The tx index at the time of staking
-	StakingTxIndex uint32
 }
 
 func (del *Delegation) CleanCumulativeIncome(epoch uint32) {
