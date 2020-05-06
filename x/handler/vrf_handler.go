@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -142,7 +142,7 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 			if uint64(len(nonces)) == maxValidatorsNum {
 				nonces = nonces[1:]
 			} else if uint64(len(nonces)) > maxValidatorsNum {
-				nonces = nonces[uint64(len(nonces)+1) - maxValidatorsNum:]
+				nonces = nonces[uint64(len(nonces)+1)-maxValidatorsNum:]
 			}
 		}
 	}
