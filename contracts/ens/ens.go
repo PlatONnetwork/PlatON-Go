@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	MainNetAddress = common.MustBech32ToAddress("lax1x9q4jfjamrdmxyry97v02rqxv9euzfvmerucux")
+	MainNetAddress = common.MustBech32ToAddress("lat1x9q4jfjamrdmxyry97v02rqxv9euzfvmkxwhjf")
 	TestNetAddress = common.MustBech32ToAddress("lax1zy3rg32u8ge06yfrp3pw00xdf2zwqgqshrlnax")
 )
 

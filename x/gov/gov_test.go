@@ -28,9 +28,10 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
@@ -51,7 +52,7 @@ var (
 	vpPIPID           = "vpPIPID"
 	vpEndVotingRounds = uint64(2)
 
-	tempActiveVersion = uint32(0<<16 | 13<<8 | 4)
+	tempActiveVersion = params.GenesisVersion + uint32(0<<16|1<<8|0)
 
 	chainID = big.NewInt(100)
 )
