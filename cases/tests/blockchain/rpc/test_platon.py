@@ -144,7 +144,7 @@ class TestPlaton():
         assert is_list_like(accounts_after)
         assert len(accounts_after) == len(accounts_before) + 10
         assert all((
-            is_checksum_address(account)
+            account
             for account
             in accounts_after
         ))
@@ -179,7 +179,7 @@ class TestPlaton():
     @allure.title("Get the number of transactions using a nonexistent account")
     @pytest.mark.P1
     def test_getTransactionCount_invalid_address(self, platon_connect):
-        with pytest.raises(InvalidAddress):
+        with pytest.raises(ValueError):
             platon_connect.getTransactionCount(UNKNOWN_ADDRESS.lower())
 
     @allure.title("Get the number of empty block transactions using hash")
