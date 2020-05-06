@@ -67,38 +67,38 @@ func (exe *Executor) PackBlockTxs(ctx *PackBlockContext) (err error) {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
 
-		for idx, tx := range ctx.txList {
+		/*for idx, tx := range ctx.txList {
 			toAddr := common.ZeroAddr.Hex()
 			if tx.To() != nil {
 				toAddr = tx.To().Hex()
 			}
 			log.Debug(fmt.Sprintf("PackBlockTxs(all tx info), blockNumber=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s, txGas=%d", ctx.header.Number.Uint64(), idx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex(), tx.Gas()))
-		}
+		}*/
 
 		if err := txDag.MakeDagGraph(ctx.GetState(), ctx.txList); err != nil {
 			return err
 		}
 
-		for idx, tx := range ctx.txList {
+		/*for idx, tx := range ctx.txList {
 			toAddr := common.ZeroAddr.Hex()
 			if tx.To() != nil {
 				toAddr = tx.To().Hex()
 			}
 			log.Debug(fmt.Sprintf("PackBlockTxs(all tx info), blockNumber=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s, txGas=%d", ctx.header.Number.Uint64(), idx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex(), tx.Gas()))
-		}
+		}*/
 
 		batchNo := 0
 
 		for !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
-			for _, idx := range parallelTxIdxs {
+			/*for _, idx := range parallelTxIdxs {
 				tx := ctx.GetTx(idx)
 				toAddr := common.ZeroAddr.Hex()
 				if tx.To() != nil {
 					toAddr = tx.To().Hex()
 				}
 				log.Debug(fmt.Sprintf("PackBlockTxs(batch tx info), blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, idx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
-			}
+			}*/
 			if len(parallelTxIdxs) > 0 {
 				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
 					exe.executeTransaction(parallelTxIdxs[0])
