@@ -7,7 +7,7 @@ import time
 
 import math
 
-from tests.lib import get_pledge_list, Decimal
+from tests.lib import get_pledge_list, Decimal, von_amount
 from tests.lib.client import Client
 from tests.lib.config import StakingConfig
 
@@ -31,7 +31,23 @@ def test_deploy(global_test_env):
         time.sleep(1)
         n += 1
 
-def test_01(global_test_env):
+def test_01(client_consensus):
     node_id = '3058ac78b0a05637218a417e562daaca2d640afb3d142ada765650cc0bed892d91d6e8128df0a59397ea051a2d91af5b532866f411811f4fd46de068ad0e168d'
-    node1 = global_test_env.find_node_by_node_id(node_id)
-    print(node1.node_mark)
+    # node = global_test_env.find_node_by_node_id(node_id)
+    client = client_consensus
+    economic = client_consensus.economic
+    node = client_consensus.node
+    address, _ = client.economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    result = client.staking.create_staking(0, address, address)
+    print(result)
+    result = node.ppos.getCandidateInfo(node.node_id)
+    print(result)
+
+def test_stak(global_test_env):
+    node_id = '90ceead63411f16715767459a5acce3c18825e97c76d7da4cd1ea86544f8be97f412ba9dc6a329c622f87f08e17776f93d55a06abbee5b5e2dd5c47cd2f00156'
+    node = global_test_env.find_node_by_node_id(node_id)
+    address1, _ = global_test_env.account.generate_account(node.web3, 2000000000000000000000000)
+    print(address1, _)
+    client1 = Client(global_test_env, node, StakingConfig("external_id", "node_name221", "website", "details"))
+    result = client1.staking.create_staking(0, address1,address1)
+    print(result)

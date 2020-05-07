@@ -1516,13 +1516,32 @@ def test_PT_AC_001(client_consensus):
     economic = client.economic
     node = client.node
     list = []
+    transaction_type = 1
     for i in range(5):
         addres1, private_key1 = economic.account.generate_account(node.web3, 100)
         addres2, private_key2 = economic.account.generate_account(node.web3, 100)
-        dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2}
+        dict = {'transaction_type': transaction_type, 'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2}
         list.append(dict)
     print(list)
+    return list
 
+
+def test_PT_AC_002(client_consensus):
+    """
+    关联性转账交易（一）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    transaction_type = 1
+    addres1, private_key1 = economic.account.generate_account(node.web3, 100)
+    for i in range(5):
+        addres2, private_key2 = economic.account.generate_account(node.web3, 100)
+        transaction_dict = {'transaction_type': transaction_type, 'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2}
+        transaction_list.append(transaction_dict)
+    print(transaction_list)
+    return transaction_list
 
 def RO_T_001(new_genesis_env, client_noconsensus):
     """
