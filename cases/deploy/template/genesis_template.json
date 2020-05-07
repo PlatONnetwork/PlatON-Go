@@ -9,7 +9,7 @@
             "period": 10000,
             "validatorMode": "ppos"
         },
-        "genesisVersion": 3072
+        "genesisVersion": 3328
     },
     "economicModel": {
         "common": {
@@ -50,7 +50,7 @@
         "innerAcc": {
             "platonFundAccount": "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6",
             "platonFundBalance": 0,
-            "cdfAccount": "lax1c8enpvs5v6974shxgxxav5dsn36e5jl4v29pec",
+            "cdfAccount": "lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru",
             "cdfBalance": 431811981000000000000000000
         }
     },
