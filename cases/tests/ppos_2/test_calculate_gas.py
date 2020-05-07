@@ -1,7 +1,7 @@
 from tests.lib.utils import *
 import rlp
 import pytest
-
+from platon_account.internal.transactions import bech32_address_bytes
 
 @pytest.mark.P3
 def test_staking_gas(client_new_node):
@@ -15,18 +15,17 @@ def test_staking_gas(client_new_node):
     benifit_address = node.web3.toChecksumAddress(benifit_address)
     balance1 = node.eth.getBalance(benifit_address)
     log.info(balance1)
-    benifit_address_ = benifit_address[2:]
     program_version_sign_ = node.program_version_sign[2:]
     result = client_new_node.ppos.createStaking(0, benifit_address, node.node_id, external_id,
                                                 node_name, website,
                                                 details, economic.create_staking_limit,
                                                 node.program_version, node.program_version_sign, node.blspubkey,
                                                 node.schnorr_NIZK_prove,
-                                                pri_key,reward_per=0)
+                                                pri_key, reward_per=0)
 
     assert_code(result, 0)
 
-    data = rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(bytes.fromhex(benifit_address_)),
+    data = rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(bech32_address_bytes(benifit_address)),
                        rlp.encode(bytes.fromhex(node.node_id)), rlp.encode(external_id),
                        rlp.encode(node_name),
                        rlp.encode(website), rlp.encode(details),
@@ -145,9 +144,8 @@ def test_edit_candidate_gas(client_new_node):
     assert_code(result, 0)
     balance2 = node.eth.getBalance(benifit_address)
     log.info(balance2)
-    benifit_address_ = benifit_address[2:]
     data = rlp.encode(
-        [rlp.encode(int(1001)), rlp.encode(bytes.fromhex(benifit_address_)), rlp.encode(bytes.fromhex(node.node_id)),
+        [rlp.encode(int(1001)), rlp.encode(bech32_address_bytes(benifit_address)), rlp.encode(bytes.fromhex(node.node_id)),
          rlp.encode("external_id"), rlp.encode("node_name"), rlp.encode("website"), rlp.encode("details"), rlp.encode(0)])
     gas = get_the_dynamic_parameter_gas_fee(data) + 21000 + 6000 + 12000
     log.info(gas)
