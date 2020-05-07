@@ -23,6 +23,7 @@ import time
 UNKNOWN_ADDRESS = '0xdEADBEeF00000000000000000000000000000000'
 UNKNOWN_HASH = '0xdeadbeef00000000000000000000000000000000000000000000000000000000'
 COMMON_ADDRESS = '0x55bfd49472fd41211545b01713a9c3a97af78b05'
+ADDRESS = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrzpqayr"
 
 
 @pytest.fixture(scope="module")
@@ -279,11 +280,11 @@ class TestPlaton():
             'gas': 21000,
             'gasPrice': platon.gasPrice,
         }
-        with pytest.raises(InvalidAddress):
+        with pytest.raises(ValueError):
             invalid_params = dict(txn_params, **{'from': UNKNOWN_ADDRESS})
             platon.sendTransaction(invalid_params)
 
-        with pytest.raises(InvalidAddress):
+        with pytest.raises(ValueError):
             invalid_params = dict(txn_params, **{'to': UNKNOWN_ADDRESS})
             platon.sendTransaction(invalid_params)
 
@@ -302,8 +303,8 @@ class TestPlaton():
         txn_hash = platon.sendTransaction(txn_params)
         txn = platon.getTransaction(txn_hash)
 
-        assert is_same_address(txn['from'], txn_params['from'])
-        assert is_same_address(txn['to'], txn_params['to'])
+        assert txn['from'] == txn_params['from']
+        assert txn['to'] == txn_params['to']
         assert txn['value'] == 1
         assert txn['gas'] == 21000
         assert txn['gasPrice'] == txn_params['gasPrice']
@@ -352,8 +353,8 @@ class TestPlaton():
         txn_hash = platon.sendTransaction(txn_params)
         txn = platon.getTransaction(txn_hash)
 
-        assert is_same_address(txn['from'], txn_params['from'])
-        assert is_same_address(txn['to'], txn_params['to'])
+        assert txn['from'] == txn_params['from']
+        assert txn['to'] == txn_params['to']
         assert txn['value'] == 1
         assert txn['gas'] == 21000
         assert txn['gasPrice'] == txn_params['gasPrice']
@@ -375,8 +376,8 @@ class TestPlaton():
         replace_txn_hash = platon.replaceTransaction(txn_hash, txn_params)
         replace_txn = platon.getTransaction(replace_txn_hash)
 
-        assert is_same_address(replace_txn['from'], txn_params['from'])
-        assert is_same_address(replace_txn['to'], txn_params['to'])
+        assert replace_txn['from'] == txn_params['from']
+        assert replace_txn['to'] == txn_params['to']
         assert replace_txn['value'] == 3
         assert replace_txn['gas'] == 21000
         assert replace_txn['gasPrice'] == txn_params['gasPrice']
@@ -482,7 +483,7 @@ class TestPlaton():
 
         txn_params = {
             'from': unlocked_account['address'],
-            'to': UNKNOWN_ADDRESS,
+            'to': ADDRESS,
             'value': 1,
             'gas': 21000,
             'gasPrice': price * 10,
