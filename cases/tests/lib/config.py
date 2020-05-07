@@ -41,7 +41,7 @@ class PipConfig:
     version0 = 3072
     transaction_cfg = {"gasPrice": 3000000000000000, "gas": 1000000}
     # Lock account account address
-    FOUNDATION_LOCKUP_ADDRESS = "0x1000000000000000000000000000000000000001"
+    FOUNDATION_LOCKUP_ADDRESS = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw"
 
 
 class EconomicConfig:
@@ -52,17 +52,17 @@ class EconomicConfig:
     # Built in node Amount of pledge
     DEVELOPER_STAKING_AMOUNT = 1500000000000000000000000
     # PlatON Foundation Address
-    FOUNDATION_ADDRESS = "0x493301712671ada506ba6ca7891f436d29185821"
+    FOUNDATION_ADDRESS = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6"
     # Lock account account address
-    FOUNDATION_LOCKUP_ADDRESS = "0x1000000000000000000000000000000000000001"
+    FOUNDATION_LOCKUP_ADDRESS = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw"
     # Pledged contract address
-    STAKING_ADDRESS = "0x1000000000000000000000000000000000000002"
+    STAKING_ADDRESS = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3"
     # PlatON incentive pool account
-    INCENTIVEPOOL_ADDRESS = "0x1000000000000000000000000000000000000003"
+    INCENTIVEPOOL_ADDRESS = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrzpqayr"
     # Remaining total account
-    REMAIN_ACCOUNT_ADDRESS = "0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD"
+    REMAIN_ACCOUNT_ADDRESS = "lax196278ns22j23awdfj9f2d4vz0pedld8au6xelj"
     # Developer Foundation Account
-    DEVELOPER_FOUNDATAION_ADDRESS = '0x54a7a3c6822eb222c53F76443772a60b0f9A8bab'
+    DEVELOPER_FOUNDATAION_ADDRESS = 'lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru'
 
     release_info = [{"blockNumber": 1600, "amount": 55965742000000000000000000},
                     {"blockNumber": 3200, "amount": 49559492000000000000000000},
