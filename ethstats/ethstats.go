@@ -19,7 +19,6 @@ package ethstats
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -478,23 +477,11 @@ type blockStats struct {
 	Txs        []txStats      `json:"transactions"`
 	TxHash     common.Hash    `json:"transactionsRoot"`
 	Root       common.Hash    `json:"stateRoot"`
-	Uncles     uncleStats     `json:"uncles"`
 }
 
 // txStats is the information to report about individual transactions.
 type txStats struct {
 	Hash common.Hash `json:"hash"`
-}
-
-// uncleStats is a custom wrapper around an uncle array to force serializing
-// empty arrays instead of returning null for them.
-type uncleStats []*types.Header
-
-func (s uncleStats) MarshalJSON() ([]byte, error) {
-	if uncles := ([]*types.Header)(s); len(uncles) > 0 {
-		return json.Marshal(uncles)
-	}
-	return []byte("[]"), nil
 }
 
 // reportBlock retrieves the current chain head and reports it to the stats server.
@@ -522,7 +509,6 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 	var (
 		header *types.Header
 		txs    []txStats
-		uncles []*types.Header
 	)
 	if s.eth != nil {
 		// Full nodes have all needed information available
@@ -535,9 +521,8 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		for i, tx := range block.Transactions() {
 			txs[i].Hash = tx.Hash()
 		}
-		uncles = block.Uncles()
 	} else {
-		// Light nodes would need on-demand lookups for transactions/uncles, skip
+		// Light nodes would need on-demand lookups for transactions, skip
 		if block != nil {
 			header = block.Header()
 		} else {
@@ -559,7 +544,6 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		Txs:        txs,
 		TxHash:     header.TxHash,
 		Root:       header.Root,
-		Uncles:     uncles,
 	}
 }
 
@@ -677,7 +661,7 @@ func (s *Service) reportStats(conn *websocket.Conn) error {
 	)
 	if s.eth != nil {
 		mining = s.eth.Miner().Mining()
-		hashrate = int(s.eth.Miner().HashRate())
+	//	hashrate = int(s.eth.Miner().HashRate())
 
 		sync := s.eth.Downloader().Progress()
 		syncing = s.eth.BlockChain().CurrentHeader().Number.Uint64() >= sync.HighestBlock

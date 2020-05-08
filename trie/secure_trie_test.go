@@ -18,9 +18,13 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/stretchr/testify/assert"
 	"runtime"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -64,6 +68,81 @@ func makeTestSecureTrie() (*Database, *SecureTrie, map[string][]byte) {
 	return triedb, trie, content
 }
 
+func TestInsertBlob(t *testing.T) {
+	triedb1, triedb2 := NewDatabase(ethdb.NewMemDatabase()), NewDatabase(ethdb.NewMemDatabase())
+	trie1, _ := NewSecure(common.Hash{}, triedb1, 0)
+	trie2, _ := NewSecure(common.Hash{}, triedb2, 0)
+
+	storages := make(map[string][]byte)
+	valueKeys := make(map[common.Hash][]byte)
+
+	insert := func(t1 *SecureTrie, t2 *SecureTrie) {
+		key := randBytes(20)
+		value := randBytes(30)
+		valueKey := crypto.Keccak256([]byte(value))
+
+		t1.Update(key, valueKey)
+		t2.Update(key, valueKey)
+		storages[string(key)] = value
+		valueKeys[common.BytesToHash(valueKey)] = value
+	}
+
+	leafcallback := func(database *Database, st *SecureTrie) func(leaf []byte, parent common.Hash) error {
+		return func(leaf []byte, parent common.Hash) error {
+			valuekey := common.BytesToHash(leaf)
+			database.InsertBlob(valuekey, valueKeys[valuekey])
+			database.Reference(valuekey, parent)
+			return nil
+		}
+	}
+
+	start := time.Now()
+
+	for i := 0; i < 2000; i++ {
+		insert(trie1, trie2)
+	}
+	fmt.Println("duration", time.Since(start))
+	start = time.Now()
+
+	root1, _ := trie1.Commit(leafcallback(triedb1, trie1))
+	fmt.Println("duration", time.Since(start))
+
+	root2, _ := trie2.Commit(leafcallback(triedb2, trie2))
+
+	assert.Equal(t, root1, root2)
+	triedb1.Commit(root1, true, true)
+	triedb2.Commit(root2, true, true)
+	for k, v := range storages {
+		valueKey1 := trie1.Get([]byte(k))
+		valueKey2 := trie2.Get([]byte(k))
+		assert.Equal(t, valueKey1, valueKey2)
+		value1 := trie1.GetKey(valueKey1)
+		value2 := trie2.GetKey(valueKey2)
+		assert.Equal(t, v, value1)
+		assert.Equal(t, v, value2)
+	}
+
+	for i := 0; i < 2; i++ {
+		insert(trie1, trie2)
+	}
+
+	root1, _ = trie1.Commit(leafcallback(triedb1, trie1))
+	root2, _ = trie2.Commit(leafcallback(triedb2, trie2))
+
+	assert.Equal(t, root1, root2)
+	triedb1.Commit(root1, true, true)
+	triedb2.Commit(root2, true, true)
+	for k, v := range storages {
+		valueKey1 := trie1.Get([]byte(k))
+		valueKey2 := trie2.Get([]byte(k))
+		assert.Equal(t, valueKey1, valueKey2)
+		value1 := trie1.GetKey(valueKey1)
+		value2 := trie2.GetKey(valueKey2)
+		assert.Equal(t, v, value1)
+		assert.Equal(t, v, value2)
+	}
+
+}
 func TestSecureDelete(t *testing.T) {
 	trie := newEmptySecure()
 	vals := []struct{ k, v string }{
@@ -142,4 +221,11 @@ func TestSecureTrieConcurrency(t *testing.T) {
 	}
 	// Wait for all threads to finish
 	pend.Wait()
+}
+
+func TestJ(t *testing.T) {
+	_, trie, _ := makeTestSecureTrie()
+	fmt.Println(hexutil.Encode(trie.hashKey(hexutil.MustDecode("0x1000000000000000000000000000000000000004"))))
+	fmt.Println(hexutil.Encode(trie.hashKey(hexutil.MustDecode("0x1000000000000000000000000000000000000002"))))
+
 }

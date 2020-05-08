@@ -34,6 +34,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
@@ -233,4 +235,10 @@ func expandHome(p string) string {
 		}
 	}
 	return filepath.Clean(p)
+}
+
+// economic config
+func (*HandlerT) EconomicConfig() string {
+	return xcom.EconomicString()
+
 }

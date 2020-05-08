@@ -6,8 +6,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
@@ -18,32 +18,51 @@ var _ = (*configMarshaling)(nil)
 // MarshalTOML marshals as TOML.
 func (c Config) MarshalTOML() (interface{}, error) {
 	type Config struct {
-		Genesis                 *core.Genesis `toml:",omitempty"`
-		NetworkId               uint64
-		SyncMode                downloader.SyncMode
-		NoPruning               bool
-		LightServ               int  `toml:",omitempty"`
-		LightPeers              int  `toml:",omitempty"`
-		SkipBcVersionCheck      bool `toml:"-"`
-		DatabaseHandles         int  `toml:"-"`
-		DatabaseCache           int
-		TrieCache               int
-		TrieTimeout             time.Duration
-		Etherbase               common.Address `toml:",omitempty"`
-		MinerNotify             []string       `toml:",omitempty"`
-		MinerExtraData          hexutil.Bytes  `toml:",omitempty"`
-		MinerGasFloor           uint64
-		MinerGasCeil            uint64
-		MinerGasPrice           *big.Int
-		MinerRecommit           time.Duration
-		MinerNoverify           bool
-		TxPool                  core.TxPoolConfig
-		GPO                     gasprice.Config
-		EnablePreimageRecording bool
-		DocRoot                 string `toml:"-"`
+		Genesis                  *core.Genesis       `toml:",omitempty"`
+		CbftConfig               types.OptionsConfig `toml:",omitempty"`
+		NetworkId                uint64
+		SyncMode                 downloader.SyncMode
+		NoPruning                bool
+		LightServ                int  `toml:",omitempty"`
+		LightPeers               int  `toml:",omitempty"`
+		SkipBcVersionCheck       bool `toml:"-"`
+		DatabaseHandles          int  `toml:"-"`
+		DatabaseCache            int
+		TrieCache                int
+		TrieTimeout              time.Duration
+		MinerExtraData           hexutil.Bytes `toml:",omitempty"`
+		MinerGasFloor            uint64
+		MinerGasPrice            *big.Int
+		MinerRecommit            time.Duration
+		MinerNoverify            bool
+		MiningLogAtDepth         uint
+		TxChanSize               int
+		ChainHeadChanSize        int
+		ChainSideChanSize        int
+		ResultQueueSize          int
+		ResubmitAdjustChanSize   int
+		MinRecommitInterval      time.Duration
+		MaxRecommitInterval      time.Duration
+		IntervalAdjustRatio      float64
+		IntervalAdjustBias       float64
+		StaleThreshold           uint64
+		DefaultCommitRatio       float64
+		BodyCacheLimit           int
+		BlockCacheLimit          int
+		MaxFutureBlocks          int
+		BadBlockLimit            int
+		TriesInMemory            int
+		BlockChainVersion        int
+		DefaultTxsCacheSize      int
+		DefaultBroadcastInterval time.Duration
+		TxPool                   core.TxPoolConfig
+		GPO                      gasprice.Config
+		DocRoot                  string `toml:"-"`
+		Debug                    bool
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
+	enc.CbftConfig = c.CbftConfig
 	enc.NetworkId = c.NetworkId
 	enc.SyncMode = c.SyncMode
 	enc.NoPruning = c.NoPruning
@@ -54,47 +73,82 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DatabaseCache = c.DatabaseCache
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
-	enc.Etherbase = c.Etherbase
-	enc.MinerNotify = c.MinerNotify
 	enc.MinerExtraData = c.MinerExtraData
 	enc.MinerGasFloor = c.MinerGasFloor
-	enc.MinerGasCeil = c.MinerGasCeil
 	enc.MinerGasPrice = c.MinerGasPrice
 	enc.MinerRecommit = c.MinerRecommit
 	enc.MinerNoverify = c.MinerNoverify
+	enc.MiningLogAtDepth = c.MiningLogAtDepth
+	enc.TxChanSize = c.TxChanSize
+	enc.ChainHeadChanSize = c.ChainHeadChanSize
+	enc.ChainSideChanSize = c.ChainSideChanSize
+	enc.ResultQueueSize = c.ResultQueueSize
+	enc.ResubmitAdjustChanSize = c.ResubmitAdjustChanSize
+	enc.MinRecommitInterval = c.MinRecommitInterval
+	enc.MaxRecommitInterval = c.MaxRecommitInterval
+	enc.IntervalAdjustRatio = c.IntervalAdjustRatio
+	enc.IntervalAdjustBias = c.IntervalAdjustBias
+	enc.StaleThreshold = c.StaleThreshold
+	enc.DefaultCommitRatio = c.DefaultCommitRatio
+	enc.BodyCacheLimit = c.BodyCacheLimit
+	enc.BlockCacheLimit = c.BlockCacheLimit
+	enc.MaxFutureBlocks = c.MaxFutureBlocks
+	enc.BadBlockLimit = c.BadBlockLimit
+	enc.TriesInMemory = c.TriesInMemory
+	enc.BlockChainVersion = c.BlockChainVersion
+	enc.DefaultTxsCacheSize = c.DefaultTxsCacheSize
+	enc.DefaultBroadcastInterval = c.DefaultBroadcastInterval
 	enc.TxPool = c.TxPool
 	enc.GPO = c.GPO
-	enc.EnablePreimageRecording = c.EnablePreimageRecording
 	enc.DocRoot = c.DocRoot
+	enc.Debug = c.Debug
 	return &enc, nil
 }
 
 // UnmarshalTOML unmarshals from TOML.
 func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	type Config struct {
-		Genesis                 *core.Genesis `toml:",omitempty"`
-		NetworkId               *uint64
-		SyncMode                *downloader.SyncMode
-		NoPruning               *bool
-		LightServ               *int  `toml:",omitempty"`
-		LightPeers              *int  `toml:",omitempty"`
-		SkipBcVersionCheck      *bool `toml:"-"`
-		DatabaseHandles         *int  `toml:"-"`
-		DatabaseCache           *int
-		TrieCache               *int
-		TrieTimeout             *time.Duration
-		Etherbase               *common.Address `toml:",omitempty"`
-		MinerNotify             []string        `toml:",omitempty"`
-		MinerExtraData          *hexutil.Bytes  `toml:",omitempty"`
-		MinerGasFloor           *uint64
-		MinerGasCeil            *uint64
-		MinerGasPrice           *big.Int
-		MinerRecommit           *time.Duration
-		MinerNoverify           *bool
-		TxPool                  *core.TxPoolConfig
-		GPO                     *gasprice.Config
-		EnablePreimageRecording *bool
-		DocRoot                 *string `toml:"-"`
+		Genesis                  *core.Genesis        `toml:",omitempty"`
+		CbftConfig               *types.OptionsConfig `toml:",omitempty"`
+		NetworkId                *uint64
+		SyncMode                 *downloader.SyncMode
+		NoPruning                *bool
+		LightServ                *int  `toml:",omitempty"`
+		LightPeers               *int  `toml:",omitempty"`
+		SkipBcVersionCheck       *bool `toml:"-"`
+		DatabaseHandles          *int  `toml:"-"`
+		DatabaseCache            *int
+		TrieCache                *int
+		TrieTimeout              *time.Duration
+		MinerExtraData           *hexutil.Bytes `toml:",omitempty"`
+		MinerGasFloor            *uint64
+		MinerGasPrice            *big.Int
+		MinerRecommit            *time.Duration
+		MinerNoverify            *bool
+		MiningLogAtDepth         *uint
+		TxChanSize               *int
+		ChainHeadChanSize        *int
+		ChainSideChanSize        *int
+		ResultQueueSize          *int
+		ResubmitAdjustChanSize   *int
+		MinRecommitInterval      *time.Duration
+		MaxRecommitInterval      *time.Duration
+		IntervalAdjustRatio      *float64
+		IntervalAdjustBias       *float64
+		StaleThreshold           *uint64
+		DefaultCommitRatio       *float64
+		BodyCacheLimit           *int
+		BlockCacheLimit          *int
+		MaxFutureBlocks          *int
+		BadBlockLimit            *int
+		TriesInMemory            *int
+		BlockChainVersion        *int
+		DefaultTxsCacheSize      *int
+		DefaultBroadcastInterval *time.Duration
+		TxPool                   *core.TxPoolConfig
+		GPO                      *gasprice.Config
+		DocRoot                  *string `toml:"-"`
+		Debug                    *bool
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -102,6 +156,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.Genesis != nil {
 		c.Genesis = dec.Genesis
+	}
+	if dec.CbftConfig != nil {
+		c.CbftConfig = *dec.CbftConfig
 	}
 	if dec.NetworkId != nil {
 		c.NetworkId = *dec.NetworkId
@@ -133,20 +190,11 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.TrieTimeout != nil {
 		c.TrieTimeout = *dec.TrieTimeout
 	}
-	if dec.Etherbase != nil {
-		c.Etherbase = *dec.Etherbase
-	}
-	if dec.MinerNotify != nil {
-		c.MinerNotify = dec.MinerNotify
-	}
 	if dec.MinerExtraData != nil {
 		c.MinerExtraData = *dec.MinerExtraData
 	}
 	if dec.MinerGasFloor != nil {
 		c.MinerGasFloor = *dec.MinerGasFloor
-	}
-	if dec.MinerGasCeil != nil {
-		c.MinerGasCeil = *dec.MinerGasCeil
 	}
 	if dec.MinerGasPrice != nil {
 		c.MinerGasPrice = dec.MinerGasPrice
@@ -157,17 +205,77 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.MinerNoverify != nil {
 		c.MinerNoverify = *dec.MinerNoverify
 	}
+	if dec.MiningLogAtDepth != nil {
+		c.MiningLogAtDepth = *dec.MiningLogAtDepth
+	}
+	if dec.TxChanSize != nil {
+		c.TxChanSize = *dec.TxChanSize
+	}
+	if dec.ChainHeadChanSize != nil {
+		c.ChainHeadChanSize = *dec.ChainHeadChanSize
+	}
+	if dec.ChainSideChanSize != nil {
+		c.ChainSideChanSize = *dec.ChainSideChanSize
+	}
+	if dec.ResultQueueSize != nil {
+		c.ResultQueueSize = *dec.ResultQueueSize
+	}
+	if dec.ResubmitAdjustChanSize != nil {
+		c.ResubmitAdjustChanSize = *dec.ResubmitAdjustChanSize
+	}
+	if dec.MinRecommitInterval != nil {
+		c.MinRecommitInterval = *dec.MinRecommitInterval
+	}
+	if dec.MaxRecommitInterval != nil {
+		c.MaxRecommitInterval = *dec.MaxRecommitInterval
+	}
+	if dec.IntervalAdjustRatio != nil {
+		c.IntervalAdjustRatio = *dec.IntervalAdjustRatio
+	}
+	if dec.IntervalAdjustBias != nil {
+		c.IntervalAdjustBias = *dec.IntervalAdjustBias
+	}
+	if dec.StaleThreshold != nil {
+		c.StaleThreshold = *dec.StaleThreshold
+	}
+	if dec.DefaultCommitRatio != nil {
+		c.DefaultCommitRatio = *dec.DefaultCommitRatio
+	}
+	if dec.BodyCacheLimit != nil {
+		c.BodyCacheLimit = *dec.BodyCacheLimit
+	}
+	if dec.BlockCacheLimit != nil {
+		c.BlockCacheLimit = *dec.BlockCacheLimit
+	}
+	if dec.MaxFutureBlocks != nil {
+		c.MaxFutureBlocks = *dec.MaxFutureBlocks
+	}
+	if dec.BadBlockLimit != nil {
+		c.BadBlockLimit = *dec.BadBlockLimit
+	}
+	if dec.TriesInMemory != nil {
+		c.TriesInMemory = *dec.TriesInMemory
+	}
+	if dec.BlockChainVersion != nil {
+		c.BlockChainVersion = *dec.BlockChainVersion
+	}
+	if dec.DefaultTxsCacheSize != nil {
+		c.DefaultTxsCacheSize = *dec.DefaultTxsCacheSize
+	}
+	if dec.DefaultBroadcastInterval != nil {
+		c.DefaultBroadcastInterval = *dec.DefaultBroadcastInterval
+	}
 	if dec.TxPool != nil {
 		c.TxPool = *dec.TxPool
 	}
 	if dec.GPO != nil {
 		c.GPO = *dec.GPO
 	}
-	if dec.EnablePreimageRecording != nil {
-		c.EnablePreimageRecording = *dec.EnablePreimageRecording
-	}
 	if dec.DocRoot != nil {
 		c.DocRoot = *dec.DocRoot
+	}
+	if dec.Debug != nil {
+		c.Debug = *dec.Debug
 	}
 	return nil
 }

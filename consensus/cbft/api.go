@@ -1,39 +1,60 @@
 package cbft
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 )
 
-type API struct {
-	chain consensus.ChainReader
-	cbft  *Cbft
+type Status struct {
+	Tree      *types.BlockTree `json:"blockTree"`
+	State     *state.ViewState `json:"state"`
+	Validator bool             `json:"validator"`
 }
 
-// Get the block address
-func (api *API) GetProducer(number *rpc.BlockNumber) (common.Address, error) {
-	// Retrieve the requested block number (or current if none requested)
-	var header *types.Header
-	if number == nil || *number == rpc.LatestBlockNumber {
-		header = api.chain.CurrentHeader()
-	} else {
-		header = api.chain.GetHeaderByNumber(uint64(number.Int64()))
-	}
-	// Ensure we have an actually valid block and return the signers from its snapshot
-	if header == nil {
-		return common.Address{}, errUnknownBlock
-	}
-	nodeID, _, err := ecrecover(header)
+// API defines an exposed API function interface.
+type API interface {
+	Status() *Status
+	Evidences() string
+	GetPrepareQC(number uint64) *types.QuorumCert
+	GetSchnorrNIZKProve() (*bls.SchnorrProof, error)
+}
 
-	if err != nil {
-		return common.Address{}, err
+// PublicConsensusAPI provides an API to access the PlatON blockchain.
+// It offers only methods that operate on public data that
+// is freely available to anyone.
+type PublicConsensusAPI struct {
+	engine API
+}
+
+// NewPublicConsensusAPI creates a new PlatON blockchain API.
+func NewPublicConsensusAPI(engine API) *PublicConsensusAPI {
+	return &PublicConsensusAPI{engine: engine}
+}
+
+// ConsensusStatus returns the status data of the consensus engine.
+func (s *PublicConsensusAPI) ConsensusStatus() *Status {
+	return s.engine.Status()
+}
+
+// Evidences returns the relevant data of the verification.
+func (s *PublicConsensusAPI) Evidences() string {
+	return s.engine.Evidences()
+}
+
+// GetPrepareQC returns the QC certificate corresponding to the blockNumber.
+func (s *PublicConsensusAPI) GetPrepareQC(number uint64) *types.QuorumCert {
+	return s.engine.GetPrepareQC(number)
+}
+
+func (s *PublicConsensusAPI) GetSchnorrNIZKProve() string {
+	proof, err := s.engine.GetSchnorrNIZKProve()
+	if nil != err {
+		return err.Error()
 	}
-
-	var signer common.Address
-	copy(signer[:], crypto.Keccak256(nodeID.Bytes()[1:])[12:])
-
-	return signer, nil
+	proofByte, err := proof.MarshalText()
+	if nil != err {
+		return err.Error()
+	}
+	return string(proofByte)
 }

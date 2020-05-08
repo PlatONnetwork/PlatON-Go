@@ -21,10 +21,11 @@ import (
 )
 
 const (
-	VersionMajor = 0        // Major version component of the current release
-	VersionMinor = 6        // Minor version component of the current release
-	VersionPatch = 0        // Patch version component of the current release
-	VersionMeta  = "stable" // Version metadata to append to the version string
+	VersionMajor   = 0          // Major version component of the current release
+	VersionMinor   = 7          // Minor version component of the current release
+	VersionPatch   = 4          // Patch version component of the current release
+	VersionMeta    = "unstable" // Version metadata to append to the version string
+	GenesisVersion = uint32(0<<16 | 7<<8 | 4)
 )
 
 // Version holds the textual version string.
@@ -61,4 +62,9 @@ func VersionWithCommit(gitCommit string) string {
 		vsn += "-" + gitCommit[:8]
 	}
 	return vsn
+}
+
+type ProgramVersion struct {
+	Version uint32
+	Sign    string
 }

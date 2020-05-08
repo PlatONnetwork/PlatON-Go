@@ -18,13 +18,9 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"fmt"
-	"math/big"
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -43,25 +39,24 @@ type Backend interface {
 
 // Miner creates blocks and searches for proof-of-work values.
 type Miner struct {
-	mux      *event.TypeMux
-	worker   *worker
-	coinbase common.Address
-	eth      Backend
-	engine   consensus.Engine
-	exitCh   chan struct{}
+	mux    *event.TypeMux
+	worker *worker
+	eth    Backend
+	engine consensus.Engine
+	exitCh chan struct{}
 
 	canStart    int32 // can start indicates whether we can start the mining operation
 	shouldStart int32 // should start indicates whether we should start after sync
 }
 
-func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool,
-	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, blockChainCache *core.BlockChainCache) *Miner {
+func New(eth Backend, config *params.ChainConfig, miningConfig *core.MiningConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor /*, gasCeil*/ uint64, isLocalBlock func(block *types.Block) bool,
+	blockChainCache *core.BlockChainCache) *Miner {
 	miner := &Miner{
 		eth:      eth,
 		mux:      mux,
 		engine:   engine,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, blockChainCache),
+		worker:   newWorker(config, miningConfig, engine, eth, mux, recommit, gasFloor, isLocalBlock, blockChainCache),
 		canStart: 1,
 	}
 	go miner.update()
@@ -97,12 +92,9 @@ func (self *Miner) update() {
 				atomic.StoreInt32(&self.canStart, 1)
 				atomic.StoreInt32(&self.shouldStart, 0)
 				if shouldStart {
-					self.Start(self.coinbase)
+					self.Start()
 				}
 
-				if cbft, ok := self.engine.(consensus.Bft); ok {
-					cbft.OnBlockSynced()
-				}
 				// stop immediately and ignore all further pending events
 				return
 			}
@@ -112,19 +104,26 @@ func (self *Miner) update() {
 	}
 }
 
-func (self *Miner) Start(coinbase common.Address) {
+func (self *Miner) Start() {
 	atomic.StoreInt32(&self.shouldStart, 1)
-	self.SetEtherbase(coinbase)
 
 	if atomic.LoadInt32(&self.canStart) == 0 {
 		log.Info("Network syncing, will start miner afterwards")
 		return
 	}
+
 	self.worker.start()
+	if bft, ok := self.engine.(consensus.Bft); ok {
+		bft.Resume()
+	}
 }
 
 func (self *Miner) Stop() {
 	self.worker.stop()
+	if bft, ok := self.engine.(consensus.Bft); ok {
+		bft.Pause()
+	}
+
 	atomic.StoreInt32(&self.shouldStart, 0)
 }
 
@@ -137,20 +136,13 @@ func (self *Miner) Mining() bool {
 	return self.worker.isRunning()
 }
 
-func (self *Miner) HashRate() uint64 {
-	if pow, ok := self.engine.(consensus.PoW); ok {
-		return uint64(pow.Hashrate())
-	}
-	return 0
-}
-
-func (self *Miner) SetExtra(extra []byte) error {
-	if uint64(len(extra)) > params.MaximumExtraDataSize {
-		return fmt.Errorf("Extra exceeds max length. %d > %v", len(extra), params.MaximumExtraDataSize)
-	}
-	self.worker.setExtra(extra)
-	return nil
-}
+//func (self *Miner) SetExtra(extra []byte) error {
+//	if uint64(len(extra)) > params.MaximumExtraDataSize {
+//		return fmt.Errorf("Extra exceeds max length. %d > %v", len(extra), params.MaximumExtraDataSize)
+//	}
+//	self.worker.setExtra(extra)
+//	return nil
+//}
 
 // SetRecommitInterval sets the interval for sealing work resubmitting.
 func (self *Miner) SetRecommitInterval(interval time.Duration) {
@@ -169,25 +161,4 @@ func (self *Miner) Pending() (*types.Block, *state.StateDB) {
 // change between multiple method calls
 func (self *Miner) PendingBlock() *types.Block {
 	return self.worker.pendingBlock()
-}
-
-func (self *Miner) SetEtherbase(addr common.Address) {
-	self.coinbase = addr
-	self.worker.setEtherbase(addr)
-}
-
-func (self *Miner) InitConsensusPeerFn(addFn addConsensusPeerFn) {
-	self.worker.InitConsensusPeerFn(addFn)
-}
-
-func (self *Miner) ShouldElection(blockNumber *big.Int) bool {
-	return self.worker.shouldElection(blockNumber)
-}
-
-func (self *Miner) ShouldSwitch(blockNumber *big.Int) bool {
-	return self.worker.shouldSwitch(blockNumber)
-}
-
-func (self *Miner) AttemptAddConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
-	self.worker.attemptAddConsensusPeer(blockNumber, state)
 }

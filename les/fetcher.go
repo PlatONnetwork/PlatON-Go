@@ -578,6 +578,9 @@ func (f *lightFetcher) checkAnnouncedHeaders(fp *fetcherPeerInfo, headers []*typ
 			}
 		} else {
 			header = headers[i]
+			if header == nil {
+				return true
+			}
 			//td = tds[i]
 		}
 		hash := header.Hash()

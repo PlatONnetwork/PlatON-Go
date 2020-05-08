@@ -22,16 +22,18 @@ package eth
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"sort"
 	"sync"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -39,6 +41,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
@@ -50,23 +53,34 @@ var (
 // with the given number of blocks already known, and potential notification
 // channels for different events.
 func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func(int, *core.BlockGen), newtx chan<- []*types.Transaction) (*ProtocolManager, *ethdb.MemDatabase, error) {
+	xcom.GetEc(xcom.DefaultTestNet)
 	var (
-		evmux  = new(event.TypeMux)
-		engine = cbft.New(params.GrapeChainConfig.Cbft, nil, nil, nil)
+		evmux = new(event.TypeMux)
+		//	engine = cbft.New(params.GrapeChainConfig.Cbft, evmux, nil)
+		engine = cbft.NewFaker()
 		db     = ethdb.NewMemDatabase()
 		gspec  = &core.Genesis{
 			Config: params.TestChainConfig,
 			Alloc:  core.GenesisAlloc{testBank: {Balance: big.NewInt(1000000)}},
 		}
-		genesis       = gspec.MustCommit(db)
-		blockchain, _ = core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
-	)
-	chain, _ := core.GenerateChain(gspec.Config, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, nil), db, blocks, generator)
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		panic(err)
-	}
+		genesis = gspec.MustCommit(db)
 
-	pm, err := NewProtocolManager(gspec.Config, mode, DefaultConfig.NetworkId, evmux, &testTxPool{added: newtx}, engine, blockchain, db)
+		//blockchain, _ = core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
+	)
+	engine.InsertChain(genesis)
+	//cache := core.NewBlockChainCache(blockchain)
+	//
+	//engine.SetBlockChainCache(cache)
+	//
+	//txpool := core.NewTxPool(core.DefaultTxPoolConfig, gspec.Config, core.NewTxPoolBlockChain(cache))
+	//
+	//engine.Start(blockchain, txpool, cbft.NewStaticAgency([]discover.Node{}))
+	//chain, _ := core.GenerateChain(gspec.Config, genesis, engine, db, blocks, generator)
+	chain := core.GenerateBlockChain2(gspec.Config, genesis, engine, db, blocks, generator)
+	//if _, err := blockchain.InsertChain(chain); err != nil {
+	//	panic(err)
+	//}
+	pm, err := NewProtocolManager(gspec.Config, mode, DefaultConfig.NetworkId, evmux, &testTxPool{added: newtx}, engine, chain, db)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -115,7 +129,7 @@ func (p *testTxPool) Pending() (map[common.Address]types.Transactions, error) {
 
 	batches := make(map[common.Address]types.Transactions)
 	for _, tx := range p.pool {
-		from, _ := types.Sender(types.HomesteadSigner{}, tx)
+		from, _ := types.Sender(types.NewEIP155Signer(new(big.Int)), tx)
 		batches[from] = append(batches[from], tx)
 	}
 	for _, batch := range batches {
@@ -131,7 +145,7 @@ func (p *testTxPool) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subs
 // newTestTransaction create a new dummy transaction.
 func newTestTransaction(from *ecdsa.PrivateKey, nonce uint64, datasize int) *types.Transaction {
 	tx := types.NewTransaction(nonce, common.Address{}, big.NewInt(0), 100000, big.NewInt(0), make([]byte, datasize))
-	tx, _ = types.SignTx(tx, types.HomesteadSigner{}, from)
+	tx, _ = types.SignTx(tx, types.NewEIP155Signer(new(big.Int)), from)
 	return tx
 }
 
@@ -170,19 +184,20 @@ func newTestPeer(name string, version int, pm *ProtocolManager, shake bool) (*te
 			genesis = pm.blockchain.Genesis()
 			head    = pm.blockchain.CurrentHeader()
 		)
-		tp.handshake(nil, head.Hash(), genesis.Hash())
+		tp.handshake(nil, head.Number, head.Hash(), genesis.Hash())
 	}
 	return tp, errc
 }
 
 // handshake simulates a trivial handshake that expects the same state from the
 // remote side as we are simulating locally.
-func (p *testPeer) handshake(t *testing.T, head common.Hash, genesis common.Hash) {
+func (p *testPeer) handshake(t *testing.T, bn *big.Int, head common.Hash, genesis common.Hash) {
 	msg := &statusData{
 		ProtocolVersion: uint32(p.version),
 		NetworkId:       DefaultConfig.NetworkId,
 		CurrentBlock:    head,
 		GenesisBlock:    genesis,
+		BN:              bn,
 	}
 	if err := p2p.ExpectMsg(p.app, StatusMsg, msg); err != nil {
 		t.Fatalf("status recv: %v", err)

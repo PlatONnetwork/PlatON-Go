@@ -2,16 +2,18 @@ package consensus
 
 import (
 	"errors"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
-	ExtraSeal = 65 // Fixed number of extra-data suffix bytes reserved for signer seal
+	// ExtraSeal fixed number of extra-data suffix bytes reserved for signer seal
+	ExtraSeal = 65
 	// ErrMissingSignature is returned if a block's extra-data section doesn't seem
 	// to contain a 65 byte secp256k1 signature.
 	ErrMissingSignature = errors.New("extra-data 65 byte signature suffix missing")
@@ -29,7 +31,6 @@ func SigHash(header *types.Header) (hash common.Hash) {
 
 	rlp.Encode(hasher, []interface{}{
 		header.ParentHash,
-		header.UncleHash,
 		header.Coinbase,
 		header.Root,
 		header.TxHash,
@@ -40,7 +41,6 @@ func SigHash(header *types.Header) (hash common.Hash) {
 		header.GasUsed,
 		header.Time,
 		header.Extra[:len(header.Extra)-65], // Yes, this will panic if extra is too short
-		header.MixDigest,
 		header.Nonce,
 	})
 	hasher.Sum(hash[:0])
@@ -58,7 +58,7 @@ func Ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	if len(header.Extra) < ExtraSeal {
 		return common.Address{}, ErrMissingSignature
 	}
-	signature := header.Extra[32:97]
+	signature := header.Extra[len(header.Extra)-ExtraSeal:]
 
 	// Recover the public key and the Ethereum address
 	pubkey, err := crypto.Ecrecover(SigHash(header).Bytes(), signature)

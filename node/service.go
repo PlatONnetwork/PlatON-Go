@@ -36,6 +36,15 @@ type ServiceContext struct {
 	AccountManager *accounts.Manager        // Account manager created by the node.
 }
 
+func NewServiceContext(config *Config, services map[reflect.Type]Service, EventMux *event.TypeMux, AccountManager *accounts.Manager) *ServiceContext {
+	return &ServiceContext{
+		config:         config,
+		services:       services,
+		EventMux:       EventMux,
+		AccountManager: AccountManager,
+	}
+}
+
 // OpenDatabase opens an existing database with the given name (or creates one
 // if no previous can be found) from within the node's data directory. If the
 // node is an ephemeral one, a memory database is returned.
@@ -44,17 +53,6 @@ func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int) (et
 		return ethdb.NewMemDatabase(), nil
 	}
 	db, err := ethdb.NewLDBDatabase(ctx.config.ResolvePath(name), cache, handles)
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
-}
-// storage ppos data
-func (ctx *ServiceContext) OpenPPosDatabase (name string) (ethdb.Database, error) {
-	if ctx.config.DataDir == "" {
-		return ethdb.NewMemDatabase(), nil
-	}
-	db, err := ethdb.NewPPosDatabase(ctx.config.ResolvePath(name))
 	if err != nil {
 		return nil, err
 	}

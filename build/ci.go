@@ -60,7 +60,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/build"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	sv "github.com/PlatONnetwork/PlatON-Go/swarm/version"
 )
 
 var (
@@ -76,17 +75,9 @@ var (
 		executablePath("abigen"),
 		executablePath("ctool"),
 		executablePath("bootnode"),
-		executablePath("evm"),
 		executablePath("platon"),
-		executablePath("puppeth"),
 		executablePath("rlpdump"),
 		executablePath("wnode"),
-	}
-
-	// Files that end up in the swarm*.zip archive.
-	swarmArchiveFiles = []string{
-		"COPYING",
-		executablePath("swarm"),
 	}
 
 	// A debian package is created for all executables listed here.
@@ -104,16 +95,8 @@ var (
 			Description: "Ethereum bootnode.",
 		},
 		{
-			BinaryName:  "evm",
-			Description: "Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
-		},
-		{
 			BinaryName:  "platon",
-			Description: "Ethereum CLI client.",
-		},
-		{
-			BinaryName:  "puppeth",
-			Description: "Ethereum private network manager.",
+			Description: "PlatON CLI client.",
 		},
 		{
 			BinaryName:  "rlpdump",
@@ -125,35 +108,19 @@ var (
 		},
 	}
 
-	// A debian package is created for all executables listed here.
-	debSwarmExecutables = []debExecutable{
-		{
-			BinaryName:  "swarm",
-			PackageName: "ethereum-swarm",
-			Description: "Ethereum Swarm daemon and tools",
-		},
-	}
-
 	debEthereum = debPackage{
 		Name:        "ethereum",
 		Version:     params.Version,
 		Executables: debExecutables,
 	}
 
-	debSwarm = debPackage{
-		Name:        "ethereum-swarm",
-		Version:     sv.Version,
-		Executables: debSwarmExecutables,
-	}
-
 	// Debian meta packages to build and push to Ubuntu PPA
 	debPackages = []debPackage{
-		debSwarm,
 		debEthereum,
 	}
 
 	// Packages to be cross-compiled by the xgo command
-	allCrossCompiledArchiveFiles = append(allToolsArchiveFiles, swarmArchiveFiles...)
+	allCrossCompiledArchiveFiles = append(allToolsArchiveFiles)
 
 	// Distros for which packages are created.
 	// Note: vivid is unsupported because there is no golang-1.6 package for it.
@@ -387,7 +354,7 @@ func doTest(cmdline []string) {
 	if *coverage {
 		gotest.Args = append(gotest.Args, "-covermode=atomic", "-cover")
 	}
-
+	gotest.Args = append(gotest.Args, "-tags=test")
 	gotest.Args = append(gotest.Args, packages...)
 	build.MustRun(gotest)
 }
@@ -452,9 +419,6 @@ func doArchive(cmdline []string) {
 		basegeth = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
 		geth     = "platon-" + basegeth + ext
 		alltools = "platon-alltools-" + basegeth + ext
-
-		baseswarm = archiveBasename(*arch, sv.ArchiveVersion(env.Commit))
-		swarm     = "swarm-" + baseswarm + ext
 	)
 	maybeSkipArchive(env)
 	if err := build.WriteArchive(geth, gethArchiveFiles); err != nil {
@@ -463,10 +427,8 @@ func doArchive(cmdline []string) {
 	if err := build.WriteArchive(alltools, allToolsArchiveFiles); err != nil {
 		log.Fatal(err)
 	}
-	if err := build.WriteArchive(swarm, swarmArchiveFiles); err != nil {
-		log.Fatal(err)
-	}
-	for _, archive := range []string{geth, alltools, swarm} {
+
+	for _, archive := range []string{geth, alltools} {
 		if err := archiveUpload(archive, *upload, *signer); err != nil {
 			log.Fatal(err)
 		}
@@ -599,7 +561,7 @@ func isUnstableBuild(env build.Environment) bool {
 }
 
 type debPackage struct {
-	Name        string          // the name of the Debian package to produce, e.g. "ethereum", or "ethereum-swarm"
+	Name        string          // the name of the Debian package to produce, e.g. "platon"
 	Version     string          // the clean version of the debPackage, e.g. 1.8.12 or 0.3.0, without any metadata
 	Executables []debExecutable // executables to be included in the package
 }

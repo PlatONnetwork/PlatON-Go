@@ -70,14 +70,14 @@ func (n *shortNode) copy() *shortNode { copy := *n; return &copy }
 
 // nodeFlag contains caching-related metadata about a node.
 type nodeFlag struct {
-	hash  hashNode // cached hash of the node (may be nil)
-	gen   uint16   // cache generation counter
-	dirty bool     // whether the node has changes that must be written to the database
+	hash  *hashNode // cached hash of the node (may be nil)
+	gen   uint16    // cache generation counter
+	dirty *bool     // whether the node has changes that must be written to the database
 }
 
 // canUnload tells whether a node can be unloaded.
 func (n *nodeFlag) canUnload(cachegen, cachelimit uint16) bool {
-	return !n.dirty && cachegen-n.gen >= cachelimit
+	return !*n.dirty && cachegen-n.gen >= cachelimit
 }
 
 func (n *fullNode) canUnload(gen, limit uint16) bool  { return n.flags.canUnload(gen, limit) }
@@ -85,8 +85,8 @@ func (n *shortNode) canUnload(gen, limit uint16) bool { return n.flags.canUnload
 func (n hashNode) canUnload(uint16, uint16) bool      { return false }
 func (n valueNode) canUnload(uint16, uint16) bool     { return false }
 
-func (n *fullNode) cache() (hashNode, bool)  { return n.flags.hash, n.flags.dirty }
-func (n *shortNode) cache() (hashNode, bool) { return n.flags.hash, n.flags.dirty }
+func (n *fullNode) cache() (hashNode, bool)  { return *n.flags.hash, *n.flags.dirty }
+func (n *shortNode) cache() (hashNode, bool) { return *n.flags.hash, *n.flags.dirty }
 func (n hashNode) cache() (hashNode, bool)   { return nil, true }
 func (n valueNode) cache() (hashNode, bool)  { return nil, true }
 
@@ -151,7 +151,9 @@ func decodeShort(hash, elems []byte, cachegen uint16) (node, error) {
 	if err != nil {
 		return nil, err
 	}
-	flag := nodeFlag{hash: hash, gen: cachegen}
+	dirty := false
+	h := hashNode(hash)
+	flag := nodeFlag{hash: &h, gen: cachegen, dirty: &dirty}
 	key := compactToHex(kbuf)
 	if hasTerm(key) {
 		// value node
@@ -169,7 +171,9 @@ func decodeShort(hash, elems []byte, cachegen uint16) (node, error) {
 }
 
 func decodeFull(hash, elems []byte, cachegen uint16) (*fullNode, error) {
-	n := &fullNode{flags: nodeFlag{hash: hash, gen: cachegen}}
+	dirty := false
+	h := hashNode(hash)
+	n := &fullNode{flags: nodeFlag{hash: &h, gen: cachegen, dirty: &dirty}}
 	for i := 0; i < 16; i++ {
 		cld, rest, err := decodeRef(elems, cachegen)
 		if err != nil {

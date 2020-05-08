@@ -19,11 +19,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"os"
 	"runtime"
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/miner"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -128,21 +136,16 @@ The export-preimages command export hash preimages to an RLP encoded stream`,
 		Action:    utils.MigrateFlags(copyDb),
 		Name:      "copydb",
 		Usage:     "Create a local chain from a target chaindata folder",
-		ArgsUsage: "<sourceChaindataDir>",
+		ArgsUsage: "<sourceChaindataDir> <sourceSnapshotDBDir>",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.CacheFlag,
-			utils.SyncModeFlag,
-			utils.FakePoWFlag,
+			//	utils.SyncModeFlag,
 			utils.TestnetFlag,
-			utils.BetanetFlag,
-			utils.InnerTestnetFlag,
-			utils.InnerDevnetFlag,
-			utils.InnerTimeFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
-The first argument must be the directory containing the blockchain to download from`,
+The first argument must be the directory containing the blockchain to download from,The second argument must be the directory containing the ppos to download from`,
 	}
 	removedbCommand = cli.Command{
 		Action:    utils.MigrateFlags(removeDB),
@@ -188,22 +191,56 @@ func initGenesis(ctx *cli.Context) error {
 	defer file.Close()
 
 	genesis := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+
+	// init EconomicModel config
+	if err := json.NewDecoder(file).Decode(&genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
+	xcom.ResetEconomicDefaultConfig(genesis.EconomicModel)
+	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
+	if nil != genesis && nil != genesis.Config && nil != genesis.Config.Cbft && nil != genesis.EconomicModel {
+		xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+		xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+
+	}
+
+	// check EconomicModel configuration
+	if err := xcom.CheckEconomicModel(); nil != err {
+		utils.Fatalf("Failed CheckEconomicModel configuration: %v", err)
+	}
+
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
+
 	for _, name := range []string{"chaindata", "lightchaindata"} {
 		chaindb, err := stack.OpenDatabase(name, 0, 0)
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis)
+		var spath string
+		if name == "chaindata" {
+			spath = stack.ResolvePath(snapshotdb.DBPath)
+		}
+		_, hash, err := core.SetupGenesisBlock(chaindb, spath, genesis)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
-		log.Info("Successfully wrote genesis state", "database", name, "hash", hash)
+		log.Info("Successfully wrote genesis state", "database", name, "hash", hash.Hex())
+
+		chaindb.Close()
 	}
+	return nil
+}
+
+type FakeBackend struct {
+	bc *core.BlockChain
+}
+
+func (f *FakeBackend) BlockChain() *core.BlockChain {
+	return f.bc
+}
+
+func (f *FakeBackend) TxPool() *core.TxPool {
 	return nil
 }
 
@@ -211,9 +248,32 @@ func importChain(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		utils.Fatalf("This command requires an argument.")
 	}
-	stack := makeFullNode(ctx)
-	chain, chainDb := utils.MakeChain(ctx, stack)
+	// todo:
+	stack, gethConfig := makeFullNodeForCBFT(ctx)
+	chain, chainDb := utils.MakeChainForCBFT(ctx, stack, &gethConfig.Eth, &gethConfig.Node)
 	defer chainDb.Close()
+	if c, ok := chain.Engine().(*cbft.Cbft); ok {
+		blockChainCache := core.NewBlockChainCache(chain)
+		//todo: Merge confirmation.
+		var agency consensus.Agency
+		//cbft.NewStaticAgency(chain.Config().Cbft.InitialNodes)
+		// init worker
+		bc := &FakeBackend{bc: chain}
+
+		config := gethConfig.Eth
+		minningConfig := &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
+			ChainHeadChanSize: config.ChainHeadChanSize, ChainSideChanSize: config.ChainSideChanSize,
+			ResultQueueSize: config.ResultQueueSize, ResubmitAdjustChanSize: config.ResubmitAdjustChanSize,
+			MinRecommitInterval: config.MinRecommitInterval, MaxRecommitInterval: config.MaxRecommitInterval,
+			IntervalAdjustRatio: config.IntervalAdjustRatio, IntervalAdjustBias: config.IntervalAdjustBias,
+			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
+		}
+
+		miner := miner.New(bc, chain.Config(), minningConfig, stack.EventMux(), c, gethConfig.Eth.MinerRecommit, gethConfig.Eth.MinerGasFloor /*gethConfig.Eth.MinerGasCeil,*/, nil, blockChainCache)
+		c.Start(chain, nil, nil, agency)
+		defer c.Close()
+		defer miner.Stop()
+	}
 
 	// Start periodically gathering memory profiles
 	var peakMemAlloc, peakMemSys uint64
@@ -367,16 +427,17 @@ func exportPreimages(ctx *cli.Context) error {
 
 func copyDb(ctx *cli.Context) error {
 	// Ensure we have a source chain directory to copy
-	if len(ctx.Args()) != 1 {
-		utils.Fatalf("Source chaindata directory path argument missing")
+	if len(ctx.Args()) != 2 {
+		utils.Fatalf("invalid arguments, please specify both <sourceChaindataDir> (path to a local chain database), <sourceSnapshotDBDir> (path to a local ppos database)")
 	}
 	// Initialize a new chain for the running node to sync into
 	stack := makeFullNode(ctx)
 	chain, chainDb := utils.MakeChain(ctx, stack)
+	syncmode := downloader.FastSync
+	//		*utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
+	localSnapshotDB := snapshotdb.Instance()
 
-	syncmode := *utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
-	dl := downloader.New(syncmode, chainDb, new(event.TypeMux), chain, nil, nil)
-
+	dl := downloader.New(syncmode, chainDb, localSnapshotDB, new(event.TypeMux), chain, nil, nil, nil)
 	// Create a source peer to satisfy downloader requests from
 	db, err := ethdb.NewLDBDatabase(ctx.Args().First(), ctx.GlobalInt(utils.CacheFlag.Name), 256)
 	if err != nil {
@@ -386,14 +447,18 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	peer := downloader.NewFakePeer("local", db, hc, dl)
+	peerSnapshotDB, err := snapshotdb.Open(ctx.Args().Get(1), ctx.GlobalInt(utils.CacheFlag.Name), 256)
+	if err != nil {
+		return err
+	}
+	peer := downloader.NewFakePeer("local", db, peerSnapshotDB, hc, dl)
 	if err = dl.RegisterPeer("local", 63, peer); err != nil {
 		return err
 	}
 	// Synchronise with the simulated peer
 	start := time.Now()
-
-	currentHeader := hc.CurrentHeader()
+	base, _ := peerSnapshotDB.BaseNum()
+	currentHeader := hc.GetHeaderByNumber(base.Uint64())
 	if err = dl.Synchronise("local", currentHeader.Hash(), currentHeader.Number, syncmode); err != nil {
 		return err
 	}
@@ -409,7 +474,7 @@ func copyDb(ctx *cli.Context) error {
 		utils.Fatalf("Compaction failed: %v", err)
 	}
 	fmt.Printf("Compaction done in %v.\n\n", time.Since(start))
-
+	localSnapshotDB.Close()
 	return nil
 }
 
@@ -457,7 +522,7 @@ func dump(ctx *cli.Context) error {
 			fmt.Println("{}")
 			utils.Fatalf("block not found")
 		} else {
-			state, err := state.New(block.Root(), state.NewDatabase(chainDb), block.Number(), block.Hash())
+			state, err := state.New(block.Root(), state.NewDatabase(chainDb))
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}

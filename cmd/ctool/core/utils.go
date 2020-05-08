@@ -3,20 +3,18 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
-	transfer = iota
-	deployContract
+	deployContract = iota
 	invokeContract
-	vote
-	permission
 
 	DefaultConfigFilePath = "/config.json"
 )

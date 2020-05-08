@@ -68,10 +68,11 @@ func (r *CResolver) ResolveGlobal(module, field string) int64 {
 func newCfcSet() map[string]map[string]*exec.FunctionImport {
 	return map[string]map[string]*exec.FunctionImport{
 		"env": {
-			"malloc":  &exec.FunctionImport{Execute: envMalloc, GasCost: envMallocGasCost},
-			"free":    &exec.FunctionImport{Execute: envFree, GasCost: envFreeGasCost},
-			"calloc":  &exec.FunctionImport{Execute: envCalloc, GasCost: envCallocGasCost},
-			"realloc": &exec.FunctionImport{Execute: envRealloc, GasCost: envReallocGasCost},
+			"malloc":       &exec.FunctionImport{Execute: envMalloc, GasCost: envMallocGasCost},
+			"free":         &exec.FunctionImport{Execute: envFree, GasCost: envFreeGasCost},
+			"calloc":       &exec.FunctionImport{Execute: envCalloc, GasCost: envCallocGasCost},
+			"realloc":      &exec.FunctionImport{Execute: envRealloc, GasCost: envReallocGasCost},
+			"disable_free": &exec.FunctionImport{Execute: envDisableFree, GasCost: envDisableFreeGasCost},
 
 			"memcpy":  &exec.FunctionImport{Execute: envMemcpy, GasCost: envMemcpyGasCost},
 			"memmove": &exec.FunctionImport{Execute: envMemmove, GasCost: envMemmoveGasCost},
@@ -158,15 +159,15 @@ func newCfcSet() map[string]map[string]*exec.FunctionImport {
 			"getStateSize": &exec.FunctionImport{Execute: envGetStateSize, GasCost: envGetStateSizeGasCost},
 
 			// support for vc
-			"vc_InitGadgetEnv":          &exec.FunctionImport{Execute: envInitGadgetEnv, GasCost: envInitGadgetEnvGasCost},
-			"vc_UninitGadgetEnv":        &exec.FunctionImport{Execute: envUninitGadgetEnv, GasCost: envUninitGadgetEnvGasCost},
-			"vc_CreatePBVar":            &exec.FunctionImport{Execute: envCreatePBVarEnv, GasCost: envCreatePBVarGasCost},
-			"vc_CreateGadget":           &exec.FunctionImport{Execute: envCreateGadgetEnv, GasCost: envCreateGadgetGasCost},
-			"vc_SetVar":                 &exec.FunctionImport{Execute: envSetVarEnv, GasCost: envSetVarGasCost},
-			"vc_SetRetIndex":			 &exec.FunctionImport{Execute: envSetRetIndexEnv, GasCost: envSetRetIndexGasCost},
-			"vc_GenerateWitness":        &exec.FunctionImport{Execute: envGenWitnessEnv, GasCost: envGenWitnessGasCost},
-			"vc_GenerateProofAndResult": &exec.FunctionImport{Execute: envGenProofAndResultEnv, GasCost: envGenProofAndResultGasCost},
-			"vc_Verify":                 &exec.FunctionImport{Execute: envVerifyEnv, GasCost: envVerifyGasCost},
+			//"vc_InitGadgetEnv":          &exec.FunctionImport{Execute: envInitGadgetEnv, GasCost: envInitGadgetEnvGasCost},
+			//"vc_UninitGadgetEnv":        &exec.FunctionImport{Execute: envUninitGadgetEnv, GasCost: envUninitGadgetEnvGasCost},
+			//"vc_CreatePBVar":            &exec.FunctionImport{Execute: envCreatePBVarEnv, GasCost: envCreatePBVarGasCost},
+			//"vc_CreateGadget":           &exec.FunctionImport{Execute: envCreateGadgetEnv, GasCost: envCreateGadgetGasCost},
+			//"vc_SetVar":                 &exec.FunctionImport{Execute: envSetVarEnv, GasCost: envSetVarGasCost},
+			//"vc_SetRetIndex":            &exec.FunctionImport{Execute: envSetRetIndexEnv, GasCost: envSetRetIndexGasCost},
+			//"vc_GenerateWitness":        &exec.FunctionImport{Execute: envGenWitnessEnv, GasCost: envGenWitnessGasCost},
+			//"vc_GenerateProofAndResult": &exec.FunctionImport{Execute: envGenProofAndResultEnv, GasCost: envGenProofAndResultGasCost},
+			//"vc_Verify":                 &exec.FunctionImport{Execute: envVerifyEnv, GasCost: envVerifyGasCost},
 
 			// supplement
 			"getCallerNonce": &exec.FunctionImport{Execute: envGetCallerNonce, GasCost: constGasFunc(compiler.GasQuickStep)},
@@ -419,6 +420,10 @@ func envMallocGasCost(vm *exec.VirtualMachine) (uint64, error) {
 
 //libc free()
 func envFree(vm *exec.VirtualMachine) int64 {
+	if vm.Context.Config.DisableFree {
+		return 0
+	}
+
 	mem := vm.Memory
 	offset := int(uint32(vm.GetCurrentFrame().Locals[0]))
 
@@ -455,14 +460,14 @@ func envCallocGasCost(vm *exec.VirtualMachine) (uint64, error) {
 
 func envRealloc(vm *exec.VirtualMachine) int64 {
 	mem := vm.Memory
-	//ptr := int(int32(vm.GetCurrentFrame().Locals[0]))
+	ptr := int(int32(vm.GetCurrentFrame().Locals[0]))
 	size := int(int32(vm.GetCurrentFrame().Locals[1]))
 
 	if size == 0 {
 		return 0
 	}
 
-	pos := mem.Malloc(size)
+	pos := mem.Realloc(ptr, size)
 
 	return int64(pos)
 }
@@ -470,6 +475,15 @@ func envRealloc(vm *exec.VirtualMachine) int64 {
 func envReallocGasCost(vm *exec.VirtualMachine) (uint64, error) {
 	size := int(int32(vm.GetCurrentFrame().Locals[1]))
 	return uint64(size), nil
+}
+
+func envDisableFree(vm *exec.VirtualMachine) int64 {
+	vm.Context.Config.DisableFree = true
+	return 0
+}
+
+func envDisableFreeGasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
 }
 
 func envAbort(vm *exec.VirtualMachine) int64 {

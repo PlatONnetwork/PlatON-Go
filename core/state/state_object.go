@@ -21,10 +21,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	//"runtime/debug"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -58,7 +60,7 @@ func (self Storage) String() (str string) {
 
 // Copy a copy of Storage
 func (self Storage) Copy() Storage {
-	cpy := make(Storage)
+	cpy := make(Storage, len(self))
 	for key, value := range self {
 		cpy[key] = value
 	}
@@ -67,7 +69,7 @@ func (self Storage) Copy() Storage {
 }
 
 func (self ValueStorage) Copy() ValueStorage {
-	cpy := make(ValueStorage)
+	cpy := make(ValueStorage, len(self))
 	for key, value := range self {
 		cpy[key] = value
 	}
@@ -117,11 +119,10 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	if _, ok := vm.PrecompiledContractsPpos[s.address]; ok {
-		return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash) && s.data.Root == (common.Hash{})
-	} else {
-		return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
+	if _, ok := vm.PlatONPrecompiledContracts[s.address]; ok {
+		return false
 	}
+	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
 }
 
 // Account is the Ethereum consensus representation of accounts.
@@ -131,12 +132,11 @@ type Account struct {
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
-	AbiHash []byte
+	AbiHash  []byte
 }
 
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
-	log.Debug("newObject", "state db addr", fmt.Sprintf("%p", db), "state root", db.Root().Hex())
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
 	}
@@ -244,11 +244,7 @@ func (self *stateObject) GetState(db Database, keyTree string) []byte {
 //	self.originStorage[key] = value
 //	return value
 //}
-
-// GetCommittedState retrieves a value from the committed account storage trie.
-func (self *stateObject) GetCommittedState(db Database, key string) []byte {
-	var value []byte
-	// If we have the original value cached, return that
+func (self *stateObject) getCommittedStateCache(key string) []byte {
 	valueKey, cached := self.originStorage[key]
 	if cached {
 		value, cached2 := self.originValueStorage[valueKey]
@@ -256,10 +252,47 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 			return value
 		}
 	}
-	log.Debug("GetCommittedState", "stateObject addr", fmt.Sprintf("%p", self), "statedb addr", fmt.Sprintf("%p", self.db), "root", self.data.Root, "key", hex.EncodeToString([]byte(key)))
-	//if self.data.Root == (common.Hash{}) {
-	//	log.Info("GetCommittedState", "stack", string(debug.Stack()))
-	//}
+
+	self.db.refLock.Lock()
+	parentDB := self.db.parent
+	parentCommitted := self.db.parentCommitted
+	refLock := &self.db.refLock
+
+	for parentDB != nil {
+		valueKey, value := parentDB.getStateObjectSnapshot(self.address, key)
+		if value != nil {
+			self.originStorage[key] = valueKey
+			self.originValueStorage[valueKey] = value
+			refLock.Unlock()
+			return value
+		} else if parentCommitted {
+			refLock.Unlock()
+			return nil
+		}
+		refLock.Unlock()
+		parentDB.refLock.Lock()
+		refLock = &parentDB.refLock
+		if parentDB.parent == nil {
+			break
+		}
+		parentCommitted = parentDB.parentCommitted
+		parentDB = parentDB.parent
+	}
+	refLock.Unlock()
+
+	return nil
+}
+
+// GetCommittedState retrieves a value from the committed account storage trie.
+func (self *stateObject) GetCommittedState(db Database, key string) []byte {
+	value := make([]byte, 0)
+	valueKey := common.Hash{}
+	// If we have the original value cached, return that
+	if value := self.getCommittedStateCache(key); value != nil {
+		log.Info("GetCommittedState cache", "key", hex.EncodeToString([]byte(key)), "value", len(value))
+		return value
+	}
+
 	// Otherwise load the valueKey from trie
 	enc, err := self.getTrie(db).TryGet([]byte(key))
 	if err != nil {
@@ -281,13 +314,13 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 	}
 
 	if valueKey != emptyStorage && len(value) == 0 {
-		log.Error("invalid storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
+		//log.Error("invalid storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
 		return []byte{}
 	}
 	if len(value) == 0 && valueKey == emptyStorage {
 		log.Debug("empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
 	}
-	log.Info("GetCommittedState", "stateObject addr", fmt.Sprintf("%p", self), "statedb addr", fmt.Sprintf("%p", self.db), "root", self.data.Root, "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
+	log.Info("GetCommittedState", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
 	self.originStorage[key] = valueKey
 	self.originValueStorage[valueKey] = value
 	return value
@@ -297,7 +330,6 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 // set [keyTrie,valueKey] to storage
 // set [valueKey,value] to db
 func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.Hash, value []byte) {
-	log.Debug("SetState ", "keyTrie", hex.EncodeToString([]byte(keyTrie)), "valueKey", valueKey, "value", hex.EncodeToString(value))
 	//if the new value is the same as old,don't set
 	preValue := self.GetState(db, keyTrie) // get value key
 	if bytes.Equal(preValue, value) {
@@ -318,6 +350,12 @@ func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.H
 func (self *stateObject) setState(key string, valueKey common.Hash, value []byte) {
 	cpy := make([]byte, len(value))
 	copy(cpy, value)
+
+	// delete value storage
+	if dirtyValue, ok := self.dirtyStorage[key]; ok {
+		delete(self.dirtyValueStorage, dirtyValue)
+	}
+
 	self.dirtyStorage[key] = valueKey
 	self.dirtyValueStorage[valueKey] = cpy
 }
@@ -329,15 +367,24 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		delete(self.dirtyStorage, key)
 
 		if valueKey == self.originStorage[key] {
+			delete(self.dirtyValueStorage, valueKey)
+			continue
+		}
+
+		if valueKey == emptyStorage || (valueKey == common.Hash{}) {
+			delete(self.dirtyValueStorage, valueKey)
+
+			if oldValueKey, ok := self.originStorage[key]; ok {
+				delete(self.originValueStorage, oldValueKey)
+			}
+			self.originStorage[key] = valueKey
+			self.originValueStorage[valueKey] = []byte{}
+
+			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
 
 		self.originStorage[key] = valueKey
-
-		if valueKey == emptyStorage {
-			self.setError(tr.TryDelete([]byte(key)))
-			continue
-		}
 
 		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
 		self.setError(tr.TryUpdate([]byte(key), v))
@@ -346,7 +393,6 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		if value, ok := self.dirtyValueStorage[valueKey]; ok {
 			delete(self.dirtyValueStorage, valueKey)
 			self.originValueStorage[valueKey] = value
-			self.setError(tr.TryUpdateValue(valueKey.Bytes(), value))
 		}
 	}
 
@@ -367,12 +413,21 @@ func (self *stateObject) CommitTrie(db Database) error {
 		return self.dbErr
 	}
 
-	for h, v := range self.originValueStorage {
-		if h != emptyStorage && !bytes.Equal(v, []byte{}) {
-			self.trie.TryUpdateValue(h.Bytes(), v)
+	root, err := self.trie.Commit(func(leaf []byte, parent common.Hash) error {
+		var valueKey common.Hash
+		_, content, _, err := rlp.Split(leaf)
+		if err != nil {
+			self.setError(err)
 		}
-	}
-	root, err := self.trie.Commit(nil)
+		valueKey.SetBytes(content)
+		if value, ok := self.originValueStorage[valueKey]; ok {
+			self.db.db.TrieDB().InsertBlob(valueKey, value)
+		}
+
+		self.db.db.TrieDB().Reference(valueKey, parent)
+		return nil
+	})
+
 	if err == nil {
 		self.data.Root = root
 	}
@@ -428,6 +483,19 @@ func (self *stateObject) deepCopy(db *StateDB) *stateObject {
 	stateObject.dirtyValueStorage = self.dirtyValueStorage.Copy()
 	stateObject.originStorage = self.originStorage.Copy()
 	stateObject.originValueStorage = self.originValueStorage.Copy()
+	stateObject.suicided = self.suicided
+	stateObject.dirtyCode = self.dirtyCode
+	stateObject.deleted = self.deleted
+	return stateObject
+}
+
+// Copy account status, recreate trie
+func (self *stateObject) copy(db *StateDB) *stateObject {
+	stateObject := newObject(db, self.address, self.data)
+	if self.trie != nil {
+		stateObject.trie = db.db.NewTrie(self.trie)
+	}
+	stateObject.code = self.code
 	stateObject.suicided = self.suicided
 	stateObject.dirtyCode = self.dirtyCode
 	stateObject.deleted = self.deleted

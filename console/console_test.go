@@ -20,24 +20,31 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 const (
 	testInstance = "console-tester"
-	testAddress  = "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 )
+
+func init() {
+	bls.Init(bls.BLS12_381)
+}
 
 // hookedPrompter implements UserPrompter to simulate use input via channels.
 type hookedPrompter struct {
@@ -95,18 +102,27 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	if err != nil {
 		t.Fatalf("failed to create node: %v", err)
 	}
-	ethConf := &eth.Config{
-		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
-		Etherbase: common.HexToAddress(testAddress),
-		CbftConfig: eth.CbftConfig{
-		},
+	//ethConf := &eth.Config{
+	//	Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
+	//}
+	ethConf := &eth.DefaultConfig
+	ethConf.Genesis = core.DefaultGrapeGenesisBlock()
+	n, _ := discover.ParseNode("enode://73f48a69ae73b85c0a578258954936300b305cb063cbd658d680826ebc0d47cedb890f01f15df2f2e510342d16e7bf5aaf3d7be4ba05a3490de0e9663663addc@127.0.0.1:16789")
+
+	var nodes []params.CbftNode
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+	nodes = append(nodes, params.CbftNode{Node: *n, BlsPubKey: *blsKey.GetPublicKey()})
+	ethConf.Genesis.Config.Cbft = &params.CbftConfig{
+		InitialNodes: nodes,
 	}
-	ethConf.Genesis.Config.Cbft = params.GrapeChainConfig.Cbft
-	ethConf.CbftConfig = eth.DefaultConfig.CbftConfig
 	if confOverride != nil {
 		confOverride(ethConf)
 	}
-	if err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) { return eth.New(ctx, ethConf) }); err != nil {
+	if err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+
+		return eth.New(ctx, ethConf)
+	}); err != nil {
 		t.Fatalf("failed to register Ethereum protocol: %v", err)
 	}
 	// Start the node and assemble the JavaScript console around it
@@ -172,15 +188,59 @@ func TestWelcome(t *testing.T) {
 	if want := fmt.Sprintf("instance: %s", testInstance); !strings.Contains(output, want) {
 		t.Fatalf("console output missing instance: have\n%s\nwant also %s", output, want)
 	}
-	if want := fmt.Sprintf("coinbase: %s", testAddress); !strings.Contains(output, want) {
-		t.Fatalf("console output missing coinbase: have\n%s\nwant also %s", output, want)
-	}
 	if want := "at block: 0"; !strings.Contains(output, want) {
 		t.Fatalf("console output missing sync status: have\n%s\nwant also %s", output, want)
 	}
 	if want := fmt.Sprintf("datadir: %s", tester.workspace); !strings.Contains(output, want) {
 		t.Fatalf("console output missing coinbase: have\n%s\nwant also %s", output, want)
 	}
+}
+
+func TestApi(t *testing.T) {
+	tester := newTester(t, nil)
+	defer tester.Close(t)
+	fmt.Fprintf(tester.console.printer, "Welcome to the PlatON JavaScript console!\n\n")
+	_, err := tester.console.jsre.Run(`
+		console.log("instance: " + web3.version.node);
+		console.log("at block: " + platon.blockNumber + " (" + new Date(1000 * platon.getBlock(platon.blockNumber).timestamp) + ")");
+		console.log(" datadir: " + admin.datadir);
+		console.log(" protocolVersion: " + platon.protocolVersion);
+		console.log(" sync: " + platon.syncing);
+		console.log("",platon.protocolVersion)
+		console.log("syncing",platon.syncing)
+		console.log("gasPrice",platon.gasPrice)
+		console.log("accounts",platon.accounts)
+		console.log("blockNumber",platon.blockNumber)
+		console.log("getBalance",platon.getBalance("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
+		console.log("getStorageAt",platon.getStorageAt("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
+		console.log("getTransactionCount",platon.getTransactionCount("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
+		console.log("getBlockTransactionCountByHash or ByNumber",platon.getBlockTransactionCount("1234"))
+		//console.log("getCode",platon.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
+		//adr = personal.newAccount("123456")
+		//personal.unlockAccount(adr,"123456",30)
+		//console.log("sign",platon.sign(adr, "0xdeadbeaf"))
+		//console.log("sendTransaction",platon.sendTransaction({from:adr,to:adr,value:0,gas:0,gasPrice:0}))
+		//console.log("sendRawTransaction",platon.sendRawTransaction({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("call",platon.call({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("estimateGas",platon.estimateGas({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("getBlockByHash or number",platon.getBlock("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
+		//console.log("getTransactionByHash",platon.getTransaction("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
+		//console.log("getTransactionByBlockHashAndIndex",platon.getTransactionFromBlock(["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "1"]))
+		//console.log("getTransactionReceipt",platon.getTransactionReceipt())
+		//console.log("newFilter",platon.newFilter())
+		//console.log("newBlockFilter",platon.newBlockFilter())
+		//console.log("newPendingTransactionFilter",platon.newPendingTransactionFilter())
+		//console.log("uninstallFilter",platon.uninstallFilter())
+		//console.log("getFilterChanges",platon.getFilterChanges())
+		//console.log("getFilterLogs",platon.getFilterLogs())
+		//console.log("getLogs",platon.getLogs({"topics":["0x000000000000000000000000a94f5374fce5edbc8e2a8697c15331677e6ebf0b"]}))
+		//console.log("signTransaction",platon.signTransaction())
+		//console.log("test personal",personal.openWallet("adad"))
+	`)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(tester.output.String())
 }
 
 // Tests that JavaScript statement evaluation works as intended.

@@ -8,10 +8,6 @@ import (
 	"strconv"
 )
 
-func BytesCombine(pBytes ...[]byte) []byte {
-	return bytes.Join(pBytes, []byte(""))
-}
-
 func Int32ToBytes(n int32) []byte {
 	tmp := int32(n)
 	bytesBuffer := bytes.NewBuffer([]byte{})

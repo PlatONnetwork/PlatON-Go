@@ -65,7 +65,7 @@ type flagGroup struct {
 // AppHelpFlagGroups is the application flags, grouped by functionality.
 var AppHelpFlagGroups = []flagGroup{
 	{
-		Name: "ETHEREUM",
+		Name: "PLATON",
 		Flags: []cli.Flag{
 			configFileFlag,
 			utils.DataDirFlag,
@@ -73,7 +73,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.NoUSBFlag,
 			utils.NetworkIdFlag,
 			utils.TestnetFlag,
-			utils.BetanetFlag,
 			utils.SyncModeFlag,
 			utils.GCModeFlag,
 			utils.EthStatsURLFlag,
@@ -86,7 +85,6 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "DEVELOPER CHAIN",
 		Flags: []cli.Flag{
-			utils.DeveloperFlag,
 			utils.DeveloperPeriodFlag,
 		},
 	},
@@ -159,13 +157,14 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.BootnodesFlag,
 			utils.BootnodesV4Flag,
-			utils.BootnodesV5Flag,
+			//	utils.BootnodesV5Flag,
 			utils.ListenPortFlag,
 			utils.MaxPeersFlag,
+			utils.MaxConsensusPeersFlag,
 			utils.MaxPendingPeersFlag,
 			utils.NATFlag,
 			utils.NoDiscoverFlag,
-			utils.DiscoveryV5Flag,
+			//	utils.DiscoveryV5Flag,
 			utils.NetrestrictFlag,
 			utils.NodeKeyFileFlag,
 			utils.NodeKeyHexFlag,
@@ -174,16 +173,10 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "MINER",
 		Flags: []cli.Flag{
-			utils.MiningEnabledFlag,
-			utils.MinerThreadsFlag,
-			utils.MinerNotifyFlag,
 			utils.MinerGasPriceFlag,
 			utils.MinerGasTargetFlag,
-			utils.MinerGasLimitFlag,
-			utils.MinerEtherbaseFlag,
-			utils.MinerExtraDataFlag,
-			utils.MinerRecommitIntervalFlag,
-			utils.MinerNoVerfiyFlag,
+			//utils.MinerGasLimitFlag,
+			//	utils.MinerExtraDataFlag,
 		},
 	},
 	{
@@ -194,17 +187,8 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name: "VIRTUAL MACHINE",
-		Flags: []cli.Flag{
-			utils.VMEnableDebugFlag,
-			utils.EVMInterpreterFlag,
-			utils.EWASMInterpreterFlag,
-		},
-	},
-	{
 		Name: "LOGGING AND DEBUGGING",
 		Flags: append([]cli.Flag{
-			utils.FakePoWFlag,
 			utils.NoCompactionFlag,
 		}, debug.Flags...),
 	},
@@ -220,34 +204,52 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MetricsInfluxDBHostTagFlag,
 		},
 	},
-	{
-		Name:  "WHISPER (EXPERIMENTAL)",
-		Flags: whisperFlags,
-	},
+	//{
+	//	Name:  "WHISPER (EXPERIMENTAL)",
+	//	Flags: whisperFlags,
+	//},
 	{
 		Name: "DEPRECATED",
 		Flags: []cli.Flag{
-			utils.MinerLegacyThreadsFlag,
 			utils.MinerLegacyGasTargetFlag,
 			utils.MinerLegacyGasPriceFlag,
-			utils.MinerLegacyEtherbaseFlag,
-			utils.MinerLegacyExtraDataFlag,
+			//	utils.MinerLegacyExtraDataFlag,
+		},
+	},
+	//{
+	//	Name: "MPC COMPUTE",
+	//	Flags: []cli.Flag{
+	//		utils.MPCEnabledFlag,
+	//		utils.MPCActorFlag,
+	//		utils.MPCIceFileFlag,
+	//	},
+	//},
+	//{
+	//	Name: "VC COMPUTE",
+	//	Flags: []cli.Flag{
+	//		utils.VCEnabledFlag,
+	//		utils.VCActorFlag,
+	//		utils.VCPasswordFlag,
+	//	},
+	//},
+	{
+		Name: "CBFT",
+		Flags: []cli.Flag{
+			utils.CbftPeerMsgQueueSize,
+			utils.CbftWalDisabledFlag,
+			utils.CbftMaxPingLatency,
+			utils.CbftBlsPriKeyFileFlag,
+			utils.CbftBlacklistDeadlineFlag,
 		},
 	},
 	{
-		Name: "MPC COMPUTE",
+		Name: "DB",
 		Flags: []cli.Flag{
-			utils.MPCEnabledFlag,
-			utils.MPCActorFlag,
-			utils.MPCIceFileFlag,
-		},
-	},
-	{
-		Name: "VC COMPUTE",
-		Flags: []cli.Flag{
-			utils.VCEnabledFlag,
-			utils.VCActorFlag,
-			utils.VCPasswordFlag,
+			utils.DBNoGCFlag,
+			utils.DBGCIntervalFlag,
+			utils.DBGCTimeoutFlag,
+			utils.DBGCMptFlag,
+			utils.DBGCBlockFlag,
 		},
 	},
 	{

@@ -43,7 +43,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/services/swap/swap"
 )
 
 // TODO(zelig): watch peer solvency and notify of bouncing cheques
@@ -408,10 +407,10 @@ func NewOutbox(chbook *Chequebook, beneficiary common.Address) *Outbox {
 	return &Outbox{chbook, beneficiary}
 }
 
-// Issue creates cheque.
-func (self *Outbox) Issue(amount *big.Int) (swap.Promise, error) {
-	return self.chequeBook.Issue(self.beneficiary, amount)
-}
+//// Issue creates cheque.
+//func (self *Outbox) Issue(amount *big.Int) (swap.Promise, error) {
+//	return self.chequeBook.Issue(self.beneficiary, amount)
+//}
 
 // AutoDeposit enables auto-deposits on the underlying chequebook.
 func (self *Outbox) AutoDeposit(interval time.Duration, threshold, buffer *big.Int) {
@@ -467,7 +466,7 @@ func NewInbox(prvKey *ecdsa.PrivateKey, contractAddr, beneficiary common.Address
 		sender:      sender,
 		signer:      signer,
 		session:     session,
-		cashed:      new(big.Int).Set(common.Big0),
+		cashed:      new(big.Int).SetInt64(0),
 		log:         log.New("contract", contractAddr),
 	}
 	self.log.Trace("New chequebook inbox initialized", "beneficiary", self.beneficiary, "signer", hexutil.Bytes(crypto.FromECDSAPub(signer)))
@@ -541,43 +540,6 @@ func (self *Inbox) autoCash(cashInterval time.Duration) {
 			}
 		}
 	}()
-}
-
-// Receive is called to deposit the latest cheque to the incoming Inbox.
-// The given promise must be a *Cheque.
-func (self *Inbox) Receive(promise swap.Promise) (*big.Int, error) {
-	ch := promise.(*Cheque)
-
-	defer self.lock.Unlock()
-	self.lock.Lock()
-
-	var sum *big.Int
-	if self.cheque == nil {
-		// the sum is checked against the blockchain once a cheque is received
-		tally, err := self.session.Sent(self.beneficiary)
-		if err != nil {
-			return nil, fmt.Errorf("inbox: error calling backend to set amount: %v", err)
-		}
-		sum = tally
-	} else {
-		sum = self.cheque.Amount
-	}
-
-	amount, err := ch.Verify(self.signer, self.contract, self.beneficiary, sum)
-	var uncashed *big.Int
-	if err == nil {
-		self.cheque = ch
-
-		if self.maxUncashed != nil {
-			uncashed = new(big.Int).Sub(ch.Amount, self.cashed)
-			if self.maxUncashed.Cmp(uncashed) < 0 {
-				self.Cash()
-			}
-		}
-		self.log.Trace("Received cheque in chequebook inbox", "amount", amount, "uncashed", uncashed)
-	}
-
-	return amount, err
 }
 
 // Verify verifies cheque for signer, contract, beneficiary, amount, valid signature.

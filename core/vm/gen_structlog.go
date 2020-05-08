@@ -13,6 +13,7 @@ import (
 
 var _ = (*structLogMarshaling)(nil)
 
+// MarshalJSON marshals as JSON.
 func (s StructLog) MarshalJSON() ([]byte, error) {
 	type StructLog struct {
 		Pc          uint64                      `json:"pc"`
@@ -49,6 +50,7 @@ func (s StructLog) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&enc)
 }
 
+// UnmarshalJSON unmarshals from JSON.
 func (s *StructLog) UnmarshalJSON(input []byte) error {
 	type StructLog struct {
 		Pc         *uint64                     `json:"pc"`

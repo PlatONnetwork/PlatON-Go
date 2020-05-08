@@ -22,17 +22,18 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"sync"
-	"time"
 )
 
 var (
-	blockCacheItems      = 8192             // Maximum number of blocks to cache before throttling the download
+	blockCacheItems      = 128              // Maximum number of blocks to cache before throttling the download
 	blockCacheMemory     = 64 * 1024 * 1024 // Maximum amount of memory to use for block caching
 	blockCacheSizeWeight = 0.1              // Multiplier to approximate the average block size based on past ones
 )
@@ -41,6 +42,8 @@ var (
 	errNoFetchesPending = errors.New("no fetches pending")
 	errStaleDelivery    = errors.New("stale delivery")
 )
+
+type decodeExtraFn func([]byte) (common.Hash, uint64, error)
 
 // fetchRequest is a currently running data retrieval operation.
 type fetchRequest struct {
@@ -57,10 +60,9 @@ type fetchResult struct {
 	Hash    common.Hash // Hash of the header to prevent recalculating
 
 	Header       *types.Header
-	Uncles       []*types.Header
 	Transactions types.Transactions
 	Receipts     types.Receipts
-	Signatures   []*common.BlockConfirmSign
+	ExtraData    []byte
 }
 
 // queue represents hashes that are either need fetching or are being fetched
@@ -96,10 +98,12 @@ type queue struct {
 	lock   *sync.Mutex
 	active *sync.Cond
 	closed bool
+
+	decodeExtra decodeExtraFn
 }
 
 // newQueue creates a new download queue for scheduling block retrieval.
-func newQueue() *queue {
+func newQueue(decodeExtra decodeExtraFn) *queue {
 	lock := new(sync.Mutex)
 	return &queue{
 		headerPendPool:   make(map[string]*fetchRequest),
@@ -115,6 +119,7 @@ func newQueue() *queue {
 		resultCache:      make([]*fetchResult, blockCacheItems),
 		active:           sync.NewCond(lock),
 		lock:             lock,
+		decodeExtra:      decodeExtra,
 	}
 }
 
@@ -336,10 +341,10 @@ func (q *queue) Schedule(headers []*types.Header, from uint64) []*types.Header {
 		q.blockTaskPool[hash] = header
 		q.blockTaskQueue.Push(header, -int64(header.Number.Uint64()))
 
-		if q.mode == FastSync {
-			q.receiptTaskPool[hash] = header
-			q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
-		}
+		//if q.mode == FastSync {
+		//	q.receiptTaskPool[hash] = header
+		//	q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
+		//}
 		inserts = append(inserts, header)
 		q.headerHead = hash
 		from++
@@ -386,17 +391,13 @@ func (q *queue) Results(block bool) []*fetchResult {
 		// Recalculate the result item weights to prevent memory exhaustion
 		for _, result := range results {
 			size := result.Header.Size()
-			for _, uncle := range result.Uncles {
-				size += uncle.Size()
-			}
 			for _, receipt := range result.Receipts {
 				size += receipt.Size()
 			}
 			for _, tx := range result.Transactions {
 				size += tx.Size()
 			}
-			// Recalculate the signatures result weights to prevent memory exhaustion
-			size += common.StorageSize(len(result.Signatures)*common.BlockConfirmSignLength)
+			size += common.StorageSize(len(result.ExtraData))
 			q.resultSize = common.StorageSize(blockCacheSizeWeight)*size + (1-common.StorageSize(blockCacheSizeWeight))*q.resultSize
 		}
 	}
@@ -458,8 +459,7 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int) *fetchRequest {
 // returns a flag whether empty blocks were queued requiring processing.
 func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool, error) {
 	isNoop := func(header *types.Header) bool {
-		return false
-		//return header.TxHash == types.EmptyRootHash && header.UncleHash == types.EmptyUncleHash
+		return false //header.TxHash == types.EmptyRootHash
 	}
 	q.lock.Lock()
 	defer q.lock.Unlock()
@@ -517,9 +517,9 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 		}
 		if q.resultCache[index] == nil {
 			components := 1
-			if q.mode == FastSync {
-				components = 2
-			}
+			//if q.mode == FastSync {
+			//	components = 2
+			//}
 			q.resultCache[index] = &fetchResult{
 				Pending: components,
 				Hash:    hash,
@@ -654,6 +654,7 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 	// Iterate over the expired requests and return each to the queue
 	expiries := make(map[string]int)
 	for id, request := range pendPool {
+		//log.Debug("queue expire", "id", id, "time.Since(request.Time)", time.Since(request.Time), "timeout", timeout, "len(request.Headers)", len(request.Headers))
 		if time.Since(request.Time) > timeout {
 			// Update the metrics with the timeout
 			timeoutMeter.Mark(1)
@@ -662,9 +663,13 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 			if request.From > 0 {
 				taskQueue.Push(request.From, -int64(request.From))
 			}
+			headers := make([]string, 0)
 			for _, header := range request.Headers {
 				taskQueue.Push(header, -int64(header.Number.Uint64()))
+				headers = append(headers, header.Number.String())
+				headers = append(headers, header.Hash().Hex())
 			}
+			//log.Debug("queue expire expiries add", "id", id, "len(request.Headers)", len(request.Headers), "headers", strings.Join(headers, ","))
 			// Add the peer to the expiry report along the number of failed requests
 			expiries[id] = len(request.Headers)
 		}
@@ -767,17 +772,25 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, uncleLists [][]*types.Header, signatureLists [][]*common.BlockConfirmSign) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraData [][]byte) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
+	equalExtra := func(header *types.Header, extra []byte) bool {
+		if q.decodeExtra == nil {
+			return true
+		}
+
+		bh, _, err := q.decodeExtra(extra)
+		return err == nil && bh == header.Hash()
+	}
+
 	reconstruct := func(header *types.Header, index int, result *fetchResult) error {
-		if types.DeriveSha(types.Transactions(txLists[index])) != header.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
+		if types.DeriveSha(types.Transactions(txLists[index])) != header.TxHash && !equalExtra(header, extraData[index]) {
 			return errInvalidBody
 		}
 		result.Transactions = txLists[index]
-		result.Uncles = uncleLists[index]
-		result.Signatures = signatureLists[index]
+		result.ExtraData = extraData[index]
 		return nil
 	}
 	return q.deliver(id, q.blockTaskPool, q.blockTaskQueue, q.blockPendPool, q.blockDonePool, bodyReqTimer, len(txLists), reconstruct)

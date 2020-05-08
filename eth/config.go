@@ -17,22 +17,18 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"fmt"
 	"math/big"
 	"os"
 	"os/user"
-	"path/filepath"
-	"runtime"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -41,38 +37,51 @@ const (
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
-	SyncMode: downloader.FastSync,
-	CbftConfig: CbftConfig{
-		Period:           1,
-		Epoch:            250000,
-		MaxLatency:       600,
-		LegalCoefficient: 1.0,
-		Duration:         10,
-		Ppos: &PposConfig{
-			Candidate: &CandidateConfig{
-				Threshold: 			"1000000000000000000000000",
-				DepositLimit: 	  	10,
-				Allowed: 			512,
-				MaxChair:          	10,
-				MaxCount:          	100,
-				RefundBlockNumber: 	512,
-			},
-			Ticket: &TicketConfig{
-				TicketPrice: 		"100000000000000000000",
-				MaxCount:			51200,
-				ExpireBlockNumber: 	1536000,
-			},
-		},
+	SyncMode: downloader.FullSync,
+	CbftConfig: types.OptionsConfig{
+		WalMode:           true,
+		PeerMsgQueueSize:  1024,
+		EvidenceDir:       "evidence",
+		MaxPingLatency:    5000,
+		MaxQueuesLimit:    4096,
+		BlacklistDeadline: 60,
+		Period:            20000,
+		Amount:            10,
 	},
 	NetworkId:     1,
 	LightPeers:    100,
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
-	MinerGasFloor: 3150000000,
-	MinerGasCeil:  3150000000,
-	MinerGasPrice: big.NewInt(params.GWei),
+	MinerGasFloor: params.GenesisGasLimit,
+	//MinerGasCeil:  4000 * 21000 * 1.2,
+	DBDisabledGC:  false,
+	DBGCInterval:  86400,
+	DBGCTimeout:   time.Minute,
+	DBGCMpt:       true,
+	DBGCBlock:     10,
+	MinerGasPrice: big.NewInt(params.GVon),
 	MinerRecommit: 3 * time.Second,
+
+	MiningLogAtDepth:       7,
+	TxChanSize:             4096,
+	ChainHeadChanSize:      10,
+	ChainSideChanSize:      10,
+	ResultQueueSize:        10,
+	ResubmitAdjustChanSize: 10,
+	MinRecommitInterval:    1 * time.Second,
+	MaxRecommitInterval:    15 * time.Second,
+	IntervalAdjustRatio:    0.1,
+	IntervalAdjustBias:     200 * 1000.0 * 1000.0,
+	StaleThreshold:         7,
+	DefaultCommitRatio:     0.95,
+
+	BodyCacheLimit:    256,
+	BlockCacheLimit:   256,
+	MaxFutureBlocks:   256,
+	BadBlockLimit:     10,
+	TriesInMemory:     128,
+	BlockChainVersion: 3,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
@@ -80,8 +89,8 @@ var DefaultConfig = Config{
 		Percentile: 60,
 	},
 
-	MPCPool: core.DefaultMPCPoolConfig,
-	VCPool:  core.DefaultVCPoolConfig,
+	//MPCPool: core.DefaultMPCPoolConfig,
+	//VCPool:  core.DefaultVCPoolConfig,
 }
 
 func init() {
@@ -90,11 +99,6 @@ func init() {
 		if user, err := user.Current(); err == nil {
 			home = user.HomeDir
 		}
-	}
-	if runtime.GOOS == "windows" {
-		//DefaultConfig.Ethash.DatasetDir = filepath.Join(home, "AppData", "Ethash")
-	} else {
-		//DefaultConfig.Ethash.DatasetDir = filepath.Join(home, ".ethash")
 	}
 }
 
@@ -105,7 +109,7 @@ type Config struct {
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
-	CbftConfig CbftConfig `toml:",omitempty"`
+	CbftConfig types.OptionsConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -122,16 +126,42 @@ type Config struct {
 	DatabaseCache      int
 	TrieCache          int
 	TrieTimeout        time.Duration
+	DBDisabledGC       bool
+	DBGCInterval       uint64
+	DBGCTimeout        time.Duration
+	DBGCMpt            bool
+	DBGCBlock          uint64
 
 	// Mining-related options
-	Etherbase      common.Address `toml:",omitempty"`
-	MinerNotify    []string       `toml:",omitempty"`
-	MinerExtraData []byte         `toml:",omitempty"`
+	MinerExtraData []byte `toml:",omitempty"`
 	MinerGasFloor  uint64
-	MinerGasCeil   uint64
-	MinerGasPrice  *big.Int
-	MinerRecommit  time.Duration
-	MinerNoverify  bool
+	//MinerGasCeil   uint64
+	MinerGasPrice *big.Int
+	MinerRecommit time.Duration
+	MinerNoverify bool
+	// minning conig
+	MiningLogAtDepth       uint          // miningLogAtDepth is the number of confirmations before logging successful mining.
+	TxChanSize             int           // txChanSize is the size of channel listening to NewTxsEvent.The number is referenced from the size of tx pool.
+	ChainHeadChanSize      int           // chainHeadChanSize is the size of channel listening to ChainHeadEvent.
+	ChainSideChanSize      int           // chainSideChanSize is the size of channel listening to ChainSideEvent.
+	ResultQueueSize        int           // resultQueueSize is the size of channel listening to sealing result.
+	ResubmitAdjustChanSize int           // resubmitAdjustChanSize is the size of resubmitting interval adjustment channel.
+	MinRecommitInterval    time.Duration // minRecommitInterval is the minimal time interval to recreate the mining block with any newly arrived transactions.
+	MaxRecommitInterval    time.Duration // maxRecommitInterval is the maximum time interval to recreate the mining block with any newly arrived transactions.
+	IntervalAdjustRatio    float64       // intervalAdjustRatio is the impact a single interval adjustment has on sealing work resubmitting interval.
+	IntervalAdjustBias     float64       // intervalAdjustBias is applied during the new resubmit interval calculation in favor of increasing upper limit or decreasing lower limit so that the limit can be reachable.
+	StaleThreshold         uint64        // staleThreshold is the maximum depth of the acceptable stale block.
+	DefaultCommitRatio     float64
+
+	// block config
+	BodyCacheLimit           int
+	BlockCacheLimit          int
+	MaxFutureBlocks          int
+	BadBlockLimit            int
+	TriesInMemory            int
+	BlockChainVersion        int // BlockChainVersion ensures that an incompatible database forces a resync from scratch.
+	DefaultTxsCacheSize      int
+	DefaultBroadcastInterval time.Duration
 
 	// Transaction pool options
 	TxPool core.TxPoolConfig
@@ -139,82 +169,15 @@ type Config struct {
 	// Gas Price Oracle options
 	GPO gasprice.Config
 
-	// Enables tracking of SHA3 preimages in the VM
-	EnablePreimageRecording bool
-
 	// Miscellaneous options
 	DocRoot string `toml:"-"`
 
-	// Type of the EWASM interpreter ("" for detault)
-	EWASMInterpreter string
-	// Type of the EVM interpreter ("" for default)
-	EVMInterpreter string
-
-
 	// MPC pool options
-	MPCPool core.MPCPoolConfig
-	VCPool  core.VCPoolConfig
+	//MPCPool core.MPCPoolConfig
+	//VCPool  core.VCPoolConfig
 	Debug bool
-}
-
-type CbftConfig struct {
-	Period           uint64  `json:"period"`           // Number of seconds between blocks to enforce
-	Epoch            uint64  `json:"epoch"`            // Epoch length to reset votes and checkpoint
-	MaxLatency       int64   `json:"maxLatency"`
-	LegalCoefficient float64 `json:"legalCoefficient"`
-	Duration         int64   `json:"duration"`
-	Ppos 			*PposConfig 	`json:"ppos"`
-}
-
-
-type PposConfig struct {
-	Candidate 				*CandidateConfig 			`json:"candidate"`
-	Ticket 					*TicketConfig 				`json:"ticket"`
-}
-
-type CandidateConfig struct {
-	// min deposit allow threshold
-	Threshold				string 					`json:"threshold"`
-	// min deposit limit percentage
-	DepositLimit 			uint32					`json:"depositLimit"`
-	// allow put into immedidate condition
-	Allowed					uint32					`json:"allowed"`
-	// allow immediate elected max count
-	MaxCount				uint32					`json:"maxCount"`
-	// allow witness max count
-	MaxChair				uint32					`json:"maxChair"`
-	// allow block interval for refunds
-	RefundBlockNumber 		uint32 					`json:"refundBlockNumber"`
-
-}
-type TicketConfig struct {
-	TicketPrice 		string 						`json:"ticketPrice"`
-	// Maximum number of ticket pool
-	MaxCount				uint32					`json:"maxCount"`
-	// Reach expired quantity
-	ExpireBlockNumber		uint32					`json:"expireBlockNumber"`
 }
 
 type configMarshaling struct {
 	MinerExtraData hexutil.Bytes
-}
-
-// StaticNodes returns a list of node enode URLs configured as static nodes.
-func (c *Config) LoadCbftConfig(nodeConfig node.Config) *CbftConfig {
-	return c.parsePersistentCbftConfig(filepath.Join(nodeConfig.DataDir, datadirCbftConfig))
-}
-
-// parsePersistentNodes parses a list of discovery node URLs loaded from a .json
-// file from within the data directory.
-func (c *Config) parsePersistentCbftConfig(path string) *CbftConfig {
-	if _, err := os.Stat(path); err != nil {
-		return nil
-	}
-	// Load the nodes from the config file.
-	config := CbftConfig{}
-	if err := common.LoadJSON(path, &config); err != nil {
-		log.Error(fmt.Sprintf("Can't load cbft config file %s: %v", path, err))
-		return nil
-	}
-	return &config
 }

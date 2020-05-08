@@ -80,3 +80,19 @@ func (t PrettyAge) String() string {
 	}
 	return result
 }
+
+func Millis(t time.Time) int64 {
+	return t.UnixNano() / 1e6
+}
+
+func MillisToTime(millis int64) time.Time {
+	return time.Unix(0, millis*int64(time.Millisecond))
+}
+
+func MillisToString(t int64) string {
+	return MillisToTime(t).Format("2006-01-02 15:04:05.999")
+}
+
+func Beautiful(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05.999")
+}

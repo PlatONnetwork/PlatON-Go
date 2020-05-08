@@ -18,16 +18,23 @@ package light
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"github.com/davecgh/go-spew/spew"
+	"testing"
 )
 
-/*func TestNodeIterator(t *testing.T) {
+func TestNodeIterator(t *testing.T) {
 	var (
-		fulldb  = ethdb.NewMemDatabase()
-		lightdb = ethdb.NewMemDatabase()
+		fulldb  = rawdb.NewMemoryDatabase()
+		lightdb = rawdb.NewMemoryDatabase()
 		gspec   = core.Genesis{Alloc: core.GenesisAlloc{testBankAddress: {Balance: testBankFunds}}}
 		genesis = gspec.MustCommit(fulldb)
 	)
@@ -46,7 +53,7 @@ import (
 	if err := diffTries(fullTrie, lightTrie); err != nil {
 		t.Fatal(err)
 	}
-}*/
+}
 
 func diffTries(t1, t2 state.Trie) error {
 	i1 := trie.NewIterator(t1.NodeIterator(nil))
@@ -56,7 +63,7 @@ func diffTries(t1, t2 state.Trie) error {
 			spew.Dump(i2)
 			return fmt.Errorf("tries have different keys %x, %x", i1.Key, i2.Key)
 		}
-		if !bytes.Equal(i2.Value, i2.Value) {
+		if !bytes.Equal(i1.Value, i2.Value) {
 			return fmt.Errorf("tries differ at key %x", i1.Key)
 		}
 	}

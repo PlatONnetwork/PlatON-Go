@@ -21,6 +21,8 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"math/big"
+	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -28,6 +30,8 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -59,10 +63,15 @@ type Config struct {
 	// This field must be set to a valid secp256k1 private key.
 	PrivateKey *ecdsa.PrivateKey `toml:"-"`
 
+	// chainId identifies the current chain and is used for replay protection
+	ChainID *big.Int `toml:"-"`
+
 	// MaxPeers is the maximum number of peers that can be
 	// connected. It must be greater than zero.
 	MaxPeers int
 
+	// MaxConsensusPeers is the maximum number of consensus peers that can be
+	// connected. It must be greater than zero.
 	MaxConsensusPeers int
 
 	// MaxPendingPeers is the maximum number of peers that can be pending in the
@@ -98,7 +107,7 @@ type Config struct {
 
 	// Static nodes are used as pre-configured connections which are always
 	// maintained and re-connected on disconnects.
-	StaticNodes []*discover.Node
+	StaticNodes []*discover.Node `json:"-"`
 
 	// Trusted nodes are used as pre-configured connections which are always
 	// allowed to connect, even above the peer limit.
@@ -169,19 +178,22 @@ type Server struct {
 	peerOp     chan peerOpFunc
 	peerOpDone chan struct{}
 
-	quit          chan struct{}
-	addstatic     chan *discover.Node
-	removestatic  chan *discover.Node
-	addconsensus	chan *discover.Node
-	removeconsensus	chan *discover.Node
-	addtrusted    chan *discover.Node
-	removetrusted chan *discover.Node
-	posthandshake chan *conn
-	addpeer       chan *conn
-	delpeer       chan peerDrop
-	loopWG        sync.WaitGroup // loop, listenLoop
-	peerFeed      event.Feed
-	log           log.Logger
+	quit            chan struct{}
+	addstatic       chan *discover.Node
+	removestatic    chan *discover.Node
+	addconsensus    chan *discover.Node
+	removeconsensus chan *discover.Node
+	addtrusted      chan *discover.Node
+	removetrusted   chan *discover.Node
+	posthandshake   chan *conn
+	addpeer         chan *conn
+	delpeer         chan peerDrop
+	loopWG          sync.WaitGroup // loop, listenLoop
+	peerFeed        event.Feed
+	log             log.Logger
+
+	eventMux  *event.TypeMux
+	consensus bool
 }
 
 type peerOpFunc func(map[discover.NodeID]*Peer)
@@ -327,6 +339,9 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 	}
 }
 
+// AddConsensusPeer connects to the given consensus node and maintains the connection until the
+// server is shut down. If the connection fails for any reason, the server will
+// attempt to reconnect the peer.
 func (srv *Server) AddConsensusPeer(node *discover.Node) {
 	select {
 	case srv.addconsensus <- node:
@@ -334,7 +349,7 @@ func (srv *Server) AddConsensusPeer(node *discover.Node) {
 	}
 }
 
-// RemovePeer disconnects from the given node
+// RemoveConsensusPeer disconnects from the given consensus node
 func (srv *Server) RemoveConsensusPeer(node *discover.Node) {
 	select {
 	case srv.removeconsensus <- node:
@@ -514,6 +529,7 @@ func (srv *Server) Start() (err error) {
 	if !srv.NoDiscovery {
 		cfg := discover.Config{
 			PrivateKey:   srv.PrivateKey,
+			ChainID:      srv.ChainID,
 			AnnounceAddr: realaddr,
 			NodeDBPath:   srv.NodeDatabase,
 			NetRestrict:  srv.NetRestrict,
@@ -606,13 +622,13 @@ type dialer interface {
 func (srv *Server) run(dialstate dialer) {
 	defer srv.loopWG.Done()
 	var (
-		peers        = make(map[discover.NodeID]*Peer)
-		inboundCount = 0
-		trusted      = make(map[discover.NodeID]bool, len(srv.TrustedNodes))
-		taskdone     = make(chan task, maxActiveDialTasks)
-		runningTasks []task
-		queuedTasks  []task // tasks that can't run yet
-
+		peers          = make(map[discover.NodeID]*Peer)
+		inboundCount   = 0
+		trusted        = make(map[discover.NodeID]bool, len(srv.TrustedNodes))
+		consensusNodes = make(map[discover.NodeID]bool, 0)
+		taskdone       = make(chan task, maxActiveDialTasks)
+		runningTasks   []task
+		queuedTasks    []task // tasks that can't run yet
 	)
 	// Put trusted nodes into a map to speed up checks.
 	// Trusted peers are loaded on startup or added via AddTrustedPeer RPC.
@@ -682,13 +698,42 @@ running:
 				p.Disconnect(DiscRequested)
 			}
 		case n := <-srv.addconsensus:
+			// This channel is used by AddConsensusNode to add an enode
+			// to the consensus node set.
 			srv.log.Trace("Adding consensus node", "node", n)
-			dialstate.addConsensus(n)
-		case n := <-srv.removeconsensus:
-			srv.log.Trace("Removing consensus node", "node", n)
-			dialstate.removeConsensus(n)
+			if n.ID == srv.ourHandshake.ID {
+				srv.log.Debug("We are become an consensus node")
+				srv.consensus = true
+			} else {
+				dialstate.addConsensus(n)
+			}
+			consensusNodes[n.ID] = true
 			if p, ok := peers[n.ID]; ok {
-				p.Disconnect(DiscRequested)
+				srv.log.Debug("Add consensus flag", "peer", n.ID)
+				p.rw.set(consensusDialedConn, true)
+			}
+		case n := <-srv.removeconsensus:
+			// This channel is used by RemoveConsensusNode to remove an enode
+			// from the consensus node set.
+			srv.log.Trace("Removing consensus node", "node", n)
+			if n.ID == srv.ourHandshake.ID {
+				srv.log.Debug("We are not an consensus node")
+				srv.consensus = false
+			}
+			dialstate.removeConsensus(n)
+			if _, ok := consensusNodes[n.ID]; ok {
+				delete(consensusNodes, n.ID)
+			}
+			if p, ok := peers[n.ID]; ok {
+				p.rw.set(consensusDialedConn, false)
+				if !p.rw.is(staticDialedConn | trustedConn | inboundConn) {
+					p.rw.set(dynDialedConn, true)
+				}
+				srv.log.Debug("Remove consensus flag", "peer", n.ID, "consensus", srv.consensus)
+				if len(peers) > srv.MaxPeers && !p.rw.is(staticDialedConn|trustedConn) {
+					srv.log.Debug("Disconnect non-consensus node", "peer", n.ID, "flags", p.rw.flags, "peers", len(peers), "consensus", srv.consensus)
+					p.Disconnect(DiscRequested)
+				}
 			}
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add an enode
@@ -728,6 +773,11 @@ running:
 				// Ensure that the trusted flag is set before checking against MaxPeers.
 				c.flags |= trustedConn
 			}
+
+			if consensusNodes[c.id] {
+				c.flags |= consensusDialedConn
+			}
+
 			// TODO: track in-progress inbound node IDs (pre-Peer) to avoid dialing them.
 			select {
 			case c.cont <- srv.encHandshakeChecks(peers, inboundCount, c):
@@ -747,7 +797,7 @@ running:
 					p.events = &srv.peerFeed
 				}
 				name := truncateName(c.name)
-				srv.log.Debug("Adding p2p peer", "name", name, "addr", c.fd.RemoteAddr(), "peers", len(peers)+1)
+				srv.log.Debug("Adding p2p peer", "name", name, "id", p.ID(), "addr", c.fd.RemoteAddr(), "flags", c.flags, "peers", len(peers)+1)
 				go srv.runPeer(p)
 				peers[c.id] = p
 				if p.Inbound() {
@@ -807,6 +857,17 @@ func (srv *Server) protoHandshakeChecks(peers map[discover.NodeID]*Peer, inbound
 }
 
 func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCount int, c *conn) error {
+	// Disconnect over limit non-consensus node.
+	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) {
+		for _, p := range peers {
+			if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn) {
+				log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers))
+				p.Disconnect(DiscRequested)
+				break
+			}
+		}
+	}
+
 	switch {
 	case !c.is(trustedConn|staticDialedConn|consensusDialedConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
@@ -1071,4 +1132,87 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 		}
 	}
 	return infos
+}
+
+func (srv *Server) StartWatching(eventMux *event.TypeMux) {
+	srv.eventMux = eventMux
+	go srv.watching()
+}
+
+func (srv *Server) watching() {
+	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{})
+	defer events.Unsubscribe()
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			if ev == nil {
+				continue
+			}
+
+			switch ev.Data.(type) {
+			case cbfttypes.AddValidatorEvent:
+				addEv, ok := ev.Data.(cbfttypes.AddValidatorEvent)
+				if !ok {
+					log.Error("Received add validator event type error")
+					continue
+				}
+				log.Trace("Received AddValidatorEvent", "nodeID", addEv.NodeID.String())
+				node := discover.NewNode(addEv.NodeID, nil, 0, 0)
+				srv.AddConsensusPeer(node)
+			case cbfttypes.RemoveValidatorEvent:
+				removeEv, ok := ev.Data.(cbfttypes.RemoveValidatorEvent)
+				if !ok {
+					log.Error("Received remove validator event type error")
+					continue
+				}
+				log.Trace("Received RemoveValidatorEvent", "nodeID", removeEv.NodeID.String())
+				node := discover.NewNode(removeEv.NodeID, nil, 0, 0)
+				srv.RemoveConsensusPeer(node)
+			default:
+				log.Error("Received unexcepted event")
+			}
+
+		case <-srv.quit:
+			return
+		}
+	}
+}
+
+type mockTransport struct {
+	id discover.NodeID
+	*rlpx
+
+	closeErr error
+}
+
+func newMockTransport(id discover.NodeID, fd net.Conn) transport {
+	wrapped := newRLPX(fd).(*rlpx)
+	wrapped.rw = newRLPXFrameRW(fd, secrets{
+		MAC:        zero16,
+		AES:        zero16,
+		IngressMAC: sha3.NewKeccak256(),
+		EgressMAC:  sha3.NewKeccak256(),
+	})
+	return &mockTransport{id: id, rlpx: wrapped}
+}
+
+func (c *mockTransport) doEncHandshake(prv *ecdsa.PrivateKey, dialDest *discover.Node) (discover.NodeID, error) {
+	return c.id, nil
+}
+
+func (c *mockTransport) doProtoHandshake(our *protoHandshake) (*protoHandshake, error) {
+	return &protoHandshake{ID: c.id, Name: "test"}, nil
+}
+
+func (c *mockTransport) close(err error) {
+	c.rlpx.fd.Close()
+	c.closeErr = err
+}
+
+func randomID() (id discover.NodeID) {
+	for i := range id {
+		id[i] = byte(rand.Intn(255))
+	}
+	return id
 }

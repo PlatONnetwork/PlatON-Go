@@ -88,11 +88,11 @@ var (
 		Usage: "Write execution trace to the given file",
 	}
 
-	wasmLogFileFlag = cli.StringFlag{
-		Name:  "wasmlog",
-		Usage: "output wasm contract log to file",
-		Value: "",
-	}
+	//wasmLogFileFlag = cli.StringFlag{
+	//	Name:  "wasmlog",
+	//	Usage: "output wasm contract log to file",
+	//	Value: "",
+	//}
 )
 
 // Flags holds all command-line flags required for debugging.
@@ -100,8 +100,7 @@ var Flags = []cli.Flag{
 	verbosityFlag, vmoduleFlag, backtraceAtFlag, debugFlag,
 	pprofFlag, pprofAddrFlag, pprofPortFlag,
 	memprofilerateFlag, blockprofilerateFlag, cpuprofileFlag, traceFlag,
-	wasmLogFileFlag,
-
+	//	wasmLogFileFlag,
 }
 
 var (
@@ -162,6 +161,7 @@ func Setup(ctx *cli.Context, logdir string) error {
 	return nil
 }
 
+/*
 func SetupWasmLog(ctx *cli.Context) error {
 	log.SetWasmLogLevel(log.Lvl(ctx.GlobalInt(verbosityFlag.Name)))
 	wasmFileName := ctx.GlobalString(wasmLogFileFlag.Name)
@@ -183,6 +183,7 @@ func SetupWasmLog(ctx *cli.Context) error {
 
 	return nil
 }
+*/
 
 func StartPProf(address string) {
 	// Hook go-metrics into expvar on any /debug/metrics request, load all vars

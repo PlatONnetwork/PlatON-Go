@@ -21,9 +21,8 @@ var Modules = map[string]string{
 	"admin":      Admin_JS,
 	"chequebook": Chequebook_JS,
 	"clique":     Clique_JS,
-	"ethash":     Ethash_JS,
 	"debug":      Debug_JS,
-	"eth":        Eth_JS,
+	"platon":     Platon_JS,
 	"miner":      Miner_JS,
 	"net":        Net_JS,
 	"personal":   Personal_JS,
@@ -110,34 +109,6 @@ web3._extend({
 });
 `
 
-const Ethash_JS = `
-web3._extend({
-	property: 'ethash',
-	methods: [
-		new web3._extend.Method({
-			name: 'getWork',
-			call: 'ethash_getWork',
-			params: 0
-		}),
-		new web3._extend.Method({
-			name: 'getHashrate',
-			call: 'ethash_getHashrate',
-			params: 0
-		}),
-		new web3._extend.Method({
-			name: 'submitWork',
-			call: 'ethash_submitWork',
-			params: 3,
-		}),
-		new web3._extend.Method({
-			name: 'submitHashRate',
-			call: 'ethash_submitHashRate',
-			params: 2,
-		}),
-	]
-});
-`
-
 const Admin_JS = `
 web3._extend({
 	property: 'admin',
@@ -150,16 +121,6 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'removePeer',
 			call: 'admin_removePeer',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'addConsensusPeer',
-			call: 'admin_addConsensusPeer',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'removeConsensusPeer',
-			call: 'admin_removeConsensusPeer',
 			params: 1
 		}),
 		new web3._extend.Method({
@@ -208,6 +169,14 @@ web3._extend({
 			name: 'stopWS',
 			call: 'admin_stopWS'
 		}),
+		new web3._extend.Method({
+			name: 'getProgramVersion',
+			call: 'admin_getProgramVersion'
+		}),
+		new web3._extend.Method({
+			name: 'getSchnorrNIZKProve',
+			call: 'admin_getSchnorrNIZKProve'
+		}),
 	],
 	properties: [
 		new web3._extend.Property({
@@ -240,11 +209,11 @@ web3._extend({
 			call: 'debug_getBlockRlp',
 			params: 1
 		}),
-		new web3._extend.Method({
-			name: 'setHead',
-			call: 'debug_setHead',
-			params: 1
-		}),
+		//new web3._extend.Method({
+		//	name: 'setHead',
+		//	call: 'debug_setHead',
+		//	params: 1
+		//}),
 		new web3._extend.Method({
 			name: 'seedHash',
 			call: 'debug_seedHash',
@@ -434,63 +403,84 @@ web3._extend({
 			params: 2,
 			inputFormatter:[null, null],
 		}),
+		new web3._extend.Method({
+			name: 'consensusStatus',
+			call: 'debug_consensusStatus',
+		}),
+		new web3._extend.Method({
+			name: 'economicConfig',
+			call: 'debug_economicConfig',
+		}),
+		new web3._extend.Method({
+			name: 'enableDBGC',
+			call: 'debug_enableDBGC',
+		}),
+		new web3._extend.Method({
+			name: 'disableDBGC',
+			call: 'debug_disableDBGC',
+		}),
 	],
 	properties: []
 });
 `
 
-const Eth_JS = `
+const Platon_JS = `
 web3._extend({
-	property: 'eth',
+	property: 'platon',
 	methods: [
 		new web3._extend.Method({
 			name: 'setActor',
-			call: 'eth_setActor',
+			call: 'platon_setActor',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'sign',
-			call: 'eth_sign',
+			call: 'platon_sign',
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter, null]
 		}),
 		new web3._extend.Method({
 			name: 'resend',
-			call: 'eth_resend',
+			call: 'platon_resend',
 			params: 3,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter, web3._extend.utils.fromDecimal, web3._extend.utils.fromDecimal]
 		}),
 		new web3._extend.Method({
 			name: 'signTransaction',
-			call: 'eth_signTransaction',
+			call: 'platon_signTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'submitTransaction',
-			call: 'eth_submitTransaction',
+			call: 'platon_submitTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransaction',
-			call: 'eth_getRawTransactionByHash',
+			call: 'platon_getRawTransactionByHash',
 			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransactionFromBlock',
 			call: function(args) {
-				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'eth_getRawTransactionByBlockHashAndIndex' : 'eth_getRawTransactionByBlockNumberAndIndex';
+				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'platon_getRawTransactionByBlockHashAndIndex' : 'platon_getRawTransactionByBlockNumberAndIndex';
 			},
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
+		}),
+		new web3._extend.Method({
+			name: 'getPrepareQC',
+			call: 'platon_getPrepareQC',
+			params: 1
 		}),
 	],
 	properties: [
 		new web3._extend.Property({
 			name: 'pendingTransactions',
-			getter: 'eth_pendingTransactions',
+			getter: 'platon_pendingTransactions',
 			outputFormatter: function(txs) {
 				var formatted = [];
 				for (var i = 0; i < txs.length; i++) {
@@ -509,40 +499,10 @@ web3._extend({
 	property: 'miner',
 	methods: [
 		new web3._extend.Method({
-			name: 'start',
-			call: 'miner_start',
-			params: 1,
-			inputFormatter: [null]
-		}),
-		new web3._extend.Method({
-			name: 'stop',
-			call: 'miner_stop'
-		}),
-		new web3._extend.Method({
-			name: 'setEtherbase',
-			call: 'miner_setEtherbase',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'setExtra',
-			call: 'miner_setExtra',
-			params: 1
-		}),
-		new web3._extend.Method({
 			name: 'setGasPrice',
 			call: 'miner_setGasPrice',
 			params: 1,
 			inputFormatter: [web3._extend.utils.fromDecimal]
-		}),
-		new web3._extend.Method({
-			name: 'setRecommitInterval',
-			call: 'miner_setRecommitInterval',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getHashrate',
-			call: 'miner_getHashrate'
 		}),
 	],
 	properties: []
@@ -587,11 +547,11 @@ web3._extend({
 			call: 'personal_openWallet',
 			params: 2
 		}),
-		new web3._extend.Method({
-			name: 'deriveAccount',
-			call: 'personal_deriveAccount',
-			params: 3
-		}),
+		//new web3._extend.Method({
+		//	name: 'deriveAccount',	
+		//	call: 'personal_deriveAccount',
+		//	params: 3
+		//}),
 		new web3._extend.Method({
 			name: 'signTransaction',
 			call: 'personal_signTransaction',

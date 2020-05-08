@@ -3,13 +3,15 @@ package core
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"sync"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"math/big"
-	"sync"
 )
 
 var (
@@ -22,6 +24,9 @@ type BlockChainCache struct {
 	receiptsCache map[common.Hash]*receiptsCache // key is header SealHash
 	stateDBMu     sync.RWMutex
 	receiptsMu    sync.RWMutex
+
+	executing sync.Mutex
+	executed  sync.Map
 }
 
 type stateDBCache struct {
@@ -35,10 +40,9 @@ type receiptsCache struct {
 }
 
 func (pbc *BlockChainCache) CurrentBlock() *types.Block {
-	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
-		if block := cbft.HighestLogicalBlock(); block != nil {
-			return block
-		}
+	block := pbc.Engine().CurrentBlock()
+	if block != nil {
+		return block
 	}
 	return pbc.currentBlock.Load().(*types.Block)
 }
@@ -46,14 +50,30 @@ func (pbc *BlockChainCache) CurrentBlock() *types.Block {
 func (pbc *BlockChainCache) GetBlock(hash common.Hash, number uint64) *types.Block {
 	var block *types.Block
 	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
-		log.Trace("find block in cbft", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		log.Trace("Find block in cbft", "hash", hash, "number", number)
 		block = cbft.GetBlock(hash, number)
 	}
 	if block == nil {
-		log.Trace("cannot find block in cbft, try to find it in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		log.Trace("Cannot find block in cbft, try to find it in chain", "hash", hash, "number", number)
 		block = pbc.getBlock(hash, number)
 		if block == nil {
-			log.Trace("cannot find block in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+			log.Trace("Cannot find block in chain", "hash", hash, "number", number)
+		}
+	}
+	return block
+}
+
+func (pbc *BlockChainCache) GetBlockInMemory(hash common.Hash, number uint64) *types.Block {
+	var block *types.Block
+	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
+		log.Trace("find block in cbft", "hash", hash, "number", number)
+		block = cbft.GetBlockWithoutLock(hash, number)
+	}
+	if block == nil {
+		log.Trace("cannot find block in cbft, try to find it in chain", "hash", hash, "number", number)
+		block = pbc.getBlock(hash, number)
+		if block == nil {
+			log.Trace("cannot find block in chain", "hash", hash, "number", number)
 		}
 	}
 	return block
@@ -80,13 +100,11 @@ func (bcc *BlockChainCache) ReadReceipts(sealHash common.Hash) []*types.Receipt 
 
 // GetState returns a new mutable state based on a particular point in time.
 func (bcc *BlockChainCache) GetState(header *types.Header) (*state.StateDB, error) {
-	state := bcc.ReadStateDB(header.SealHash())
-	if state != nil {
-		log.Info("BlockChainCache GetState", "addr", fmt.Sprintf("%p", state), "root", header.Root)
+	state, err := bcc.MakeStateDBByHeader(header)
+	if err == nil {
 		return state, nil
 	} else {
-		log.Info("BlockChainCache GetState", "root", header.Root)
-		return bcc.StateAt(header.Root, header.Number, header.Hash())
+		return bcc.StateAt(header.Root)
 	}
 }
 
@@ -94,9 +112,19 @@ func (bcc *BlockChainCache) GetState(header *types.Header) (*state.StateDB, erro
 func (pbc *BlockChainCache) ReadStateDB(sealHash common.Hash) *state.StateDB {
 	pbc.stateDBMu.RLock()
 	defer pbc.stateDBMu.RUnlock()
-	log.Info("Read the StateDB instance from the cache map", "sealHash", sealHash)
 	if obj, exist := pbc.stateDBCache[sealHash]; exist {
+		log.Debug("Read the StateDB instance from the cache map", "sealHash", sealHash)
 		return obj.stateDB.Copy()
+	}
+	return nil
+}
+
+func (pbc *BlockChainCache) ReadOnlyStateDB(sealHash common.Hash) *state.StateDB {
+	pbc.stateDBMu.RLock()
+	defer pbc.stateDBMu.RUnlock()
+	if obj, exist := pbc.stateDBCache[sealHash]; exist {
+		log.Debug("Read the StateDB instance from the cache map", "sealHash", sealHash)
+		return obj.stateDB
 	}
 	return nil
 }
@@ -107,13 +135,12 @@ func (pbc *BlockChainCache) WriteReceipts(sealHash common.Hash, receipts []*type
 	defer pbc.receiptsMu.Unlock()
 	obj, exist := pbc.receiptsCache[sealHash]
 	if exist {
-		if obj.blockNum == blockNum && len(obj.receipts) == len(receipts) {
-			log.Info("the receipts already in cache")
-		} else {
-			log.Warn("there maybe an error!", "blockNum", blockNum, "obj.blockNum", obj.blockNum, "len(obj.receipts)", len(obj.receipts), "len(receipts)", len(receipts))
-			obj.receipts = append(obj.receipts, receipts...)
+		// FIXME: removing in productive environment
+		// Only for test
+		if types.DeriveSha(types.Receipts(obj.receipts)) != types.DeriveSha(types.Receipts(receipts)) {
+			panic("invalid receipts")
 		}
-	} else if !exist {
+	} else {
 		pbc.receiptsCache[sealHash] = &receiptsCache{receipts: receipts, blockNum: blockNum}
 	}
 }
@@ -124,8 +151,7 @@ func (bcc *BlockChainCache) WriteStateDB(sealHash common.Hash, stateDB *state.St
 	defer bcc.stateDBMu.Unlock()
 	log.Info("Write a StateDB instance to the cache", "sealHash", sealHash, "blockNum", blockNum)
 	if _, exist := bcc.stateDBCache[sealHash]; !exist {
-		stateDBCpy := stateDB.Copy()
-		bcc.stateDBCache[sealHash] = &stateDBCache{stateDB: stateDBCpy, blockNum: blockNum}
+		bcc.stateDBCache[sealHash] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
 	}
 }
 
@@ -134,65 +160,186 @@ func (bcc *BlockChainCache) clearReceipts(sealHash common.Hash) {
 	bcc.receiptsMu.Lock()
 	defer bcc.receiptsMu.Unlock()
 
-	var blockNum uint64
+	//var blockNum uint64
 	if obj, exist := bcc.receiptsCache[sealHash]; exist {
-		blockNum = obj.blockNum
-		//delete(pbc.receiptsCache, sealHash)
+		//blockNum = obj.blockNum
+		log.Debug("Clear Receipts", "sealHash", sealHash, "number", obj.blockNum)
+		delete(bcc.receiptsCache, sealHash)
 	}
-	for hash, obj := range bcc.receiptsCache {
-		if obj.blockNum <= blockNum {
-			delete(bcc.receiptsCache, hash)
-		}
-	}
+	//for hash, obj := range bcc.receiptsCache {
+	//	if obj.blockNum < blockNum {
+	//		delete(bcc.receiptsCache, hash)
+	//	}
+	//}
 }
 
 // Read the StateDB instance from the cache map
 func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 	bcc.stateDBMu.Lock()
 	defer bcc.stateDBMu.Unlock()
-	var blockNum uint64
+
 	if obj, exist := bcc.stateDBCache[sealHash]; exist {
-		blockNum = obj.blockNum
+		obj.stateDB.ClearReference()
+		log.Debug("Clear StateDB", "sealHash", sealHash, "number", obj.blockNum)
+		delete(bcc.stateDBCache, sealHash)
 		//delete(pbc.stateDBCache, sealHash)
 	}
-	for hash, obj := range bcc.stateDBCache {
-		if obj.blockNum <= blockNum {
-			root := obj.stateDB.IntermediateRoot(bcc.chainConfig.IsEIP158(big.NewInt(int64(obj.blockNum))))
-			log.Info("Delete StateDB Cache", "blockNumber", obj.blockNum, "sealHash", sealHash.String(), "stateDB root", root.String())
-			delete(bcc.stateDBCache, hash)
-		}
-	}
+	//for hash, obj := range bcc.stateDBCache {
+	//	if obj.blockNum < blockNum {
+	//		obj.stateDB.ClearReference()
+	//		log.Debug("Clear StateDB", "sealHash", hash, "number", obj.blockNum)
+	//		delete(bcc.stateDBCache, hash)
+	//	}
+	//}
 }
 
 // Get the StateDB instance of the corresponding block
 func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
-	// Create a StateDB instance from the blockchain based on stateRoot
-	log.Info("------make StateDB------", "GoRoutineID", common.CurrentGoRoutineID(), "number", block.NumberU64(), "hash", block.Hash(), "stateRoot", block.Root())
-	curBlock := bcc.BlockChain.CurrentBlock()
-	if curBlock != nil {
-		log.Info("------current block------", "GoRoutineID", common.CurrentGoRoutineID(), "number", curBlock.NumberU64(), "hash", curBlock.Hash(), "stateRoot", curBlock.Root())
-	}
-	log.Info("---------recheck Block", "number", block.NumberU64(), "hash", block.Hash(), "root", block.Root())
+	log.Info("Make stateDB", "hash", block.Hash(), "number", block.NumberU64(), "root", block.Root())
+	return bcc.MakeStateDBByHeader(block.Header())
+}
 
+func (bcc *BlockChainCache) MakeStateDBByHeader(header *types.Header) (*state.StateDB, error) {
 	// Read and copy the stateDB instance in the cache
-	sealHash := bcc.Engine().SealHash(block.Header())
-	log.Info("Read and copy the stateDB instance in the cache", "sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
-	if state := bcc.ReadStateDB(sealHash); state != nil {
-		log.Debug("MakeStateDB", "addr", fmt.Sprintf("%p", state))
-		//return state.Copy(), nil
+	sealHash, number, root := header.SealHash(), header.Number.Uint64(), header.Root
+	if state := bcc.ReadOnlyStateDB(sealHash); state != nil {
+		statedb := state.NewStateDB()
+		if number > 1 && !statedb.HadParent() {
+			panic(fmt.Sprintf("parent is nil:%d", number))
+		}
+
+		return statedb, nil
+	} else if state, err := bcc.StateAt(root); err == nil && state != nil {
+		// Create a StateDB instance from the blockchain based on stateRoot
 		return state, nil
 	}
-	if state, err := bcc.StateAt(block.Root(), block.Number(), block.Hash()); err == nil && state != nil {
-		log.Info("---------recheck check Block", "addr", fmt.Sprintf("%p", state), "number", block.NumberU64(), "hash", block.Hash(), "root", block.Root())
-		return state, nil
-	} else {
-		return nil, errMakeStateDB
-	}
+	return nil, errMakeStateDB
 }
 
 // Get the StateDB instance of the corresponding block
 func (bcc *BlockChainCache) ClearCache(block *types.Block) {
-	sealHash := bcc.Engine().SealHash(block.Header())
-	bcc.clearReceipts(sealHash)
-	bcc.clearStateDB(sealHash)
+	baseNumber := block.NumberU64()
+	if baseNumber < 1 {
+		return
+	}
+	log.Debug("Clear cache", "baseBlockHash", block.Hash(), "baseBlockNumber", baseNumber)
+
+	var sh sealHashSort
+	bcc.executed.Range(func(key, value interface{}) bool {
+		number := value.(uint64)
+		if number < baseNumber-1 {
+			sealHash := key.(common.Hash)
+			sh = append(sh, &sealHashNumber{number: number, hash: sealHash})
+
+		}
+		return true
+	})
+	sort.Sort(sh)
+	for _, s := range sh {
+		log.Debug("Clear Cache block", "sealHash", s.hash, "number", s.number)
+		bcc.clearReceipts(s.hash)
+		bcc.clearStateDB(s.hash)
+		bcc.executed.Delete(s.hash)
+	}
 }
+
+func (bcc *BlockChainCache) StateDBString() string {
+	status := fmt.Sprintf("[")
+	for hash, obj := range bcc.stateDBCache {
+		status += fmt.Sprintf("[%s, %d]", hash, obj.blockNum)
+	}
+	status += fmt.Sprintf("]")
+	return status
+}
+
+func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) error {
+	executed := func() bool {
+		if number, ok := bcc.executed.Load(block.Header().SealHash()); ok && number.(uint64) == block.Number().Uint64() {
+			log.Debug("Block has executed", "number", block.Number(), "hash", block.Hash(), "parentNumber", parent.Number(), "parentHash", parent.Hash())
+			return true
+		}
+		return false
+	}
+
+	if executed() {
+		return nil
+	}
+
+	bcc.executing.Lock()
+	defer bcc.executing.Unlock()
+	if executed() {
+		return nil
+	}
+	log.Debug("Start execute block", "hash", block.Hash(), "number", block.Number(), "sealHash", block.Header().SealHash())
+	start := time.Now()
+	state, err := bcc.MakeStateDB(parent)
+	elapse := time.Since(start)
+	if err != nil {
+		return errors.New("execute block error")
+	}
+
+	t := time.Now()
+	//to execute
+	receipts, err := bcc.ProcessDirectly(block, state, parent)
+	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(),
+		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "duration", time.Since(t), "makeState", elapse, "err", err)
+	if err == nil {
+		//save the receipts and state to consensusCache
+		sealHash := block.Header().SealHash()
+		bcc.WriteReceipts(sealHash, receipts, block.NumberU64())
+		bcc.WriteStateDB(sealHash, state, block.NumberU64())
+		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
+	} else {
+		return fmt.Errorf("execute block error, err:%s", err.Error())
+	}
+	return nil
+}
+
+func (bcc *BlockChainCache) AddSealBlock(hash common.Hash, number uint64) {
+	bcc.executed.Store(hash, number)
+}
+
+func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
+	sealHash := block.Header().SealHash()
+	state := bcc.ReadStateDB(sealHash)
+	receipts := bcc.ReadReceipts(sealHash)
+
+	if state == nil {
+		log.Error("Write Block error, state is nil", "number", block.NumberU64(), "hash", block.Hash())
+		return fmt.Errorf("write Block error, state is nil, number:%d, hash:%s", block.NumberU64(), block.Hash().String())
+	} else if len(block.Transactions()) > 0 && len(receipts) == 0 {
+		log.Error("Write Block error, block has transactions but receipts is nil", "number", block.NumberU64(), "hash", block.Hash())
+		return fmt.Errorf("write Block error, block has transactions but receipts is nil, number:%d, hash:%s", block.NumberU64(), block.Hash().String())
+	}
+
+	// Different block could share same sealhash, deep copy here to prevent write-write conflict.
+	var _receipts = make([]*types.Receipt, len(receipts))
+	for i, receipt := range receipts {
+		_receipts[i] = new(types.Receipt)
+		*_receipts[i] = *receipt
+	}
+	// Commit block and state to database.
+	//block.SetExtraData(extraData)
+	log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
+	_, err := bcc.WriteBlockWithState(block, _receipts, state)
+	if err != nil {
+		log.Error("Failed writing block to chain", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
+		return fmt.Errorf("failed writing block to chain, number:%d, hash:%s, err:%s", block.NumberU64(), block.Hash().String(), err.Error())
+	}
+
+	log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64())
+	return nil
+}
+
+type sealHashNumber struct {
+	number uint64
+	hash   common.Hash
+}
+
+type sealHashSort []*sealHashNumber
+
+func (self sealHashSort) Len() int { return len(self) }
+func (self sealHashSort) Swap(i, j int) {
+	self[i], self[j] = self[j], self[i]
+}
+func (self sealHashSort) Less(i, j int) bool { return self[i].number < self[j].number }

@@ -76,7 +76,7 @@ func returnHasherToPool(h *hasher) {
 // original node initialized with the computed hash to replace the original one.
 func (h *hasher) hash(n node, db *Database, force bool) (node, node, error) {
 	// If we're not storing the node, just hashing, use available cached data
-	if hash, dirty := n.cache(); hash != nil {
+	if hash, dirty := n.cache(); len(hash) != 0 {
 		if db == nil {
 			return hash, n, nil
 		}
@@ -103,16 +103,17 @@ func (h *hasher) hash(n node, db *Database, force bool) (node, node, error) {
 	// the dirty flag in commit mode. It's fine to assign these values directly
 	// without copying the node first because hashChildren copies it.
 	cachedHash, _ := hashed.(hashNode)
+
 	switch cn := cached.(type) {
 	case *shortNode:
-		cn.flags.hash = cachedHash
+		*cn.flags.hash = cachedHash
 		if db != nil {
-			cn.flags.dirty = false
+			*cn.flags.dirty = false
 		}
 	case *fullNode:
-		cn.flags.hash = cachedHash
+		*cn.flags.hash = cachedHash
 		if db != nil {
-			cn.flags.dirty = false
+			*cn.flags.dirty = false
 		}
 	}
 	return hashed, cached, nil
@@ -178,7 +179,7 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 	}
 	// Larger nodes are replaced by their hash and stored in the database.
 	hash, _ := n.cache()
-	if hash == nil {
+	if len(hash) == 0 {
 		hash = h.makeHashNode(h.tmp)
 	}
 
@@ -188,6 +189,7 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 
 		db.lock.Lock()
 		db.insert(hash, h.tmp, n)
+		db.insertFreshNode(hash)
 		db.lock.Unlock()
 
 		// Track external references from account->storage trie

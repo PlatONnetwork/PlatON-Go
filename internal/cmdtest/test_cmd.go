@@ -96,15 +96,18 @@ func (tt *TestCmd) SetTemplateFunc(name string, fn interface{}) {
 // If the template starts with a newline, the newline is removed
 // before matching.
 func (tt *TestCmd) Expect(tplsource string) {
+
 	// Generate the expected output by running the template.
 	tpl := template.Must(template.New("").Funcs(tt.Func).Parse(tplsource))
 	wantbuf := new(bytes.Buffer)
 	if err := tpl.Execute(wantbuf, tt.Data); err != nil {
 		panic(err)
 	}
+
 	// Trim exactly one newline at the beginning. This makes tests look
 	// much nicer because all expect strings are at column 0.
 	want := bytes.TrimPrefix(wantbuf.Bytes(), []byte("\n"))
+
 	if err := tt.matchExactOutput(want); err != nil {
 		tt.Fatal(err)
 	}
@@ -112,16 +115,19 @@ func (tt *TestCmd) Expect(tplsource string) {
 }
 
 func (tt *TestCmd) matchExactOutput(want []byte) error {
+
 	buf := make([]byte, len(want))
 	n := 0
 	tt.withKillTimeout(func() { n, _ = io.ReadFull(tt.stdout, buf) })
 	buf = buf[:n]
 	if n < len(want) || !bytes.Equal(buf, want) {
+
 		// Grab any additional buffered output in case of mismatch
 		// because it might help with debugging.
 		buf = append(buf, make([]byte, tt.stdout.Buffered())...)
 		tt.stdout.Read(buf[n:])
 		// Find the mismatch position.
+
 		for i := 0; i < n; i++ {
 			if want[i] != buf[i] {
 				return fmt.Errorf("Output mismatch at ◊:\n---------------- (stdout text)\n%s◊%s\n---------------- (expected text)\n%s",

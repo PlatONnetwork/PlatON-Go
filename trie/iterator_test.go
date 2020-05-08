@@ -28,7 +28,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
-func TestDecodeNode2(t *testing.T)  {
+func TestDecodeNode2(t *testing.T) {
 	val := common.Hex2Bytes("9fa1d0a5c3ba8a413015cbcc57c810d999b8046ca4ae2f0f734700a8679c615e")
 	var hash []byte
 
@@ -42,7 +42,6 @@ func TestDecodeNode2(t *testing.T)  {
 	h := common.BytesToHash(hash)
 	t.Log(h.Hex())
 }
-
 
 func TestIterator(t *testing.T) {
 	trie := newEmpty()
@@ -315,7 +314,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 	}
 	tr.Commit(nil)
 	if !memonly {
-		triedb.Commit(tr.Hash(), true)
+		triedb.Commit(tr.Hash(), true, true)
 	}
 	wantNodeCount := checkIteratorNoDups(t, tr.NodeIterator(nil), nil)
 
@@ -402,7 +401,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	}
 	root, _ := ctr.Commit(nil)
 	if !memonly {
-		triedb.Commit(root, true)
+		triedb.Commit(root, true, true)
 	}
 	barNodeHash := common.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
 	var (

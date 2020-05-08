@@ -18,6 +18,9 @@ package core
 
 import (
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -26,14 +29,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"math/big"
-	"testing"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 // So we can deterministically seed different blockchains
 var (
 	canonicalSeed = 1
-	forkSeed      = 2
 )
 
 // newCanonical creates a chain database, and injects a deterministic canonical
@@ -63,51 +64,10 @@ func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *B
 	return db, blockchain, err
 }
 
-// Test fork of length N starting from block i
-func testFork(t *testing.T, blockchain *BlockChain, i, n int, full bool, comparator func(td1, td2 *big.Int)) {
-	// Copy old chain up to #i into a new db
-	// TODO test
-	/*db, blockchain2, err := newCanonical(cbft.NewFaker(), i, full)
-	if err != nil {
-		t.Fatal("could not make new canonical in testFork", err)
-	}
-	defer blockchain2.Stop()
-
-	// Assert the chains have the same header/block at #i
-	var hash1, hash2 common.Hash
-	if full {
-		hash1 = blockchain.GetBlockByNumber(uint64(i)).Hash()
-		hash2 = blockchain2.GetBlockByNumber(uint64(i)).Hash()
-	} else {
-		hash1 = blockchain.GetHeaderByNumber(uint64(i)).Hash()
-		hash2 = blockchain2.GetHeaderByNumber(uint64(i)).Hash()
-	}
-	if hash1 != hash2 {
-		t.Errorf("chain content mismatch at %d: have hash %v, want hash %v", i, hash2, hash1)
-	}
-	// Extend the newly created chain
-	var (
-		blockChainB  []*types.Block
-		headerChainB []*types.Header
-	)
-	if full {
-		blockChainB = makeBlockChain(blockchain2.CurrentBlock(), n, cbft.NewFaker(), db, forkSeed)
-		if _, err := blockchain2.InsertChain(blockChainB); err != nil {
-			t.Fatalf("failed to insert forking chain: %v", err)
-		}
-	} else {
-		headerChainB = makeHeaderChain(blockchain2.CurrentHeader(), n, cbft.NewFaker(), db, forkSeed)
-		if _, err := blockchain2.InsertHeaderChain(headerChainB, 1); err != nil {
-			t.Fatalf("failed to insert forking chain: %v", err)
-		}
-	}*/
-
-}
-
 func printChain(bc *BlockChain) {
 	for i := bc.CurrentBlock().Number().Uint64(); i > 0; i-- {
 		b := bc.GetBlockByNumber(uint64(i))
-		fmt.Printf("\t%x \n", b.Hash(),)
+		fmt.Printf("\t%x \n", b.Hash())
 	}
 }
 
@@ -126,11 +86,11 @@ func testBlockChainImport(chain types.Blocks, blockchain *BlockChain) error {
 			}
 			return err
 		}
-		statedb, err := state.New(blockchain.GetBlockByHash(block.ParentHash()).Root(), blockchain.stateCache, blockchain.GetBlockByHash(block.ParentHash()).Number(), blockchain.GetBlockByHash(block.ParentHash()).Hash())
+		statedb, err := state.New(blockchain.GetBlockByHash(block.ParentHash()).Root(), blockchain.stateCache)
 		if err != nil {
 			return err
 		}
-		receipts, _, usedGas, err := blockchain.Processor().Process(block, statedb, vm.Config{}, nil)
+		receipts, _, usedGas, err := blockchain.Processor().Process(block, statedb, vm.Config{})
 		if err != nil {
 			blockchain.reportBlock(block, receipts, err)
 			return err
@@ -909,84 +869,84 @@ func TestLogReorgs(t *testing.T) {
 func TestReorgSideEvent(t *testing.T) {
 	// TODO test
 	/*var (
-		db      = ethdb.NewMemDatabase()
-		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
-		gspec   = &Genesis{
-			Config: params.TestChainConfig,
-			Alloc:  GenesisAlloc{addr1: {Balance: big.NewInt(10000000000000)}},
+			db      = ethdb.NewMemDatabase()
+			key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+			addr1   = crypto.PubkeyToAddress(key1.PublicKey)
+			gspec   = &Genesis{
+				Config: params.TestChainConfig,
+				Alloc:  GenesisAlloc{addr1: {Balance: big.NewInt(10000000000000)}},
+			}
+			genesis = gspec.MustCommit(db)
+			signer  = types.NewEIP155Signer(gspec.Config.ChainID)
+		)
+
+		blockchain, _ := NewBlockChain(db, nil, gspec.Config, cbft.NewFaker(), vm.Config{}, nil)
+		defer blockchain.Stop()
+
+		chain, _ := GenerateChain(gspec.Config, genesis, cbft.NewFaker(), db, 3, func(i int, gen *BlockGen) {})
+		if _, err := blockchain.InsertChain(chain); err != nil {
+			t.Fatalf("failed to insert chain: %v", err)
 		}
-		genesis = gspec.MustCommit(db)
-		signer  = types.NewEIP155Signer(gspec.Config.ChainID)
-	)
 
-	blockchain, _ := NewBlockChain(db, nil, gspec.Config, cbft.NewFaker(), vm.Config{}, nil)
-	defer blockchain.Stop()
-
-	chain, _ := GenerateChain(gspec.Config, genesis, cbft.NewFaker(), db, 3, func(i int, gen *BlockGen) {})
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatalf("failed to insert chain: %v", err)
-	}
-
-	replacementBlocks, _ := GenerateChain(gspec.Config, genesis, cbft.NewFaker(), db, 4, func(i int, gen *BlockGen) {
-		tx, err := types.SignTx(types.NewContractCreation(gen.TxNonce(addr1), new(big.Int), 1000000, new(big.Int), nil), signer, key1)
-		if i == 2 {
-			gen.OffsetTime(-9)
+		replacementBlocks, _ := GenerateChain(gspec.Config, genesis, cbft.NewFaker(), db, 4, func(i int, gen *BlockGen) {
+			tx, err := types.SignTx(types.NewContractCreation(gen.TxNonce(addr1), new(big.Int), 1000000, new(big.Int), nil), signer, key1)
+			if i == 2 {
+				gen.OffsetTime(-9)
+			}
+			if err != nil {
+				t.Fatalf("failed to create tx: %v", err)
+			}
+			gen.AddTx(tx)
+		})
+		chainSideCh := make(chan ChainSideEvent, 64)
+		blockchain.SubscribeChainSideEvent(chainSideCh)
+		if _, err := blockchain.InsertChain(replacementBlocks); err != nil {
+			t.Fatalf("failed to insert chain: %v", err)
 		}
-		if err != nil {
-			t.Fatalf("failed to create tx: %v", err)
+
+		// first two block of the secondary chain are for a brief moment considered
+		// side chains because up to that point the first one is considered the
+		// heavier chain.
+		expectedSideHashes := map[common.Hash]bool{
+			replacementBlocks[0].Hash(): true,
+			replacementBlocks[1].Hash(): true,
+			chain[0].Hash():             true,
+			chain[1].Hash():             true,
+			chain[2].Hash():             true,
 		}
-		gen.AddTx(tx)
-	})
-	chainSideCh := make(chan ChainSideEvent, 64)
-	blockchain.SubscribeChainSideEvent(chainSideCh)
-	if _, err := blockchain.InsertChain(replacementBlocks); err != nil {
-		t.Fatalf("failed to insert chain: %v", err)
-	}
 
-	// first two block of the secondary chain are for a brief moment considered
-	// side chains because up to that point the first one is considered the
-	// heavier chain.
-	expectedSideHashes := map[common.Hash]bool{
-		replacementBlocks[0].Hash(): true,
-		replacementBlocks[1].Hash(): true,
-		chain[0].Hash():             true,
-		chain[1].Hash():             true,
-		chain[2].Hash():             true,
-	}
+		i := 0
 
-	i := 0
+		const timeoutDura = 10 * time.Second
+		timeout := time.NewTimer(timeoutDura)
+	done:
+		for {
+			select {
+			case ev := <-chainSideCh:
+				block := ev.Block
+				if _, ok := expectedSideHashes[block.Hash()]; !ok {
+					t.Errorf("%d: didn't expect %x to be in side chain", i, block.Hash())
+				}
+				i++
 
-	const timeoutDura = 10 * time.Second
-	timeout := time.NewTimer(timeoutDura)
-done:
-	for {
+				if i == len(expectedSideHashes) {
+					timeout.Stop()
+
+					break done
+				}
+				timeout.Reset(timeoutDura)
+
+			case <-timeout.C:
+				t.Fatal("Timeout. Possibly not all blocks were triggered for sideevent")
+			}
+		}
+
+		// make sure no more events are fired
 		select {
-		case ev := <-chainSideCh:
-			block := ev.Block
-			if _, ok := expectedSideHashes[block.Hash()]; !ok {
-				t.Errorf("%d: didn't expect %x to be in side chain", i, block.Hash())
-			}
-			i++
-
-			if i == len(expectedSideHashes) {
-				timeout.Stop()
-
-				break done
-			}
-			timeout.Reset(timeoutDura)
-
-		case <-timeout.C:
-			t.Fatal("Timeout. Possibly not all blocks were triggered for sideevent")
-		}
-	}
-
-	// make sure no more events are fired
-	select {
-	case e := <-chainSideCh:
-		t.Errorf("unexpected event fired: %v", e)
-	case <-time.After(250 * time.Millisecond):
-	}*/
+		case e := <-chainSideCh:
+			t.Errorf("unexpected event fired: %v", e)
+		case <-time.After(250 * time.Millisecond):
+		}*/
 
 }
 

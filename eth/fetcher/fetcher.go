@@ -67,6 +67,8 @@ type chainInsertFn func(types.Blocks) (int, error)
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
 
+type decodeExtraFn func([]byte) (common.Hash, uint64, error)
+
 // announce is the hash notification of the availability of a new block in the
 // network.
 type announce struct {
@@ -86,16 +88,17 @@ type headerFilterTask struct {
 	peer    string          // The source peer of block headers
 	headers []*types.Header // Collection of headers to filter
 	time    time.Time       // Arrival time of the headers
+	result  chan *headerFilterTask
 }
 
-// bodyFilterTask represents a batch of block bodies (transactions and uncles)
+// bodyFilterTask represents a batch of block bodies (transactions)
 // needing fetcher filtering.
 type bodyFilterTask struct {
 	peer         string                 // The source peer of block bodies
 	transactions [][]*types.Transaction // Collection of transactions per block bodies
-	uncles       [][]*types.Header      // Collection of uncles per block bodies
-	signatures	 [][]*common.BlockConfirmSign
 	time         time.Time              // Arrival time of the blocks' contents
+	extraData    [][]byte
+	result       chan *bodyFilterTask
 }
 
 // inject represents a schedules import operation.
@@ -142,6 +145,7 @@ type Fetcher struct {
 	chainHeight    chainHeightFn      // Retrieves the current chain's height
 	insertChain    chainInsertFn      // Injects a batch of blocks into the chain
 	dropPeer       peerDropFn         // Drops a peer for misbehaving
+	decodeExtra    decodeExtraFn      // Decode extra data
 
 	// Testing hooks
 	announceChangeHook func(common.Hash, bool) // Method to call upon adding or deleting a hash from the announce list
@@ -152,7 +156,7 @@ type Fetcher struct {
 }
 
 // New creates a block fetcher to retrieve blocks based on hash announcements.
-func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBlock blockBroadcasterFn, chainHeight chainHeightFn, insertChain chainInsertFn, dropPeer peerDropFn) *Fetcher {
+func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBlock blockBroadcasterFn, chainHeight chainHeightFn, insertChain chainInsertFn, dropPeer peerDropFn, decodeExtra decodeExtraFn) *Fetcher {
 	return &Fetcher{
 		notify:         make(chan *announce),
 		inject:         make(chan *inject),
@@ -175,6 +179,7 @@ func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBloc
 		chainHeight:    chainHeight,
 		insertChain:    insertChain,
 		dropPeer:       dropPeer,
+		decodeExtra:    decodeExtra,
 	}
 }
 
@@ -226,11 +231,12 @@ func (f *Fetcher) Enqueue(peer string, block *types.Block) error {
 
 // FilterHeaders extracts all the headers that were explicitly requested by the fetcher,
 // returning those that should be handled differently.
-func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, time time.Time) []*types.Header {
+func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, t time.Time) []*types.Header {
 	log.Trace("Filtering headers", "peer", peer, "headers", len(headers))
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *headerFilterTask)
+	result := make(chan *headerFilterTask, 1)
 
 	select {
 	case f.headerFilter <- filter:
@@ -239,13 +245,14 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, time time.
 	}
 	// Request the filtering of the header list
 	select {
-	case filter <- &headerFilterTask{peer: peer, headers: headers, time: time}:
+	case filter <- &headerFilterTask{peer: peer, headers: headers, time: t, result: result}:
 	case <-f.quit:
 		return nil
 	}
 	// Retrieve the headers remaining after filtering
 	select {
-	case task := <-filter:
+	case task := <-result:
+		log.Debug("Filtering headers", "peer", peer, "headers", len(task.headers), "duration", time.Since(t))
 		return task.headers
 	case <-f.quit:
 		return nil
@@ -254,29 +261,31 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, time time.
 
 // FilterBodies extracts all the block bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction, uncles [][]*types.Header, signatures [][]*common.BlockConfirmSign, time time.Time) ([][]*types.Transaction, [][]*types.Header, [][]*common.BlockConfirmSign) {
-	log.Trace("Filtering bodies", "peer", peer, "txs", len(transactions), "uncles", len(uncles), "signatures", len(signatures))
+func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction, extraData [][]byte, t time.Time) ([][]*types.Transaction, [][]byte) {
+	log.Trace("Filtering bodies", "peer", peer, "txs", len(transactions))
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *bodyFilterTask)
+	result := make(chan *bodyFilterTask, 1)
 
 	select {
 	case f.bodyFilter <- filter:
 	case <-f.quit:
-		return nil, nil, nil
+		return nil, nil
 	}
 	// Request the filtering of the body list
 	select {
-	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, uncles: uncles, signatures: signatures, time: time}:
+	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, extraData: extraData, time: t, result: result}:
 	case <-f.quit:
-		return nil, nil, nil
+		return nil, nil
 	}
 	// Retrieve the bodies remaining after filtering
 	select {
-	case task := <-filter:
-		return task.transactions, task.uncles, task.signatures
+	case task := <-result:
+		log.Debug("FilterBodies", "peer", peer, "transactions", len(task.transactions), "extra", len(task.extraData), "completing", len(f.completing), "duration", time.Since(t))
+		return task.transactions, task.extraData
 	case <-f.quit:
-		return nil, nil, nil
+		return nil, nil
 	}
 }
 
@@ -304,6 +313,7 @@ func (f *Fetcher) loop() {
 			}
 			// If too high up the chain or phase, continue later
 			number := op.block.NumberU64()
+			log.Debug("Fetcher loop debug", "currentNumber", height, "opNumber", number)
 			if number > height+1 {
 				f.queue.Push(op, -int64(number))
 				if f.queueChangeHook != nil {
@@ -428,7 +438,10 @@ func (f *Fetcher) loop() {
 					f.completingHook(hashes)
 				}
 				bodyFetchMeter.Mark(int64(len(hashes)))
-				go f.completing[hashes[0]].fetchBodies(hashes)
+				if v := f.completing[hashes[0]]; v != nil {
+					go v.fetchBodies(hashes)
+				}
+				//go f.completing[hashes[0]].fetchBodies(hashes)
 			}
 			// Schedule the next fetch if blocks are still pending
 			f.rescheduleComplete(completeTimer)
@@ -465,8 +478,9 @@ func (f *Fetcher) loop() {
 						announce.header = header
 						announce.time = task.time
 
+						//ExtraData deleted
 						// If the block is empty (header only), short circuit into the final import queue
-						//if header.TxHash == types.DeriveSha(types.Transactions{}) && header.UncleHash == types.CalcUncleHash([]*types.Header{}) {
+						//if header.TxHash == types.DeriveSha(types.Transactions{}) {
 						//	log.Trace("Block empty, skipping body retrieval", "peer", announce.origin, "number", header.Number, "hash", header.Hash())
 						//
 						//	block := types.NewBlockWithHeader(header)
@@ -476,7 +490,6 @@ func (f *Fetcher) loop() {
 						//	f.completing[hash] = announce
 						//	continue
 						//}
-
 						// Otherwise add to the list of blocks needing completion
 						incomplete = append(incomplete, announce)
 					} else {
@@ -490,7 +503,7 @@ func (f *Fetcher) loop() {
 			}
 			headerFilterOutMeter.Mark(int64(len(unknown)))
 			select {
-			case filter <- &headerFilterTask{headers: unknown, time: task.time}:
+			case task.result <- &headerFilterTask{headers: unknown, time: task.time}:
 			case <-f.quit:
 				return
 			}
@@ -523,21 +536,31 @@ func (f *Fetcher) loop() {
 			bodyFilterInMeter.Mark(int64(len(task.transactions)))
 
 			blocks := []*types.Block{}
-			for i := 0; i < len(task.transactions) && i < len(task.uncles) && i < len(task.signatures); i++ {
+			for i := 0; i < len(task.transactions) && i < len(task.extraData); i++ {
 				// Match up a body to any possible completion request
 				matched := false
 
 				for hash, announce := range f.completing {
 					if f.queued[hash] == nil {
-						txnHash := types.DeriveSha(types.Transactions(task.transactions[i]))
-						uncleHash := types.CalcUncleHash(task.uncles[i])
+						equalExtra := func() bool {
+							if len(task.extraData[i]) == 0 {
+								return true
+							}
+							bh, _, err := f.decodeExtra(task.extraData[i])
+							return err == nil && hash == bh
+						}()
 
-						if txnHash == announce.header.TxHash && uncleHash == announce.header.UncleHash && announce.origin == task.peer {
+						if !equalExtra {
+							continue
+						}
+
+						txnHash := types.DeriveSha(types.Transactions(task.transactions[i]))
+						if txnHash == announce.header.TxHash && announce.origin == task.peer {
 							// Mark the body matched, reassemble if still unknown
 							matched = true
 
 							if f.getBlock(hash) == nil {
-								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.uncles[i], task.signatures[i])
+								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.extraData[i])
 								block.ReceivedAt = task.time
 
 								blocks = append(blocks, block)
@@ -549,15 +572,14 @@ func (f *Fetcher) loop() {
 				}
 				if matched {
 					task.transactions = append(task.transactions[:i], task.transactions[i+1:]...)
-					task.uncles = append(task.uncles[:i], task.uncles[i+1:]...)
+					task.extraData = append(task.extraData[:i], task.extraData[i+1:]...)
 					i--
 					continue
 				}
 			}
-
 			bodyFilterOutMeter.Mark(int64(len(task.transactions)))
 			select {
-			case filter <- task:
+			case task.result <- task:
 			case <-f.quit:
 				return
 			}
@@ -651,11 +673,14 @@ func (f *Fetcher) insert(peer string, block *types.Block) {
 		defer func() { f.done <- hash }()
 
 		// If the parent's unknown, abort insertion
-		parent := f.getBlock(block.ParentHash())
-		if parent == nil {
-			log.Debug("Unknown parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
-			return
-		}
+
+		// CBFT engine also check parent exists.
+		//parent := f.getBlock(block.ParentHash())
+		//if parent == nil {
+		//	log.Debug("Unknown parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
+		//	return
+		//}
+
 		// Quickly validate the header and propagate the block if it passes
 		switch err := f.verifyHeader(block.Header()); err {
 		case nil:
@@ -727,6 +752,23 @@ func (f *Fetcher) forgetHash(hash common.Hash) {
 			delete(f.announces, announce.origin)
 		}
 		delete(f.completing, hash)
+	}
+
+	// Remove any finish completions and decrement the DOS counters.
+	// The pending completions may be lost there repsones in some
+	// reasons(network issue, lost packet etc.), will persist in pending
+	// instead of remove. And will cause a long time at filter bodies.
+	for hash, announce := range f.completing {
+		if f.getBlock(hash) != nil {
+			if announce != nil {
+				f.announces[announce.origin]--
+				if f.announces[announce.origin] == 0 {
+					delete(f.announces, announce.origin)
+				}
+			}
+			delete(f.completing, hash)
+			log.Debug("Removing pending completion", "origin", announce.origin, "hash", hash)
+		}
 	}
 }
 

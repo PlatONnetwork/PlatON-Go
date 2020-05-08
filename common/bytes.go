@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math"
 )
 
@@ -89,11 +90,22 @@ func Bytes2Hex(d []byte) string {
 	return hex.EncodeToString(d)
 }
 
+func Bytes2Hex0x(d []byte) string {
+	return hexutil.Encode(d)
+}
+
+
 // Hex2Bytes returns the bytes represented by the hexadecimal string str.
 func Hex2Bytes(str string) []byte {
 	h, _ := hex.DecodeString(str)
 	return h
 }
+
+func Hex0x2Bytes(str string) []byte {
+	h, _ := hexutil.Decode(str)
+	return h
+}
+
 
 // Hex2BytesFixed returns bytes of a specified fixed length flen.
 func Hex2BytesFixed(str string, flen int) []byte {
@@ -199,8 +211,42 @@ func PaddingLeft(src []byte, bytes int) []byte {
 }
 
 func reverse(s []byte) []byte {
-	for i, j := 0, len(s) - 1; i < j; i, j = i + 1, j - 1 {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
 	return s
+}
+
+func BytesToUint32(b []byte) uint32 {
+	b = append(make([]byte, 4-len(b)), b...)
+	return binary.BigEndian.Uint32(b)
+}
+
+func BytesToUint64(b []byte) uint64 {
+	b = append(make([]byte, 8-len(b)), b...)
+	return binary.BigEndian.Uint64(b)
+}
+
+
+func Uint32ToBytes(val uint32) []byte {
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, val)
+	return buf[:]
+}
+
+func Uint64ToBytes(val uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, val)
+	return buf[:]
+}
+
+func Uint16ToBytes(val uint16) []byte {
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, val)
+	return buf[:]
+}
+
+func BytesToUint16(b []byte) uint16 {
+	b = append(make([]byte, 2-len(b)), b...)
+	return binary.BigEndian.Uint16(b)
 }

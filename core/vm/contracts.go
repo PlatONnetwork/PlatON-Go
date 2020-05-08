@@ -21,13 +21,14 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"golang.org/x/crypto/ripemd160"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // PrecompiledContract is the basic interface for native Go contracts. The implementation
@@ -36,6 +37,12 @@ import (
 type PrecompiledContract interface {
 	RequiredGas(input []byte) uint64  // RequiredPrice calculates the contract gas use
 	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
+}
+
+type PlatONPrecompiledContract interface {
+	PrecompiledContract
+	FnSigns() map[uint16]interface{} // Return PlatON PrecompiledContract methods signs
+	CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 }
 
 // PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
@@ -60,9 +67,44 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
+type rewardEmpty struct{}
+
+func (re *rewardEmpty) RequiredGas(input []byte) uint64 {
+	return 0
+}
+
+func (re *rewardEmpty) Run(input []byte) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (re *rewardEmpty) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
+	return nil
+}
+
+func (re *rewardEmpty) FnSigns() map[uint16]interface{} {
+	return map[uint16]interface{}{}
+}
+
+var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
+	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
+	// add by economic model
+	vm.StakingContractAddr:     &StakingContract{},
+	vm.RestrictingContractAddr: &RestrictingContract{},
+	vm.SlashingContractAddr:    &SlashingContract{},
+	vm.GovContractAddr:         &GovContract{},
+	vm.RewardManagerPoolAddr:   &rewardEmpty{},
+}
+
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
 func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
-	log.Info("IN PPOS PrecompiledContractsPpos RUN Previous ... ")
+	gas := p.RequiredGas(input)
+	if contract.UseGas(gas) {
+		return p.Run(input)
+	}
+	return nil, ErrOutOfGas
+}
+
+func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
 	gas := p.RequiredGas(input)
 	if contract.UseGas(gas) {
 		return p.Run(input)

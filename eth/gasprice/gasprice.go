@@ -29,7 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
-var maxPrice = big.NewInt(500 * params.GWei)
+var maxPrice = big.NewInt(500 * params.GVon)
 
 type Config struct {
 	Blocks     int
@@ -104,7 +104,7 @@ func (gpo *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 	exp := 0
 	var blockPrices []*big.Int
 	for sent < gpo.checkBlocks && blockNum > 0 {
-		go gpo.getBlockPrices(ctx, types.MakeSigner(gpo.backend.ChainConfig(), big.NewInt(int64(blockNum))), blockNum, ch)
+		go gpo.getBlockPrices(ctx, types.NewEIP155Signer(gpo.backend.ChainConfig().ChainID), blockNum, ch)
 		sent++
 		exp++
 		blockNum--
@@ -125,7 +125,7 @@ func (gpo *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 			continue
 		}
 		if blockNum > 0 && sent < gpo.maxBlocks {
-			go gpo.getBlockPrices(ctx, types.MakeSigner(gpo.backend.ChainConfig(), big.NewInt(int64(blockNum))), blockNum, ch)
+			go gpo.getBlockPrices(ctx, types.NewEIP155Signer(gpo.backend.ChainConfig().ChainID), blockNum, ch)
 			sent++
 			exp++
 			blockNum--

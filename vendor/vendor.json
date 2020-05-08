@@ -492,6 +492,12 @@
 			"revisionTime": "2017-02-05T01:36:59Z"
 		},
 		{
+			"checksumSHA1": "c4K+xR8x9M38CsC64jmFptMjN4g=",
+			"path": "github.com/robfig/cron",
+			"revision": "61d93e07d1be270591d43ede700aa3ae69a2326f",
+			"revisionTime": "2019-06-16T12:43:56Z"
+		},
+		{
 			"checksumSHA1": "LjPdvMphElL0GOVNQCsmZMVgWIw=",
 			"path": "github.com/rs/cors",
 			"revision": "a62a804a8a009876ca59105f7899938a1349f4b3",
@@ -514,6 +520,12 @@
 			"path": "github.com/stretchr/testify/require",
 			"revision": "890a5c3458b43e6104ff5da8dfa139d013d77544",
 			"revisionTime": "2017-07-05T02:17:15Z"
+		},
+		{
+			"checksumSHA1": "Gdemly/PmiR5HyjdiUFWHugrQm0=",
+			"path": "github.com/stretchr/testify/suite",
+			"revision": "5b93e2dc01fd8fbf32aa74a198b0ebe78f6f6b6f",
+			"revisionTime": "2018-12-05T23:58:52Z"
 		},
 		{
 			"checksumSHA1": "k6zbR5hiI10hkWtiK91rIY5s5/E=",

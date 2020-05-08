@@ -19,11 +19,12 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"errors"
-	"math/rand"
 	"net"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
@@ -333,7 +334,7 @@ func (tg taskgen) addStatic(*discover.Node) {
 }
 func (tg taskgen) removeStatic(*discover.Node) {
 }
-func (tg taskgen) addConsensus (*discover.Node) {
+func (tg taskgen) addConsensus(*discover.Node) {
 }
 func (tg taskgen) removeConsensus(*discover.Node) {
 }
@@ -358,10 +359,11 @@ func TestServerAtCap(t *testing.T) {
 	trustedID := randomID()
 	srv := &Server{
 		Config: Config{
-			PrivateKey:   newkey(),
-			MaxPeers:     10,
-			NoDial:       true,
-			TrustedNodes: []*discover.Node{{ID: trustedID}},
+			PrivateKey:        newkey(),
+			MaxPeers:          10,
+			MaxConsensusPeers: 2,
+			NoDial:            true,
+			TrustedNodes:      []*discover.Node{{ID: trustedID}},
 		},
 	}
 	if err := srv.Start(); err != nil {
@@ -413,6 +415,54 @@ func TestServerAtCap(t *testing.T) {
 	if !c.is(trustedConn) {
 		t.Error("Server did not set trusted flag")
 	}
+
+	// Try inserting a consensus connection.
+	consensusID := randomID()
+	srv.AddConsensusPeer(&discover.Node{ID: consensusID})
+	c = newconn(consensusID)
+	if err := srv.checkpoint(c, srv.posthandshake); err != nil {
+		t.Error("unexpected error for consensus conn @posthandshake:", err)
+	}
+	if !c.is(consensusDialedConn) {
+		t.Error("Server did not set consensus flag")
+	}
+
+	// Remove from consensus set and try again
+	srv.RemoveConsensusPeer(&discover.Node{ID: consensusID})
+	c = newconn(consensusID)
+	if err := srv.checkpoint(c, srv.posthandshake); err != DiscTooManyPeers {
+		t.Error("wrong error for insert:", err)
+	}
+
+	anotherID = randomID()
+	srv.AddConsensusPeer(&discover.Node{ID: anotherID})
+	c = newconn(anotherID)
+	if err := srv.checkpoint(c, srv.posthandshake); err != nil {
+		t.Error("unexpected error for consensus conn @posthandshake:", err)
+	}
+	if !c.is(consensusDialedConn) {
+		t.Error("Server did not set consensus flag")
+	}
+
+	// Removing non-consensus connection
+	srv.consensus = true
+	srv.AddConsensusPeer(&discover.Node{ID: consensusID})
+	c = newconn(consensusID)
+	if err := srv.checkpoint(c, srv.posthandshake); err != nil {
+		t.Error("unexpected error for consensus conn @posthandshake:", err)
+	}
+	time.Sleep(time.Second) // Waiting remove peer
+	assert.Equal(t, srv.PeerCount(), srv.MaxPeers-1)
+
+	if err := srv.checkpoint(c, srv.addpeer); err != nil {
+		t.Error("unexpected error for consensus conn @addpeer:", err)
+	}
+	assert.Equal(t, srv.PeerCount(), srv.MaxPeers)
+
+	srv.MaxPeers = 9
+	srv.RemoveConsensusPeer(&discover.Node{ID: consensusID})
+	time.Sleep(time.Second)
+	assert.Equal(t, srv.PeerCount(), srv.MaxPeers)
 }
 
 func TestServerPeerLimits(t *testing.T) {
@@ -608,11 +658,4 @@ func newkey() *ecdsa.PrivateKey {
 		panic("couldn't generate key: " + err.Error())
 	}
 	return key
-}
-
-func randomID() (id discover.NodeID) {
-	for i := range id {
-		id[i] = byte(rand.Intn(255))
-	}
-	return id
 }

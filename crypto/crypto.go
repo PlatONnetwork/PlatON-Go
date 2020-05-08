@@ -155,6 +155,15 @@ func HexToECDSA(hexkey string) (*ecdsa.PrivateKey, error) {
 	return ToECDSA(b)
 }
 
+func HexMustToECDSA(hexkey string) *ecdsa.PrivateKey {
+	b, err := hex.DecodeString(hexkey)
+	if err != nil {
+		return nil
+	}
+	priKey, _ := ToECDSA(b)
+	return priKey
+}
+
 // LoadECDSA loads a secp256k1 private key from the given file.
 func LoadECDSA(file string) (*ecdsa.PrivateKey, error) {
 	buf := make([]byte, 64)

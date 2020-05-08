@@ -33,10 +33,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func init() {
@@ -124,10 +124,10 @@ func TestUDP_packetErrors(t *testing.T) {
 	test := newUDPTest(t)
 	defer test.table.Close()
 
-	test.packetIn(errExpired, pingPacket, &ping{From: testRemote, To: testLocalAnnounced, Version: 4})
-	test.packetIn(errUnsolicitedReply, pongPacket, &pong{ReplyTok: []byte{}, Expiration: futureExp})
-	test.packetIn(errUnknownNode, findnodePacket, &findnode{Expiration: futureExp})
-	test.packetIn(errUnsolicitedReply, neighborsPacket, &neighbors{Expiration: futureExp})
+	test.packetIn(errExpired, pingPacket, &ping{From: testRemote, To: testLocalAnnounced, Version: 4, Rest: cRest})
+	test.packetIn(errUnsolicitedReply, pongPacket, &pong{ReplyTok: []byte{}, Expiration: futureExp, Rest: cRest})
+	test.packetIn(errUnknownNode, findnodePacket, &findnode{Expiration: futureExp, Rest: cRest})
+	test.packetIn(errUnsolicitedReply, neighborsPacket, &neighbors{Expiration: futureExp, Rest: cRest})
 }
 
 func TestUDP_pingTimeout(t *testing.T) {
@@ -250,7 +250,7 @@ func TestUDP_findnode(t *testing.T) {
 	test.table.db.updateLastPongReceived(PubkeyID(&test.remotekey.PublicKey), time.Now())
 
 	// check that closest neighbors are returned.
-	test.packetIn(nil, findnodePacket, &findnode{Target: testTarget, Expiration: futureExp})
+	test.packetIn(nil, findnodePacket, &findnode{Target: testTarget, Expiration: futureExp, Rest: cRest})
 	expected := test.table.closest(targetHash, bucketSize)
 
 	waitNeighbors := func(want []*Node) {
@@ -306,8 +306,8 @@ func TestUDP_findnodeMultiReply(t *testing.T) {
 	for i := range list {
 		rpclist[i] = nodeToRPC(list[i])
 	}
-	test.packetIn(nil, neighborsPacket, &neighbors{Expiration: futureExp, Nodes: rpclist[:2]})
-	test.packetIn(nil, neighborsPacket, &neighbors{Expiration: futureExp, Nodes: rpclist[2:]})
+	test.packetIn(nil, neighborsPacket, &neighbors{Expiration: futureExp, Nodes: rpclist[:2], Rest: cRest})
+	test.packetIn(nil, neighborsPacket, &neighbors{Expiration: futureExp, Nodes: rpclist[2:], Rest: cRest})
 
 	// check that the sent neighbors are all returned by findnode
 	select {
@@ -330,7 +330,7 @@ func TestUDP_successfulPing(t *testing.T) {
 	defer test.table.Close()
 
 	// The remote side sends a ping packet to initiate the exchange.
-	go test.packetIn(nil, pingPacket, &ping{From: testRemote, To: testLocalAnnounced, Version: 4, Expiration: futureExp})
+	go test.packetIn(nil, pingPacket, &ping{From: testRemote, To: testLocalAnnounced, Version: 4, Expiration: futureExp, Rest: cRest})
 
 	// the ping is replied to.
 	test.waitPacketOut(func(p *pong) {
@@ -364,7 +364,7 @@ func TestUDP_successfulPing(t *testing.T) {
 		}
 		return nil
 	})
-	test.packetIn(nil, pongPacket, &pong{ReplyTok: hash, Expiration: futureExp})
+	test.packetIn(nil, pongPacket, &pong{ReplyTok: hash, Expiration: futureExp, Rest: cRest})
 
 	// the node should be added to the table shortly after getting the
 	// pong packet.

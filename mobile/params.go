@@ -20,7 +20,6 @@ package geth
 
 import (
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
@@ -41,34 +40,6 @@ func TestnetGenesis() string {
 	}
 	return string(enc)
 }
-
-// BetanetGenesis returns the JSON spec to use for the Beta test network
-func BetanetGenesis() string {
-	enc, err := json.Marshal(core.DefaultBetanetGenesisBlock())
-	if err != nil {
-		panic(err)
-	}
-	return string(enc)
-}
-
-// InnerTestnetGenesis returns the JSON spec to use for the inner test network.
-func InnerTestnetGenesis() string {
-	enc, err := json.Marshal(core.DefaultInnerTestnetGenesisBlock(utils.InnerTimeFlag.Value))
-	if err != nil {
-		panic(err)
-	}
-	return string(enc)
-}
-
-// InnerDevnetGenesis returns the JSON spec to use for the inner test network.
-func InnerDevnetGenesis() string {
-	enc, err := json.Marshal(core.DefaultInnerDevnetGenesisBlock(utils.InnerTimeFlag.Value))
-	if err != nil {
-		panic(err)
-	}
-	return string(enc)
-}
-
 
 // FoundationBootnodes returns the enode URLs of the P2P bootstrap nodes operated
 // by the foundation running the V5 discovery protocol.

@@ -22,9 +22,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -46,30 +47,52 @@ type (
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsHomestead
-		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
-			precompiles = PrecompiledContractsByzantium
-		}
+
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
-		// ppos
-		if p := PrecompiledContractsPpos[*contract.CodeAddr]; p != nil {
-			log.Info("IN PPOS PrecompiledContractsPpos ... ")
-			switch r := p.(type) {
-			case *CandidateContract:
-				r = &CandidateContract{}
-				r.Contract = contract
-				r.Evm = evm
-				return RunPrecompiledContract(r, input, contract)
-			case *TicketContract:
-				r = &TicketContract{}
-				r.Contract = contract
-				r.Evm = evm
-				return RunPrecompiledContract(r, input, contract)
-			default:
-				log.Error("error type","contract.CodeAddr",*contract.CodeAddr)
+
+		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
+			switch p.(type) {
+
+			case *validatorInnerContract:
+				vic := &validatorInnerContract{
+					Contract: contract,
+					Evm:      evm,
+				}
+				return RunPrecompiledContract(vic, input, contract)
+
+			case *StakingContract:
+				staking := &StakingContract{
+					Plugin:   plugin.StakingInstance(),
+					Contract: contract,
+					Evm:      evm,
+				}
+				return RunPlatONPrecompiledContract(staking, input, contract)
+			case *RestrictingContract:
+				restricting := &RestrictingContract{
+					Plugin:   plugin.RestrictingInstance(),
+					Contract: contract,
+					Evm:      evm,
+				}
+				return RunPlatONPrecompiledContract(restricting, input, contract)
+			case *SlashingContract:
+				slashing := &SlashingContract{
+					Plugin:   plugin.SlashInstance(),
+					Contract: contract,
+					Evm:      evm,
+				}
+				return RunPlatONPrecompiledContract(slashing, input, contract)
+			case *GovContract:
+				govContract := &GovContract{
+					Plugin:   plugin.GovPluginInstance(),
+					Contract: contract,
+					Evm:      evm,
+				}
+				return RunPlatONPrecompiledContract(govContract, input, contract)
 			}
 		}
+
 	}
 
 	for _, interpreter := range evm.interpreters {
@@ -109,6 +132,8 @@ type Context struct {
 	BlockNumber *big.Int       // Provides information for NUMBER
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
+
+	BlockHash common.Hash // Only, the value will be available after the current block has been sealed.
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -146,10 +171,6 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
-
-	//ppos add
-	CandidatePoolContext candidatePoolContext
-	TicketPoolContext    ticketPoolContext
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -211,10 +232,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsHomestead
-		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
-			precompiles = PrecompiledContractsByzantium
-		}
-		if precompiles[addr] == nil && PrecompiledContractsPpos[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
+
+		if precompiles[addr] == nil && PlatONPrecompiledContracts[addr] == nil && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
@@ -386,9 +405,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// Create a new account on the state
 	snapshot := evm.StateDB.Snapshot()
 	evm.StateDB.CreateAccount(address)
-	if evm.ChainConfig().IsEIP158(evm.BlockNumber) {
-		evm.StateDB.SetNonce(address, 1)
-	}
+	evm.StateDB.SetNonce(address, 1)
 	evm.Transfer(evm.StateDB, caller.Address(), address, value)
 
 	// initialise a new contract and set the code that is to be used by the
@@ -409,7 +426,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	ret, err := run(evm, contract, nil, false)
 
 	// check whether the max code size has been exceeded
-	maxCodeSizeExceeded := evm.ChainConfig().IsEIP158(evm.BlockNumber) && len(ret) > params.MaxCodeSize
+	maxCodeSizeExceeded := len(ret) > params.MaxCodeSize
 	// if the contract creation ran successfully and no errors were returned
 	// calculate the gas required to store the code. If the code could not
 	// be stored due to not enough gas set an error and let it be handled
@@ -426,7 +443,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// When an error was returned by the EVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
-	if maxCodeSizeExceeded || (err != nil && (evm.ChainConfig().IsHomestead(evm.BlockNumber) || err != ErrCodeStoreOutOfGas)) {
+	if maxCodeSizeExceeded || (err != nil && err != ErrCodeStoreOutOfGas) {
 		evm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)

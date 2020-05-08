@@ -31,7 +31,7 @@ import (
 
 const (
 	forceSyncCycle      = 5 * time.Second // Time interval to force syncs, even if few peers are available
-	minDesiredPeerCount = 5                // Amount of peers desired to start syncing
+	minDesiredPeerCount = 5               // Amount of peers desired to start syncing
 
 	// This is the target size for the packs of transactions sent by txsyncLoop.
 	// A pack can get larger than this if a single transactions exceeds this size.
@@ -168,13 +168,13 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		return
 	}
 	// Make sure the peer's TD is higher than our own
-	currentBlock := pm.blockchain.CurrentBlock()
+	currentBlock := pm.engine.CurrentBlock()
 	bn := currentBlock.Number()
 
 	pHead, pBn := peer.Head()
 	//modified by platon
 	diff := new(big.Int).Sub(pBn, bn)
-	if diff.Cmp(big.NewInt(5)) <= 0 {
+	if diff.Cmp(big.NewInt(2)) < 0 {
 		return
 	}
 	// Otherwise try to sync with the downloader

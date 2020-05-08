@@ -17,6 +17,18 @@
 package node
 
 import (
+	"errors"
+	"fmt"
+	"math/big"
+	"net"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -24,15 +36,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"errors"
-	"fmt"
 	"github.com/prometheus/prometheus/util/flock"
-	"net"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
-	"sync"
 )
 
 // Node is a container on which services can be registered.
@@ -44,6 +48,8 @@ type Node struct {
 	ephemeralKeystore string         // if non-empty, the key directory that will be removed by Stop
 	instanceDirLock   flock.Releaser // prevents concurrent use of instance directory
 
+	// chainId identifies the current chain and is used for replay protection
+	ChainID      *big.Int `toml:"-"`
 	serverConfig p2p.Config
 	server       *p2p.Server // Currently running P2P networking layer
 
@@ -153,7 +159,13 @@ func (n *Node) Start() error {
 	n.serverConfig.Name = n.config.NodeName()
 	n.serverConfig.Logger = n.log
 	if n.serverConfig.StaticNodes == nil {
-		n.serverConfig.StaticNodes = n.config.StaticNodes()
+		// todo: fake point. 1. disable discovery, 2. specified acquisition.
+		if FakeNetEnable {
+			n.serverConfig.NoDiscovery = true
+			n.serverConfig.StaticNodes = MockDiscoveryNode(n.serverConfig.PrivateKey, n.config.StaticNodes())
+		} else {
+			n.serverConfig.StaticNodes = n.config.StaticNodes()
+		}
 	}
 	if n.serverConfig.TrustedNodes == nil {
 		n.serverConfig.TrustedNodes = n.config.TrustedNodes()
@@ -194,6 +206,10 @@ func (n *Node) Start() error {
 	// Gather the protocols and start the freshly assembled P2P server
 	for _, service := range services {
 		running.Protocols = append(running.Protocols, service.Protocols()...)
+	}
+
+	if n.ChainID != nil {
+		running.ChainID = n.ChainID
 	}
 	if err := running.Start(); err != nil {
 		return convertFileLockError(err)
@@ -399,6 +415,10 @@ func (n *Node) stopWS() {
 	}
 }
 
+func (n *Node) stopSnapshotDB() {
+	snapshotdb.Instance().Close()
+}
+
 // Stop terminates a running node along with all it's services. In the node was
 // not started, an error is returned.
 func (n *Node) Stop() error {
@@ -434,7 +454,7 @@ func (n *Node) Stop() error {
 		}
 		n.instanceDirLock = nil
 	}
-
+	n.stopSnapshotDB()
 	// unblock n.Wait
 	close(n.stop)
 

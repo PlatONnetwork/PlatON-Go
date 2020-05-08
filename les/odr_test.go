@@ -37,11 +37,11 @@ import (
 )
 
 type odrTestFn func(ctx context.Context, db ethdb.Database, config *params.ChainConfig, bc *core.BlockChain, lc *light.LightChain, bhash common.Hash) []byte
-/*
+
 func TestOdrGetBlockLes1(t *testing.T) { testOdr(t, 1, 1, odrGetBlock) }
 
 func TestOdrGetBlockLes2(t *testing.T) { testOdr(t, 2, 1, odrGetBlock) }
-*/
+
 func odrGetBlock(ctx context.Context, db ethdb.Database, config *params.ChainConfig, bc *core.BlockChain, lc *light.LightChain, bhash common.Hash) []byte {
 	var block *types.Block
 	if bc != nil {
@@ -55,11 +55,11 @@ func odrGetBlock(ctx context.Context, db ethdb.Database, config *params.ChainCon
 	rlp, _ := rlp.EncodeToBytes(block)
 	return rlp
 }
-/*
+
 func TestOdrGetReceiptsLes1(t *testing.T) { testOdr(t, 1, 1, odrGetReceipts) }
 
 func TestOdrGetReceiptsLes2(t *testing.T) { testOdr(t, 2, 1, odrGetReceipts) }
-*/
+
 func odrGetReceipts(ctx context.Context, db ethdb.Database, config *params.ChainConfig, bc *core.BlockChain, lc *light.LightChain, bhash common.Hash) []byte {
 	var receipts types.Receipts
 	if bc != nil {
@@ -77,11 +77,11 @@ func odrGetReceipts(ctx context.Context, db ethdb.Database, config *params.Chain
 	rlp, _ := rlp.EncodeToBytes(receipts)
 	return rlp
 }
-/*
+
 func TestOdrAccountsLes1(t *testing.T) { testOdr(t, 1, 1, odrAccounts) }
 
 func TestOdrAccountsLes2(t *testing.T) { testOdr(t, 2, 1, odrAccounts) }
-*/
+
 func odrAccounts(ctx context.Context, db ethdb.Database, config *params.ChainConfig, bc *core.BlockChain, lc *light.LightChain, bhash common.Hash) []byte {
 	dummyAddr := common.HexToAddress("1234567812345678123456781234567812345678")
 	acc := []common.Address{testBankAddress, acc1Addr, acc2Addr, dummyAddr}
@@ -94,7 +94,7 @@ func odrAccounts(ctx context.Context, db ethdb.Database, config *params.ChainCon
 	for _, addr := range acc {
 		if bc != nil {
 			header := bc.GetHeaderByHash(bhash)
-			st, err = state.New(header.Root, state.NewDatabase(db), header.Number, header.Hash())
+			st, err = state.New(header.Root, state.NewDatabase(db))
 		} else {
 			header := lc.GetHeaderByHash(bhash)
 			st = light.NewState(ctx, header, lc.Odr())
@@ -107,11 +107,11 @@ func odrAccounts(ctx context.Context, db ethdb.Database, config *params.ChainCon
 	}
 	return res
 }
-/*
-func TestOdrContractCallLes1(t *testing.T) { testOdr(t, 1, 2, odrContractCall) }
 
-func TestOdrContractCallLes2(t *testing.T) { testOdr(t, 2, 2, odrContractCall) }
-*/
+//func TestOdrContractCallLes1(t *testing.T) { testOdr(t, 1, 2, odrContractCall) }
+
+//func TestOdrContractCallLes2(t *testing.T) { testOdr(t, 2, 2, odrContractCall) }
+
 type callmsg struct {
 	types.Message
 }
@@ -126,7 +126,7 @@ func odrContractCall(ctx context.Context, db ethdb.Database, config *params.Chai
 		data[35] = byte(i)
 		if bc != nil {
 			header := bc.GetHeaderByHash(bhash)
-			statedb, err := state.New(header.Root, state.NewDatabase(db), header.Number, header.Hash())
+			statedb, err := state.New(header.Root, state.NewDatabase(db))
 
 			if err == nil {
 				from := statedb.GetOrNewStateObject(testBankAddress)
@@ -134,7 +134,7 @@ func odrContractCall(ctx context.Context, db ethdb.Database, config *params.Chai
 
 				msg := callmsg{types.NewMessage(from.Address(), &testContractAddr, 0, new(big.Int), 100000, new(big.Int), data, false)}
 
-				context := core.NewEVMContext(msg, header, bc, nil)
+				context := core.NewEVMContext(msg, header, bc)
 				vmenv := vm.NewEVM(context, statedb, config, vm.Config{})
 
 				//vmenv := core.NewEnv(statedb, config, bc, msg, header, vm.Config{})
@@ -147,7 +147,7 @@ func odrContractCall(ctx context.Context, db ethdb.Database, config *params.Chai
 			state := light.NewState(ctx, header, lc.Odr())
 			state.SetBalance(testBankAddress, math.MaxBig256)
 			msg := callmsg{types.NewMessage(testBankAddress, &testContractAddr, 0, new(big.Int), 100000, new(big.Int), data, false)}
-			context := core.NewEVMContext(msg, header, lc, nil)
+			context := core.NewEVMContext(msg, header, lc)
 			vmenv := vm.NewEVM(context, state, config, vm.Config{})
 			gp := new(core.GasPool).AddGas(math.MaxUint64)
 			ret, _, _, _ := core.ApplyMessage(vmenv, msg, gp)

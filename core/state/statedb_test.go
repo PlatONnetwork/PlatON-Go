@@ -19,6 +19,7 @@ package state
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -28,12 +29,24 @@ import (
 	"testing"
 	"testing/quick"
 
+	"github.com/stretchr/testify/assert"
+
 	"gopkg.in/check.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randString(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
 
 // Tests that updating a state trie does not leak any database writes prior to
 // actually committing the state.
@@ -42,7 +55,7 @@ func TestUpdateLeaks(t *testing.T) {
 	db := ethdb.NewMemDatabase()
 	//dir, _ := ioutil.TempDir("", "eth-core-bench")
 	//ethdb,err:= ethdb.NewLDBDatabase(dir,128,128)
-	state, _ := New(common.Hash{}, NewDatabase(db), big.NewInt(0), common.Hash{})
+	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	// Update it with some accounts
 	for i := byte(0); i < 255; i++ {
@@ -64,14 +77,289 @@ func TestUpdateLeaks(t *testing.T) {
 	}
 }
 
+func TestNewStateDBAndCopy(t *testing.T) {
+	storages := make(map[common.Address]map[string]string)
+	db := ethdb.NewMemDatabase()
+	dbc := ethdb.NewMemDatabase()
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1c, _ := New(common.Hash{}, NewDatabase(dbc))
+
+	modify := func(s1 *StateDB, s2 *StateDB, addr common.Address, i int) {
+		s1.AddBalance(addr, big.NewInt(int64(i)))
+		s2.AddBalance(addr, big.NewInt(int64(i)))
+
+		s1.SetNonce(addr, uint64(i*4))
+		s2.SetNonce(addr, uint64(i*4))
+		s1.SetCode(addr, []byte{byte(i), byte(i)})
+		s2.SetCode(addr, []byte{byte(i), byte(i)})
+
+		key := randString(i)
+		value := randString(i)
+		s1.SetState(addr, []byte(key), []byte(value))
+		s2.SetState(addr, []byte(key), []byte(value))
+		if k, ok := storages[addr]; ok {
+			k[key] = value
+		} else {
+			maps := make(map[string]string)
+			maps[key] = value
+			storages[addr] = maps
+		}
+		//fmt.Println("addr", addr.String(), "key", key, "value", value)
+	}
+	for i := 0; i < 255; i++ {
+		modify(s1, s1c, common.Address{byte(i)}, i)
+	}
+
+	st := s1.NewStateDB()
+	for addr, storage := range storages {
+		for k, v := range storage {
+			value := st.GetState(addr, []byte(k))
+			assert.Equal(t, []byte(v), value)
+		}
+	}
+
+	if _, err := s1.Commit(false); err != nil {
+		t.Fatalf("failed to commit s1 state: %v", err)
+	}
+	if _, err := s1c.Commit(false); err != nil {
+		t.Fatalf("failed to commit s1c state: %v", err)
+	}
+	assert.Nil(t, s1.db.TrieDB().Commit(s1.Root(), false, true))
+	assert.Nil(t, s1c.db.TrieDB().Commit(s1c.Root(), false, true))
+
+	// test new statedb
+	st2 := s1.NewStateDB()
+	s1db, _ := New(s1.Root(), NewDatabase(dbc))
+
+	st2.clearParentRef()
+	for addr, storage := range storages {
+		for k, v := range storage {
+			value := st2.GetState(addr, []byte(k))
+			value2 := s1c.GetState(addr, []byte(k))
+			value3 := s1db.GetState(addr, []byte(k))
+			//fmt.Println("v", hex.EncodeToString([]byte(v)), "value", hex.EncodeToString([]byte(value)), "value2", hex.EncodeToString(value2))
+			assert.Equal(t, []byte(v), value)
+			assert.Equal(t, []byte(v), value2)
+			assert.Equal(t, []byte(v), value3)
+		}
+	}
+
+	for _, k := range db.Keys() {
+		if _, err := dbc.Get(k); err != nil {
+			v, _ := db.Get(k)
+			t.Fatalf("db get error, key:%s, value:%s", hex.EncodeToString(k), hex.EncodeToString(v))
+		}
+	}
+
+	// s3->s2->s1, s1c is copy of s1. insert random kv, db is the same as dbc
+	s2 := s1.NewStateDB()
+	s3 := s2.NewStateDB()
+
+	assert.Len(t, s1.clearReferenceFunc, 3)
+	assert.Len(t, s2.clearReferenceFunc, 1)
+	assert.Len(t, s3.clearReferenceFunc, 0)
+
+	assert.NotNil(t, s2.parent)
+	assert.False(t, s2.parentCommitted)
+	assert.NotNil(t, s3.parent)
+	assert.False(t, s3.parentCommitted)
+
+	s1.ClearReference()
+	s2.ClearReference()
+	assert.Len(t, s1.clearReferenceFunc, 0)
+	assert.Len(t, s2.clearReferenceFunc, 0)
+	assert.Len(t, s3.clearReferenceFunc, 0)
+
+	assert.Nil(t, s2.parent)
+	assert.True(t, s2.parentCommitted)
+	assert.Nil(t, s3.parent)
+	assert.True(t, s3.parentCommitted)
+
+	s1cc := s1c.Copy()
+	assert.Len(t, s1c.clearReferenceFunc, 0)
+	assert.Len(t, s1cc.clearReferenceFunc, 0)
+	assert.Nil(t, s1cc.parent)
+
+	s1c.ClearReference()
+
+	assert.Len(t, s1c.clearReferenceFunc, 0)
+	assert.Len(t, s1cc.clearReferenceFunc, 0)
+	assert.Nil(t, s1cc.parent)
+
+	for i := 0; i < 255; i++ {
+		modify(s3, s1cc, common.Address{byte(i)}, i)
+	}
+
+	if _, err := s3.Commit(false); err != nil {
+		t.Fatalf("failed to commit s1 state: %v", err)
+	}
+	if _, err := s1cc.Commit(false); err != nil {
+		t.Fatalf("failed to commit s1c state: %v", err)
+	}
+
+	// test copy statedb
+	st4 := s3.Copy()
+
+	st4.clearParentRef()
+	for addr, storage := range storages {
+		for k, v := range storage {
+			value := st4.GetState(addr, []byte(k))
+			value2 := s1cc.GetState(addr, []byte(k))
+			//fmt.Println("v", hex.EncodeToString([]byte(v)), "value", hex.EncodeToString([]byte(value)), "value2", hex.EncodeToString(value2))
+			assert.Equal(t, []byte(v), value)
+			assert.Equal(t, []byte(v), value2)
+		}
+	}
+
+	assert.Nil(t, s3.db.TrieDB().Commit(s1.Root(), false, true))
+	assert.Nil(t, s1cc.db.TrieDB().Commit(s1cc.Root(), false, true))
+
+	for _, k := range db.Keys() {
+		if _, err := dbc.Get(k); err != nil {
+			v, _ := db.Get(k)
+			t.Fatalf("db get error, key:%s, value:%s", hex.EncodeToString(k), hex.EncodeToString(v))
+		}
+	}
+
+}
+
+func TestStateStorageValueCommit(t *testing.T) {
+	storages := make(map[common.Address]map[string]string)
+	db := ethdb.NewMemDatabase()
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+
+	modify := func(s1 *StateDB, addr common.Address, i int) {
+		s1.AddBalance(addr, big.NewInt(int64(i)))
+
+		s1.SetNonce(addr, uint64(i*4))
+		s1.SetCode(addr, []byte{byte(9), byte(9)})
+
+		key := randString(i + 20)
+		value := randString(i + 20)
+		s1.SetState(addr, []byte(key), []byte(value))
+		if k, ok := storages[addr]; ok {
+			k[key] = value
+		} else {
+			maps := make(map[string]string)
+			maps[key] = value
+			storages[addr] = maps
+		}
+	}
+
+	for i := 0; i < 255; i++ {
+		modify(s1, common.Address{byte(i)}, i)
+	}
+
+	root, err := s1.Commit(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s1.db.TrieDB().Commit(root, true, true); err != nil {
+		t.Fatal(err)
+	}
+	s2, err := New(root, NewDatabase(db))
+	for addr, storage := range storages {
+		for key, value := range storage {
+			exp := s2.GetState(addr, []byte(key))
+			assert.Equal(t, []byte(value[:]), exp)
+		}
+	}
+}
+
+func TestStateStorageValueDelete(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+
+	key1, value1, key2, value2 := []byte("key1"), []byte("value1"), []byte("key2"), []byte("value2")
+
+	addr := common.Address{byte(1)}
+	s1.SetCode(addr, []byte{byte(9), byte(9)})
+
+	s1.SetState(addr, key1, value1)
+	s1.SetState(addr, key2, value2)
+
+	s1.SetState(addr, key2[:], []byte{})
+
+	root, err := s1.Commit(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s1.db.TrieDB().Commit(root, true, true); err != nil {
+		t.Fatal(err)
+	}
+
+	s2, err := New(root, NewDatabase(db))
+	exp := s2.GetState(addr, key1)
+	assert.Equal(t, exp, value1)
+
+	exp = s2.GetState(addr, key2)
+	assert.NotEqual(t, exp, value2)
+
+}
+
+func TestStateStorageRevert(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1.Snapshot()
+	key1, value1, value2 := []byte("key1"), []byte("value1"), []byte("value2")
+
+	// insert value
+	addr := common.Address{byte(1)}
+	s1.SetCode(addr, []byte{byte(9), byte(9)})
+	s1.SetState(addr, key1, value1)
+	s1.IntermediateRoot(false)
+	assert.Equal(t, value1, s1.GetState(addr, key1))
+
+	storage := s1.Snapshot()
+
+	// twice
+	s1.SetState(addr, key1, value2)
+	assert.Equal(t, value2, s1.GetState(addr, key1))
+
+	// revert
+	s1.RevertToSnapshot(storage)
+	assert.Equal(t, value1, s1.GetState(addr, key1))
+
+	root, err := s1.Commit(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s1.db.TrieDB().Commit(root, true, true)
+
+	assert.Equal(t, value1, s1.GetState(addr, key1))
+	obj := s1.getStateObject(addr)
+	assert.Equal(t, 0, len(obj.dirtyValueStorage))
+}
+
+func TestStateStorageValueUpdate(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1.Snapshot()
+	key1, value1, value2 := []byte("key1"), []byte("value1"), []byte("value2")
+
+	// insert value
+	addr := common.Address{byte(1)}
+	s1.SetCode(addr, []byte{byte(9), byte(9)})
+	s1.SetState(addr, key1, value1)
+	s1.SetState(addr, key1, value2)
+	obj := s1.getStateObject(addr)
+	assert.Equal(t, 1, len(obj.dirtyValueStorage))
+}
+
 // Tests that no intermediate state of an object is stored into the database,
 // only the one right before the commit.
 func TestIntermediateLeaks(t *testing.T) {
 	// Create two state databases, one transitioning to the final state, the other final from the beginning
 	transDb := ethdb.NewMemDatabase()
 	finalDb := ethdb.NewMemDatabase()
-	transState, _ := New(common.Hash{}, NewDatabase(transDb), big.NewInt(0), common.Hash{})
-	finalState, _ := New(common.Hash{}, NewDatabase(finalDb), big.NewInt(0), common.Hash{})
+	transState, _ := New(common.Hash{}, NewDatabase(transDb))
+	finalState, _ := New(common.Hash{}, NewDatabase(finalDb))
 
 	modify := func(state *StateDB, addr common.Address, i, tweak byte) {
 		state.SetBalance(addr, big.NewInt(int64(11*i)+int64(tweak)))
@@ -124,7 +412,7 @@ func TestIntermediateLeaks(t *testing.T) {
 // https://github.com/ethereum/go-ethereum/pull/15549.
 func TestCopy(t *testing.T) {
 	// Create a random state test to copy and modify "independently"
-	orig, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
+	orig, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))
 
 	for i := byte(0); i < 255; i++ {
 		obj := orig.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
@@ -170,7 +458,7 @@ func TestCopy(t *testing.T) {
 }
 
 func TestSnapshotRandom(t *testing.T) {
-	config := &quick.Config{MaxCount: 10}
+	config := &quick.Config{MaxCount: 1000}
 	err := quick.Check((*snapshotTest).run, config)
 	if cerr, ok := err.(*quick.CheckError); ok {
 		test := cerr.In[0].(*snapshotTest)
@@ -335,7 +623,7 @@ func (test *snapshotTest) String() string {
 func (test *snapshotTest) run() bool {
 	// Run all actions and create snapshots.
 	var (
-		state, _     = New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
+		state, _     = New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))
 		snapshotRevs = make([]int, len(test.snapshots))
 		sindex       = 0
 	)
@@ -349,7 +637,7 @@ func (test *snapshotTest) run() bool {
 	// Revert all snapshots in reverse order. Each revert must yield a state
 	// that is equivalent to fresh state with all actions up the snapshot applied.
 	for sindex--; sindex >= 0; sindex-- {
-		checkstate, _ := New(common.Hash{}, state.Database(), big.NewInt(0), common.Hash{})
+		checkstate, _ := New(common.Hash{}, state.Database())
 		for _, action := range test.actions[:test.snapshots[sindex]] {
 			action.fn(action, checkstate)
 		}
@@ -426,7 +714,7 @@ func (s *StateSuite) TestTouchDelete(c *check.C) {
 // TestCopyOfCopy tests that modified objects are carried over to the copy, and the copy of the copy.
 // See https://github.com/ethereum/go-ethereum/pull/15225#issuecomment-380191512
 func TestCopyOfCopy(t *testing.T) {
-	sdb, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
+	sdb, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))
 	addr := common.HexToAddress("aaaa")
 	sdb.SetBalance(addr, big.NewInt(42))
 
@@ -436,4 +724,37 @@ func TestCopyOfCopy(t *testing.T) {
 	if got := sdb.Copy().Copy().GetBalance(addr).Uint64(); got != 42 {
 		t.Fatalf("2nd copy fail, expected 42, got %v", got)
 	}
+}
+
+func TestGetAfterDelete(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+
+	addr := common.BigToAddress(big.NewInt(1))
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1.SetNonce(addr, 1)
+	s1.SetState(addr, []byte("test"), []byte("value"))
+	_, err := s1.Commit(true)
+	assert.Nil(t, err)
+
+	s2 := s1.NewStateDB()
+	s2.SetState(addr, []byte("test"), []byte{})
+	_, err = s2.Commit(true)
+	assert.Nil(t, err)
+
+	s3 := s2.NewStateDB()
+	buf := s3.GetState(addr, []byte("test"))
+	s3.Commit(true)
+	assert.True(t, len(buf) == 0, "Expect value is not nil")
+
+	s4 := s3.NewStateDB()
+	s4.SetState(addr, []byte("test"), []byte("value"))
+	s4.SetState(addr, []byte("test1"), []byte("value1"))
+	s4.Commit(true)
+
+	s5 := s4.NewStateDB()
+	buf = s5.GetState(addr, []byte("test"))
+	buf1 := s5.GetState(addr, []byte("test1"))
+	assert.Equal(t, buf, []byte("value"))
+	assert.Equal(t, buf1, []byte("value1"))
 }

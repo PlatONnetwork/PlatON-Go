@@ -35,13 +35,13 @@ const (
 )
 
 // ProtocolName is the official short name of the protocol used during capability negotiation.
-var ProtocolName = "eth"
+var ProtocolName = "platon"
 
 // ProtocolVersions are the upported versions of the eth protocol (first is primary).
 var ProtocolVersions = []uint{eth63, eth62}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{19, 8}
+var ProtocolLengths = []uint64{23, 8}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -56,18 +56,21 @@ const (
 	GetBlockBodiesMsg  = 0x05
 	BlockBodiesMsg     = 0x06
 	NewBlockMsg        = 0x07
-	PrepareBlockMsg   = 0x08
-	BlockSignatureMsg = 0x09
+	PrepareBlockMsg    = 0x08
+	BlockSignatureMsg  = 0x09
 
 	PongMsg = 0x0a
 
 	// Protocol messages belonging to eth/63
-	GetNodeDataMsg = 0x0d
-	NodeDataMsg    = 0x0e
-	GetReceiptsMsg = 0x0f
-	ReceiptsMsg    = 0x10
-	GetPposStorageMsg = 0x11
-	PposStorageMsg    = 0x12
+	GetNodeDataMsg       = 0x0d
+	NodeDataMsg          = 0x0e
+	GetReceiptsMsg       = 0x0f
+	ReceiptsMsg          = 0x10
+	GetPPOSStorageMsg    = 0x11
+	PPOSStorageMsg       = 0x12
+	GetOriginAndPivotMsg = 0x13
+	OriginAndPivotMsg    = 0x14
+	PPOSInfoMsg          = 0x15
 )
 
 type errCode int
@@ -193,15 +196,8 @@ type blockSignature struct {
 // blockBody represents the data content of a single block.
 type blockBody struct {
 	Transactions []*types.Transaction // Transactions contained within a block
-	Uncles       []*types.Header      // Uncles contained within a block
-	Signatures	 []*common.BlockConfirmSign	// Signatures contained within a block
+	ExtraData    []byte
 }
 
 // blockBodiesData is the network packet for block content distribution.
 type blockBodiesData []*blockBody
-
-type pposStorageData struct {
-	Latest  	*types.Header
-	Pivot		*types.Header
-	PposStorage	[]byte
-}

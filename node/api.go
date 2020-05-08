@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
@@ -72,70 +74,6 @@ func (api *PrivateAdminAPI) RemovePeer(url string) (bool, error) {
 		return false, fmt.Errorf("invalid enode: %v", err)
 	}
 	server.RemovePeer(node)
-	return true, nil
-}
-
-// AddConsensusPeer requests connecting to a remote node, and also maintaining the new
-// connection at all times, even reconnecting if it is lost.
-func (api *PrivateAdminAPI) AddConsensusPeer(url string) (bool, error) {
-	// Make sure the server is running, fail otherwise
-	server := api.node.Server()
-	if server == nil {
-		return false, ErrNodeStopped
-	}
-	// Try to add the url as a static peer and return
-	node, err := discover.ParseNode(url)
-	if err != nil {
-		return false, fmt.Errorf("invalid enode: %v", err)
-	}
-	server.AddConsensusPeer(node)
-	return true, nil
-}
-
-// RemoveConsensusPeer disconnects from a remote node if the connection exists
-func (api *PrivateAdminAPI) RemoveConsensusPeer(url string) (bool, error) {
-	// Make sure the server is running, fail otherwise
-	server := api.node.Server()
-	if server == nil {
-		return false, ErrNodeStopped
-	}
-	// Try to remove the url as a static peer and return
-	node, err := discover.ParseNode(url)
-	if err != nil {
-		return false, fmt.Errorf("invalid enode: %v", err)
-	}
-	server.RemoveConsensusPeer(node)
-	return true, nil
-}
-
-// AddTrustedPeer allows a remote node to always connect, even if slots are full
-func (api *PrivateAdminAPI) AddTrustedPeer(url string) (bool, error) {
-	// Make sure the server is running, fail otherwise
-	server := api.node.Server()
-	if server == nil {
-		return false, ErrNodeStopped
-	}
-	node, err := discover.ParseNode(url)
-	if err != nil {
-		return false, fmt.Errorf("invalid enode: %v", err)
-	}
-	server.AddTrustedPeer(node)
-	return true, nil
-}
-
-// RemoveTrustedPeer removes a remote node from the trusted peer set, but it
-// does not disconnect it automatically.
-func (api *PrivateAdminAPI) RemoveTrustedPeer(url string) (bool, error) {
-	// Make sure the server is running, fail otherwise
-	server := api.node.Server()
-	if server == nil {
-		return false, ErrNodeStopped
-	}
-	node, err := discover.ParseNode(url)
-	if err != nil {
-		return false, fmt.Errorf("invalid enode: %v", err)
-	}
-	server.RemoveTrustedPeer(node)
 	return true, nil
 }
 
@@ -330,6 +268,15 @@ func (api *PublicAdminAPI) Datadir() string {
 	return api.node.DataDir()
 }
 
+func (api *PublicAdminAPI) GetProgramVersion() (*params.ProgramVersion, error) {
+	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	sig, err := GetCryptoHandler().Sign(programVersion)
+	if err != nil {
+		return nil, err
+	}
+	return &params.ProgramVersion{Version: programVersion, Sign: hexutil.Encode(sig)}, nil
+}
+
 // PublicDebugAPI is the collection of debugging related API methods exposed over
 // both secure and unsecure RPC channels.
 type PublicDebugAPI struct {
@@ -416,7 +363,8 @@ func (api *PublicDebugAPI) Metrics(raw bool) (map[string]interface{}, error) {
 						"95": ps[4],
 					},
 				}
-
+			case metrics.Gauge:
+				root[name] = metric.Value()
 			default:
 				root[name] = "Unknown metric type"
 			}
@@ -466,7 +414,8 @@ func (api *PublicDebugAPI) Metrics(raw bool) (map[string]interface{}, error) {
 						"95": time.Duration(ps[4]).String(),
 					},
 				}
-
+			case metrics.Gauge:
+				root[name] = metric.Value()
 			default:
 				root[name] = "Unknown metric type"
 			}

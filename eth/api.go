@@ -24,9 +24,7 @@ import (
 	"io"
 	"math/big"
 	"os"
-	"runtime"
 	"strings"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -41,48 +39,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
-// PublicEthereumAPI provides an API to access Ethereum full node-related
-// information.
-type PublicEthereumAPI struct {
-	e *Ethereum
-}
-
-// NewPublicEthereumAPI creates a new Ethereum protocol API for full nodes.
-func NewPublicEthereumAPI(e *Ethereum) *PublicEthereumAPI {
-	return &PublicEthereumAPI{e}
-}
-
-// Etherbase is the address that mining rewards will be send to
-func (api *PublicEthereumAPI) Etherbase() (common.Address, error) {
-	return api.e.Etherbase()
-}
-
-// Coinbase is the address that mining rewards will be send to (alias for Etherbase)
-func (api *PublicEthereumAPI) Coinbase() (common.Address, error) {
-	return api.Etherbase()
-}
-
-// Hashrate returns the POW hashrate
-func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
-	return hexutil.Uint64(api.e.Miner().HashRate())
-}
-
-// PublicMinerAPI provides an API to control the miner.
-// It offers only methods that operate on data that pose no security risk when it is publicly accessible.
-type PublicMinerAPI struct {
-	e *Ethereum
-}
-
-// NewPublicMinerAPI create a new PublicMinerAPI instance.
-func NewPublicMinerAPI(e *Ethereum) *PublicMinerAPI {
-	return &PublicMinerAPI{e}
-}
-
-// Mining returns an indication if this node is currently mining.
-func (api *PublicMinerAPI) Mining() bool {
-	return api.e.IsMining()
-}
-
 // PrivateMinerAPI provides private RPC methods to control the miner.
 // These methods can be abused by external users and must be considered insecure for use by untrusted users.
 type PrivateMinerAPI struct {
@@ -94,32 +50,6 @@ func NewPrivateMinerAPI(e *Ethereum) *PrivateMinerAPI {
 	return &PrivateMinerAPI{e: e}
 }
 
-// Start starts the miner with the given number of threads. If threads is nil,
-// the number of workers started is equal to the number of logical CPUs that are
-// usable by this process. If mining is already running, this method adjust the
-// number of threads allowed to use and updates the minimum price required by the
-// transaction pool.
-func (api *PrivateMinerAPI) Start(threads *int) error {
-	if threads == nil {
-		return api.e.StartMining(runtime.NumCPU())
-	}
-	return api.e.StartMining(*threads)
-}
-
-// Stop terminates the miner, both at the consensus engine level as well as at
-// the block creation level.
-func (api *PrivateMinerAPI) Stop() {
-	api.e.StopMining()
-}
-
-// SetExtra sets the extra data string that is included when this miner mines a block.
-func (api *PrivateMinerAPI) SetExtra(extra string) (bool, error) {
-	if err := api.e.Miner().SetExtra([]byte(extra)); err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 // SetGasPrice sets the minimum accepted gas price for the miner.
 func (api *PrivateMinerAPI) SetGasPrice(gasPrice hexutil.Big) bool {
 	api.e.lock.Lock()
@@ -128,22 +58,6 @@ func (api *PrivateMinerAPI) SetGasPrice(gasPrice hexutil.Big) bool {
 
 	api.e.txPool.SetGasPrice((*big.Int)(&gasPrice))
 	return true
-}
-
-// SetEtherbase sets the etherbase of the miner
-func (api *PrivateMinerAPI) SetEtherbase(etherbase common.Address) bool {
-	api.e.SetEtherbase(etherbase)
-	return true
-}
-
-// SetRecommitInterval updates the interval for miner sealing work recommitting.
-func (api *PrivateMinerAPI) SetRecommitInterval(interval int) {
-	api.e.Miner().SetRecommitInterval(time.Duration(interval) * time.Millisecond)
-}
-
-// GetHashrate returns the current hashrate of the miner.
-func (api *PrivateMinerAPI) GetHashrate() uint64 {
-	return api.e.miner.HashRate()
 }
 
 // PrivateAdminAPI is the collection of Ethereum full node-related APIs
@@ -269,11 +183,21 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 	if block == nil {
 		return state.Dump{}, fmt.Errorf("block #%d not found", blockNr)
 	}
-	stateDb, err := api.eth.BlockChain().StateAt(block.Root(), block.Number(), block.Hash())
+	stateDb, err := api.eth.BlockChain().StateAt(block.Root())
 	if err != nil {
 		return state.Dump{}, err
 	}
 	return stateDb.RawDump(), nil
+}
+
+// EnableDBGC enable database garbage collection.
+func (api *PublicDebugAPI) EnableDBGC() {
+	api.eth.BlockChain().EnableDBGC()
+}
+
+// DisableDBGC disable database garbage collection.
+func (api *PublicDebugAPI) DisableDBGC() {
+	api.eth.BlockChain().DisableDBGC()
 }
 
 // PrivateDebugAPI is the collection of Ethereum full node APIs exposed over

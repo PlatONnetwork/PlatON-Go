@@ -16,6 +16,13 @@
 
 package main
 
+import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"testing"
+)
+
 var customGenesisTests = []struct {
 	genesis string
 	query   string
@@ -24,62 +31,284 @@ var customGenesisTests = []struct {
 	// Plain genesis file without anything extra
 	{
 		genesis: `{
-			"alloc"      : {},
-			"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"difficulty" : "0x20000",
-			"extraData"  : "",
-			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0000000000000042",
-			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"timestamp"  : "0x00"
-		}`,
-		query:  "eth.getBlock(0).nonce",
-		result: "0x0000000000000042",
+    "alloc":{
+        "1000000000000000000000000000000000000001":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000002":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000003":{
+            "balance":"200000000000000000000000000"
+        },
+        "1000000000000000000000000000000000000004":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000005":{
+            "balance":"0"
+        },
+        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
+            "balance":"8050000000000000000000000000"
+        },
+        "55bfd49472fd41211545b01713a9c3a97af78b05":{
+            "balance":"2000000000000000000000000000"
+        }
+    },
+    "economicModel":{
+        "common":{
+            "maxEpochMinutes":4,
+            "maxConsensusVals":4,
+            "additionalCycleTime":28
+        },
+        "staking":{
+            "stakeThreshold": 1000000000000000000000000,
+            "operatingThreshold": 10000000000000000000,
+            "maxValidators": 30,
+            "hesitateRatio": 1,
+            "unStakeFreezeDuration": 2
+        },
+        "slashing":{
+           "slashFractionDuplicateSign": 100,
+           "duplicateSignReportReward": 50,
+           "maxEvidenceAge":1,
+           "slashBlocksReward":20
+        },
+         "gov": {
+            "versionProposalVoteDurationSeconds": 160,
+            "versionProposalSupportRate": 0.667,
+            "textProposalVoteDurationSeconds": 160,
+            "textProposalVoteRate": 0.5,
+            "textProposalSupportRate": 0.667,          
+            "cancelProposalVoteRate": 0.50,
+            "cancelProposalSupportRate": 0.667,
+            "paramProposalVoteDurationSeconds": 160,
+            "paramProposalVoteRate": 0.50,
+            "paramProposalSupportRate": 0.667      
+        },
+        "reward":{
+            "newBlockRate": 50,
+            "platonFoundationYear": 10 
+        },
+        "innerAcc":{
+            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundBalance": 0,
+            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfBalance": 331811981000000000000000000
+        }
+    },
+    "coinbase":"0x0000000000000000000000000000000000000000",
+    "extraData":"",
+    "gasLimit":"0x2fefd8",
+    "nonce":"0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
+    "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+    "timestamp":"0x00",
+    "config":{
+        "cbft":{
+            "initialNodes":[
+                {
+                    "node":"enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
+                    "blsPubKey":"d341a0c485c9ec00cecf7ea16323c547900f6a1bacb9daacb00c2b8bacee631f75d5d31b75814b7f1ae3a4e18b71c617bc2f230daa0c893746ed87b08b2df93ca4ddde2816b3ac410b9980bcc048521562a3b2d00e900fd777d3cf88ce678719"
+                }
+            ],
+            "amount":10,
+			"period":10000,
+            "validatorMode":"ppos"
+        }
+    }
+}`,
+		query:  "platon.getBlock(0).nonce",
+		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
-	// Genesis file with an empty chain configuration (ensure missing fields work)
+	//Genesis file with only cbft config
 	{
 		genesis: `{
-			"alloc"      : {},
-			"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"difficulty" : "0x20000",
-			"extraData"  : "",
-			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0000000000000042",
-			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"timestamp"  : "0x00",
-			"config"     : {}
-		}`,
-		query:  "eth.getBlock(0).nonce",
-		result: "0x0000000000000042",
+    "alloc":{
+        "1000000000000000000000000000000000000001":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000002":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000003":{
+            "balance":"200000000000000000000000000"
+        },
+        "1000000000000000000000000000000000000004":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000005":{
+            "balance":"0"
+        },
+        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
+            "balance":"8050000000000000000000000000"
+        },
+        "55bfd49472fd41211545b01713a9c3a97af78b05":{
+            "balance":"2000000000000000000000000000"
+        }
+    },
+    "economicModel":{
+        "common":{
+            "maxEpochMinutes":4,
+            "maxConsensusVals":4,
+            "additionalCycleTime":28
+        },
+        "staking":{
+            "stakeThreshold": 1000000000000000000000000,
+            "operatingThreshold": 10000000000000000000,
+            "maxValidators": 30,
+            "hesitateRatio": 1,
+            "unStakeFreezeDuration": 2
+        },
+        "slashing":{
+           "slashFractionDuplicateSign": 100,
+           "duplicateSignReportReward": 50,
+           "maxEvidenceAge":1,
+           "slashBlocksReward":20
+        },
+         "gov": {
+            "versionProposalVoteDurationSeconds": 160,
+            "versionProposalSupportRate": 0.667,
+            "textProposalVoteDurationSeconds": 160,
+            "textProposalVoteRate": 0.5,
+            "textProposalSupportRate": 0.667,          
+            "cancelProposalVoteRate": 0.50,
+            "cancelProposalSupportRate": 0.667,
+            "paramProposalVoteDurationSeconds": 160,
+            "paramProposalVoteRate": 0.50,
+            "paramProposalSupportRate": 0.667      
+        },
+        "reward":{
+            "newBlockRate": 50,
+            "platonFoundationYear": 10 
+        },
+        "innerAcc":{
+            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundBalance": 0,
+            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfBalance": 331811981000000000000000000
+        }
+    },
+    "coinbase":"0x0000000000000000000000000000000000000000",
+    "extraData":"",
+    "gasLimit":"0x2fefd8",
+    "nonce":"0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
+    "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+    "timestamp":"0x00",
+    "config":{
+        "cbft":{
+            "initialNodes":[
+                {
+                    "node":"enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
+                    "blsPubKey":"d341a0c485c9ec00cecf7ea16323c547900f6a1bacb9daacb00c2b8bacee631f75d5d31b75814b7f1ae3a4e18b71c617bc2f230daa0c893746ed87b08b2df93ca4ddde2816b3ac410b9980bcc048521562a3b2d00e900fd777d3cf88ce678719"
+                }
+            ],
+            "amount":10,
+			"period":10000,
+            "validatorMode":"ppos"
+        }
+    }
+}`,
+		query:  "platon.getBlock(0).nonce",
+		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
-	// Genesis file with specific chain configurations
+	//Genesis file with specific chain configurations
 	{
 		genesis: `{
-			"alloc"      : {},
-			"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"difficulty" : "0x20000",
-			"extraData"  : "",
-			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0000000000000042",
-			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"timestamp"  : "0x00",
-			"config"     : {
-				"homesteadBlock" : 314,
-				"daoForkBlock"   : 141,
-				"daoForkSupport" : true
-			}
-		}`,
-		query:  "eth.getBlock(0).nonce",
-		result: "0x0000000000000042",
+    "alloc":{
+        "1000000000000000000000000000000000000001":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000002":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000003":{
+            "balance":"200000000000000000000000000"
+        },
+        "1000000000000000000000000000000000000004":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000005":{
+            "balance":"0"
+        },
+        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
+            "balance":"8050000000000000000000000000"
+        },
+        "55bfd49472fd41211545b01713a9c3a97af78b05":{
+            "balance":"2000000000000000000000000000"
+        }
+    },
+    "economicModel":{
+        "common":{
+            "maxEpochMinutes":4,
+            "maxConsensusVals":4,
+            "additionalCycleTime":28
+        },
+        "staking":{
+            "stakeThreshold": 1000000000000000000000000,
+            "operatingThreshold": 10000000000000000000,
+            "maxValidators": 30,
+            "hesitateRatio": 1,
+            "unStakeFreezeDuration": 2
+        },
+        "slashing":{
+           "slashFractionDuplicateSign": 100,
+           "duplicateSignReportReward": 50,
+           "maxEvidenceAge":1,
+           "slashBlocksReward":20
+        },
+         "gov": {
+            "versionProposalVoteDurationSeconds": 160,
+            "versionProposalSupportRate": 0.667,
+            "textProposalVoteDurationSeconds": 160,
+            "textProposalVoteRate": 0.5,
+            "textProposalSupportRate": 0.667,          
+            "cancelProposalVoteRate": 0.50,
+            "cancelProposalSupportRate": 0.667,
+            "paramProposalVoteDurationSeconds": 160,
+            "paramProposalVoteRate": 0.50,
+            "paramProposalSupportRate": 0.667      
+        },
+        "reward":{
+            "newBlockRate": 50,
+            "platonFoundationYear": 10 
+        },
+        "innerAcc":{
+            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundBalance": 0,
+            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfBalance": 331811981000000000000000000
+        }
+    },
+    "coinbase":"0x0000000000000000000000000000000000000000",
+    "extraData":"",
+    "gasLimit":"0x2fefd8",
+    "nonce":"0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
+    "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+    "timestamp":"0x00",
+    "config":{
+        "chainId":101,
+        "eip155Block":0,
+        "interpreter":"wasm",
+        "cbft":{
+            "initialNodes":[
+                {
+                    "node":"enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
+                    "blsPubKey":"d341a0c485c9ec00cecf7ea16323c547900f6a1bacb9daacb00c2b8bacee631f75d5d31b75814b7f1ae3a4e18b71c617bc2f230daa0c893746ed87b08b2df93ca4ddde2816b3ac410b9980bcc048521562a3b2d00e900fd777d3cf88ce678719"
+                }
+            ],
+            "amount":10,
+			"period":10000,
+            "validatorMode":"ppos"
+        }
+    }
+}`,
+		query:  "platon.getBlock(0).nonce",
+		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 }
 
 // Tests that initializing Geth with a custom genesis block and chain definitions
 // work properly.
-/*func TestCustomGenesis(t *testing.T) {
+func TestCustomGenesis(t *testing.T) {
 	for i, tt := range customGenesisTests {
 		// Create a temporary data directory to use and inspect later
 		datadir := tmpdir(t)
@@ -97,7 +326,8 @@ var customGenesisTests = []struct {
 			"--datadir", datadir, "--maxpeers", "0", "--port", "0",
 			"--nodiscover", "--nat", "none", "--ipcdisable",
 			"--exec", tt.query, "console")
+		t.Log("testi", i)
 		geth.ExpectRegexp(tt.result)
 		geth.ExpectExit()
 	}
-}*/
+}

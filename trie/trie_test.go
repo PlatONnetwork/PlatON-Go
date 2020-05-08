@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -28,12 +29,13 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
+	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func init() {
@@ -88,7 +90,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdf")
 	root, _ := trie.Commit(nil)
 	if !memonly {
-		triedb.Commit(root, true)
+		triedb.Commit(root, true, true)
 	}
 
 	trie, _ = New(root, triedb)
@@ -337,7 +339,7 @@ func TestCacheUnload(t *testing.T) {
 	updateString(trie, key2, "this is the branch of key2.")
 
 	root, _ := trie.Commit(nil)
-	trie.db.Commit(root, true)
+	trie.db.Commit(root, true, true)
 
 	// Commit the trie repeatedly and access key1.
 	// The branch containing it is loaded from DB exactly two times:
@@ -465,7 +467,12 @@ func runRandTest(rt randTest) bool {
 	}
 	return true
 }
+func TestNewFlag(t *testing.T) {
+	trie := &Trie{}
+	trie.newFlag()
+	trie.newFlag()
 
+}
 func checkCacheInvariant(n, parent node, parentCachegen uint16, parentDirty bool, depth int) error {
 	var children []node
 	var flag nodeFlag
@@ -489,11 +496,11 @@ func checkCacheInvariant(n, parent node, parentCachegen uint16, parentDirty bool
 	if flag.gen > parentCachegen {
 		return errorf("cache invariant violation: %d > %d\n", flag.gen, parentCachegen)
 	}
-	if depth > 0 && !parentDirty && flag.dirty {
+	if depth > 0 && !parentDirty && *flag.dirty {
 		return errorf("cache invariant violation: %d > %d\n", flag.gen, parentCachegen)
 	}
 	for _, child := range children {
-		if err := checkCacheInvariant(child, n, flag.gen, flag.dirty, depth+1); err != nil {
+		if err := checkCacheInvariant(child, n, flag.gen, *flag.dirty, depth+1); err != nil {
 			return err
 		}
 	}
@@ -612,4 +619,102 @@ func updateString(trie *Trie, k, v string) {
 
 func deleteString(trie *Trie, k string) {
 	trie.Delete([]byte(k))
+}
+
+func TestDeepCopy(t *testing.T) {
+	memdb := ethdb.NewMemDatabase()
+	triedb := NewDatabase(memdb)
+	root := common.Hash{}
+	tr, _ := NewSecure(root, triedb, 0)
+	start := time.Now()
+	kv := make(map[common.Hash][]byte)
+	leafCB := func(leaf []byte, parent common.Hash) error {
+		var valueKey common.Hash
+		_, content, _, err := rlp.Split(leaf)
+		assert.Nil(t, err)
+		valueKey.SetBytes(content)
+		if value, ok := kv[valueKey]; ok {
+			tr.trie.db.InsertBlob(valueKey, value)
+		}
+
+		tr.trie.db.Reference(valueKey, parent)
+		return nil
+	}
+	k, v := randBytes(32), randBytes(32)
+	parent := root
+	for j := 0; j < 1; j++ {
+		start = time.Now()
+		for i := 1; i < 100; i++ {
+			binary.BigEndian.PutUint32(k, uint32(i))
+			binary.BigEndian.PutUint32(v, uint32(i))
+			tr.Update(k, v)
+			kv[common.BytesToHash(tr.hashKey(k))] = v
+		}
+
+		root, _ = tr.Commit(leafCB)
+		parent = root
+		triedb.Reference(root, common.Hash{})
+		triedb.Commit(root, false, false)
+		fmt.Println("commit db", "count", j, time.Since(start))
+	}
+
+	tr2, _ := NewSecure(root, triedb, 0)
+	for i := 100; i < 200; i++ {
+		binary.BigEndian.PutUint32(k, uint32(i))
+		binary.BigEndian.PutUint32(v, uint32(i))
+		tr2.Update(k, v)
+		kv[common.BytesToHash(tr.hashKey(k))] = v
+	}
+
+	//root, _ = tr2.Commit(nil)
+	root = tr2.Hash()
+
+	cpy := tr2.New().New()
+
+	iter := tr2.NodeIterator(nil)
+	cpyIter := cpy.NodeIterator(nil)
+	count := 0
+	keys := 0
+	for iter.Next(true) {
+		if !cpyIter.Next(true) {
+			t.Fatal("cpy iter failed, next error")
+		}
+		if !bytes.Equal(iter.Path(), cpyIter.Path()) {
+			t.Fatal("iter path failed")
+		}
+		if !bytes.Equal(iter.Parent().Bytes(), cpyIter.Parent().Bytes()) {
+			t.Fatal("iter parent failed")
+		}
+		if iter.Leaf() {
+			if !bytes.Equal(iter.LeafBlob(), iter.LeafBlob()) {
+				t.Fatal("iter leaf blob failed")
+			}
+			if !bytes.Equal(iter.LeafKey(), iter.LeafKey()) {
+				t.Fatal("iter leaf key failed")
+			}
+			if _, ok := kv[common.BytesToHash(iter.LeafKey())]; !ok {
+				t.Fatal("find none key")
+			}
+			keys++
+			//fmt.Println(hexutil.Encode(iter.LeafKey()))
+			//delete(kv, common.BytesToHash(iter.LeafKey()))
+		}
+		if iter.Hash() != cpyIter.Hash() {
+			t.Fatal("cpy iter failed", iter.Hash(), cpyIter.Hash())
+		}
+		count++
+	}
+	assert.Equal(t, len(kv), keys)
+	root, _ = tr2.Commit(leafCB)
+	triedb.Reference(root, common.Hash{})
+	assert.Nil(t, triedb.Commit(root, false, false))
+	triedb.DereferenceDB(parent)
+	cpyRoot, _ := cpy.Commit(leafCB)
+	if root != cpyRoot {
+		t.Fatal("cpyroot failed")
+	}
+	triedb.Reference(cpyRoot, common.Hash{})
+
+	assert.Nil(t, triedb.Commit(cpyRoot, false, false))
+	triedb.DereferenceDB(cpyRoot)
 }

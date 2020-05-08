@@ -152,6 +152,34 @@ func GoTool(tool string, args ...string) *exec.Cmd {
 	return exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), args...)
 }
 
+// Binary packages that do not need to be compiled
+var no_compile_cmd = []string{
+	"/abigen",
+	"/bootnode",
+	"/clef",
+	"/ctool",
+	"/examples",
+	"/faucet",
+	"/life",
+	"/p2psim",
+	"/simulations",
+	"/test_runner",
+	"/wagon_run",
+	"/wasm",
+	"/wnode",
+}
+
+// Insist on whether the package needs to compile
+func needCompile(strPack string) bool {
+	for _, value := range no_compile_cmd {
+		if strings.Contains(strPack, value) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // ExpandPackagesNoVendor expands a cmd/go import path pattern, skipping
 // vendored packages.
 func ExpandPackagesNoVendor(patterns []string) []string {
@@ -170,6 +198,10 @@ func ExpandPackagesNoVendor(patterns []string) []string {
 		var packages []string
 		for _, line := range strings.Split(string(out), "\n") {
 			if !strings.Contains(line, "/vendor/") {
+				if false == needCompile(line) {
+					// don't need to compile
+					continue
+				}
 				packages = append(packages, strings.TrimSpace(line))
 			}
 		}

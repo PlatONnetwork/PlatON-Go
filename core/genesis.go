@@ -22,9 +22,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
+	"os"
+	"path"
+	"strings"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -32,8 +42,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"math/big"
-	"strings"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -44,14 +53,14 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config    *params.ChainConfig `json:"config"`
-	Nonce     uint64              `json:"nonce"`
-	Timestamp uint64              `json:"timestamp"`
-	ExtraData []byte              `json:"extraData"`
-	GasLimit  uint64              `json:"gasLimit"   gencodec:"required"`
-	Mixhash   common.Hash         `json:"mixHash"`
-	Coinbase  common.Address      `json:"coinbase"`
-	Alloc     GenesisAlloc        `json:"alloc"      gencodec:"required"`
+	Config        *params.ChainConfig `json:"config"`
+	EconomicModel *xcom.EconomicModel `json:"economicModel"`
+	Nonce         []byte              `json:"nonce"`
+	Timestamp     uint64              `json:"timestamp"`
+	ExtraData     []byte              `json:"extraData"`
+	GasLimit      uint64              `json:"gasLimit"   gencodec:"required"`
+	Coinbase      common.Address      `json:"coinbase"`
+	Alloc         GenesisAlloc        `json:"alloc"      gencodec:"required"`
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -86,7 +95,7 @@ type GenesisAccount struct {
 
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
-	Nonce     math.HexOrDecimal64
+	Nonce     hexutil.Bytes
 	Timestamp math.HexOrDecimal64
 	ExtraData hexutil.Bytes
 	GasLimit  math.HexOrDecimal64
@@ -147,13 +156,16 @@ func (e *GenesisMismatchError) Error() string {
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
 //
 // The returned chain configuration is never nil.
-func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+
 	if genesis != nil && genesis.Config == nil {
+		log.Error("Failed to SetupGenesisBlock, the config of genesis is nil")
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
 
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
+
 	if (stored == common.Hash{}) {
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
@@ -162,27 +174,49 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 			log.Info("Writing custom genesis block")
 		}
 
-		block, err := genesis.Commit(db)
+		// check EconomicModel configuration
+		if err := xcom.CheckEconomicModel(); nil != err {
+			log.Error("Failed to check economic config", "err", err)
+			return nil, common.Hash{}, err
+		}
+		var sdb snapshotdb.DB
+		if snapshotPath != "" {
+			os.RemoveAll(snapshotPath)
+			sdb = snapshotdb.Instance()
+			defer sdb.Close()
+		}
+		block, err := genesis.Commit(db, sdb)
+		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
 		return genesis.Config, block.Hash(), err
 	}
 
 	// Check whether the genesis block is already written.
 	if genesis != nil {
-		hash := genesis.ToBlock(nil).Hash()
+		hash := genesis.ToBlock(nil, nil).Hash()
 		if hash != stored {
+			log.Error("Failed to compare the genesisHash and stored", "genesisHash", hash, "stored", stored)
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
 	}
 
+	// Get the existing EconomicModel configuration.
+	ecCfg := xcom.GetEc(xcom.DefaultMainNet)
+	ecCfg = rawdb.ReadEconomicModel(db, stored, ecCfg)
+	if nil == ecCfg {
+		log.Warn("Found genesis block without EconomicModel config")
+		rawdb.WriteEconomicModel(db, stored, xcom.GetEc(xcom.DefaultMainNet))
+	}
+
 	// Get the existing chain configuration.
-	newcfg := genesis.configOrDefault(stored)
+	newcfg := genesis.configOrDefault(stored) // TODO this line Maybe delete
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
-	// Special case: don't change the existing config of a non-mainnet chain if no new
+
+	// Sp ecial case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
 	if genesis == nil && stored != params.MainnetGenesisHash {
@@ -193,10 +227,12 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	// are returned to the caller unless we're already at block zero.
 	height := rawdb.ReadHeaderNumber(db, rawdb.ReadHeadHeaderHash(db))
 	if height == nil {
+		log.Error("Failed to query header number by header hash", "headerHash", rawdb.ReadHeadHeaderHash(db))
 		return newcfg, stored, fmt.Errorf("missing block number for head header hash")
 	}
 	compatErr := storedcfg.CheckCompatible(newcfg, *height)
 	if compatErr != nil && *height != 0 && compatErr.RewindTo != 0 {
+		log.Error("Failed to CheckCompatible", "height", *height, "err", compatErr)
 		return newcfg, stored, compatErr
 	}
 	rawdb.WriteChainConfig(db, stored, newcfg)
@@ -218,21 +254,66 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 
 // ToBlock creates the genesis block and writes state of a genesis specification
 // to the given database (or discards it if nil).
-func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
+func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	if db == nil {
 		db = ethdb.NewMemDatabase()
 	}
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db), big.NewInt(0), common.Hash{})
+	var snapDB snapshotdb.DB
+	if sdb == nil {
+		var err error
+		log.Info("begin open snapshotDB in tmp")
+		snapDB, err = snapshotdb.Open(path.Join(os.TempDir(), snapshotdb.DBPath), 0, 0)
+		if err != nil {
+			panic(err)
+		}
+		defer snapDB.Clear()
+	} else {
+		snapDB = sdb
+	}
+
+	genesisIssuance := new(big.Int)
+
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
+	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
+	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
+	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())
+
+	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.PlatONFundBalance())
+	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.CDFBalance())
+
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
-			// todo: hash -> bytes
+
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
+
+		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
+	log.Debug("genesisIssuance", "amount", genesisIssuance)
+
+	// Initialized Govern Parameters
+	if err := gov.InitGenesisGovernParam(snapDB); err != nil {
+		log.Error("Failed to init govern parameter in snapshotdb", "err", err)
+		panic("Failed to init govern parameter in snapshotdb")
+	}
+
+	// Store genesis version into governance data
+	if err := genesisPluginState(g, statedb, genesisIssuance, params.GenesisVersion); nil != err {
+		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
+	}
+
+	// Store genesis staking data
+	if err := genesisStakingData(snapDB, g, statedb, params.GenesisVersion); nil != err {
+		panic("Failed Store staking: " + err.Error())
+	}
+
 	root := statedb.IntermediateRoot(false)
+
+	log.Debug("ToBlock IntermediateRoot", "root", root.Hex())
+
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
 		Nonce:      types.EncodeNonce(g.Nonce),
@@ -241,31 +322,40 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Extra:      g.ExtraData,
 		GasLimit:   g.GasLimit,
 		GasUsed:    g.GasUsed,
-		MixDigest:  g.Mixhash,
-		Coinbase:   g.Coinbase,
+		Coinbase:   vm.RewardManagerPoolAddr,
 		Root:       root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
-	statedb.Commit(false)
-	statedb.Database().TrieDB().Commit(root, true)
 
-	return types.NewBlock(head, nil, nil, nil)
+	if _, err := statedb.Commit(false); nil != err {
+		panic("Failed to commit genesis stateDB: " + err.Error())
+	}
+	if err := statedb.Database().TrieDB().Commit(root, true, true); nil != err {
+		panic("Failed to trieDB commit by genesis: " + err.Error())
+	}
+
+	block := types.NewBlock(head, nil, nil)
+
+	if err := snapDB.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. genesisHash: %s, error:%s", block.Hash().Hex(), err.Error()))
+	}
+
+	log.Debug("Call ToBlock finished", "genesisHash", block.Hash().Hex())
+	return block
 }
 
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
-func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
-	/*// ppos pposDB
-	// TODO ppos add
-	if nil == ppos_storage.GetPPosTempPtr() {
-		ppos_storage.NewPPosTemp(pposdb)
-	}*/
-	block := g.ToBlock(db)
+func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.DB) (*types.Block, error) {
+	block := g.ToBlock(db, sdb)
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
+
+	log.Debug("Commit Hash", "hash", block.Hash().Hex(), "number", block.NumberU64())
+
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
 	rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
@@ -277,13 +367,14 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 		config = params.AllEthashProtocolChanges
 	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
+	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 	return block, nil
 }
 
 // MustCommit writes the genesis block and state to db, panicking on error.
 // The block is committed as the canonical head block.
 func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
-	block, err := g.Commit(db)
+	block, err := g.Commit(db, snapshotdb.Instance())
 	if err != nil {
 		panic(err)
 	}
@@ -296,160 +387,66 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	return g.MustCommit(db)
 }
 
-// DefaultGenesisBlock returns the Ethereum main net genesis block.
+// DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
-	return &Genesis{
+
+	// TODO this should change
+	generalAddr := common.HexToAddress("0x5437959B69eD1014cf6Aa8B4a2c77e7Ba2341955")
+	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
+
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
+
+	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
-		Nonce:     0, // 66
-		ExtraData: hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-		GasLimit:  3150000000, //5000
-		Alloc:     decodePrealloc(mainnetAllocData),
+		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+		Timestamp: 0,
+		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  params.GenesisGasLimit,
+		Alloc: map[common.Address]GenesisAccount{
+			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
+			generalAddr:              {Balance: generalBalance},
+		},
+		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
 	}
+	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	return &genesis
 }
 
-// DefaultTestnetGenesisBlock returns the Alpha network genesis block.
+// DefaultTestnetGenesisBlock returns the PlatON test net genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
 
-	initAddress1 := new(big.Int)
-	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
+	// TODO this should change
+	generalAddr := common.HexToAddress("0x9bbac0df99f269af1473fd384cb0970b95311001")
+	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
-	initBalance1 := new(big.Int)
-	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
-	initAddress2 := new(big.Int)
-	initAddress2.SetString("1fe1b73f7f592d6c054d62fad1cc55756c6949f9", 16)
-
-	initBalance2 := new(big.Int)
-	initBalance2.SetString("295be96e640669720000000", 16)
-
-	return &Genesis{
+	genesis := Genesis{
 		Config:    params.TestnetChainConfig,
-		Nonce:     0,
-		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  0x99947b760,
+		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  params.GenesisGasLimit,
 		Timestamp: 1546300800000,
 		Alloc: map[common.Address]GenesisAccount{
-			common.BigToAddress(initAddress1): {Balance: initBalance1},
-			common.BigToAddress(initAddress2): {Balance: initBalance2},
+			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
+			generalAddr:              {Balance: generalBalance},
 		},
+		EconomicModel: xcom.GetEc(xcom.DefaultTestNet),
 	}
-}
-
-// DefaultBetanetGenesisBlock returns the Beta network genesis block.
-func DefaultBetanetGenesisBlock() *Genesis {
-
-	initAddress1 := new(big.Int)
-	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
-
-	initBalance1 := new(big.Int)
-	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
-
-	initAddress2 := new(big.Int)
-	initAddress2.SetString("1fe1b73f7f592d6c054d62fad1cc55756c6949f9", 16)
-
-	initBalance2 := new(big.Int)
-	initBalance2.SetString("295be96e640669720000000", 16)
-
-	return &Genesis{
-		Config:    params.BetanetChainConfig,
-		Nonce:     0,
-		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  0x99947b760,
-		Timestamp: 1546300800000,
-		Alloc: map[common.Address]GenesisAccount{
-			common.BigToAddress(initAddress1): {Balance: initBalance1},
-			common.BigToAddress(initAddress2): {Balance: initBalance2},
-		},
-	}
-}
-
-// DefaultInnerTestnetGenesisBlock returns the inner test network genesis block.
-func DefaultInnerTestnetGenesisBlock(time uint64) *Genesis {
-	initAddress1 := new(big.Int)
-	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
-
-	initBalance1 := new(big.Int)
-	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
-
-	initAddress2 := new(big.Int)
-	initAddress2.SetString("493301712671ada506ba6ca7891f436d29185821", 16)
-
-	initBalance2 := new(big.Int)
-	initBalance2.SetString("295be96e640669720000000", 16)
-
-	return &Genesis{
-		Config:    params.InnerTestnetChainConfig,
-		Nonce:     0,
-		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  0x99947b760,
-		Timestamp: time,
-		Alloc: map[common.Address]GenesisAccount{
-			common.BigToAddress(initAddress1): {Balance: initBalance1},
-			common.BigToAddress(initAddress2): {Balance: initBalance2},
-		},
-	}
-}
-
-// DefaultInnerDevnetGenesisBlock returns the inner test network genesis block.
-func DefaultInnerDevnetGenesisBlock(time uint64) *Genesis {
-	initAddress1 := new(big.Int)
-	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
-
-	initBalance1 := new(big.Int)
-	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
-
-	initAddress2 := new(big.Int)
-	initAddress2.SetString("493301712671ada506ba6ca7891f436d29185821", 16)
-
-	initBalance2 := new(big.Int)
-	initBalance2.SetString("295be96e640669720000000", 16)
-
-	return &Genesis{
-		Config:    params.InnerDevnetChainConfig,
-		Nonce:     0,
-		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  0x99947b760,
-		Timestamp: time,
-		Alloc: map[common.Address]GenesisAccount{
-			common.BigToAddress(initAddress1): {Balance: initBalance1},
-			common.BigToAddress(initAddress2): {Balance: initBalance2},
-		},
-	}
+	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	return &genesis
 }
 
 func DefaultGrapeGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:    params.GrapeChainConfig,
 		Timestamp: 1492009146,
-		ExtraData: hexutil.MustDecode("0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  3150000000,
-		Alloc:     decodePrealloc(testnetAllocData),
-	}
-}
-
-// DeveloperGenesisBlock returns the 'platon --dev' genesis block. Note, this must
-// be seeded with the
-func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
-	// Override the default period to the user requested one
-	config := *params.AllCliqueProtocolChanges
-	config.Clique.Period = period
-
-	// Assemble and return the genesis with the precompiles and faucet pre-funded
-	return &Genesis{
-		Config:    &config,
-		ExtraData: append(append(make([]byte, 32), faucet[:]...), make([]byte, 65)...),
-		GasLimit:  6283185,
-		Alloc: map[common.Address]GenesisAccount{
-			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
-			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
-			common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
-			common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
-			common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
-			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
-			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
-			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
-		},
+		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		//GasLimit:  3150000000,
+		GasLimit: params.GenesisGasLimit,
+		Alloc:    decodePrealloc(testnetAllocData),
 	}
 }
 

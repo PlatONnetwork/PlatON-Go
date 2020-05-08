@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
@@ -116,20 +117,46 @@ func (rw *meteredMsgReadWriter) WriteMsg(msg p2p.Msg) error {
 	switch {
 	case msg.Code == BlockHeadersMsg:
 		packets, traffic = reqHeaderOutPacketsMeter, reqHeaderOutTrafficMeter
+		common.BlockHeadersEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == BlockBodiesMsg:
 		packets, traffic = reqBodyOutPacketsMeter, reqBodyOutTrafficMeter
+		common.BlockBodiesEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case rw.version >= eth63 && msg.Code == NodeDataMsg:
 		packets, traffic = reqStateOutPacketsMeter, reqStateOutTrafficMeter
+		common.NodeDataEgressTrafficMeter.Mark(int64(msg.Size))
 	case rw.version >= eth63 && msg.Code == ReceiptsMsg:
 		packets, traffic = reqReceiptOutPacketsMeter, reqReceiptOutTrafficMeter
+		common.ReceiptsTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == NewBlockHashesMsg:
 		packets, traffic = propHashOutPacketsMeter, propHashOutTrafficMeter
+		common.NewBlockHashesEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == NewBlockMsg:
 		packets, traffic = propBlockOutPacketsMeter, propBlockOutTrafficMeter
+		common.NewBlockEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == TxMsg:
 		packets, traffic = propTxnOutPacketsMeter, propTxnOutTrafficMeter
+		common.TxTrafficMeter.Mark(int64(msg.Size))
+
+	// todo: temp
+	case msg.Code == StatusMsg:
+		common.StatusEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == GetBlockHeadersMsg:
+		common.GetBlockHeadersEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == GetBlockBodiesMsg:
+		common.GetBlockBodiesEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == PrepareBlockMsg:
+		common.PrepareBlockEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == BlockSignatureMsg:
+		common.BlockSignatureEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == PongMsg:
+		common.PongEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == GetNodeDataMsg:
+		common.GetNodeDataEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == GetReceiptsMsg:
+		common.GetReceiptsEgressTrafficMeter.Mark(int64(msg.Size))
+
 	}
 	packets.Mark(1)
 	traffic.Mark(int64(msg.Size))

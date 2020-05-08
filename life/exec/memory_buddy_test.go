@@ -24,6 +24,33 @@ func TestMemory_Malloc(t *testing.T) {
 	}
 }
 
+func TestMemory_Realloc(t *testing.T) {
+	size := 32
+	m := &Memory{
+		Memory: make([]byte, size),
+		Size:   size,
+		Start:  0,
+		tree:   make([]int, (2*size)-1),
+	}
+	initTree(m.tree, size)
+
+	pos := m.Malloc(4)
+	newPos := m.Realloc(0, 8)
+	if newPos != 8 {
+		t.Fatalf("realloc error,expect 12,get %d", newPos)
+	}
+
+	realloc := []int{8, 4, 12}
+	expect := []int{8, 4, 16}
+	pos = newPos
+	for i := 0; i < 3; i++ {
+		pos := m.Realloc(pos, realloc[i])
+		if pos != expect[i] {
+			t.Fatalf("realloc error,expect %d,get %d", expect[i], pos)
+		}
+	}
+}
+
 func TestMemTreePool(t *testing.T) {
 	memPool := NewMemPool(DefaultMemPoolCount, DefaultMemBlockSize)
 	treePool := NewTreePool(DefaultMemPoolCount, DefaultMemBlockSize)

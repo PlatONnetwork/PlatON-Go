@@ -19,6 +19,7 @@ package trie
 import (
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
@@ -37,9 +38,9 @@ var ErrAlreadyProcessed = errors.New("already processed")
 
 // request represents a scheduled or already in-flight state retrieval request.
 type request struct {
-	hash common.Hash // Hash of the node data content to retrieve
-	data []byte      // Data content of the node, cached until all subtrees complete
-	raw  bool        // Whether this is a raw entry (code) or a trie node
+	hash    common.Hash // Hash of the node data content to retrieve
+	data    []byte      // Data content of the node, cached until all subtrees complete
+	raw     bool        // Whether this is a raw entry (code) or a trie node
 	storage bool
 	parents []*request // Parent state nodes referencing this entry (notify all upon completion)
 	depth   int        // Depth level within the trie the node is located to prioritise DFS
@@ -56,15 +57,15 @@ type SyncResult struct {
 }
 
 type batchData struct {
-	data []byte
+	data    []byte
 	storage bool
 }
 
 // syncMemBatch is an in-memory buffer of successfully downloaded but not yet
 // persisted data items.
 type syncMemBatch struct {
-	batch map[common.Hash] *batchData // In-memory membatch of recently completed items
-	order []common.Hash          // Order of completion to prevent out-of-order data loss
+	batch map[common.Hash]*batchData // In-memory membatch of recently completed items
+	order []common.Hash              // Order of completion to prevent out-of-order data loss
 }
 
 // newSyncMemBatch allocates a new memory-buffer for not-yet persisted trie nodes.
@@ -99,7 +100,6 @@ func NewSync(root common.Hash, database DatabaseReader, callback LeafCallback) *
 
 // AddSubTrie registers a new trie to the sync code, rooted at the designated parent.
 func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callback LeafCallback) {
-	log.Debug("sync AddSubTrie", "root", root, "depth", depth, "parent", parent)
 	// Short circuit if the trie is empty or already known
 	if root == emptyRoot {
 		return
@@ -136,7 +136,6 @@ func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callb
 // as is. This method's goal is to support misc state metadata retrievals (e.g.
 // contract code).
 func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash, storage bool) {
-	log.Debug("sync AddRawEntry", "hash", hash, "depth", depth, "parent", parent)
 	// Short circuit if the entry is empty or already known
 	if hash == emptyState {
 		return
@@ -149,10 +148,10 @@ func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash, stor
 	}
 	// Assemble the new sub-trie sync request
 	req := &request{
-		hash:  hash,
-		raw:   true,
-		storage:storage,
-		depth: depth,
+		hash:    hash,
+		raw:     true,
+		storage: storage,
+		depth:   depth,
 	}
 	// If this sub-trie has a designated parent, link them together
 	if parent != (common.Hash{}) {
@@ -180,7 +179,6 @@ func (s *Sync) Missing(max int) []common.Hash {
 // it failed.
 func (s *Sync) Process(results []SyncResult) (bool, int, error) {
 	committed := false
-
 	for i, item := range results {
 		// If the item was not requested, bail out
 		request := s.requests[item.Hash]
@@ -230,7 +228,7 @@ func (s *Sync) Commit(dbw ethdb.Putter) (int, error) {
 		v, _ := s.membatch.batch[key]
 		if v.storage {
 			var seckeybuf [43]byte
-			buf := append(seckeybuf[:0], secureKeyPrefix...)
+			buf := append(seckeybuf[:0], SecureKeyPrefix...)
 			buf = append(buf, key[:]...)
 			if err := dbw.Put(buf, s.membatch.batch[key].data); err != nil {
 				return i, err

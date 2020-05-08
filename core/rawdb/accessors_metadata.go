@@ -19,6 +19,8 @@ package rawdb
 import (
 	"encoding/json"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -27,17 +29,17 @@ import (
 
 // ReadDatabaseVersion retrieves the version number of the database.
 func ReadDatabaseVersion(db DatabaseReader) int {
-	var version int
+	var version uint64
 
 	enc, _ := db.Get(databaseVerisionKey)
 	rlp.DecodeBytes(enc, &version)
 
-	return version
+	return int(version)
 }
 
 // WriteDatabaseVersion stores the version number of the database
 func WriteDatabaseVersion(db DatabaseWriter, version int) {
-	enc, _ := rlp.EncodeToBytes(version)
+	enc, _ := rlp.EncodeToBytes(uint64(version))
 	if err := db.Put(databaseVerisionKey, enc); err != nil {
 		log.Crit("Failed to store the database version", "err", err)
 	}
@@ -69,6 +71,36 @@ func WriteChainConfig(db DatabaseWriter, hash common.Hash, cfg *params.ChainConf
 	if err := db.Put(configKey(hash), data); err != nil {
 		log.Crit("Failed to store chain config", "err", err)
 	}
+}
+
+// WriteEconomicModel writes the EconomicModel settings to the database.
+func WriteEconomicModel(db DatabaseWriter, hash common.Hash, ec *xcom.EconomicModel) {
+	if ec == nil {
+		return
+	}
+
+	data, err := json.Marshal(ec)
+	if err != nil {
+		log.Crit("Failed to JSON encode EconomicModel config", "err", err)
+	}
+	if err := db.Put(economicModelKey(hash), data); err != nil {
+		log.Crit("Failed to store EconomicModel", "err", err)
+	}
+}
+
+// ReadEconomicModel retrieves the EconomicModel settings based on the given genesis hash.
+func ReadEconomicModel(db DatabaseReader, hash common.Hash, ec *xcom.EconomicModel) *xcom.EconomicModel {
+	data, _ := db.Get(economicModelKey(hash))
+	if len(data) == 0 {
+		return nil
+	}
+
+	// reset the global ec
+	if err := json.Unmarshal(data, ec); err != nil {
+		log.Error("Invalid EconomicModel JSON", "hash", hash, "err", err)
+		return nil
+	}
+	return ec
 }
 
 // ReadPreimage retrieves a single preimage of the provided hash.

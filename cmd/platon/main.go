@@ -32,6 +32,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/console"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/ethclient"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
@@ -58,14 +59,10 @@ var (
 		utils.PasswordFileFlag,
 		utils.BootnodesFlag,
 		utils.BootnodesV4Flag,
-		utils.BootnodesV5Flag,
+		//	utils.BootnodesV5Flag,
 		utils.DataDirFlag,
 		utils.KeyStoreDirFlag,
 		utils.NoUSBFlag,
-		utils.DashboardEnabledFlag,
-		utils.DashboardAddrFlag,
-		utils.DashboardPortFlag,
-		utils.DashboardRefreshFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
@@ -91,46 +88,29 @@ var (
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,
 		utils.MaxPendingPeersFlag,
-		utils.MiningEnabledFlag,
-		utils.MinerThreadsFlag,
-		utils.MinerLegacyThreadsFlag,
-		utils.MinerNotifyFlag,
 		utils.MinerGasTargetFlag,
 		utils.MinerLegacyGasTargetFlag,
-		utils.MinerGasLimitFlag,
+		//utils.MinerGasLimitFlag,
 		utils.MinerGasPriceFlag,
 		utils.MinerLegacyGasPriceFlag,
-		utils.MinerEtherbaseFlag,
-		utils.MinerLegacyEtherbaseFlag,
-		utils.MinerExtraDataFlag,
-		utils.MinerLegacyExtraDataFlag,
-		utils.MinerRecommitIntervalFlag,
-		utils.MinerNoVerfiyFlag,
+		//	utils.MinerExtraDataFlag,
+		//utils.MinerLegacyExtraDataFlag,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
-		utils.DiscoveryV5Flag,
+		//	utils.DiscoveryV5Flag,
 		utils.NetrestrictFlag,
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
-		utils.DeveloperFlag,
 		utils.DeveloperPeriodFlag,
 		utils.TestnetFlag,
-		utils.BetanetFlag,
-		utils.InnerTestnetFlag,
-		utils.InnerDevnetFlag,
-		utils.InnerTimeFlag,
-		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
 		utils.EthStatsURLFlag,
 		utils.MetricsEnabledFlag,
-		utils.FakePoWFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
-		utils.EWASMInterpreterFlag,
-		utils.EVMInterpreterFlag,
 		configFileFlag,
 	}
 
@@ -148,12 +128,11 @@ var (
 		utils.IPCPathFlag,
 	}
 
-	whisperFlags = []cli.Flag{
-		utils.WhisperEnabledFlag,
-		utils.WhisperMaxMessageSizeFlag,
-		utils.WhisperMinPOWFlag,
-		utils.WhisperRestrictConnectionBetweenLightClientsFlag,
-	}
+	//whisperFlags = []cli.Flag{
+	//	utils.WhisperEnabledFlag,
+	//	utils.WhisperMaxMessageSizeFlag,
+	//	utils.WhisperRestrictConnectionBetweenLightClientsFlag,
+	//}
 
 	metricsFlags = []cli.Flag{
 		utils.MetricsEnableInfluxDBFlag,
@@ -164,15 +143,31 @@ var (
 		utils.MetricsInfluxDBHostTagFlag,
 	}
 
-	mpcFlags = []cli.Flag{
-		utils.MPCEnabledFlag,
-		utils.MPCIceFileFlag,
-		utils.MPCActorFlag,
+	//mpcFlags = []cli.Flag{
+	//	//utils.MPCEnabledFlag,
+	//	utils.MPCIceFileFlag,
+	//	utils.MPCActorFlag,
+	//}
+	//vcFlags = []cli.Flag{
+	//	utils.VCEnabledFlag,
+	//	utils.VCActorFlag,
+	//	utils.VCPasswordFlag,
+	//}
+
+	cbftFlags = []cli.Flag{
+		utils.CbftPeerMsgQueueSize,
+		utils.CbftWalDisabledFlag,
+		utils.CbftMaxPingLatency,
+		utils.CbftBlsPriKeyFileFlag,
+		utils.CbftBlacklistDeadlineFlag,
 	}
-	vcFlags = []cli.Flag{
-		utils.VCEnabledFlag,
-		utils.VCActorFlag,
-		utils.VCPasswordFlag,
+
+	dbFlags = []cli.Flag{
+		utils.DBNoGCFlag,
+		utils.DBGCIntervalFlag,
+		utils.DBGCTimeoutFlag,
+		utils.DBGCMptFlag,
+		utils.DBGCBlockFlag,
 	}
 )
 
@@ -184,8 +179,8 @@ func init() {
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
-		importCommand,
-		exportCommand,
+		//importCommand,
+		//exportCommand,
 		importPreimagesCommand,
 		exportPreimagesCommand,
 		copydbCommand,
@@ -200,9 +195,6 @@ func init() {
 		consoleCommand,
 		attachCommand,
 		javascriptCommand,
-		// See misccmd.go:
-		makecacheCommand,
-		makedagCommand,
 		versionCommand,
 		bugCommand,
 		licenseCommand,
@@ -215,29 +207,34 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
-	app.Flags = append(app.Flags, whisperFlags...)
+	//app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
 	// for mpc
-	app.Flags = append(app.Flags, mpcFlags...)
-	// for vc
-	app.Flags = append(app.Flags, vcFlags...)
+	//app.Flags = append(app.Flags, mpcFlags...)
+	//// for vc
+	//app.Flags = append(app.Flags, vcFlags...)
+	// for cbft
+	app.Flags = append(app.Flags, cbftFlags...)
+	app.Flags = append(app.Flags, dbFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
+		err := bls.Init(int(bls.BLS12_381))
+		if err != nil {
+			return err
+		}
 
 		logdir := ""
-		if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
-			logdir = (&node.Config{DataDir: utils.MakeDataDir(ctx)}).ResolvePath("logs")
-		}
 		if err := debug.Setup(ctx, logdir); err != nil {
 			return err
 		}
 
 		//init wasm logfile
-		if err := debug.SetupWasmLog(ctx); err != nil {
-			return err
-		}
+
+		//if err := debug.SetupWasmLog(ctx); err != nil {
+		//	return err
+		//}
 
 		// Cap the cache allowance and tune the garbage collector
 		var mem gosigar.Mem
@@ -352,28 +349,22 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		}
 	}()
 	// Start auxiliary services if enabled
-	if ctx.GlobalBool(utils.MiningEnabledFlag.Name) || ctx.GlobalBool(utils.DeveloperFlag.Name) {
-		// Mining only makes sense if a full Ethereum node is running
-		if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
-			utils.Fatalf("Light clients do not support mining")
-		}
-		var ethereum *eth.Ethereum
-		if err := stack.Service(&ethereum); err != nil {
-			utils.Fatalf("Ethereum service not running: %v", err)
-		}
-		// Set the gas price to the limits from the CLI and start mining
-		gasprice := utils.GlobalBig(ctx, utils.MinerLegacyGasPriceFlag.Name)
-		if ctx.IsSet(utils.MinerGasPriceFlag.Name) {
-			gasprice = utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
-		}
-		ethereum.TxPool().SetGasPrice(gasprice)
+	// Mining only makes sense if a full Ethereum node is running
+	if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
+		utils.Fatalf("Light clients do not support mining")
+	}
+	var ethereum *eth.Ethereum
+	if err := stack.Service(&ethereum); err != nil {
+		utils.Fatalf("PlatON service not running: %v", err)
+	}
+	// Set the gas price to the limits from the CLI and start mining
+	gasprice := utils.GlobalBig(ctx, utils.MinerLegacyGasPriceFlag.Name)
+	if ctx.IsSet(utils.MinerGasPriceFlag.Name) {
+		gasprice = utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
+	}
+	ethereum.TxPool().SetGasPrice(gasprice)
 
-		threads := ctx.GlobalInt(utils.MinerLegacyThreadsFlag.Name)
-		if ctx.GlobalIsSet(utils.MinerThreadsFlag.Name) {
-			threads = ctx.GlobalInt(utils.MinerThreadsFlag.Name)
-		}
-		if err := ethereum.StartMining(threads); err != nil {
-			utils.Fatalf("Failed to start mining: %v", err)
-		}
+	if err := ethereum.StartMining(); err != nil {
+		utils.Fatalf("Failed to start mining: %v", err)
 	}
 }

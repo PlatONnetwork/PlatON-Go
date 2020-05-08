@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"io"
 	"testing"
+	"fmt"
 )
 
 const TestCount = 1000
@@ -214,6 +215,16 @@ func TestRecoverSanity(t *testing.T) {
 	if !bytes.Equal(pubkey1, pubkey2) {
 		t.Errorf("pubkey mismatch: want: %x have: %x", pubkey1, pubkey2)
 	}
+}
+
+func TestSecp256k1_NotInfinity(t *testing.T) {
+	sk,err := ecdsa.GenerateKey(S256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("sk=%x\n", sk.D.Bytes())
+	res := PubkeyNotInfinity(sk.X,sk.Y)
+	fmt.Println(res)
 }
 
 func BenchmarkSign(b *testing.B) {

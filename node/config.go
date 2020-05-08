@@ -19,6 +19,7 @@ package node
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -42,6 +43,8 @@ const (
 	datadirStaticNodes     = "static-nodes.json"  // Path within the datadir to the static node list
 	datadirTrustedNodes    = "trusted-nodes.json" // Path within the datadir to the trusted node list
 	datadirNodeDatabase    = "nodes"              // Path within the datadir to store the node infos
+	datadirBlsKey          = "blskey"             // Path within the datadir to the node's private key
+
 )
 
 // Config represents a small collection of configuration values to fine tune the
@@ -333,6 +336,34 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 		log.Error(fmt.Sprintf("Failed to persist node key: %v", err))
 	}
 	return key
+}
+
+// BlsKey retrieves the currently configured private key of the node,
+// falling back to the one found in the configured
+// data folder. If no key can be found, a new one is generated.
+func (c *Config) BlsKey() *bls.SecretKey {
+	// Generate ephemeral key if no datadir is being used.
+	if c.DataDir == "" {
+		return bls.GenerateKey()
+	}
+
+	keyfile := c.ResolvePath(datadirBlsKey)
+	if key, err := bls.LoadBLS(keyfile); err == nil {
+		return key
+	}
+
+	privateKey := bls.GenerateKey()
+
+	instanceDir := filepath.Join(c.DataDir, c.name())
+	if err := os.MkdirAll(instanceDir, 0700); err != nil {
+		log.Error(fmt.Sprintf("Failed to persist bls key: %v", err))
+		return privateKey
+	}
+	keyfile = filepath.Join(instanceDir, datadirBlsKey)
+	if err := bls.SaveBLS(keyfile, privateKey); err != nil {
+		log.Error(fmt.Sprintf("Failed to persist bls key: %v", err))
+	}
+	return privateKey
 }
 
 // StaticNodes returns a list of node enode URLs configured as static nodes.

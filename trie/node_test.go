@@ -19,32 +19,35 @@ package trie
 import "testing"
 
 func TestCanUnload(t *testing.T) {
+	True, False := new(bool), new(bool)
+
+	*True, *False = true, false
 	tests := []struct {
 		flag                 nodeFlag
 		cachegen, cachelimit uint16
 		want                 bool
 	}{
 		{
-			flag: nodeFlag{dirty: true, gen: 0},
+			flag: nodeFlag{dirty: True, gen: 0},
 			want: false,
 		},
 		{
-			flag:     nodeFlag{dirty: false, gen: 0},
+			flag:     nodeFlag{dirty: False, gen: 0},
 			cachegen: 0, cachelimit: 0,
 			want: true,
 		},
 		{
-			flag:     nodeFlag{dirty: false, gen: 65534},
+			flag:     nodeFlag{dirty: False, gen: 65534},
 			cachegen: 65535, cachelimit: 1,
 			want: true,
 		},
 		{
-			flag:     nodeFlag{dirty: false, gen: 65534},
+			flag:     nodeFlag{dirty: False, gen: 65534},
 			cachegen: 0, cachelimit: 1,
 			want: true,
 		},
 		{
-			flag:     nodeFlag{dirty: false, gen: 1},
+			flag:     nodeFlag{dirty: False, gen: 1},
 			cachegen: 65535, cachelimit: 1,
 			want: true,
 		},

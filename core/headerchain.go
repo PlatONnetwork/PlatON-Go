@@ -33,8 +33,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/hashicorp/golang-lru"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -97,22 +96,7 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 	hc.currentHeader.Store(hc.genesisHeader)
 	if head := rawdb.ReadHeadBlockHash(chainDb); head != (common.Hash{}) {
 		if chead := hc.GetHeaderByHash(head); chead != nil {
-			/*hc.currentHeader.Store(chead)*/
-
-			// TODO PPOS ADD
-			pposNum := ppos_storage.GetPPosTempPtr().BlockNumber
-			pposHash := ppos_storage.GetPPosTempPtr().BlockHash
-
-			lastNum := chead.Number
-			if pposNum.Cmp(big.NewInt(0)) != 0 &&  pposNum.Cmp(lastNum) < 0 && pposHash != (common.Hash{}) {
-				if pposhead := hc.GetHeaderByHash(pposHash); pposhead != nil {
-					log.Debug("Call NewHeaderChain, currentHeader is not equal ppostempHeader, Reset CurrentHeader on HeaderChain", "currentNum", lastNum,
-						"currentHash", head.Hex(), "pposNum", pposNum, "pposHash", pposHash.Hex())
-					hc.currentHeader.Store(pposhead)
-				}
-			}else {
-				hc.currentHeader.Store(chead)
-			}
+			hc.currentHeader.Store(chead)
 		}
 	}
 	hc.currentHeaderHash = hc.CurrentHeader().Hash()
@@ -236,16 +220,16 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 	defer close(abort)
 
 	// Iterate over the headers and ensure they all check out
-	for i, header := range chain {
+	for i, _ := range chain {
 		// If the chain is terminating, stop processing blocks
 		if hc.procInterrupt() {
 			log.Debug("Premature abort during headers verification")
 			return 0, errors.New("aborted")
 		}
 		// If the header is a banned one, straight out abort
-		if BadHashes[header.Hash()] {
-			return i, ErrBlacklistedHash
-		}
+		//if BadHashes[header.Hash()] {
+		//	return i, ErrBlacklistedHash
+		//}
 		// Otherwise wait for headers checks and ensure they pass
 		if err := <-results; err != nil {
 			return i, err
@@ -370,6 +354,7 @@ func (hc *HeaderChain) GetHeader(hash common.Hash, number uint64) *types.Header 
 	}
 	header := rawdb.ReadHeader(hc.chainDb, hash, number)
 	if header == nil {
+		log.Debug("no found HeaderChain GetHeader", "hash", hash, "number", number)
 		return nil
 	}
 	// Cache the found header for next time and return
@@ -474,5 +459,11 @@ func (hc *HeaderChain) Engine() consensus.Engine { return hc.engine }
 // GetBlock implements consensus.ChainReader, and returns nil for every input as
 // a header chain does not have blocks available for retrieval.
 func (hc *HeaderChain) GetBlock(hash common.Hash, number uint64) *types.Block {
+	return nil
+}
+
+// CurrentBlock implements consensus.ChainReader, and returns nil for every input as
+// a header chain does not have blocks available for retrieval.
+func (hc *HeaderChain) CurrentBlock() *types.Block {
 	return nil
 }
