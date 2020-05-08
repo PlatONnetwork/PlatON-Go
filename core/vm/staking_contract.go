@@ -131,7 +131,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "externalId", externalId,
 		"nodeName", nodeName, "website", website, "details", details, "amount", amount, "rewardPer", rewardPer,
 		"programVersion", programVersion, "programVersionSign", programVersionSign.Hex(),
-		"from", from.Hex(), "blsPubKey", blsPubKey, "blsProof", blsProof)
+		"from", from, "blsPubKey", blsPubKey, "blsProof", blsProof)
 
 	if !stkc.Contract.UseGas(params.CreateStakeGas) {
 		return nil, ErrOutOfGas
@@ -342,7 +342,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "rewardPer", rewardPer,
 		"externalId", externalId, "nodeName", nodeName, "website", website,
-		"details", details, "from", from.Hex())
+		"details", details, "from", from)
 
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
 		return nil, ErrOutOfGas
@@ -385,7 +385,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
+			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
 			TxEditorCandidate, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
@@ -435,7 +435,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	log.Debug("Call increaseStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "typ", typ,
-		"amount", amount, "from", from.Hex())
+		"amount", amount, "from", from)
 
 	if !stkc.Contract.UseGas(params.IncStakeGas) {
 		return nil, ErrOutOfGas
@@ -478,7 +478,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
-			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
+			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
 			TxIncreaseStaking, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
@@ -509,7 +509,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	state := stkc.Evm.StateDB
 
 	log.Debug("Call withdrewStaking of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "from", from.Hex())
+		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "from", from)
 
 	if !stkc.Contract.UseGas(params.WithdrewStakeGas) {
 		return nil, ErrOutOfGas
@@ -546,7 +546,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
-			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
+			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
 			TxWithdrewCandidate, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
@@ -576,7 +576,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	state := stkc.Evm.StateDB
 
 	log.Debug("Call delegate of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "typ", typ,
+		"blockNumber", blockNumber.Uint64(), "delAddr", from, "typ", typ,
 		"nodeId", nodeId.String(), "amount", amount)
 
 	if !stkc.Contract.UseGas(params.DelegateGas) {
@@ -666,7 +666,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if hasStake {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
-			fmt.Sprintf("'%s' has staking, so don't allow to delegate", from.Hex()),
+			fmt.Sprintf("'%s' has staking, so don't allow to delegate", from),
 			TxDelegate, int(staking.ErrAccountNoAllowToDelegate.Code)), nil
 	}
 
@@ -705,7 +705,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	state := stkc.Evm.StateDB
 
 	log.Debug("Call withdrewDelegate of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "nodeId", nodeId.String(),
+		"blockNumber", blockNumber.Uint64(), "delAddr", from, "nodeId", nodeId.String(),
 		"stakingNum", stakingBlockNum, "amount", amount)
 
 	if !stkc.Contract.UseGas(params.WithdrewDelegateGas) {

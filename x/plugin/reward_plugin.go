@@ -47,7 +47,7 @@ import (
 type RewardMgrPlugin struct {
 	db            snapshotdb.DB
 	nodeID        discover.NodeID
-	nodeADD       common.Address
+	nodeADD       common.NodeAddress
 	stakingPlugin *StakingPlugin
 }
 
@@ -412,7 +412,7 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 	return nil
 }
 
-func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (discover.NodeID, common.Address, error) {
+func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (discover.NodeID, common.NodeAddress, error) {
 	if blockHash == common.ZeroHash {
 		return rmp.nodeID, rmp.nodeADD, nil
 	}
@@ -420,9 +420,9 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 	sealhash := head.SealHash().Bytes()
 	pk, err := crypto.SigToPub(sealhash, sign)
 	if err != nil {
-		return discover.ZeroNodeID, common.ZeroAddr, err
+		return discover.ZeroNodeID, common.ZeroNodeAddr, err
 	}
-	return discover.PubkeyID(pk), crypto.PubkeyToAddress(*pk), nil
+	return discover.PubkeyID(pk), crypto.PubkeyToNodeAddress(*pk), nil
 }
 
 // AllocatePackageBlock used for reward new block. it returns coinbase and error

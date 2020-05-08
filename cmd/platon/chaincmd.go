@@ -184,7 +184,7 @@ func initGenesis(ctx *cli.Context) error {
 	}
 
 	genesis := new(core.Genesis)
-	if err := genesis.InitAndSetEconomicConfig(genesisPath); err != nil {
+	if err := genesis.InitGenesisAndSetEconomicConfig(genesisPath); err != nil {
 		utils.Fatalf(err.Error())
 	}
 

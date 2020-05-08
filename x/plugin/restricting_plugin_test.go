@@ -259,7 +259,7 @@ type TestRestrictingPlugin struct {
 func NewTestRestrictingPlugin() *TestRestrictingPlugin {
 	tp := new(TestRestrictingPlugin)
 	tp.log = log.Root()
-	tp.from, tp.to = common.HexToAddress("0xeB3eb44a60d935DfE53D224648E1a51851c6f3Ae"), common.HexToAddress("0x1D9B304e70FD21706fd97BCe5f34392463788713")
+	tp.from, tp.to = common.MustBech32ToAddress("lax1avltgjnqmy6alefayfry3cd9rpguduawcph8ja"), common.MustBech32ToAddress("lax1rkdnqnnsl5shqm7e00897dpey33h3pcntluqar")
 	tp.mockDB = mock.NewChain().StateDB
 	tp.mockDB.AddBalance(tp.from, big.NewInt(9e18))
 	return tp

@@ -68,18 +68,6 @@ type Genesis struct {
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
 
-func (ga *GenesisAlloc) UnmarshalJSON(data []byte) error {
-	m := make(map[common.UnprefixedAddress]GenesisAccount)
-	if err := json.Unmarshal(data, &m); err != nil {
-		return err
-	}
-	*ga = make(GenesisAlloc)
-	for addr, a := range m {
-		(*ga)[common.Address(addr)] = a
-	}
-	return nil
-}
-
 // GenesisAccount is an account in the state of the genesis block.
 type GenesisAccount struct {
 	Code       []byte                      `json:"code,omitempty"`
@@ -97,7 +85,7 @@ type genesisSpecMarshaling struct {
 	GasLimit  math.HexOrDecimal64
 	GasUsed   math.HexOrDecimal64
 	Number    math.HexOrDecimal64
-	Alloc     map[common.UnprefixedAddress]GenesisAccount
+	Alloc     map[common.Address]GenesisAccount
 }
 
 type genesisAccountMarshaling struct {
@@ -165,8 +153,10 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if (stored == common.Hash{}) {
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
+			common.SetAddressPrefix(common.MainNetAddressPrefix)
 			genesis = DefaultGenesisBlock()
 		} else {
+			common.SetAddressPrefix(common.TestNetAddressPrefix)
 			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
 		}
 
@@ -182,6 +172,10 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		}
 		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
 		return genesis.Config, block.Hash(), err
+	} else if stored == params.MainnetGenesisHash {
+		common.SetAddressPrefix(common.MainNetAddressPrefix)
+	} else {
+		common.SetAddressPrefix(common.TestNetAddressPrefix)
 	}
 
 	// Check whether the genesis block is already written.
@@ -203,7 +197,8 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	xcom.ResetEconomicDefaultConfig(ecCfg)
 
 	// Get the existing chain configuration.
-	newcfg := genesis.configOrDefault(stored) // TODO this line Maybe delete
+	// the main net may use default config
+	newcfg := genesis.configOrDefault(stored)
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
@@ -211,7 +206,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		return newcfg, stored, nil
 	}
 
-	// Sp ecial case: don't change the existing config of a non-mainnet chain if no new
+	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
 	if genesis == nil && stored != params.MainnetGenesisHash {
@@ -234,8 +229,9 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
-//this is only use to self chain
-func (g *Genesis) InitAndSetEconomicConfig(path string) error {
+//this is only use to private chain
+func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
+	common.SetAddressPrefix(common.TestNetAddressPrefix)
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
@@ -485,7 +481,7 @@ func DefaultGenesisBlock() *Genesis {
 func DefaultTestnetGenesisBlock() *Genesis {
 
 	// TODO this should change
-	generalAddr := common.HexToAddress("0x99dd0a64d2809e3e293e43bdbf2704cffd87acec")
+	generalAddr := common.MustBech32ToAddress("lax1n8ws5exjsz0ru2f7gw7m7fcyel7c0t8v66eyfs")
 	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
