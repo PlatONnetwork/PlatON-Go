@@ -40,7 +40,10 @@ platon-with-mv:
 
 all:
 	build/build_deps.sh
-	$(GORUN) build/ci.go install
+	$(GORUN) build/ci.go install ./cmd/platon
+	$(GORUN) build/ci.go install ./cmd/keytool
+	$(GORUN) build/ci.go install ./cmd/ppos_tool
+	$(GORUN) build/ci.go install ./cmd/rlpdump
 
 all-debug:
 	build/build_deps.sh
