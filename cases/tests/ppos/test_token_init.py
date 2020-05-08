@@ -317,11 +317,11 @@ def test_test_IT_SD_008_002(client_new_node):
                                                    'ether') == second_staking_balance - economic.create_staking_limit
 
 
-@pytest.mark.P2
-def test_test_IT_SD_008_003(client_new_node):
-    client = client_new_node
-    economic = client.economic
-    node = client.node
+# @pytest.mark.P2
+# def test_test_IT_SD_008_003(client_new_node):
+#     client = client_new_node
+#     economic = client.economic
+#     node = client.node
 
 
 @pytest.mark.P2
