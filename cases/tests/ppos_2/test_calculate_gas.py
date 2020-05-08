@@ -35,6 +35,8 @@ def test_staking_gas(client_new_node):
                        rlp.encode(bytes.fromhex(program_version_sign_)),
                        rlp.encode(bytes.fromhex(node.blspubkey)),
                        rlp.encode(bytes.fromhex(node.schnorr_NIZK_prove))])
+    esgas = node.eth.estimateGas({"from": benifit_address,"to": node.web3.stakingAddress, "data": data})
+    print(esgas)
     gas = get_the_dynamic_parameter_gas_fee(data) + 21000 + 6000 + 32000
     log.info(gas)
     gasPrice = node.web3.platon.gasPrice
