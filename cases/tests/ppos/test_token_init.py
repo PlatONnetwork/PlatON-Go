@@ -98,19 +98,6 @@ def test_IT_SD_004_to_006(client_consensus, value):
     assert balance == value, "ErrMsg:Transfer amount {}".format(balance)
 
 
-def test_ttttt(client_consensus):
-    # transfer_amount = client_consensus.node.web3.toWei(100000, 'ether')
-    # result = client_consensus.economic.account.sendTransaction(client_consensus.node.web3, '', '0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD', '0x58235424849ee4c3f3a62c56fcb82b34117e67b6', client_consensus.node.web3.platon.gasPrice,
-    #                                                  21000, transfer_amount)
-    # balance = client_consensus.node.eth.getBalance(client_consensus.node.web3.toChecksumAddress('0x58235424849ee4c3f3a62c56fcb82b34117e67b6'))
-    # print(balance)
-    result = client_consensus.ppos.getRestrictingInfo('0x58235424849ee4c3f3a62c56fcb82b34117e67b6')
-    print(result)
-    result = client_consensus.ppos.getCandidateInfo(
-        '0ee7ad2655ad3e00095414bf10406fed2c19d5b3aa514b95321bbe3c6caebd7b190683d77c874da302555c4dc4978f45b16bd62eb370b62c84544ba971b39bdd')
-    print(result)
-
-
 @pytest.mark.P1
 @pytest.mark.parametrize('value', [2000, 1000])
 def test_IT_SD_002_003(global_test_env, value):
