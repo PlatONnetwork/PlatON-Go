@@ -28,6 +28,8 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -42,7 +44,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
