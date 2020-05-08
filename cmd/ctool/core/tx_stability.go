@@ -83,7 +83,7 @@ func generateAccount(size int, pkFile string) {
 		privateKey, _ := crypto.GenerateKey()
 		address := crypto.PubkeyToAddress(privateKey.PublicKey)
 		accountPool[address] = &PriAccount{privateKey, 0, address}
-		addrs[i] = address.Hex()
+		addrs[i] = address.String()
 	}
 	savePrivateKeyPool(pkFile)
 	saveAddrs(addrs, pkFile)
@@ -131,7 +131,7 @@ func PrepareAccount(size int, pkFile, value string) error {
 	}
 
 	for addr := range accountPool {
-		hash, err := SendTransaction(from, addr.Hex(), value)
+		hash, err := SendTransaction(from, addr.String(), value)
 		if err != nil {
 			return fmt.Errorf("prepare error,send from coinbase error,%s", err.Error())
 		}
@@ -157,7 +157,7 @@ func StabilityTest(pkFile string, times, interval int) error {
 			continue
 		}
 
-		acc, ok := accountPool[common.HexToAddress(from)]
+		acc, ok := accountPool[common.MustBech32ToAddress(from)]
 		if !ok {
 			return fmt.Errorf("private key not found,addr:%s", from)
 		}

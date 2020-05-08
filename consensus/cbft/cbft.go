@@ -29,8 +29,9 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/pkg/errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"reflect"
 	"sync"
@@ -893,7 +894,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 	err = cbft.blockCacheWriter.Execute(block, parent)
 	if err != nil {
-		cbft.log.Error("Execting block fail", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash())
+		cbft.log.Error("Execting block fail", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash(), "err", err)
 		return errors.New("failed to executed block")
 	}
 

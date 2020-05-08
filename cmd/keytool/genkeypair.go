@@ -1,18 +1,19 @@
 package main
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 type outputGenkeypair struct {
-	Address      string
-	PrivateKey   string
-	PublicKey 	 string
+	PrivateKey string
+	PublicKey  string
 }
 
 var commandGenkeypair = cli.Command{
@@ -38,14 +39,12 @@ Generate a new private key pair.
 
 		// Output some information.
 		out := outputGenkeypair{
-			Address: crypto.PubkeyToAddress(privateKey.PublicKey).Hex(),
-			PublicKey: hex.EncodeToString(crypto.FromECDSAPub(&privateKey.PublicKey)[1:]),
+			PublicKey:  hex.EncodeToString(crypto.FromECDSAPub(&privateKey.PublicKey)[1:]),
 			PrivateKey: hex.EncodeToString(crypto.FromECDSA(privateKey)),
 		}
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)
 		} else {
-			fmt.Println("Address   : ", out.Address)
 			fmt.Println("PrivateKey: ", out.PrivateKey)
 			fmt.Println("PublicKey : ", out.PublicKey)
 		}
