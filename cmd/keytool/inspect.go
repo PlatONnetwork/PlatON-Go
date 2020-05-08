@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"io/ioutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -28,7 +29,7 @@ import (
 )
 
 type outputInspect struct {
-	Address    string
+	Address    common.AddressOutput
 	PublicKey  string
 	PrivateKey string
 }
@@ -69,7 +70,7 @@ make sure to use this feature with great caution!`,
 		// Output all relevant information we can retrieve.
 		showPrivate := ctx.Bool("private")
 		out := outputInspect{
-			Address: key.Address.Hex(),
+			Address: common.NewAddressOutput(key.Address),
 			PublicKey: hex.EncodeToString(
 				crypto.FromECDSAPub(&key.PrivateKey.PublicKey)),
 		}
@@ -80,7 +81,7 @@ make sure to use this feature with great caution!`,
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)
 		} else {
-			fmt.Println("Address:       ", out.Address)
+			out.Address.Print()
 			fmt.Println("Public key:    ", out.PublicKey)
 			if showPrivate {
 				fmt.Println("Private key:   ", out.PrivateKey)

@@ -53,12 +53,12 @@ func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, 
 		if nil != err {
 			return nil, err
 		}
-		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+		addr := crypto.PubkeyToNodeAddress(privateKey.PublicKey)
 		nodeId := discover.PubkeyID(&privateKey.PublicKey)
 		canTmp := &staking.Candidate{
 			CandidateBase: &staking.CandidateBase{
 				NodeId:         nodeId,
-				BenefitAddress: addr,
+				BenefitAddress: common.Address(addr),
 				Description:    staking.Description{},
 			},
 			CandidateMutable: &staking.CandidateMutable{},
@@ -259,13 +259,13 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 		if xutil.IsEndOfEpoch(currentHeader.Number.Uint64()) {
 			everyValidatorReward := new(big.Int).Div(stakingReward, big.NewInt(int64(len(validatorQueueList))))
 			for _, value := range validatorQueueList {
-				balance := accounts[value.NodeAddress]
+				balance := accounts[common.Address(value.NodeAddress)]
 				if balance == nil {
 					balance = new(big.Int)
-					accounts[value.NodeAddress] = balance
+					accounts[common.Address(value.NodeAddress)] = balance
 				}
 				balance.Add(balance, everyValidatorReward)
-				assert.Equal(t, balance, mockDB.GetBalance(value.NodeAddress))
+				assert.Equal(t, balance, mockDB.GetBalance(common.Address(value.NodeAddress)))
 			}
 
 			validatorQueueList, err = buildTestStakingData(currentHeader.Number.Uint64()+1, currentHeader.Number.Uint64()+xutil.CalcBlocksEachEpoch())
@@ -598,7 +598,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	validatorQueue := make(staking.ValidatorQueue, 0)
 	validatorQueue = append(validatorQueue, &staking.Validator{
 		NodeId:          nodeID,
-		NodeAddress:     canBase.BenefitAddress,
+		NodeAddress:     common.NodeAddress(canBase.BenefitAddress),
 		StakingBlockNum: canBase.StakingBlockNum,
 	})
 

@@ -75,7 +75,7 @@ type Cheque struct {
 }
 
 func (self *Cheque) String() string {
-	return fmt.Sprintf("contract: %s, beneficiary: %s, amount: %v, signature: %x", self.Contract.Hex(), self.Beneficiary.Hex(), self.Amount, self.Sig)
+	return fmt.Sprintf("contract: %s, beneficiary: %s, amount: %v, signature: %x", self.Contract.String(), self.Beneficiary.Hex(), self.Amount, self.Sig)
 }
 
 type Params struct {
@@ -186,6 +186,7 @@ type chequebookFile struct {
 }
 
 // UnmarshalJSON deserialises a chequebook.
+//todo
 func (self *Chequebook) UnmarshalJSON(data []byte) error {
 	var file chequebookFile
 	err := json.Unmarshal(data, &file)
@@ -196,9 +197,9 @@ func (self *Chequebook) UnmarshalJSON(data []byte) error {
 	if !ok {
 		return fmt.Errorf("cumulative amount sent: unable to convert string to big integer: %v", file.Balance)
 	}
-	self.contractAddr = common.HexToAddress(file.Contract)
+	self.contractAddr = common.MustBech32ToAddress(file.Contract)
 	for addr, sent := range file.Sent {
-		self.sent[common.HexToAddress(addr)], ok = new(big.Int).SetString(sent, 10)
+		self.sent[common.MustBech32ToAddress(addr)], ok = new(big.Int).SetString(sent, 10)
 		if !ok {
 			return fmt.Errorf("beneficiary %v cumulative amount sent: unable to convert string to big integer: %v", addr, sent)
 		}
@@ -210,12 +211,12 @@ func (self *Chequebook) UnmarshalJSON(data []byte) error {
 func (self *Chequebook) MarshalJSON() ([]byte, error) {
 	var file = &chequebookFile{
 		Balance:  self.balance.String(),
-		Contract: self.contractAddr.Hex(),
-		Owner:    self.owner.Hex(),
+		Contract: self.contractAddr.String(),
+		Owner:    self.owner.String(),
 		Sent:     make(map[string]string),
 	}
 	for addr, sent := range self.sent {
-		file.Sent[addr.Hex()] = sent.String()
+		file.Sent[addr.String()] = sent.String()
 	}
 	return json.Marshal(file)
 }

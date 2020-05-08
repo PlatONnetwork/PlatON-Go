@@ -46,10 +46,10 @@ const (
 )
 
 type ValidateNode struct {
-	Index     uint            `json:"index"`
-	NodeID    discover.NodeID `json:"nodeID"`
-	Address   common.Address  `json:"-"`
-	BlsPubKey bls.PublicKey   `json:"blsPubKey"`
+	Index     uint               `json:"index"`
+	NodeID    discover.NodeID    `json:"nodeID"`
+	Address   common.NodeAddress `json:"-"`
+	BlsPubKey bls.PublicKey      `json:"blsPubKey"`
 }
 
 type NodeList []*ValidateNode
@@ -112,7 +112,7 @@ func (vic *validatorInnerContract) UpdateValidators(validators *Validators) erro
 			log.Error("Get pubkey from nodeID fail", "error", err)
 			return err
 		}
-		node.Address = crypto.PubkeyToAddress(*pubkey)
+		node.Address = crypto.PubkeyToNodeAddress(*pubkey)
 		newVds.ValidateNodes = append(newVds.ValidateNodes, node)
 	}
 	log.Debug("Update validators", "validators", newVds.String(), "address", vic.Contract.Address())
