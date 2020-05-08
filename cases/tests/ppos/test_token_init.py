@@ -39,10 +39,10 @@ def test_IT_IA_002_to_007(new_genesis_env):
     genesis.economicModel.innerAcc.cdfBalance = community_amount
     surplus_amount = str(EconomicConfig.TOKEN_TOTAL - community_amount - 200000000000000000000000000)
     genesis.alloc = {
-        "1000000000000000000000000000000000000003": {
+        "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrzpqayr": {
             "balance": "200000000000000000000000000"
         },
-        "0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD": {
+        "lax196278ns22j23awdfj9f2d4vz0pedld8au6xelj": {
             "balance": surplus_amount
         }
     }
@@ -210,11 +210,11 @@ def test_IT_SD_008_001(client_new_node):
     address, _ = client.economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
     address_balance = node.eth.getBalance(address)
     print("Account {} balance：{}".format(address, address_balance))
-    first_balance1 = node.eth.getBalance('0x1000000000000000000000000000000000000001')
-    first_balance2 = node.eth.getBalance('0x1000000000000000000000000000000000000002')
-    first_balance4 = node.eth.getBalance('0x1000000000000000000000000000000000000004')
-    first_balance5 = node.eth.getBalance('0x1000000000000000000000000000000000000005')
-    first_balance6 = node.eth.getBalance('0x1000000000000000000000000000000000000006')
+    first_balance1 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw')
+    first_balance2 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3')
+    first_balance4 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x')
+    first_balance5 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq97wrcc5')
+    first_balance6 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxsakwkt')
     log.info("Balance of Restriction plan : {}".format(first_balance1))
     log.info("Balance of Staking : {}".format(first_balance2))
     log.info("Balance of punishment : {}".format(first_balance4))
@@ -223,30 +223,30 @@ def test_IT_SD_008_001(client_new_node):
     # Transfer to the incentive pool
     log.info("Transfer amount：{}".format(node.web3.toWei(1000, 'ether')))
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     '0x1000000000000000000000000000000000000001',
+                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     '0x1000000000000000000000000000000000000002',
+                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     '0x1000000000000000000000000000000000000004',
+                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     '0x1000000000000000000000000000000000000005',
+                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq97wrcc5',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     '0x1000000000000000000000000000000000000006',
+                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxsakwkt',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
-    second_balance1 = node.eth.getBalance('0x1000000000000000000000000000000000000001')
-    second_balance2 = node.eth.getBalance('0x1000000000000000000000000000000000000002')
-    second_balance4 = node.eth.getBalance('0x1000000000000000000000000000000000000004')
-    second_balance5 = node.eth.getBalance('0x1000000000000000000000000000000000000005')
-    second_balance6 = node.eth.getBalance('0x1000000000000000000000000000000000000006')
+    second_balance1 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw')
+    second_balance2 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3')
+    second_balance4 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x')
+    second_balance5 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq97wrcc5')
+    second_balance6 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxsakwkt')
     log.info("Balance of Restriction plan : {}".format(second_balance1))
     log.info("Balance of Staking : {}".format(second_balance2))
     log.info("Balance of punishment : {}".format(second_balance4))

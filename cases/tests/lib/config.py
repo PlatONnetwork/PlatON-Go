@@ -62,7 +62,7 @@ class EconomicConfig:
     # Remaining total account
     REMAIN_ACCOUNT_ADDRESS = "lax196278ns22j23awdfj9f2d4vz0pedld8au6xelj"
     # Developer Foundation Account
-    DEVELOPER_FOUNDATAION_ADDRESS = 'lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru'
+    DEVELOPER_FOUNDATAION_ADDRESS = 'lax1c8enpvs5v6974shxgxxav5dsn36e5jl4v29pec'
 
     release_info = [{"blockNumber": 1600, "amount": 55965742000000000000000000},
                     {"blockNumber": 3200, "amount": 49559492000000000000000000},
