@@ -321,7 +321,7 @@ def get_block_count_number(node, number):
     current_block = node.block_number
     count = 0
     for i in range(number - 1):
-        nodeid = get_pub_key(node.url, current_block)
+        nodeid = node.eth.ecrecover(current_block)
         current_block = current_block - 1
         if nodeid == node.node_id:
             count = count + 1
