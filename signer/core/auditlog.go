@@ -82,7 +82,7 @@ func (l *AuditLogger) EcRecover(ctx context.Context, data, sig hexutil.Bytes) (c
 
 func (l *AuditLogger) Export(ctx context.Context, addr common.Address) (json.RawMessage, error) {
 	l.log.Info("Export", "type", "request", "metadata", MetadataFromContext(ctx).String(),
-		"addr", addr.Hex())
+		"addr", addr)
 	j, e := l.api.Export(ctx, addr)
 	// In this case, we don't actually log the json-response, which may be extra sensitive
 	l.log.Info("Export", "type", "response", "json response size", len(j), "error", e)

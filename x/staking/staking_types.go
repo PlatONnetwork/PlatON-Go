@@ -560,7 +560,7 @@ type Validator struct {
 	StakingTxIndex  uint32
 	ValidatorTerm   uint32 // Validator's term in the consensus round
 	StakingBlockNum uint64
-	NodeAddress     common.Address
+	NodeAddress     common.NodeAddress
 	NodeId          discover.NodeID
 	BlsPubKey       bls.PublicKeyHex
 	Shares          *big.Int
@@ -1174,7 +1174,7 @@ func (queue DelRelatedQueue) String() string {
 
 type UnStakeItem struct {
 	// this is the nodeAddress
-	NodeAddress     common.Address
+	NodeAddress     common.NodeAddress
 	StakingBlockNum uint64
 }
 
@@ -1225,7 +1225,7 @@ type SlashNodeItem struct {
 }
 
 func (s *SlashNodeItem) String() string {
-	return fmt.Sprintf(`{"nodeId": %s, "amount": %d, "slashType": %d, "benefitAddr": %s}`, s.NodeId.String(), s.Amount, s.SlashType, s.BenefitAddr.Hex())
+	return fmt.Sprintf(`{"nodeId": %s, "amount": %d, "slashType": %d, "benefitAddr": %s}`, s.NodeId.String(), s.Amount, s.SlashType, s.BenefitAddr)
 }
 
 type SlashQueue []*SlashNodeItem

@@ -28,9 +28,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/stretchr/testify/suite"
 )
 
 func TestPrepareBlockSuite(t *testing.T) {

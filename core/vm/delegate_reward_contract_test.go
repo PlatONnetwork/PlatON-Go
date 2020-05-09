@@ -86,7 +86,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	validatorQueue := make(staking.ValidatorQueue, 0)
 	validatorQueue = append(validatorQueue, &staking.Validator{
 		NodeId:          nodeID,
-		NodeAddress:     canBase.BenefitAddress,
+		NodeAddress:     common.NodeAddress(canBase.BenefitAddress),
 		StakingBlockNum: canBase.StakingBlockNum,
 	})
 

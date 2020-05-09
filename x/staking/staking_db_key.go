@@ -64,14 +64,14 @@ var (
 
 // CanBase ...
 
-func CanBaseKeyByAddr(addr common.Address) []byte {
+func CanBaseKeyByAddr(addr common.NodeAddress) []byte {
 	return append(CanBaseKeyPrefix, addr.Bytes()...)
 }
 func CanBaseKeyBySuffix(addr []byte) []byte {
 	return append(CanBaseKeyPrefix, addr...)
 }
 
-func CanMutableKeyByAddr(addr common.Address) []byte {
+func CanMutableKeyByAddr(addr common.NodeAddress) []byte {
 	return append(CanMutableKeyPrefix, addr.Bytes()...)
 }
 

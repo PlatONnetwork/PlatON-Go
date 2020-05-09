@@ -218,9 +218,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFoundationYear: 10,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x72188da050f4B3dD9a991b209221DBFE0A0fdC42"),
+				PlatONFundAccount: common.MustBech32ToAddress("lat1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzhprgeh"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0x8BAb06a9706F7613188d4Fb6310b1E5117dfd914"),
+				CDFAccount:        common.MustBech32ToAddress("lat1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzhprgeh"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -267,9 +267,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFoundationYear: 10,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x01c71cecaeff76b78325577e6a74a94d24a86be2"),
+				PlatONFundAccount: common.MustBech32ToAddress("lax1q8r3em9wlamt0qe92alx5a9ff5j2s6lzrnmdyz"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0x02cdda362dca508709a651fde1513b22d3c2a4e5"),
+				CDFAccount:        common.MustBech32ToAddress("lax1qtxa5d3defggwzdx2877z5fmytfu9f893lyygz"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -316,9 +316,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFoundationYear: 10,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundAccount: common.MustBech32ToAddress("lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFAccount:        common.MustBech32ToAddress("lax1c8enpvs5v6974shxgxxav5dsn36e5jl4v29pec"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -365,9 +365,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFoundationYear: 10,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x72188da050f4B3dD9a991b209221DBFE0A0fdC42"),
+				PlatONFundAccount: common.MustBech32ToAddress("lax1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzcy38hc"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0x8BAb06a9706F7613188d4Fb6310b1E5117dfd914"),
+				CDFAccount:        common.MustBech32ToAddress("lax13w4sd2tsdampxxydf7mrzzc72ytalkg5ukpsvj"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}

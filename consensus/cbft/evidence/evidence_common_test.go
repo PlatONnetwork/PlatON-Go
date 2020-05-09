@@ -70,7 +70,7 @@ func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
 
 		nodes[i] = &cbfttypes.ValidateNode{
 			Index:   uint32(i),
-			Address: crypto.PubkeyToAddress(pk[i].PublicKey),
+			Address: crypto.PubkeyToNodeAddress(pk[i].PublicKey),
 			PubKey:  &pk[i].PublicKey,
 			NodeID:  discover.PubkeyID(&pk[i].PublicKey),
 		}

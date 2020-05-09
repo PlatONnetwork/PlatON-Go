@@ -35,9 +35,9 @@ type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
 	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error)
 	GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error)
-	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
-	GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error)
-	GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error)
+	GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error)
+	GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error)
+	GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error)
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
 }
 

@@ -98,7 +98,7 @@ func (opb *NumberOrderPrepareBlock) Add(pb *EvidencePrepare) error {
 }
 
 // find tries to find the same prepare evidence
-// the same epoch,viewNumber,blockNumber,node address and different blockHash
+// the same epoch,viewNumber,blockNumber and different blockHash
 func (opb NumberOrderPrepareBlock) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidencePrepare {
 	for _, v := range opb {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
@@ -177,7 +177,7 @@ func (opv *NumberOrderPrepareVote) Add(pv *EvidenceVote) error {
 }
 
 // find tries to find the same vote evidence
-// the same epoch,viewNumber,blockNumber,node address and different blockHash
+// the same epoch,viewNumber,blockNumber and different blockHash
 func (opv NumberOrderPrepareVote) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidenceVote {
 	for _, v := range opv {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
@@ -256,7 +256,7 @@ func (ovc *NumberOrderViewChange) Add(vc *EvidenceView) error {
 }
 
 // find tries to find the same view evidence
-// the same epoch,viewNumber,blockNumber,node address and different blockHash
+// the same epoch,viewNumber,blockNumber and different blockHash
 func (ovc NumberOrderViewChange) find(epoch uint64, viewNumber uint64) *EvidenceView {
 	for _, v := range ovc {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber {

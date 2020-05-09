@@ -607,7 +607,7 @@ func newTestAction(addr common.Address, r *rand.Rand) testAction {
 	action := actions[r.Intn(len(actions))]
 	var nameargs []string
 	if !action.noAddr {
-		nameargs = append(nameargs, addr.Hex())
+		nameargs = append(nameargs, addr.String())
 	}
 	for _, i := range action.args {
 		action.args[i] = rand.Int63n(100)
@@ -693,7 +693,7 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		var err error
 		checkeq := func(op string, a, b interface{}) bool {
 			if err == nil && !reflect.DeepEqual(a, b) {
-				err = fmt.Errorf("got %s(%s) == %v, want %v", op, addr.Hex(), a, b)
+				err = fmt.Errorf("got %s(%s) == %v, want %v", op, addr.String(), a, b)
 				return false
 			}
 			return true
