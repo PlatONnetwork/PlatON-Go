@@ -523,7 +523,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	if isLastView() {
 		lastViewChangeQC := cbft.state.LastViewChangeQC()
 		if lastViewChangeQC == nil {
-			cbft.log.Error("Not found lastViewChangeQC")
+			cbft.log.Info("Not found lastViewChangeQC")
 			return nil
 		}
 		err := lastViewChangeQC.EqualAll(msg.Epoch, msg.ViewNumber)

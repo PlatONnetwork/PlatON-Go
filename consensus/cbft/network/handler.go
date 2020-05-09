@@ -138,7 +138,7 @@ func (h *EngineManager) sendLoop() {
 				h.sendMessage(m)
 			}
 		case <-h.quitSend:
-			log.Error("Terminate sending message")
+			log.Warn("Terminate sending message")
 			return
 		}
 	}
@@ -754,7 +754,7 @@ func (h *EngineManager) synchronize() {
 			}
 
 		case <-h.quitSend:
-			log.Error("Synchronize quit")
+			log.Warn("Synchronize quit")
 			return
 		}
 	}
