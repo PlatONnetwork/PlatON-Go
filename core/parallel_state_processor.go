@@ -46,9 +46,10 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 	startTime := time.Now()
 	// Iterate over and process the individual transactions
 	if len(block.Transactions()) > 0 {
-		ctx := NewVerifyBlockContext(statedb, header, block.Hash(), gp, usedGas, startTime)
+		ctx := NewParallelContext(statedb, header, block.Hash(), gp, startTime, false)
+		ctx.SetBlockGasUsedHolder(usedGas)
 		ctx.SetTxList(block.Transactions())
-		if err := GetExecutor().VerifyBlockTxs(ctx); err != nil {
+		if err := GetExecutor().ExecuteBlocks(ctx); err != nil {
 			return nil, nil, 0, err
 		}
 		receipts = ctx.GetReceipts()

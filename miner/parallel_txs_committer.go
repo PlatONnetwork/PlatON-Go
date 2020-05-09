@@ -47,9 +47,11 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 		}
 	}
 
-	ctx := core.NewPackBlockContext(w.current.state, header, common.Hash{}, w.current.gasPool, startTime, blockDeadline)
+	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, startTime, true)
+	ctx.SetBlockDeadline(blockDeadline)
+	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(parallelTxs)
-	if err := core.GetExecutor().PackBlockTxs(ctx); err != nil {
+	if err := core.GetExecutor().ExecuteBlocks(ctx); err != nil {
 		log.Debug("pack txs err", "err", err)
 		return true, ctx.IsTimeout()
 	}

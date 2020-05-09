@@ -1,47 +1,18 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
+	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
-
-type Context interface {
-	SetState(state *state.StateDB)
-	GetState() *state.StateDB
-	SetHeader(header *types.Header)
-	GetHeader() *types.Header
-	SetBlockHash(blockHash common.Hash)
-	GetBlockHash() common.Hash
-	SetGasPool(gp *GasPool)
-	GetGasPool() *GasPool
-	CumulateBlockGasUsed(txGasUsed uint64)
-	GetBlockGasUsed() uint64
-	GetBlockGasUsedHolder() *uint64
-	SetTxList(txList []*types.Transaction)
-	GetTxList() []*types.Transaction
-	GetTx(idx int) *types.Transaction
-	GetPackedTxList() []*types.Transaction
-	AddPackedTx(tx *types.Transaction)
-	SetResult(idx int, result *Result)
-	GetResults() []*Result
-	GetReceipts() types.Receipts
-	AddReceipt(receipt *types.Receipt)
-	SetTxDag(txDag *TxDag)
-	GetTxDag() *TxDag
-	SetPoppedAddress(poppedAddress *common.Address)
-	GetPoppedAddresses() map[*common.Address]struct{}
-	//AddLogs([]*types.Log)
-	GetLogs() []*types.Log
-	GetEarnings() *big.Int
-	AddEarnings(*big.Int)
-	SetTimeout(isTimeout bool)
-	IsTimeout() bool
-	AddGasPool(refundAmount uint64)
-}
 
 type Result struct {
 	fromStateObject *state.ParallelStateObject
@@ -51,7 +22,7 @@ type Result struct {
 	err             error
 }
 
-type PackBlockContext struct {
+type ParallelContext struct {
 	state           *state.StateDB
 	header          *types.Header
 	blockHash       common.Hash
@@ -68,57 +39,56 @@ type PackBlockContext struct {
 	earnings           *big.Int
 	startTime          time.Time
 	blockDeadline      time.Time
-	timeout            *common.AtomicBool
+	packNewBlock       bool
+	wg                 sync.WaitGroup
 }
 
-func NewPackBlockContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, startTime, blockDeadline time.Time) *PackBlockContext {
-	ctx := &PackBlockContext{}
+func NewParallelContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, startTime time.Time, packNewBlock bool) *ParallelContext {
+	ctx := &ParallelContext{}
 	ctx.state = state
 	ctx.header = header
 	ctx.blockHash = blockHash
 	ctx.gp = gp
 	ctx.startTime = startTime
-	ctx.blockDeadline = blockDeadline
 	ctx.poppedAddresses = make(map[*common.Address]struct{})
 	ctx.earnings = big.NewInt(0)
-	ctx.blockGasUsedHolder = &header.GasUsed
-	ctx.timeout = &common.AtomicBool{}
+	ctx.packNewBlock = packNewBlock
 	return ctx
 }
 
-func (ctx *PackBlockContext) SetState(state *state.StateDB) {
+func (ctx *ParallelContext) SetState(state *state.StateDB) {
 	ctx.state = state
 }
-func (ctx *PackBlockContext) GetState() *state.StateDB {
+func (ctx *ParallelContext) GetState() *state.StateDB {
 	return ctx.state
 }
-func (ctx *PackBlockContext) SetHeader(header *types.Header) {
+func (ctx *ParallelContext) SetHeader(header *types.Header) {
 	ctx.header = header
 }
-func (ctx *PackBlockContext) GetHeader() *types.Header {
+func (ctx *ParallelContext) GetHeader() *types.Header {
 	return ctx.header
 }
-func (ctx *PackBlockContext) SetBlockHash(blockHash common.Hash) {
+func (ctx *ParallelContext) SetBlockHash(blockHash common.Hash) {
 	ctx.blockHash = blockHash
 }
-func (ctx *PackBlockContext) GetBlockHash() common.Hash {
+func (ctx *ParallelContext) GetBlockHash() common.Hash {
 	return ctx.blockHash
 }
-func (ctx *PackBlockContext) SetGasPool(gp *GasPool) {
+func (ctx *ParallelContext) SetGasPool(gp *GasPool) {
 	ctx.gp = gp
 }
-func (ctx *PackBlockContext) GetGasPool() *GasPool {
+func (ctx *ParallelContext) GetGasPool() *GasPool {
 	return ctx.gp
 }
 
-func (ctx *PackBlockContext) SetTxList(txs []*types.Transaction) {
+func (ctx *ParallelContext) SetTxList(txs []*types.Transaction) {
 	ctx.txList = txs
 	ctx.resultList = make([]*Result, len(txs))
 }
-func (ctx *PackBlockContext) GetTxList() []*types.Transaction {
+func (ctx *ParallelContext) GetTxList() []*types.Transaction {
 	return ctx.txList
 }
-func (ctx *PackBlockContext) GetTx(idx int) *types.Transaction {
+func (ctx *ParallelContext) GetTx(idx int) *types.Transaction {
 	if len(ctx.txList) > idx {
 		return ctx.txList[idx]
 	} else {
@@ -126,244 +96,186 @@ func (ctx *PackBlockContext) GetTx(idx int) *types.Transaction {
 	}
 }
 
-func (ctx *PackBlockContext) GetPackedTxList() []*types.Transaction {
+func (ctx *ParallelContext) GetPackedTxList() []*types.Transaction {
 	return ctx.packedTxList
 }
-func (ctx *PackBlockContext) AddPackedTx(tx *types.Transaction) {
+func (ctx *ParallelContext) AddPackedTx(tx *types.Transaction) {
 	ctx.packedTxList = append(ctx.packedTxList, tx)
 }
 
-func (ctx *PackBlockContext) SetResult(idx int, result *Result) {
+func (ctx *ParallelContext) SetResult(idx int, result *Result) {
 	if idx > len(ctx.resultList)-1 {
 		return
 	}
 	ctx.resultList[idx] = result
 }
-func (ctx *PackBlockContext) GetResults() []*Result {
+func (ctx *ParallelContext) GetResults() []*Result {
 	return ctx.resultList
 }
 
-func (ctx *PackBlockContext) GetReceipts() types.Receipts {
+func (ctx *ParallelContext) GetReceipts() types.Receipts {
 	return ctx.receipts
 }
 
-func (ctx *PackBlockContext) AddReceipt(receipt *types.Receipt) {
+func (ctx *ParallelContext) AddReceipt(receipt *types.Receipt) {
 	ctx.receipts = append(ctx.receipts, receipt)
 }
 
-func (ctx *PackBlockContext) SetTxDag(txDag *TxDag) {
+func (ctx *ParallelContext) SetTxDag(txDag *TxDag) {
 	ctx.txDag = txDag
 }
-func (ctx *PackBlockContext) GetTxDag() *TxDag {
+func (ctx *ParallelContext) GetTxDag() *TxDag {
 	return ctx.txDag
 }
 
-func (ctx *PackBlockContext) SetPoppedAddress(poppedAddress *common.Address) {
+func (ctx *ParallelContext) SetPoppedAddress(poppedAddress *common.Address) {
 	ctx.poppedAddresses[poppedAddress] = struct{}{}
 }
-func (ctx *PackBlockContext) GetPoppedAddresses() map[*common.Address]struct{} {
+func (ctx *ParallelContext) GetPoppedAddresses() map[*common.Address]struct{} {
 	return ctx.poppedAddresses
 }
 
-func (ctx *PackBlockContext) GetLogs() []*types.Log {
+func (ctx *ParallelContext) GetLogs() []*types.Log {
 	return ctx.state.Logs()
 }
 
-func (ctx *PackBlockContext) CumulateBlockGasUsed(txGasUsed uint64) {
+func (ctx *ParallelContext) CumulateBlockGasUsed(txGasUsed uint64) {
 	*ctx.blockGasUsedHolder += txGasUsed
 }
-func (ctx *PackBlockContext) GetBlockGasUsed() uint64 {
+func (ctx *ParallelContext) GetBlockGasUsed() uint64 {
 	return *ctx.blockGasUsedHolder
 }
-
-func (ctx *PackBlockContext) GetBlockGasUsedHolder() *uint64 {
+func (ctx *ParallelContext) GetBlockGasUsedHolder() *uint64 {
 	return ctx.blockGasUsedHolder
 }
 
-func (ctx *PackBlockContext) GetEarnings() *big.Int {
+func (ctx *ParallelContext) SetBlockGasUsedHolder(blockGasUsedHolder *uint64) {
+	ctx.blockGasUsedHolder = blockGasUsedHolder
+}
+
+func (ctx *ParallelContext) GetEarnings() *big.Int {
 	return ctx.earnings
 }
 
-func (ctx *PackBlockContext) AddEarnings(earning *big.Int) {
+func (ctx *ParallelContext) AddEarnings(earning *big.Int) {
 	ctx.earnings = new(big.Int).Add(ctx.earnings, earning)
 }
 
-func (ctx *PackBlockContext) SetStartTime(startTime time.Time) {
+func (ctx *ParallelContext) SetStartTime(startTime time.Time) {
 	ctx.startTime = startTime
 }
-func (ctx *PackBlockContext) GetStartTime() time.Time {
+func (ctx *ParallelContext) GetStartTime() time.Time {
 	return ctx.startTime
 }
 
-func (ctx *PackBlockContext) SetBlockDeadline(blockDeadline time.Time) {
+func (ctx *ParallelContext) SetBlockDeadline(blockDeadline time.Time) {
 	ctx.blockDeadline = blockDeadline
 }
 
-func (ctx *PackBlockContext) GetBlockDeadline() time.Time {
+func (ctx *ParallelContext) GetBlockDeadline() time.Time {
 	return ctx.blockDeadline
 }
 
-func (ctx *PackBlockContext) SetTimeout(isTimeout bool) {
-	ctx.timeout.Set(isTimeout)
-}
-
-func (ctx *PackBlockContext) IsTimeout() bool {
-	return ctx.timeout.IsSet()
-}
-
-func (ctx *PackBlockContext) AddGasPool(amount uint64) {
-	ctx.gp.AddGas(amount)
-}
-
-type VerifyBlockContext struct {
-	state              *state.StateDB
-	header             *types.Header
-	blockHash          common.Hash
-	gp                 *GasPool
-	receipts           types.Receipts
-	logs               []*types.Log
-	txList             []*types.Transaction
-	packedTxList       []*types.Transaction
-	resultList         []*Result
-	txDag              *TxDag
-	poppedAddresses    map[*common.Address]struct{}
-	blockGasUsedHolder *uint64
-	earnings           *big.Int
-	verifyResult       bool
-	startTime          time.Time
-}
-
-func NewVerifyBlockContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, blockGasUsed *uint64, startTime time.Time) *VerifyBlockContext {
-	ctx := &VerifyBlockContext{}
-	ctx.state = state
-	ctx.header = header
-	ctx.blockHash = blockHash
-	ctx.gp = gp
-	ctx.poppedAddresses = make(map[*common.Address]struct{})
-	ctx.earnings = big.NewInt(0)
-	ctx.blockGasUsedHolder = blockGasUsed
-	ctx.startTime = startTime
-	return ctx
-}
-
-func (ctx *VerifyBlockContext) SetState(state *state.StateDB) {
-	ctx.state = state
-}
-func (ctx *VerifyBlockContext) GetState() *state.StateDB {
-	return ctx.state
-}
-func (ctx *VerifyBlockContext) SetHeader(header *types.Header) {
-	ctx.header = header
-}
-func (ctx *VerifyBlockContext) GetHeader() *types.Header {
-	return ctx.header
-}
-func (ctx *VerifyBlockContext) SetBlockHash(blockHash common.Hash) {
-	ctx.blockHash = blockHash
-}
-func (ctx *VerifyBlockContext) GetBlockHash() common.Hash {
-	return ctx.blockHash
-}
-func (ctx *VerifyBlockContext) SetGasPool(gp *GasPool) {
-	ctx.gp = gp
-}
-func (ctx *VerifyBlockContext) GetGasPool() *GasPool {
-	return ctx.gp
-}
-
-func (ctx *VerifyBlockContext) SetTxList(txs []*types.Transaction) {
-	ctx.txList = txs
-	ctx.resultList = make([]*Result, len(txs))
-}
-func (ctx *VerifyBlockContext) GetTxList() []*types.Transaction {
-	return ctx.txList
-}
-
-func (ctx *VerifyBlockContext) GetTx(idx int) *types.Transaction {
-	if len(ctx.txList) > idx {
-		return ctx.txList[idx]
-	} else {
-		return nil
+func (ctx *ParallelContext) IsTimeout() bool {
+	if ctx.packNewBlock {
+		if ctx.blockDeadline.Equal(time.Now()) || ctx.blockDeadline.Before(time.Now()) {
+			return true
+		}
 	}
-}
-
-func (ctx *VerifyBlockContext) GetPackedTxList() []*types.Transaction {
-	return ctx.packedTxList
-}
-func (ctx *VerifyBlockContext) AddPackedTx(tx *types.Transaction) {
-	ctx.packedTxList = append(ctx.packedTxList, tx)
-}
-
-func (ctx *VerifyBlockContext) SetResult(idx int, result *Result) {
-	if idx > len(ctx.resultList)-1 {
-		return
-	}
-	ctx.resultList[idx] = result
-}
-func (ctx *VerifyBlockContext) GetResults() []*Result {
-	return ctx.resultList
-}
-
-func (ctx *VerifyBlockContext) GetReceipts() types.Receipts {
-	return ctx.receipts
-}
-
-func (ctx *VerifyBlockContext) AddReceipt(receipt *types.Receipt) {
-	ctx.receipts = append(ctx.receipts, receipt)
-}
-
-func (ctx *VerifyBlockContext) SetTxDag(txDag *TxDag) {
-	ctx.txDag = txDag
-}
-func (ctx *VerifyBlockContext) GetTxDag() *TxDag {
-	return ctx.txDag
-}
-
-func (ctx *VerifyBlockContext) SetPoppedAddress(poppedAddress *common.Address) {
-	ctx.poppedAddresses[poppedAddress] = struct{}{}
-}
-func (ctx *VerifyBlockContext) GetPoppedAddresses() map[*common.Address]struct{} {
-	return ctx.poppedAddresses
-}
-
-func (ctx *VerifyBlockContext) GetLogs() []*types.Log {
-	return ctx.state.Logs()
-}
-
-func (ctx *VerifyBlockContext) CumulateBlockGasUsed(txGasUsed uint64) {
-	*ctx.blockGasUsedHolder += txGasUsed
-}
-func (ctx *VerifyBlockContext) GetBlockGasUsed() uint64 {
-	return *ctx.blockGasUsedHolder
-}
-
-func (ctx *VerifyBlockContext) GetBlockGasUsedHolder() *uint64 {
-	return ctx.blockGasUsedHolder
-}
-
-func (ctx *VerifyBlockContext) GetEarnings() *big.Int {
-	return ctx.earnings
-}
-
-func (ctx *VerifyBlockContext) AddEarnings(earning *big.Int) {
-	ctx.earnings = new(big.Int).Add(ctx.earnings, earning)
-}
-
-func (ctx *VerifyBlockContext) SetVerifyResult(verifyResult bool) {
-	ctx.verifyResult = verifyResult
-}
-func (ctx *VerifyBlockContext) GetVerifyResult() bool {
-	return ctx.verifyResult
-}
-
-func (ctx *VerifyBlockContext) SetTimeout(isTimeout bool) {
-	return
-}
-
-func (ctx *VerifyBlockContext) IsTimeout() bool {
 	return false
 }
 
-func (ctx *VerifyBlockContext) AddGasPool(amount uint64) {
+func (ctx *ParallelContext) AddGasPool(amount uint64) {
 	ctx.gp.AddGas(amount)
+}
+
+func (ctx *ParallelContext) buildTransferFailedResult(idx int, err error) {
+	result := &Result{
+		err: err,
+	}
+	ctx.SetResult(idx, result)
+	fmt.Printf("execute trasnfer failed,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", ctx.GetTx(idx).Hash().Hex(), idx, ctx.gp.Gas(), ctx.GetTx(idx).Gas())
+
+	//log.Debug("buildTransferFailedResult", "blockNumber", ctx.GetHeader().Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash(), "txTo", *ctx.GetTx(idx).To(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", ctx.GetTx(idx).Gas(), "err", err)
+}
+func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject, toStateObject *state.ParallelStateObject, txGasUsed uint64, minerEarnings *big.Int) {
+	tx := ctx.GetTx(idx)
+	var root []byte
+	receipt := types.NewReceipt(root, false, txGasUsed)
+	receipt.TxHash = tx.Hash()
+	receipt.GasUsed = txGasUsed
+	// Set the receipt logs and create a bloom for filtering
+	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+
+	//update root here instead of in state.Merge()
+	fromStateObject.UpdateRoot()
+
+	result := &Result{
+		fromStateObject: fromStateObject,
+		toStateObject:   toStateObject,
+		receipt:         receipt,
+		minerEarnings:   minerEarnings,
+		err:             nil,
+	}
+	ctx.SetResult(idx, result)
+	//log.Debug("buildTransferSuccessResult", "blockNumber", ctx.GetHeader().Number.Uint64(), "txIdx", idx, "txHash", tx.Hash(), "txTo", *tx.To(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", tx.Gas(), "txUsedGas", txGasUsed)
+	fmt.Printf("execute trasnfer success,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d, txUsedGas=%d\n", ctx.GetTx(idx).Hash().Hex(), idx, ctx.gp.Gas(), ctx.GetTx(idx).Gas(), txGasUsed)
+	//fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
+}
+
+func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteEmptyObjects bool) {
+	resultList := ctx.GetResults()
+	for _, idx := range originIdxList {
+		if resultList[idx] != nil {
+			if resultList[idx].err == nil {
+				if resultList[idx].receipt != nil && resultList[idx].err == nil {
+					originState := ctx.GetState()
+					originState.Merge(idx, resultList[idx].fromStateObject, resultList[idx].toStateObject, true)
+
+					// Set the receipt logs and create a bloom for filtering
+					// reset log's logIndex and txIndex
+					receipt := resultList[idx].receipt
+					tx := ctx.GetTx(idx)
+
+					//total with all txs(not only all parallel txs)
+					ctx.CumulateBlockGasUsed(receipt.GasUsed)
+					//log.Debug("tx packed success", "txHash", exe.ctx.GetTx(idx).Hash().Hex(), "txUsedGas", receipt.GasUsed)
+
+					//reset receipt.CumulativeGasUsed
+					receipt.CumulativeGasUsed = ctx.GetBlockGasUsed()
+
+					//receipt.Logs = originState.GetLogs(exe.ctx.GetTx(idx).Hash())
+					//receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+					ctx.AddReceipt(resultList[idx].receipt)
+
+					ctx.AddPackedTx(ctx.GetTx(idx))
+
+					ctx.GetState().IncreaseTxIdx()
+
+					// Cumulate the miner's earnings
+					ctx.AddEarnings(resultList[idx].minerEarnings)
+
+					// refund to gasPool
+					if tx.Gas() >= receipt.GasUsed {
+						ctx.AddGasPool(tx.Gas() - receipt.GasUsed)
+					} else {
+						log.Error("gas < gasUsed", "txIdx", idx, "gas", tx.Gas(), "gasUsed", receipt.GasUsed)
+						panic("gas < gasUsed")
+					}
+
+				} else {
+					//log.Debug("to merge result, stateCpy/receipt is nil", "stateCpy is Nil", resultList[idx].stateCpy != nil, "receipt is Nil", resultList[idx].receipt != nil)
+				}
+			} else {
+				switch resultList[idx].err {
+				case ErrGasLimitReached, ErrNonceTooHigh, vm.ErrAbort:
+					// pop error
+					ctx.SetPoppedAddress(ctx.GetTx(idx).GetFromAddr())
+				default:
+					//shift
+				}
+			}
+		}
+		//exe.ctx.GetState().Finalise(true)
+	}
 }
