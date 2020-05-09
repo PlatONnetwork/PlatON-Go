@@ -22,7 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Locale;
 
-public class PlatonAddressChangeUtils {
+public class PlatonAddressChangeUtil {
 
     public static final String HRP_LAT = "lat";
     public static final String HRP_LAX = "lax";
@@ -184,6 +184,6 @@ public class PlatonAddressChangeUtils {
      */
     public static void main(String[] args) {
         String addressStr = "0x79dAA881CAb1f73B3ceef5dB1869231B416D6dD9";
-        System.out.println("转换后的钱包地址>>>"+ PlatonAddressChangeUtils.encode("lat", convertBits(Numeric.hexStringToByteArray(addressStr),8,5,true)));
+        System.out.println("转换后的钱包地址>>>"+ PlatonAddressChangeUtil.encode("lat", convertBits(Numeric.hexStringToByteArray(addressStr),8,5,true)));
     }
 }
