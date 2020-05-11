@@ -4,6 +4,8 @@ import time
 import pytest
 import allure
 from dacite import from_dict
+from platon_account.internal.transactions import bech32_address_bytes
+
 from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
 from client_sdk_python import Web3
@@ -253,7 +255,6 @@ def sendTransaction_input_nonce(client, data, from_address, to_address, gasPrice
     print(account)
     if check_address:
         to_address = Web3.toChecksumAddress(to_address)
-    tmp_from_address = Web3.toChecksumAddress(from_address)
 
     transaction_dict = {
         "to": to_address,
@@ -262,8 +263,7 @@ def sendTransaction_input_nonce(client, data, from_address, to_address, gasPrice
         "nonce": nonce,
         "data": data,
         "chainId": client.economic.account.chain_id,
-        "value": value,
-        'from': tmp_from_address,
+        "value": value
     }
     signedTransactionDict = node.eth.account.signTransaction(
         transaction_dict, account['prikey']
@@ -293,11 +293,10 @@ def test_test_IT_SD_008_002(client_new_node):
     program_version = node.program_version
     bls_pubkey = node.blspubkey
     bls_proof = node.schnorr_NIZK_prove
-    if benifit_address[:2] == '0x':
-        benifit_address = benifit_address[2:]
+    benifit_address = bech32_address_bytes(benifit_address)
     if program_version_sign[:2] == '0x':
         program_version_sign = program_version_sign[2:]
-    data = HexBytes(rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(bytes.fromhex(benifit_address)),
+    data = HexBytes(rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(benifit_address),
                                 rlp.encode(bytes.fromhex(node.node_id)), rlp.encode("platon"), rlp.encode("platon1"),
                                 rlp.encode("http://www.platon.network"), rlp.encode("The PlatON Node"),
                                 rlp.encode(economic.create_staking_limit), rlp.encode(0), rlp.encode(program_version),
@@ -313,8 +312,7 @@ def test_test_IT_SD_008_002(client_new_node):
     assert_code(resutl, 0)
     second_staking_balance = node.eth.getBalance(node.web3.stakingAddress)
     log.info("second_staking_balance : {}".format(second_staking_balance))
-    assert first_staking_balance + node.web3.toWei(1000,
-                                                   'ether') == second_staking_balance - economic.create_staking_limit
+    assert first_staking_balance + node.web3.toWei(1000,'ether') == second_staking_balance - economic.create_staking_limit
 
 
 # @pytest.mark.P2
@@ -349,10 +347,6 @@ def test_IT_SD_009(client_consensus):
     log.info("Account balance after transfer： {}".format(balance1))
     assert balance1 == balance + node.web3.toWei(200, 'ether'), "ErrMsg:Account balance after transfer：{}".format(
         balance1)
-
-
-def test111(client_consensus):
-    client_consensus.economic.env.stop_all()
 
 
 @pytest.mark.P2
@@ -1503,11 +1497,10 @@ def test_PT_AC_001(client_consensus):
     economic = client.economic
     node = client.node
     list = []
-    transaction_type = 1
     for i in range(5):
         addres1, private_key1 = economic.account.generate_account(node.web3, 100)
         addres2, private_key2 = economic.account.generate_account(node.web3, 100)
-        dict = {'transaction_type': transaction_type, 'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2}
+        dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10}
         list.append(dict)
     print(list)
     return list
@@ -1529,6 +1522,7 @@ def test_PT_AC_002(client_consensus):
         transaction_list.append(transaction_dict)
     print(transaction_list)
     return transaction_list
+
 
 def RO_T_001(new_genesis_env, client_noconsensus):
     """
