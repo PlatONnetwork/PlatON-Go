@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	dag3 "github.com/PlatONnetwork/PlatON-Go/core/dag"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -23,7 +25,7 @@ func NewTxDag(signer types.Signer) *TxDag {
 	return txDag
 }
 
-func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction) error {
+func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs []*types.Transaction) error {
 	txDag.dag = dag3.NewDag(len(txs))
 	//save all transfer addresses between two contracts(precompiled and user defined)
 	transferAddressMap := make(map[common.Address]int, 0)
@@ -82,6 +84,14 @@ func (txDag *TxDag) MakeDagGraph(state *state.StateDB, txs []*types.Transaction)
 			transferAddressMap[*cur.To()] = curIdx
 		}
 	}
+
+	//debug info
+	buff, err := txDag.dag.Print()
+	if err != nil {
+		log.Error("print DAG Graph error!", "blockNumber", blockNumber, "err", err)
+		return nil
+	}
+	log.Debug(fmt.Sprintf("DAG Graph, blockNumber:%d\n%s", blockNumber, buff.String()))
 	return nil
 }
 
