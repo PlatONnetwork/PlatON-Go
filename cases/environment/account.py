@@ -123,7 +123,7 @@ class Account:
 
     def generate_account(self, web3, balance=0):
         platon = Eth(web3)
-        account = platon.account.create(net=web3.net_type)
+        account = platon.account.create(net_type=web3.net_type)
         address = account.address
 
         prikey = account.privateKey.hex()[2:]
