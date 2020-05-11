@@ -1,8 +1,12 @@
 package trie
 
 import (
-	"github.com/stretchr/testify/assert"
+	"fmt"
+	"runtime"
+	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBigCache(t *testing.T) {
@@ -70,4 +74,24 @@ func TestBigCache(t *testing.T) {
 	_, ok = bc.Get("test1")
 	assert.True(t, ok)
 
+}
+
+func TestBigCacheConcurrency(t *testing.T) {
+	bc := NewBigCache(32, 10)
+
+	threads := runtime.NumCPU()
+	var wg sync.WaitGroup
+	wg.Add(threads)
+	for i := 0; i < threads; i++ {
+		go func() {
+			for j := 0; j < 100; j++ {
+				bc.SetLru(fmt.Sprintf("%d", j), []byte(fmt.Sprintf("%d", j)))
+				bc.Set(fmt.Sprintf("%d", j+1), []byte(fmt.Sprintf("%d", j+1)))
+				bc.Get(fmt.Sprintf("%d", j-1))
+				bc.Get(fmt.Sprintf("%d", j))
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }

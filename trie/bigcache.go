@@ -139,7 +139,7 @@ type Stats struct {
 type BigCache struct {
 	shards    []*shard
 	shardMask uint64
-	lock      sync.RWMutex
+	lock      sync.Mutex
 	lru       *LRU
 
 	hits int64
@@ -147,7 +147,7 @@ type BigCache struct {
 
 type shard struct {
 	entries *LRU
-	lock    sync.RWMutex
+	lock    sync.Mutex
 	stats   Stats
 }
 
@@ -187,13 +187,13 @@ func (c *BigCache) SetLru(key string, value []byte) {
 }
 
 func (c *BigCache) Get(key string) ([]byte, bool) {
-	c.lock.RLock()
+	c.lock.Lock()
 	if val, ok := c.lru.Get(key); ok {
 		atomic.AddInt64(&c.hits, 1)
-		c.lock.RUnlock()
+		c.lock.Unlock()
 		return val, true
 	}
-	c.lock.RUnlock()
+	c.lock.Unlock()
 
 	hash := Sum64(key)
 	shard := c.getShard(hash)
@@ -216,9 +216,9 @@ func (c *BigCache) Len() uint64 {
 
 func (c *BigCache) Capacity() uint64 {
 	var cap uint64 = 0
-	c.lock.RLock()
+	c.lock.Lock()
 	cap = c.lru.Capacity()
-	c.lock.RUnlock()
+	c.lock.Unlock()
 
 	for _, shard := range c.shards {
 		cap += shard.entries.Capacity()
@@ -267,8 +267,8 @@ func (s *shard) set(key string, value []byte) {
 }
 
 func (s *shard) get(key string) ([]byte, bool) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	if val, ok := s.entries.Get(key); ok {
 		s.stats.Hits++
 		return val, ok
@@ -288,8 +288,8 @@ func (s *shard) delete(key string) {
 }
 
 func (s *shard) Stats() Stats {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	return s.stats
 }
 
