@@ -33,6 +33,8 @@ class Staking:
     operatingThreshold: int
     maxValidators: int
     unStakeFreezeDuration: int
+    rewardPerMaxChangeRange: int
+    rewardPerChangeInterval: int
 
 
 @dataclass

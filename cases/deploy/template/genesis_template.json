@@ -21,7 +21,9 @@
             "stakeThreshold": 1000000000000000000000000,
             "operatingThreshold": 10000000000000000000,
             "maxValidators": 5,
-            "unStakeFreezeDuration": 2
+            "unStakeFreezeDuration": 2,
+            "rewardPerMaxChangeRange": 500,
+            "rewardPerChangeInterval": 1
         },
         "slashing": {
             "slashFractionDuplicateSign": 100,
