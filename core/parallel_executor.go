@@ -64,12 +64,14 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
 
-		if err := txDag.MakeDagGraph(ctx.GetState(), ctx.txList); err != nil {
+		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList); err != nil {
 			return err
 		}
 		batchNo := 0
 		for !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
+			log.Debug(fmt.Sprintf("DAG info, blockNumber=%d, batchNo=%d, txIdxs=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
+
 			/*for _, idx := range parallelTxIdxs {
 				tx := ctx.GetTx(idx)
 				toAddr := common.ZeroAddr.Hex()
