@@ -834,7 +834,7 @@ func GovernRewardPerMaxChangeRange(blockNumber uint64, blockHash common.Hash) (u
 	return uint16(value), nil
 }
 
-func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (uint16, error) {
 	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerChangeInterval, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
@@ -845,5 +845,5 @@ func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (u
 		return 0, err
 	}
 
-	return uint32(value), nil
+	return uint16(value), nil
 }

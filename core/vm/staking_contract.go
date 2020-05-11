@@ -424,7 +424,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 			return nil, err
 		}
 		currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
-		if rewardPerChangeInterval > currentEpoch-canOld.RewardPerChangeEpoch {
+		if uint32(rewardPerChangeInterval) > currentEpoch-canOld.RewardPerChangeEpoch {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 				fmt.Sprintf("needs interval [%d] epoch to modify", rewardPerChangeInterval),
 				TxEditorCandidate, int(staking.ErrInvalidRewardPer.Code)), nil
@@ -435,7 +435,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 			if canOld.NextRewardPer-canOld.RewardPer > rewardPerMaxChangeRange {
 				isSuccess = false
 			}
-		} else if canOld.NextRewardPer < canOld.RewardPer {
+		} else {
 			if canOld.RewardPer-canOld.NextRewardPer > rewardPerMaxChangeRange {
 				isSuccess = false
 			}

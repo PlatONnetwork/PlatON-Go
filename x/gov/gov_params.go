@@ -287,7 +287,7 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerMaxChangeRange,
-				fmt.Sprintf("The maximum amount of commission reward ratio that can be modified each time, range: [0, 10000]")},
+				fmt.Sprintf("Delegated Reward Ratio The maximum adjustable range of each modification, range: [1, 2000]")},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.RewardPerMaxChangeRange())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -305,15 +305,18 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerChangeInterval,
-				fmt.Sprintf("The interval for each modification of the commission reward ratio")},
+				fmt.Sprintf("The interval for each modification of the commission reward ratio, range: [2, 28]")},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.RewardPerChangeInterval())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
-				/*number, err := strconv.Atoi(value)
+				number, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("parsed RewardPerChangeInterval is failed")
 				}
-				*/
+
+				if err := xcom.CheckRewardPerChangeInterval(uint16(number)); nil != err {
+					return err
+				}
 				return nil
 			},
 		},
