@@ -1,6 +1,5 @@
 package wasm.contract_create;
 
-import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitWithObjectParams;
