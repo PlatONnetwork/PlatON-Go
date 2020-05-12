@@ -566,12 +566,6 @@ var (
 		Usage: "Disable the Wal server",
 	}
 
-	CbftMcd = cli.Uint64Flag{
-		Name:  "cbft.mcd",
-		Usage: "Maximum clock difference. uint:millisecond",
-		Value: 200,
-	}
-
 	CbftMaxPingLatency = cli.Int64Flag{
 		Name:  "cbft.max_ping_latency",
 		Usage: "Maximum latency of ping",
@@ -1139,9 +1133,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
 		cfg.CbftConfig.WalMode = false
 	}
-	if ctx.GlobalIsSet(CbftMcd.Name) {
-		cfg.CbftConfig.Mcd = ctx.GlobalUint64(CbftMcd.Name)
-	}
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
@@ -1264,10 +1255,6 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 
 	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
 		cfg.WalMode = !ctx.GlobalBool(CbftWalDisabledFlag.Name)
-	}
-
-	if ctx.GlobalIsSet(CbftMcd.Name) {
-		cfg.Mcd = ctx.GlobalUint64(CbftMcd.Name)
 	}
 
 	if ctx.GlobalIsSet(CbftPeerMsgQueueSize.Name) {
