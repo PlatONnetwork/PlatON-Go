@@ -95,7 +95,7 @@ public class WASMGeneratorPreTest {
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
-                    compileUtil.wasmCompile(file, buildPath + File.separator + fileName);
+                    compileUtil.wasmCompile(file, buildPath + fileName);
                     collector.logStepPass("compile success:" + file);
                     semaphore.release();
                 } catch (Exception e) {
