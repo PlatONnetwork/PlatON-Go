@@ -43,7 +43,9 @@ type Transaction struct {
 	size atomic.Value
 	from atomic.Value
 
-	fromAddr *common.Address
+	//for parallel executor only
+	fromAddr     *common.Address
+	intrinsicGas uint64
 }
 
 type txdata struct {
@@ -243,6 +245,14 @@ func (tx *Transaction) SetFromAddr(fromAddr *common.Address) {
 
 func (tx *Transaction) GetFromAddr() *common.Address {
 	return tx.fromAddr
+}
+
+func (tx *Transaction) SetIntrinsicGas(intrinsicGas uint64) {
+	tx.intrinsicGas = intrinsicGas
+}
+
+func (tx *Transaction) GetIntrinsicGas() uint64 {
+	return tx.intrinsicGas
 }
 
 // Transactions is a Transaction slice type for basic sorting.
