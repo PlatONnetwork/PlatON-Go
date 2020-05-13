@@ -1,14 +1,11 @@
 package core
 
 import (
-	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	dag3 "github.com/PlatONnetwork/PlatON-Go/core/dag"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 type TxDag struct {
@@ -40,12 +37,12 @@ func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs [
 		}
 
 		if cur.To() == nil || vm.IsPrecompiledContract(*cur.To()) || state.GetCodeSize(*cur.To()) > 0 {
-			if cur.To() == nil {
-				log.Debug("found contract creation tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr())
+			/*if cur.To() == nil {
+				log.Trace("found contract creation tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr())
 			} else {
-				log.Debug("found contract tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
+				log.Trace("found contract tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
 			}
-
+			*/
 			txDag.contracts[curIdx] = struct{}{}
 			if curIdx > 0 {
 				if curIdx-latestPrecompiledIndex > 1 {
@@ -62,7 +59,7 @@ func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs [
 				transferAddressMap = make(map[common.Address]int, 0)
 			}
 		} else {
-			log.Debug("found transfer tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
+			//log.Trace("found transfer tx", "idx", curIdx, "txHash", cur.Hash(), "txGas", cur.Gas(), "fromAddr", *cur.GetFromAddr(), "toAddr", *cur.To())
 			dependFound := 0
 
 			if dependIdx, ok := transferAddressMap[*cur.GetFromAddr()]; ok {
@@ -86,12 +83,12 @@ func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs [
 	}
 
 	//debug info
-	buff, err := txDag.dag.Print()
+	/*buff, err := txDag.dag.Print()
 	if err != nil {
 		log.Error("print DAG Graph error!", "blockNumber", blockNumber, "err", err)
 		return nil
 	}
-	log.Debug(fmt.Sprintf("DAG Graph, blockNumber:%d\n%s", blockNumber, buff.String()))
+	log.Trace(fmt.Sprintf("DAG Graph, blockNumber:%d\n%s", blockNumber, buff.String()))*/
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -64,13 +65,18 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
 
+		start := time.Now()
+
 		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList); err != nil {
 			return err
 		}
+		log.Debug("make dag graph cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
+		start = time.Now()
+
 		batchNo := 0
 		for !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
-			log.Debug(fmt.Sprintf("DAG info, blockNumber=%d, batchNo=%d, txIdxs=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
+			//log.Debug(fmt.Sprintf("DAG info, blockNumber=%d, batchNo=%d, txIdxs=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
 
 			/*for _, idx := range parallelTxIdxs {
 				tx := ctx.GetTx(idx)
@@ -83,14 +89,14 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 
 			if len(parallelTxIdxs) > 0 {
 				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
-					originIdx := parallelTxIdxs[0]
-					tx := ctx.GetTx(originIdx)
+					//originIdx := parallelTxIdxs[0]
+					//tx := ctx.GetTx(originIdx)
 					/*toAddr := common.ZeroAddr.Hex()
 					if tx.To() != nil {
 						toAddr = tx.To().Hex()
 					}*/
 					//log.Debug(fmt.Sprintf("ExecuteBlocks(tx type:contract) begin, blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
-					fmt.Printf("execute contract,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", tx.Hash().Hex(), originIdx, ctx.gp.Gas(), tx.Gas())
+					//fmt.Printf("execute contract,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", tx.Hash().Hex(), originIdx, ctx.gp.Gas(), tx.Gas())
 					exe.executeTransaction(ctx, parallelTxIdxs[0])
 					//log.Debug(fmt.Sprintf("ExecuteBlocks(tx type:contract) done, blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
 				} else {
@@ -115,7 +121,7 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 							}
 						}
 
-						fmt.Printf("execute transfer,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", tx.Hash().Hex(), originIdx, ctx.gp.Gas(), tx.Gas())
+						//fmt.Printf("execute transfer,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", tx.Hash().Hex(), originIdx, ctx.gp.Gas(), tx.Gas())
 						intrinsicGas, err := IntrinsicGas(tx.Data(), false, ctx.GetState())
 						if err != nil {
 							ctx.buildTransferFailedResult(originIdx, err, false)
@@ -141,6 +147,9 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 			}
 			batchNo++
 		}
+		log.Debug("execute block cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
+		start = time.Now()
+
 		//add balance for miner
 		if ctx.GetEarnings().Cmp(big.NewInt(0)) > 0 {
 			//log.Debug("add miner balance", "minerAddr", ctx.header.Coinbase.Hex(), "amount", ctx.GetEarnings().Uint64())
@@ -151,11 +160,16 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 			log.Debug("packed tx", "blockNumber", ctx.header.Number.Uint64(), "idx", idx, "txHash", tx.Hash())
 		}*/
 		ctx.state.Finalise(true)
+		log.Debug("finalise block cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
 	}
 	return nil
 }
 
 func (exe *Executor) executeParallel(ctx *ParallelContext, idx int, intrinsicGas uint64) {
+	/*start := time.Now()
+	defer func() {
+		log.Debug("executeParallel cost", "blockNumber", ctx.header.Number, "txIdx", idx, "time", time.Since(start))
+	}()*/
 	if ctx.IsTimeout() {
 		return
 	}
