@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	riseTimeLimit = 200 * time.Millisecond
+	riseTimeLimit = 1000 * time.Millisecond
 )
 
 type SafetyError interface {
@@ -201,7 +201,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 				parentBlock.Hash().String(), parentBlock.NumberU64(), parentBlock.Time().Int64(), block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64()))
 		}
 
-		// prepareBlock time cannot exceed system time by 200 ms
+		// prepareBlock time cannot exceed system time by 1000 ms(default)
 		sysTime := time.Now()
 		if !blockTime.Before(sysTime.Add(riseTimeLimit)) {
 			return newCommonError(fmt.Sprintf("prepareBlock time is advance(blockHash:%s, blockNum:%d, blockTime:%d, sysTime:%d)",
