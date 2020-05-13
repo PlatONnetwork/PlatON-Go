@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -259,14 +259,15 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	canMutable := &staking.CandidateMutable{
-		Shares:              amount,
-		Released:            new(big.Int).SetInt64(0),
-		ReleasedHes:         new(big.Int).SetInt64(0),
-		RestrictingPlan:     new(big.Int).SetInt64(0),
-		RestrictingPlanHes:  new(big.Int).SetInt64(0),
-		RewardPer:           rewardPer,
-		NextRewardPer:       rewardPer,
-		DelegateRewardTotal: new(big.Int).SetInt64(0),
+		Shares:               amount,
+		Released:             new(big.Int).SetInt64(0),
+		ReleasedHes:          new(big.Int).SetInt64(0),
+		RestrictingPlan:      new(big.Int).SetInt64(0),
+		RestrictingPlanHes:   new(big.Int).SetInt64(0),
+		RewardPer:            rewardPer,
+		NextRewardPer:        rewardPer,
+		RewardPerChangeEpoch: uint32(xutil.CalculateEpoch(blockNumber.Uint64())),
+		DelegateRewardTotal:  new(big.Int).SetInt64(0),
 	}
 
 	can := &staking.Candidate{}
@@ -408,6 +409,44 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	canOld.Description = *desc
 	canOld.NextRewardPer = rewardPer
+
+	if canOld.NextRewardPer != canOld.RewardPer {
+		rewardPerMaxChangeRange, err := gov.GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
+		if nil != err {
+			log.Error("Failed to editCandidate, call GovernRewardPerMaxChangeRange is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"err", err)
+			return nil, err
+		}
+		rewardPerChangeInterval, err := gov.GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
+		if nil != err {
+			log.Error("Failed to editCandidate, call GovernRewardPerChangeInterval is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"err", err)
+			return nil, err
+		}
+		currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
+		if uint32(rewardPerChangeInterval) > currentEpoch-canOld.RewardPerChangeEpoch {
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+				fmt.Sprintf("needs interval [%d] epoch to modify", rewardPerChangeInterval),
+				TxEditorCandidate, int(staking.ErrRewardPerInterval.Code)), nil
+		}
+
+		isSuccess := true
+		if canOld.NextRewardPer > canOld.RewardPer {
+			if canOld.NextRewardPer-canOld.RewardPer > rewardPerMaxChangeRange {
+				isSuccess = false
+			}
+		} else {
+			if canOld.RewardPer-canOld.NextRewardPer > rewardPerMaxChangeRange {
+				isSuccess = false
+			}
+		}
+		if !isSuccess {
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+				fmt.Sprintf("invalid rewardPer: %d, modified by more than: %d", rewardPer, rewardPerMaxChangeRange),
+				TxEditorCandidate, int(staking.ErrRewardPerChangeRange.Code)), nil
+		}
+		canOld.RewardPerChangeEpoch = currentEpoch
+	}
 
 	err = stkc.Plugin.EditCandidate(blockHash, blockNumber, canAddr, canOld)
 	if nil != err {

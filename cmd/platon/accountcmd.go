@@ -259,7 +259,7 @@ func accountCreate(ctx *cli.Context) error {
 	if !ctx.GlobalBool(utils.TestnetFlag.Name) {
 		common.SetAddressPrefix(common.MainNetAddressPrefix)
 	}
-	cfg := gethConfig{Node: defaultNodeConfig()}
+	cfg := platonConfig{Node: defaultNodeConfig()}
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
 		if err := loadConfig(file, &cfg); err != nil {

@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -61,6 +61,8 @@ const (
 	KeyMaxTxDataLimit             = "maxTxDataLimit"
 	KeyZeroProduceNumberThreshold = "zeroProduceNumberThreshold"
 	KeyZeroProduceCumulativeTime  = "zeroProduceCumulativeTime"
+	KeyRewardPerMaxChangeRange    = "rewardPerMaxChangeRange"
+	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
 )
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
@@ -806,6 +808,34 @@ func GovernZeroProduceNumberThreshold(blockNumber uint64, blockHash common.Hash)
 
 func GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) (uint16, error) {
 	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceCumulativeTime, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernRewardPerMaxChangeRange(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerMaxChangeRange, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerChangeInterval, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
