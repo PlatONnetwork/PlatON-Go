@@ -118,12 +118,13 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 						fmt.Printf("execute transfer,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", tx.Hash().Hex(), originIdx, ctx.gp.Gas(), tx.Gas())
 						intrinsicGas, err := IntrinsicGas(tx.Data(), false, ctx.GetState())
 						if err != nil {
-							ctx.buildTransferFailedResult(originIdx, err)
+							ctx.buildTransferFailedResult(originIdx, err, false)
 							continue
 						}
 						//if err := ctx.gp.SubGas(tx.Gas()); err != nil {
+						tx.SetIntrinsicGas(intrinsicGas)
 						if err := ctx.gp.SubGas(intrinsicGas); err != nil {
-							ctx.buildTransferFailedResult(originIdx, err)
+							ctx.buildTransferFailedResult(originIdx, err, false)
 							continue
 						}
 
@@ -163,22 +164,23 @@ func (exe *Executor) executeParallel(ctx *ParallelContext, idx int, intrinsicGas
 
 	msg, err := tx.AsMessage(exe.signer)
 	if err != nil {
-		ctx.buildTransferFailedResult(idx, err)
+		//gas pool is subbed
+		ctx.buildTransferFailedResult(idx, err, true)
 		return
 	}
 	fromObj := ctx.GetState().GetOrNewParallelStateObject(msg.From())
 
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
 	if fromObj.GetBalance().Cmp(mgval) < 0 {
-		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas)
+		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
 		return
 	}
 
 	if fromObj.GetNonce() < msg.Nonce() {
-		ctx.buildTransferFailedResult(idx, ErrNonceTooHigh)
+		ctx.buildTransferFailedResult(idx, ErrNonceTooHigh, true)
 		return
 	} else if fromObj.GetNonce() > msg.Nonce() {
-		ctx.buildTransferFailedResult(idx, ErrNonceTooLow)
+		ctx.buildTransferFailedResult(idx, ErrNonceTooLow, true)
 		return
 	}
 
@@ -189,14 +191,14 @@ func (exe *Executor) executeParallel(ctx *ParallelContext, idx int, intrinsicGas
 	}*/
 
 	if msg.Gas() < intrinsicGas {
-		ctx.buildTransferFailedResult(idx, vm.ErrOutOfGas)
+		ctx.buildTransferFailedResult(idx, vm.ErrOutOfGas, true)
 		return
 	}
 
 	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), msg.GasPrice())
 	subTotal := new(big.Int).Add(msg.Value(), minerEarnings)
 	if fromObj.GetBalance().Cmp(subTotal) < 0 {
-		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas)
+		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
 		return
 	}
 

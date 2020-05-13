@@ -6,20 +6,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
 
 type Result struct {
-	fromStateObject *state.ParallelStateObject
-	toStateObject   *state.ParallelStateObject
-	receipt         *types.Receipt
-	minerEarnings   *big.Int
-	err             error
+	fromStateObject   *state.ParallelStateObject
+	toStateObject     *state.ParallelStateObject
+	receipt           *types.Receipt
+	minerEarnings     *big.Int
+	err               error
+	needRefundGasPool bool
 }
 
 type ParallelContext struct {
@@ -189,9 +188,10 @@ func (ctx *ParallelContext) AddGasPool(amount uint64) {
 	ctx.gp.AddGas(amount)
 }
 
-func (ctx *ParallelContext) buildTransferFailedResult(idx int, err error) {
+func (ctx *ParallelContext) buildTransferFailedResult(idx int, err error, needRefundGasPool bool) {
 	result := &Result{
-		err: err,
+		err:               err,
+		needRefundGasPool: needRefundGasPool,
 	}
 	ctx.SetResult(idx, result)
 	fmt.Printf("execute trasnfer failed,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", ctx.GetTx(idx).Hash().Hex(), idx, ctx.gp.Gas(), ctx.GetTx(idx).Gas())
@@ -235,7 +235,7 @@ func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteE
 					// Set the receipt logs and create a bloom for filtering
 					// reset log's logIndex and txIndex
 					receipt := resultList[idx].receipt
-					tx := ctx.GetTx(idx)
+					//tx := ctx.GetTx(idx)
 
 					//total with all txs(not only all parallel txs)
 					ctx.CumulateBlockGasUsed(receipt.GasUsed)
@@ -255,18 +255,22 @@ func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteE
 					// Cumulate the miner's earnings
 					ctx.AddEarnings(resultList[idx].minerEarnings)
 
-					// refund to gasPool
-					if tx.Gas() >= receipt.GasUsed {
+					// if transfer ok, needn't refund to gasPool
+					/*if tx.Gas() >= receipt.GasUsed {
 						ctx.AddGasPool(tx.Gas() - receipt.GasUsed)
 					} else {
 						log.Error("gas < gasUsed", "txIdx", idx, "gas", tx.Gas(), "gasUsed", receipt.GasUsed)
 						panic("gas < gasUsed")
-					}
+					}*/
 
 				} else {
 					//log.Debug("to merge result, stateCpy/receipt is nil", "stateCpy is Nil", resultList[idx].stateCpy != nil, "receipt is Nil", resultList[idx].receipt != nil)
 				}
 			} else {
+				if resultList[idx].needRefundGasPool {
+					tx := ctx.GetTx(idx)
+					ctx.AddGasPool(tx.GetIntrinsicGas())
+				}
 				switch resultList[idx].err {
 				case ErrGasLimitReached, ErrNonceTooHigh, vm.ErrAbort:
 					// pop error
