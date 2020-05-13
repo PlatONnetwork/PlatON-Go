@@ -37,9 +37,9 @@ public class HomeBridge extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_SETGASLIMITWITHDRAWRELAY = "setGasLimitWithdrawRelay";
-
     public static final String FUNC_WITHDRAW = "withdraw";
+
+    public static final String FUNC_SETGASLIMITWITHDRAWRELAY = "setGasLimitWithdrawRelay";
 
     public static final WasmEvent GASCONSUMPTIONLIMITSUPDATED_EVENT = new WasmEvent("GasConsumptionLimitsUpdated", Arrays.asList(), Arrays.asList(new WasmEventParameter(BigInteger.class)));
     ;
@@ -87,6 +87,16 @@ public class HomeBridge extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(GASCONSUMPTIONLIMITSUPDATED_EVENT));
         return gasConsumptionLimitsUpdatedEventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> withdraw(byte[] vs, byte[][] rs, byte[][] ss, byte[] message) {
+        final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(vs,rs,ss,message), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> withdraw(byte[] vs, byte[][] rs, byte[][] ss, byte[] message, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(vs,rs,ss,message), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<WithdrawEventResponse> getWithdrawEvents(TransactionReceipt transactionReceipt) {
@@ -183,16 +193,6 @@ public class HomeBridge extends WasmContract {
     public static RemoteCall<HomeBridge> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
         return deployRemoteCall(HomeBridge.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> withdraw(byte[] vs, byte[][] rs, byte[][] ss, byte[] message) {
-        final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(vs,rs,ss,message), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> withdraw(byte[] vs, byte[][] rs, byte[][] ss, byte[] message, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(vs,rs,ss,message), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static HomeBridge load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
