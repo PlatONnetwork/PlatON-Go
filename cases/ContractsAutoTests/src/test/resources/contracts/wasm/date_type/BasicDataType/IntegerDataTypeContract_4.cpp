@@ -1,3 +1,4 @@
+#define TESTNET
 #undef NDEBUG
 // Author: zjsunzone
 // Desc: 验证所有基础数据类型的入参、返回值等是否合规
@@ -19,7 +20,8 @@ CONTRACT IntegerDataTypeContract_4: public platon::Contract
 		/// init value for address.
 		ACTION void initAddress()
 		{
-			tAddress.self() = make_address("0xf674172E619af9C09C126a568CF2838d243cE7F7");
+			//tAddress.self() = make_address("0xf674172E619af9C09C126a568CF2838d243cE7F7");
+			tAddress.self() = make_address("lax108d45qw2k8mnk08w7hd3s6frrdqk6mwevvkgwc");
 		}
 
 		/// set value for address.

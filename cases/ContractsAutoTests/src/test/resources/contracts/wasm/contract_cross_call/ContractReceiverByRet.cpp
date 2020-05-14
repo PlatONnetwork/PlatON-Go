@@ -1,4 +1,4 @@
-#undef NDEBUG
+#define TESTNET
 #include <platon/platon.hpp>
 #include <string>
 

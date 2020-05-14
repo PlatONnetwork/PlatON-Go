@@ -1,3 +1,4 @@
+#define TESTNET
 #include <platon/platon.hpp>
 #include <string>
 //#include <Contract_hello.hpp>

@@ -1,3 +1,4 @@
+#define TESTNET
 #undef NDEBUG
 #include "platon/contract.hpp"
 //#include "platon/common.h"

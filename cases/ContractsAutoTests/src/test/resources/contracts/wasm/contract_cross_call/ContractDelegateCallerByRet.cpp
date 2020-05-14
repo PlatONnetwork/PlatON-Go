@@ -1,3 +1,4 @@
+#define TESTNET
 #undef NDEBUG
 #include <platon/platon.hpp>
 #include <vector>

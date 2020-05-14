@@ -1,3 +1,4 @@
+#define TESTNET
 #include <platon/platon.hpp>
 #include <string>
 using namespace platon;
@@ -18,7 +19,7 @@ CONTRACT CallerFunction : public platon::Contract{
       	addr.resize(20);
         ::platon_caller(addr.data());
         Address address(addr);
-        DEBUG("caller", "addr", address.toString());
+        //DEBUG("caller", "addr", address.toString());
         return Address(addr).toString();
     }
 };
