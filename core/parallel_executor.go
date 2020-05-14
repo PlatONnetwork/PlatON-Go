@@ -60,7 +60,7 @@ func GetExecutor() *Executor {
 
 func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 	log.Debug(fmt.Sprintf("ExecuteBlocks begin blockNumber=%d, packNewBlock=%t, gasPool=%d", ctx.header.Number.Uint64(), ctx.packNewBlock, ctx.gp.Gas()))
-
+	log.Debug("ExecuteBlocks goroutine info(start)", "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
 	if len(ctx.txList) > 0 {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
@@ -162,6 +162,8 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 		ctx.state.Finalise(true)
 		log.Debug("finalise block cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
 	}
+	log.Debug("ExecuteBlocks goroutine info(end)", "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
+
 	return nil
 }
 
