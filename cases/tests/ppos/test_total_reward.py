@@ -12,7 +12,7 @@ from common.log import log
 from common.key import mock_duplicate_sign
 from tests.lib.genesis import to_genesis
 from tests.lib.client import Client
-from tests.lib.utils import assert_code, get_pledge_list
+from tests.lib.utils import assert_code, get_pledge_list, von_amount
 from tests.ppos.conftest import create_staking, calculate
 
 
@@ -139,44 +139,48 @@ def test_DG_TR_003(staking_node_client):
 
 @pytest.mark.P1
 @pytest.mark.parametrize('value', [0, 499, 500])
-def test_DG_TR_003_01(staking_node_client, value):
+def test_DG_TR_003_01(client_noconsensus, value):
     """
-    增加非内置节点分红比例rewardPerMaxChangeRange值
+    增加非内置节点分红比例<rewardPerMaxChangeRange值
     :param staking_node_client:
     :return:
     """
-    economic = staking_node_client.economic
-    node = staking_node_client.node
-    result = staking_node_client.delegate.delegate(0, staking_node_client.delegate_address)
+    economic = client_noconsensus.economic
+    node = client_noconsensus.node
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    result = client_noconsensus.staking.create_staking(0, address, address, reward_per=1000)
+    print(result)
     assert_code(result, 0)
-    reward = economic.genesis.economicModel.rewardPerMaxChangeRange + value
+    delegate_address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    result = client_noconsensus.delegate.delegate(0, delegate_address)
+    assert_code(result, 0)
     log.info("modify node dividend ratio")
-    result = staking_node_client.staking.edit_candidate(staking_node_client.staking_address,
-                                                        staking_node_client.staking_address, reward_per=reward)
+    if value != 0:
+        economic.wait_settlement_blocknum(node, 1)
+    reward = 1000 + value
+    result = client_noconsensus.staking.edit_candidate(address, address, reward_per=reward)
     assert_code(result, 0)
-    candidate_info = staking_node_client.ppos.getCandidateInfo(node.node_id)
+    candidate_info = client_noconsensus.ppos.getCandidateInfo(node.node_id)
     log.info("querying node information：{}".format(candidate_info))
     log.info("check dividend ratio")
-    assert_reward_per(candidate_info, staking_node_client.reward)
+    assert_reward_per(candidate_info, 1000)
     assert_next_reward_per(candidate_info, reward)
     log.info("waiting for a settlement cycle")
     economic.wait_settlement_blocknum(node)
     block_reward, staking_reward = economic.get_current_year_reward(node)
     log.info("query block reward and pledge reward：{}，{}".format(block_reward, staking_reward))
     economic.wait_settlement_blocknum(node)
-    candidate_info = staking_node_client.ppos.getCandidateInfo(node.node_id)
+    candidate_info = client_noconsensus.ppos.getCandidateInfo(node.node_id)
     log.info("querying node information：{}".format(candidate_info))
     assert_reward_per(candidate_info, reward)
-    delegate_reward = economic.calculate_delegate_reward(node, block_reward, staking_reward)
-    log.info("the total commission reward is:{}".format(delegate_reward))
-    assert_reward_total(candidate_info, delegate_reward, calculate_pool_balance(node, economic))
+    economic.env.deploy_all()
 
 
 @pytest.mark.P1
 @pytest.mark.parametrize('value', [0, 499, 500])
 def test_DG_TR_003_02(staking_node_client, value):
     """
-    减少非内置节点分红比例rewardPerMaxChangeRange值
+    减少非内置节点分红比例<rewardPerMaxChangeRange值
     :param staking_node_client:
     :return:
     """
@@ -184,8 +188,10 @@ def test_DG_TR_003_02(staking_node_client, value):
     node = staking_node_client.node
     result = staking_node_client.delegate.delegate(0, staking_node_client.delegate_address)
     assert_code(result, 0)
-    reward = economic.genesis.economicModel.rewardPerMaxChangeRange - value
     log.info("modify node dividend ratio")
+    if value != 0:
+        economic.wait_settlement_blocknum(node, 1)
+    reward = 1000 - value
     result = staking_node_client.staking.edit_candidate(staking_node_client.staking_address,
                                                         staking_node_client.staking_address, reward_per=reward)
     assert_code(result, 0)
@@ -202,9 +208,99 @@ def test_DG_TR_003_02(staking_node_client, value):
     candidate_info = staking_node_client.ppos.getCandidateInfo(node.node_id)
     log.info("querying node information：{}".format(candidate_info))
     assert_reward_per(candidate_info, reward)
-    delegate_reward = economic.calculate_delegate_reward(node, block_reward, staking_reward)
-    log.info("the total commission reward is:{}".format(delegate_reward))
-    assert_reward_total(candidate_info, delegate_reward, calculate_pool_balance(node, economic))
+    economic.env.deploy_all()
+
+
+@pytest.mark.P1
+def test_DG_TR_003_03(staking_node_client, reset_environment):
+    """
+    调整非内置节点分红比例>rewardPerMaxChangeRange值
+    :param staking_node_client:
+    :return:
+    """
+    economic = staking_node_client.economic
+    node = staking_node_client.node
+    result = staking_node_client.delegate.delegate(0, staking_node_client.delegate_address)
+    assert_code(result, 0)
+    addition_reward = 1000 + economic.genesis.economicModel.staking.rewardPerMaxChangeRange + 1
+    log.info("modify node dividend ratio")
+    economic.wait_settlement_blocknum(node, 1)
+    result = staking_node_client.staking.edit_candidate(staking_node_client.staking_address,
+                                                        staking_node_client.staking_address, reward_per=addition_reward)
+    assert_code(result, 301009)
+
+    reduce_reward = 1000 - (economic.genesis.economicModel.staking.rewardPerMaxChangeRange + 1)
+    log.info("modify node dividend ratio")
+    result = staking_node_client.staking.edit_candidate(staking_node_client.staking_address,
+                                                        staking_node_client.staking_address, reward_per=reduce_reward)
+    assert_code(result, 301009)
+
+
+@pytest.mark.P1
+def test_DG_TR_003_04(client_noconsensus, reset_environment):
+    """
+    调整非内置节点分红比例超过万分比
+    :param staking_node_client:
+    :return:
+    """
+    economic = client_noconsensus.economic
+    node = client_noconsensus.node
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    result = client_noconsensus.staking.create_staking(0, address, address,reward_per=9600)
+    assert_code(result, 0)
+    economic.wait_settlement_blocknum(node, 1)
+    addition_reward = 9600 + economic.genesis.economicModel.staking.rewardPerMaxChangeRange
+    log.info("modify node dividend ratio")
+    result = client_noconsensus.staking.edit_candidate(address, address, reward_per=addition_reward)
+    assert_code(result, 301007)
+
+
+@pytest.mark.P1
+def DG_TR_003_05(client_noconsensus):
+    """
+    调整非内置节点分红比例负
+    :param staking_node_client:
+    :return:
+    """
+    economic = client_noconsensus.economic
+    node = client_noconsensus.node
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    result = client_noconsensus.staking.create_staking(0, address, address,reward_per=400)
+    assert_code(result, 0)
+    economic.wait_settlement_blocknum(node, 1)
+    addition_reward = 400 - economic.genesis.economicModel.staking.rewardPerMaxChangeRange
+    log.info("modify node dividend ratio")
+    result = client_noconsensus.staking.edit_candidate(address, address, reward_per=addition_reward)
+    # assert_code(result, 301007)
+    log.info("nodeinfo: {}".format(client_noconsensus.ppos.getCandidateInfo(node.node_id)))
+
+
+@pytest.mark.P1
+def test_DG_TR_003_06(client_noconsensus):
+    """
+    调整非内置节点分红比例时限
+    :param staking_node_client:今晚
+    :return:
+    """
+    economic = client_noconsensus.economic
+    node = client_noconsensus.node
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    result = client_noconsensus.staking.create_staking(0, address, address, reward_per=1000)
+    assert_code(result, 0)
+    addition_reward = 1000 + economic.genesis.economicModel.staking.rewardPerMaxChangeRange
+    log.info("modify node dividend ratio")
+    result = client_noconsensus.staking.edit_candidate(address, address, reward_per=addition_reward)
+    assert_code(result, 301008)
+    economic.wait_settlement_blocknum(node, 1)
+    result = client_noconsensus.staking.edit_candidate(address, address, reward_per=addition_reward)
+    assert_code(result, 0)
+    economic.wait_settlement_blocknum(node)
+    candidate_info = client_noconsensus.ppos.getCandidateInfo(node.node_id)
+    log.info("querying node information：{}".format(candidate_info))
+    assert_reward_per(candidate_info, addition_reward)
+    addition_reward = addition_reward + economic.genesis.economicModel.staking.rewardPerMaxChangeRange
+    result = client_noconsensus.staking.edit_candidate(address, address, reward_per=addition_reward)
+    assert_code(result, 301008)
 
 
 @pytest.mark.P1

@@ -4,6 +4,7 @@ import time
 import pytest
 import allure
 from dacite import from_dict
+from eth_keys.datatypes import PrivateKey
 from platon_account.internal.transactions import bech32_address_bytes
 
 from common.key import get_pub_key, mock_duplicate_sign
@@ -1498,10 +1499,10 @@ def test_PT_AC_001(client_consensus):
     node = client.node
     list = []
     for i in range(5):
-        addres1, private_key1 = economic.account.generate_account(node.web3, 100)
-        addres2, private_key2 = economic.account.generate_account(node.web3, 100)
-        dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10}
-        list.append(dict)
+        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+        addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
+        list.append(transaction_dict)
     print(list)
     return list
 
@@ -1514,11 +1515,189 @@ def test_PT_AC_002(client_consensus):
     economic = client.economic
     node = client.node
     transaction_list = []
-    transaction_type = 1
-    addres1, private_key1 = economic.account.generate_account(node.web3, 100)
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
     for i in range(5):
         addres2, private_key2 = economic.account.generate_account(node.web3, 100)
-        transaction_dict = {'transaction_type': transaction_type, 'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2}
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
+        transaction_list.append(transaction_dict)
+    print(transaction_list)
+    return transaction_list
+
+
+def test_PT_AC_003(client_consensus):
+    """
+    关联性转账交易（二）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    for i in range(5):
+        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+        addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+        transaction_dict1 = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
+        transaction_dict2 = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
+        transaction_list.append(transaction_dict1)
+        transaction_list.append(transaction_dict2)
+    print(transaction_list)
+    return transaction_list
+
+
+def test_PT_AC_004(client_consensus):
+    """
+    关联性转账交易（三）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+    for i in range(5):
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
+        transaction_list.append(transaction_dict)
+    print(transaction_list)
+    return transaction_list
+
+
+def test_PT_AC_005(client_consensus):
+    """
+    非关联性转账交易nonce重复
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+    nonce = client_consensus.node.web3.platon.getTransactionCount(addres1)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+1}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+2}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+2}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+3}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+4}
+    transaction_list.append(transaction_dict)
+    print(transaction_list)
+    return transaction_list
+
+
+def test_PT_AC_006(client_consensus):
+    """
+    非关联性转账交易nonce不连续
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+    nonce = client_consensus.node.web3.platon.getTransactionCount(addres1)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+1}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+3}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+4}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+5}
+    transaction_list.append(transaction_dict)
+    print(transaction_list)
+    return transaction_list
+
+
+def test_PT_AC_007(client_consensus):
+    """
+    向合约地址转账（不同地址转入）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    for i in range(10):
+        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': EconomicConfig.INCENTIVEPOOL_ADDRESS, 'to_private': None, 'amount': 10, 'nonce': None}
+        transaction_list.append(transaction_dict)
+    print(transaction_list)
+    return transaction_list
+
+
+def test_PT_AC_008(client_consensus):
+    """
+    向合约地址转账（同地址转入）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    for i in range(10):
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': EconomicConfig.INCENTIVEPOOL_ADDRESS, 'to_private': None, 'amount': 10, 'nonce': None}
+        transaction_list.append(transaction_dict)
+    print(transaction_list)
+    return transaction_list
+
+
+def test_PT_AC_009(client_consensus):
+    """
+    gas和余额不足（一）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
+    addres3, private_key3 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 5, 'nonce': None}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres2, 'from_private': private_key2, 'to': addres3, 'to_private': private_key3, 'amount': 5, 'nonce': None}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres3, 'from_private': private_key3, 'to': addres1, 'to_private': private_key1, 'amount': 10, 'nonce': None}
+    transaction_list.append(transaction_dict)
+    print(transaction_list)
+    return transaction_list
+
+
+def test_PT_AC_010(client_consensus):
+    """
+    gas和余额不足（二）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
+    addres3, private_key3 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 5, 'nonce': None}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres3, 'from_private': private_key2, 'to': addres1, 'to_private': private_key3, 'amount': 10, 'nonce': None}
+    transaction_list.append(transaction_dict)
+    transaction_dict = {'from': addres2, 'from_private': private_key3, 'to': addres3, 'to_private': private_key1, 'amount': 5, 'nonce': None}
+    transaction_list.append(transaction_dict)
+    print(transaction_list)
+    return transaction_list
+
+
+def test_PT_AC_013(client_consensus):
+    """
+    gas和余额不足（二）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    for i in range(10):
+        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
         transaction_list.append(transaction_dict)
     print(transaction_list)
     return transaction_list
