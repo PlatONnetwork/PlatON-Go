@@ -29,6 +29,8 @@ public class InitWithVector extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_VECTOR_INSERT_ELEMENT = "vector_insert_element";
+
     public static final String FUNC_ADD_VECTOR = "add_vector";
 
     public static final String FUNC_GET_VECTOR_SIZE = "get_vector_size";
@@ -36,8 +38,6 @@ public class InitWithVector extends WasmContract {
     public static final String FUNC_GET_VECTOR = "get_vector";
 
     public static final String FUNC_VECTOR_PUSH_BACK_ELEMENT = "vector_push_back_element";
-
-    public static final String FUNC_VECTOR_INSERT_ELEMENT = "vector_insert_element";
 
     public static final String FUNC_VECTOR_POP_BACK_ELEMENT = "vector_pop_back_element";
 
@@ -57,6 +57,16 @@ public class InitWithVector extends WasmContract {
 
     protected InitWithVector(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> vector_insert_element(String value, Uint8 index) {
+        final WasmFunction function = new WasmFunction(FUNC_VECTOR_INSERT_ELEMENT, Arrays.asList(value,index), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> vector_insert_element(String value, Uint8 index, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_VECTOR_INSERT_ELEMENT, Arrays.asList(value,index), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<InitWithVector> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Uint16 age) {
@@ -106,16 +116,6 @@ public class InitWithVector extends WasmContract {
 
     public RemoteCall<TransactionReceipt> vector_push_back_element(String value, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_VECTOR_PUSH_BACK_ELEMENT, Arrays.asList(value), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> vector_insert_element(String value, Uint8 index) {
-        final WasmFunction function = new WasmFunction(FUNC_VECTOR_INSERT_ELEMENT, Arrays.asList(value,index), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> vector_insert_element(String value, Uint8 index, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_VECTOR_INSERT_ELEMENT, Arrays.asList(value,index), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

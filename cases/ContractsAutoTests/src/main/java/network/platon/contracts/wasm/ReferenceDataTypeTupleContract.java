@@ -28,8 +28,6 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GETTUPLEVALUEINDEX4 = "getTupleValueIndex4";
-
     public static final String FUNC_SETINITTUPLEMODEONE = "setInitTupleModeOne";
 
     public static final String FUNC_GETTUPLEVALUEINDEX1 = "getTupleValueIndex1";
@@ -42,17 +40,14 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
 
     public static final String FUNC_SETINITTUPLEMODETHREE = "setInitTupleModeThree";
 
+    public static final String FUNC_GETTUPLEVALUEINDEX4 = "getTupleValueIndex4";
+
     protected ReferenceDataTypeTupleContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
     }
 
     protected ReferenceDataTypeTupleContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<Person> getTupleValueIndex4() {
-        final WasmFunction function = new WasmFunction(FUNC_GETTUPLEVALUEINDEX4, Arrays.asList(), Person.class);
-        return executeRemoteCall(function, Person.class);
     }
 
     public RemoteCall<TransactionReceipt> setInitTupleModeOne() {
@@ -118,6 +113,11 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
     public RemoteCall<TransactionReceipt> setInitTupleModeThree(String name, Uint64 age, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SETINITTUPLEMODETHREE, Arrays.asList(name,age), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Person> getTupleValueIndex4() {
+        final WasmFunction function = new WasmFunction(FUNC_GETTUPLEVALUEINDEX4, Arrays.asList(), Person.class);
+        return executeRemoteCall(function, Person.class);
     }
 
     public static ReferenceDataTypeTupleContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

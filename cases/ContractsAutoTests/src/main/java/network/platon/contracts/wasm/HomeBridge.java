@@ -41,10 +41,10 @@ public class HomeBridge extends WasmContract {
 
     public static final String FUNC_SETGASLIMITWITHDRAWRELAY = "setGasLimitWithdrawRelay";
 
-    public static final WasmEvent GASCONSUMPTIONLIMITSUPDATED_EVENT = new WasmEvent("GasConsumptionLimitsUpdated", Arrays.asList(), Arrays.asList(new WasmEventParameter(BigInteger.class)));
+    public static final WasmEvent WITHDRAW_EVENT = new WasmEvent("Withdraw", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class)));
     ;
 
-    public static final WasmEvent WITHDRAW_EVENT = new WasmEvent("Withdraw", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class)));
+    public static final WasmEvent GASCONSUMPTIONLIMITSUPDATED_EVENT = new WasmEvent("GasConsumptionLimitsUpdated", Arrays.asList(), Arrays.asList(new WasmEventParameter(BigInteger.class)));
     ;
 
     public static final WasmEvent DEPOSIT_EVENT = new WasmEvent("Deposit", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class)));
@@ -56,37 +56,6 @@ public class HomeBridge extends WasmContract {
 
     protected HomeBridge(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public List<GasConsumptionLimitsUpdatedEventResponse> getGasConsumptionLimitsUpdatedEvents(TransactionReceipt transactionReceipt) {
-        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(GASCONSUMPTIONLIMITSUPDATED_EVENT, transactionReceipt);
-        ArrayList<GasConsumptionLimitsUpdatedEventResponse> responses = new ArrayList<GasConsumptionLimitsUpdatedEventResponse>(valueList.size());
-        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
-            GasConsumptionLimitsUpdatedEventResponse typedResponse = new GasConsumptionLimitsUpdatedEventResponse();
-            typedResponse.log = eventValues.getLog();
-            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
-            responses.add(typedResponse);
-        }
-        return responses;
-    }
-
-    public Observable<GasConsumptionLimitsUpdatedEventResponse> gasConsumptionLimitsUpdatedEventObservable(PlatonFilter filter) {
-        return web3j.platonLogObservable(filter).map(new Func1<Log, GasConsumptionLimitsUpdatedEventResponse>() {
-            @Override
-            public GasConsumptionLimitsUpdatedEventResponse call(Log log) {
-                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(GASCONSUMPTIONLIMITSUPDATED_EVENT, log);
-                GasConsumptionLimitsUpdatedEventResponse typedResponse = new GasConsumptionLimitsUpdatedEventResponse();
-                typedResponse.log = log;
-                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
-                return typedResponse;
-            }
-        });
-    }
-
-    public Observable<GasConsumptionLimitsUpdatedEventResponse> gasConsumptionLimitsUpdatedEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
-        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(WasmEventEncoder.encode(GASCONSUMPTIONLIMITSUPDATED_EVENT));
-        return gasConsumptionLimitsUpdatedEventObservable(filter);
     }
 
     public RemoteCall<TransactionReceipt> withdraw(byte[] vs, byte[][] rs, byte[][] ss, byte[] message) {
@@ -130,6 +99,37 @@ public class HomeBridge extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(WITHDRAW_EVENT));
         return withdrawEventObservable(filter);
+    }
+
+    public List<GasConsumptionLimitsUpdatedEventResponse> getGasConsumptionLimitsUpdatedEvents(TransactionReceipt transactionReceipt) {
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(GASCONSUMPTIONLIMITSUPDATED_EVENT, transactionReceipt);
+        ArrayList<GasConsumptionLimitsUpdatedEventResponse> responses = new ArrayList<GasConsumptionLimitsUpdatedEventResponse>(valueList.size());
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
+            GasConsumptionLimitsUpdatedEventResponse typedResponse = new GasConsumptionLimitsUpdatedEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Observable<GasConsumptionLimitsUpdatedEventResponse> gasConsumptionLimitsUpdatedEventObservable(PlatonFilter filter) {
+        return web3j.platonLogObservable(filter).map(new Func1<Log, GasConsumptionLimitsUpdatedEventResponse>() {
+            @Override
+            public GasConsumptionLimitsUpdatedEventResponse call(Log log) {
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(GASCONSUMPTIONLIMITSUPDATED_EVENT, log);
+                GasConsumptionLimitsUpdatedEventResponse typedResponse = new GasConsumptionLimitsUpdatedEventResponse();
+                typedResponse.log = log;
+                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
+                return typedResponse;
+            }
+        });
+    }
+
+    public Observable<GasConsumptionLimitsUpdatedEventResponse> gasConsumptionLimitsUpdatedEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(WasmEventEncoder.encode(GASCONSUMPTIONLIMITSUPDATED_EVENT));
+        return gasConsumptionLimitsUpdatedEventObservable(filter);
     }
 
     public RemoteCall<TransactionReceipt> setGasLimitWithdrawRelay(BigInteger gas) {
@@ -203,16 +203,16 @@ public class HomeBridge extends WasmContract {
         return new HomeBridge(contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static class GasConsumptionLimitsUpdatedEventResponse {
-        public Log log;
-
-        public BigInteger arg1;
-    }
-
     public static class WithdrawEventResponse {
         public Log log;
 
         public String topic;
+
+        public BigInteger arg1;
+    }
+
+    public static class GasConsumptionLimitsUpdatedEventResponse {
+        public Log log;
 
         public BigInteger arg1;
     }
