@@ -294,7 +294,8 @@ func (w *worker) pending() (*types.Block, *state.StateDB) {
 func (w *worker) pendingBlock() *types.Block {
 	// return a snapshot to avoid contention on currentMu mutex
 	if _, ok := w.engine.(consensus.Bft); ok {
-		pendingBlock, _ := w.makePending()
+		pendingBlock, st := w.makePending()
+		st.ClearParentReference()
 		return pendingBlock
 	} else {
 		w.snapshotMu.RLock()
