@@ -39,9 +39,9 @@ type TaskArgs struct {
 var intrinsicGasCache atomic.Value
 
 func EstimateTransferIntrinsicGas(txData []byte) (uint64, error) {
-	intrinsicGas := intrinsicGasCache.Load().(uint64)
-	if intrinsicGas > 0 {
-		return intrinsicGas, nil
+	intrinsicGasInf := intrinsicGasCache.Load()
+	if intrinsicGasInf != nil {
+		return intrinsicGasInf.(uint64), nil
 	} else {
 		if gas, err := IntrinsicGas(txData, false, nil); err != nil {
 			return uint64(0), err
