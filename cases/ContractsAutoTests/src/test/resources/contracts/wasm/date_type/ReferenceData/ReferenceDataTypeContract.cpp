@@ -19,7 +19,10 @@ CONTRACT ReferenceDataTypeContract: public platon::Contract{
 		// 针对address类型的map进行设置
 		ACTION void setAddressMap(const std::string& key, const std::string& addr)
 		{
-			tmaddress.self()[key] = Address(addr);
+		    auto address_info = make_address(addr);
+            if(address_info.second) Address address = address_info.first;
+
+			tmaddress.self()[key] = address;
 			//tmaddress.self()[key] = "compile error"; // expect: compile error.
 			//tmaddress.self()[key] = 111;			   // expect: compile error.
 		}
