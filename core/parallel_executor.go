@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -33,6 +34,22 @@ type TaskArgs struct {
 	ctx          *ParallelContext
 	idx          int
 	intrinsicGas uint64
+}
+
+var intrinsicGasCache atomic.Value
+
+func EstimateTransferIntrinsicGas(txData []byte) (uint64, error) {
+	intrinsicGas := intrinsicGasCache.Load().(uint64)
+	if intrinsicGas > 0 {
+		return intrinsicGas, nil
+	} else {
+		if gas, err := IntrinsicGas(txData, false, nil); err != nil {
+			return uint64(0), err
+		} else {
+			intrinsicGasCache.Store(gas)
+			return gas, nil
+		}
+	}
 }
 
 func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmCfg vm.Config) {
@@ -122,13 +139,14 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 						}
 
 						//fmt.Printf("execute transfer,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", tx.Hash().Hex(), originIdx, ctx.gp.Gas(), tx.Gas())
-						intrinsicGas, err := IntrinsicGas(tx.Data(), false, ctx.GetState())
+						intrinsicGas, err := EstimateTransferIntrinsicGas(tx.Data())
 						if err != nil {
 							ctx.buildTransferFailedResult(originIdx, err, false)
 							continue
 						}
-						//if err := ctx.gp.SubGas(tx.Gas()); err != nil {
 						tx.SetIntrinsicGas(intrinsicGas)
+
+						//if err := ctx.gp.SubGas(tx.Gas()); err != nil {
 						if err := ctx.gp.SubGas(intrinsicGas); err != nil {
 							ctx.buildTransferFailedResult(originIdx, err, false)
 							continue
