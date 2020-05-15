@@ -15,7 +15,9 @@ CONTRACT cross_caller_byret : public platon::Contract {
         ACTION void callFeed(std::string target_address, uint64_t gasValue) {
 
             uint64_t transfer_value = 0;
-            auto result = platon::platon_call<uint8_t>(Address(target_address), transfer_value, gasValue, "info");
+            auto address_info = make_address(target_address);
+            if(address_info.second){
+                auto result = platon::platon_call<uint8_t>(address_info.first, transfer_value, gasValue, "info");
             if(result.second){
                 status.self() = 0; // successed
 
@@ -25,7 +27,7 @@ CONTRACT cross_caller_byret : public platon::Contract {
 
                 DEBUG("cross_caller_byret call receiver_byret info has failed!")
             }
-
+            }
         }
 
         CONST uint64_t get_status(){
