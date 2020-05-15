@@ -18,7 +18,9 @@ CONTRACT delegate_caller_noret : public platon::Contract {
 
             platon::bytes params = platon::cross_call_args("info");
 
-            if (platon_call(Address(target_address), params, transfer_value, gasValue)) {
+            auto address_info = make_address(target_address);
+            if(address_info.second){
+                if (platon_call(address_info.first, params, transfer_value, gasValue)) {
                  status.self() = 0; // successed
 
                  DEBUG("delegate_caller_noret call receiver_noret info has successed!")
@@ -27,7 +29,7 @@ CONTRACT delegate_caller_noret : public platon::Contract {
 
                  DEBUG("delegate_caller_noret call receiver_noret info has failed!")
              }
-
+            }
         }
        CONST uint64_t get_status(){
           return  status.self();
