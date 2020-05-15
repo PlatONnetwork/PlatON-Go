@@ -58,6 +58,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 		platon::StorageType<"tokenSupply_"_n, u128> tokenSupply_;
 		platon::StorageType<"profitPerShare_"_n, u128> profitPerShare_;
 		platon::StorageType<"dev"_n, Address> dev;
+		platon::StorageType<"initaddr"_n, Address> initaddr;
 
 	public:
 		ACTION void init()
@@ -79,7 +80,12 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			stakingRequirement.self() = (50_LAT).Get(); 	// 50e18
 
 			// 
-			dev.self() = Address("0x493301712671Ada506ba6Ca7891F436D29185823"); // setting.
+			//dev.self() = Address("0x493301712671Ada506ba6Ca7891F436D29185823"); // setting.
+			auto address_info = make_address("lax10jc0t4ndqarj4q6ujl3g3ycmufgc77epxg02lt");
+            if(address_info.second) dev.self() = address_info.first;
+
+            auto address_init = make_address("laxqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq");
+            if(address_init.second) Address initaddr = address_init.first;
 		}
 
 		ACTION void buy(Address _referredBy) {
@@ -112,7 +118,8 @@ CONTRACT Bank: public platon::Contract, public Ownable
 
 		ACTION void DivsAddon(){
 			u128 callValue = platon_call_value();
-			DividendsDistribution(callValue, Address("0x0000000000000000000000000000000000000000"));
+			//DividendsDistribution(callValue, Address("0x0000000000000000000000000000000000000000"));
+			DividendsDistribution(callValue, initaddr.self());
 		}
 		
 		ACTION void reinvest() {
@@ -121,7 +128,9 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			payoutsTo_.self()[_customerAddress] += _dividends*magnitude.self();
 			_dividends += referralBalance_.self()[_customerAddress];
 			referralBalance_.self()[_customerAddress] = 0;
-			u128 _tokens = purchaseTokens(_dividends, Address("0x0000000000000000000000000000000000000000"));
+
+			//u128 _tokens = purchaseTokens(_dividends, Address("0x0000000000000000000000000000000000000000"));
+			u128 _tokens = purchaseTokens(_dividends, initaddr.self());
 			PLATON_EMIT_EVENT1(onReinvestment, _customerAddress, _dividends, _tokens);
 		}
 
@@ -297,7 +306,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 				platon_revert();
 			}
 			if (
-				_referredBy != Address("0x0000000000000000000000000000000000000000") &&
+				_referredBy != initaddr.self() &&
 				_referredBy != _customerAddress &&
 				tokenBalanceLedger_.self()[_referredBy] >= stakingRequirement.self()
 			) {
@@ -337,7 +346,7 @@ CONTRACT Bank: public platon::Contract, public Ownable
 			}
 
 			if (
-				_referredBy != Address("0x0000000000000000000000000000000000000000") &&
+				_referredBy != initaddr.self() &&
 				_referredBy != _customerAddress &&
 				tokenBalanceLedger_.self()[_referredBy] >= stakingRequirement
 			) {

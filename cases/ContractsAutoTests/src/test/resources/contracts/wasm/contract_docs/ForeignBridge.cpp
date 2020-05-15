@@ -7,12 +7,15 @@ using namespace platon;
 #include "src/ForeignBridgeGasConsumptionLimitsStorage.hpp"
 #include "src/MessageSigning.hpp"
 
+
 class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStorage, public ForeignBridgeGasConsumptionLimitsStorage
 {
 	public:
 		 /// Number of authorities signatures required to withdraw the money.
 	    ///
 	    /// Must be less than number of authorities.
+	    platon::StorageType<"initaddr"_n, Address> initaddr;
+
 	    platon::StorageType<"requiredSignatures"_n, u128> requiredSignatures;
 
 	    platon::StorageType<"estimatedGasCostOfWithdraw"_n, u128> estimatedGasCostOfWithdraw;
@@ -85,6 +88,9 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 	        estimatedGasCostOfWithdraw.self() = _estimatedGasCostOfWithdraw;
 
 	        homeGasPrice.self() = u128(1000000000);
+
+	        auto address_init = make_address("laxqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq");
+            if(address_init.second) Address initaddr = address_init.first;
 	    }
 
 		/// require that sender is an authority
@@ -140,7 +146,7 @@ class ForeignBridge: public platon::Contract, public BridgeDeploymentAddressStor
 	    /// mainnet transaction hash (bytes32) // to avoid transaction duplication
 	    ACTION void deposit(Address recipient, u128 value, h256 transactionHash) {
 	    	onlyAuthority();
-	    	if(erc20token.self() == Address("0x00000000000000000000000000000000000000000")){
+	    	if(erc20token.self() == initaddr.self()){
 	    		platon_revert();
 	    	}
 	        // Protection from misbehaing authority
