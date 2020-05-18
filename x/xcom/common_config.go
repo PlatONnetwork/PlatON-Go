@@ -82,6 +82,7 @@ type commonConfig struct {
 	PerRoundBlocks      uint64 `json:"perRoundBlocks"`      // blocks each validator will create per consensus epoch
 	MaxConsensusVals    uint64 `json:"maxConsensusVals"`    // The consensus validators count
 	AdditionalCycleTime uint64 `json:"additionalCycleTime"` // Additional cycle time (uint: minutes)
+
 }
 
 type stakingConfig struct {
@@ -587,7 +588,6 @@ func SetPerRoundBlocks(amount uint64) {
 		ec.Common.PerRoundBlocks = amount
 	}
 }
-
 func Interval() uint64 {
 	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 }
