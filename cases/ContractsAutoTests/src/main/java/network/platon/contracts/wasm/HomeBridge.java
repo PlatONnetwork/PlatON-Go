@@ -44,10 +44,10 @@ public class HomeBridge extends WasmContract {
     public static final WasmEvent GASCONSUMPTIONLIMITSUPDATED_EVENT = new WasmEvent("GasConsumptionLimitsUpdated", Arrays.asList(), Arrays.asList(new WasmEventParameter(BigInteger.class)));
     ;
 
-    public static final WasmEvent WITHDRAW_EVENT = new WasmEvent("Withdraw", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class)));
+    public static final WasmEvent DEPOSIT_EVENT = new WasmEvent("Deposit", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class)));
     ;
 
-    public static final WasmEvent DEPOSIT_EVENT = new WasmEvent("Deposit", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class)));
+    public static final WasmEvent WITHDRAW_EVENT = new WasmEvent("Withdraw", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(BigInteger.class)));
     ;
 
     protected HomeBridge(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
@@ -56,6 +56,16 @@ public class HomeBridge extends WasmContract {
 
     protected HomeBridge(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> withdraw(byte[] vs, byte[][] rs, byte[][] ss, byte[] message) {
+        final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(vs,rs,ss,message), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> withdraw(byte[] vs, byte[][] rs, byte[][] ss, byte[] message, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(vs,rs,ss,message), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<GasConsumptionLimitsUpdatedEventResponse> getGasConsumptionLimitsUpdatedEvents(TransactionReceipt transactionReceipt) {
@@ -87,49 +97,6 @@ public class HomeBridge extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(GASCONSUMPTIONLIMITSUPDATED_EVENT));
         return gasConsumptionLimitsUpdatedEventObservable(filter);
-    }
-
-    public RemoteCall<TransactionReceipt> withdraw(byte[] vs, byte[][] rs, byte[][] ss, byte[] message) {
-        final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(vs,rs,ss,message), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> withdraw(byte[] vs, byte[][] rs, byte[][] ss, byte[] message, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_WITHDRAW, Arrays.asList(vs,rs,ss,message), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public List<WithdrawEventResponse> getWithdrawEvents(TransactionReceipt transactionReceipt) {
-        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(WITHDRAW_EVENT, transactionReceipt);
-        ArrayList<WithdrawEventResponse> responses = new ArrayList<WithdrawEventResponse>(valueList.size());
-        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
-            WithdrawEventResponse typedResponse = new WithdrawEventResponse();
-            typedResponse.log = eventValues.getLog();
-            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
-            responses.add(typedResponse);
-        }
-        return responses;
-    }
-
-    public Observable<WithdrawEventResponse> withdrawEventObservable(PlatonFilter filter) {
-        return web3j.platonLogObservable(filter).map(new Func1<Log, WithdrawEventResponse>() {
-            @Override
-            public WithdrawEventResponse call(Log log) {
-                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(WITHDRAW_EVENT, log);
-                WithdrawEventResponse typedResponse = new WithdrawEventResponse();
-                typedResponse.log = log;
-                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
-                return typedResponse;
-            }
-        });
-    }
-
-    public Observable<WithdrawEventResponse> withdrawEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
-        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(WasmEventEncoder.encode(WITHDRAW_EVENT));
-        return withdrawEventObservable(filter);
     }
 
     public RemoteCall<TransactionReceipt> setGasLimitWithdrawRelay(BigInteger gas) {
@@ -175,6 +142,39 @@ public class HomeBridge extends WasmContract {
         return depositEventObservable(filter);
     }
 
+    public List<WithdrawEventResponse> getWithdrawEvents(TransactionReceipt transactionReceipt) {
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(WITHDRAW_EVENT, transactionReceipt);
+        ArrayList<WithdrawEventResponse> responses = new ArrayList<WithdrawEventResponse>(valueList.size());
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
+            WithdrawEventResponse typedResponse = new WithdrawEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+            typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Observable<WithdrawEventResponse> withdrawEventObservable(PlatonFilter filter) {
+        return web3j.platonLogObservable(filter).map(new Func1<Log, WithdrawEventResponse>() {
+            @Override
+            public WithdrawEventResponse call(Log log) {
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(WITHDRAW_EVENT, log);
+                WithdrawEventResponse typedResponse = new WithdrawEventResponse();
+                typedResponse.log = log;
+                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+                typedResponse.arg1 = (BigInteger) eventValues.getNonIndexedValues().get(0);
+                return typedResponse;
+            }
+        });
+    }
+
+    public Observable<WithdrawEventResponse> withdrawEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(WasmEventEncoder.encode(WITHDRAW_EVENT));
+        return withdrawEventObservable(filter);
+    }
+
     public static RemoteCall<HomeBridge> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, BigInteger requiredSignaturesParam, WasmAddress[] authoritiesParam, BigInteger estimatedGasCostOfWithdrawParam) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList(requiredSignaturesParam,authoritiesParam,estimatedGasCostOfWithdrawParam));
         return deployRemoteCall(HomeBridge.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -209,7 +209,7 @@ public class HomeBridge extends WasmContract {
         public BigInteger arg1;
     }
 
-    public static class WithdrawEventResponse {
+    public static class DepositEventResponse {
         public Log log;
 
         public String topic;
@@ -217,7 +217,7 @@ public class HomeBridge extends WasmContract {
         public BigInteger arg1;
     }
 
-    public static class DepositEventResponse {
+    public static class WithdrawEventResponse {
         public Log log;
 
         public String topic;

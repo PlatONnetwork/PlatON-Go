@@ -78,6 +78,16 @@ public class BasicDataTypeContract extends WasmContract {
         return executeRemoteCall(function, Int64.class);
     }
 
+    public RemoteCall<TransactionReceipt> set_address() {
+        final WasmFunction function = new WasmFunction(FUNC_SET_ADDRESS, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_address(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_ADDRESS, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<BasicDataTypeContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(BasicDataTypeContract.class, web3j, credentials, contractGasProvider, encodedConstructor);
@@ -96,16 +106,6 @@ public class BasicDataTypeContract extends WasmContract {
     public static RemoteCall<BasicDataTypeContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(BasicDataTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> set_address() {
-        final WasmFunction function = new WasmFunction(FUNC_SET_ADDRESS, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_address(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_ADDRESS, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> set_bool(Boolean value) {

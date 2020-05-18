@@ -27,9 +27,9 @@ public class ContractCallerByRet extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_CALLFEED = "callFeed";
-
     public static final String FUNC_GET_STATUS = "get_status";
+
+    public static final String FUNC_CALLFEED = "callFeed";
 
     protected ContractCallerByRet(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -37,16 +37,6 @@ public class ContractCallerByRet extends WasmContract {
 
     protected ContractCallerByRet(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> callFeed(String target_address, Uint64 gasValue) {
-        final WasmFunction function = new WasmFunction(FUNC_CALLFEED, Arrays.asList(target_address,gasValue), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> callFeed(String target_address, Uint64 gasValue, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_CALLFEED, Arrays.asList(target_address,gasValue), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<Uint64> get_status() {
@@ -72,6 +62,16 @@ public class ContractCallerByRet extends WasmContract {
     public static RemoteCall<ContractCallerByRet> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractCallerByRet.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> callFeed(String target_address, Uint64 gasValue) {
+        final WasmFunction function = new WasmFunction(FUNC_CALLFEED, Arrays.asList(target_address,gasValue), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> callFeed(String target_address, Uint64 gasValue, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_CALLFEED, Arrays.asList(target_address,gasValue), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static ContractCallerByRet load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

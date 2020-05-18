@@ -37,11 +37,11 @@ public class ContractEmitEvent1 extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_ONE_EMIT_EVENT1_ARGS9 = "one_emit_event1_args9";
+
     public static final String FUNC_ONE_EMIT_EVENT1_ARGS2 = "one_emit_event1_args2";
 
     public static final String FUNC_ONE_EMIT_EVENT1 = "one_emit_event1";
-
-    public static final String FUNC_ONE_EMIT_EVENT1_ARGS9 = "one_emit_event1_args9";
 
     public static final String FUNC_GET_STRING = "get_string";
 
@@ -60,6 +60,16 @@ public class ContractEmitEvent1 extends WasmContract {
 
     protected ContractEmitEvent1(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    }
+
+    public RemoteCall<TransactionReceipt> one_emit_event1_args9(String topic, Uint32 value, String name1, String name2, String name3, String name4, String name5, Uint32 value2, Uint32 value3, String name6) {
+        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1_ARGS9, Arrays.asList(topic,value,name1,name2,name3,name4,name5,value2,value3,name6), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> one_emit_event1_args9(String topic, Uint32 value, String name1, String name2, String name3, String name4, String name5, Uint32 value2, Uint32 value3, String name6, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1_ARGS9, Arrays.asList(topic,value,name1,name2,name3,name4,name5,value2,value3,name6), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
@@ -216,16 +226,6 @@ public class ContractEmitEvent1 extends WasmContract {
 
     public RemoteCall<TransactionReceipt> one_emit_event1(String name, Uint32 value, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1, Arrays.asList(name,value), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> one_emit_event1_args9(String topic, Uint32 value, String name1, String name2, String name3, String name4, String name5, Uint32 value2, Uint32 value3, String name6) {
-        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1_ARGS9, Arrays.asList(topic,value,name1,name2,name3,name4,name5,value2,value3,name6), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> one_emit_event1_args9(String topic, Uint32 value, String name1, String name2, String name3, String name4, String name5, Uint32 value2, Uint32 value3, String name6, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ONE_EMIT_EVENT1_ARGS9, Arrays.asList(topic,value,name1,name2,name3,name4,name5,value2,value3,name6), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
