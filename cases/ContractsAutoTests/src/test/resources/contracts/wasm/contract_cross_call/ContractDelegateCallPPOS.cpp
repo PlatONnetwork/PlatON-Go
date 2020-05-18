@@ -12,7 +12,7 @@ CONTRACT delegate_call_ppos : public platon::Contract {
         ACTION uint64_t delegate_call_ppos_send (std::string target_addr, std::string &in, uint64_t gas) {
             platon::bytes  input = fromHex(in);
 
-            auto address_info = make_address(target_address);
+            auto address_info = make_address(target_addr);
             if(address_info.second){
                 if (platon_delegate_call(address_info.first, input, gas)) {
                 DEBUG("delegate call contract delegate_call_ppos_send success", "address", target_addr);
@@ -27,7 +27,7 @@ CONTRACT delegate_call_ppos : public platon::Contract {
         CONST const std::string  delegate_call_ppos_query (std::string target_addr, std::string &in, uint64_t gas) {
             platon::bytes  input = fromHex(in);
 
-            auto address_info = make_address(target_address);
+            auto address_info = make_address(target_addr);
             if(address_info.second){
                 if (platon_delegate_call(address_info.first, input, gas)) {
                 DEBUG("delegate call contract delegate_call_ppos_query success", "address", target_addr);
