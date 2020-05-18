@@ -29,7 +29,7 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:"
@@ -71,7 +71,7 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:"
@@ -113,7 +113,7 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:"

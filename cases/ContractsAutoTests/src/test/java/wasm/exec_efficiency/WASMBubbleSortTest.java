@@ -30,7 +30,7 @@ public class WASMBubbleSortTest extends WASMContractPrepareTest {
 
             Integer numberOfCalls = Integer.valueOf(driverService.param.get("numberOfCalls"));
 
-            BubbleSort bubblesort = BubbleSort.deploy(web3j, transactionManager, provider).send();
+            BubbleSort bubblesort = BubbleSort.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = bubblesort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
             collector.logStepPass("deploy gas used:" + bubblesort.getTransactionReceipt().get().getGasUsed());
@@ -44,7 +44,7 @@ public class WASMBubbleSortTest extends WASMContractPrepareTest {
             }
 
             collector.logStepPass("before sort:" + Arrays.toString(arr));
-            TransactionReceipt transactionReceipt = bubblesort.load(contractAddress, web3j, transactionManager, provider)
+            TransactionReceipt transactionReceipt = bubblesort.load(contractAddress, web3j, transactionManager, provider, chainId)
                     .sort(arr, Int32.of(arr.length)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
@@ -52,7 +52,7 @@ public class WASMBubbleSortTest extends WASMContractPrepareTest {
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            Int64[] generationArr = bubblesort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
+            Int64[] generationArr = bubblesort.load(contractAddress, web3j, transactionManager, provider, chainId).get_array().send();
 
             collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {

@@ -30,7 +30,7 @@ public class ThreeInheritTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            ThreeInherit threeInherit = ThreeInherit.deploy(web3j, transactionManager, provider).send();
+            ThreeInherit threeInherit = ThreeInherit.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = threeInherit.getContractAddress();
             String transactionHash = threeInherit.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ThreeInherit issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

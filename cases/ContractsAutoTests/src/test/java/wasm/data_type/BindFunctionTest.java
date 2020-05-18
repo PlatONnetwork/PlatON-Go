@@ -27,7 +27,7 @@ public class BindFunctionTest extends WASMContractPrepareTest {
         BindFunctionContract bindFunctionContract = null;
         try {
             prepare();
-            bindFunctionContract = BindFunctionContract.deploy(web3j, transactionManager, provider).send();
+            bindFunctionContract = BindFunctionContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = bindFunctionContract.getContractAddress();
             TransactionReceipt tx = bindFunctionContract.getTransactionReceipt().get();
             collector.logStepPass("bindFunctionContract issued successfully.contractAddress:" + contractAddress

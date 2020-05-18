@@ -28,7 +28,7 @@ public class ContractFibonacciTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            Fibonacci contract = Fibonacci.deploy(web3j, transactionManager, provider).send();
+            Fibonacci contract = Fibonacci.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("Fibonacci deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

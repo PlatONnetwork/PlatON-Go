@@ -35,15 +35,15 @@ public class WASMRecursionCallTest extends WASMContractPrepareTest {
     public void test() {
         prepare();
         try {
-            RecursionCall recursionCall = RecursionCall.deploy(web3j, transactionManager, provider).send();
+            RecursionCall recursionCall = RecursionCall.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = recursionCall.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
             collector.logStepPass("deploy gas used:" + recursionCall.getTransactionReceipt().get().getGasUsed());
 
-            TransactionReceipt transactionReceipt = RecursionCall.load(contractAddress, web3j, transactionManager, provider)
+            TransactionReceipt transactionReceipt = RecursionCall.load(contractAddress, web3j, transactionManager, provider, chainId)
                     .call(numberOfCalls).send();
 
-            Uint64 sum = RecursionCall.load(contractAddress, web3j, transactionManager, provider)
+            Uint64 sum = RecursionCall.load(contractAddress, web3j, transactionManager, provider, chainId)
                     .get_sum().send();
 
             collector.logStepPass("sum:" + sum);

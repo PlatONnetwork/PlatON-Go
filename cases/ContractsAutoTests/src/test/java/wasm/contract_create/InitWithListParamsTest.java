@@ -44,7 +44,7 @@ public class InitWithListParamsTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            InitWithListParams initWithListParams = InitWithListParams.deploy(web3j, transactionManager, provider,list).send();
+            InitWithListParams initWithListParams = InitWithListParams.deploy(web3j, transactionManager, provider, chainId,list).send();
             String contractAddress = initWithListParams.getContractAddress();
             String transactionHash = initWithListParams.getTransactionReceipt().get().getTransactionHash();
             String gasUsed =  initWithListParams.getTransactionReceipt().get().getGasUsed().toString();

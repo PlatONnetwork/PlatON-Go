@@ -20,7 +20,7 @@ public class ContractDelegateCallFlagByRetTest extends WASMContractPrepareTest {
             prepare();
 
             // deploy the target contract which the name is `receiver_byret`, first
-            ContractReceiverByRet receiver  = ContractReceiverByRet.deploy(web3j, transactionManager, provider).send();
+            ContractReceiverByRet receiver  = ContractReceiverByRet.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy receiver_byret contract:" + receiver.getTransactionReceipt().get().getGasUsed());
 
             String receiverAddr = receiver.getContractAddress();
@@ -29,7 +29,7 @@ public class ContractDelegateCallFlagByRetTest extends WASMContractPrepareTest {
 
 
             // deploy the delegate_caller_byret  contract second
-            ContractDelegateCallerByRet caller = ContractDelegateCallerByRet.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallerByRet caller = ContractDelegateCallerByRet.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy delegate_caller_byret contract:" + caller.getTransactionReceipt().get().getGasUsed());
 
             String callerAddr = caller.getContractAddress();
@@ -81,7 +81,7 @@ public class ContractDelegateCallFlagByRetTest extends WASMContractPrepareTest {
             prepare();
 
             // deploy the target contract which the name is `receiver_noret`, first
-            ContractReceiverNoRet receiver  = ContractReceiverNoRet.deploy(web3j, transactionManager, provider).send();
+            ContractReceiverNoRet receiver  = ContractReceiverNoRet.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy receiver_noret contract:" + receiver.getTransactionReceipt().get().getGasUsed());
 
             String receiverAddr = receiver.getContractAddress();
@@ -90,7 +90,7 @@ public class ContractDelegateCallFlagByRetTest extends WASMContractPrepareTest {
 
 
             // deploy the delegate_caller_noret  contract second
-            ContractDelegateCallerNoRet caller = ContractDelegateCallerNoRet.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallerNoRet caller = ContractDelegateCallerNoRet.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy delegate_caller_noret contract:" + caller.getTransactionReceipt().get().getGasUsed());
 
             String callerAddr = caller.getContractAddress();

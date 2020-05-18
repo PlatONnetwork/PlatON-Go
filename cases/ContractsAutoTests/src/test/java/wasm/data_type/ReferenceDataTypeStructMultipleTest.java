@@ -44,7 +44,7 @@ public class ReferenceDataTypeStructMultipleTest extends WASMContractPrepareTest
         ReferenceDataTypeStructMultipleContract referenceDataTypeStructMultipleContract = null;
         try {
             prepare();
-            referenceDataTypeStructMultipleContract = ReferenceDataTypeStructMultipleContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeStructMultipleContract = ReferenceDataTypeStructMultipleContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeStructMultipleContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeStructMultipleContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeStructMultipleContract issued successfully.contractAddress:" + contractAddress

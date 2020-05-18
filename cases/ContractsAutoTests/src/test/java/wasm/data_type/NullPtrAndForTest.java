@@ -25,7 +25,7 @@ public class NullPtrAndForTest extends WASMContractPrepareTest {
         NullPtrAndForContract nullPtrAndForContract = null;
         try {
             prepare();
-            nullPtrAndForContract = NullPtrAndForContract.deploy(web3j, transactionManager, provider).send();
+            nullPtrAndForContract = NullPtrAndForContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = nullPtrAndForContract.getContractAddress();
             TransactionReceipt tx = nullPtrAndForContract.getTransactionReceipt().get();
             collector.logStepPass("nullPtrAndForContract issued successfully.contractAddress:" + contractAddress

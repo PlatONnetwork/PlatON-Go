@@ -30,7 +30,7 @@ public class OneInheritWithMultiDataTypeTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            OneInheritWithMultiDataType oneInheritWithMultiDataType = OneInheritWithMultiDataType.deploy(web3j, transactionManager, provider).send();
+            OneInheritWithMultiDataType oneInheritWithMultiDataType = OneInheritWithMultiDataType.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = oneInheritWithMultiDataType.getContractAddress();
             String transactionHash = oneInheritWithMultiDataType.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("oneInheritWithMultiDataType issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

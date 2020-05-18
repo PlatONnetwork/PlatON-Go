@@ -42,7 +42,7 @@ public class ContractMigrateBalanceTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            ContractMigrate_v1 contractMigratev1 = ContractMigrate_v1.deploy(web3j, transactionManager, provider).send();
+            ContractMigrate_v1 contractMigratev1 = ContractMigrate_v1.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractMigratev1.getContractAddress();
             String transactionHash = contractMigratev1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractMigrateV1 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

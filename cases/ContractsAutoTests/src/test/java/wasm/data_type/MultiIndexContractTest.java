@@ -39,7 +39,7 @@ public class MultiIndexContractTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            MultiIndexContract multiindexcontract = MultiIndexContract.deploy(web3j, transactionManager, provider).send();
+            MultiIndexContract multiindexcontract = MultiIndexContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = multiindexcontract.getContractAddress();
             TransactionReceipt tx = multiindexcontract.getTransactionReceipt().get();
             collector.logStepPass("MultiIndexContract issued successfully.contractAddress:" + contractAddress

@@ -26,7 +26,7 @@ public class FunctionTemplateTest extends WASMContractPrepareTest {
         FunctionTemplateContract functionTemplateContract = null;
         try {
             prepare();
-            functionTemplateContract = FunctionTemplateContract.deploy(web3j, transactionManager, provider).send();
+            functionTemplateContract = FunctionTemplateContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = functionTemplateContract.getContractAddress();
             TransactionReceipt tx = functionTemplateContract.getTransactionReceipt().get();
             collector.logStepPass("functionTemplateContract issued successfully.contractAddress:" + contractAddress

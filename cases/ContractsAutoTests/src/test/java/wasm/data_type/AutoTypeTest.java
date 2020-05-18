@@ -30,7 +30,7 @@ public class AutoTypeTest extends WASMContractPrepareTest {
         AutoTypeContract autoTypeContract = null;
         try {
             prepare();
-            autoTypeContract = AutoTypeContract.deploy(web3j, transactionManager, provider).send();
+            autoTypeContract = AutoTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = autoTypeContract.getContractAddress();
             TransactionReceipt tx = autoTypeContract.getTransactionReceipt().get();
             collector.logStepPass("autoTypeContract issued successfully.contractAddress:" + contractAddress

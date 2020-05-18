@@ -56,7 +56,7 @@ public class BasicDataIntegerTypeTest extends WASMContractPrepareTest {
         BasicDataIntegerTypeContract basicDataIntegerTypeContract = null;
         try {
             prepare();
-            basicDataIntegerTypeContract = BasicDataIntegerTypeContract.deploy(web3j, transactionManager, provider).send();
+            basicDataIntegerTypeContract = BasicDataIntegerTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = basicDataIntegerTypeContract.getContractAddress();
             TransactionReceipt tx = basicDataIntegerTypeContract.getTransactionReceipt().get();
             collector.logStepPass("basicDataIntegerTypeContract issued successfully.contractAddress:" + contractAddress

@@ -100,7 +100,7 @@ public class TokenTransferTest {
             collector.assertEqual(tokenName, token.name().send(), "checkout tokenName");
             collector.logStepPass("5次循环调用...");
             for (int i = 1; i < 6; i++) {
-                TransactionReceipt transactionReceipt = HumanStandardToken.load(contractAddress, web3j, transactionManager, provider)
+                TransactionReceipt transactionReceipt = HumanStandardToken.load(contractAddress, web3j, transactionManager, provider, chainId)
                         .transfer(transferTo, new BigInteger(transferAmount)).send();
                 BigInteger toBalance = token.balanceOf(transferTo).send();
                 BigInteger fromBalance = token.balanceOf(transferFrom).send();

@@ -22,7 +22,7 @@ public class CallerFunctionTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            CallerFunction caller = CallerFunction.deploy(web3j, transactionManager, provider).send();
+            CallerFunction caller = CallerFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = caller.getContractAddress();
             String transactionHash = caller.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CallerFunctionTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

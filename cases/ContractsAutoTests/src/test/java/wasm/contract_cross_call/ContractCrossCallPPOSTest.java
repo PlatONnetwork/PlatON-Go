@@ -45,7 +45,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -81,7 +81,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt createRestrictingPlanReceipt =  ppos.cross_call_ppos_send(restrictingContractAddr, createRestrictingPlanInput, Uint64.of(0), Uint64.of(60000000l)).send();
 
             String  createRestrictingPlanDataHex = createRestrictingPlanReceipt.getLogs().get(0).getData();
-            String createRestrictingPlanDataStr = DataChangeUtil.decodeSystemContractRlp(createRestrictingPlanDataHex);
+            String createRestrictingPlanDataStr = DataChangeUtil.decodeSystemContractRlp(createRestrictingPlanDataHex, chainId);
             String createRestrictingPlanExpectData = "304004";
 
             collector.logStepPass("cross_call_ppos createRestrictingPlan successfully txHash:" + createRestrictingPlanReceipt.getTransactionHash());
@@ -124,7 +124,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -149,7 +149,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt createStakingReceipt =  ppos.cross_call_ppos_send(stakingContractAddr, createStakingInput, Uint64.of(0), Uint64.of(60000000l)).send();
 
             String  createStakingDataHex = createStakingReceipt.getLogs().get(0).getData();
-            String createStakingDataStr = DataChangeUtil.decodeSystemContractRlp(createStakingDataHex);
+            String createStakingDataStr = DataChangeUtil.decodeSystemContractRlp(createStakingDataHex, chainId);
             String createStakingExpectData = "301111";
 
             collector.logStepPass("cross_call_ppos createStaking successfully txHash:" + createStakingReceipt.getTransactionHash());
@@ -191,7 +191,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -236,7 +236,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt reportDuplicateSignReceipt =  ppos.cross_call_ppos_send(slashingContractAddr, reportDuplicateSignInput, Uint64.of(0), Uint64.of(60000000l)).send();
 
             String reportDuplicateSignDataHex = reportDuplicateSignReceipt.getLogs().get(0).getData();
-            String reportDuplicateSignDataStr = DataChangeUtil.decodeSystemContractRlp(reportDuplicateSignDataHex);
+            String reportDuplicateSignDataStr = DataChangeUtil.decodeSystemContractRlp(reportDuplicateSignDataHex, chainId);
             String reportDuplicateSignExpectData = "0";
             boolean expectFlag = reportDuplicateSignDataStr.equals(reportDuplicateSignExpectData);
 
@@ -282,7 +282,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -296,7 +296,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt submitTextReceipt =  ppos.cross_call_ppos_send(govContractAddr, submitTextInput, Uint64.of(0), Uint64.of(60000000l)).send();
 
             String submitTextDataHex = submitTextReceipt.getLogs().get(0).getData();
-            String submitTextDataStr =DataChangeUtil.decodeSystemContractRlp(submitTextDataHex);
+            String submitTextDataStr =DataChangeUtil.decodeSystemContractRlp(submitTextDataHex, chainId);
             String submitTextExpectData = "302022";
 
             collector.logStepPass("cross_call_ppos submitText successfully txHash:" + submitTextReceipt.getTransactionHash());
@@ -338,7 +338,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractCallPPOS ppos =  ContractCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy cross_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -350,7 +350,7 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt withdrawDelegateRewardReceipt =  ppos.cross_call_ppos_send(delegateRewardPoolAddr, withdrawDelegateRewardInput, Uint64.of(0), Uint64.of(60000000l)).send();
 
             String withdrawDelegateRewardDataHex = withdrawDelegateRewardReceipt.getLogs().get(0).getData();
-            String withdrawDelegateRewardDataStr = DataChangeUtil.decodeSystemContractRlp(withdrawDelegateRewardDataHex);
+            String withdrawDelegateRewardDataStr = DataChangeUtil.decodeSystemContractRlp(withdrawDelegateRewardDataHex, chainId);
             String withdrawDelegateRewardExpectData = "305001";
 
             collector.logStepPass("cross_call_ppos withdrawDelegateReward successfully txHash:" + withdrawDelegateRewardReceipt.getTransactionHash());

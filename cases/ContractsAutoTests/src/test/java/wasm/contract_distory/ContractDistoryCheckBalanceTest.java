@@ -24,7 +24,7 @@ public class ContractDistoryCheckBalanceTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            ContractDistory contractDistory = ContractDistory.deploy(web3j, transactionManager, provider).send();
+            ContractDistory contractDistory = ContractDistory.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractDistory.getContractAddress();
             String transactionHash = contractDistory.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractDistory issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

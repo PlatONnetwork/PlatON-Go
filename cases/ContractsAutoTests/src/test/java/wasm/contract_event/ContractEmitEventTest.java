@@ -24,7 +24,7 @@ public class ContractEmitEventTest extends WASMContractPrepareTest {
         String name = "hudenian";
         try {
             prepare();
-            ContractEmitEvent contractEmitEvent = ContractEmitEvent.deploy(web3j, transactionManager, provider).send();
+            ContractEmitEvent contractEmitEvent = ContractEmitEvent.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractEmitEvent.getContractAddress();
             String transactionHash = contractEmitEvent.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractEmitEvent issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

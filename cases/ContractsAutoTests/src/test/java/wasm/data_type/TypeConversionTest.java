@@ -29,7 +29,7 @@ public class TypeConversionTest extends WASMContractPrepareTest {
         TypeConversionContract typeConversionContract = null;
         try {
             prepare();
-            typeConversionContract = TypeConversionContract.deploy(web3j, transactionManager, provider).send();
+            typeConversionContract = TypeConversionContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = typeConversionContract.getContractAddress();
             TransactionReceipt tx = typeConversionContract.getTransactionReceipt().get();
             collector.logStepPass("typeConversionContract issued successfully.contractAddress:" + contractAddress

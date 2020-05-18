@@ -23,7 +23,7 @@ public class ContractDistoryWithPermissionCheckTest extends WASMContractPrepareT
         String name = "hudenian";
         try {
             prepare();
-            ContractDistoryWithPermissionCheck ontractDistoryWithPermissionCheck = ContractDistoryWithPermissionCheck.deploy(web3j, transactionManager, provider).send();
+            ContractDistoryWithPermissionCheck ontractDistoryWithPermissionCheck = ContractDistoryWithPermissionCheck.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = ontractDistoryWithPermissionCheck.getContractAddress();
             String transactionHash = ontractDistoryWithPermissionCheck.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractDistoryWithPermissionCheck issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

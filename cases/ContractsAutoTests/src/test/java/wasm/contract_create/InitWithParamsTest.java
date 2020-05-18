@@ -23,7 +23,7 @@ public class InitWithParamsTest extends WASMContractPrepareTest {
         String addName = "hudenian1";
         try {
             prepare();
-            InitWithParams initWithParams = InitWithParams.deploy(web3j, transactionManager, provider,initName).send();
+            InitWithParams initWithParams = InitWithParams.deploy(web3j, transactionManager, provider, chainId,initName).send();
             String contractAddress = initWithParams.getContractAddress();
             String transactionHash = initWithParams.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("initWithParams issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

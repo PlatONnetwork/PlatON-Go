@@ -25,7 +25,7 @@ public class SpecialFunctionsBTest extends WASMContractPrepareTest {
         try {
             prepare();
 //            provider = new ContractGasProvider(BigInteger.valueOf(50000000004L), BigInteger.valueOf(90000000L));
-            SpecialFunctionsB specialfunctionsb = SpecialFunctionsB.deploy(web3j, transactionManager, provider).send();
+            SpecialFunctionsB specialfunctionsb = SpecialFunctionsB.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = specialfunctionsb.getContractAddress();
             String transactionHash = specialfunctionsb.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SpecialFunctionsBTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

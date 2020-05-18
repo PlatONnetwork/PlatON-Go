@@ -27,7 +27,7 @@ public class ContractSimpleStorageTest extends WASMContractPrepareTest {
     public void testSimpleStorageContract() {
         try {
             // deploy contract.
-            SimpleStorage contract = SimpleStorage.deploy(web3j, transactionManager, provider).send();
+            SimpleStorage contract = SimpleStorage.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SimpleStorage issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

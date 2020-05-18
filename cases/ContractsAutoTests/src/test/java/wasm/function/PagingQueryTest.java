@@ -25,7 +25,7 @@ public class PagingQueryTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            PagingQuery pagingquery = PagingQuery.deploy(web3j, transactionManager, provider).send();
+            PagingQuery pagingquery = PagingQuery.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = pagingquery.getContractAddress();
             String transactionHash = pagingquery.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("PagingQuery issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

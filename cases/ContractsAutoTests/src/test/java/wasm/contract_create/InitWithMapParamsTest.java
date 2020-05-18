@@ -68,7 +68,7 @@ public class InitWithMapParamsTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            InitWithMapParams initWithMapParams = InitWithMapParams.deploy(web3j, transactionManager, provider,maps).send();
+            InitWithMapParams initWithMapParams = InitWithMapParams.deploy(web3j, transactionManager, provider, chainId,maps).send();
             String contractAddress = initWithMapParams.getContractAddress();
             String transactionHash = initWithMapParams.getTransactionReceipt().get().getTransactionHash();
             String gasUsed =  initWithMapParams.getTransactionReceipt().get().getGasUsed().toString();

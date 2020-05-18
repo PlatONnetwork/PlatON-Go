@@ -42,7 +42,7 @@ public class BasicDataTypeTest extends WASMContractPrepareTest {
         BasicDataTypeContract basicDataTypeContract = null;
         try {
             prepare();
-            basicDataTypeContract = BasicDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            basicDataTypeContract = BasicDataTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = basicDataTypeContract.getContractAddress();
             TransactionReceipt tx = basicDataTypeContract.getTransactionReceipt().get();
             collector.logStepPass("basicDataTypeContract issued successfully.contractAddress:" + contractAddress

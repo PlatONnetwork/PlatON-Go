@@ -48,7 +48,7 @@ public class ReferenceDataTypeMapTypeTest extends WASMContractPrepareTest {
         ReferenceDataTypeMapTestContract referenceDataTypeMapTestContract = null;
         try {
             prepare();
-            referenceDataTypeMapTestContract = ReferenceDataTypeMapTestContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeMapTestContract = ReferenceDataTypeMapTestContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeMapTestContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeMapTestContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeMapContract issued successfully.contractAddress:" + contractAddress

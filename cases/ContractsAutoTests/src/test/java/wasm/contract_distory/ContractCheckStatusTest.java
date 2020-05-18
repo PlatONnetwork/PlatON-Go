@@ -25,14 +25,14 @@ public class ContractCheckStatusTest extends WASMContractPrepareTest {
         try {
             prepare();
             //合约第一次部署
-            ContractDistory contractDistory = ContractDistory.deploy(web3j, transactionManager, provider).send();
+            ContractDistory contractDistory = ContractDistory.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractDistory.getContractAddress();
             String transactionHash = contractDistory.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractDistory first issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("ContractDistory first deploy gas used:" + contractDistory.getTransactionReceipt().get().getGasUsed());
 
             //合约第二次部署
-            ContractDistory contractDistoryTwo = ContractDistory.deploy(web3j, transactionManager, provider).send();
+            ContractDistory contractDistoryTwo = ContractDistory.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddressTwo = contractDistoryTwo.getContractAddress();
             transactionHash = contractDistoryTwo.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractDistory second issued successfully.contractAddress:" + contractAddressTwo + ", hash:" + transactionHash);

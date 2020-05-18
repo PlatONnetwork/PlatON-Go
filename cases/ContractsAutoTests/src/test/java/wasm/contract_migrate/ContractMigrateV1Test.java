@@ -32,7 +32,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
 
         try {
             prepare();
-            ContractMigrate_v1 contractMigratev1 = ContractMigrate_v1.deploy(web3j, transactionManager, provider).send();
+            ContractMigrate_v1 contractMigratev1 = ContractMigrate_v1.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractMigratev1.getContractAddress();
             String transactionHash = contractMigratev1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractMigrateV1 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -59,7 +59,7 @@ public class ContractMigrateV1Test extends WASMContractPrepareTest {
             collector.logStepPass("new Contract Address is:"+newContractAddress);
 
             //调用升级后的合约
-            ContractMigrate_v1 new_contractMigrate_v1 = ContractMigrate_v1.load(newContractAddress,web3j,credentials,provider);
+            ContractMigrate_v1 new_contractMigrate_v1 = ContractMigrate_v1.load(newContractAddress,web3j,credentials,provider, chainId);
             String newContractChainName = new_contractMigrate_v1.get_string().send();
             collector.assertContains(newContractChainName,name);
 

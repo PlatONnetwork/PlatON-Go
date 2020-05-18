@@ -21,7 +21,7 @@ public class ContractCrossCallFlagByRetTest extends WASMContractPrepareTest {
             prepare();
 
             // deploy the target contract which the name is `receiver_byret`, first
-            ContractReceiverByRet receiver  = ContractReceiverByRet.deploy(web3j, transactionManager, provider).send();
+            ContractReceiverByRet receiver  = ContractReceiverByRet.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy receiver_byret contract:" + receiver.getTransactionReceipt().get().getGasUsed());
 
             String receiverAddr = receiver.getContractAddress();
@@ -30,7 +30,7 @@ public class ContractCrossCallFlagByRetTest extends WASMContractPrepareTest {
 
 
             // deploy the cross_caller_byret  contract second
-             ContractCallerByRet caller = ContractCallerByRet.deploy(web3j, transactionManager, provider).send();
+             ContractCallerByRet caller = ContractCallerByRet.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy cross_caller_byret contract:" + caller.getTransactionReceipt().get().getGasUsed());
 
             String callerAddr = caller.getContractAddress();
@@ -82,7 +82,7 @@ public class ContractCrossCallFlagByRetTest extends WASMContractPrepareTest {
             prepare();
 
             // deploy the target contract which the name is `receiver_noret`, first
-            ContractReceiverNoRet receiver  = ContractReceiverNoRet.deploy(web3j, transactionManager, provider).send();
+            ContractReceiverNoRet receiver  = ContractReceiverNoRet.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy receiver_noret contract:" + receiver.getTransactionReceipt().get().getGasUsed());
 
             String receiverAddr = receiver.getContractAddress();
@@ -91,7 +91,7 @@ public class ContractCrossCallFlagByRetTest extends WASMContractPrepareTest {
 
 
             // deploy the cross_caller_noret  contract second
-            ContractCallerNoRet caller = ContractCallerNoRet.deploy(web3j, transactionManager, provider).send();
+            ContractCallerNoRet caller = ContractCallerNoRet.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy cross_caller_noret contract:" + caller.getTransactionReceipt().get().getGasUsed());
 
             String callerAddr = caller.getContractAddress();

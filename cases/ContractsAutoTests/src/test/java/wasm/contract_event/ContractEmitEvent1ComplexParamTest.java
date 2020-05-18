@@ -32,7 +32,7 @@ public class ContractEmitEvent1ComplexParamTest extends WASMContractPrepareTest 
 
         try {
             prepare();
-            ContractEmitEvent1ComplexParam contractEmitEvent1 = ContractEmitEvent1ComplexParam.deploy(web3j, transactionManager, provider).send();
+            ContractEmitEvent1ComplexParam contractEmitEvent1 = ContractEmitEvent1ComplexParam.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractEmitEvent1.getContractAddress();
             String transactionHash = contractEmitEvent1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractEmitEvent1ComplexParamTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

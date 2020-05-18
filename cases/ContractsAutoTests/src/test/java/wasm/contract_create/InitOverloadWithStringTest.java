@@ -24,7 +24,7 @@ public class InitOverloadWithStringTest extends WASMContractPrepareTest {
         String who = "lily";
         try {
             prepare();
-            InitOverloadWithString initOverloadWithString = InitOverloadWithString.deploy(web3j, transactionManager, provider,name).send();
+            InitOverloadWithString initOverloadWithString = InitOverloadWithString.deploy(web3j, transactionManager, provider, chainId, name).send();
             String contractAddress = initOverloadWithString.getContractAddress();
             String transactionHash = initOverloadWithString.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitOverloadWithString issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

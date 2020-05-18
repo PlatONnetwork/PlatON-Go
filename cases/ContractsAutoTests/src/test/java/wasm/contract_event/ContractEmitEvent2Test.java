@@ -27,7 +27,7 @@ public class ContractEmitEvent2Test extends WASMContractPrepareTest {
         String nationality = "myNationality";
         try {
             prepare();
-            ContractEmitEvent2 contractEmitEvent2 = ContractEmitEvent2.deploy(web3j, transactionManager, provider).send();
+            ContractEmitEvent2 contractEmitEvent2 = ContractEmitEvent2.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractEmitEvent2.getContractAddress();
             String transactionHash = contractEmitEvent2.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("contractEmitEvent2 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

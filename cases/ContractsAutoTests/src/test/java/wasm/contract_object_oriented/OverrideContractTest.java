@@ -25,7 +25,7 @@ public class OverrideContractTest extends WASMContractPrepareTest {
             prepare();
 
             // deploy contract.
-            OverrideContract contract = OverrideContract.deploy(web3j, transactionManager, provider).send();
+            OverrideContract contract = OverrideContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("OverrideContract issued successfully.contractAddress:"
