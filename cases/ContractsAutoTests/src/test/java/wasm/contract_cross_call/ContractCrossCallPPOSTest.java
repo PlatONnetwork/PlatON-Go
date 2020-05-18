@@ -259,7 +259,9 @@ public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
             byte[] checkDuplicateSignByte =  DataChangeUtil.hexToByteArray(checkDuplicateSignHexStr);
             String checkDuplicateSignStr = new String(checkDuplicateSignByte);
             pposResult res =  gson.fromJson(checkDuplicateSignStr, pposResult.class);
-            collector.assertEqual(res.Code, 0, "查询节点是否有多签过 result == expect res: {\"Code\":0,\"Ret\":\"\"}");
+            if (res != null){
+                collector.assertEqual(res.Code, 0, "查询节点是否有多签过 result == expect res: {\"Code\":0,\"Ret\":\"\"}");
+            }
 
         } catch (Exception e) {
             collector.logStepFail("Failed to call cross_call_ppos Contract,exception msg:" , e.getMessage());
