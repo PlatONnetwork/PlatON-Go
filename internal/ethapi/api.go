@@ -1084,22 +1084,23 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 	}
 
 	queue := make([]map[string]interface{}, len(block.Transactions()))
+
+	receipts, err := s.b.GetReceipts(ctx, block.Hash())
+	if err != nil {
+		log.Error("rpcGetTransactionByBlock, get receipt error","receipts:",receipts)
+	}
+
 	for key, value := range block.Transactions() {
-		tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), value.Hash())
-		if tx == nil {
-			log.Error("rpcGetTransactionByBlock, get tx error","blockHash:",blockHash,"blockNumber:",blockNumber,"index:",index)
+		//tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), value.Hash())
+		//if tx == nil {
+		//	log.Error("rpcGetTransactionByBlock, get tx error","blockHash:",blockHash,"blockNumber:",blockNumber,"index:",index)
+		//	continue
+		//}
+		if len(receipts) <= int(key) {
+			log.Error("rpcGetTransactionByBlock, get receipt length error","receipts:",receipts,"index:",key)
 			continue
 		}
-		receipts, err := s.b.GetReceipts(ctx, blockHash)
-		if err != nil {
-			log.Error("rpcGetTransactionByBlock, get receipt error","receipts:",receipts)
-			continue
-		}
-		if len(receipts) <= int(index) {
-			log.Error("rpcGetTransactionByBlock, get receipt length error","receipts:",receipts,"index:",index)
-			continue
-		}
-		receipt := receipts[index]
+		receipt := receipts[key]
 
 		//var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
 		//from, _ := types.Sender(signer, tx)
@@ -1118,7 +1119,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 			//"blockHash":         blockHash,
 			//"blockNumber":       hexutil.Uint64(blockNumber),
 			"transactionHash":   value.Hash(),
-			"transactionIndex":  hexutil.Uint64(index),
+			"transactionIndex":  hexutil.Uint64(key),
 			//"from":              from,
 			//"to":                tx.To(),
 			"gasUsed":           hexutil.Uint64(receipt.GasUsed),
