@@ -233,12 +233,14 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              * 0
              */
 
-            String checkDuplicateSignInput = "0xdc83820bb90195949e3e0f0f366b26b965f3aa3ed67603fb480b125701";
+            String checkDuplicateSignInput = "0xf183820bb801abaa6c6178316e636c713772656b64766e746a65306e34676c64766173726c6479716b796a686b7667727172";
             String checkDuplicateSignHexStr =  ppos.delegate_call_ppos_query(slashingContractAddr, checkDuplicateSignInput, Uint64.of(60000000l)).send();
             byte[] checkDuplicateSignByte =  DataChangeUtil.hexToByteArray(checkDuplicateSignHexStr);
             String checkDuplicateSignStr = new String(checkDuplicateSignByte);
             ContractCrossCallPPOSTest.pposResult res =  gson.fromJson(checkDuplicateSignStr, ContractCrossCallPPOSTest.pposResult.class);
-            collector.assertEqual(res.Code, 0, "查询节点是否有多签过 result == expect res: {\"Code\":0,\"Ret\":\"\"}");
+            if(res != null){
+                collector.assertEqual(res.Code, 0, "查询节点是否有多签过 result == expect res: {\"Code\":0,\"Ret\":\"\"}");
+            }
 
         } catch (Exception e) {
             collector.logStepFail("Failed to delegateCall delegate_call_ppos Contract,exception msg:" , e.getMessage());
