@@ -12,7 +12,7 @@ CONTRACT call_ppos : public platon::Contract {
         ACTION uint64_t cross_call_ppos_send (std::string target_addr, std::string &in, uint64_t value, uint64_t gas) {
             platon::bytes  input = fromHex(in);
 
-            auto address_info = make_address(target_address);
+            auto address_info = make_address(target_addr);
             if(address_info.second){
                 if (platon_call(address_info.first, input, value, gas)) {
                 DEBUG("cross call contract cross_call_ppos_send success", "address", target_addr);
@@ -26,9 +26,9 @@ CONTRACT call_ppos : public platon::Contract {
         CONST const std::string  cross_call_ppos_query (std::string target_addr, std::string &in, uint64_t value, uint64_t gas) {
             platon::bytes  input = fromHex(in);
 
-            auto address_info = make_address(target_address);
+            auto address_info = make_address(target_addr);
             if(address_info.second){
-            if (platon_call(Address(target_addr), input, value, gas)) {
+            if (platon_call(address_info.first, input, value, gas)) {
                 DEBUG("cross call contract cross_call_ppos_query success", "address", target_addr);
                 platon::bytes ret;
                 size_t len = platon_get_call_output_length();
