@@ -42,6 +42,8 @@ public class Donate extends WasmContract {
 
     public static final String FUNC_GETOWNER = "getOwner";
 
+    public static final String FUNC_GETWHITELIST = "getWhitelist";
+
     public static final String FUNC_DONATE = "donate";
 
     public static final String FUNC_SETOPENINGCLOSINGTIMES = "setOpeningClosingTimes";
@@ -69,8 +71,6 @@ public class Donate extends WasmContract {
     public static final String FUNC_GETMAXNUMDONORS = "getMaxNumDonors";
 
     public static final String FUNC_GETDONORS = "getDonors";
-
-    public static final String FUNC_GETWHITELIST = "getWhitelist";
 
     public static final String FUNC_GETPAUSED = "getPaused";
 
@@ -138,6 +138,15 @@ public class Donate extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(DONATED_EVENT));
         return donatedEventObservable(filter);
+    }
+
+    public RemoteCall<Map> getWhitelist() {
+        final WasmFunction function = new WasmFunction(FUNC_GETWHITELIST, Arrays.asList(), Map.class, 
+                new com.platon.rlp.ParameterizedTypeImpl(
+                new java.lang.reflect.Type[] {com.platon.rlp.datatypes.WasmAddress.class, java.lang.Boolean.class}, 
+                java.util.Map.class, 
+                java.util.Map.class));
+        return executeRemoteCall(function, Map.class);
     }
 
     public List<OwnershipTransferredEventResponse> getOwnershipTransferredEvents(TransactionReceipt transactionReceipt) {
@@ -296,15 +305,6 @@ public class Donate extends WasmContract {
     public RemoteCall<WasmAddress[]> getDonors() {
         final WasmFunction function = new WasmFunction(FUNC_GETDONORS, Arrays.asList(), WasmAddress[].class);
         return executeRemoteCall(function, WasmAddress[].class);
-    }
-
-    public RemoteCall<Map> getWhitelist() {
-        final WasmFunction function = new WasmFunction(FUNC_GETWHITELIST, Arrays.asList(), Map.class, 
-                new com.platon.rlp.ParameterizedTypeImpl(
-                new java.lang.reflect.Type[] {com.platon.rlp.datatypes.WasmAddress.class, java.lang.Boolean.class}, 
-                java.util.Map.class, 
-                java.util.Map.class));
-        return executeRemoteCall(function, Map.class);
     }
 
     public RemoteCall<Boolean> getPaused() {

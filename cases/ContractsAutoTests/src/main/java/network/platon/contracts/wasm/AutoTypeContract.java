@@ -32,13 +32,13 @@ public class AutoTypeContract extends WasmContract {
 
     public static final String FUNC_GET_ANTO_ITERATOR = "get_anto_iterator";
 
-    public static final String FUNC_SET_ANTO_CARE_ONE = "set_anto_care_one";
-
     public static final String FUNC_GET_ANTO_INT32 = "get_anto_int32";
 
     public static final String FUNC_GET_ANTO_MULTIPLE = "get_anto_multiple";
 
     public static final String FUNC_GET_ANTO_UINT8_T = "get_anto_uint8_t";
+
+    public static final String FUNC_SET_ANTO_CARE_ONE = "set_anto_care_one";
 
     protected AutoTypeContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
@@ -78,16 +78,6 @@ public class AutoTypeContract extends WasmContract {
         return deployRemoteCall(AutoTypeContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue);
     }
 
-    public RemoteCall<TransactionReceipt> set_anto_care_one() {
-        final WasmFunction function = new WasmFunction(FUNC_SET_ANTO_CARE_ONE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> set_anto_care_one(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SET_ANTO_CARE_ONE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<Int32> get_anto_int32() {
         final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_INT32, Arrays.asList(), Int32.class);
         return executeRemoteCall(function, Int32.class);
@@ -101,6 +91,16 @@ public class AutoTypeContract extends WasmContract {
     public RemoteCall<Uint8> get_anto_uint8_t() {
         final WasmFunction function = new WasmFunction(FUNC_GET_ANTO_UINT8_T, Arrays.asList(), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
+    }
+
+    public RemoteCall<TransactionReceipt> set_anto_care_one() {
+        final WasmFunction function = new WasmFunction(FUNC_SET_ANTO_CARE_ONE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> set_anto_care_one(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SET_ANTO_CARE_ONE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static AutoTypeContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {

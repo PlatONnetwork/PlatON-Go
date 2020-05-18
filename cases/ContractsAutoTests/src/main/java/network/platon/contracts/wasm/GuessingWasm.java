@@ -40,9 +40,9 @@ public class GuessingWasm extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
-    public static final String FUNC_DRAW = "draw";
-
     public static final String FUNC_GUESSINGWITHLAT = "guessingWithLat";
+
+    public static final String FUNC_DRAW = "draw";
 
     public static final String FUNC_GETWINNERS = "getwinners";
 
@@ -103,16 +103,6 @@ public class GuessingWasm extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER2_EVENT));
         return transfer2EventObservable(filter);
-    }
-
-    public RemoteCall<TransactionReceipt> draw() {
-        final WasmFunction function = new WasmFunction(FUNC_DRAW, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> draw(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_DRAW, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<Transfer1EventResponse> getTransfer1Events(TransactionReceipt transactionReceipt) {
@@ -177,6 +167,16 @@ public class GuessingWasm extends WasmContract {
 
     public RemoteCall<TransactionReceipt> guessingWithLat(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_GUESSINGWITHLAT, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> draw() {
+        final WasmFunction function = new WasmFunction(FUNC_DRAW, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> draw(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_DRAW, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 
