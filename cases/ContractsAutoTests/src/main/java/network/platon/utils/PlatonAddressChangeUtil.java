@@ -19,8 +19,7 @@ package network.platon.utils;
 import org.web3j.utils.Numeric;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
-import java.util.Locale;
+import java.util.*;
 
 public class PlatonAddressChangeUtil {
 
@@ -183,7 +182,21 @@ public class PlatonAddressChangeUtil {
      * @param args
      */
     public static void main(String[] args) {
-        String addressStr = "0x79dAA881CAb1f73B3ceef5dB1869231B416D6dD9";
-        System.out.println("转换后的钱包地址>>>"+ PlatonAddressChangeUtil.encode("lat", convertBits(Numeric.hexStringToByteArray(addressStr),8,5,true)));
+        List<String> addrList = new ArrayList<String>();
+        addrList.add("0x1000000000000000000000000000000000000001");
+        addrList.add("0x1000000000000000000000000000000000000002");
+        addrList.add("0x1000000000000000000000000000000000000003");
+        addrList.add("0x1000000000000000000000000000000000000004");
+        addrList.add("0x1000000000000000000000000000000000000005");
+        addrList.add("0x1000000000000000000000000000000000000006");
+        addrList.add("0x1000000000000000000000000000000000000007");
+        addrList.add("0x1000000000000000000000000000000000000008");
+        addrList.add("0x1000000000000000000000000000000000000009");
+        addrList.add("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257");
+        addrList.add("0xda838210049594c9e1c2b330cf7e759f2493c5c754b34d98b07f93");
+        addrList.add("0xda838210049594c9e1c2b330cf7e759f2493c5c754b34d98b07f93");
+        addrList.stream().forEach(a ->
+                System.out.println(a+"转换后的钱包地址>>>"+ PlatonAddressChangeUtil.encode("lax", convertBits(Numeric.hexStringToByteArray(a),8,5,true))));
+        ;
     }
 }
