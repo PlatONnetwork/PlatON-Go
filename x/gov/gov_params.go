@@ -287,7 +287,7 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerMaxChangeRange,
-				fmt.Sprintf("Delegated Reward Ratio The maximum adjustable range of each modification, range: [1, 2000]")},
+				fmt.Sprintf("Delegated Reward Ratio The maximum adjustable range of each modification, range: [%d, %d]", xcom.RewardPerMaxChangeRangeLowerLimit, xcom.RewardPerMaxChangeRangeUpperLimit)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.RewardPerMaxChangeRange())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -305,7 +305,7 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerChangeInterval,
-				fmt.Sprintf("The interval for each modification of the commission reward ratio, range: [2, 28]")},
+				fmt.Sprintf("The interval for each modification of the commission reward ratio, range: [%d, %d]", xcom.RewardPerChangeIntervalLowerLimit, xcom.RewardPerChangeIntervalUpperLimit)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.RewardPerChangeInterval())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -315,6 +315,24 @@ func initParam() []*GovernParam {
 				}
 
 				if err := xcom.CheckRewardPerChangeInterval(uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleReward, KeyIncreaseIssuanceRatio,
+				fmt.Sprintf("Increase the ratio of issuance, range: [%d, %d]", xcom.IncreaseIssuanceRatioLowerLimit, xcom.IncreaseIssuanceRatioUpperLimit)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.IncreaseIssuanceRatio())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed IncreaseIssuanceRatio is failed")
+				}
+
+				if err := xcom.CheckIncreaseIssuanceRatio(uint16(number)); nil != err {
 					return err
 				}
 				return nil
