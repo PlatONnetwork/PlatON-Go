@@ -179,6 +179,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	var plugin = RewardMgrInstance()
 	StakingInstance()
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
 	plugin.SetCurrentNodeID(nodeIdArr[0])
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
