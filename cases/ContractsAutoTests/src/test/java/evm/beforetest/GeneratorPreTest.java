@@ -154,7 +154,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     }
                     libraryAddressNoPre = receipt.getContractAddress();
                     collector.logStepPass("contract address >>>> " + libraryAddressNoPre);
-                    if (libraryAddressNoPre.startsWith("0x")) {
+                    if (libraryAddressNoPre.startsWith("lax") || libraryAddressNoPre.startsWith("lat")) {
                         libraryAddressNoPreMap.put(libraryArr[i].split("\\.")[0], libraryAddressNoPre.substring(2));//key值去掉.bin后缀
                         break;
                     }
