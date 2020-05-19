@@ -40,6 +40,8 @@ public class GuessingWasm extends WasmContract {
 
     public static String BINARY = BINARY_0 + BINARY_1;
 
+    public static final String FUNC_GETWINNERADDRESSES = "getWinnerAddresses";
+
     public static final String FUNC_DRAW = "draw";
 
     public static final String FUNC_GUESSINGWITHLAT = "guessingWithLat";
@@ -49,8 +51,6 @@ public class GuessingWasm extends WasmContract {
     public static final String FUNC_GETBALANCE = "getBalance";
 
     public static final String FUNC_GETWINNERCOUNT = "getWinnerCount";
-
-    public static final String FUNC_GETWINNERADDRESSES = "getWinnerAddresses";
 
     public static final String FUNC_GETMYGUESSCODES = "getMyGuessCodes";
 
@@ -68,6 +68,11 @@ public class GuessingWasm extends WasmContract {
 
     protected GuessingWasm(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
+    }
+
+    public RemoteCall<WasmAddress[]> getWinnerAddresses() {
+        final WasmFunction function = new WasmFunction(FUNC_GETWINNERADDRESSES, Arrays.asList(), WasmAddress[].class);
+        return executeRemoteCall(function, WasmAddress[].class);
     }
 
     public List<Transfer2EventResponse> getTransfer2Events(TransactionReceipt transactionReceipt) {
@@ -198,11 +203,6 @@ public class GuessingWasm extends WasmContract {
     public RemoteCall<Uint64> getWinnerCount() {
         final WasmFunction function = new WasmFunction(FUNC_GETWINNERCOUNT, Arrays.asList(), Uint64.class);
         return executeRemoteCall(function, Uint64.class);
-    }
-
-    public RemoteCall<WasmAddress[]> getWinnerAddresses() {
-        final WasmFunction function = new WasmFunction(FUNC_GETWINNERADDRESSES, Arrays.asList(), WasmAddress[].class);
-        return executeRemoteCall(function, WasmAddress[].class);
     }
 
     public RemoteCall<Uint64> getMyGuessCodes(WasmAddress address) {

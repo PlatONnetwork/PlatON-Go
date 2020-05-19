@@ -51,7 +51,11 @@ CONTRACT VIDToken : public Contract {
 
   ACTION bool Transfer(const std::string& to_addr, u128 value) {
     auto sender = platon_caller();
-    Address to(to_addr);
+    Address to;
+    auto address_info = make_address(to_addr);
+    if(address_info.second){
+      to = address_info.first;
+    }
     DEBUG("transfer", "to", to.toString());
     platon_assert(!paused_.get());
     platon_assert(to != sender, "T1- Recipient can not be the same as sender");
@@ -78,8 +82,18 @@ CONTRACT VIDToken : public Contract {
 
   ACTION bool TransferFrom(const std::string& from_addr,
                            const std::string& to_addr, u128 value) {
-    Address from(from_addr);
-    Address to(to_addr);
+    Address from;
+    Address to;
+    auto address_info = make_address(from_addr);
+    if(address_info.second){
+      from = address_info.first;
+    }
+
+    auto address_info2 = make_address(to_addr);
+    if(address_info2.second){
+      to = address_info2.first;
+    }
+
     auto sender = platon_caller();
     bool empty_addr = false;
     if (to) {
@@ -105,11 +119,23 @@ CONTRACT VIDToken : public Contract {
 
   CONST u128 BalanceOf(const std::string& owner_addr) {
     DEBUG("balance of ", "owner_addr", owner_addr);
-    return Balance(Address(owner_addr));
+
+    Address to;
+    auto address_info = make_address(owner_addr);
+    if(address_info.second){
+      to = address_info.first;
+    }
+
+    return Balance(to);
   }
 
   ACTION bool Approve(const std::string& spender_addr, u128 value) {
-    Address spender(spender_addr);
+    Address spender;
+    auto address_info = make_address(spender_addr);
+    if(address_info.second){
+      spender = address_info.first;
+    }
+
     platon_assert(!paused_.get());
     auto sender = platon_caller();
     platon_assert(!paused_.get());
@@ -131,7 +157,11 @@ CONTRACT VIDToken : public Contract {
 
   ACTION bool IncreaseApproval(const std::string& spender_addr,
                                u128 added_value) {
-    Address spender(spender_addr);
+    Address spender;
+    auto address_info = make_address(spender_addr);
+    if(address_info.second){
+      spender = address_info.first;
+    }
     platon_assert(!paused_.get());
     auto sender = platon_caller();
 
@@ -156,7 +186,11 @@ CONTRACT VIDToken : public Contract {
 
   ACTION bool DecreaseApproval(const std::string& spender_addr,
                                u128 subtracted_value) {
-    Address spender(spender_addr);
+    Address spender;
+    auto address_info = make_address(spender_addr);
+    if(address_info.second){
+      spender = address_info.first;
+    }
     platon_assert(!paused_.get());
     auto sender = platon_caller();
 
@@ -185,7 +219,20 @@ CONTRACT VIDToken : public Contract {
   }
 
   CONST u128 Allowance(const std::string& owner, const std::string& spender) {
-    return Allowed(Address(owner), Address(spender));
+    Address addr1;
+    auto address_info1 = make_address(owner);
+    if(address_info1.second){
+      addr1 = address_info1.first;
+    }
+
+    Address addr2;
+    auto address_info2 = make_address(spender);
+    if(address_info2.second){
+      addr2 = address_info2.first;
+    }
+
+
+    return Allowed(addr1, addr2);
   }
 
   struct TKN {
@@ -197,7 +244,11 @@ CONTRACT VIDToken : public Contract {
 
   ACTION bool TokenFallback(const std::string& from_addr, u128 value,
                             const std::string& data) {
-    Address from(from_addr);
+    Address from;
+    auto address_info = make_address(from_addr);
+    if(address_info.second){
+      from = address_info.first;
+    }
     TKN tkn;
     tkn.sender = from;
     tkn.value = value;
@@ -209,7 +260,11 @@ CONTRACT VIDToken : public Contract {
   }
 
   ACTION void TransferToken(const std::string& token_addr_s, u128 tokens) {
-    Address token_addr(token_addr_s);
+    Address token_addr;
+    auto address_info = make_address(token_addr_s);
+    if(address_info.second){
+      token_addr = address_info.first;
+    }
     platon_assert(is_owner(), "O1- Owner only function");
     platon_assert(owner() != token_addr,
                   "T1- Recipient can not be the same as sender");
@@ -238,7 +293,11 @@ CONTRACT VIDToken : public Contract {
   }
 
   ACTION bool Freeze(const std::string& addr_s, bool state) {
-    Address addr(addr_s);
+    Address addr;
+    auto address_info = make_address(addr_s);
+    if(address_info.second){
+      addr = address_info.first;
+    }
     platon_assert(is_owner(), "O1- Owner only function");
 
     frozen_account_.self()[addr] = state;
@@ -249,7 +308,11 @@ CONTRACT VIDToken : public Contract {
 
   ACTION bool ValidatePublisher(const std::string& addr_s, bool state,
                                 const std::string& publisher) {
-    Address addr(addr_s);
+    Address addr;
+    auto address_info = make_address(addr_s);
+    if(address_info.second){
+      addr = address_info.first;
+    }
     platon_assert(is_owner(), "O1- Owner only function");
 
     verify_publisher_.self()[addr] = state;
@@ -261,7 +324,11 @@ CONTRACT VIDToken : public Contract {
 
   ACTION bool ValidateWallet(const std::string& addr_s, bool state,
                              const std::string& wallet) {
-    Address addr(addr_s);
+    Address addr;
+    auto address_info = make_address(addr_s);
+    if(address_info.second){
+      addr = address_info.first;
+    }
     platon_assert(is_owner(), "O1- Owner only function");
 
     verify_wallet_.self()[addr] = state;
@@ -275,7 +342,11 @@ CONTRACT VIDToken : public Contract {
                            const std::string& data, bool store, bool log) {
     DEBUG("validate file", "to_addr", to_addr, "payment", payment, "data", data,
           "store", store, "log", log, "price", validation_price_.get());
-    Address to(to_addr);
+    Address to;
+    auto address_info = make_address(to_addr);
+    if(address_info.second){
+      to = address_info.first;
+    }
     auto sender = platon_caller();
     platon_assert(!paused_.get());
     platon_assert(payment >= validation_price_.get(),
@@ -366,7 +437,11 @@ CONTRACT VIDToken : public Contract {
   }
 
   ACTION void SetWallet(const std::string& new_wallet_s) {
-    Address new_wallet(new_wallet_s);
+    Address new_wallet;
+    auto address_info = make_address(new_wallet_s);
+    if(address_info.second){
+      new_wallet = address_info.first;
+    }
     platon_assert(is_owner(), "O1- Owner only function");
     validation_wallet_.self() = new_wallet;
   }

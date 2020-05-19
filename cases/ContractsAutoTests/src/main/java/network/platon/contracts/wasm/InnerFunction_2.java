@@ -31,8 +31,6 @@ public class InnerFunction_2 extends WasmContract {
 
     public static final String FUNC_TRANSFER = "transfer";
 
-    public static final String FUNC_ADDR = "addr";
-
     public static final String FUNC_VALUE = "value";
 
     public static final String FUNC_SHA3 = "sha3";
@@ -46,6 +44,8 @@ public class InnerFunction_2 extends WasmContract {
     public static final String FUNC_DESTROY = "destroy";
 
     public static final String FUNC_ORIGIN = "origin";
+
+    public static final String FUNC_ADDR = "addr";
 
     protected InnerFunction_2(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
@@ -63,11 +63,6 @@ public class InnerFunction_2 extends WasmContract {
     public RemoteCall<TransactionReceipt> transfer(String addr, Uint64 amount, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_TRANSFER, Arrays.asList(addr,amount), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<WasmAddress> addr() {
-        final WasmFunction function = new WasmFunction(FUNC_ADDR, Arrays.asList(), WasmAddress.class);
-        return executeRemoteCall(function, WasmAddress.class);
     }
 
     public static RemoteCall<InnerFunction_2> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
@@ -136,6 +131,11 @@ public class InnerFunction_2 extends WasmContract {
 
     public RemoteCall<WasmAddress> origin() {
         final WasmFunction function = new WasmFunction(FUNC_ORIGIN, Arrays.asList(), WasmAddress.class);
+        return executeRemoteCall(function, WasmAddress.class);
+    }
+
+    public RemoteCall<WasmAddress> addr() {
+        final WasmFunction function = new WasmFunction(FUNC_ADDR, Arrays.asList(), WasmAddress.class);
         return executeRemoteCall(function, WasmAddress.class);
     }
 

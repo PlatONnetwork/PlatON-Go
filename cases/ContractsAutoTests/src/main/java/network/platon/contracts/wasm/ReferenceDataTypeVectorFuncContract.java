@@ -27,6 +27,8 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_DELETEVECTORCLEAR = "deleteVectorClear";
+
     public static final String FUNC_INSERTVECTORMANGVALUE = "insertVectorMangValue";
 
     public static final String FUNC_INSERTVECTORVALUE = "insertVectorValue";
@@ -43,8 +45,6 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
 
     public static final String FUNC_DELETEVECTORERASE = "deleteVectorErase";
 
-    public static final String FUNC_DELETEVECTORCLEAR = "deleteVectorClear";
-
     public static final String FUNC_FINDVECTOREMPTY = "findVectorEmpty";
 
     protected ReferenceDataTypeVectorFuncContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
@@ -53,6 +53,16 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
 
     protected ReferenceDataTypeVectorFuncContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
+    }
+
+    public RemoteCall<TransactionReceipt> deleteVectorClear() {
+        final WasmFunction function = new WasmFunction(FUNC_DELETEVECTORCLEAR, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> deleteVectorClear(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_DELETEVECTORCLEAR, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> insertVectorMangValue(Uint64 num, String my_value) {
@@ -132,16 +142,6 @@ public class ReferenceDataTypeVectorFuncContract extends WasmContract {
 
     public RemoteCall<TransactionReceipt> deleteVectorErase(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_DELETEVECTORERASE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> deleteVectorClear() {
-        final WasmFunction function = new WasmFunction(FUNC_DELETEVECTORCLEAR, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> deleteVectorClear(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_DELETEVECTORCLEAR, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

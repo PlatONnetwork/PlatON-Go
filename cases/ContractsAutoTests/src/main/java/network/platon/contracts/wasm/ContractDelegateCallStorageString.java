@@ -27,9 +27,9 @@ public class ContractDelegateCallStorageString extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_DELEGATE_CALL_SET_STRING = "delegate_call_set_string";
-
     public static final String FUNC_GET_STRING = "get_string";
+
+    public static final String FUNC_DELEGATE_CALL_SET_STRING = "delegate_call_set_string";
 
     protected ContractDelegateCallStorageString(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
@@ -37,6 +37,11 @@ public class ContractDelegateCallStorageString extends WasmContract {
 
     protected ContractDelegateCallStorageString(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
+    }
+
+    public RemoteCall<String> get_string() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> delegate_call_set_string(String target_address, String name, Uint64 gas) {
@@ -67,11 +72,6 @@ public class ContractDelegateCallStorageString extends WasmContract {
     public static RemoteCall<ContractDelegateCallStorageString> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Long chainId) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(ContractDelegateCallStorageString.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue, chainId);
-    }
-
-    public RemoteCall<String> get_string() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_STRING, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public static ContractDelegateCallStorageString load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
