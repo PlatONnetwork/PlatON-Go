@@ -1,6 +1,5 @@
 package network.platon.contracts;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import org.web3j.abi.TypeReference;
@@ -21,29 +20,19 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.2-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.6.
  */
 public class InterfaceContractEnum extends Contract {
     private static final String BINARY = "";
 
     public static final String FUNC_GETDEFAULTCHOICE = "getDefaultChoice";
 
-    @Deprecated
-    protected InterfaceContractEnum(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected InterfaceContractEnum(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected InterfaceContractEnum(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected InterfaceContractEnum(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected InterfaceContractEnum(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected InterfaceContractEnum(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<TransactionReceipt> getDefaultChoice() {
@@ -54,39 +43,19 @@ public class InterfaceContractEnum extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public static RemoteCall<InterfaceContractEnum> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(InterfaceContractEnum.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<InterfaceContractEnum> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(InterfaceContractEnum.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<InterfaceContractEnum> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(InterfaceContractEnum.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<InterfaceContractEnum> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(InterfaceContractEnum.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<InterfaceContractEnum> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(InterfaceContractEnum.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static InterfaceContractEnum load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new InterfaceContractEnum(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<InterfaceContractEnum> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(InterfaceContractEnum.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static InterfaceContractEnum load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new InterfaceContractEnum(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static InterfaceContractEnum load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new InterfaceContractEnum(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static InterfaceContractEnum load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new InterfaceContractEnum(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static InterfaceContractEnum load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new InterfaceContractEnum(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static InterfaceContractEnum load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new InterfaceContractEnum(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }
