@@ -21,7 +21,7 @@ CONTRACT IntegerDataTypeContract_4: public platon::Contract
 		ACTION void initAddress()
 		{
 			//tAddress.self() = make_address("0xf674172E619af9C09C126a568CF2838d243cE7F7");
-			auto address_info = make_address("lax108d45qw2k8mnk08w7hd3s6frrdqk6mwevvkgwc");
+			auto address_info = make_address("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2");
 			if(address_info.second) tAddress.self() = address_info.first;
 		}
 

@@ -214,11 +214,11 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke initAddress success, txHash: " + initTr.getTransactionHash());
             String afterInitAddress = contract.getAddress().send();
             collector.logStepPass("To invoke getAddress success, getAddress: " + afterInitAddress);
-//            collector.assertEqual(afterInitAddress.toLowerCase(), "lax108d45qw2k8mnk08w7hd3s6frrdqk6mwevvkgwc".toLowerCase());
+            collector.assertEqual(afterInitAddress.toLowerCase(), "lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2".toLowerCase());
 
 //            // test: store address
 //            Address expectAddr = new Address("0x5b05e7a3e2a688c5e5cc491545a84a1efc66c1b1");
-            String expectAddr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn6j";
+            String expectAddr = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
             TransactionReceipt addrTr = contract.setAddress(expectAddr).send();
             collector.logStepPass("To invoke setAddress success, txHash: " + addrTr.getTransactionHash());
             String getAddress = contract.getAddress().send();
