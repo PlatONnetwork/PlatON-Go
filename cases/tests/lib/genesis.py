@@ -65,6 +65,7 @@ class Gov:
 class Reward:
     newBlockRate: int
     platONFoundationYear: int
+    increaseIssuanceRatio: int
 
 
 @dataclass
