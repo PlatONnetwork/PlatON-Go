@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -290,20 +291,30 @@ func TestIncreaseIssuance(t *testing.T) {
 
 	mockDB := buildStateDB(t)
 
-	thisYear, lastYear := uint32(2), uint32(1)
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
+
+	thisYear, lastYear := uint32(1), uint32(0)
+
+	genesisIssue := new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))
+	SetYearEndCumulativeIssue(mockDB, 0, genesisIssue)
 
 	lastIssue := GetHistoryCumulativeIssue(mockDB, lastYear)
 
-	mockDB.AddBalance(vm.RestrictingContractAddr, new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18)))
+	mockDB.AddBalance(vm.RestrictingContractAddr, genesisIssue)
 
-	plugin.increaseIssuance(thisYear, lastYear, mockDB)
+	if err := plugin.increaseIssuance(thisYear, lastYear, mockDB, 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
 
 	newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
 
-	tmp := new(big.Int).Sub(newIssue, lastIssue)
-	assert.Equal(t, lastIssue, tmp.Mul(tmp, big.NewInt(IncreaseIssue)))
+	increaseIssuanceRatio, err := gov.GovernIncreaseIssuanceRatio(1, common.ZeroHash)
+	if nil != err {
+		t.Fatal(err)
+	}
 
-	lastYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(lastYear)))
+	tmp := new(big.Int).Sub(newIssue, lastIssue)
+	assert.Equal(t, tmp, new(big.Int).Div(new(big.Int).Mul(lastIssue, big.NewInt(int64(increaseIssuanceRatio))), big.NewInt(int64(10000))))
 
 	if plugin.isLessThanFoundationYear(thisYear) {
 		mockDB.GetBalance(xcom.CDFAccount())
@@ -312,11 +323,7 @@ func TestIncreaseIssuance(t *testing.T) {
 		mockDB.GetBalance(xcom.CDFAccount())
 		mockDB.GetBalance(xcom.PlatONFundAccount())
 	}
-	mockDB.GetBalance(vm.RewardManagerPoolAddr)
 
-	thisYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(thisYear)))
-
-	assert.Equal(t, new(big.Int).Sub(thisYearIssue, lastYearIssue), new(big.Int).Div(lastYearIssue, big.NewInt(IncreaseIssue)))
 }
 
 func TestSaveRewardDelegateRewardPer(t *testing.T) {
