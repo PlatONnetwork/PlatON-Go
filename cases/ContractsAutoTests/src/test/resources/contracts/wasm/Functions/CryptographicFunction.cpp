@@ -21,13 +21,19 @@ CONTRACT CryptographicFunction:public platon::Contract{
 		}
 
 		// platon_ripemd160
-		CONST h160  call_platon_ripemd160(const bytes &data){
-			return platon_ripemd160(data);
-		}
+		CONST std::vector<byte> call_platon_ripemd160(const bytes &data){
+           std::vector<byte> result;
+           result.resize(20);
+           platon_ripemd160(data, result.data());
+           return result;
+        }
 
 		// platon_sha256
-		CONST h256  call_platon_sha256(const bytes &data) {
-			return platon_sha256(data);
+		CONST std::vector<byte> call_platon_sha256(const bytes &data) {
+		    std::vector<byte> result;
+            result.resize(32);
+            platon_sha256(data, result.data());
+            return result;
 		}
 };
 
