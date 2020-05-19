@@ -3,6 +3,7 @@ import time
 
 import pytest
 import allure
+from client_sdk_python.utils.transactions import send_obj_transaction
 from dacite import from_dict
 from eth_keys.datatypes import PrivateKey
 from platon_account.internal.transactions import bech32_address_bytes
@@ -253,7 +254,6 @@ def sendTransaction_input_nonce(client, data, from_address, to_address, gasPrice
                                 check_address=True):
     node = client.node
     account = client.economic.account.accounts[from_address]
-    print(account)
     if check_address:
         to_address = Web3.toChecksumAddress(to_address)
 
@@ -271,9 +271,10 @@ def sendTransaction_input_nonce(client, data, from_address, to_address, gasPrice
     )
     data = signedTransactionDict.rawTransaction
     result = HexBytes(node.eth.sendRawTransaction(data)).hex()
-    res = node.eth.waitForTransactionReceipt(result)
-
-    return res
+    return result
+    # res = node.eth.waitForTransactionReceipt(result)
+    #
+    # return res
 
 
 @pytest.mark.P2
@@ -1490,6 +1491,29 @@ def AL_FI_007(client_consensus):
         average_interval)
 
 
+def send_batch_transactions(obj, transaction_list):
+    """
+
+    """
+    for transactions_dict in transaction_list:
+        from_address = transactions_dict['from']
+        to_address = transactions_dict['to']
+        data = transactions_dict['data']
+        gasPrice = obj.node.web3.platon.gasPrice
+        value = transactions_dict['amount']
+        if transactions_dict['data'] is not None:
+            transaction_data = {"to": to_address, "data": transactions_dict['data'], "from": from_address}
+            gas = obj.node.web3.platon.estimateGas(transaction_data)
+        else:
+            gas = 21000
+        if transactions_dict['nonce'] is None:
+            nonce = obj.node.eth.getTransactionCount(from_address)
+        else:
+            nonce = transactions_dict['nonce']
+        result = sendTransaction_input_nonce(obj, data, from_address, to_address, gasPrice, gas, value, nonce)
+        print(result)
+
+
 def test_PT_AC_001(client_consensus):
     """
     非关联性转账交易
@@ -1497,14 +1521,16 @@ def test_PT_AC_001(client_consensus):
     client = client_consensus
     economic = client.economic
     node = client.node
-    list = []
+    transaction_list = []
+    # nonce = 0
     for i in range(5):
         addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-        addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
-        list.append(transaction_dict)
-    print(list)
-    return list
+        addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(0, 'ether'))
+        print(addres2)
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': 0, 'data': ''}
+        # nonce = nonce + 1
+        transaction_list.append(transaction_dict)
+    send_batch_transactions(client, transaction_list)
 
 
 def test_PT_AC_002(client_consensus):
@@ -1701,6 +1727,77 @@ def test_PT_AC_013(client_consensus):
         transaction_list.append(transaction_dict)
     print(transaction_list)
     return transaction_list
+
+
+def test_PT_AC_014(client_consensus):
+    """
+    质押并行交易（一）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    for i in range(3):
+        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres1, 'to_private': private_key1, 'amount': 10, 'nonce': None, 'data': ''}
+        transaction_list.append(transaction_dict)
+        address, private_key = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+        benifit_address, _ = economic.account.generate_account(node.web3, 0)
+        program_version_sign = node.program_version_sign
+        program_version = node.program_version
+        bls_pubkey = node.blspubkey
+        bls_proof = node.schnorr_NIZK_prove
+        benifit_address = bech32_address_bytes(benifit_address)
+        if program_version_sign[:2] == '0x':
+            program_version_sign = program_version_sign[2:]
+        data = HexBytes(rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(benifit_address),
+                                    rlp.encode(bytes.fromhex(node.node_id)), rlp.encode("platon"), rlp.encode("platon1"),
+                                    rlp.encode("http://www.platon.network"), rlp.encode("The PlatON Node"),
+                                    rlp.encode(economic.create_staking_limit), rlp.encode(0), rlp.encode(program_version),
+                                    rlp.encode(bytes.fromhex(program_version_sign)), rlp.encode(bytes.fromhex(bls_pubkey)),
+                                    rlp.encode(bytes.fromhex(bls_proof))])).hex()
+        transaction_dict = {'from': address, 'from_private': private_key, 'to': EconomicConfig.STAKING_ADDRESS, 'to_private': None, 'data': data, 'amount': 10, 'nonce': None}
+        transaction_list.append(transaction_dict)
+    print(transaction_list)
+    send_batch_transactions(client, transaction_list)
+
+
+def test_PT_AC_015(client_consensus):
+    """
+    质押并行交易(二)
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None, 'data': ''}
+    transaction_list.append(transaction_dict)
+    address, private_key = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    benifit_address, _ = economic.account.generate_account(node.web3, 0)
+    program_version_sign = node.program_version_sign
+    program_version = node.program_version
+    bls_pubkey = node.blspubkey
+    bls_proof = node.schnorr_NIZK_prove
+    benifit_address = bech32_address_bytes(benifit_address)
+    if program_version_sign[:2] == '0x':
+        program_version_sign = program_version_sign[2:]
+    data = HexBytes(rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(benifit_address),
+                                rlp.encode(bytes.fromhex(node.node_id)), rlp.encode("platon"), rlp.encode("platon1"),
+                                rlp.encode("http://www.platon.network"), rlp.encode("The PlatON Node"),
+                                rlp.encode(economic.create_staking_limit), rlp.encode(0), rlp.encode(program_version),
+                                rlp.encode(bytes.fromhex(program_version_sign)), rlp.encode(bytes.fromhex(bls_pubkey)),
+                                rlp.encode(bytes.fromhex(bls_proof))])).hex()
+    transaction_dict = {'from': address, 'from_private': private_key, 'to': EconomicConfig.STAKING_ADDRESS, 'to_private': None, 'data': data, 'amount': 10, 'nonce': None}
+    transaction_list.append(transaction_dict)
+    for i in range(3):
+        addres3, private_key4 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        addres5, private_key6 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        transaction_dict = {'from': addres3, 'from_private': private_key4, 'to': addres5, 'to_private': private_key6, 'amount': 10, 'nonce': None, 'data': ''}
+        transaction_list.append(transaction_dict)
+    print(transaction_list)
+    send_batch_transactions(client, transaction_list)
 
 
 def RO_T_001(new_genesis_env, client_noconsensus):
