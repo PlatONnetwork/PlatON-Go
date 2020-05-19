@@ -30,6 +30,8 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
 
     public static final String FUNC_SETINITTUPLEMODEONE = "setInitTupleModeOne";
 
+    public static final String FUNC_GETTUPLEVALUEINDEX4 = "getTupleValueIndex4";
+
     public static final String FUNC_GETTUPLEVALUEINDEX1 = "getTupleValueIndex1";
 
     public static final String FUNC_GETTUPLEVALUEINDEX2 = "getTupleValueIndex2";
@@ -37,8 +39,6 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
     public static final String FUNC_SETINITTUPLEMODETWO = "setInitTupleModeTwo";
 
     public static final String FUNC_GETTUPLEVALUEINDEX3 = "getTupleValueIndex3";
-
-    public static final String FUNC_GETTUPLEVALUEINDEX4 = "getTupleValueIndex4";
 
     public static final String FUNC_SETINITTUPLEMODETHREE = "setInitTupleModeThree";
 
@@ -80,6 +80,11 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
         return deployRemoteCall(ReferenceDataTypeTupleContract.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue, chainId);
     }
 
+    public RemoteCall<Person> getTupleValueIndex4() {
+        final WasmFunction function = new WasmFunction(FUNC_GETTUPLEVALUEINDEX4, Arrays.asList(), Person.class);
+        return executeRemoteCall(function, Person.class);
+    }
+
     public RemoteCall<String> getTupleValueIndex1() {
         final WasmFunction function = new WasmFunction(FUNC_GETTUPLEVALUEINDEX1, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
@@ -103,11 +108,6 @@ public class ReferenceDataTypeTupleContract extends WasmContract {
     public RemoteCall<String> getTupleValueIndex3() {
         final WasmFunction function = new WasmFunction(FUNC_GETTUPLEVALUEINDEX3, Arrays.asList(), String.class);
         return executeRemoteCall(function, String.class);
-    }
-
-    public RemoteCall<Person> getTupleValueIndex4() {
-        final WasmFunction function = new WasmFunction(FUNC_GETTUPLEVALUEINDEX4, Arrays.asList(), Person.class);
-        return executeRemoteCall(function, Person.class);
     }
 
     public RemoteCall<TransactionReceipt> setInitTupleModeThree(String name, Uint64 age) {

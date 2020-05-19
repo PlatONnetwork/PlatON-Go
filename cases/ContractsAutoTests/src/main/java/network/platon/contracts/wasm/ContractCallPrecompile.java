@@ -27,9 +27,9 @@ public class ContractCallPrecompile extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_CROSS_CALL_ECRECOVER = "cross_call_ecrecover";
-
     public static final String FUNC_CROSS_CALL_BIGMODEXP = "cross_call_bigModExp";
+
+    public static final String FUNC_CROSS_CALL_ECRECOVER = "cross_call_ecrecover";
 
     public static final String FUNC_CROSS_CALL_SHA256HASH = "cross_call_sha256hash";
 
@@ -51,13 +51,13 @@ public class ContractCallPrecompile extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<String> cross_call_ecrecover(byte[] msgh, Uint8 v, byte[] r, byte[] s, Uint64 value, Uint64 gas) {
-        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_ECRECOVER, Arrays.asList(msgh,v,r,s,value,gas), String.class);
+    public RemoteCall<String> cross_call_bigModExp(byte[] base, byte[] exponent, byte[] modulus, Uint64 value, Uint64 gas) {
+        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_BIGMODEXP, Arrays.asList(base,exponent,modulus,value,gas), String.class);
         return executeRemoteCall(function, String.class);
     }
 
-    public RemoteCall<String> cross_call_bigModExp(byte[] base, byte[] exponent, byte[] modulus, Uint64 value, Uint64 gas) {
-        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_BIGMODEXP, Arrays.asList(base,exponent,modulus,value,gas), String.class);
+    public RemoteCall<String> cross_call_ecrecover(byte[] msgh, Uint8 v, byte[] r, byte[] s, Uint64 value, Uint64 gas) {
+        final WasmFunction function = new WasmFunction(FUNC_CROSS_CALL_ECRECOVER, Arrays.asList(msgh,v,r,s,value,gas), String.class);
         return executeRemoteCall(function, String.class);
     }
 

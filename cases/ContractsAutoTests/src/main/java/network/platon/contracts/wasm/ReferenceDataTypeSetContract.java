@@ -30,9 +30,9 @@ public class ReferenceDataTypeSetContract extends WasmContract {
 
     public static final String FUNC_FIND_SET = "find_set";
 
-    public static final String FUNC_ITERATOR_SET = "iterator_set";
-
     public static final String FUNC_INSERT_SET = "insert_set";
+
+    public static final String FUNC_ITERATOR_SET = "iterator_set";
 
     public static final String FUNC_INIT_SET = "init_set";
 
@@ -57,16 +57,6 @@ public class ReferenceDataTypeSetContract extends WasmContract {
         return executeRemoteCall(function, Uint8.class);
     }
 
-    public RemoteCall<TransactionReceipt> iterator_set() {
-        final WasmFunction function = new WasmFunction(FUNC_ITERATOR_SET, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> iterator_set(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_ITERATOR_SET, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<TransactionReceipt> insert_set(Uint8 value) {
         final WasmFunction function = new WasmFunction(FUNC_INSERT_SET, Arrays.asList(value), Void.class);
         return executeRemoteCallTransaction(function);
@@ -74,6 +64,16 @@ public class ReferenceDataTypeSetContract extends WasmContract {
 
     public RemoteCall<TransactionReceipt> insert_set(Uint8 value, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_INSERT_SET, Arrays.asList(value), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> iterator_set() {
+        final WasmFunction function = new WasmFunction(FUNC_ITERATOR_SET, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> iterator_set(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_ITERATOR_SET, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

@@ -39,6 +39,8 @@ public class LATToken extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
+    public static final String FUNC_APPROVEANDCALL = "approveAndCall";
+
     public static final String FUNC_GETSENDER = "getSender";
 
     public static final String FUNC_BALANCEOF = "balanceOf";
@@ -59,12 +61,10 @@ public class LATToken extends WasmContract {
 
     public static final String FUNC_GETTOTALSUPPLY = "getTotalSupply";
 
-    public static final String FUNC_APPROVEANDCALL = "approveAndCall";
-
-    public static final WasmEvent APPROVAL_EVENT = new WasmEvent("Approval", Arrays.asList(new WasmEventParameter(WasmAddress.class, true) , new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(Uint64.class)));
+    public static final WasmEvent TRANSFER_EVENT = new WasmEvent("Transfer", Arrays.asList(new WasmEventParameter(WasmAddress.class, true) , new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(Uint64.class)));
     ;
 
-    public static final WasmEvent TRANSFER_EVENT = new WasmEvent("Transfer", Arrays.asList(new WasmEventParameter(WasmAddress.class, true) , new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(Uint64.class)));
+    public static final WasmEvent APPROVAL_EVENT = new WasmEvent("Approval", Arrays.asList(new WasmEventParameter(WasmAddress.class, true) , new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(Uint64.class)));
     ;
 
     protected LATToken(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
@@ -75,50 +75,25 @@ public class LATToken extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
+    public RemoteCall<TransactionReceipt> approveAndCall(WasmAddress _spender, Uint64 _value, byte[] _extraData) {
+        final WasmFunction function = new WasmFunction(FUNC_APPROVEANDCALL, Arrays.asList(_spender,_value,_extraData), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> approveAndCall(WasmAddress _spender, Uint64 _value, byte[] _extraData, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_APPROVEANDCALL, Arrays.asList(_spender,_value,_extraData), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public RemoteCall<WasmAddress> getSender() {
         final WasmFunction function = new WasmFunction(FUNC_GETSENDER, Arrays.asList(), WasmAddress.class);
         return executeRemoteCall(function, WasmAddress.class);
     }
 
-    public List<ApprovalEventResponse> getApprovalEvents(TransactionReceipt transactionReceipt) {
-        List<WasmEventValuesWithLog> valueList = extractEventParametersWithLog(APPROVAL_EVENT, transactionReceipt);
-        ArrayList<ApprovalEventResponse> responses = new ArrayList<ApprovalEventResponse>(valueList.size());
-        for (WasmEventValuesWithLog eventValues : valueList) {
-            ApprovalEventResponse typedResponse = new ApprovalEventResponse();
-            typedResponse.log = eventValues.getLog();
-            typedResponse.topic1 = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.topic2 = (String) eventValues.getIndexedValues().get(1);
-            typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
-            responses.add(typedResponse);
-        }
-        return responses;
-    }
-
-    public Observable<ApprovalEventResponse> approvalEventObservable(PlatonFilter filter) {
-        return web3j.platonLogObservable(filter).map(new Func1<Log, ApprovalEventResponse>() {
-            @Override
-            public ApprovalEventResponse call(Log log) {
-                WasmEventValuesWithLog eventValues = extractEventParametersWithLog(APPROVAL_EVENT, log);
-                ApprovalEventResponse typedResponse = new ApprovalEventResponse();
-                typedResponse.log = log;
-                typedResponse.topic1 = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.topic2 = (String) eventValues.getIndexedValues().get(1);
-                typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
-                return typedResponse;
-            }
-        });
-    }
-
-    public Observable<ApprovalEventResponse> approvalEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
-        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(WasmEventEncoder.encode(APPROVAL_EVENT));
-        return approvalEventObservable(filter);
-    }
-
     public List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
-        List<WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
         ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
-        for (WasmEventValuesWithLog eventValues : valueList) {
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
             TransferEventResponse typedResponse = new TransferEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic1 = (String) eventValues.getIndexedValues().get(0);
@@ -133,7 +108,7 @@ public class LATToken extends WasmContract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, TransferEventResponse>() {
             @Override
             public TransferEventResponse call(Log log) {
-                WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER_EVENT, log);
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER_EVENT, log);
                 TransferEventResponse typedResponse = new TransferEventResponse();
                 typedResponse.log = log;
                 typedResponse.topic1 = (String) eventValues.getIndexedValues().get(0);
@@ -148,6 +123,41 @@ public class LATToken extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
+    }
+
+    public List<ApprovalEventResponse> getApprovalEvents(TransactionReceipt transactionReceipt) {
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(APPROVAL_EVENT, transactionReceipt);
+        ArrayList<ApprovalEventResponse> responses = new ArrayList<ApprovalEventResponse>(valueList.size());
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
+            ApprovalEventResponse typedResponse = new ApprovalEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.topic1 = (String) eventValues.getIndexedValues().get(0);
+            typedResponse.topic2 = (String) eventValues.getIndexedValues().get(1);
+            typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Observable<ApprovalEventResponse> approvalEventObservable(PlatonFilter filter) {
+        return web3j.platonLogObservable(filter).map(new Func1<Log, ApprovalEventResponse>() {
+            @Override
+            public ApprovalEventResponse call(Log log) {
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(APPROVAL_EVENT, log);
+                ApprovalEventResponse typedResponse = new ApprovalEventResponse();
+                typedResponse.log = log;
+                typedResponse.topic1 = (String) eventValues.getIndexedValues().get(0);
+                typedResponse.topic2 = (String) eventValues.getIndexedValues().get(1);
+                typedResponse.arg1 = (Uint64) eventValues.getNonIndexedValues().get(0);
+                return typedResponse;
+            }
+        });
+    }
+
+    public Observable<ApprovalEventResponse> approvalEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(WasmEventEncoder.encode(APPROVAL_EVENT));
+        return approvalEventObservable(filter);
     }
 
     public RemoteCall<Uint64> balanceOf(WasmAddress _owner) {
@@ -230,16 +240,6 @@ public class LATToken extends WasmContract {
         return executeRemoteCall(function, Uint64.class);
     }
 
-    public RemoteCall<TransactionReceipt> approveAndCall(WasmAddress _spender, Uint64 _value, byte[] _extraData) {
-        final WasmFunction function = new WasmFunction(FUNC_APPROVEANDCALL, Arrays.asList(_spender,_value,_extraData), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> approveAndCall(WasmAddress _spender, Uint64 _value, byte[] _extraData, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_APPROVEANDCALL, Arrays.asList(_spender,_value,_extraData), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public static LATToken load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         return new LATToken(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
@@ -248,7 +248,7 @@ public class LATToken extends WasmContract {
         return new LATToken(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public static class ApprovalEventResponse {
+    public static class TransferEventResponse {
         public Log log;
 
         public String topic1;
@@ -258,7 +258,7 @@ public class LATToken extends WasmContract {
         public Uint64 arg1;
     }
 
-    public static class TransferEventResponse {
+    public static class ApprovalEventResponse {
         public Log log;
 
         public String topic1;
