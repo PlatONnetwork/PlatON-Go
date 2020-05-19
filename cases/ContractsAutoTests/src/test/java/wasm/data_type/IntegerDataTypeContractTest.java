@@ -4,12 +4,15 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.platon.rlp.datatypes.*;
+import com.platon.sdk.utlis.Bech32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.IntegerDataTypeContract_1;
 import network.platon.contracts.wasm.IntegerDataTypeContract_2;
 import network.platon.contracts.wasm.IntegerDataTypeContract_3;
 //import network.platon.contracts.wasm.IntegerDataTypeContract_4;
+import network.platon.contracts.wasm.IntegerDataTypeContract_4;
+import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.abi.datatypes.Address;
@@ -192,56 +195,57 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
         }
     }
 
-//    @Test
-//    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-//            author = "zjsunzone", showName = "wasm.base_data_type_04",sourcePrefix = "wasm")
-//    public void testBaseTypeContract_04() {
-//
-//        try {
-//            // deploy contract.
-//            IntegerDataTypeContract_4 contract = IntegerDataTypeContract_4.deploy(web3j, transactionManager, provider, chainId).send();
-//            String contractAddress = contract.getContractAddress();
-//            String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
-//            collector.logStepPass("IntegerDataTypeContract_4 issued successfully.contractAddress:"
-//                    + contractAddress + ", hash:" + transactionHash
-//                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
-//
-//            // init address
-//            TransactionReceipt initTr = contract.initAddress().send();
-//            collector.logStepPass("To invoke initAddress success, txHash: " + initTr.getTransactionHash());
-//            String afterInitAddress = contract.getAddress().send();
-//            collector.logStepPass("To invoke getAddress success, getAddress: " + afterInitAddress);
-//            collector.assertEqual(afterInitAddress.toLowerCase(), "0xf674172E619af9C09C126a568CF2838d243cE7F7".toLowerCase());
-//
+    @Test
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+            author = "zjsunzone", showName = "wasm.base_data_type_04",sourcePrefix = "wasm")
+    public void testBaseTypeContract_04() {
+
+        try {
+            // deploy contract.
+            IntegerDataTypeContract_4 contract = IntegerDataTypeContract_4.deploy(web3j, transactionManager, provider, chainId).send();
+            String contractAddress = contract.getContractAddress();
+            String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
+            collector.logStepPass("IntegerDataTypeContract_4 issued successfully.contractAddress:"
+                    + contractAddress + ", hash:" + transactionHash
+                    + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
+
+            // init address
+            TransactionReceipt initTr = contract.initAddress().send();
+            collector.logStepPass("To invoke initAddress success, txHash: " + initTr.getTransactionHash());
+            String afterInitAddress = contract.getAddress().send();
+            collector.logStepPass("To invoke getAddress success, getAddress: " + afterInitAddress);
+//            collector.assertEqual(afterInitAddress.toLowerCase(), "lax108d45qw2k8mnk08w7hd3s6frrdqk6mwevvkgwc".toLowerCase());
+
 //            // test: store address
 //            Address expectAddr = new Address("0x5b05e7a3e2a688c5e5cc491545a84a1efc66c1b1");
-//            TransactionReceipt addrTr = contract.setAddress(expectAddr.getValue()).send();
-//            collector.logStepPass("To invoke setAddress success, txHash: " + addrTr.getTransactionHash());
-//            String getAddress = contract.getAddress().send();
-//            collector.logStepPass("To invoke getAddress success, getAddress: " + getAddress);
-//            //collector.assertEqual(getAddress, expectAddr);
-//
-//            // test: store u256
-//            String expectU256 = "100000";
-//            TransactionReceipt u256TR = contract.setU256(Uint64.of(expectU256)).send();
-//            collector.logStepPass("To invoke setU256 success, txHash: " + u256TR.getTransactionHash());
-//            String getU256 = contract.getU256().send();
-//            collector.logStepPass("To invoke getU256 success, getU256: " + getU256);
-//            collector.assertEqual(getU256, expectU256);
-//
-//            // test: store h256
-//            String expectH256 = "0x80b543239ae8e4f679019719312524d10f14fef79fd0d9117d810bffdedf608e";
-//            TransactionReceipt h256Tr = contract.setH256(expectH256).send();
-//            collector.logStepPass("To invoke setH256 success, txHash: " + h256Tr.getTransactionHash());
-//            String getH256 = contract.getH256().send();
-//            collector.logStepPass("To invoke getH256 success, getH256: " + getH256);
-//            //collector.assertEqual(getH256, expectH256);
-//
-//        } catch (Exception e) {
-//            collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
-//            e.printStackTrace();
-//        }
-//    }
+            String expectAddr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn6j";
+            TransactionReceipt addrTr = contract.setAddress(expectAddr).send();
+            collector.logStepPass("To invoke setAddress success, txHash: " + addrTr.getTransactionHash());
+            String getAddress = contract.getAddress().send();
+            collector.logStepPass("To invoke getAddress success, getAddress: " + getAddress);
+            //collector.assertEqual(getAddress, expectAddr);
+
+            // test: store u256
+            String expectU256 = "100000";
+            TransactionReceipt u256TR = contract.setU256(Uint64.of(expectU256)).send();
+            collector.logStepPass("To invoke setU256 success, txHash: " + u256TR.getTransactionHash());
+            String getU256 = contract.getU256().send();
+            collector.logStepPass("To invoke getU256 success, getU256: " + getU256);
+            collector.assertEqual(getU256, expectU256);
+
+            // test: store h256
+            String expectH256 = "0x80b543239ae8e4f679019719312524d10f14fef79fd0d9117d810bffdedf608e";
+            TransactionReceipt h256Tr = contract.setH256(expectH256).send();
+            collector.logStepPass("To invoke setH256 success, txHash: " + h256Tr.getTransactionHash());
+            String getH256 = contract.getH256().send();
+            collector.logStepPass("To invoke getH256 success, getH256: " + getH256);
+            //collector.assertEqual(getH256, expectH256);
+
+        } catch (Exception e) {
+            collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
