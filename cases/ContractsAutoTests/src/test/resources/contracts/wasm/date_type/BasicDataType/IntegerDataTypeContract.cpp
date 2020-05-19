@@ -214,7 +214,6 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		{
             auto address_info = make_address(input);
             if(address_info.second) Address tAddress = address_info.first;
-//			tAddress.self() = Address(input);
 		}
 		
 		CONST std::string getAddress()

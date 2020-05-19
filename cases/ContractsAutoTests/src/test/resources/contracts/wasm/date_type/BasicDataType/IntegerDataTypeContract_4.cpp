@@ -21,13 +21,16 @@ CONTRACT IntegerDataTypeContract_4: public platon::Contract
 		ACTION void initAddress()
 		{
 			//tAddress.self() = make_address("0xf674172E619af9C09C126a568CF2838d243cE7F7");
-			tAddress.self() = make_address("lax108d45qw2k8mnk08w7hd3s6frrdqk6mwevvkgwc");
+			auto address_info = make_address("lax108d45qw2k8mnk08w7hd3s6frrdqk6mwevvkgwc");
+			if(address_info.second) Address tAddress = address_info.first;
 		}
 
 		/// set value for address.
 		ACTION void setAddress(const std::string& input)
 		{
-			tAddress.self() = Address(input);
+		    auto address_info = make_address(input);
+            if(address_info.second) Address tAddress = address_info.first;
+//			tAddress.self() = Address(input);
 		}
 		
 		CONST std::string getAddress()
