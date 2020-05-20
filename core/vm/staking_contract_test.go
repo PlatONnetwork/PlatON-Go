@@ -22,8 +22,13 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
+	"strconv"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -594,6 +599,164 @@ func TestStakingContract_getVerifierList(t *testing.T) {
 	params = append(params, fnType)
 
 	runContractCall(contract, params, "getVerifierList", t)
+
+}
+
+func TestStakingContract_getHistoryVerifierList(t *testing.T) {
+
+	state, genesis, _ := newChainState()
+	contract := &StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0, sender),
+		Evm:      newEvm(blockNumber, blockHash, state),
+	}
+	//state.Prepare(txHashArr[idx], blockHash, idx)
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
+		return
+	}
+
+	// Request th opening/creation of an ephemeral database and ensure it's not persisted
+	ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
+	config := &eth.Config{
+	}
+	hDB, _ := eth.CreateDB(ctx, config, "historydata")
+	plugin.STAKING_DB = &plugin.StakingDB{
+		HistoryDB:  hDB,
+	}
+	validatorQueue := make(staking.ValidatorQueue, len(nodeIdArr))
+	for index, value := range nodeIdArr {
+		validatorQueue[index] = &staking.Validator{
+			NodeId:value,
+		}
+	}
+	current := staking.ValidatorArray{Start:uint64(0), End:uint64(50), Arr:validatorQueue}
+	data, _ := rlp.EncodeToBytes(current);
+	numStr := strconv.FormatUint(xutil.ConsensusSize() - xcom.ElectionDistance(), 10)
+	hDB.Put([]byte(plugin.ValidatorName+numStr), data)
+
+	params := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1106))
+	param0, _ := rlp.EncodeToBytes(big.NewInt(int64(50)))
+
+	params = append(params, fnType)
+	params = append(params, param0)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		t.Errorf("getHistoryVerifierList encode rlp data fail:%v", err)
+		return
+	} else {
+		t.Log("getHistoryVerifierList data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := contract.Run(buf.Bytes())
+	if nil != err {
+		t.Error("Failed to call getHistoryVerifierList, err", err)
+		return
+	} else {
+
+		var r xcom.Result
+		err = json.Unmarshal(res, &r)
+		if nil != err {
+			t.Error("Failed tp parse result", err)
+			return
+		}
+
+		if r.Code == 0 {
+			t.Log("the VerifierList info:", r.Ret)
+		} else {
+			t.Error("getHistoryVerifierList failed", r.Ret)
+		}
+	}
+
+}
+
+func TestStakingContract_getHistoryValidatorList(t *testing.T) {
+
+	state, genesis, _ := newChainState()
+	contract := &StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0, sender),
+		Evm:      newEvm(blockNumber, blockHash, state),
+	}
+	//state.Prepare(txHashArr[idx], blockHash, idx)
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
+		return
+	}
+
+	// Request th opening/creation of an ephemeral database and ensure it's not persisted
+	ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
+	config := &eth.Config{
+	}
+	hDB, _ := eth.CreateDB(ctx, config, "historydata")
+	plugin.STAKING_DB = &plugin.StakingDB{
+		HistoryDB:  hDB,
+	}
+	validatorQueue := make(staking.ValidatorQueue, len(nodeIdArr))
+	for index, value := range nodeIdArr {
+		validatorQueue[index] = &staking.Validator{
+			NodeId:value,
+		}
+	}
+	current := staking.ValidatorArray{Start:uint64(0), End:uint64(50), Arr:validatorQueue}
+	data, _ := rlp.EncodeToBytes(current);
+	numStr := strconv.FormatUint(xutil.CalcBlocksEachEpoch(), 10)
+	hDB.Put([]byte(plugin.ValidatorName+numStr), data)
+
+	params := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1107))
+	param0, _ := rlp.EncodeToBytes(big.NewInt(int64(1000)))
+
+	params = append(params, fnType)
+	params = append(params, param0)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		t.Errorf("getHistoryValidatorList encode rlp data fail:%v", err)
+		return
+	} else {
+		t.Log("getHistoryValidatorList data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := contract.Run(buf.Bytes())
+	if nil != err {
+		t.Error("Failed to call getHistoryValidatorList, err", err)
+		return
+	} else {
+
+		var r xcom.Result
+		err = json.Unmarshal(res, &r)
+		if nil != err {
+			t.Error("Failed tp parse result", err)
+			return
+		}
+
+		if r.Code == 0 {
+			t.Log("the Validator info:", r.Ret)
+		} else {
+			t.Error("getHistoryValidatorList failed", r.Ret)
+		}
+	}
 
 }
 

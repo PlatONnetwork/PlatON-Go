@@ -133,6 +133,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
+	hDB, error := CreateDB(ctx, config, "historydata")
+	if error != nil {
+		return nil, error
+	}
+	xplugin.STAKING_DB = &xplugin.StakingDB{
+		HistoryDB:  hDB,
+	}
 	snapshotBaseDB, err := snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
 	if err != nil {
 		return nil, err
@@ -248,6 +255,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			TriesInMemory: config.TriesInMemory, TrieDBCache: config.TrieDBCache,
 			DBGCInterval: config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
 			DBGCMpt: config.DBGCMpt, DBGCBlock: config.DBGCBlock,
+			DBDisabledCache:config.DBDisabledCache,DBCacheEpoch:config.DBCacheEpoch,
 		}
 
 		minningConfig = &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
