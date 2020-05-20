@@ -1258,6 +1258,189 @@ class TestPP:
                                  transaction_cfg=pip.cfg.transaction_cfg)
         assert_code(result, 0)
 
+    @pytest.mark.P0
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_026(self, no_vp_proposal, client_consensus):
+        pip = no_vp_proposal
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange', '',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange', '1.1',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange', '-2',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange', '0',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange', 6,
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange',
+                                 '2001',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange',
+                                 '2000',
+                                 pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    @pytest.mark.P0
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_026_2(self, new_genesis_env, clients_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.staking.rewardPerMaxChangeRange = 2
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        client = clients_consensus[0]
+        pip = client.pip
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange',
+                                 '2', pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 3)
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange',
+                                 '1', pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 0)
+
+    @pytest.mark.P0
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_027(self, no_vp_proposal, client_consensus):
+        pip = no_vp_proposal
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval', '',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval', '1.1',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval', '-2',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval', '1',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval', '0',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval', 6,
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval',
+                                 str(pip.economic.additional_cycle_time * 60 //(
+                                         pip.economic.settlement_size * pip.economic.interval) + 1),
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval',
+                                 str(pip.economic.additional_cycle_time * 60 //(
+                                         pip.economic.settlement_size * pip.economic.interval)),
+                                 pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    @pytest.mark.P0
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_027_2(self, new_genesis_env, clients_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.staking.rewardPerChangeInterval = 3
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        client = clients_consensus[0]
+        pip = client.pip
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval',
+                                 '3', pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 3)
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval',
+                                 '2', pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 0)
+
+    @pytest.mark.P0
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_028(self, no_vp_proposal, client_consensus):
+        pip = no_vp_proposal
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', '',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', '1.1',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', '-2',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', '2001',
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', 6,
+                                 pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', '2000',
+                                 pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    @pytest.mark.P0
+    @allure.title('Submit parammeter  proposal function verification')
+    def test_PP_SU_028_2(self, new_genesis_env, clients_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.reward.increaseIssuanceRatio = 3
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        client = clients_consensus[0]
+        pip = client.pip
+
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio',
+                                 '3', pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 3)
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio',
+                                 '0', pip.node.staking_address,
+                                 transaction_cfg=pip.cfg.transaction_cfg)
+        assert_code(result, 0)
+
     @pytest.mark.P2
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_024_UP_PA_008_PP_VO_004(self, new_genesis_env, clients_consensus):

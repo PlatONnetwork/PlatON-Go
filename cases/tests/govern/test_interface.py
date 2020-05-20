@@ -434,14 +434,16 @@ class TestListGovernParam:
         name, module = self.get_govern_param(client_noconsensus)
         assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'slashBlocksReward',
                              'stakeThreshold', 'maxBlockGasLimit', 'duplicateSignReportReward', 'maxEvidenceAge',
-                             'slashFractionDuplicateSign', 'zeroProduceCumulativeTime', 'zeroProduceNumberThreshold'}
-        assert set(module) == {'block', 'slashing', 'staking'}
+                             'slashFractionDuplicateSign', 'zeroProduceCumulativeTime', 'zeroProduceNumberThreshold',
+                             'rewardPerMaxChangeRange', 'rewardPerChangeInterval', 'increaseIssuanceRatio'}
+        assert set(module) == {'block', 'slashing', 'staking', 'reward'}
 
     @pytest.mark.P2
     @allure.title('Interface listGovernParam function verification')
     def test_IN_LG_002(self, client_noconsensus):
         name, module = self.get_govern_param(client_noconsensus, 'staking')
-        assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'stakeThreshold'}
+        assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'stakeThreshold',
+                             'rewardPerMaxChangeRange', 'rewardPerChangeInterval'}
         assert set(module) == {'staking'}
 
     @pytest.mark.P2
@@ -458,6 +460,11 @@ class TestListGovernParam:
         name, module = self.get_govern_param(client_noconsensus, 'block')
         assert set(name) == {'maxBlockGasLimit'}
         assert set(module) == {'block'}
+
+        name, module = self.get_govern_param(client_noconsensus, 'reward')
+        assert set(name) == {'increaseIssuanceRatio'}
+        assert set(module) == {'reward'}
+
 
     @pytest.mark.P2
     @allure.title('Interface listGovernParam function verification')

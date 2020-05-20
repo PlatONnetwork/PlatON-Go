@@ -16,12 +16,12 @@ def global_running_env(global_test_env):
     id_cfg = id(cfg)
     if not global_test_env.running:
         log.info("The environment is not running, redeploying the environment")
-        global_test_env.deploy_all()
+        # global_test_env.deploy_all()
     yield global_test_env
     if id_cfg != id(global_test_env.cfg) or id(genesis) != id(global_test_env.genesis_config):
         log.info("Environment configuration changes, restore configuration files and redeploy")
         global_test_env.set_cfg(backup_cfg)
-        global_test_env.deploy_all()
+        # global_test_env.deploy_all()
 
 
 @pytest.fixture()
@@ -198,7 +198,7 @@ def new_genesis_env(global_test_env):
     yield global_test_env
     log.info("reset deploy.................")
     global_test_env.set_cfg(cfg)
-    global_test_env.deploy_all()
+    # global_test_env.deploy_all()
 
 
 def param_governance_verify(client, module, name, newvalue, effectiveflag=True):

@@ -125,6 +125,80 @@ class TestPlatonVersion:
             assert e.args[0][index:index + 41] == r'ZeroProduceNumberThreshold must be [1, 1]'
 
     @pytest.mark.P2
+    def test_VE_DE_014_017(self, new_genesis_env):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.staking.rewardPerMaxChangeRange = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        try:
+            new_genesis_env.deploy_all()
+        except Exception as e:
+            log.info('Deploy failed error measage {}'.format(e.args[0]))
+            index = e.args[0].find('RewardPerMaxChangeRange')
+            assert e.args[0][index:index + 41] == r'RewardPerMaxChangeRange must be [1, 2000]'
+
+        genesis.economicModel.staking.rewardPerMaxChangeRange = 2001
+        new_genesis_env.set_genesis(genesis.to_dict())
+        try:
+            new_genesis_env.deploy_all()
+        except Exception as e:
+            log.info('Deploy failed error measage {}'.format(e.args[0]))
+            index = e.args[0].find('RewardPerMaxChangeRange')
+            assert e.args[0][index:index + 41] == r'RewardPerMaxChangeRange must be [1, 2000]'
+
+    @pytest.mark.P2
+    def test_VE_DE_015_016(self, new_genesis_env, client_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.staking.rewardPerMaxChangeRange = 1
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        time.sleep(5)
+        assert client_consensus.node.block_number != 0
+
+        genesis.economicModel.staking.rewardPerMaxChangeRange = 2000
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        time.sleep(5)
+        assert client_consensus.node.block_number != 0
+
+    @pytest.mark.P2
+    def test_VE_DE_018_021(self, new_genesis_env):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.staking.rewardPerChangeInterval = 1
+        new_genesis_env.set_genesis(genesis.to_dict())
+        try:
+            new_genesis_env.deploy_all()
+        except Exception as e:
+            log.info('Deploy failed error measage {}'.format(e.args[0]))
+            index = e.args[0].find('rewardPerChangeInterval')
+            assert e.args[0][index:index + 41] == r'rewardPerChangeInterval must be [2, 28]'
+
+        genesis.economicModel.staking.rewardPerMaxChangeRange = 2001
+        new_genesis_env.set_genesis(genesis.to_dict())
+        try:
+            new_genesis_env.deploy_all()
+        except Exception as e:
+            log.info('Deploy failed error measage {}'.format(e.args[0]))
+            index = e.args[0].find('rewardPerChangeInterval')
+            assert e.args[0][index:index + 41] == r'rewardPerChangeInterval must be [2, 28]'
+
+    @pytest.mark.P2
+    def test_VE_DE_019_020(self, new_genesis_env, client_consensus):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.staking.rewardPerChangeInterval = 2
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        time.sleep(5)
+        assert client_consensus.node.block_number != 0
+
+        settlement_count = client_consensus.economic.additional_cycle_time * 60//(
+                client_consensus.economic.settlement_size * client_consensus.economic.interval)
+        genesis.economicModel.staking.rewardPerChangeInterval = settlement_count
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        time.sleep(5)
+        assert client_consensus.node.block_number != 0
+
+    @pytest.mark.P2
     def test_VE_AD_002(self, new_genesis_env):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.config.genesisVersion = 1796
