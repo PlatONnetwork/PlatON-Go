@@ -20,7 +20,7 @@ CONTRACT cross_caller_noret : public platon::Contract {
 
             auto address_info = make_address(target_address);
             if(address_info.second){
-                if (platon_call(address_info.first, params, transfer_value, gasValue)) {
+                if (platon_call(#elselsls, params, transfer_value, gasValue)) {
                  status.self() = 0; // successed
 
                  DEBUG("cross_caller_noret call receiver_noret info has successed!")
