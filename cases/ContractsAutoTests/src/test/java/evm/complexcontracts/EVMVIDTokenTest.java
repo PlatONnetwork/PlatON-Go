@@ -3,7 +3,6 @@ package evm.complexcontracts;
 import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.Ballot;
 import network.platon.contracts.VIDToken;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,9 +27,9 @@ public class EVMVIDTokenTest extends ContractPrepareTest {
 
             collector.logStepPass(
                     "Token issued successfully.contractAddress:" + contractAddress +
-                             ", hash:" + tx.getTransactionHash() +
-                             ", tokenName:" + token.name().send() +
-                             ", symbol:" + token.symbol().send());
+                            ", hash:" + tx.getTransactionHash() +
+                            ", tokenName:" + token.name().send() +
+                            ", symbol:" + token.symbol().send());
             collector.logStepPass("deploy gas used:" + token.getTransactionReceipt().get().getGasUsed());
 
             BigInteger balanceOf = VIDToken.load(contractAddress, web3j, transactionManager, provider, chainId).balanceOf(contractAddress).send();
