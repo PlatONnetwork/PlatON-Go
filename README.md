@@ -59,7 +59,6 @@ Node's keypair(Ubuntu for example):
 
 ```
 keytool genkeypair
-Address   :  0xA9051ACCa5d9a7592056D07659f3F607923173ad
 PrivateKey:  1abd1200759d4693f4510fbcf7d5caad743b11b5886dc229da6c0747061fca36
 PublicKey :  8917c748513c23db46d23f531cc083d2f6001b4cc2396eb8412d73a3e4450ffc5f5235757abf9873de469498d8cf45f5bb42c215da79d59940e17fcb22dfc127
 ```
@@ -90,7 +89,8 @@ platon --datadir ./data account new
 Your new account is locked with a password. Please give a password. Do not forget this password.
 Passphrase:
 Repeat passphrase:
-Address: {566c274db7ac6d38da2b075b4ae41f4a5c481d21}
+main net Address: lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9
+other net Address: lax1anp4tzmdggdrcf39qvshfq3glacjxcd5elapx2
 ```
 
 > Do remember the password
