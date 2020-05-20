@@ -33,7 +33,7 @@ CONTRACT VRF : public platon::Contract{
             wordLengthBytes.self() = 32; //0x20;
             SCALAR_FROM_CURVE_POINTS_HASH_PREFIX.self() = 2;
             VRF_RANDOM_OUTPUT_HASH_PREFIX.self() = 3;
-            address_str.self() = "0x000000000000000000000000000000000000002";
+            address_str.self() = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzg4es8l";
             PROOF_LENGTH.self() =  64 + // PublicKey (uncompressed format.)
                             64 + // Gamma
                             32 + // C
@@ -62,7 +62,14 @@ CONTRACT VRF : public platon::Contract{
             platon::bytes params = platon::cross_call_args("data", bigModExpContractInputs.self());
 
             u128 resulth128;
-            if (platon_call(Address(addr), params, value, gas)) {
+
+            Address addr3;
+            auto address_info3 = make_address(addr);
+            if(address_info3.second){
+              addr3 = address_info3.first;
+            }
+
+            if (platon_call(addr3, params, value, gas)) {
                 platon::bytes ret;
                 size_t len = platon_get_call_output_length();
                 ret.resize(len);
@@ -95,7 +102,7 @@ CONTRACT VRF : public platon::Contract{
         //c++实现keccak256算法实现未开发
         // u128 fieldHash(bytes &b){
         u128 fieldHash(bytes &bt){
-            h256 res = platon_sha256(bt);//h256转u128
+//            h256 res = platon_sha256(bt);//h256转u128
 //            fieldHash128.self() = toHex(res.toString())
 //            std::string res1 = std::to_string(res);
 //            while(res >= fieldSize.self()){
@@ -109,16 +116,22 @@ CONTRACT VRF : public platon::Contract{
         bytes keccak256(bytes &bt){
             u128 value = 12;
             u128 gas = 4712388;
-            std::string target_addr = "0x000000000000000000000000000000000000002";
+            std::string target_addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzg4es8l";
             platon::bytes ret;
 
-            if (platon_call(Address(target_addr), bt, value, gas)) {
-                size_t len = platon_get_call_output_length();
-                ret.resize(len);
-                platon_get_call_output(ret.data());
-            }else{
-                platon_panic();
+            auto address_info = make_address(target_addr);
+            if(address_info.second){
+              Address addr = address_info.first;
+              if (platon_call(addr, bt, value, gas)) {
+                  size_t len = platon_get_call_output_length();
+                  ret.resize(len);
+                  platon_get_call_output(ret.data());
+              }else{
+                  platon_panic();
+              }
             }
+
+
             return ret;
         }
 
@@ -155,9 +168,8 @@ CONTRACT VRF : public platon::Contract{
             // platon::bytes scalarTimesX = fromHex(scalar*x%groupOrder.self());
             // Address actual = ecrecover(fromHex(0),v,fromHex(x),groupOrder.self());//待处理
             // Address exponent = Address(uint256(keccak256(abi.encodePacked(product))));//待处理
-            Address actual = Address(address_str.self());
-            Address exponent = Address(address_str.self());
-            return (actual == exponent);
+
+            return (address_str.self() == address_str.self());
         }
 
         std::array<u128,2> projectiveSub(u128 x1,u128 z1,u128 x2,u128 z2){
@@ -230,7 +242,13 @@ CONTRACT VRF : public platon::Contract{
            u128 value = 12;
            u128 gas = 4712388;
 
-           platon_assert( lcWitness != Address(0), "bad value");
+           Address addr;
+           auto address_info = make_address("lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqvj4t2u");
+           if(address_info.second){
+             addr = address_info.first;
+           }
+
+           platon_assert( lcWitness != addr, "bad value");
            u128 v = (p[1] % 2 == 0) ? 27 : 28;
 
             std::string datastr = std::to_string((groupOrder.self() - p[0]*s%groupOrder.self()));
@@ -245,14 +263,28 @@ CONTRACT VRF : public platon::Contract{
 
             platon::bytes pseudoSignature = data1; // c*p[0]
 //            Address computed = ecrecover(pseudoHash, v, fromHex(p[0]), pseudoSignature);
-            Address computed = Address(0);
-            if (platon_call(Address(address_str.self()), pseudoSignature, value, gas)) {
+            Address computed = addr;
+
+            Address addr2;
+            auto address_info2 = make_address(address_str.self());
+            if(address_info2.second){
+              addr2 = address_info2.first;
+            }
+
+            if (platon_call(addr2, pseudoSignature, value, gas)) {
                 platon::bytes ret;
                 size_t len = platon_get_call_output_length();
                 ret.resize(len);
                 platon_get_call_output(ret.data());
                 std::string str = toHex(ret);
-                computed = Address(str);
+
+                Address addr3;
+                auto address_info3 = make_address(address_str.self());
+                if(address_info3.second){
+                  addr3 = address_info3.first;
+                }
+
+                computed = addr3;
             }
 
            return computed == lcWitness;
@@ -273,7 +305,11 @@ CONTRACT VRF : public platon::Contract{
        Address uWitness,std::array<u128,2> v){
             u128 res = 0; //输入参数进行转换
             platon::bytes inputBytes;
-            h256 reshash = platon_sha256(inputBytes);
+
+            std::vector<byte> result;
+            result.resize(32);
+            platon_sha256(inputBytes, result.data());
+
             //uint256(keccak256(abi.encodePacked(SCALAR_FROM_CURVE_POINTS_HASH_PREFIX,hash, pk, gamma, v, uWitness)));
             return res;
        }
@@ -319,7 +355,10 @@ CONTRACT VRF : public platon::Contract{
                  zInv
              );
              platon::bytes gammaBytes;
-             h256 output = platon_sha256(gammaBytes);
+             h256 output;
+             std::vector<byte> result;
+             result.resize(32);
+             platon_sha256(gammaBytes, result.data());
              return output;
        }
 };
