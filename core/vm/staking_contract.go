@@ -18,6 +18,7 @@ package vm
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
@@ -430,17 +431,8 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 				TxEditorCandidate, int(staking.ErrRewardPerInterval.Code)), nil
 		}
 
-		isSuccess := true
-		if canOld.NextRewardPer > canOld.RewardPer {
-			if canOld.NextRewardPer-canOld.RewardPer > rewardPerMaxChangeRange {
-				isSuccess = false
-			}
-		} else {
-			if canOld.RewardPer-canOld.NextRewardPer > rewardPerMaxChangeRange {
-				isSuccess = false
-			}
-		}
-		if !isSuccess {
+		difference := uint16(math.Abs(float64(canOld.NextRewardPer) - float64(canOld.RewardPer)))
+		if difference > rewardPerMaxChangeRange {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 				fmt.Sprintf("invalid rewardPer: %d, modified by more than: %d", rewardPer, rewardPerMaxChangeRange),
 				TxEditorCandidate, int(staking.ErrRewardPerChangeRange.Code)), nil
