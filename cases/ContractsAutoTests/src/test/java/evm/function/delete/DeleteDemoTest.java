@@ -1,5 +1,7 @@
 package evm.function.delete;
 
+import com.platon.sdk.utlis.Bech32;
+import com.platon.sdk.utlis.NetworkParameters;
 import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -59,6 +61,7 @@ public class DeleteDemoTest extends ContractPrepareTest {
             //验证delete addr
             String deladdr = deletedemo.getaddress().send();
             collector.logStepPass("delete addr返回值：" + deladdr);
+            addr = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(), addr);
             collector.assertEqual(addr ,deladdr);
 
             //delete bytes

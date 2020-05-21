@@ -2,6 +2,8 @@ package wasm.contract_func;
 
 import com.platon.rlp.datatypes.Uint64;
 import com.platon.rlp.datatypes.WasmAddress;
+import com.platon.sdk.utlis.Bech32;
+import com.platon.sdk.utlis.NetworkParameters;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InnerFunction;
@@ -133,6 +135,7 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
             // test: transfer
             String toAddress = "0x250b67c9f1baa47dafcd1cfd5ad7780bb7b9b196";
+            toAddress = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(), toAddress);
             long amount = 1;
             Transfer t = new Transfer(web3j, transactionManager);
             t.sendFunds(contractAddress, new BigDecimal(amount), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
@@ -170,6 +173,7 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
 
             // test: destroy
             String receiveAddr = "0x250b67c9f1baa47dafcd1cfd5ad7780bb7b9b193";
+            receiveAddr = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(), receiveAddr);
             TransactionReceipt destoryTr = innerFunction.destroy(receiveAddr).send();
             BigInteger receiveBalance = web3j.platonGetBalance(receiveAddr, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("To invoke destory success, receiveBalance: " + receiveBalance);
