@@ -1,5 +1,7 @@
 package evm.regreetest;
 
+import com.platon.sdk.utlis.Bech32;
+import com.platon.sdk.utlis.NetworkParameters;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
@@ -67,8 +69,10 @@ public class PlatONTransferTest {
             credentials = Credentials.create(driverService.param.get("privateKey"));
             collector.logStepPass("currentBlockNumber:" + web3j.platonBlockNumber().send().getBlockNumber());
             //获取nonce，交易笔数
+            transferFrom = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(),transferFrom);
             nonce = getNonce(transferFrom);
             collector.logStepPass("nonce:" + nonce);
+            transferTo = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(),transferTo);
             BigInteger initialBalance = web3j.platonGetBalance(transferTo, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("initialBalance:" + initialBalance);
 
