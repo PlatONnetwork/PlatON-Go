@@ -1,14 +1,30 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package rfc6979
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"math/big"
-	"testing"
-	"fmt"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
+	"math/big"
+	"testing"
 )
 
 // https://tools.ietf.org/html/rfc6979#appendix-A.1
@@ -34,9 +50,9 @@ func TestDeterministicNonce(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("sk:%x\n",sk.D.Bytes())
+	fmt.Printf("sk:%x\n", sk.D.Bytes())
 	msg := "hello"
 	k, err := ECVRF_nonce_generation(sk.D.Bytes(), []byte(msg))
-	fmt.Printf("k:%x\n",k.D.Bytes())
+	fmt.Printf("k:%x\n", k.D.Bytes())
 
 }

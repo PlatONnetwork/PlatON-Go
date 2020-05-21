@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -1275,20 +1275,21 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
 
 		valEx := &staking.ValidatorEx{
-			NodeId:              can.NodeId,
-			BlsPubKey:           can.BlsPubKey,
-			StakingAddress:      can.StakingAddress,
-			BenefitAddress:      can.BenefitAddress,
-			RewardPer:           can.RewardPer,
-			NextRewardPer:       can.NextRewardPer,
-			StakingTxIndex:      can.StakingTxIndex,
-			ProgramVersion:      can.ProgramVersion,
-			StakingBlockNum:     can.StakingBlockNum,
-			Shares:              (*hexutil.Big)(v.Shares),
-			Description:         can.Description,
-			ValidatorTerm:       v.ValidatorTerm,
-			DelegateTotal:       (*hexutil.Big)(can.DelegateTotal),
-			DelegateRewardTotal: (*hexutil.Big)(can.DelegateRewardTotal),
+			NodeId:               can.NodeId,
+			BlsPubKey:            can.BlsPubKey,
+			StakingAddress:       can.StakingAddress,
+			BenefitAddress:       can.BenefitAddress,
+			RewardPer:            can.RewardPer,
+			NextRewardPer:        can.NextRewardPer,
+			RewardPerChangeEpoch: can.RewardPerChangeEpoch,
+			StakingTxIndex:       can.StakingTxIndex,
+			ProgramVersion:       can.ProgramVersion,
+			StakingBlockNum:      can.StakingBlockNum,
+			Shares:               (*hexutil.Big)(v.Shares),
+			Description:          can.Description,
+			ValidatorTerm:        v.ValidatorTerm,
+			DelegateTotal:        (*hexutil.Big)(can.DelegateTotal),
+			DelegateRewardTotal:  (*hexutil.Big)(can.DelegateRewardTotal),
 		}
 		queue[i] = valEx
 	}
@@ -1432,20 +1433,21 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 		}
 
 		valEx := &staking.ValidatorEx{
-			NodeId:              can.NodeId,
-			BlsPubKey:           can.BlsPubKey,
-			StakingAddress:      can.StakingAddress,
-			BenefitAddress:      can.BenefitAddress,
-			RewardPer:           can.RewardPer,
-			NextRewardPer:       can.NextRewardPer,
-			StakingTxIndex:      can.StakingTxIndex,
-			ProgramVersion:      can.ProgramVersion,
-			StakingBlockNum:     can.StakingBlockNum,
-			Shares:              (*hexutil.Big)(v.Shares),
-			Description:         can.Description,
-			ValidatorTerm:       v.ValidatorTerm,
-			DelegateTotal:       (*hexutil.Big)(can.DelegateTotal),
-			DelegateRewardTotal: (*hexutil.Big)(can.DelegateRewardTotal),
+			NodeId:               can.NodeId,
+			BlsPubKey:            can.BlsPubKey,
+			StakingAddress:       can.StakingAddress,
+			BenefitAddress:       can.BenefitAddress,
+			RewardPer:            can.RewardPer,
+			NextRewardPer:        can.NextRewardPer,
+			RewardPerChangeEpoch: can.RewardPerChangeEpoch,
+			StakingTxIndex:       can.StakingTxIndex,
+			ProgramVersion:       can.ProgramVersion,
+			StakingBlockNum:      can.StakingBlockNum,
+			Shares:               (*hexutil.Big)(v.Shares),
+			Description:          can.Description,
+			ValidatorTerm:        v.ValidatorTerm,
+			DelegateTotal:        (*hexutil.Big)(can.DelegateTotal),
+			DelegateRewardTotal:  (*hexutil.Big)(can.DelegateRewardTotal),
 		}
 		queue[i] = valEx
 	}
@@ -3517,27 +3519,28 @@ func calcRealRefund(blockNumber uint64, blockHash common.Hash, realtotal, amount
 
 func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 	return &staking.CandidateHex{
-		NodeId:              can.NodeId,
-		BlsPubKey:           can.BlsPubKey,
-		StakingAddress:      can.StakingAddress,
-		BenefitAddress:      can.BenefitAddress,
-		RewardPer:           can.RewardPer,
-		NextRewardPer:       can.NextRewardPer,
-		StakingTxIndex:      can.StakingTxIndex,
-		ProgramVersion:      can.ProgramVersion,
-		Status:              can.Status,
-		StakingEpoch:        can.StakingEpoch,
-		StakingBlockNum:     can.StakingBlockNum,
-		Shares:              (*hexutil.Big)(can.Shares),
-		Released:            (*hexutil.Big)(can.Released),
-		ReleasedHes:         (*hexutil.Big)(can.ReleasedHes),
-		RestrictingPlan:     (*hexutil.Big)(can.RestrictingPlan),
-		RestrictingPlanHes:  (*hexutil.Big)(can.RestrictingPlanHes),
-		DelegateEpoch:       can.DelegateEpoch,
-		DelegateTotal:       (*hexutil.Big)(can.DelegateTotal),
-		DelegateTotalHes:    (*hexutil.Big)(can.DelegateTotalHes),
-		Description:         can.Description,
-		DelegateRewardTotal: (*hexutil.Big)(can.DelegateRewardTotal),
+		NodeId:               can.NodeId,
+		BlsPubKey:            can.BlsPubKey,
+		StakingAddress:       can.StakingAddress,
+		BenefitAddress:       can.BenefitAddress,
+		RewardPer:            can.RewardPer,
+		NextRewardPer:        can.NextRewardPer,
+		RewardPerChangeEpoch: can.RewardPerChangeEpoch,
+		StakingTxIndex:       can.StakingTxIndex,
+		ProgramVersion:       can.ProgramVersion,
+		Status:               can.Status,
+		StakingEpoch:         can.StakingEpoch,
+		StakingBlockNum:      can.StakingBlockNum,
+		Shares:               (*hexutil.Big)(can.Shares),
+		Released:             (*hexutil.Big)(can.Released),
+		ReleasedHes:          (*hexutil.Big)(can.ReleasedHes),
+		RestrictingPlan:      (*hexutil.Big)(can.RestrictingPlan),
+		RestrictingPlanHes:   (*hexutil.Big)(can.RestrictingPlanHes),
+		DelegateEpoch:        can.DelegateEpoch,
+		DelegateTotal:        (*hexutil.Big)(can.DelegateTotal),
+		DelegateTotalHes:     (*hexutil.Big)(can.DelegateTotalHes),
+		Description:          can.Description,
+		DelegateRewardTotal:  (*hexutil.Big)(can.DelegateRewardTotal),
 	}
 }
 

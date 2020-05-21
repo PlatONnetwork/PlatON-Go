@@ -252,8 +252,8 @@ func importChain(ctx *cli.Context) error {
 		utils.Fatalf("This command requires an argument.")
 	}
 	// todo:
-	stack, gethConfig := makeFullNodeForCBFT(ctx)
-	chain, chainDb := utils.MakeChainForCBFT(ctx, stack, &gethConfig.Eth, &gethConfig.Node)
+	stack, platonConfig := makeFullNodeForCBFT(ctx)
+	chain, chainDb := utils.MakeChainForCBFT(ctx, stack, &platonConfig.Eth, &platonConfig.Node)
 	defer chainDb.Close()
 	if c, ok := chain.Engine().(*cbft.Cbft); ok {
 		blockChainCache := core.NewBlockChainCache(chain)
@@ -263,7 +263,7 @@ func importChain(ctx *cli.Context) error {
 		// init worker
 		bc := &FakeBackend{bc: chain}
 
-		config := gethConfig.Eth
+		config := platonConfig.Eth
 		minningConfig := &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
 			ChainHeadChanSize: config.ChainHeadChanSize, ChainSideChanSize: config.ChainSideChanSize,
 			ResultQueueSize: config.ResultQueueSize, ResubmitAdjustChanSize: config.ResubmitAdjustChanSize,
@@ -272,7 +272,7 @@ func importChain(ctx *cli.Context) error {
 			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
 		}
 
-		miner := miner.New(bc, chain.Config(), minningConfig, &vm.Config{}, stack.EventMux(), c, gethConfig.Eth.MinerRecommit, gethConfig.Eth.MinerGasFloor, nil, blockChainCache, gethConfig.Eth.VmTimeoutDuration)
+		miner := miner.New(bc, chain.Config(), minningConfig, &vm.Config{}, stack.EventMux(), c, platonConfig.Eth.MinerRecommit, platonConfig.Eth.MinerGasFloor, nil, blockChainCache, platonConfig.Eth.VmTimeoutDuration)
 		c.Start(chain, nil, nil, agency)
 		defer c.Close()
 		defer miner.Stop()

@@ -16,7 +16,7 @@
 
 // Contains a wrapper for the Ethereum client.
 
-package geth
+package platon
 
 import (
 	"math/big"
