@@ -5,9 +5,9 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ develop ]
-
+env:
+  GO111MODULE: on
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-18.04
