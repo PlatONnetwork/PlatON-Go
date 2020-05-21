@@ -1,9 +1,11 @@
 package evm.beforetest;
 
+import com.platon.sdk.utlis.Bech32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
 import network.platon.utils.CompileUtil;
+import network.platon.utils.DataChangeUtil;
 import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
 import org.junit.Before;
@@ -155,7 +157,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     libraryAddressNoPre = receipt.getContractAddress();
                     collector.logStepPass("contract address >>>> " + libraryAddressNoPre);
                     if (libraryAddressNoPre.startsWith("lax") || libraryAddressNoPre.startsWith("lat")) {
-                        libraryAddressNoPreMap.put(libraryArr[i].split("\\.")[0], libraryAddressNoPre.substring(2));//key值去掉.bin后缀
+                        libraryAddressNoPreMap.put(libraryArr[i].split("\\.")[0], DataChangeUtil.bytesToHex(Bech32.addressDecode(libraryAddressNoPre)));
                         break;
                     }
                 }
