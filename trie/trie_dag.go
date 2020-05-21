@@ -92,10 +92,6 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 		if pid > 0 {
 			td.dag.addEdge(id, pid)
 		}
-		//fmt.Printf("add short -> pprefix: %x, prefix: %x\n", pprefix, append(prefix, nc.Key...))
-		//fmt.Printf("add short -> id: %d, pid: %d\n", id, pid)
-
-		//log.Debug("Add short node", "id", id, "pid", pid, "prefix", fmt.Sprintf("%x", append(prefix, nc.Key...)), "vtxs", len(td.dag.vtxs))
 
 	case *fullNode:
 		collapsed, cached := nc.copy(), nc.copy()
@@ -116,23 +112,12 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 		if pid > 0 {
 			td.dag.addEdge(id, pid)
 		}
-		//fmt.Printf("add full -> pprefix: %x, prefix: %x\n", pprefix, append(prefix, fullNodeSuffix...))
-		//fmt.Printf("add full -> id: %d, pid: %d\n", id, pid)
-
-		//log.Debug("Add full node", "id", id, "pid", pid, "prefix", fmt.Sprintf("%x", append(prefix, fullNodeSuffix...)), "vtxs", len(td.dag.vtxs))
 
 		if recursive {
 			for i := 0; i < 16; i++ {
 				if cached.Children[i] != nil {
 					cn := cached.Children[i]
-					//hash, _ := cn.cache()
-					//if len(hash) != 0 {
-					//	fmt.Printf("full: add children hash pid: %d i: %d prefix: %x hash: %s\n", id, i, prefix, hash.String())
-					//	collapsed.Children[i] = hash
-					//} else {
-					//fmt.Printf("full: add internal node pid: %d i: %d prefix:%x hash: %s\n", id, i, prefix, hash.String())
 					td.internalAddVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, byte(i)), cn, false)
-					//}
 				}
 			}
 		}
@@ -162,27 +147,6 @@ func (td *trieDag) delVertexAndEdgeByNode(prefix []byte, n node) {
 		id = xxhash.Sum64(append(prefix, fullNodeSuffix...))
 	}
 	td.delVertexAndEdgeByID(id)
-}
-
-func (td *trieDag) replaceEdge(old, new []byte) {
-	opid := xxhash.Sum64(old)
-	npid := xxhash.Sum64(new)
-
-	for id, vtx := range td.dag.vtxs {
-		for _, pid := range vtx.outEdge {
-			if opid == pid {
-				vtx.outEdge = make([]uint64, 0)
-				vtx.outEdge = append(vtx.outEdge, npid)
-				td.nodes[id].pid = npid
-			}
-		}
-	}
-}
-
-func (td *trieDag) reset() {
-	td.lock.Lock()
-	defer td.lock.Unlock()
-	td.dag.reset()
 }
 
 func (td *trieDag) clear() {
@@ -346,10 +310,4 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 		return hashNode{}, nil, e.Load().(error)
 	}
 	return resHash, newRoot, nil
-}
-
-func (td *trieDag) init(root node) {
-	td.lock.Lock()
-	defer td.lock.Unlock()
-	td.dag.generate()
 }

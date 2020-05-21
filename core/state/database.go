@@ -58,7 +58,6 @@ type Database interface {
 
 	// TrieDB retrieves the low level trie database used for data storage.
 	TrieDB() *trie.Database
-
 }
 
 // Trie is a Ethereum Merkle Trie.
@@ -67,9 +66,9 @@ type Trie interface {
 	TryUpdate(key, value []byte) error
 	TryDelete(key []byte) error
 	Commit(onleaf trie.LeafCallback) (common.Hash, error)
-	ParallelCommit2(onleaf trie.LeafCallback) (common.Hash, error)
+	ParallelCommit(onleaf trie.LeafCallback) (common.Hash, error)
 	Hash() common.Hash
-	ParallelHash2() common.Hash
+	ParallelHash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
 	Prove(key []byte, fromLevel uint, proofDb ethdb.Putter) error
@@ -170,7 +169,6 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 	return code, err
 }
 
-
 // ContractCodeSize retrieves a particular contracts code's size.
 func (db *cachingDB) ContractCodeSize(addrHash, codeHash common.Hash) (int, error) {
 	if cached, ok := db.codeSizeCache.Get(codeHash); ok {
@@ -199,8 +197,8 @@ func (m cachedTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
 	return root, err
 }
 
-func (m cachedTrie) ParallelCommit2(onleaf trie.LeafCallback) (common.Hash, error) {
-	root, err := m.SecureTrie.ParallelCommit2(onleaf)
+func (m cachedTrie) ParallelCommit(onleaf trie.LeafCallback) (common.Hash, error) {
+	root, err := m.SecureTrie.ParallelCommit(onleaf)
 	if err == nil {
 		m.db.pushTrie(m.SecureTrie)
 	}

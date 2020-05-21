@@ -1,7 +1,7 @@
 package core
 
 import (
-	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"sync"
 	"time"
@@ -194,10 +194,9 @@ func (ctx *ParallelContext) buildTransferFailedResult(idx int, err error, needRe
 		needRefundGasPool: needRefundGasPool,
 	}
 	ctx.SetResult(idx, result)
-	fmt.Printf("execute trasnfer failed,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", ctx.GetTx(idx).Hash().Hex(), idx, ctx.gp.Gas(), ctx.GetTx(idx).Gas())
-
-	//log.Debug("buildTransferFailedResult", "blockNumber", ctx.GetHeader().Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash(), "txTo", *ctx.GetTx(idx).To(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", ctx.GetTx(idx).Gas(), "err", err)
+	log.Debug("execute trasnfer failed,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", ctx.GetTx(idx).Hash().Hex(), idx, ctx.gp.Gas(), ctx.GetTx(idx).Gas())
 }
+
 func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject, toStateObject *state.ParallelStateObject, txGasUsed uint64, minerEarnings *big.Int) {
 	tx := ctx.GetTx(idx)
 	var root []byte
@@ -218,9 +217,7 @@ func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject,
 		err:             nil,
 	}
 	ctx.SetResult(idx, result)
-	//log.Debug("buildTransferSuccessResult", "blockNumber", ctx.GetHeader().Number.Uint64(), "txIdx", idx, "txHash", tx.Hash(), "txTo", *tx.To(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", tx.Gas(), "txUsedGas", txGasUsed)
-	fmt.Printf("execute trasnfer success,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d, txUsedGas=%d\n", ctx.GetTx(idx).Hash().Hex(), idx, ctx.gp.Gas(), ctx.GetTx(idx).Gas(), txGasUsed)
-	//fmt.Println(fmt.Sprintf("============ Success. tx no=%d", idx))
+	log.Debug("execute trasnfer success,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d, txUsedGas=%d\n", ctx.GetTx(idx).Hash().Hex(), idx, ctx.gp.Gas(), ctx.GetTx(idx).Gas(), txGasUsed)
 }
 
 func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteEmptyObjects bool) {

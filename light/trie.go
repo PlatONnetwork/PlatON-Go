@@ -130,7 +130,7 @@ func (t *odrTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
 	return t.trie.Commit(onleaf)
 }
 
-func (t *odrTrie) ParallelCommit2(onleaf trie.LeafCallback) (common.Hash, error) {
+func (t *odrTrie) ParallelCommit(onleaf trie.LeafCallback) (common.Hash, error) {
 	return t.Commit(onleaf)
 }
 
@@ -141,7 +141,7 @@ func (t *odrTrie) Hash() common.Hash {
 	return t.trie.Hash()
 }
 
-func (t *odrTrie) ParallelHash2() common.Hash {
+func (t *odrTrie) ParallelHash() common.Hash {
 	return t.Hash()
 }
 

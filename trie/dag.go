@@ -77,16 +77,6 @@ func (d *dag) addEdge(from, to uint64) {
 	}
 }
 
-func (d *dag) delEdge(id uint64) {
-	if _, ok := d.vtxs[id]; ok {
-		for _, k := range d.vtxs[id].outEdge {
-			if vtx, found := d.vtxs[k]; found {
-				vtx.inDegree--
-			}
-		}
-	}
-}
-
 func (d *dag) generate() {
 	for id, v := range d.vtxs {
 		for _, pid := range v.outEdge {
@@ -102,16 +92,6 @@ func (d *dag) generate() {
 			d.topLevel.PushBack(k)
 		}
 	}
-}
-
-func (d *dag) degreeGt() int {
-	c := 0
-	for _, v := range d.vtxs {
-		if v.inDegree > 0 {
-			c++
-		}
-	}
-	return c
 }
 
 func (d *dag) waitPop() uint64 {

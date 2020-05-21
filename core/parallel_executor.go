@@ -20,8 +20,6 @@ var (
 	executor     Executor
 )
 
-const TIMEOUT = int32(1)
-
 type Executor struct {
 	chainContext ChainContext
 	chainConfig  *params.ChainConfig
@@ -76,8 +74,8 @@ func GetExecutor() *Executor {
 }
 
 func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
-	log.Debug(fmt.Sprintf("ExecuteBlocks begin blockNumber=%d, packNewBlock=%t, gasPool=%d", ctx.header.Number.Uint64(), ctx.packNewBlock, ctx.gp.Gas()))
-	log.Debug("ExecuteBlocks goroutine info(start)", "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
+	log.Trace(fmt.Sprintf("ExecuteBlocks begin blockNumber=%d, packNewBlock=%t, gasPool=%d", ctx.header.Number.Uint64(), ctx.packNewBlock, ctx.gp.Gas()))
+	log.Trace("ExecuteBlocks goroutine info(start)", "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
 	if len(ctx.txList) > 0 {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
@@ -87,44 +85,20 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList); err != nil {
 			return err
 		}
-		log.Debug("make dag graph cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
+		log.Trace("make dag graph cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
 		start = time.Now()
 
 		batchNo := 0
 		for !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
-			//log.Debug(fmt.Sprintf("DAG info, blockNumber=%d, batchNo=%d, txIdxs=%+v", ctx.header.Number.Uint64(), batchNo, parallelTxIdxs))
-
-			/*for _, idx := range parallelTxIdxs {
-				tx := ctx.GetTx(idx)
-				toAddr := common.ZeroAddr.Hex()
-				if tx.To() != nil {
-					toAddr = tx.To().Hex()
-				}
-				log.Debug(fmt.Sprintf("ExecuteBlocks(batch info), blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, idx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
-			}*/
 
 			if len(parallelTxIdxs) > 0 {
 				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
-					//originIdx := parallelTxIdxs[0]
-					//tx := ctx.GetTx(originIdx)
-					/*toAddr := common.ZeroAddr.Hex()
-					if tx.To() != nil {
-						toAddr = tx.To().Hex()
-					}*/
-					//log.Debug(fmt.Sprintf("ExecuteBlocks(tx type:contract) begin, blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
-					//fmt.Printf("execute contract,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", tx.Hash().Hex(), originIdx, ctx.gp.Gas(), tx.Gas())
 					exe.executeTransaction(ctx, parallelTxIdxs[0])
-					//log.Debug(fmt.Sprintf("ExecuteBlocks(tx type:contract) done, blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
+					//log.Trace(fmt.Sprintf("ExecuteBlocks(tx type:contract) done, blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
 				} else {
 					for _, originIdx := range parallelTxIdxs {
 						tx := ctx.GetTx(originIdx)
-						/*toAddr := common.ZeroAddr.Hex()
-						if tx.To() != nil {
-							toAddr = tx.To().Hex()
-						}
-						log.Debug(fmt.Sprintf("ExecuteBlocks(tx type:transfer), blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))*/
-
 						if ctx.packNewBlock {
 							if bftEngine && ctx.IsTimeout() {
 								log.Debug("ctx.IsTimeout() is TRUE")
@@ -138,7 +112,6 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 							}
 						}
 
-						//fmt.Printf("execute transfer,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", tx.Hash().Hex(), originIdx, ctx.gp.Gas(), tx.Gas())
 						intrinsicGas, err := EstimateTransferIntrinsicGas(tx.Data())
 						if err != nil {
 							ctx.buildTransferFailedResult(originIdx, err, false)
@@ -165,20 +138,15 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 			}
 			batchNo++
 		}
-		log.Debug("execute block cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
+		log.Trace("execute block cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
 		start = time.Now()
 
 		//add balance for miner
 		if ctx.GetEarnings().Cmp(big.NewInt(0)) > 0 {
-			//log.Debug("add miner balance", "minerAddr", ctx.header.Coinbase.Hex(), "amount", ctx.GetEarnings().Uint64())
 			ctx.state.AddMinerEarnings(ctx.header.Coinbase, ctx.GetEarnings())
-			//exe.ctx.GetHeader().GasUsed = ctx.GetBlockGasUsed()
 		}
-		/*for idx, tx := range ctx.GetPackedTxList() {
-			log.Debug("packed tx", "blockNumber", ctx.header.Number.Uint64(), "idx", idx, "txHash", tx.Hash())
-		}*/
 		ctx.state.Finalise(true)
-		log.Debug("finalise block cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
+		log.Trace("finalise block cost", "blockNumber", ctx.header.Number, "time", time.Since(start))
 	}
 	log.Debug("ExecuteBlocks goroutine info(end)", "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
 
@@ -186,10 +154,6 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 }
 
 func (exe *Executor) executeParallel(ctx *ParallelContext, idx int, intrinsicGas uint64) {
-	/*start := time.Now()
-	defer func() {
-		log.Debug("executeParallel cost", "blockNumber", ctx.header.Number, "txIdx", idx, "time", time.Since(start))
-	}()*/
 	if ctx.IsTimeout() {
 		return
 	}
@@ -217,12 +181,6 @@ func (exe *Executor) executeParallel(ctx *ParallelContext, idx int, intrinsicGas
 		ctx.buildTransferFailedResult(idx, ErrNonceTooLow, true)
 		return
 	}
-
-	/*intrinsicGas, err := IntrinsicGas(msg.Data(), false, ctx.GetState())
-	if err != nil {
-		ctx.buildTransferFailedResult(idx, err)
-		return
-	}*/
 
 	if msg.Gas() < intrinsicGas {
 		ctx.buildTransferFailedResult(idx, vm.ErrOutOfGas, true)

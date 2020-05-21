@@ -346,7 +346,7 @@ func (self *stateObject) updateTrie(db Database) Trie {
 func (self *stateObject) updateRoot(db Database) {
 	self.updateTrie(db)
 	//self.data.Root = self.trie.Hash()
-	self.data.Root = self.trie.ParallelHash2()
+	self.data.Root = self.trie.ParallelHash()
 }
 
 // CommitTrie the storage trie of the object to db.

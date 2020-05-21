@@ -561,9 +561,9 @@ func (t *Trie) Hash() common.Hash {
 	return common.BytesToHash(hash.(hashNode))
 }
 
-func (t *Trie) ParallelHash2() common.Hash {
+func (t *Trie) ParallelHash() common.Hash {
 	//tm := time.Now()
-	hash, cached, err := t.parallelHashRoot2(nil, nil)
+	hash, cached, err := t.parallelHashRoot(nil, nil)
 	if err == nil {
 		t.root = cached
 	}
@@ -592,19 +592,15 @@ func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	return common.BytesToHash(hash.(hashNode)), nil
 }
 
-func (t *Trie) ParallelCommit2(onleaf LeafCallback) (root common.Hash, err error) {
+func (t *Trie) ParallelCommit(onleaf LeafCallback) (root common.Hash, err error) {
 	if t.db == nil {
 		panic("commit called on trie with nil database")
 	}
 
-	//tm := time.Now()
-	hash, cached, err := t.parallelHashRoot2(t.db, onleaf)
+	hash, cached, err := t.parallelHashRoot(t.db, onleaf)
 	if err != nil {
 		return common.Hash{}, err
 	}
-	/*if time.Since(tm) >= 10*time.Millisecond {
-		log.Error("Trie Parallel Commit", "duration", time.Since(tm))
-	}*/
 	t.root = cached
 	t.cachegen++
 
@@ -622,18 +618,16 @@ func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	return h.hash(t.root, db, true)
 }
 
-func (t *Trie) parallelHashRoot2(db *Database, onleaf LeafCallback) (node, node, error) {
+func (t *Trie) parallelHashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	if t.root == nil {
 		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
 	if len(t.dag.nodes) > 0 {
-		//log.Error("Paralle hash root", "dag", fmt.Sprintf("%p", t.dag), "dag.size", len(t.dag.nodes))
 		t.dag.cachegen = t.cachegen
 		t.dag.cachelimit = t.cachelimit
 		//t.dag.init(t.root)
 		return t.dag.hash(db, true, onleaf)
 	} else {
-		//log.Error("Serial hash root")
 		return t.hashRoot(db, onleaf)
 	}
 }

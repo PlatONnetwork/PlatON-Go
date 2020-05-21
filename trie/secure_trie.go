@@ -161,7 +161,7 @@ func (t *SecureTrie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	return t.trie.Commit(onleaf)
 }
 
-func (t *SecureTrie) ParallelCommit2(onleaf LeafCallback) (root common.Hash, err error) {
+func (t *SecureTrie) ParallelCommit(onleaf LeafCallback) (root common.Hash, err error) {
 	t.trie.db.lock.Lock()
 	if len(t.getSecKeyCache()) > 0 {
 		for hk, key := range t.secKeyCache {
@@ -172,7 +172,7 @@ func (t *SecureTrie) ParallelCommit2(onleaf LeafCallback) (root common.Hash, err
 
 	t.trie.db.lock.Unlock()
 
-	return t.trie.ParallelCommit2(onleaf)
+	return t.trie.ParallelCommit(onleaf)
 }
 
 // Hash returns the root hash of SecureTrie. It does not write to the
@@ -181,8 +181,8 @@ func (t *SecureTrie) Hash() common.Hash {
 	return t.trie.Hash()
 }
 
-func (t *SecureTrie) ParallelHash2() common.Hash {
-	return t.trie.ParallelHash2()
+func (t *SecureTrie) ParallelHash() common.Hash {
+	return t.trie.ParallelHash()
 }
 
 // Root returns the root hash of SecureTrie.
