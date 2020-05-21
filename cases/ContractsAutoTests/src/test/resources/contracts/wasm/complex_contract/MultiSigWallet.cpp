@@ -59,14 +59,23 @@ CONTRACT MultiSigWallet : public platon::Contract{
             Address lastSigner = Address(0);
             for(uint64_t i = 0; i < count; i++) {
                 Address recovered = Address(0);
-                if (platon_call(Address(target_addr.self()), _signatures, value, gas)) {
-                    platon::bytes ret;
-                    size_t len = platon_get_call_output_length();
-                    ret.resize(len);
-                    platon_get_call_output(ret.data());
-                    std::string str = toHex(ret);
-                    recovered = Address(str);
+
+                auto address_info = make_address(target_addr.self());
+                if(address_info.second){
+                     if (platon_call(address_info.first, _signatures, value, gas)) {
+                        platon::bytes ret;
+                        size_t len = platon_get_call_output_length();
+                        ret.resize(len);
+                        platon_get_call_output(ret.data());
+                        std::string str = toHex(ret);
+
+                        auto address_info = make_address(str);
+                        if(address_info.second){
+                          recovered = address_info.first;
+                        }
+                    }
                 }
+
                 platon_assert(recovered > lastSigner, "MSW: Badly ordered signatures"); // make sure signers are different
                 lastSigner = recovered;
                 if(isOwner.self()[recovered]) {
