@@ -149,14 +149,8 @@ func (pbc *BlockChainCache) ReadOnlyStateDB(sealHash common.Hash) *state.StateDB
 func (pbc *BlockChainCache) WriteReceipts(sealHash common.Hash, receipts []*types.Receipt, blockNum uint64) {
 	pbc.receiptsMu.Lock()
 	defer pbc.receiptsMu.Unlock()
-	obj, exist := pbc.receiptsCache[sealHash]
-	if exist {
-		// FIXME: removing in productive environment
-		// Only for test
-		if types.DeriveSha(types.Receipts(obj.receipts)) != types.DeriveSha(types.Receipts(receipts)) {
-			panic("invalid receipts")
-		}
-	} else {
+	_, exist := pbc.receiptsCache[sealHash]
+	if !exist {
 		pbc.receiptsCache[sealHash] = &receiptsCache{receipts: receipts, blockNum: blockNum}
 	}
 }
