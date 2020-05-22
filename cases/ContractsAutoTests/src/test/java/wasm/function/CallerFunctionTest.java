@@ -18,7 +18,7 @@ public class CallerFunctionTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "liweic", showName = "wasm.CallerFunctionTest验证链上函数platon_caller",sourcePrefix = "wasm")
-    public void Callerfunction() {
+    public void callerFunction() {
 
         try {
             prepare();
@@ -28,9 +28,9 @@ public class CallerFunctionTest extends WASMContractPrepareTest {
             collector.logStepPass("CallerFunctionTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("CallerFunctionTest deploy gasUsed:" + caller.getTransactionReceipt().get().getGasUsed());
 
-            String calleraddr =caller.get_platon_caller().send();
-            collector.logStepPass("getPlatONCaller函数返回值:" + calleraddr);
-            collector.assertEqual(calleraddr, walletAddress.toLowerCase());
+            String callerAddr = caller.get_platon_caller().send();
+            collector.logStepPass("getPlatONCaller函数返回值:" + callerAddr);
+            collector.assertEqual(callerAddr, walletAddress.toLowerCase());
 
 
         } catch (Exception e) {
