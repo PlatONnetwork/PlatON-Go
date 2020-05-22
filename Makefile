@@ -10,7 +10,8 @@
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
-GORUN = env GO111MODULE=on go run
+GPATH = $(shell go env GOPATH)
+GORUN = env GO111MODULE=on GOPATH=$(GPATH) go run
 
 platon:
 	build/build_deps.sh
