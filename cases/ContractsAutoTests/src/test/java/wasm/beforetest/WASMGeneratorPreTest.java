@@ -90,7 +90,10 @@ public class WASMGeneratorPreTest {
         CompileUtil compileUtil = new CompileUtil();
 
         for (String file : files) {
-            //collector.logStepPass("staring compile:" + file);
+            collector.logStepPass("staring compile:" + file);
+            if (!file.contains(".cpp") || !file.contains("/")) {
+                continue;
+            }
             String fileName = file.substring(file.lastIndexOf("/") + 1, file.lastIndexOf(".cpp")) + ".wasm";
             executorService.execute(() -> {
                 try {
