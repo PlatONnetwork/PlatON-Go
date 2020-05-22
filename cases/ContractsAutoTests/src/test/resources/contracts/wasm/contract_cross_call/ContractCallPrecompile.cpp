@@ -28,7 +28,7 @@ CONTRACT call_precompile : public platon::Contract {
 
                     platon::bytes input = msgh;
 
-                    std::string addr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw";
+                    std::string addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpxxvxfq";
                     auto address_info = make_address(addr);
                     if(address_info.second){
                         if (platon_call(address_info.first, input, value, gas)) {
