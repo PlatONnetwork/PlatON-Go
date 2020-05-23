@@ -161,7 +161,7 @@ contract VIDToken is Owned, Pausable, ERC20 {
 	uint256 public validationPrice = 7 * 10 ** uint(decimals); 
 
 // The default validation wallet
-	address public validationWallet = address(0);
+	address public validationWallet = address("lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j");
 
 // The constructor is invoked on contract creation, it sets the contract owner and default wallet
 
@@ -170,7 +170,7 @@ contract VIDToken is Owned, Pausable, ERC20 {
 		verifyWallet[msg.sender] = true;
 		totalSupply = initialSupply * 10 ** uint(decimals);
 		balances[msg.sender] = totalSupply;
-		emit Transfer(address(0),owner,initialSupply);
+		emit Transfer(address("lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j"),owner,initialSupply);
 	}
 
 // The fallback function which will be invoked when the function signature is not found, the revert() prevents the contract from receiving Ethereum
@@ -183,7 +183,7 @@ contract VIDToken is Owned, Pausable, ERC20 {
 
 	function transfer(address _to, uint256 _value) public whenNotPaused returns (bool success) {
 		require(_to != msg.sender,"T1- Recipient can not be the same as sender");
-		require(_to != address(0),"T2- Please check the recipient address");
+		require(_to != address("lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq542u6a") && _to != address("lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j"),"T2- Please check the recipient address");
 		require(balances[msg.sender] >= _value,"T3- The balance of sender is too low");
 		require(!frozenAccount[msg.sender],"T4- The wallet of sender is frozen");
 		require(!frozenAccount[_to],"T5- The wallet of recipient is frozen");
@@ -199,7 +199,7 @@ contract VIDToken is Owned, Pausable, ERC20 {
 // The default ERC20 transferFrom() function is extended to be pausable and to prevent transfers from or to frozen accounts
 
 	function transferFrom(address _from, address _to, uint256 _value) public whenNotPaused returns (bool success) {
-		require(_to != address(0),"TF1- Please check the recipient address");
+		require(_to != address("lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq542u6a") && _to != address("lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j"),"TF1- Please check the recipient address");
 		require(balances[_from] >= _value,"TF2- The balance of sender is too low");
 		require(allowed[_from][msg.sender] >= _value,"TF3- The allowance of sender is too low");
 		require(!frozenAccount[_from],"TF4- The wallet of sender is frozen");
@@ -291,7 +291,7 @@ contract VIDToken is Owned, Pausable, ERC20 {
 
 		emit Burn(msg.sender, _value);
 
-		emit Transfer(msg.sender, address(0), _value);
+		emit Transfer(msg.sender, address("lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j"), _value);
 
 		return true;
 	}
