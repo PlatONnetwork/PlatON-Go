@@ -236,10 +236,10 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     semaphore.acquire();
                     generatorUtil.generator(fileName);
                     collector.logStepPass("generator success:" + fileName);
-                    semaphore.release();
                 } catch (Exception e) {
                     collector.logStepFail("generator fail:" + fileName, e.toString());
                 } finally {
+                    semaphore.release();
                     countDownLatch.countDown();
                 }
             });
