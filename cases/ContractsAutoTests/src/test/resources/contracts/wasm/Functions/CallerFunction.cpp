@@ -7,8 +7,6 @@ using namespace platon;
 * 验证内置的一些与链交互的函数
 * 函数platon_caller
 */
-
-
 CONTRACT CallerFunction : public platon::Contract{
 	public:
 

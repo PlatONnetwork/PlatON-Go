@@ -90,18 +90,20 @@ public class WASMGeneratorPreTest {
         CompileUtil compileUtil = new CompileUtil();
 
         for (String file : files) {
-            //collector.logStepPass("staring compile:" + file);
+            collector.logStepPass("staring compile:" + file);
             String fileName = file.substring(file.lastIndexOf("/") + 1, file.lastIndexOf(".cpp")) + ".wasm";
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
                     compileUtil.wasmCompile(file, buildPath + fileName);
                     collector.logStepPass("compile success:" + file);
-                    semaphore.release();
                 } catch (Exception e) {
                     collector.logStepFail("compile fail:" + file, e.toString());
+                } finally {
+                    semaphore.release();
+                    countDownLatch.countDown();
                 }
-                countDownLatch.countDown();
+
             });
         }
 
