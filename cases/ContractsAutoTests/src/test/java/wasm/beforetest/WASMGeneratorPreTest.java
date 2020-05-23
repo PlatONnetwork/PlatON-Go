@@ -91,22 +91,19 @@ public class WASMGeneratorPreTest {
 
         for (String file : files) {
             collector.logStepPass("staring compile:" + file);
-            if (!file.contains(".cpp") || !file.contains("/")) {
-                continue;
-            }
             String fileName = file.substring(file.lastIndexOf("/") + 1, file.lastIndexOf(".cpp")) + ".wasm";
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
                     compileUtil.wasmCompile(file, buildPath + fileName);
                     collector.logStepPass("compile success:" + file);
-                    semaphore.release();
                 } catch (Exception e) {
                     collector.logStepFail("compile fail:" + file, e.toString());
                 } finally {
+                    semaphore.release();
                     countDownLatch.countDown();
                 }
-                
+
             });
         }
 
