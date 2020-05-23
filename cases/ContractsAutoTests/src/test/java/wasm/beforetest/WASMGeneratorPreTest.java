@@ -103,8 +103,10 @@ public class WASMGeneratorPreTest {
                     semaphore.release();
                 } catch (Exception e) {
                     collector.logStepFail("compile fail:" + file, e.toString());
+                } finally {
+                    countDownLatch.countDown();
                 }
-                countDownLatch.countDown();
+                
             });
         }
 
