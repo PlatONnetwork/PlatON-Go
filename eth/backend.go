@@ -319,8 +319,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	node.GetCryptoHandler().SetPrivateKey(ctx.NodePriKey())
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
-
 		var agency consensus.Agency
+		core.NewExecutor(eth.chainConfig, eth.blockchain, vmConfig)
 		// validatorMode:
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go
@@ -357,8 +357,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			return nil, errors.New("Failed to init cbft consensus engine")
 		}
 	}
-
-	core.NewExecutor(eth.chainConfig, eth.blockchain, vmConfig)
 
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
 		return nil, err
