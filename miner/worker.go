@@ -910,7 +910,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		return err
 	}
 
-	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("Fetch pending transactions success", "number", header.Number, "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
