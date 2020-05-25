@@ -194,7 +194,8 @@ func (ctx *ParallelContext) buildTransferFailedResult(idx int, err error, needRe
 		needRefundGasPool: needRefundGasPool,
 	}
 	ctx.SetResult(idx, result)
-	log.Debug("execute trasnfer failed,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d\n", ctx.GetTx(idx).Hash().Hex(), idx, ctx.gp.Gas(), ctx.GetTx(idx).Gas())
+	log.Debug("execute trasnfer failed", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash().Hex(),
+		"gasPool", ctx.gp.Gas(), "txGasLimit", ctx.GetTx(idx).Gas(), "needRefundGasPool", needRefundGasPool, "error", err.Error())
 }
 
 func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject, toStateObject *state.ParallelStateObject, txGasUsed uint64, minerEarnings *big.Int) {
