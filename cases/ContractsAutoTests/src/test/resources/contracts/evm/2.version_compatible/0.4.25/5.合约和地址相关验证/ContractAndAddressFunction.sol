@@ -18,9 +18,9 @@ contract ContractAndAddressFunction {
         if (x.balance < 10 && myAddress.balance >= 10)
         {
             //0.4.25版本contract合约类型包括 address类型的成员函数，可以直接使用 transfer()成员函数验证
-            x.transfer("lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsw3stpp"); //10，lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsp5zy0w
+            x.transfer(10);
             //0.4.25版本contract合约类型包括 address类型的成员函数，可以直接使用 send()成员函数验证
-            x.send("lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsw3stpp"); //10，lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsp5zy0w
+            x.send(10);
         }
 
         //0.4.25版本msg.sender类型所属验证
