@@ -876,7 +876,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			// Thus, we can safely ignore it here
 			continue
 		}
-		log.Debug("state finalise", "addr", addr, "balance", stateObject.Balance().Uint64(), "root", stateObject.data.Root)
+		//log.Debug("state finalise", "addr", addr, "balance", stateObject.Balance().Uint64(), "root", stateObject.data.Root)
 		if stateObject.suicided || (deleteEmptyObjects && stateObject.empty()) {
 			s.deleteStateObject(stateObject)
 		} else {

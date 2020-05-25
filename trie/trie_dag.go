@@ -260,7 +260,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 			}
 
 			if !td.loged {
-				log.Debug("Calc hash", "me", fmt.Sprintf("%p", td), "id", id, "pid", n.pid, "hash", hashed.fstring(""), "n", n.collapsed.fstring(""))
+				//log.Debug("Calc hash", "me", fmt.Sprintf("%p", td), "id", id, "pid", n.pid, "hash", hashed.fstring(""), "n", n.collapsed.fstring(""))
 			}
 
 			cachedHash, _ := hashed.(hashNode)

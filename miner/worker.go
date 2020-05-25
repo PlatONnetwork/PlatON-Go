@@ -998,7 +998,9 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		*receipts[i] = *l
 	}
 
+	tstart := time.Now()
 	s := w.current.state.Copy()
+	log.Debug("Copy state end", "number", w.current.header.Number.Uint64(), "duration", time.Since(tstart))
 
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {

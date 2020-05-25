@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -310,9 +311,10 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	}
 
 	// This must not be deleted
+	tstart := time.Now()
 	root := state.IntermediateRoot(true)
 	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash.Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state), "duration", time.Since(tstart))
 
 	return nil
 }
