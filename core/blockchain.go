@@ -956,7 +956,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	// Irrelevant of the canonical status, write the block itself to the database
 	rawdb.WriteBlock(bc.db, block)
+	start := time.Now()
 	root, err := state.Commit(true)
+	log.Debug("WriteBlockWithState stateDB commit", "number", block.NumberU64(), "hash", block.Hash().TerminalString(), "duration", time.Since(start))
 	if err != nil {
 		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
@@ -969,20 +971,24 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		limit := common.StorageSize(bc.cacheConfig.TrieNodeLimit) * 1024 * 1024
 		oversize := false
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
+			start = time.Now()
 			triedb.Reference(root, common.Hash{})
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
+			log.Debug("WriteBlockWithState triedb commit1", "number", block.NumberU64(), "hash", block.Hash().TerminalString(), "duration", time.Since(start))
 			triedb.Dereference(currentBlock.Root())
 			nodes, _ := triedb.Size()
 			oversize = nodes > limit
 		} else {
+			start = time.Now()
 			triedb.Reference(root, common.Hash{})
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
+			log.Debug("WriteBlockWithState triedb commit2", "number", block.NumberU64(), "hash", block.Hash().TerminalString(), "duration", time.Since(start))
 
 			triedb.DereferenceDB(currentBlock.Root())
 
@@ -1031,7 +1037,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 						float64(chosen-lastWrite)/(float64)(bc.cacheConfig.TriesInMemory))
 				}
 				// Flush an entire trie and restart the counters
+				start = time.Now()
 				triedb.Commit(header.Root, true, true)
+				log.Debug("WriteBlockWithState triedb commit3", "number", block.NumberU64(), "hash", block.Hash().TerminalString(), "duration", time.Since(start))
 				lastWrite = chosen
 				bc.gcproc = 0
 			}

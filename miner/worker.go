@@ -705,6 +705,7 @@ func (w *worker) resultLoop() {
 			log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
 			// update 3-chain state
 			cbftResult.ChainStateUpdateCB()
+			start := time.Now()
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
 			if err != nil {
 				if cbftResult.SyncState != nil {
@@ -715,7 +716,7 @@ func (w *worker) resultLoop() {
 			}
 
 			//cbftResult.SyncState <- err
-			log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64(), "coinbase", block.Coinbase(), "time", block.Time(), "root", block.Root())
+			log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64(), "coinbase", block.Coinbase(), "time", block.Time(), "root", block.Root(), "duration", time.Since(start))
 
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
