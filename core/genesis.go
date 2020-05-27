@@ -385,12 +385,18 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		head.GasLimit = params.GenesisGasLimit
 	}
 
+	start = time.Now()
+	log.Info("Genesis statedb commit start", "duration", time.Since(start))
 	if _, err := statedb.Commit(false); nil != err {
 		panic("Failed to commit genesis stateDB: " + err.Error())
 	}
+	log.Info("Genesis statedb commit end", "duration", time.Since(start))
+	start = time.Now()
+	log.Info("Genesis statedb TrieDB commit start", "duration", time.Since(start))
 	if err := statedb.Database().TrieDB().Commit(root, true, true); nil != err {
 		panic("Failed to trieDB commit by genesis: " + err.Error())
 	}
+	log.Info("Genesis statedb TrieDB commit end", "duration", time.Since(start))
 
 	block := types.NewBlock(head, nil, nil)
 
