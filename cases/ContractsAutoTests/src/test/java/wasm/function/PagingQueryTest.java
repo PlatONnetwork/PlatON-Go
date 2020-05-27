@@ -21,7 +21,7 @@ public class PagingQueryTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "liweic", showName = "wasm.PagingQuery验证vector分页查询",sourcePrefix = "wasm")
-    public void Pagingquery() {
+    public void test() {
 
         try {
             prepare();
