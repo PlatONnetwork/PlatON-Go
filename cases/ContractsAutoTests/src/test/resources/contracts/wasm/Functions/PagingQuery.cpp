@@ -41,12 +41,10 @@ CONTRACT PagingQuery : public platon::Contract{
 
         if(CurrentPage <= 0)
         {
-        	println("输入的页面数不合法：", CurrentPage);
         	return "";
         }
         else if(CurrentPage > pages)
         {
-        	println("输入的页面数超过总页面数：", pages);
             return "";
         }
 
