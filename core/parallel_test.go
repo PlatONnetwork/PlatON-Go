@@ -337,12 +337,12 @@ func parallelMode(t testing.TB) {
 
 	start := time.Now()
 	gp := new(GasPool).AddGas(header.GasLimit)
-	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, time.Now(), true)
+	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true)
 	ctx.SetBlockDeadline(time.Now().Add(200 * time.Second))
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(testTxList)
 
-	if err := GetExecutor().ExecuteBlocks(ctx); err != nil {
+	if err := GetExecutor().ExecuteTransactions(ctx); err != nil {
 		t.Fatal("pack txs err", "err", err)
 	}
 	end := time.Now()

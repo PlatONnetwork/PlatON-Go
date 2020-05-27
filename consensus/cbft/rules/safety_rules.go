@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	riseTimeLimit = 200 * time.Millisecond
+	riseTimeLimit = 1000 * time.Millisecond
 )
 
 type SafetyError interface {

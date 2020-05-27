@@ -1,14 +1,13 @@
 package core
 
 import (
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"time"
 )
 
 type ParallelStateProcessor struct {
@@ -35,38 +34,44 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 	)
 
 	if bcr != nil {
+		start := time.Now()
 		// BeginBlocker()
 		if err := bcr.BeginBlocker(block.Header(), statedb); nil != err {
 			log.Error("Failed to call BeginBlocker on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
+		log.Debug("Process begin blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
 	}
 
-	startTime := time.Now()
 	// Iterate over and process the individual transactions
 	if len(block.Transactions()) > 0 {
-		ctx := NewParallelContext(statedb, header, block.Hash(), gp, startTime, false)
+		start := time.Now()
+		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false)
 		ctx.SetBlockGasUsedHolder(usedGas)
 		ctx.SetTxList(block.Transactions())
-		if err := GetExecutor().ExecuteBlocks(ctx); err != nil {
+		if err := GetExecutor().ExecuteTransactions(ctx); err != nil {
 			return nil, nil, 0, err
 		}
 		receipts = ctx.GetReceipts()
 		allLogs = ctx.GetLogs()
+		log.Debug("Process parallel execute transactions cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
 	}
 
 	if bcr != nil {
+		start := time.Now()
 		// EndBlocker()
 		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
 			log.Error("Failed to call EndBlocker on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
+		log.Debug("Process end blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
 	}
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
+	start := time.Now()
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
-
+	log.Debug("Process finalize statedb cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
 	return receipts, allLogs, *usedGas, nil
 }

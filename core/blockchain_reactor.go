@@ -262,9 +262,10 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	}
 
 	// This must not be deleted
+	tstart := time.Now()
 	root := state.IntermediateRoot(true)
 	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state), "duration", time.Since(tstart))
 
 	return nil
 }

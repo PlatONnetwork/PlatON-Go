@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -362,7 +363,10 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		}
 	}
 
+	start := time.Now()
+	log.Info("Genesis block intermediateRoot start", "duration", time.Since(start))
 	root := statedb.IntermediateRoot(false)
+	log.Info("Genesis block intermediateRoot end", "duration", time.Since(start))
 
 	log.Debug("ToBlock IntermediateRoot", "root", root.Hex())
 

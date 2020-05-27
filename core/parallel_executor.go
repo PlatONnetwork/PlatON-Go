@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -12,7 +11,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	ants "github.com/panjf2000/ants/v2"
+	"github.com/panjf2000/ants/v2"
 )
 
 var (
@@ -59,7 +58,7 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 			ctx := args.ctx
 			idx := args.idx
 			intrinsicGas := args.intrinsicGas
-			executor.executeParallel(ctx, idx, intrinsicGas)
+			executor.executeParallelTx(ctx, idx, intrinsicGas)
 			ctx.wg.Done()
 		})
 		executor.chainConfig = chainConfig
@@ -73,9 +72,9 @@ func GetExecutor() *Executor {
 	return &executor
 }
 
-func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
-	log.Debug(fmt.Sprintf("ExecuteBlocks begin number=%d, packNewBlock=%t, gasPool=%d", ctx.header.Number.Uint64(), ctx.packNewBlock, ctx.gp.Gas()))
-	log.Debug("ExecuteBlocks goroutine info(start)", "number", ctx.header.Number, "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
+func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
+	log.Debug("Execute transactions begin", "number", ctx.header.Number.Uint64(), "packNewBlock", ctx.packNewBlock, "gasPool", ctx.gp.Gas())
+	log.Debug("Execute transactions goroutine info(start)", "number", ctx.header.Number, "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
 	if len(ctx.txList) > 0 {
 		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
@@ -85,7 +84,7 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList); err != nil {
 			return err
 		}
-		log.Debug("make dag graph cost", "number", ctx.header.Number, "time", time.Since(start))
+		log.Debug("Make dag graph cost", "number", ctx.header.Number, "time", time.Since(start))
 		start = time.Now()
 
 		batchNo := 0
@@ -94,20 +93,20 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 
 			if len(parallelTxIdxs) > 0 {
 				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
-					exe.executeTransaction(ctx, parallelTxIdxs[0])
+					exe.executeContractTransaction(ctx, parallelTxIdxs[0])
 					//log.Trace(fmt.Sprintf("ExecuteBlocks(tx type:contract) done, blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
 				} else {
 					for _, originIdx := range parallelTxIdxs {
 						tx := ctx.GetTx(originIdx)
 						if ctx.packNewBlock {
 							if bftEngine && ctx.IsTimeout() {
-								log.Debug("ctx.IsTimeout() is TRUE")
+								log.Debug("Ctx is timeout")
 								break
 							}
 
 							from := tx.GetFromAddr()
 							if _, popped := ctx.poppedAddresses[from]; popped {
-								log.Debug("address popped!", "from", from.Hex())
+								log.Debug("Address popped", "from", from.Hex())
 								continue
 							}
 						}
@@ -138,22 +137,22 @@ func (exe *Executor) ExecuteBlocks(ctx *ParallelContext) error {
 			}
 			batchNo++
 		}
-		log.Debug("execute block cost", "number", ctx.header.Number, "time", time.Since(start))
-		start = time.Now()
+		log.Debug("Execute transactions cost", "number", ctx.header.Number, "time", time.Since(start))
 
 		//add balance for miner
 		if ctx.GetEarnings().Cmp(big.NewInt(0)) > 0 {
 			ctx.state.AddMinerEarnings(ctx.header.Coinbase, ctx.GetEarnings())
 		}
+		start = time.Now()
 		ctx.state.Finalise(true)
-		log.Debug("finalise block cost", "number", ctx.header.Number, "time", time.Since(start))
+		log.Debug("Finalise stateDB cost", "number", ctx.header.Number, "time", time.Since(start))
 	}
-	log.Debug("ExecuteBlocks goroutine info(end)", "number", ctx.header.Number, "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
+	log.Debug("Execute transactions goroutine info(end)", "number", ctx.header.Number, "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
 
 	return nil
 }
 
-func (exe *Executor) executeParallel(ctx *ParallelContext, idx int, intrinsicGas uint64) {
+func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicGas uint64) {
 	if ctx.IsTimeout() {
 		return
 	}
@@ -204,7 +203,7 @@ func (exe *Executor) executeParallel(ctx *ParallelContext, idx int, intrinsicGas
 	return
 }
 
-func (exe *Executor) executeTransaction(ctx *ParallelContext, idx int) {
+func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	if ctx.IsTimeout() {
 		return
 	}
@@ -215,13 +214,12 @@ func (exe *Executor) executeTransaction(ctx *ParallelContext, idx int) {
 	ctx.GetState().Prepare(tx.Hash(), ctx.GetBlockHash(), int(ctx.GetState().TxIdx()))
 	receipt, _, err := ApplyTransaction(exe.chainConfig, exe.chainContext, ctx.GetGasPool(), ctx.GetState(), ctx.GetHeader(), tx, ctx.GetBlockGasUsedHolder(), exe.vmCfg)
 	if err != nil {
-		log.Debug("execute contract failed", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", tx.Gas(), "err", err.Error())
+		log.Debug("Execute contract transaction failed", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", tx.Gas(), "err", err.Error())
 		ctx.GetState().RevertToSnapshot(snap)
 		return
 	}
 	ctx.AddPackedTx(tx)
 	ctx.GetState().IncreaseTxIdx()
 	ctx.AddReceipt(receipt)
-	//log.Debug("execute contract ok", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
-	fmt.Printf("execute contract ok, blockNo=%d txHash=%s, gasPool=%d, txGasLimit=%d, gasUsed=%d\n", ctx.GetHeader().Number.Uint64(), tx.Hash().Hex(), ctx.gp.Gas(), tx.Gas(), receipt.GasUsed)
+	log.Debug("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
 }

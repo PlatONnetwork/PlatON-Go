@@ -955,7 +955,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var localTimeout = false
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, tstart, blockDeadline); failed {
+		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline); failed {
 			return fmt.Errorf("commit transactions error")
 		} else {
 			localTimeout = timeout
@@ -969,7 +969,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
 
-		if failed, _ := w.committer.CommitTransactions(header, txs, interrupt, timestamp, tstart, blockDeadline); failed {
+		if failed, _ := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline); failed {
 			return fmt.Errorf("commit transactions error")
 		}
 	}

@@ -23,7 +23,7 @@ func NewTxsCommitter(w *worker) *TxsCommitter {
 	}
 }
 
-func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, startTime, blockDeadline time.Time) (bool, bool) {
+func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (bool, bool) {
 	w := c.worker
 
 	// Short circuit if current is nil

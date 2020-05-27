@@ -36,19 +36,17 @@ type ParallelContext struct {
 
 	blockGasUsedHolder *uint64
 	earnings           *big.Int
-	startTime          time.Time
 	blockDeadline      time.Time
 	packNewBlock       bool
 	wg                 sync.WaitGroup
 }
 
-func NewParallelContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, startTime time.Time, packNewBlock bool) *ParallelContext {
+func NewParallelContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, packNewBlock bool) *ParallelContext {
 	ctx := &ParallelContext{}
 	ctx.state = state
 	ctx.header = header
 	ctx.blockHash = blockHash
 	ctx.gp = gp
-	ctx.startTime = startTime
 	ctx.poppedAddresses = make(map[*common.Address]struct{})
 	ctx.earnings = big.NewInt(0)
 	ctx.packNewBlock = packNewBlock
@@ -160,13 +158,6 @@ func (ctx *ParallelContext) AddEarnings(earning *big.Int) {
 	ctx.earnings = new(big.Int).Add(ctx.earnings, earning)
 }
 
-func (ctx *ParallelContext) SetStartTime(startTime time.Time) {
-	ctx.startTime = startTime
-}
-func (ctx *ParallelContext) GetStartTime() time.Time {
-	return ctx.startTime
-}
-
 func (ctx *ParallelContext) SetBlockDeadline(blockDeadline time.Time) {
 	ctx.blockDeadline = blockDeadline
 }
@@ -194,7 +185,7 @@ func (ctx *ParallelContext) buildTransferFailedResult(idx int, err error, needRe
 		needRefundGasPool: needRefundGasPool,
 	}
 	ctx.SetResult(idx, result)
-	log.Debug("execute trasnfer failed", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash().Hex(),
+	log.Debug("Execute trasnfer failed", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash().Hex(),
 		"gasPool", ctx.gp.Gas(), "txGasLimit", ctx.GetTx(idx).Gas(), "needRefundGasPool", needRefundGasPool, "error", err.Error())
 }
 
@@ -218,7 +209,8 @@ func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject,
 		err:             nil,
 	}
 	ctx.SetResult(idx, result)
-	log.Debug("execute trasnfer success,  txHash=%s, txIdx=%d, gasPool=%d, txGasLimit=%d, txUsedGas=%d\n", ctx.GetTx(idx).Hash().Hex(), idx, ctx.gp.Gas(), ctx.GetTx(idx).Gas(), txGasUsed)
+	log.Debug("Execute trasnfer success", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash().Hex(),
+		"gasPool", ctx.gp.Gas(), "txGasLimit", ctx.GetTx(idx).Gas(), "txUsedGas", txGasUsed)
 }
 
 func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteEmptyObjects bool) {

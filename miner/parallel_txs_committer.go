@@ -19,7 +19,7 @@ func NewParallelTxsCommitter(w *worker) *ParallelTxsCommitter {
 	}
 }
 
-func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, startTime, blockDeadline time.Time) (failed bool, isTimeout bool) {
+func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (failed bool, isTimeout bool) {
 	tstart := time.Now()
 	w := c.worker
 
@@ -48,16 +48,17 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 		}
 	}
 
-	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, startTime, true)
+	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, true)
 	ctx.SetBlockDeadline(blockDeadline)
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(parallelTxs)
-	log.Debug("Begin to execute block", "number", header.Number, "duration", time.Since(tstart))
-	if err := core.GetExecutor().ExecuteBlocks(ctx); err != nil {
+	log.Debug("Begin to execute transactions", "number", header.Number, "duration", time.Since(tstart))
+	tstart = time.Now()
+	if err := core.GetExecutor().ExecuteTransactions(ctx); err != nil {
 		log.Debug("pack txs err", "err", err)
 		return true, ctx.IsTimeout()
 	}
-	log.Debug("End to execute block", "number", header.Number, "duration", time.Since(tstart))
+	log.Debug("End to execute transactions", "number", header.Number, "duration", time.Since(tstart))
 
 	w.current.txs = append(w.current.txs, ctx.GetPackedTxList()...)
 	w.current.tcount += len(w.current.txs)
