@@ -93,7 +93,6 @@ public class GeneratorUtil {
             String outputPath = FileUtil.pathOptimization(System.getProperty("user.dir") + "/src/main/java");
             String packagePath = "network.platon.contracts.wasm";
             String rootPath = System.getProperty("user.dir");
-            System.out.println("rootPath:" + rootPath);
             String[] args = new String[]{"/bin/bash", "-c", rootPath + "/scripts/platon-web3j/bin/platon-web3j" + " " + "wasm" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
 
             ps = Runtime.getRuntime().exec(args);

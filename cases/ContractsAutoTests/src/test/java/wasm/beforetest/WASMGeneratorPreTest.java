@@ -81,6 +81,7 @@ public class WASMGeneratorPreTest {
         // 获取所有wasm源文件
         List<String> files = new OneselfFileUtil().getWasmResourcesFile(resourcePath, 0);
         int size = files.size();
+        collector.logStepPass("wasm contract size:" + size);
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
@@ -132,7 +133,6 @@ public class WASMGeneratorPreTest {
         collector.logStepPass("staring generator, Total " + size + " contract, please wait...");
 
         for (String fileName : binFileName) {
-            //collector.logStepPass("staring compile:" + fileName);
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
