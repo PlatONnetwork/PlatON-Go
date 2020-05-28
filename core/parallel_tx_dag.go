@@ -33,11 +33,13 @@ func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs [
 	latestPrecompiledIndex := -1
 	for curIdx, cur := range txs {
 		if cur.GetFromAddr() == nil {
-			log.Debug("Tx fromAddr is nil")
+			xxstart := time.Now()
+			log.Debug("Tx fromAddr is nil begin", "number", blockNumber, "txs length", len(txs), "index", curIdx, "duration", time.Since(start), "duration2", time.Since(xxstart))
 			if from, err := types.Sender(txDag.signer, cur); err != nil {
 				return err
 			} else {
 				cur.SetFromAddr(&from)
+				log.Debug("Tx fromAddr is nil end", "number", blockNumber, "txs length", len(txs), "index", curIdx, "duration", time.Since(start), "duration2", time.Since(xxstart))
 			}
 		}
 
