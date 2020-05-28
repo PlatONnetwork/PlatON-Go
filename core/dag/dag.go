@@ -16,7 +16,7 @@ func NewVertex() *Vertex {
 	vertex := &Vertex{
 		InDegree: 0,
 		OutEdges: make([]int, 0),
-		InEdges:  make([]int, 0),
+		//InEdges:  make([]int, 0),
 	}
 	return vertex
 }
@@ -41,7 +41,7 @@ func NewDag(v int) *Dag {
 func (dag *Dag) AddEdge(from, to int) {
 	dag.VertexList[from].OutEdges = append(dag.VertexList[from].OutEdges, to)
 	dag.VertexList[to].InDegree++
-	dag.VertexList[to].InEdges = append(dag.VertexList[to].InEdges, from)
+	//dag.VertexList[to].InEdges = append(dag.VertexList[to].InEdges, from)
 }
 
 func (dag *Dag) GetOutEdges(from int) []int {
