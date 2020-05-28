@@ -30,50 +30,42 @@ type ParallelContext struct {
 	packedTxList    []*types.Transaction
 	resultList      []*Result
 	receipts        types.Receipts
-	logs            []*types.Log
-	txDag           *TxDag
-	poppedAddresses map[*common.Address]struct{}
+	poppedAddresses map[common.Address]struct{}
 
 	blockGasUsedHolder *uint64
 	earnings           *big.Int
 	blockDeadline      time.Time
 	packNewBlock       bool
 	wg                 sync.WaitGroup
+	signer             types.Signer
 }
 
-func NewParallelContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, packNewBlock bool) *ParallelContext {
-	ctx := &ParallelContext{}
-	ctx.state = state
-	ctx.header = header
-	ctx.blockHash = blockHash
-	ctx.gp = gp
-	ctx.poppedAddresses = make(map[*common.Address]struct{})
-	ctx.earnings = big.NewInt(0)
-	ctx.packNewBlock = packNewBlock
+func NewParallelContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, packNewBlock bool, signer types.Signer) *ParallelContext {
+	ctx := &ParallelContext{
+		state:           state,
+		header:          header,
+		blockHash:       blockHash,
+		gp:              gp,
+		poppedAddresses: make(map[common.Address]struct{}),
+		earnings:        big.NewInt(0),
+		packNewBlock:    packNewBlock,
+		signer:          signer,
+	}
 	return ctx
 }
 
-func (ctx *ParallelContext) SetState(state *state.StateDB) {
-	ctx.state = state
-}
 func (ctx *ParallelContext) GetState() *state.StateDB {
 	return ctx.state
 }
-func (ctx *ParallelContext) SetHeader(header *types.Header) {
-	ctx.header = header
-}
+
 func (ctx *ParallelContext) GetHeader() *types.Header {
 	return ctx.header
 }
-func (ctx *ParallelContext) SetBlockHash(blockHash common.Hash) {
-	ctx.blockHash = blockHash
-}
+
 func (ctx *ParallelContext) GetBlockHash() common.Hash {
 	return ctx.blockHash
 }
-func (ctx *ParallelContext) SetGasPool(gp *GasPool) {
-	ctx.gp = gp
-}
+
 func (ctx *ParallelContext) GetGasPool() *GasPool {
 	return ctx.gp
 }
@@ -82,6 +74,7 @@ func (ctx *ParallelContext) SetTxList(txs []*types.Transaction) {
 	ctx.txList = txs
 	ctx.resultList = make([]*Result, len(txs))
 }
+
 func (ctx *ParallelContext) GetTxList() []*types.Transaction {
 	return ctx.txList
 }
@@ -106,6 +99,7 @@ func (ctx *ParallelContext) SetResult(idx int, result *Result) {
 	}
 	ctx.resultList[idx] = result
 }
+
 func (ctx *ParallelContext) GetResults() []*Result {
 	return ctx.resultList
 }
@@ -118,18 +112,8 @@ func (ctx *ParallelContext) AddReceipt(receipt *types.Receipt) {
 	ctx.receipts = append(ctx.receipts, receipt)
 }
 
-func (ctx *ParallelContext) SetTxDag(txDag *TxDag) {
-	ctx.txDag = txDag
-}
-func (ctx *ParallelContext) GetTxDag() *TxDag {
-	return ctx.txDag
-}
-
-func (ctx *ParallelContext) SetPoppedAddress(poppedAddress *common.Address) {
+func (ctx *ParallelContext) SetPoppedAddress(poppedAddress common.Address) {
 	ctx.poppedAddresses[poppedAddress] = struct{}{}
-}
-func (ctx *ParallelContext) GetPoppedAddresses() map[*common.Address]struct{} {
-	return ctx.poppedAddresses
 }
 
 func (ctx *ParallelContext) GetLogs() []*types.Log {
@@ -139,9 +123,11 @@ func (ctx *ParallelContext) GetLogs() []*types.Log {
 func (ctx *ParallelContext) CumulateBlockGasUsed(txGasUsed uint64) {
 	*ctx.blockGasUsedHolder += txGasUsed
 }
+
 func (ctx *ParallelContext) GetBlockGasUsed() uint64 {
 	return *ctx.blockGasUsedHolder
 }
+
 func (ctx *ParallelContext) GetBlockGasUsedHolder() *uint64 {
 	return ctx.blockGasUsedHolder
 }
@@ -160,10 +146,6 @@ func (ctx *ParallelContext) AddEarnings(earning *big.Int) {
 
 func (ctx *ParallelContext) SetBlockDeadline(blockDeadline time.Time) {
 	ctx.blockDeadline = blockDeadline
-}
-
-func (ctx *ParallelContext) GetBlockDeadline() time.Time {
-	return ctx.blockDeadline
 }
 
 func (ctx *ParallelContext) IsTimeout() bool {
@@ -264,7 +246,7 @@ func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteE
 				switch resultList[idx].err {
 				case ErrGasLimitReached, ErrNonceTooHigh, vm.ErrAbort:
 					// pop error
-					ctx.SetPoppedAddress(ctx.GetTx(idx).GetFromAddr())
+					ctx.SetPoppedAddress(ctx.GetTx(idx).FromAddr(ctx.signer))
 				default:
 					//shift
 				}

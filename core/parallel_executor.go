@@ -27,6 +27,7 @@ type Executor struct {
 
 	workerPool *ants.PoolWithFunc
 }
+
 type TaskArgs struct {
 	ctx          *ParallelContext
 	idx          int
@@ -72,6 +73,10 @@ func GetExecutor() *Executor {
 	return &executor
 }
 
+func (exe *Executor) Signer() types.Signer {
+	return exe.signer
+}
+
 func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	log.Debug("Execute transactions begin", "number", ctx.header.Number.Uint64(), "packNewBlock", ctx.packNewBlock, "gasPool", ctx.gp.Gas())
 	log.Debug("Execute transactions goroutine info(start)", "number", ctx.header.Number, "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
@@ -93,7 +98,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 			if len(parallelTxIdxs) > 0 {
 				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
 					exe.executeContractTransaction(ctx, parallelTxIdxs[0])
-					//log.Trace(fmt.Sprintf("ExecuteBlocks(tx type:contract) done, blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.GetFromAddr().Hex(), toAddr, tx.Hash().Hex()))
+					//log.Trace(fmt.Sprintf("ExecuteBlocks(tx type:contract) done, blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.FromAddr().Hex(), toAddr, tx.Hash().Hex()))
 				} else {
 					for _, originIdx := range parallelTxIdxs {
 						tx := ctx.GetTx(originIdx)
@@ -103,7 +108,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 								break
 							}
 
-							from := tx.GetFromAddr()
+							from := tx.FromAddr(exe.signer)
 							if _, popped := ctx.poppedAddresses[from]; popped {
 								log.Debug("Address popped", "from", from.Hex())
 								continue

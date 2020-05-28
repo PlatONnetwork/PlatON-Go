@@ -184,8 +184,7 @@ func initTx() {
 				signer,
 				fromAccount.priKey)
 		}
-		from, _ := types.Sender(signer, tx)
-		tx.SetFromAddr(&from)
+		types.Sender(signer, tx)
 
 		testTxList[i] = tx
 		fromAccount.nonce++

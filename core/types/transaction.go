@@ -44,7 +44,6 @@ type Transaction struct {
 	from atomic.Value
 
 	//for parallel executor only
-	fromAddr     *common.Address
 	intrinsicGas uint64
 }
 
@@ -239,12 +238,23 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
 }
 
-func (tx *Transaction) SetFromAddr(fromAddr *common.Address) {
-	tx.fromAddr = fromAddr
-}
+func (tx *Transaction) FromAddr(signer Signer) common.Address {
+	if sc := tx.from.Load(); sc != nil {
+		sigCache := sc.(sigCache)
+		// If the signer used to derive from in a previous
+		// call is not the same as used current, invalidate
+		// the cache.
+		if sigCache.signer.Equal(signer) {
+			return sigCache.from
+		}
+	}
 
-func (tx *Transaction) GetFromAddr() *common.Address {
-	return tx.fromAddr
+	addr, err := signer.Sender(tx)
+	if err != nil {
+		return common.Address{}
+	}
+	tx.from.Store(sigCache{signer: signer, from: addr})
+	return addr
 }
 
 func (tx *Transaction) SetIntrinsicGas(intrinsicGas uint64) {

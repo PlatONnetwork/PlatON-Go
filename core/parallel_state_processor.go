@@ -47,7 +47,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 	// Iterate over and process the individual transactions
 	if len(block.Transactions()) > 0 {
 		start := time.Now()
-		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false)
+		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false, GetExecutor().Signer())
 		ctx.SetBlockGasUsedHolder(usedGas)
 		ctx.SetTxList(block.Transactions())
 		if err := GetExecutor().ExecuteTransactions(ctx); err != nil {
