@@ -99,7 +99,7 @@ public class PlatONTransferTest {
             TransactionManager transactionManager = new RawTransactionManager(web3j, credentials, chainId);
             Transfer transfer = new Transfer(web3j,transactionManager);
 
-            TransactionReceipt transactionReceipt = transfer.sendFunds(transferTo, new BigDecimal("3335678811"), Convert.Unit.GLAT).send();
+            TransactionReceipt transactionReceipt = transfer.sendFunds(transferTo, new BigDecimal(amount), Convert.Unit.VON).send();
 
 
             BigInteger endBalance = web3j.platonGetBalance(transferTo, DefaultBlockParameterName.LATEST).send().getBalance();
