@@ -20,6 +20,8 @@ public class AddressBalanceTest extends ContractPrepareTest {
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao", showName = "AddressBalanceTest.查询某地址余额",sourcePrefix = "evm")
     public void test() {
 
+        String useAddress = "lax10eycqggu2yawpadtmn7d2zdw0vnmscklynzq8x";
+
         AddressBalance addressBalance = null;
         try {
             //合约部署
@@ -31,10 +33,10 @@ public class AddressBalanceTest extends ContractPrepareTest {
             collector.logStepPass("deploy finish currentBlockNumber:" + tx.getBlockNumber());
 
             //调用合约
-            BigInteger balance = addressBalance.balanceOfPlatON(driverService.param.get("address")).send();
+            BigInteger balance = addressBalance.balanceOfPlatON(useAddress).send();
             collector.logStepPass("transactionHash:" + tx.getTransactionHash() + ", currentBlockNumber:" + tx.getBlockNumber());
 
-            System.out.println(balance);
+            System.out.println("address:" + useAddress + ", balance:" + balance);
         } catch (Exception e) {
             collector.logStepFail("AddressBalance process fail.", e.toString());
             e.printStackTrace();
