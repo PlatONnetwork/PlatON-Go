@@ -76,15 +76,14 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	log.Debug("Execute transactions begin", "number", ctx.header.Number.Uint64(), "packNewBlock", ctx.packNewBlock, "gasPool", ctx.gp.Gas())
 	log.Debug("Execute transactions goroutine info(start)", "number", ctx.header.Number, "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
 	if len(ctx.txList) > 0 {
-		var bftEngine = exe.chainConfig.Cbft != nil
 		txDag := NewTxDag(exe.signer)
 
 		start := time.Now()
 
-		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList); err != nil {
+		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList, start); err != nil {
 			return err
 		}
-		log.Debug("Make dag graph cost", "number", ctx.header.Number, "time", time.Since(start))
+		log.Debug("Make dag graph cost", "number", ctx.header.Number.Uint64(), "time", time.Since(start))
 		start = time.Now()
 
 		batchNo := 0
@@ -99,7 +98,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 					for _, originIdx := range parallelTxIdxs {
 						tx := ctx.GetTx(originIdx)
 						if ctx.packNewBlock {
-							if bftEngine && ctx.IsTimeout() {
+							if ctx.IsTimeout() {
 								log.Debug("Ctx is timeout")
 								break
 							}
