@@ -586,6 +586,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	if state == nil || err != nil {
 		return nil, 0, false, err
 	}
+	defer state.ClearParentReference()
 	// Set sender address or use a default if none specified
 	addr := args.From
 	if addr == (common.Address{}) {
@@ -638,7 +639,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	if err := vmError(); err != nil {
 		return nil, 0, false, err
 	}
-	state.ClearParentReference()
+
 	return res, gas, failed, err
 }
 

@@ -21,7 +21,7 @@ require (
 	github.com/gizak/termui v2.2.1-0.20170117222342-991cd3d38091+incompatible
 	github.com/go-errors/errors v1.0.2-0.20180813162953-d98b870cc4e0
 	github.com/go-ole/go-ole v1.2.1 // indirect
-	github.com/go-stack/stack v1.5.4
+	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.2.1-0.20181128192352-1d3f30b51784
 	github.com/golang/snappy v0.0.1
 	github.com/google/go-cmp v0.4.0 // indirect
@@ -44,7 +44,7 @@ require (
 	github.com/nsf/termbox-go v0.0.0-20170211012700-3540b76b9c77 // indirect
 	github.com/pborman/uuid v0.0.0-20170112150404-1b00554d8222
 	github.com/peterh/liner v1.0.1-0.20170902204657-a37ad3984311
-	github.com/pkg/errors v0.8.1-0.20171216070316-e881fd58d78e
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/prometheus v1.7.2-0.20170814170113-3101606756c5
 	github.com/rjeczalik/notify v0.9.1
 	github.com/robertkrimen/otto v0.0.0-20170205013659-6a77b7cbc37d
