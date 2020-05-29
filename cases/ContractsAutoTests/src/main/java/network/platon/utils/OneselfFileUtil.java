@@ -67,6 +67,7 @@ public class OneselfFileUtil {
             if (files[i].isFile()) {
                 if (files[i].getName().substring(files[i].getName().lastIndexOf(".") + 1).equals("cpp")) {
                     list.add(files[i].getPath());
+                    System.out.println(files[i].getPath());
                 }
             } else if (files[i].isDirectory()) {
                 //文件夹需要调用递归 ，深度+1
