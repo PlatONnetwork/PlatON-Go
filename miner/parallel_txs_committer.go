@@ -20,7 +20,6 @@ func NewParallelTxsCommitter(w *worker) *ParallelTxsCommitter {
 }
 
 func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (failed bool, isTimeout bool) {
-	tstart := time.Now()
 	w := c.worker
 
 	// Short circuit if current is nil
@@ -52,13 +51,12 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 	ctx.SetBlockDeadline(blockDeadline)
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(parallelTxs)
-	log.Debug("Begin to execute transactions", "number", header.Number, "duration", time.Since(tstart))
-	tstart = time.Now()
+	log.Trace("Begin to execute transactions", "number", header.Number)
 	if err := core.GetExecutor().ExecuteTransactions(ctx); err != nil {
 		log.Debug("pack txs err", "err", err)
 		return true, ctx.IsTimeout()
 	}
-	log.Debug("End to execute transactions", "number", header.Number, "duration", time.Since(tstart))
+	log.Trace("End to execute transactions", "number", header.Number)
 
 	w.current.txs = append(w.current.txs, ctx.GetPackedTxList()...)
 	w.current.tcount += len(w.current.txs)
@@ -86,6 +84,6 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 	if interrupt != nil {
 		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
 	}
-	log.Debug("End to commit transactions", "number", header.Number, "duration", time.Since(tstart))
+	log.Debug("End to commit transactions", "number", header.Number)
 	return false, ctx.IsTimeout()
 }

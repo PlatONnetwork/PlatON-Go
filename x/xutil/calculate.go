@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -26,11 +26,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
-func NodeId2Addr(nodeId discover.NodeID) (common.Address, error) {
+func NodeId2Addr(nodeId discover.NodeID) (common.NodeAddress, error) {
 	if pk, err := nodeId.Pubkey(); nil != err {
-		return common.ZeroAddr, err
+		return common.ZeroNodeAddr, err
 	} else {
-		return crypto.PubkeyToAddress(*pk), nil
+		return common.NodeAddress(crypto.PubkeyToAddress(*pk)), nil
 	}
 }
 

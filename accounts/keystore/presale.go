@@ -24,8 +24,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/pbkdf2"
@@ -84,10 +84,14 @@ func decryptPreSaleKey(fileContent []byte, password string) (key *Key, err error
 		Address:    crypto.PubkeyToAddress(ecKey.PublicKey),
 		PrivateKey: ecKey,
 	}
-	derivedAddr := hex.EncodeToString(key.Address.Bytes()) // needed because .Hex() gives leading "0x"
-	expectedAddr := preSaleKeyStruct.EthAddr
-	if derivedAddr != expectedAddr {
-		err = fmt.Errorf("decrypted addr '%s' not equal to expected addr '%s'", derivedAddr, expectedAddr)
+
+	expectedAddr, err := common.Bech32ToAddress(preSaleKeyStruct.EthAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	if expectedAddr != key.Address {
+		err = fmt.Errorf("decrypted addr '%s' not equal to expected addr '%s'", key.Address, preSaleKeyStruct.EthAddr)
 	}
 	return key, err
 }

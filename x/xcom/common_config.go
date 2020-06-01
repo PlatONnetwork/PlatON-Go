@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -51,6 +51,13 @@ const (
 	PositiveInfinity          = "+∞"
 	CeilUnStakeFreezeDuration = 28 * 4
 	CeilMaxEvidenceAge        = CeilUnStakeFreezeDuration - 1
+
+	RewardPerMaxChangeRangeUpperLimit = 2000
+	RewardPerMaxChangeRangeLowerLimit = 1
+	RewardPerChangeIntervalUpperLimit = 28
+	RewardPerChangeIntervalLowerLimit = 2
+	IncreaseIssuanceRatioUpperLimit   = 2000
+	IncreaseIssuanceRatioLowerLimit   = 0
 )
 
 var (
@@ -85,10 +92,12 @@ type commonConfig struct {
 }
 
 type stakingConfig struct {
-	StakeThreshold        *big.Int `json:"stakeThreshold"`        // The Staking minimum threshold allowed
-	OperatingThreshold    *big.Int `json:"operatingThreshold"`    // The (incr, decr) delegate or incr staking minimum threshold allowed
-	MaxValidators         uint64   `json:"maxValidators"`         // The epoch (billing cycle) validators count
-	UnStakeFreezeDuration uint64   `json:"unStakeFreezeDuration"` // The freeze period of the withdrew Staking (unit is  epochs)
+	StakeThreshold          *big.Int `json:"stakeThreshold"`          // The Staking minimum threshold allowed
+	OperatingThreshold      *big.Int `json:"operatingThreshold"`      // The (incr, decr) delegate or incr staking minimum threshold allowed
+	MaxValidators           uint64   `json:"maxValidators"`           // The epoch (billing cycle) validators count
+	UnStakeFreezeDuration   uint64   `json:"unStakeFreezeDuration"`   // The freeze period of the withdrew Staking (unit is  epochs)
+	RewardPerMaxChangeRange uint16   `json:"rewardPerMaxChangeRange"` // The maximum amount of commission reward ratio that can be modified each time
+	RewardPerChangeInterval uint16   `json:"rewardPerChangeInterval"` // The interval for each modification of the commission reward ratio (unit: epoch)
 }
 
 type slashingConfig struct {
@@ -114,8 +123,9 @@ type governanceConfig struct {
 }
 
 type rewardConfig struct {
-	NewBlockRate         uint64 `json:"newBlockRate"`         // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
-	PlatONFoundationYear uint32 `json:"platonFoundationYear"` // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
+	NewBlockRate          uint64 `json:"newBlockRate"`          // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
+	PlatONFoundationYear  uint32 `json:"platonFoundationYear"`  // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
+	IncreaseIssuanceRatio uint16 `json:"increaseIssuanceRatio"` // According to the total amount issued in the previous year, increase the proportion of issuance
 }
 
 type innerAccount struct {
@@ -183,10 +193,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:        new(big.Int).Set(MillionLAT),
-				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(101),
-				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
+				StakeThreshold:          new(big.Int).Set(MillionLAT),
+				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				MaxValidators:           uint64(101),
+				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
+				RewardPerMaxChangeRange: uint16(500),
+				RewardPerChangeInterval: uint16(10),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
@@ -210,13 +222,14 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         50,
-				PlatONFoundationYear: 10,
+				NewBlockRate:          50,
+				PlatONFoundationYear:  10,
+				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x72188da050f4B3dD9a991b209221DBFE0A0fdC42"),
+				PlatONFundAccount: common.MustBech32ToAddress("lat1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzhprgeh"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0x8BAb06a9706F7613188d4Fb6310b1E5117dfd914"),
+				CDFAccount:        common.MustBech32ToAddress("lat1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzhprgeh"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -230,10 +243,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:        new(big.Int).Set(MillionLAT),
-				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(101),
-				UnStakeFreezeDuration: uint64(2), // freezing 2 epoch
+				StakeThreshold:          new(big.Int).Set(MillionLAT),
+				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				MaxValidators:           uint64(101),
+				UnStakeFreezeDuration:   uint64(2), // freezing 2 epoch
+				RewardPerMaxChangeRange: uint16(500),
+				RewardPerChangeInterval: uint16(10),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
@@ -257,13 +272,14 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         50,
-				PlatONFoundationYear: 10,
+				NewBlockRate:          50,
+				PlatONFoundationYear:  10,
+				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x01c71cecaeff76b78325577e6a74a94d24a86be2"),
+				PlatONFundAccount: common.MustBech32ToAddress("lax1q8r3em9wlamt0qe92alx5a9ff5j2s6lzrnmdyz"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0x02cdda362dca508709a651fde1513b22d3c2a4e5"),
+				CDFAccount:        common.MustBech32ToAddress("lax1qtxa5d3defggwzdx2877z5fmytfu9f893lyygz"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -277,10 +293,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:        new(big.Int).Set(MillionLAT),
-				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(25),
-				UnStakeFreezeDuration: uint64(2),
+				StakeThreshold:          new(big.Int).Set(MillionLAT),
+				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				MaxValidators:           uint64(25),
+				UnStakeFreezeDuration:   uint64(2),
+				RewardPerMaxChangeRange: uint16(500),
+				RewardPerChangeInterval: uint16(10),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
@@ -304,13 +322,14 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         50,
-				PlatONFoundationYear: 10,
+				NewBlockRate:          50,
+				PlatONFoundationYear:  10,
+				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundAccount: common.MustBech32ToAddress("lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFAccount:        common.MustBech32ToAddress("lax1c8enpvs5v6974shxgxxav5dsn36e5jl4v29pec"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -324,10 +343,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:        new(big.Int).Set(MillionLAT),
-				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(101),
-				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
+				StakeThreshold:          new(big.Int).Set(MillionLAT),
+				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				MaxValidators:           uint64(101),
+				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
+				RewardPerMaxChangeRange: uint16(500),
+				RewardPerChangeInterval: uint16(10),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
@@ -351,13 +372,14 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         50,
-				PlatONFoundationYear: 10,
+				NewBlockRate:          50,
+				PlatONFoundationYear:  10,
+				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x72188da050f4B3dD9a991b209221DBFE0A0fdC42"),
+				PlatONFundAccount: common.MustBech32ToAddress("lax1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzcy38hc"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0x8BAb06a9706F7613188d4Fb6310b1E5117dfd914"),
+				CDFAccount:        common.MustBech32ToAddress("lax13w4sd2tsdampxxydf7mrzzc72ytalkg5ukpsvj"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -442,7 +464,28 @@ func CheckZeroProduceNumberThreshold(zeroProduceCumulativeTime uint16, zeroProdu
 	return nil
 }
 
-func CheckEconomicModel(genesisVersion uint32) error {
+func CheckRewardPerMaxChangeRange(rewardPerMaxChangeRange uint16) error {
+	if rewardPerMaxChangeRange < RewardPerMaxChangeRangeLowerLimit || rewardPerMaxChangeRange > RewardPerMaxChangeRangeUpperLimit {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The RewardPerMaxChangeRange must be [%d, %d]", RewardPerMaxChangeRangeLowerLimit, RewardPerMaxChangeRangeUpperLimit))
+	}
+	return nil
+}
+
+func CheckRewardPerChangeInterval(rewardPerChangeInterval uint16) error {
+	if rewardPerChangeInterval < RewardPerChangeIntervalLowerLimit || rewardPerChangeInterval > RewardPerChangeIntervalUpperLimit {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The RewardPerMaxChangeRange must be [%d, %d]", RewardPerChangeIntervalLowerLimit, RewardPerChangeIntervalUpperLimit))
+	}
+	return nil
+}
+
+func CheckIncreaseIssuanceRatio(increaseIssuanceRatio uint16) error {
+	if increaseIssuanceRatio < IncreaseIssuanceRatioLowerLimit || increaseIssuanceRatio > IncreaseIssuanceRatioUpperLimit {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The IncreaseIssuanceRatio must be [%d, %d]", IncreaseIssuanceRatioLowerLimit, IncreaseIssuanceRatioUpperLimit))
+	}
+	return nil
+}
+
+func CheckEconomicModel() error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
 	}
@@ -534,6 +577,18 @@ func CheckEconomicModel(genesisVersion uint32) error {
 		return err
 	}
 
+	if err := CheckRewardPerMaxChangeRange(ec.Staking.RewardPerMaxChangeRange); nil != err {
+		return err
+	}
+
+	if err := CheckRewardPerChangeInterval(ec.Staking.RewardPerChangeInterval); nil != err {
+		return err
+	}
+
+	if err := CheckIncreaseIssuanceRatio(ec.Reward.IncreaseIssuanceRatio); nil != err {
+		return err
+	}
+
 	return nil
 }
 
@@ -615,6 +670,14 @@ func UnStakeFreezeDuration() uint64 {
 	return ec.Staking.UnStakeFreezeDuration
 }
 
+func RewardPerMaxChangeRange() uint16 {
+	return ec.Staking.RewardPerMaxChangeRange
+}
+
+func RewardPerChangeInterval() uint16 {
+	return ec.Staking.RewardPerChangeInterval
+}
+
 /******
  * Slashing config
  ******/
@@ -651,6 +714,10 @@ func NewBlockRewardRate() uint64 {
 
 func PlatONFoundationYear() uint32 {
 	return ec.Reward.PlatONFoundationYear
+}
+
+func IncreaseIssuanceRatio() uint16 {
+	return ec.Reward.IncreaseIssuanceRatio
 }
 
 /******

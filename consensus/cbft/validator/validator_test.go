@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -141,7 +141,7 @@ func TestValidators(t *testing.T) {
 	assert.True(t, validator.Index == 2)
 
 	pubkey, _ := nodes[1].Node.ID.Pubkey()
-	addrN1 := crypto.PubkeyToAddress(*pubkey)
+	addrN1 := crypto.PubkeyToNodeAddress(*pubkey)
 
 	validator, err = vds.FindNodeByID(nodes[1].Node.ID)
 	assert.True(t, err == nil, "get node index and address fail")
@@ -163,7 +163,7 @@ func TestValidators(t *testing.T) {
 	notFound := vds.NodeID(4)
 	assert.Equal(t, notFound, emptyNodeID)
 
-	emptyAddr := common.Address{}
+	emptyAddr := common.NodeAddress{}
 	validator, err = vds.FindNodeByAddress(emptyAddr)
 	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
@@ -446,7 +446,7 @@ func TestValidatorPool(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, node.Address, node0.Address)
 
-	_, err = validatorPool.GetValidatorByAddr(0, common.Address{})
+	_, err = validatorPool.GetValidatorByAddr(0, common.NodeAddress{})
 	assert.Equal(t, err, errors.New("invalid address"))
 
 	nodeID := validatorPool.GetNodeIDByIndex(0, 4)

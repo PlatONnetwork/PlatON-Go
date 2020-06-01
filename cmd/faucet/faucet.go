@@ -508,7 +508,7 @@ func (f *faucet) apiHandler(conn *websocket.Conn) {
 			}
 			continue
 		}
-		if err = sendSuccess(conn, fmt.Sprintf("Funding request accepted for %s into %s", username, address.Hex())); err != nil {
+		if err = sendSuccess(conn, fmt.Sprintf("Funding request accepted for %s into %s", username, address)); err != nil {
 			log.Warn("Failed to send funding success to client", "err", err)
 			return
 		}

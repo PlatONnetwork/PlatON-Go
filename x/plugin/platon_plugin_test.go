@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -87,33 +87,33 @@ var (
 
 	addrArr = []common.Address{
 
-		common.HexToAddress("0xeB3eb44a60d935DfE53D224648E1a51851c6f3Ae"),
-		common.HexToAddress("0x1D9B304e70FD21706fd97BCe5f34392463788713"),
-		common.HexToAddress("0x3d5Da47598cAc4121166975EFa126038F72Cf51F"),
-		common.HexToAddress("0xC8ed168765E1709E2e70042c980d166629188EA1"),
+		common.MustBech32ToAddress("lax1avltgjnqmy6alefayfry3cd9rpguduawcph8ja"),
+		common.MustBech32ToAddress("lax1rkdnqnnsl5shqm7e00897dpey33h3pcntluqar"),
+		common.MustBech32ToAddress("lax184w6gavcetzpyytxja005ynq8rmjeaglx7ldlp"),
+		common.MustBech32ToAddress("lax1erk3dpm9u9cfutnsqskfsrgkvc533r4p9e6xzl"),
 
-		common.HexToAddress("0xed5079841FFC3b44A6CE391418FCC6603EA2d284"),
-		common.HexToAddress("0x85134A57e27f512637E6B3Ac22e4295B0BF19f7A"),
-		common.HexToAddress("0x84C3c588a815c882e045bcE9DF8234051A954058"),
-		common.HexToAddress("0xe82DB9b00F63325323e95140BB7e2C52db3008C6"),
+		common.MustBech32ToAddress("lax1a4g8npqllsa5ffkw8y2p3lxxvql2955y82fxea"),
+		common.MustBech32ToAddress("lax1s5f554lz0agjvdlxkwkz9epftv9lr8m6n5w6hp"),
+		common.MustBech32ToAddress("lax1snputz9gzhyg9cz9hn5alq35q5df2szcauhfdn"),
+		common.MustBech32ToAddress("lax1aqkmnvq0vve9xglf29qtkl3v2tdnqzxx45knn2"),
 
-		common.HexToAddress("0xf33b5Da47c6ECbC61cF07C7387Afc6ef0EA2f866"),
-		common.HexToAddress("0x2E5FB4F78E3FB9b1898DE7d7D8dB3d44C62040be"),
-		common.HexToAddress("0x285CF84ea3E177E1fC9F396aEbc9329a08f51bb5"),
-		common.HexToAddress("0x91BffdC88329AfDD97DF6fe92cfd4FcB7927Aecd"),
-		common.HexToAddress("0x58b62FfF5046aF2252F1F8Ecb5c3342ada394F72"),
-		common.HexToAddress("0x8ec116c11d8515e8222Cabc4BEc06A880C51D929"),
-		common.HexToAddress("0x364eCBade4c35beE2F8a04F8209BaB236B48A35a"),
-		common.HexToAddress("0x26896c394A1E12095e822e5b080e8EfA050c738C"),
-		common.HexToAddress("0x314253824CD6b7BCF1613CAB00126D6076F7a389"),
-		common.HexToAddress("0x5544F05D51E45fa6497AFEC0F1A5d64531B21be0"),
-		common.HexToAddress("0x3da830FAd2A6983d948d7262B2AdF7eA53b953be"),
-		common.HexToAddress("0x815A7910C035F2FB9451cDA349969788449c2288"),
-		common.HexToAddress("0x4Cdd49e08587c824c7629e7d124390B70d105740"),
-		common.HexToAddress("0xD041b5fAaa4B721241A55107FE8F19ce1ba3E7fD"),
-		common.HexToAddress("0xcbc583DEdbbE6b51B86036C040596bB0a0299a73"),
-		common.HexToAddress("0x1c0A4509Ba46deA47775Ad8B20A19f398B820642"),
-		common.HexToAddress("0xEEE10Fc4A3AB339f5a788f3b82Eb57738F075EcE"),
+		common.MustBech32ToAddress("lax17va4mfrudm9uv88s03ec0t7xau8297rx4rnqsg"),
+		common.MustBech32ToAddress("lax19e0mfauw87umrzvdulta3keagnrzqs97t2vy8j"),
+		common.MustBech32ToAddress("lax19pw0sn4ru9m7rlyl894whjfjngy02xa4z57x7d"),
+		common.MustBech32ToAddress("lax1jxllmjyr9xham97ldl5jel20eduj0tkdw0g9h2"),
+		common.MustBech32ToAddress("lax1tzmzll6sg6hjy5h3lrkttse59tdrjnmjzfuf5u"),
+		common.MustBech32ToAddress("lax13mq3dsgas527sg3v40ztasr23qx9rkffpqazlk"),
+		common.MustBech32ToAddress("lax1xe8vht0ycdd7utu2qnuzpxatyd453g66qxn47n"),
+		common.MustBech32ToAddress("lax1y6ykcw22rcfqjh5z9edssr5wlgzscuuvev7qry"),
+		common.MustBech32ToAddress("lax1x9p98qjv66mmeutp8j4sqyndvpm00guffccn8r"),
+		common.MustBech32ToAddress("lax124z0qh23u306vjt6lmq0rfwkg5cmyxlqmjwcmv"),
+		common.MustBech32ToAddress("lax18k5rp7kj56vrm9ydwf3t9t0haffmj5a706xfnm"),
+		common.MustBech32ToAddress("lax1s9d8jyxqxhe0h9z3ek35n95h3pzfcg5gm7auvu"),
+		common.MustBech32ToAddress("lax1fnw5ncy9slyzf3mzne73ysuskux3q46qt3fek6"),
+		common.MustBech32ToAddress("lax16pqmt742fdepysd92yrlarceecd68elae9unre"),
+		common.MustBech32ToAddress("lax1e0zc8hkmhe44rwrqxmqyqkttkzsznxnnp79644"),
+		common.MustBech32ToAddress("lax1rs9y2zd6gm02gam44k9jpgvl8x9cypjzy5hnmw"),
+		common.MustBech32ToAddress("lax1amssl39r4vee7knc3uac966hww8swhkwmxdu9d"),
 	}
 
 	priKeyArr = []*ecdsa.PrivateKey{
@@ -159,8 +159,8 @@ var (
 	lastBlockHash   common.Hash
 	lastHeader      types.Header
 
-	sender        = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
-	anotherSender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5235")
+	sender        = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
+	anotherSender = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp5534f9hj0v")
 	sndb          = snapshotdb.Instance()
 
 	// serial use only
@@ -364,7 +364,7 @@ func build_staking_data_more(block uint64) {
 		if i < 25 {
 			nodeId = nodeIdArr[i]
 			ar, _ := xutil.NodeId2Addr(nodeId)
-			addr = ar
+			addr = common.Address(ar)
 		} else {
 			id, ar, err := randBuildFunc()
 			if nil != err {
@@ -517,7 +517,7 @@ func build_staking_data(genesisHash common.Hash) {
 		if i < 25 {
 			nodeId = nodeIdArr[i]
 			ar, _ := xutil.NodeId2Addr(nodeId)
-			addr = ar
+			addr = common.Address(ar)
 		} else {
 			id, ar, err := randBuildFunc()
 			if nil != err {

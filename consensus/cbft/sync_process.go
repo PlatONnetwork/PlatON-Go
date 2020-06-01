@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -523,7 +523,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	if isLastView() {
 		lastViewChangeQC := cbft.state.LastViewChangeQC()
 		if lastViewChangeQC == nil {
-			cbft.log.Error("Not found lastViewChangeQC")
+			cbft.log.Info("Not found lastViewChangeQC")
 			return nil
 		}
 		err := lastViewChangeQC.EqualAll(msg.Epoch, msg.ViewNumber)

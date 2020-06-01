@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -279,6 +279,60 @@ func initParam() []*GovernParam {
 					return err
 				}
 				if err := xcom.CheckZeroProduceNumberThreshold(roundNumber, uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerMaxChangeRange,
+				fmt.Sprintf("Delegated Reward Ratio The maximum adjustable range of each modification, range: [%d, %d]", xcom.RewardPerMaxChangeRangeLowerLimit, xcom.RewardPerMaxChangeRangeUpperLimit)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.RewardPerMaxChangeRange())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed RewardPerMaxChangeRange is failed")
+				}
+
+				if err := xcom.CheckRewardPerMaxChangeRange(uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerChangeInterval,
+				fmt.Sprintf("The interval for each modification of the commission reward ratio, range: [%d, %d]", xcom.RewardPerChangeIntervalLowerLimit, xcom.RewardPerChangeIntervalUpperLimit)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.RewardPerChangeInterval())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed RewardPerChangeInterval is failed")
+				}
+
+				if err := xcom.CheckRewardPerChangeInterval(uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleReward, KeyIncreaseIssuanceRatio,
+				fmt.Sprintf("Increase the ratio of issuance, range: [%d, %d]", xcom.IncreaseIssuanceRatioLowerLimit, xcom.IncreaseIssuanceRatioUpperLimit)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.IncreaseIssuanceRatio())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed IncreaseIssuanceRatio is failed")
+				}
+
+				if err := xcom.CheckIncreaseIssuanceRatio(uint16(number)); nil != err {
 					return err
 				}
 				return nil
