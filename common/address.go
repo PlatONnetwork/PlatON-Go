@@ -32,6 +32,7 @@ func GetAddressPrefix() string {
 }
 
 func SetAddressPrefix(s string) {
+	log.Info("addressPrefix  has set", "prefix", s)
 	currentAddressPrefix = s
 }
 
@@ -87,8 +88,11 @@ func Bech32ToAddress(s string) (Address, error) {
 	if !CheckAddressPrefix(hrpDecode) {
 		return Address{}, fmt.Errorf("the address prefix not compare right,input:%s", s)
 	}
-	if currentAddressPrefix != "" && currentAddressPrefix != hrpDecode {
-		log.Warn("the address not compare current net", "want", GetAddressPrefix(), "input", s)
+
+	if currentAddressPrefix == "" {
+		log.Warn("the address prefix not set yet", "input", s)
+	} else if currentAddressPrefix != hrpDecode {
+		log.Warn("the address not compare current net", "want", currentAddressPrefix, "input", s)
 	}
 	var a Address
 	a.SetBytes(converted)
