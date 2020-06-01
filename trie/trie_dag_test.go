@@ -16,7 +16,7 @@ func TestTrieDag(t *testing.T) {
 	tr.Update([]byte("dog"), []byte("puppy"))
 	tr.Update([]byte("dogglesworth"), []byte("cat"))
 
-	hashed, _, err := tr.parallelHashRoot2(nil, nil)
+	hashed, _, err := tr.parallelHashRoot(nil, nil)
 	assert.Nil(t, err)
 
 	checkr, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))

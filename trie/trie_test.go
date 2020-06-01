@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -28,9 +29,6 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
-	"time"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -456,7 +454,7 @@ func runRandTest(rt randTest) bool {
 				checktr.Update(it.Key, it.Value)
 			}
 			if tr.Hash() != checktr.Hash() {
-				fmt.Printf("phash: %x, chash: %x\n", tr.Hash(), checktr.Hash())
+				//fmt.Printf("phash: %x, chash: %x\n", tr.Hash(), checktr.Hash())
 				rt[i].err = fmt.Errorf("hash mismatch in opItercheckhash")
 			}
 		case opCheckCacheInvariant:
@@ -464,7 +462,7 @@ func runRandTest(rt randTest) bool {
 		}
 		// Abort the test on error.
 		if rt[i].err != nil {
-			fmt.Printf("i: %d, err: %v, i-1_op: %d\n", i, rt[i].err, rt[i-1].op)
+			//fmt.Printf("i: %d, err: %v, i-1_op: %d\n", i, rt[i].err, rt[i-1].op)
 			return false
 		}
 	}
@@ -481,18 +479,18 @@ func runRandParallelTest(rt randTest) bool {
 	for i, step := range rt {
 		switch step.op {
 		case opUpdate:
-			fmt.Printf("%d: opUpdate, len: %d\n", i, len(values))
+			//fmt.Printf("%d: opUpdate, len: %d\n", i, len(values))
 			tr.Update(step.key, step.value)
 			values[string(step.key)] = string(step.value)
 			tmpVals[string(step.key)] = step.value
 		case opDelete:
-			fmt.Printf("%d: opDelete, len: %d\n", i, len(values))
+			//fmt.Printf("%d: opDelete, len: %d\n", i, len(values))
 			tr.Delete(step.key)
-			fmt.Printf("del -> %x\n", step.key)
+			//fmt.Printf("del -> %x\n", step.key)
 			delete(values, string(step.key))
 			delete(tmpVals, string(step.key))
 		case opGet:
-			fmt.Printf("%d: opGet, len: %d\n", i, len(values))
+			//fmt.Printf("%d: opGet, len: %d\n", i, len(values))
 			v := tr.Get(step.key)
 			want := values[string(step.key)]
 			if string(v) != want {
@@ -500,14 +498,14 @@ func runRandParallelTest(rt randTest) bool {
 				tr.Get(step.key)
 			}
 		case opCommit:
-			fmt.Printf("%d: opGet, len: %d\n", i, len(values))
-			_, rt[i].err = tr.ParallelCommit2(nil)
+			//fmt.Printf("%d: opGet, len: %d\n", i, len(values))
+			_, rt[i].err = tr.ParallelCommit(nil)
 		case opHash:
-			fmt.Printf("%d: opHash, len: %d\n", i, len(values))
-			tr.ParallelHash2()
+			//fmt.Printf("%d: opHash, len: %d\n", i, len(values))
+			tr.ParallelHash()
 		case opReset:
-			fmt.Printf("%d: opReset, len: %d\n", i, len(values))
-			hash, err := tr.ParallelCommit2(nil)
+			//fmt.Printf("%d: opReset, len: %d\n", i, len(values))
+			hash, err := tr.ParallelCommit(nil)
 			if err != nil {
 				rt[i].err = err
 				return false
@@ -519,14 +517,14 @@ func runRandParallelTest(rt randTest) bool {
 			}
 			tr = newtr
 		case opItercheckhash:
-			fmt.Printf("%d: opItercheckhash, len: %d\n", i, len(values))
+			//fmt.Printf("%d: opItercheckhash, len: %d\n", i, len(values))
 			checktr, _ := New(common.Hash{}, triedb)
 			it := NewIterator(tr.NodeIterator(nil))
 			for it.Next() {
 				checktr.Update(it.Key, it.Value)
 			}
-			if tr.ParallelHash2() != checktr.Hash() {
-				fmt.Printf("phash: %x, chash: %x\n", tr.ParallelHash2(), checktr.Hash())
+			if tr.ParallelHash() != checktr.Hash() {
+				//fmt.Printf("phash: %x, chash: %x\n", tr.ParallelHash2(), checktr.Hash())
 				rt[i].err = fmt.Errorf("hash mismatch in opItercheckhash")
 
 				nt, _ := New(common.Hash{}, triedb)
@@ -536,12 +534,12 @@ func runRandParallelTest(rt randTest) bool {
 				}
 			}
 		case opCheckCacheInvariant:
-			fmt.Printf("%d: opCheckCacheInvariant, len: %d\n", i, len(values))
+			//fmt.Printf("%d: opCheckCacheInvariant, len: %d\n", i, len(values))
 			rt[i].err = checkCacheInvariant(tr.root, nil, tr.cachegen, false, 0)
 		}
 		// Abort the test on error.
 		if rt[i].err != nil {
-			fmt.Printf("i: %d, err: %v, i-1_op: %d, i_op: %d\n", i, rt[i].err, rt[i-1].op, rt[i].op)
+			//fmt.Printf("i: %d, err: %v, i-1_op: %d, i_op: %d\n", i, rt[i].err, rt[i-1].op, rt[i].op)
 			return false
 		}
 	}
@@ -716,7 +714,7 @@ func BenchmarkParallelHash2(b *testing.B) {
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
-	trie.ParallelHash2()
+	trie.ParallelHash()
 }
 
 func tempDB() (string, *Database) {
@@ -748,7 +746,6 @@ func TestDeepCopy(t *testing.T) {
 	triedb := NewDatabase(memdb)
 	root := common.Hash{}
 	tr, _ := NewSecure(root, triedb, 0)
-	start := time.Now()
 	kv := make(map[common.Hash][]byte)
 	leafCB := func(leaf []byte, parent common.Hash) error {
 		var valueKey common.Hash
@@ -765,7 +762,6 @@ func TestDeepCopy(t *testing.T) {
 	k, v := randBytes(32), randBytes(32)
 	parent := root
 	for j := 0; j < 1; j++ {
-		start = time.Now()
 		for i := 1; i < 100; i++ {
 			binary.BigEndian.PutUint32(k, uint32(i))
 			binary.BigEndian.PutUint32(v, uint32(i))
@@ -777,7 +773,7 @@ func TestDeepCopy(t *testing.T) {
 		parent = root
 		triedb.Reference(root, common.Hash{})
 		triedb.Commit(root, false, false)
-		fmt.Println("commit db", "count", j, time.Since(start))
+		//fmt.Println("commit db", "count", j, time.Since(start))
 	}
 
 	tr2, _ := NewSecure(root, triedb, 0)

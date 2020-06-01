@@ -220,11 +220,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 						if ct.Children[i] != nil {
 							nc := ct.Children[i]
 							if _, isHash := nc.(hashNode); !isHash {
-								h, _, hc := cachedHash(nc, nc)
-								if !hc {
-									log.Debug("Error children node", "id", id, "pid", n.pid, "n", n.collapsed.fstring(""), "nc", nc.fstring(""))
-									//panic("error children node")
-								}
+								h, _, _ := cachedHash(nc, nc)
 								ct.Children[i] = h
 							}
 						}
@@ -259,10 +255,6 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 				}
 			}
 
-			if !td.loged {
-				//log.Debug("Calc hash", "me", fmt.Sprintf("%p", td), "id", id, "pid", n.pid, "hash", hashed.fstring(""), "n", n.collapsed.fstring(""))
-			}
-
 			cachedHash, _ := hashed.(hashNode)
 			switch cn := n.cached.(type) {
 			case *shortNode:
@@ -294,7 +286,6 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 		}
 		returnHasherToPool(hasher)
 		wg.Done()
-		//log.Error("Work done", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs)
 	}
 
 	wg.Add(numCPU)

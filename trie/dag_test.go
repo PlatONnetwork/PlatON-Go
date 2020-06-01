@@ -24,11 +24,11 @@ func TestTrieDAG2(t *testing.T) {
 	updateString(tr, "dog", "puppy")
 	updateString(tr, "dogglesworth", "cat")
 
-	h := tr.ParallelHash2()
+	h := tr.ParallelHash()
 
 	ntr := tr.DeepCopyTrie()
 
-	h2, _ := tr.ParallelCommit2(nil)
+	h2, _ := tr.ParallelCommit(nil)
 	assert.Equal(t, h, h2)
 
 	fmt.Printf("%x\n", h)
@@ -41,7 +41,7 @@ func TestTrieDAG2(t *testing.T) {
 	fmt.Printf("%x\n", hh)
 
 	assert.Equal(t, h, hh)
-	nh := ntr.ParallelHash2()
+	nh := ntr.ParallelHash()
 	assert.Equal(t, hh, nh)
 
 	checkr, _ := New(common.Hash{}, triedb)
@@ -56,7 +56,7 @@ func TestTrieDAG2(t *testing.T) {
 	assert.Equal(t, h, h1)
 
 	deleteString(tr, "dog")
-	h = tr.ParallelHash2()
+	h = tr.ParallelHash()
 
 	deleteString(tr0, "dog")
 	hh = tr0.Hash()
@@ -66,7 +66,7 @@ func TestTrieDAG2(t *testing.T) {
 	deleteString(ntr, "dog")
 	updateString(ntr, "dob", "dddd")
 	updateString(tr0, "dob", "dddd")
-	assert.Equal(t, ntr.ParallelHash2(), tr0.ParallelHash2())
+	assert.Equal(t, ntr.ParallelHash(), tr0.ParallelHash())
 }
 
 func TestList(t *testing.T) {
@@ -159,18 +159,18 @@ func TestDAGCommit(t *testing.T) {
 
 	tr.Update([]byte("adabce"), []byte("12312312"))
 
-	tr.ParallelHash2()
-	tr.ParallelCommit2(nil)
+	tr.ParallelHash()
+	tr.ParallelCommit(nil)
 
 	tr.Update([]byte("bcdade"), []byte("12312321"))
 	tr.Update([]byte("quedad"), []byte("asfasf"))
-	tr.ParallelCommit2(nil)
-	tr.ParallelCommit2(nil)
-	tr.ParallelCommit2(nil)
+	tr.ParallelCommit(nil)
+	tr.ParallelCommit(nil)
+	tr.ParallelCommit(nil)
 	tr.Update([]byte("asdfasbvf"), []byte("asfasbe"))
 	tr.Update([]byte("asdfsafasfds"), []byte("fasgdsafa"))
 	tr.Delete([]byte("quedad"))
-	h := tr.ParallelHash2()
+	h := tr.ParallelHash()
 
 	tr0 := newEmpty()
 	tr0.Update([]byte("adabce"), []byte("12312312"))
@@ -187,18 +187,18 @@ func TestDAGCommit(t *testing.T) {
 
 	tr = newEmpty()
 	tr.Update([]byte("abc"), []byte("1111"))
-	tr.ParallelHash2()
-	tr.ParallelCommit2(nil)
+	tr.ParallelHash()
+	tr.ParallelCommit(nil)
 	tr.Update([]byte("12312"), []byte("12312312"))
 	tr.Delete([]byte("abc"))
-	tr.ParallelHash2()
-	tr.ParallelCommit2(nil)
+	tr.ParallelHash()
+	tr.ParallelCommit(nil)
 	tr.Update([]byte("12312"), []byte("12312312"))
-	h = tr.ParallelHash2()
+	h = tr.ParallelHash()
 
 	tr0 = newEmpty()
 	tr0.Update([]byte("12312"), []byte("12312312"))
-	h0 = tr0.ParallelHash2()
+	h0 = tr0.ParallelHash()
 
 	assert.Equal(t, h, h0)
 }
@@ -226,8 +226,8 @@ func TestDAGFull(t *testing.T) {
 	tr0.Update([]byte("de"), []byte("abc1231231231231231222222222222222222222222222222222222222222222222222222222222222222222222222"))
 	assert.True(t, len(tr.dag.nodes) == 7)
 
-	assert.True(t, tr.ParallelHash2() == tr0.Hash())
-	tr.ParallelCommit2(nil)
+	assert.True(t, tr.ParallelHash() == tr0.Hash())
+	tr.ParallelCommit(nil)
 
 	tr0.Commit(nil)
 }

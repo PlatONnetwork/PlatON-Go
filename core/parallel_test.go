@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math/big"
 	"math/rand"
 	"runtime"
@@ -89,44 +88,6 @@ func initAccount() {
 		toAccount.nonce = 0
 		toAccountList[i] = toAccount
 	}
-}
-func initTx2() {
-	fromAccount := fromAccountList[rand.Intn(accountCount)]
-	toAccount := toAccountList[rand.Intn(accountCount)]
-
-	testTxList = make(types.Transactions, 2)
-
-	tx1, _ := types.SignTx(
-		types.NewTransaction(
-			fromAccount.nonce,
-			toAccount.address,
-			//vm.GovContractAddr,
-			big.NewInt(1),
-			//21000+9000+320000, // it is short.
-			21000+9000+320000+21000, // it is enough.
-			gasPrice,
-			hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
-		signer,
-		fromAccount.priKey)
-
-	testTxList[0] = tx1
-	fromAccount.nonce++
-
-	tx2, _ := types.SignTx(
-		types.NewTransaction(
-			fromAccount.nonce,
-			toAccount.address,
-			//vm.GovContractAddr,
-			big.NewInt(1),
-			//21000+9000+320000, // it is short.
-			21000+9000+320000+21000, // it is enough.
-			gasPrice,
-			hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
-		signer,
-		fromAccount.priKey)
-
-	testTxList[1] = tx2
-	fromAccount.nonce++
 }
 
 func initTx() {
@@ -360,7 +321,7 @@ func parallelMode(t testing.TB) {
 	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
 		t.Fatal("Seal block failed", "err", err)
 	} else {
-		fmt.Println(fmt.Sprintf("total txs=%d", len(sealedBlock.Transactions())))
+		//fmt.Println(fmt.Sprintf("total txs=%d", len(sealedBlock.Transactions())))
 		if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
 			t.Fatal("ProcessDirectly block error", "err", err)
 		}
