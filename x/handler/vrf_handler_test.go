@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -35,6 +37,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var chain *mock.Chain
+
 func initHandler() *ecdsa.PrivateKey {
 	vh = &VrfHandler{
 		db:           snapshotdb.Instance(),
@@ -46,6 +50,9 @@ func initHandler() *ecdsa.PrivateKey {
 		panic(err)
 	}
 	vh.SetPrivateKey(pri)
+
+	chain = mock.NewChain()
+
 	return pri
 }
 
