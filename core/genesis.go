@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"strings"
@@ -153,10 +154,8 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if (stored == common.Hash{}) {
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
 			genesis = DefaultGenesisBlock()
 		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
 			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
 		}
 
@@ -172,18 +171,37 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		}
 		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
 		return genesis.Config, block.Hash(), err
-	} else if stored == params.MainnetGenesisHash {
-		common.SetAddressPrefix(common.MainNetAddressPrefix)
-	} else {
-		common.SetAddressPrefix(common.TestNetAddressPrefix)
 	}
-
 	// Check whether the genesis block is already written.
 	if genesis != nil {
 		hash := genesis.ToBlock(nil, nil).Hash()
 		if hash != stored {
 			log.Error("Failed to compare the genesisHash and stored", "genesisHash", hash, "stored", stored)
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
+		}
+	}
+
+	// Get the existing chain configuration.
+	// the main net may use default config
+	newcfg := genesis.configOrDefault(stored)
+	storedcfg := rawdb.ReadChainConfig(db, stored)
+	if storedcfg == nil {
+		log.Warn("Found genesis block without chain config")
+		rawdb.WriteChainConfig(db, stored, newcfg)
+		return newcfg, stored, nil
+	}
+
+	if genesis == nil && stored != params.MainnetGenesisHash {
+		if storedcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
+			common.SetAddressPrefix(common.MainNetAddressPrefix)
+		} else {
+			common.SetAddressPrefix(common.TestNetAddressPrefix)
+		}
+	} else {
+		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
+			common.SetAddressPrefix(common.MainNetAddressPrefix)
+		} else {
+			common.SetAddressPrefix(common.TestNetAddressPrefix)
 		}
 	}
 
@@ -195,16 +213,6 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		rawdb.WriteEconomicModel(db, stored, ecCfg)
 	}
 	xcom.ResetEconomicDefaultConfig(ecCfg)
-
-	// Get the existing chain configuration.
-	// the main net may use default config
-	newcfg := genesis.configOrDefault(stored)
-	storedcfg := rawdb.ReadChainConfig(db, stored)
-	if storedcfg == nil {
-		log.Warn("Found genesis block without chain config")
-		rawdb.WriteChainConfig(db, stored, newcfg)
-		return newcfg, stored, nil
-	}
 
 	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
@@ -229,15 +237,38 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
+func (g *Genesis) UnmarshalChainID(r io.Reader) (*big.Int, error) {
+	var genesisChaind struct {
+		Config *struct {
+			ChainID *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+		} `json:"config"`
+	}
+	if err := json.NewDecoder(r).Decode(&genesisChaind); err != nil {
+		return nil, fmt.Errorf("invalid genesis file chain id: %v", err)
+	}
+	return genesisChaind.Config.ChainID, nil
+}
+
 //this is only use to private chain
 func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
-	common.SetAddressPrefix(common.TestNetAddressPrefix)
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
 	}
-	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
 	defer file.Close()
+	chainID, err := g.UnmarshalChainID(file)
+	if err != nil {
+		return err
+	}
+	if chainID != nil && chainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
+		common.SetAddressPrefix(common.MainNetAddressPrefix)
+	} else {
+		common.SetAddressPrefix(common.TestNetAddressPrefix)
+	}
+
+	file.Seek(0, io.SeekStart)
+
+	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
 	if err := json.NewDecoder(file).Decode(g); err != nil {
 		return fmt.Errorf("invalid genesis file: %v", err)
 	}
