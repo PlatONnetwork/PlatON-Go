@@ -97,7 +97,7 @@ var (
 
 	// TestnetChainConfig is the chain parameters to run a node on the test network.
 	TestnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(101),
+		ChainID:     big.NewInt(102),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{

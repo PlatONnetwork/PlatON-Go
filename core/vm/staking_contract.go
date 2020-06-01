@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@ package vm
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
@@ -131,7 +132,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "externalId", externalId,
 		"nodeName", nodeName, "website", website, "details", details, "amount", amount, "rewardPer", rewardPer,
 		"programVersion", programVersion, "programVersionSign", programVersionSign.Hex(),
-		"from", from.Hex(), "blsPubKey", blsPubKey, "blsProof", blsProof)
+		"from", from, "blsPubKey", blsPubKey, "blsProof", blsProof)
 
 	if !stkc.Contract.UseGas(params.CreateStakeGas) {
 		return nil, ErrOutOfGas
@@ -259,14 +260,15 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	canMutable := &staking.CandidateMutable{
-		Shares:              amount,
-		Released:            new(big.Int).SetInt64(0),
-		ReleasedHes:         new(big.Int).SetInt64(0),
-		RestrictingPlan:     new(big.Int).SetInt64(0),
-		RestrictingPlanHes:  new(big.Int).SetInt64(0),
-		RewardPer:           rewardPer,
-		NextRewardPer:       rewardPer,
-		DelegateRewardTotal: new(big.Int).SetInt64(0),
+		Shares:               amount,
+		Released:             new(big.Int).SetInt64(0),
+		ReleasedHes:          new(big.Int).SetInt64(0),
+		RestrictingPlan:      new(big.Int).SetInt64(0),
+		RestrictingPlanHes:   new(big.Int).SetInt64(0),
+		RewardPer:            rewardPer,
+		NextRewardPer:        rewardPer,
+		RewardPerChangeEpoch: uint32(xutil.CalculateEpoch(blockNumber.Uint64())),
+		DelegateRewardTotal:  new(big.Int).SetInt64(0),
 	}
 
 	can := &staking.Candidate{}
@@ -342,7 +344,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "rewardPer", rewardPer,
 		"externalId", externalId, "nodeName", nodeName, "website", website,
-		"details", details, "from", from.Hex())
+		"details", details, "from", from)
 
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
 		return nil, ErrOutOfGas
@@ -385,7 +387,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
+			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
 			TxEditorCandidate, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
@@ -408,6 +410,35 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	canOld.Description = *desc
 	canOld.NextRewardPer = rewardPer
+
+	if canOld.NextRewardPer != canOld.RewardPer {
+		rewardPerMaxChangeRange, err := gov.GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
+		if nil != err {
+			log.Error("Failed to editCandidate, call GovernRewardPerMaxChangeRange is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"err", err)
+			return nil, err
+		}
+		rewardPerChangeInterval, err := gov.GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
+		if nil != err {
+			log.Error("Failed to editCandidate, call GovernRewardPerChangeInterval is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"err", err)
+			return nil, err
+		}
+		currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
+		if uint32(rewardPerChangeInterval) > currentEpoch-canOld.RewardPerChangeEpoch {
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+				fmt.Sprintf("needs interval [%d] epoch to modify", rewardPerChangeInterval),
+				TxEditorCandidate, int(staking.ErrRewardPerInterval.Code)), nil
+		}
+
+		difference := uint16(math.Abs(float64(canOld.NextRewardPer) - float64(canOld.RewardPer)))
+		if difference > rewardPerMaxChangeRange {
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+				fmt.Sprintf("invalid rewardPer: %d, modified by more than: %d", rewardPer, rewardPerMaxChangeRange),
+				TxEditorCandidate, int(staking.ErrRewardPerChangeRange.Code)), nil
+		}
+		canOld.RewardPerChangeEpoch = currentEpoch
+	}
 
 	err = stkc.Plugin.EditCandidate(blockHash, blockNumber, canAddr, canOld)
 	if nil != err {
@@ -435,7 +466,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	log.Debug("Call increaseStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "typ", typ,
-		"amount", amount, "from", from.Hex())
+		"amount", amount, "from", from)
 
 	if !stkc.Contract.UseGas(params.IncStakeGas) {
 		return nil, ErrOutOfGas
@@ -478,7 +509,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
-			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
+			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
 			TxIncreaseStaking, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
@@ -509,7 +540,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	state := stkc.Evm.StateDB
 
 	log.Debug("Call withdrewStaking of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "from", from.Hex())
+		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "from", from)
 
 	if !stkc.Contract.UseGas(params.WithdrewStakeGas) {
 		return nil, ErrOutOfGas
@@ -546,7 +577,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
-			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
+			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
 			TxWithdrewCandidate, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
@@ -576,7 +607,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	state := stkc.Evm.StateDB
 
 	log.Debug("Call delegate of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "typ", typ,
+		"blockNumber", blockNumber.Uint64(), "delAddr", from, "typ", typ,
 		"nodeId", nodeId.String(), "amount", amount)
 
 	if !stkc.Contract.UseGas(params.DelegateGas) {
@@ -666,7 +697,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if hasStake {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
-			fmt.Sprintf("'%s' has staking, so don't allow to delegate", from.Hex()),
+			fmt.Sprintf("'%s' has staking, so don't allow to delegate", from),
 			TxDelegate, int(staking.ErrAccountNoAllowToDelegate.Code)), nil
 	}
 
@@ -705,7 +736,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	state := stkc.Evm.StateDB
 
 	log.Debug("Call withdrewDelegate of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "nodeId", nodeId.String(),
+		"blockNumber", blockNumber.Uint64(), "delAddr", from, "nodeId", nodeId.String(),
 		"stakingNum", stakingBlockNum, "amount", amount)
 
 	if !stkc.Contract.UseGas(params.WithdrewDelegateGas) {

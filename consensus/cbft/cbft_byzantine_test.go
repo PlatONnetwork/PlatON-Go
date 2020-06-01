@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -30,8 +31,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 
@@ -273,7 +272,7 @@ func TestPB03(t *testing.T) {
 		_, ok = evds[0].(evidence.DuplicatePrepareBlockEvidence)
 		if ok {
 			assert.Equal(t, lockBlock.NumberU64()+1, evds[0].BlockNumber())
-			assert.Equal(t, crypto.PubkeyToAddress(nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].Address())
+			assert.Equal(t, discover.PubkeyID(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
 			assert.Nil(t, evds[0].Validate())
 		}
 	}
@@ -500,7 +499,7 @@ func TestVT02(t *testing.T) {
 		_, ok = evds[0].(evidence.DuplicatePrepareVoteEvidence)
 		if ok {
 			assert.Equal(t, qcBlock.NumberU64()+1, evds[0].BlockNumber())
-			assert.Equal(t, crypto.PubkeyToAddress(nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].Address())
+			assert.Equal(t, discover.PubkeyID(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
 			assert.Nil(t, evds[0].Validate())
 		}
 	}
@@ -613,7 +612,7 @@ func TestVC03(t *testing.T) {
 		_, ok = evds[0].(evidence.DuplicateViewChangeEvidence)
 		if ok {
 			assert.Equal(t, qcBlock.NumberU64()+1, evds[0].BlockNumber())
-			assert.Equal(t, crypto.PubkeyToAddress(nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].Address())
+			assert.Equal(t, discover.PubkeyID(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
 			assert.Nil(t, evds[0].Validate())
 		}
 	}

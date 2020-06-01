@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -97,11 +97,11 @@ type RemoveValidatorEvent struct {
 type UpdateValidatorEvent struct{}
 
 type ValidateNode struct {
-	Index     uint32           `json:"index"`
-	Address   common.Address   `json:"address"`
-	PubKey    *ecdsa.PublicKey `json:"-"`
-	NodeID    discover.NodeID  `json:"nodeID"`
-	BlsPubKey *bls.PublicKey   `json:"blsPubKey"`
+	Index     uint32             `json:"index"`
+	Address   common.NodeAddress `json:"address"`
+	PubKey    *ecdsa.PublicKey   `json:"-"`
+	NodeID    discover.NodeID    `json:"nodeID"`
+	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
 }
 
 type ValidateNodeMap map[discover.NodeID]*ValidateNode
@@ -208,7 +208,7 @@ func (vs *Validators) FindNodeByIndex(index int) (*ValidateNode, error) {
 	}
 }
 
-func (vs *Validators) FindNodeByAddress(addr common.Address) (*ValidateNode, error) {
+func (vs *Validators) FindNodeByAddress(addr common.NodeAddress) (*ValidateNode, error) {
 	for _, node := range vs.Nodes {
 		if bytes.Equal(node.Address[:], addr[:]) {
 			return node, nil

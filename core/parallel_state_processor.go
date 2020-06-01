@@ -34,14 +34,12 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 	)
 
 	if bcr != nil {
-		start := time.Now()
 		// BeginBlocker()
 		if err := bcr.BeginBlocker(block.Header(), statedb); nil != err {
 			log.Error("Failed to call BeginBlocker on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
-		log.Debug("Process begin blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
 	}
 
 	// Iterate over and process the individual transactions
@@ -55,23 +53,20 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		}
 		receipts = ctx.GetReceipts()
 		allLogs = ctx.GetLogs()
-		log.Debug("Process parallel execute transactions cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
+		log.Trace("Process parallel execute transactions cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
 	}
 
 	if bcr != nil {
-		start := time.Now()
 		// EndBlocker()
 		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
 			log.Error("Failed to call EndBlocker on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
-		log.Debug("Process end blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
+		log.Debug("Process end blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex())
 	}
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	start := time.Now()
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
-	log.Debug("Process finalize statedb cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
 	return receipts, allLogs, *usedGas, nil
 }

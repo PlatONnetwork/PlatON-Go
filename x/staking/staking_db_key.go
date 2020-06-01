@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -64,14 +64,14 @@ var (
 
 // CanBase ...
 
-func CanBaseKeyByAddr(addr common.Address) []byte {
+func CanBaseKeyByAddr(addr common.NodeAddress) []byte {
 	return append(CanBaseKeyPrefix, addr.Bytes()...)
 }
 func CanBaseKeyBySuffix(addr []byte) []byte {
 	return append(CanBaseKeyPrefix, addr...)
 }
 
-func CanMutableKeyByAddr(addr common.Address) []byte {
+func CanMutableKeyByAddr(addr common.NodeAddress) []byte {
 	return append(CanMutableKeyPrefix, addr.Bytes()...)
 }
 

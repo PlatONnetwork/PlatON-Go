@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -27,6 +27,8 @@ var (
 	ErrDeclVsFialedCreateCan     = common.NewBizError(301005, "DeclareVersion is failed on create staking")
 	ErrNoSameStakingAddr         = common.NewBizError(301006, "The address must be the same as initiated staking")
 	ErrInvalidRewardPer          = common.NewBizError(301007, "Invalid param RewardPer")
+	ErrRewardPerInterval         = common.NewBizError(301008, "Modify the commission reward ratio too frequently")
+	ErrRewardPerChangeRange      = common.NewBizError(301009, "The modification range exceeds the limit")
 	ErrStakeVonTooLow            = common.NewBizError(301100, "Staking deposit too low")
 	ErrCanAlreadyExist           = common.NewBizError(301101, "This candidate is already exist")
 	ErrCanNoExist                = common.NewBizError(301102, "This candidate is not exist")

@@ -24,10 +24,10 @@ import (
 
 	"sync"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -196,7 +196,7 @@ func (ui *CommandlineUI) ApproveListing(request *ListRequest) (ListResponse, err
 	fmt.Printf("A request has been made to list all accounts. \n")
 	fmt.Printf("You can select which accounts the caller can see\n")
 	for _, account := range request.Accounts {
-		fmt.Printf("\t[x] %v\n", account.Address.Hex())
+		fmt.Printf("\t[x] %v\n", account.Address.String())
 	}
 	fmt.Printf("-------------------------------------------\n")
 	showMetadata(request.Meta)

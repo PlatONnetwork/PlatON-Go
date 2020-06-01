@@ -154,6 +154,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		//if find sync status,this means last syncing not finish,should clean all db to reinit
 		//if not find sync status,no need init chain
 		if err == nil {
+
+			// Just commit the new block if there is no stored genesis block.
+			stored := rawdb.ReadCanonicalHash(chainDb, 0)
+
 			log.Info("last fast sync is fail,init  db", "status", status, "prichain", config.Genesis == nil)
 			chainDb.Close()
 			if err := snapshotBaseDB.Close(); err != nil {
@@ -181,9 +185,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				return nil, err
 			}
 
-			if config.Genesis == nil {
+			//only private net  need InitGenesisAndSetEconomicConfig
+			if stored != params.MainnetGenesisHash && config.Genesis == nil {
+				// private net
 				config.Genesis = new(core.Genesis)
-				if err := config.Genesis.InitAndSetEconomicConfig(ctx.GenesisPath()); err != nil {
+				if err := config.Genesis.InitGenesisAndSetEconomicConfig(ctx.GenesisPath()); err != nil {
 					return nil, err
 				}
 			}

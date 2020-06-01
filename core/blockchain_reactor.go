@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package core
 
 import (
@@ -5,10 +21,6 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"math/big"
-	"sync"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -20,6 +32,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"math/big"
+	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -205,7 +219,7 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId dis
 		}
 		header.Coinbase = can.BenefitAddress
 		log.Info("SetWorkerCoinBase Successfully", "blockNumber", header.Number,
-			"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "coinbase", header.Coinbase.Hex())
+			"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "coinbase", header.Coinbase.String())
 	}
 
 }
@@ -262,10 +276,9 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	}
 
 	// This must not be deleted
-	tstart := time.Now()
 	root := state.IntermediateRoot(true)
 	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state), "duration", time.Since(tstart))
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
 
 	return nil
 }
@@ -312,10 +325,9 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	}
 
 	// This must not be deleted
-	tstart := time.Now()
 	root := state.IntermediateRoot(true)
 	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash.Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state), "duration", time.Since(tstart))
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
 
 	return nil
 }

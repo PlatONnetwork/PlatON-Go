@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -17,7 +17,6 @@
 package consensus
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
@@ -32,7 +31,7 @@ type Evidence interface {
 	Epoch() uint64
 	ViewNumber() uint64
 	Hash() []byte
-	Address() common.Address
+	//Address() common.NodeAddress
 	NodeID() discover.NodeID
 	BlsPubKey() *bls.PublicKey
 	Validate() error

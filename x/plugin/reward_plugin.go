@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
 	"sync"
@@ -47,7 +48,7 @@ import (
 type RewardMgrPlugin struct {
 	db            snapshotdb.DB
 	nodeID        discover.NodeID
-	nodeADD       common.Address
+	nodeADD       common.NodeAddress
 	stakingPlugin *StakingPlugin
 }
 
@@ -55,7 +56,6 @@ const (
 	LessThanFoundationYearDeveloperRate    = 100
 	AfterFoundationYearDeveloperRewardRate = 50
 	AfterFoundationYearFoundRewardRate     = 50
-	IncreaseIssue                          = 40
 	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
 
 )
@@ -176,12 +176,21 @@ func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, cu
 }
 
 // increaseIssuance used for increase issuance at the end of each year
-func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xcom.StateDB) {
+func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xcom.StateDB, blockNumber uint64, blockHash common.Hash) error {
 	var currIssuance *big.Int
 	//issuance increase
 	{
 		histIssuance := GetHistoryCumulativeIssue(state, lastYear)
-		currIssuance = new(big.Int).Div(histIssuance, big.NewInt(IncreaseIssue)) // 2.5% increase in the previous year
+		increaseIssuanceRatio, err := gov.GovernIncreaseIssuanceRatio(blockNumber, blockHash)
+		if nil != err {
+			log.Error("Failed to increaseIssuance, call GovernIncreaseIssuanceRatio is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"histIssuance", histIssuance, "err", err)
+			return err
+		}
+
+		tmp := new(big.Int).Mul(histIssuance, big.NewInt(int64(increaseIssuanceRatio)))
+		currIssuance = tmp.Div(tmp, big.NewInt(10000))
+
 		// Restore the cumulative issue at this year end
 		histIssuance.Add(histIssuance, currIssuance)
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
@@ -201,6 +210,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	}
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)
+	return nil
 }
 
 // AllocateStakingReward used for reward staking at the settle block
@@ -412,7 +422,7 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 	return nil
 }
 
-func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (discover.NodeID, common.Address, error) {
+func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (discover.NodeID, common.NodeAddress, error) {
 	if blockHash == common.ZeroHash {
 		return rmp.nodeID, rmp.nodeADD, nil
 	}
@@ -420,9 +430,9 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 	sealhash := head.SealHash().Bytes()
 	pk, err := crypto.SigToPub(sealhash, sign)
 	if err != nil {
-		return discover.ZeroNodeID, common.ZeroAddr, err
+		return discover.ZeroNodeID, common.ZeroNodeAddr, err
 	}
-	return discover.PubkeyID(pk), crypto.PubkeyToAddress(*pk), nil
+	return discover.PubkeyID(pk), crypto.PubkeyToNodeAddress(*pk), nil
 }
 
 // AllocatePackageBlock used for reward new block. it returns coinbase and error
@@ -639,7 +649,9 @@ func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *typ
 		if nil != err {
 			return err
 		}
-		rmp.increaseIssuance(yearNumber, yearNumber-1, state)
+		if err := rmp.increaseIssuance(yearNumber, yearNumber-1, state, head.Number.Uint64(), blockHash); nil != err {
+			return err
+		}
 		// After the increase issue is completed, update the number of rewards to be issued
 		if err := StorageRemainingReward(blockHash, rmp.db, GetYearEndBalance(state, yearNumber)); nil != err {
 			log.Error("Failed to execute runIncreaseIssuance function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -752,6 +764,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// If the expected increase issue time is exceeded,
 	// the increase issue time will be postponed for one settlement cycle,
 	// and the remaining rewards will all be issued in the next settlement cycle
+	remainEpoch := 1
 	if head.Time.Int64() >= incIssuanceTime {
 		epochTotalReward.Add(epochTotalReward, remainReward)
 		remainReward = new(big.Int)
@@ -759,7 +772,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 			"currBlockTime", head.Time.Int64(), "incIssuanceTime", incIssuanceTime, "epochTotalReward", epochTotalReward)
 	} else {
 		remainTime := incIssuanceTime - head.Time.Int64()
-		remainEpoch := 1
+
 		remainBlocks := math.Ceil(float64(remainTime) / float64(avgPackTime))
 		if remainBlocks > float64(epochBlocks) {
 			remainEpoch = int(math.Ceil(remainBlocks / float64(epochBlocks)))
@@ -772,7 +785,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 			"remainEpoch", remainEpoch, "remainReward", remainReward, "epochTotalReward", epochTotalReward)
 	}
 	// If the last settlement cycle is left, record the increaseIssuance block height
-	if remainReward.Cmp(common.Big0) == 0 {
+	if remainEpoch == 1 {
 		incIssuanceNumber := new(big.Int).Add(head.Number, new(big.Int).SetUint64(epochBlocks)).Uint64()
 		if err := xcom.StorageIncIssuanceNumber(blockHash, rmp.db, incIssuanceNumber); nil != err {
 			return nil, nil, err
@@ -876,6 +889,9 @@ func StorageNewBlockReward(hash common.Hash, snapshotDB snapshotdb.DB, newBlockR
 func LoadNewBlockReward(hash common.Hash, snapshotDB snapshotdb.DB) (*big.Int, error) {
 	newBlockRewardByte, err := snapshotDB.Get(hash, reward.NewBlockRewardKey)
 	if nil != err {
+		if err == snapshotdb.ErrNotFound {
+			return new(big.Int).SetUint64(0), nil
+		}
 		log.Error("Failed to execute LoadRemainingReward function", "hash", hash.TerminalString(), "key", string(reward.NewBlockRewardKey), "err", err)
 		return nil, err
 	}
@@ -893,6 +909,9 @@ func StorageStakingReward(hash common.Hash, snapshotDB snapshotdb.DB, stakingRew
 func LoadStakingReward(hash common.Hash, snapshotDB snapshotdb.DB) (*big.Int, error) {
 	stakingRewardByte, err := snapshotDB.Get(hash, reward.StakingRewardKey)
 	if nil != err {
+		if err == snapshotdb.ErrNotFound {
+			return new(big.Int).SetUint64(0), nil
+		}
 		log.Error("Failed to execute LoadStakingReward function", "hash", hash.TerminalString(), "key", string(reward.StakingRewardKey), "err", err)
 		return nil, err
 	}

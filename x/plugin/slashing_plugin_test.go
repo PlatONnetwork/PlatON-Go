@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -72,7 +72,7 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.PrivateKey, blsKey bls.SecretKey, t *testing.T, stateDb xcom.StateDB) {
 	stakingDB := staking.NewStakingDB()
 
-	sender := common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	sender := common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
 
 	buildDbRestrictingPlan(sender, t, stateDb)
 
@@ -407,7 +407,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0x94ac820f54471ae9a32342f8a86e516944ec333a717241428ed997c4d3c1c8e3",
            "validateNode": {
             "index": 0,
-            "address": "0x85396cdef1d2800c621361437c2439c59c934038",
             "nodeId": "c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1",
             "blsPubKey": "f9b5e5b333418f5f6cb23ad092d2321c49a6fc17dfa2e5899a0fa0a6ab96bc44482552c9149f5909ec7772a902094401912576fdd78497bf57399c711566284ae2f5db3f8e611ac21dbc53cf7c1ff881ab760c0f1e5954b9cd2602b98007ef05"
            },
@@ -422,7 +421,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0xc789252723b04c60fc4566abefa23aa4e9ef18d9b4ebd1b083a564700cbb8891",
            "validateNode": {
             "index": 0,
-            "address": "0x85396cdef1d2800c621361437c2439c59c934038",
             "nodeId": "c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1",
             "blsPubKey": "f9b5e5b333418f5f6cb23ad092d2321c49a6fc17dfa2e5899a0fa0a6ab96bc44482552c9149f5909ec7772a902094401912576fdd78497bf57399c711566284ae2f5db3f8e611ac21dbc53cf7c1ff881ab760c0f1e5954b9cd2602b98007ef05"
            },
@@ -440,7 +438,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -455,7 +452,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -473,7 +469,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -488,7 +483,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -496,7 +490,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
           }
          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
-	stakingAddr := common.HexToAddress("0x195667cdefcad94c521bdff0bf85079761e0f8f3")
+	stakingAddr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
 	stakingNodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
@@ -537,7 +531,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber, commitHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, stakingAddr, can); nil != err {
+	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, common.NodeAddress(stakingAddr), can); nil != err {
 		t.Fatal(err)
 	}
 	normalEvidence, err := si.DecodeEvidence(1, normalData)
@@ -550,7 +544,11 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := si.Slash(normalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender); nil != err {
 		t.Fatal(err)
 	}
-	if value, err := si.CheckDuplicateSign(common.HexToAddress("0x85396cdef1d2800c621361437c2439c59c934038"), common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
+	slashNodeId, err := discover.HexID("c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1")
+	if nil != err {
+		t.Fatal(err)
+	}
+	if value, err := si.CheckDuplicateSign(slashNodeId, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Fatal(err)
 	}
 	abnormalEvidence, err := si.DecodeEvidence(1, abnormalData)
@@ -583,8 +581,7 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
-	if _, err := si.CheckDuplicateSign(addr, 1, 1, stateDB); nil != err {
+	if _, err := si.CheckDuplicateSign(nodeIdArr[0], 1, 1, stateDB); nil != err {
 		t.Fatal(err)
 	}
 }
@@ -689,8 +686,8 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		CandidateBase: &staking.CandidateBase{
 			NodeId:          nodeIdArr[6],
 			BlsPubKey:       blsKeyHex,
-			StakingAddress:  canAddr,
-			BenefitAddress:  canAddr,
+			StakingAddress:  common.Address(canAddr),
+			BenefitAddress:  common.Address(canAddr),
 			StakingBlockNum: blockNumber.Uint64(),
 			StakingTxIndex:  1,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),

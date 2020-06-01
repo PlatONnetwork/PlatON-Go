@@ -26,7 +26,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -58,24 +57,24 @@ type keyStore interface {
 }
 
 type plainKeyJSON struct {
-	Address    string `json:"address"`
-	PrivateKey string `json:"privatekey"`
-	Id         string `json:"id"`
-	Version    int    `json:"version"`
+	Address    common.AddressOutput `json:"address"`
+	PrivateKey string               `json:"privatekey"`
+	Id         string               `json:"id"`
+	Version    int                  `json:"version"`
 }
 
 type encryptedKeyJSONV3 struct {
-	Address string     `json:"address"`
-	Crypto  cryptoJSON `json:"crypto"`
-	Id      string     `json:"id"`
-	Version int        `json:"version"`
+	Address common.AddressOutput `json:"address"`
+	Crypto  cryptoJSON           `json:"crypto"`
+	Id      string               `json:"id"`
+	Version int                  `json:"version"`
 }
 
 type encryptedKeyJSONV1 struct {
-	Address string     `json:"address"`
-	Crypto  cryptoJSON `json:"crypto"`
-	Id      string     `json:"id"`
-	Version string     `json:"version"`
+	Address common.AddressOutput `json:"address"`
+	Crypto  cryptoJSON           `json:"crypto"`
+	Id      string               `json:"id"`
+	Version string               `json:"version"`
 }
 
 type cryptoJSON struct {
@@ -93,7 +92,7 @@ type cipherparamsJSON struct {
 
 func (k *Key) MarshalJSON() (j []byte, err error) {
 	jStruct := plainKeyJSON{
-		hex.EncodeToString(k.Address[:]),
+		common.NewAddressOutput(k.Address),
 		hex.EncodeToString(crypto.FromECDSA(k.PrivateKey)),
 		k.Id.String(),
 		version,
@@ -112,7 +111,8 @@ func (k *Key) UnmarshalJSON(j []byte) (err error) {
 	u := new(uuid.UUID)
 	*u = uuid.Parse(keyJSON.Id)
 	k.Id = *u
-	addr, err := hex.DecodeString(keyJSON.Address)
+
+	addr, err := keyJSON.Address.Address()
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (k *Key) UnmarshalJSON(j []byte) (err error) {
 		return err
 	}
 
-	k.Address = common.BytesToAddress(addr)
+	k.Address = addr
 	k.PrivateKey = privkey
 
 	return nil
@@ -152,9 +152,9 @@ func NewKeyForDirectICAP(rand io.Reader) *Key {
 		panic("key generation: ecdsa.GenerateKey failed: " + err.Error())
 	}
 	key := newKeyFromECDSA(privateKeyECDSA)
-	if !strings.HasPrefix(key.Address.Hex(), "0x00") {
-		return NewKeyForDirectICAP(rand)
-	}
+	//if !strings.HasPrefix(key.Address.String(), common.GetAddressPrefix()) {
+	//	return NewKeyForDirectICAP(rand)
+	//}
 	return key
 }
 
