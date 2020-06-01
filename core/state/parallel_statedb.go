@@ -1,6 +1,7 @@
 package state
 
 import (
+	"math/big"
 	"sync"
 	"time"
 
@@ -17,9 +18,9 @@ func (self *StateDB) GetOrNewParallelStateObject(addr common.Address) *ParallelS
 	stateObject := self.justGetStateObject(addr)
 	if stateObject == nil || stateObject.deleted {
 		log.Debug("Cannot find stateObject in Parallel", "addr", addr.Hex(), "isNil", stateObject == nil)
-		stateObject, _ = self.justCreateObject(addr)
+		return self.justCreateObject(addr)
 	}
-	return NewParallelStateObject(stateObject)
+	return NewParallelStateObject(stateObject, false)
 }
 
 func (self *StateDB) justGetStateObject(addr common.Address) (stateObject *stateObject) {
@@ -33,12 +34,12 @@ func (self *StateDB) justGetStateObject(addr common.Address) (stateObject *state
 	start := time.Now()
 	parallelLocker.Lock()
 	if start.Add(20 * time.Millisecond).Before(time.Now()) {
-		log.Debug("Get parallelLocker overtime", "address", addr.String(), "duration", time.Since(start))
+		log.Trace("Get parallelLocker overtime", "address", addr.String(), "duration", time.Since(start))
 	}
 	start = time.Now()
 	enc, err := self.trie.TryGet(addr[:])
 	if start.Add(20 * time.Millisecond).Before(time.Now()) {
-		log.Debug("Trie tryGet overtime", "address", addr.String(), "duration", time.Since(start))
+		log.Trace("Trie tryGet overtime", "address", addr.String(), "duration", time.Since(start))
 	}
 	parallelLocker.Unlock()
 	if len(enc) == 0 {
@@ -95,9 +96,15 @@ func (self *StateDB) justGetStateObjectCache(addr common.Address) (stateObject *
 	return nil
 }
 
-func (self *StateDB) justCreateObject(addr common.Address) (newobj, prev *stateObject) {
-	prev = self.justGetStateObject(addr)
-	newobj = newObject(self, addr, Account{})
+func (self *StateDB) justCreateObject(addr common.Address) *ParallelStateObject {
+	//newobj := newObject(self, addr, Account{})
+	newobj := newObject(self, addr, Account{StorageKeyPrefix: addr.Bytes()})
+	//self.journal.append(createObjectChange{account: &addr})
 	newobj.setNonce(0)
-	return newobj, prev
+	return &ParallelStateObject{
+		stateObject: newobj,
+		prevAmount:  big.NewInt(0),
+		createFlag:  true,
+	}
+	//return self.createObject(addr)
 }

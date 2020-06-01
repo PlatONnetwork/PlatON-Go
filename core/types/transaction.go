@@ -241,12 +241,15 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 func (tx *Transaction) FromAddr(signer Signer) common.Address {
 	if sc := tx.from.Load(); sc != nil {
 		sigCache := sc.(sigCache)
-		// If the signer used to derive from in a previous
-		// call is not the same as used current, invalidate
-		// the cache.
-		if sigCache.signer.Equal(signer) {
-			return sigCache.from
-		}
+		return sigCache.from
+		/*
+			// If the signer used to derive from in a previous
+			// call is not the same as used current, invalidate
+			// the cache.
+			if sigCache.signer.Equal(signer) {
+				return sigCache.from
+			}
+		*/
 	}
 
 	addr, err := signer.Sender(tx)

@@ -882,6 +882,8 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 		} else {
 			stateObject.updateRoot(s.db)
 			s.updateStateObject(stateObject)
+			log.Trace("Finalise single", "address", stateObject.address.String(), "balance", stateObject.Balance().Uint64(), "nonce", stateObject.Nonce(),
+				"codeHash", common.Bytes2Hex(stateObject.CodeHash()), "storageRoot", stateObject.data.Root.String(), "storageKeyPrefix", common.Bytes2Hex(stateObject.data.StorageKeyPrefix))
 		}
 		s.stateObjectsDirty[addr] = struct{}{}
 	}
@@ -1019,42 +1021,31 @@ func (s *StateDB) AddMinerEarnings(addr common.Address, amount *big.Int) {
 }
 
 func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjects bool) {
-	//log.Debug("merge state object to stateDB", "txIdx", idx, "fromAddr", from.stateObject.address.Hex(), "fromBalance", from.GetBalance().Uint64(), "fromNonce", from.GetNonce(), "toAddr", to.stateObject.address.Hex(), "toBalance", to.GetBalance().Uint64())
 	if from.stateObject.address != to.stateObject.address {
 		if from.stateObject.suicided || (deleteEmptyObjects && from.stateObject.empty()) {
 			s.deleteStateObject(from.stateObject)
 		} else {
-			//Executor.executeParallel() will update each state object.
-			//from.stateObject.updateRoot(s.db)
-
-			//Executor.PackBlockTxs() will call state.Finalise()
-			//s.updateStateObject(from.stateObject)
 			s.stateObjects[from.stateObject.address] = from.stateObject
+			s.journal.append(balanceChange{
+				account: &from.stateObject.address,
+				prev:    from.prevAmount,
+			})
 		}
-		s.journal.append(balanceChange{
-			account: &from.stateObject.address,
-			//prev:    new(big.Int).Set(s.GetOrNewParallelStateObject(from.stateObject.address).GetBalance()),
-			prev: common.Big0,
-		})
 		s.stateObjectsDirty[from.stateObject.address] = struct{}{}
 	}
 	if to.stateObject.suicided || (deleteEmptyObjects && to.stateObject.empty()) {
 		s.deleteStateObject(to.stateObject)
 	} else {
-		//Executor.executeParallel() will update each state object.
-		//to.stateObject.updateRoot(s.db)
-
-		//Executor.PackBlockTxs() will call state.Finalise()
-		//s.updateStateObject(to.stateObject)
+		if to.createFlag {
+			s.journal.append(createObjectChange{account: &to.stateObject.address})
+		}
 		s.stateObjects[to.stateObject.address] = to.stateObject
+		s.journal.append(balanceChange{
+			account: &to.stateObject.address,
+			prev:    to.prevAmount,
+		})
 	}
-	s.journal.append(balanceChange{
-		account: &to.stateObject.address,
-		//prev:    new(big.Int).Set(s.GetOrNewParallelStateObject(to.stateObject.address).GetBalance()),
-		prev: common.Big0,
-	})
 	s.stateObjectsDirty[to.stateObject.address] = struct{}{}
-
 }
 
 func (self *StateDB) IncreaseTxIdx() {

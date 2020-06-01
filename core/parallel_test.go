@@ -336,7 +336,7 @@ func parallelMode(t testing.TB) {
 
 	start := time.Now()
 	gp := new(GasPool).AddGas(header.GasLimit)
-	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true)
+	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, nil)
 	ctx.SetBlockDeadline(time.Now().Add(200 * time.Second))
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(testTxList)

@@ -15,7 +15,7 @@ func TestParallelStateObject(t *testing.T) {
 		Balance: common.Big100,
 	}
 	stateObject := newObject(nil, accountAddr, account)
-	parallelStateObj := NewParallelStateObject(stateObject)
+	parallelStateObj := NewParallelStateObject(stateObject, false)
 	assert.Equal(t, uint64(1), parallelStateObj.GetNonce())
 	assert.Equal(t, uint64(100), parallelStateObj.GetBalance().Uint64())
 

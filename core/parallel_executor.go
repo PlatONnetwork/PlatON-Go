@@ -78,80 +78,72 @@ func (exe *Executor) Signer() types.Signer {
 }
 
 func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
-	log.Debug("Execute transactions begin", "number", ctx.header.Number.Uint64(), "packNewBlock", ctx.packNewBlock, "gasPool", ctx.gp.Gas())
-	log.Debug("Execute transactions goroutine info(start)", "number", ctx.header.Number, "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
 	if len(ctx.txList) > 0 {
 		txDag := NewTxDag(exe.signer)
-
 		start := time.Now()
-
 		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList, start); err != nil {
 			return err
 		}
-		log.Debug("Make dag graph cost", "number", ctx.header.Number.Uint64(), "time", time.Since(start))
-		start = time.Now()
+		log.Trace("Make dag graph cost", "number", ctx.header.Number.Uint64(), "time", time.Since(start))
 
+		start = time.Now()
 		batchNo := 0
 		for !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
 
-			if len(parallelTxIdxs) > 0 {
-				if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
-					exe.executeContractTransaction(ctx, parallelTxIdxs[0])
-					//log.Trace(fmt.Sprintf("ExecuteBlocks(tx type:contract) done, blockNumber=%d, batchNo=%d, idx=%d, txFrom=%s, txTo=%s, txHash=%s", ctx.header.Number.Uint64(), batchNo, originIdx, tx.FromAddr().Hex(), toAddr, tx.Hash().Hex()))
-				} else {
-					for _, originIdx := range parallelTxIdxs {
-						tx := ctx.GetTx(originIdx)
-						if ctx.packNewBlock {
-							if ctx.IsTimeout() {
-								log.Debug("Ctx is timeout")
-								break
-							}
-
-							from := tx.FromAddr(exe.signer)
-							if _, popped := ctx.poppedAddresses[from]; popped {
-								log.Debug("Address popped", "from", from.Hex())
-								continue
-							}
-						}
-
-						intrinsicGas, err := EstimateTransferIntrinsicGas(tx.Data())
-						if err != nil {
-							ctx.buildTransferFailedResult(originIdx, err, false)
-							continue
-						}
-						tx.SetIntrinsicGas(intrinsicGas)
-
-						//if err := ctx.gp.SubGas(tx.Gas()); err != nil {
-						if err := ctx.gp.SubGas(intrinsicGas); err != nil {
-							ctx.buildTransferFailedResult(originIdx, err, false)
-							continue
-						}
-
-						ctx.wg.Add(1)
-						args := TaskArgs{ctx, originIdx, intrinsicGas}
-						_ = exe.workerPool.Invoke(args)
-					}
-					// waiting for current batch done
-					ctx.wg.Wait()
-					ctx.batchMerge(batchNo, parallelTxIdxs, true)
-				}
-			} else {
-				//log.Error("DAG has unconsumed vertexes.")
+			if len(parallelTxIdxs) <= 0 {
+				break
 			}
-			batchNo++
-		}
-		log.Debug("Execute transactions cost", "number", ctx.header.Number, "time", time.Since(start))
 
+			if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
+				exe.executeContractTransaction(ctx, parallelTxIdxs[0])
+			} else {
+				for _, originIdx := range parallelTxIdxs {
+					tx := ctx.GetTx(originIdx)
+					if ctx.packNewBlock {
+						if ctx.IsTimeout() {
+							log.Warn("Parallel executor is timeout,interrupt current tx-executing")
+							break
+						}
+
+						from := tx.FromAddr(exe.signer)
+						if _, popped := ctx.poppedAddresses[from]; popped {
+							log.Debug("Address popped", "from", from.Hex())
+							continue
+						}
+					}
+
+					intrinsicGas, err := EstimateTransferIntrinsicGas(tx.Data())
+					if err != nil {
+						ctx.buildTransferFailedResult(originIdx, err, false)
+						continue
+					}
+					tx.SetIntrinsicGas(intrinsicGas)
+					if err := ctx.gp.SubGas(intrinsicGas); err != nil {
+						ctx.buildTransferFailedResult(originIdx, err, false)
+						continue
+					}
+
+					ctx.wg.Add(1)
+					args := TaskArgs{ctx, originIdx, intrinsicGas}
+					_ = exe.workerPool.Invoke(args)
+				}
+				// waiting for current batch done
+				ctx.wg.Wait()
+				ctx.batchMerge(batchNo, parallelTxIdxs, true)
+				batchNo++
+			}
+		}
+		// all transactions executed
+		log.Trace("Execute transactions cost", "number", ctx.header.Number, "time", time.Since(start))
 		//add balance for miner
 		if ctx.GetEarnings().Cmp(big.NewInt(0)) > 0 {
 			ctx.state.AddMinerEarnings(ctx.header.Coinbase, ctx.GetEarnings())
 		}
 		start = time.Now()
 		ctx.state.Finalise(true)
-		log.Debug("Finalise stateDB cost", "number", ctx.header.Number, "time", time.Since(start))
+		log.Trace("Finalise stateDB cost", "number", ctx.header.Number, "time", time.Since(start))
 	}
-	log.Debug("Execute transactions goroutine info(end)", "number", ctx.header.Number, "cap", exe.workerPool.Cap(), "free", exe.workerPool.Free(), "running", exe.workerPool.Running())
 
 	return nil
 }
@@ -161,7 +153,6 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 		return
 	}
 	tx := ctx.GetTx(idx)
-	//log.Debug("execute tx in parallel", "txHash", tx.Hash(), "txIdx", idx, "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas())
 
 	msg, err := tx.AsMessage(exe.signer)
 	if err != nil {
@@ -222,7 +213,7 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	ctx.GetState().Prepare(tx.Hash(), ctx.GetBlockHash(), int(ctx.GetState().TxIdx()))
 	receipt, _, err := ApplyTransaction(exe.chainConfig, exe.chainContext, ctx.GetGasPool(), ctx.GetState(), ctx.GetHeader(), tx, ctx.GetBlockGasUsedHolder(), exe.vmCfg)
 	if err != nil {
-		log.Debug("Execute contract transaction failed", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", tx.Gas(), "err", err.Error())
+		log.Warn("Execute contract transaction failed", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", tx.Gas(), "err", err.Error())
 		ctx.GetState().RevertToSnapshot(snap)
 		return
 	}

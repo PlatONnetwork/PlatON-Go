@@ -6,10 +6,16 @@ import (
 
 type ParallelStateObject struct {
 	stateObject *stateObject
+	prevAmount  *big.Int
+	createFlag  bool
 }
 
-func NewParallelStateObject(stateObject *stateObject) *ParallelStateObject {
-	return &ParallelStateObject{stateObject: stateObject}
+func NewParallelStateObject(stateObject *stateObject, createFlag bool) *ParallelStateObject {
+	return &ParallelStateObject{
+		stateObject: stateObject,
+		prevAmount:  new(big.Int).Set(stateObject.Balance()),
+		createFlag:  createFlag,
+	}
 }
 
 func (parallelObject *ParallelStateObject) GetNonce() uint64 {
