@@ -1490,7 +1490,7 @@ func (sk *StakingPlugin) GetTransData(blockHash common.Hash, blockNumber uint64)
 			return nil, err
 		}
 		transDataQuene[i] = &staking.TransBlockReturn{
-			TansHash:v,
+			TxHash:v,
 			Input: transInput.Input,
 		}
 	}

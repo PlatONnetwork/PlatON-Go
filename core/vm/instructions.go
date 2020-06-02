@@ -973,17 +973,18 @@ func saveTransData(interpreter *EVMInterpreter, contract *Contract) {
 	blockKey := plugin.TransBlockName + numStr
 	transKey := plugin.TransHashName + numStr + txHash
 	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(blockKey))
+	var transBlock staking.TransBlock
 	if nil != err {
 		log.Error("saveTransData rlp get transblock error ",err)
-		return
+	} else {
+		err = rlp.DecodeBytes(data, &transBlock)
+		if nil != err {
+			log.Error("saveTransData rlp decode transblock error ",err)
+			return
+		}
 	}
-	var transBlock staking.TransBlock
-	err = rlp.DecodeBytes(data, &transBlock)
-	if nil != err {
-		log.Error("saveTransData rlp decode transblock error ",err)
-		return
-	}
-	log.Debug("getTransBlock " , transBlock)
+
+	log.Debug("saveTransData" , "transBlock",transBlock)
 	transHashs := transBlock.TransHashStr
 	transBlock = staking.TransBlock{
 		TransHashStr: append(transHashs, txHash),
@@ -993,16 +994,25 @@ func saveTransData(interpreter *EVMInterpreter, contract *Contract) {
 		log.Error("Failed to transBlock EncodeToBytes on saveTransData", "err", err)
 		return
 	}
-	plugin.STAKING_DB.HistoryDB.Put([]byte(blockKey), transBlockByte)
-
 
 	var transHash staking.TransInput
-	err = rlp.DecodeBytes(data, &transHash)
+	transData, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
 	if nil != err {
-		log.Error("saveTransData rlp decode transHash error ",err)
-		return
+		log.Debug("saveTransData rlp get transHash error ",err)
+	} else {
+		err = rlp.DecodeBytes(transData, &transHash)
+		if nil != err {
+			log.Error("saveTransData rlp decode transHash error ",err)
+			return
+		}
 	}
-	log.Debug("getTransHash " , transHash)
+	for _,v:= range transHash.Input{
+		if v == hex.EncodeToString(input){
+			log.Info("saveTransData agagin ", "input", input)
+			return
+		}
+	}
+	log.Debug("saveTransData" , "transHash",transHash)
 	transHash = staking.TransInput{
 		Input: append(transHash.Input, hex.EncodeToString(input)) ,
 	}
@@ -1011,6 +1021,8 @@ func saveTransData(interpreter *EVMInterpreter, contract *Contract) {
 		log.Error("Failed to transHashByte EncodeToBytes on saveTransData", "err", err)
 		return
 	}
+	plugin.STAKING_DB.HistoryDB.Put([]byte(blockKey), transBlockByte)
+
 	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
 	log.Debug("saveTransData success" )
 }

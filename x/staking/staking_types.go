@@ -1297,7 +1297,7 @@ type RewardReturn struct {
 type TransBlockReturnQueue []*TransBlockReturn
 
 type TransBlockReturn struct {
-	TansHash     string
+	TxHash     string
 	Input  []string
 }
 
