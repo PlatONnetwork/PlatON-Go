@@ -20,8 +20,9 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb/journal"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // fileType represent a file type.
@@ -179,7 +180,7 @@ func (s *snapshotDB) writeJournal(block *blockData) error {
 			return errors.New("next err:" + err.Error())
 		}
 		key, val := common.CopyBytes(itr.Key()), common.CopyBytes(itr.Value())
-		kvhash = s.generateKVHash(key, val, kvhash)
+		kvhash = generateKVHash(key, val, kvhash)
 		jData := journalData{
 			Key:   key,
 			Value: val,

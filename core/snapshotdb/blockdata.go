@@ -17,11 +17,14 @@
 package snapshotdb
 
 import (
+	"fmt"
 	"math/big"
+	"sort"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 type blockData struct {
@@ -31,6 +34,91 @@ type blockData struct {
 	data       *memdb.DB
 	readOnly   bool
 	kvHash     common.Hash
+
+	//only use for not commit block
+	journal        []journalEntry // Current changes tracked by the journal
+	validRevisions []revision
+	nextRevisionId int
+}
+
+type revision struct {
+	id           int
+	journalIndex int
+}
+
+func (b *blockData) cleanJournal() {
+	b.journal = nil
+	b.validRevisions = nil
+	b.nextRevisionId = 0
+}
+
+func (b *blockData) revert(snapshot int) {
+	for i := len(b.journal) - 1; i >= snapshot; i-- {
+		// Undo the changes made by the operation
+		en := b.journal[i]
+		if en.oldValNotExist {
+			b.data.Delete(en.key)
+		} else {
+			b.data.Put(en.key, en.oldVal)
+		}
+		b.kvHash = en.oldkvHash
+	}
+	b.journal = b.journal[:snapshot]
+}
+
+// RevertToSnapshot reverts all state changes made since the given revision.
+func (b *blockData) RevertToSnapshot(revid int) {
+	// Find the snapshot in the stack of valid snapshots.
+	idx := sort.Search(len(b.validRevisions), func(i int) bool {
+		return b.validRevisions[i].id >= revid
+	})
+	if idx == len(b.validRevisions) || b.validRevisions[idx].id != revid {
+		panic(fmt.Errorf("snapshotdb , revision id %v cannot be reverted", revid))
+	}
+	snapshot := b.validRevisions[idx].journalIndex
+
+	// Replay the journal to undo changes and remove invalidated snapshots
+	b.revert(snapshot)
+	b.validRevisions = b.validRevisions[:idx]
+}
+
+// Snapshot returns an identifier for the current revision of the state.
+func (b *blockData) Snapshot() int {
+	id := b.nextRevisionId
+	b.nextRevisionId++
+	b.validRevisions = append(b.validRevisions, revision{id, len(b.journal)})
+	return id
+}
+
+func (b *blockData) Write(key, val []byte) error {
+	var entry journalEntry = journalEntry{
+		key:       key,
+		newVal:    val,
+		oldkvHash: b.kvHash,
+	}
+	if v, err := b.data.Get(key); err != nil {
+		entry.oldVal = nil
+		entry.oldValNotExist = true
+	} else {
+		entry.oldVal = v[:]
+		entry.oldValNotExist = false
+	}
+	if err := b.data.Put(key, val); err != nil {
+		return err
+	}
+	b.kvHash = generateKVHash(key, val, b.kvHash)
+
+	// append inserts a new modification entry to the end of the change journal.
+	b.journal = append(b.journal, entry)
+	return nil
+}
+
+type journalEntry struct {
+	key            []byte
+	newVal         []byte
+	oldValNotExist bool
+	oldVal         []byte
+	oldkvHash      common.Hash
 }
 
 type unCommitBlocks struct {

@@ -31,6 +31,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
+func generateKVHash(k, v []byte, hash common.Hash) common.Hash {
+	var buf bytes.Buffer
+	buf.Write(k)
+	buf.Write(v)
+	buf.Write(hash.Bytes())
+	return rlpHash(buf.Bytes())
+}
+
 func rlpHash(x interface{}) (h common.Hash) {
 	hw := sha3.NewKeccak256()
 	rlp.Encode(hw, x)

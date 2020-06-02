@@ -17,16 +17,16 @@
 package snapshotdb
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"path"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 func getBaseDBPath(dbpath string) string {
@@ -179,14 +179,6 @@ func (s *snapshotDB) recover() error {
 	return nil
 }
 
-func (s *snapshotDB) generateKVHash(k, v []byte, hash common.Hash) common.Hash {
-	var buf bytes.Buffer
-	buf.Write(k)
-	buf.Write(v)
-	buf.Write(hash.Bytes())
-	return rlpHash(buf.Bytes())
-}
-
 func (s *snapshotDB) getUnRecognizedHash() common.Hash {
 	return common.ZeroHash
 }
@@ -201,10 +193,5 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	if block.readOnly {
 		return errors.New("can't put read only block")
 	}
-
-	block.kvHash = s.generateKVHash(key, value, block.kvHash)
-	if err := block.data.Put(key, value); err != nil {
-		return err
-	}
-	return nil
+	return block.Write(key, value)
 }

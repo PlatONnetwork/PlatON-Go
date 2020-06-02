@@ -3,16 +3,18 @@ package vm
 import (
 	"crypto/sha256"
 
+	"golang.org/x/crypto/ripemd160"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"golang.org/x/crypto/ripemd160"
+
+	"github.com/PlatONnetwork/wagon/exec"
+	"github.com/PlatONnetwork/wagon/wasm"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/wagon/exec"
-	"github.com/PlatONnetwork/wagon/wasm"
 
 	"math/big"
 	"reflect"
@@ -1305,7 +1307,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	}
 
 	// Create a new account on the state
-	snapshot := ctx.evm.StateDB.Snapshot()
+	snapshotForSnapshotDB, snapshotForStateDB := ctx.evm.DBSnapshot()
 	ctx.evm.StateDB.CreateAccount(newContract)
 	ctx.evm.StateDB.SetNonce(newContract, 1)
 
@@ -1351,7 +1353,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
 	if maxCodeSizeExceeded || (err != nil && err != ErrCodeStoreOutOfGas) {
-		ctx.evm.StateDB.RevertToSnapshot(snapshot)
+		ctx.evm.RevertToDBSnapshot(snapshotForSnapshotDB, snapshotForStateDB)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
