@@ -285,7 +285,7 @@ func TestParallel_PackParallel_VerifySerial(t *testing.T) {
 }
 
 func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header) {
-	initState := stateDb.Copy()
+	//initState := stateDb.Copy()
 	NewExecutor(chainConfig, blockchain, blockchain.vmConfig)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
@@ -298,19 +298,18 @@ func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *Block
 		t.Fatal("pack txs err", "err", err)
 	}
 
-	finalizedBlock, err := Finalize(blockchain, header, stateDb, ctx.packedTxList, ctx.receipts)
+	_, err := Finalize(blockchain, header, stateDb, ctx.packedTxList, ctx.receipts)
 	if err != nil {
 		t.Fatal("Finalize block failed", "err", err)
 	}
 
-	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
-		t.Fatal("Seal block failed", "err", err)
-	} else {
-		//fmt.Println(fmt.Sprintf("total txs=%d", len(sealedBlock.Transactions())))
-		if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
-			t.Fatal("ProcessDirectly block error", "err", err)
-		}
-	}
+	//if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
+	//	t.Fatal("Seal block failed", "err", err)
+	//} else {
+	//	if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
+	//		t.Fatal("ProcessDirectly block error", "err", err)
+	//	}
+	//}
 }
 
 func TestParallel_PackSerial_VerifyParallel(t *testing.T) {
@@ -332,10 +331,8 @@ func TestParallel_PackSerial_VerifySerial(t *testing.T) {
 }
 
 func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header) {
-	initState := stateDb.Copy()
+	//initState := stateDb.Copy()
 	NewExecutor(chainConfig, blockchain, blockchain.vmConfig)
-
-	//t.Logf("begin to executed txs cost(serial mode), blockGasLimit=%d, blockGasUsed=%d \n", header.GasLimit, header.GasUsed)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
 	//start := time.Now()
@@ -343,11 +340,7 @@ func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockCh
 	var receipts = types.Receipts{}
 	for idx, tx := range testTxList {
 		stateDb.Prepare(tx.Hash(), common.Hash{}, idx)
-		//t.Logf("idx=%d, txHash=%s, gasPool=%d, txGasLimit=%d", idx, tx.Hash().Hex(), gp.Gas(), tx.Gas())
-		//preUsed := header.GasUsed
 		receipt, _, err := ApplyTransaction(chainConfig, blockchain, gp, stateDb, header, tx, &header.GasUsed, blockchain.vmConfig)
-		//used := header.GasUsed - preUsed
-		//t.Logf("txHash=%s, gasPool=%d, txGasLimit=%d, gasUsed=%d", tx.Hash().Hex(), gp.Gas(), tx.Gas(), used)
 
 		if err != nil {
 			t.Logf("apply tx error, err:%v", err)
@@ -356,26 +349,20 @@ func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockCh
 		receipts = append(receipts, receipt)
 		txs = append(txs, tx)
 	}
-	//end := time.Now()
-	//executeTxsCost := end.Sub(start).Nanoseconds()
-	//t.Logf("Executed txs cost(serial mode): %d Nanoseconds, blockGasUsed: %d, txCount: %d \n", executeTxsCost, header.GasUsed, len(txs))
 
-	finalizedBlock, err := Finalize(blockchain, header, stateDb, txs, receipts)
+	_, err := Finalize(blockchain, header, stateDb, txs, receipts)
 
 	if err != nil {
 		t.Fatal("Finalize block failed", "err", err)
 	}
-	//t.Logf("Finalize block cost(parallel mode): %d Nanoseconds.\n", time.Now().Sub(end).Nanoseconds())
 
-	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
-		t.Fatal("Seal block failed", "err", err)
-	} else {
-		//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-		//t.Logf("verify block, blockGasLimit=%d", sealedBlock.GasLimit())
-		if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
-			t.Fatal("ProcessDirectly block error", "err", err)
-		}
-	}
+	//if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
+	//	t.Fatal("Seal block failed", "err", err)
+	//} else {
+	//	if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
+	//		t.Fatal("ProcessDirectly block error", "err", err)
+	//	}
+	//}
 }
 
 func TestParallel_EstimateTransferIntrinsicGas(t *testing.T) {
