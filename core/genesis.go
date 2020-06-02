@@ -158,6 +158,11 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		} else {
 			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
 		}
+		if genesis.Config.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
+			common.SetAddressPrefix(common.MainNetAddressPrefix)
+		} else {
+			common.SetAddressPrefix(common.TestNetAddressPrefix)
+		}
 
 		// check EconomicModel configuration
 		if err := xcom.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
