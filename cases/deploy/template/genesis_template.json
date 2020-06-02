@@ -48,7 +48,7 @@
         "reward": {
             "newBlockRate": 50,
             "platONFoundationYear": 10,
-            "increaseIssuanceRatio": 0
+            "increaseIssuanceRatio": 250
         },
         "innerAcc": {
             "platonFundAccount": "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6",
