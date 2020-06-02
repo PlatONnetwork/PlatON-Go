@@ -89,6 +89,8 @@ const (
 	YearName  = "Year"
 	InitNodeName  = "InitNode"
 	SlashName = "Slash"
+	TransBlockName = "TransBlock"
+	TransHashName = "TransHash"
 )
 
 // Instance a global StakingPlugin
@@ -1454,6 +1456,45 @@ func (sk *StakingPlugin) GetSlashData(blockHash common.Hash, blockNumber uint64)
 	}
 	log.Debug("wow,GetSlashData", snq)
 	return  snq, nil
+}
+
+func (sk *StakingPlugin) GetTransData(blockHash common.Hash, blockNumber uint64) (staking.TransBlockReturnQueue, error) {
+	numStr := strconv.FormatUint(blockNumber, 10)
+	log.Debug("wow,GetTransData query number:", "num string", numStr)
+	blockKey := TransBlockName + numStr
+	transKey := TransHashName + numStr
+
+	blockData, err := STAKING_DB.HistoryDB.Get([]byte(blockKey))
+	if nil != err {
+		return nil, err
+	}
+	var transBlock staking.TransBlock
+	err = rlp.DecodeBytes(blockData, &transBlock)
+	if nil != err {
+		return nil, err
+	}
+
+	transDataQuene := make(staking.TransBlockReturnQueue, len(transBlock.TransHashStr))
+
+	for i,v := range  transBlock.TransHashStr {
+
+		transInputBytes, err := STAKING_DB.HistoryDB.Get([]byte(transKey + v))
+		if nil != err {
+			log.Error("get transData error", err)
+			continue
+		}
+		var transInput staking.TransInput
+		err = rlp.DecodeBytes(transInputBytes, &transInput)
+		if nil != err {
+			return nil, err
+		}
+		transDataQuene[i] = &staking.TransBlockReturn{
+			TansHash:v,
+			Input: transInput.Input,
+		}
+	}
+	log.Debug("wow,GetTransData", transDataQuene)
+	return  transDataQuene, nil
 }
 
 func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, isCommit bool) (bool, error) {
