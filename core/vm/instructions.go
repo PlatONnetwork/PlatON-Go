@@ -986,13 +986,24 @@ func saveTransData(interpreter *EVMInterpreter, inputData []byte) {
 
 	log.Debug("saveTransData" , "transBlock",transBlock)
 	transHashs := transBlock.TransHashStr
-	transBlock = staking.TransBlock{
-		TransHashStr: append(transHashs, txHash),
+	flag := true
+	for _,v:= range transHashs{
+		if v == txHash{
+			log.Info("saveTransBlock agagin ", "input", input)
+			flag = false
+			break
+		}
 	}
-	transBlockByte, err := rlp.EncodeToBytes(transBlock)
-	if nil != err {
-		log.Error("Failed to transBlock EncodeToBytes on saveTransData", "err", err)
-		return
+	if flag {
+		transBlock = staking.TransBlock{
+			TransHashStr: append(transHashs, txHash),
+		}
+		transBlockByte, err := rlp.EncodeToBytes(transBlock)
+		if nil != err {
+			log.Error("Failed to transBlock EncodeToBytes on saveTransData", "err", err)
+			return
+		}
+		plugin.STAKING_DB.HistoryDB.Put([]byte(blockKey), transBlockByte)
 	}
 
 	var transHash staking.TransInput
@@ -1021,7 +1032,6 @@ func saveTransData(interpreter *EVMInterpreter, inputData []byte) {
 		log.Error("Failed to transHashByte EncodeToBytes on saveTransData", "err", err)
 		return
 	}
-	plugin.STAKING_DB.HistoryDB.Put([]byte(blockKey), transBlockByte)
 
 	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
 	log.Debug("saveTransData success" )
