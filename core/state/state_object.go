@@ -21,9 +21,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"io"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -344,7 +345,8 @@ func (self *stateObject) updateTrie(db Database) Trie {
 // UpdateRoot sets the trie root to the current root hash of
 func (self *stateObject) updateRoot(db Database) {
 	self.updateTrie(db)
-	self.data.Root = self.trie.Hash()
+	//self.data.Root = self.trie.Hash()
+	self.data.Root = self.trie.ParallelHash()
 }
 
 // CommitTrie the storage trie of the object to db.

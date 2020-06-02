@@ -325,8 +325,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	node.GetCryptoHandler().SetPrivateKey(ctx.NodePriKey())
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
-
 		var agency consensus.Agency
+		core.NewExecutor(eth.chainConfig, eth.blockchain, vmConfig)
 		// validatorMode:
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go

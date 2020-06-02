@@ -418,6 +418,13 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 // Possible message types are:
 //  PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
 func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
+	// If the node is synchronizing the block, discard sync msg directly and do not count the msg
+	// When the syncMsgCh channel is congested, it is easy to cause a message backlog
+	if utils.True(&cbft.syncing) {
+		cbft.log.Debug("Currently syncing, consensus message pause, discard sync msg")
+		return nil
+	}
+
 	err := cbft.recordMessage(msg)
 	if err != nil {
 		cbft.log.Warn("ReceiveMessage failed", "err", err)

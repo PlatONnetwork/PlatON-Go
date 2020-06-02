@@ -172,6 +172,7 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 		// both the pending block as well as the pending state from
 		// the miner and operate on those
 		_, stateDb := api.eth.miner.Pending()
+		stateDb.ClearParentReference()
 		return stateDb.RawDump(), nil
 	}
 	var block *types.Block
