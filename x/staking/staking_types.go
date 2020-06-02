@@ -1293,3 +1293,18 @@ type RewardReturn struct {
 	RemainEpoch     uint32
 	AvgPackTime      uint64
 }
+
+type TransBlockReturnQueue []*TransBlockReturn
+
+type TransBlockReturn struct {
+	TansHash     string
+	Input  []string
+}
+
+type TransBlock struct {
+	TransHashStr     []string
+}
+
+type TransInput struct {
+	Input     []string
+}
