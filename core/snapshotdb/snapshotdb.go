@@ -31,14 +31,15 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 const (
@@ -96,6 +97,10 @@ type DB interface {
 	Close() error
 	Compaction() error
 	SetEmpty() error
+
+	//ues to Revert failed tx
+	RevertToSnapshot(hash common.Hash, revid int)
+	Snapshot(hash common.Hash) int
 }
 
 type BaseDB interface {
@@ -574,9 +579,30 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	block.ParentHash = parentHash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)
+	block.journal = make([]journalEntry, 0)
+	block.validRevisions = make([]revision, 0)
+
 	s.unCommit.Set(hash, block)
 	logger.Info("NewBlock", "num", block.Number, "hash", hash, "parent", parentHash)
 	return nil
+}
+
+func (s *snapshotDB) RevertToSnapshot(hash common.Hash, revid int) {
+	s.unCommit.Lock()
+	defer s.unCommit.Unlock()
+	block, ok := s.unCommit.blocks[hash]
+	if ok {
+		block.RevertToSnapshot(revid)
+	}
+}
+func (s *snapshotDB) Snapshot(hash common.Hash) int {
+	s.unCommit.Lock()
+	defer s.unCommit.Unlock()
+	block, ok := s.unCommit.blocks[hash]
+	if !ok {
+		return 0
+	}
+	return block.Snapshot()
 }
 
 // Put sets the value for the given key. It overwrites any previous value
@@ -706,6 +732,7 @@ func (s *snapshotDB) Flush(hash common.Hash, blockNumber *big.Int) error {
 	s.unCommit.Lock()
 	block.BlockHash = hash
 	block.readOnly = true
+	block.cleanJournal()
 	s.unCommit.blocks[hash] = block
 	delete(s.unCommit.blocks, common.ZeroHash)
 	s.unCommit.Unlock()
@@ -763,6 +790,7 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 
 	s.commitLock.Lock()
 	s.current.increaseHighest(hash)
+	block.cleanJournal()
 	s.committed = append(s.committed, block)
 	s.commitLock.Unlock()
 
