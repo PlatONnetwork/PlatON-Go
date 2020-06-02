@@ -167,8 +167,10 @@ func (ctx *ParallelContext) buildTransferFailedResult(idx int, err error, needRe
 		needRefundGasPool: needRefundGasPool,
 	}
 	ctx.SetResult(idx, result)
+	tx := ctx.GetTx(idx)
 	log.Debug("Execute trasnfer failed", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash().TerminalString(),
-		"gasPool", ctx.gp.Gas(), "txGasLimit", ctx.GetTx(idx).Gas(), "needRefundGasPool", needRefundGasPool, "error", err.Error())
+		"gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "txFrom", tx.FromAddr(ctx.signer).String(), "txTo", tx.To().String(),
+		"txValue", tx.Value().Uint64(), "needRefundGasPool", needRefundGasPool, "error", err.Error())
 }
 
 func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject, toStateObject *state.ParallelStateObject, txGasUsed uint64, minerEarnings *big.Int) {
@@ -191,9 +193,9 @@ func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject,
 		err:             nil,
 	}
 	ctx.SetResult(idx, result)
-	log.Debug("Execute trasnfer success", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash().TerminalString(),
-		"gasPool", ctx.gp.Gas(), "txGasLimit", ctx.GetTx(idx).Gas(), "txUsedGas", txGasUsed,
-		"txFrom", tx.FromAddr(ctx.signer).String(), "txTo", tx.To().String(), "value", tx.Value().Uint64(), "minerEarnings", minerEarnings.Uint64())
+	log.Debug("Execute trasnfer success", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", tx.Hash().TerminalString(),
+		"gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "txUsedGas", txGasUsed, "txFrom", tx.FromAddr(ctx.signer).String(), "txTo", tx.To().String(),
+		"txValue", tx.Value().Uint64(), "minerEarnings", minerEarnings.Uint64())
 }
 
 func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteEmptyObjects bool) {
