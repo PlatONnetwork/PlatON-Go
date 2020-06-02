@@ -1022,6 +1022,7 @@ func (s *StateDB) AddMinerEarnings(addr common.Address, amount *big.Int) {
 func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjects bool) {
 	if from.stateObject.address != to.stateObject.address {
 		if from.stateObject.suicided || (deleteEmptyObjects && from.stateObject.empty()) {
+			log.Warn("deleteStateObject", "from", from.stateObject.address.String(), "suicided", from.stateObject.suicided, "empty", from.stateObject.empty())
 			s.deleteStateObject(from.stateObject)
 		} else {
 			s.stateObjects[from.stateObject.address] = from.stateObject
@@ -1029,10 +1030,11 @@ func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjec
 				account: &from.stateObject.address,
 				prev:    from.prevAmount,
 			})
+			s.stateObjectsDirty[from.stateObject.address] = struct{}{}
 		}
-		s.stateObjectsDirty[from.stateObject.address] = struct{}{}
 	}
 	if to.stateObject.suicided || (deleteEmptyObjects && to.stateObject.empty()) {
+		log.Warn("deleteStateObject", "to", to.stateObject.address.String(), "suicided", to.stateObject.suicided, "empty", to.stateObject.empty())
 		s.deleteStateObject(to.stateObject)
 	} else {
 		if to.createFlag {
@@ -1043,8 +1045,8 @@ func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjec
 			account: &to.stateObject.address,
 			prev:    to.prevAmount,
 		})
+		s.stateObjectsDirty[to.stateObject.address] = struct{}{}
 	}
-	s.stateObjectsDirty[to.stateObject.address] = struct{}{}
 }
 
 func (self *StateDB) IncreaseTxIdx() {
