@@ -73,6 +73,17 @@ func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs [
 			transferAddressMap[*tx.To()] = index
 		}
 	}
+	// dag print info
+	logVerbosity := log.Root().GetHandler().(*log.GlogHandler).GetVerbosity()
+	if logVerbosity == log.LvlTrace {
+		buff, err := txDag.dag.Print()
+		if err != nil {
+			log.Error("print DAG Graph error!", "blockNumber", blockNumber, "err", err)
+			return nil
+		}
+		log.Trace("DAG Graph", "blockNumber", blockNumber, "info", buff.String())
+	}
+
 	return nil
 }
 
