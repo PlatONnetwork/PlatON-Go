@@ -46,7 +46,6 @@ public class CompileUtil {
             }
 
             String result = sb.toString();
-            System.out.println(result);
         } catch (Exception e) {
             e.printStackTrace();
             throw new Exception(e);

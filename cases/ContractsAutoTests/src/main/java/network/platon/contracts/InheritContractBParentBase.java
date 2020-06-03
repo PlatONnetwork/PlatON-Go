@@ -19,10 +19,10 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.0.6.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class InheritContractBParentBase extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060b28061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80636c3364ea14602d575b600080fd5b60336075565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b60003390509056fea265627a7a72315820564aed051fbf42f1ae4547b8abef259de44632a4d24354164e2c51bffb882b9564736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060b28061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80636c3364ea14602d575b600080fd5b60336075565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b60003390509056fea265627a7a72315820540a7a9b164470669bec9bf43e5f180ac58c64c852a7ad512b683efa47453cb164736f6c634300050d0032";
 
     public static final String FUNC_GETADDRESSB = "getAddressB";
 

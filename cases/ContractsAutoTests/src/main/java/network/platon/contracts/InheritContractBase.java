@@ -18,10 +18,10 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.0.6.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class InheritContractBase extends Contract {
-    private static final String BINARY = "608060405260008055348015601357600080fd5b506040516097380380609783398181016040526020811015603357600080fd5b81019080805190602001909291905050508060008190555050603e8060596000396000f3fe6080604052600080fdfea265627a7a72315820da389bfd42da3216615a10743c39ccf50e08984cc8b5500e338478eb7627e67664736f6c634300050d0032";
+    private static final String BINARY = "608060405260008055348015601357600080fd5b506040516097380380609783398181016040526020811015603357600080fd5b81019080805190602001909291905050508060008190555050603e8060596000396000f3fe6080604052600080fdfea265627a7a7231582059cd69008564ba52efb5d607128e8a5d4599aee885a83de893ff6d18a063e84f64736f6c634300050d0032";
 
     protected InheritContractBase(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
