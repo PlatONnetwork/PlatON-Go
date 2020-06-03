@@ -508,6 +508,14 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		func() error { return d.processHeaders(origin+1, pivoth.Number.Uint64(), bn) },
 	}
 	if d.mode == FastSync {
+		if err := d.snapshotDB.SetEmpty(); err != nil {
+			p.log.Error("set  snapshotDB empty fail")
+			return errors.New("set  snapshotDB empty fail:" + err.Error())
+		}
+		if err := d.snapshotDB.SetCurrent(pivoth.Hash(), *pivoth.Number, *pivoth.Number); err != nil {
+			p.log.Error("set snapshotdb current fail", "err", err)
+			return errors.New("set current fail")
+		}
 		fetchers = append(fetchers, func() error { return d.processFastSyncContent(latest, pivoth.Number.Uint64()) })
 		fetchers = append(fetchers, func() error { return d.fetchPPOSStorage(p, pivoth) })
 	} else if d.mode == FullSync {
@@ -671,14 +679,6 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (e
 		close(d.pposStorageDoneCh)
 	}()
 	d.pposStorageDoneCh = make(chan struct{})
-	if err := d.snapshotDB.SetEmpty(); err != nil {
-		p.log.Error("set  snapshotDB empty fail")
-		return errors.New("set  snapshotDB empty fail:" + err.Error())
-	}
-	if err := d.snapshotDB.SetCurrent(pivot.Hash(), *pivot.Number, *pivot.Number); err != nil {
-		p.log.Error("set snapshotdb current fail", "err", err)
-		return errors.New("set current fail")
-	}
 
 	if err := d.setFastSyncStatus(FastSyncBegin); err != nil {
 		return err
