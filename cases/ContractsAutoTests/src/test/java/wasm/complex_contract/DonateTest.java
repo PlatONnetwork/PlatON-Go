@@ -36,13 +36,15 @@ public class DonateTest extends WASMContractPrepareTest {
         BigInteger initialVonValue = BigInteger.valueOf(100L);
         WasmAddress _charity = new WasmAddress(credentials.getAddress(chainId));
         System.out.println(_charity);
-        BigInteger _openingTime = BigInteger.valueOf(System.currentTimeMillis());
+        BigInteger _openingTime = BigInteger.valueOf((System.currentTimeMillis() - 1 * 60 * 60 * 1000));
         BigInteger _closingTime = BigInteger.valueOf((System.currentTimeMillis() + 24 * 60 * 60 * 1000));
         BigInteger _minVonAmount = BigInteger.valueOf(1);
         BigInteger _maxVonAmount = Convert.toVon(new BigDecimal(10000), Convert.Unit.LAT).toBigInteger();
         BigInteger _maxNumDonors = BigInteger.valueOf(100000);
 
         try {
+            System.out.println(_openingTime);
+            System.out.println(_closingTime);
             Donate donate = Donate.deploy(web3j, transactionManager, provider, chainId, _charity, _openingTime, _closingTime, _minVonAmount, _maxVonAmount, _maxNumDonors).send();
             String contractAddress = donate.getContractAddress();
             String transactionHash = donate.getTransactionReceipt().get().getTransactionHash();
