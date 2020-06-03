@@ -1491,6 +1491,8 @@ func (sk *StakingPlugin) GetTransData(blockHash common.Hash, blockNumber uint64)
 		}
 		transDataQuene[i] = &staking.TransBlockReturn{
 			TxHash:v,
+			From: transInput.From,
+			To: transInput.To,
 			Input: transInput.Input,
 		}
 	}

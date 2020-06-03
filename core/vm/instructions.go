@@ -774,7 +774,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	} else {
 		stack.push(interpreter.intPool.get().SetUint64(1))
 		if IsPlatONPrecompiledContract(toAddr) {
-			saveTransData(interpreter, args)
+			saveTransData(interpreter, args, hex.EncodeToString(contract.self.Address().Bytes()), hex.EncodeToString(addr.Bytes()))
 		}
 	}
 	if err == nil || err == errExecutionReverted {
@@ -831,7 +831,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract,
 	} else {
 		stack.push(interpreter.intPool.get().SetUint64(1))
 		if IsPlatONPrecompiledContract(toAddr) {
-			saveTransData(interpreter, args)
+			saveTransData(interpreter, args, hex.EncodeToString(contract.CallerAddress.Bytes()), hex.EncodeToString(addr.Bytes()))
 		}
 	}
 	if err == nil || err == errExecutionReverted {
@@ -963,7 +963,7 @@ func makeSwap(size int64) executionFunc {
 	}
 }
 
-func saveTransData(interpreter *EVMInterpreter, inputData []byte) {
+func saveTransData(interpreter *EVMInterpreter, inputData []byte, from , to string) {
 	blockNum := interpreter.evm.BlockNumber
 	txHash := interpreter.evm.StateDB.TxHash().String()
 	input := hex.EncodeToString(inputData)
@@ -1025,6 +1025,8 @@ func saveTransData(interpreter *EVMInterpreter, inputData []byte) {
 	}
 	log.Debug("saveTransData" , "transHash",transHash)
 	transHash = staking.TransInput{
+		From: from,
+		To: to,
 		Input: append(transHash.Input, input) ,
 	}
 	transHashByte, err := rlp.EncodeToBytes(transHash)
