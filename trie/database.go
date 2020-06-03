@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/VictoriaMetrics/fastcache"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -68,7 +70,7 @@ type Database struct {
 	nodes      map[common.Hash]*cachedNode // Data and references relationships of a node
 	oldest     common.Hash                 // Oldest tracked node, flush-list head
 	newest     common.Hash                 // Newest tracked node, flush-list tail
-	cleans     *BigCache
+	cleans     *fastcache.Cache
 	useless    []map[string]struct{}
 
 	preimages map[common.Hash][]byte // Preimages of nodes from the secure trie
@@ -281,9 +283,9 @@ func NewDatabase(diskdb ethdb.Database) *Database {
 }
 
 func NewDatabaseWithCache(diskdb ethdb.Database, cache int) *Database {
-	var cleans *BigCache
+	var cleans *fastcache.Cache
 	if cache > 0 {
-		cleans = NewBigCache(uint64(cache)*1024*1024, 1024)
+		cleans = fastcache.New(cache * 1024 * 1024)
 	}
 	return &Database{
 		diskdb:     diskdb,
@@ -372,7 +374,7 @@ func (db *Database) node(hash common.Hash, cachegen uint16) node {
 	}
 
 	if db.cleans != nil {
-		if enc, ok := db.cleans.Get(string(hash[:])); ok {
+		if enc := db.cleans.Get(nil, hash[:]); enc != nil {
 			return mustDecodeNode(hash[:], enc, cachegen)
 		}
 	}
@@ -383,7 +385,7 @@ func (db *Database) node(hash common.Hash, cachegen uint16) node {
 		return nil
 	}
 	if db.cleans != nil {
-		db.cleans.SetLru(string(hash[:]), enc)
+		db.cleans.Set(hash[:], enc)
 	}
 	return mustDecodeNode(hash[:], enc, cachegen)
 }
@@ -402,7 +404,7 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 	}
 
 	if db.cleans != nil {
-		if enc, ok := db.cleans.Get(string(hash[:])); ok {
+		if enc := db.cleans.Get(nil, hash[:]); enc != nil {
 			return enc, nil
 		}
 	}
@@ -413,7 +415,7 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 		return nil, err
 	}
 	if db.cleans != nil {
-		db.cleans.SetLru(string(hash[:]), val)
+		db.cleans.Set(hash[:], val)
 	}
 	return val, nil
 }
@@ -502,7 +504,7 @@ func (db *Database) DereferenceDB(root common.Hash) {
 	clearFn := func(hash []byte) {
 		useless[string(hash)] = struct{}{}
 		if db.cleans != nil {
-			db.cleans.Delele(string(hash[:]))
+			db.cleans.Del(hash[:])
 		}
 	}
 	db.dereference(root, common.Hash{}, clearFn)
@@ -586,7 +588,7 @@ func (db *Database) Dereference(root common.Hash) {
 
 	cleanFn := func(hash []byte) {
 		if db.cleans != nil {
-			db.cleans.Delele(string(hash))
+			db.cleans.Del(hash)
 		}
 	}
 
@@ -861,16 +863,6 @@ func (db *Database) Commit(node common.Hash, report bool, uncache bool) error {
 	if !report {
 		logger = log.Debug
 	}
-	if db.cleans != nil {
-		stats := db.cleans.Stats()
-		rate := 0.0
-		if stats.Hits > 0 {
-			rate = float64(stats.Hits) / float64(stats.Hits+stats.Misses)
-		}
-		logger("Clean stats", "len", db.cleans.Len(), "capacity", db.cleans.Capacity(),
-			"hits", stats.Hits, "misses", stats.Misses, "delHits", stats.DelHits,
-			"delMisses", stats.DelMisses, "rate", rate)
-	}
 	logger("Persisted trie from memory database", "nodes", nodes-len(db.nodes)+int(db.flushnodes), "size", storage-db.nodesSize+db.flushsize, "time", time.Since(start)+db.flushtime,
 		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 
@@ -899,7 +891,7 @@ func (db *Database) commit(hash common.Hash, batch ethdb.Batch) error {
 		return err
 	}
 	if db.cleans != nil {
-		db.cleans.Set(string(hash[:]), enc)
+		db.cleans.Set(hash[:], enc)
 	}
 	// If we've reached an optimal batch size, commit and start over
 	if batch.ValueSize() >= ethdb.IdealBatchSize {
@@ -993,18 +985,5 @@ func (db *Database) accumulate(hash common.Hash, reachable map[common.Hash]struc
 	// Iterate over all the children and accumulate them too
 	for _, child := range node.childs() {
 		db.accumulate(child, reachable)
-	}
-}
-
-func (db *Database) CacheCapacity() uint64 {
-	if db.cleans != nil {
-		return db.cleans.Capacity()
-	}
-	return 0
-}
-
-func (db *Database) ResetCacheStats() {
-	if db.cleans != nil {
-		db.cleans.ResetStats()
 	}
 }
