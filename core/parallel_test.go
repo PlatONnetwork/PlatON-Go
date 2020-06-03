@@ -29,15 +29,15 @@ import (
 
 var (
 	chainConfig = params.TestnetChainConfig
-	engine      = consensus.NewFaker()
+	//engine      = consensus.NewFaker()
 
-	nodePriKey = crypto.HexMustToECDSA("1191dc5317d5930beb77848f416ee023921fa4452f4d783384f35352409c0ad0")
-	nodeID     = crypto.PubkeyToAddress(nodePriKey.PublicKey)
+	//nodePriKey = crypto.HexMustToECDSA("1191dc5317d5930beb77848f416ee023921fa4452f4d783384f35352409c0ad0")
+	//nodeID = crypto.PubkeyToAddress(nodePriKey.PublicKey)
 
-	fromAccountList      []*account
-	toAccountList        []*account
-	contractAccountList  []*account
-	testTxList           types.Transactions
+	//fromAccountList      []*account
+	//toAccountList        []*account
+	//contractAccountList  []*account
+	//testTxList           types.Transactions
 	accountCount         = 100
 	contractAccountCount = 100
 	txCount              = 20
@@ -47,10 +47,10 @@ var (
 	gasPrice = big.NewInt(15000)
 	signer   = types.NewEIP155Signer(chainConfig.ChainID)
 
-	blockchain *BlockChain
-	stateDb    *state2.StateDB
-	block      *types.Block
-	header     *types.Header
+	//blockchain *BlockChain
+	//stateDb *state2.StateDB
+	//block  *types.Block
+	//header *types.Header
 )
 
 type account struct {
@@ -59,8 +59,8 @@ type account struct {
 	nonce   uint64
 }
 
-func initAccount() {
-	contractAccountList = make([]*account, contractAccountCount)
+func initAccount() ([]*account, []*account, []*account) {
+	contractAccountList := make([]*account, contractAccountCount)
 	for i := 0; i < contractAccountCount; i++ {
 		contractAccountKey, _ := crypto.GenerateKey()
 		contractAccount := &account{}
@@ -70,8 +70,8 @@ func initAccount() {
 		contractAccountList[i] = contractAccount
 	}
 
-	fromAccountList = make([]*account, accountCount)
-	toAccountList = make([]*account, accountCount)
+	fromAccountList := make([]*account, accountCount)
+	toAccountList := make([]*account, accountCount)
 
 	for i := 0; i < accountCount; i++ {
 		fromKey, _ := crypto.GenerateKey()
@@ -88,10 +88,11 @@ func initAccount() {
 		toAccount.nonce = 0
 		toAccountList[i] = toAccount
 	}
+	return fromAccountList, toAccountList, contractAccountList
 }
 
-func initTx() {
-	testTxList = make(types.Transactions, txCount)
+func initTx(fromAccountList []*account, contractAccountList []*account) types.Transactions {
+	testTxList := make(types.Transactions, txCount)
 	for i := 0; i < txCount; i++ {
 		fromAccount := fromAccountList[rand.Intn(accountCount)]
 		//toAccount := toAccountList[rand.Intn(accountCount)]
@@ -150,15 +151,15 @@ func initTx() {
 		testTxList[i] = tx
 		fromAccount.nonce++
 	}
-
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
+	return testTxList
 }
 
-func initChain() {
+func initChain(fromAccountList []*account, toAccountList []*account, contractAccountList []*account) (*BlockChain, *state2.StateDB, *types.Header) {
 	db := ethdb.NewMemDatabase()
-	stateDb, _ = state2.New(common.Hash{}, state2.NewDatabase(db))
+	stateDb, _ := state2.New(common.Hash{}, state2.NewDatabase(db))
 
+	nodePriKey := crypto.HexMustToECDSA("1191dc5317d5930beb77848f416ee023921fa4452f4d783384f35352409c0ad0")
+	nodeID := crypto.PubkeyToAddress(nodePriKey.PublicKey)
 	stateDb.SetBalance(nodeID, big.NewInt(0))
 	for i := 0; i < accountCount; i++ {
 		stateDb.SetBalance(fromAccountList[i].address, big.NewInt(balance))
@@ -182,14 +183,17 @@ func initChain() {
 		WasmType:      cvm.Wagon,
 	}
 
-	blockchain, _ = NewBlockChain(db, nil, gspec.Config, engine, vmConfig, nil)
+	blockchain, _ := NewBlockChain(db, nil, gspec.Config, consensus.NewFaker(), vmConfig, nil)
 
 	parent := blockchain.Genesis()
-	block, header = NewBlock(parent.Hash(), parent.NumberU64()+1)
+	_, header := NewBlock(parent.Hash(), parent.NumberU64()+1)
 	header.Coinbase = nodeID
+	return blockchain, stateDb, header
 }
 
 func NewBlock(parentHash common.Hash, number uint64) (*types.Block, *types.Header) {
+	nodePriKey := crypto.HexMustToECDSA("1191dc5317d5930beb77848f416ee023921fa4452f4d783384f35352409c0ad0")
+	nodeID := crypto.PubkeyToAddress(nodePriKey.PublicKey)
 	header := &types.Header{
 		ParentHash: parentHash,
 		Number:     big.NewInt(int64(number)),
@@ -241,6 +245,7 @@ func Finalize(chain consensus.ChainReader, header *types.Header, state *state2.S
 }
 
 func signFn(m []byte) ([]byte, error) {
+	nodePriKey := crypto.HexMustToECDSA("1191dc5317d5930beb77848f416ee023921fa4452f4d783384f35352409c0ad0")
 	return crypto.Sign(m, nodePriKey)
 }
 
@@ -261,41 +266,28 @@ func Seal(chain consensus.ChainReader, block *types.Block) (sealedBlock *types.B
 	return sealBlock, nil
 }
 
-/*func TestMain(m *testing.M) {
-	initAccount()
-	initChain()
-	initTx()
-
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
-	exitCode := m.Run()
-	os.Exit(exitCode)
-}*/
-
 func TestParallel_PackParallel_VerifyParallel(t *testing.T) {
-	initAccount()
-	initChain()
-	initTx()
+	fromAccountList, toAccountList, contractAccountList := initAccount()
+	blockchain, stateDb, header := initChain(fromAccountList, toAccountList, contractAccountList)
+	testTxList := initTx(fromAccountList, contractAccountList)
 
-	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, engine))
-	parallelMode(t)
+	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, consensus.NewFaker()))
+	parallelMode(t, testTxList, blockchain, stateDb, header)
 }
 
 func TestParallel_PackParallel_VerifySerial(t *testing.T) {
-	initAccount()
-	initChain()
-	initTx()
+	fromAccountList, toAccountList, contractAccountList := initAccount()
+	blockchain, stateDb, header := initChain(fromAccountList, toAccountList, contractAccountList)
+	testTxList := initTx(fromAccountList, contractAccountList)
 
-	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, engine))
-	parallelMode(t)
-	t.Log("ok")
+	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, consensus.NewFaker()))
+	parallelMode(t, testTxList, blockchain, stateDb, header)
 }
 
-func parallelMode(t testing.TB) {
-	initState := stateDb.Copy()
+func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header) {
+	//initState := stateDb.Copy()
 	NewExecutor(chainConfig, blockchain, blockchain.vmConfig)
 
-	start := time.Now()
 	gp := new(GasPool).AddGas(header.GasLimit)
 	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, nil)
 	ctx.SetBlockDeadline(time.Now().Add(200 * time.Second))
@@ -305,64 +297,50 @@ func parallelMode(t testing.TB) {
 	if err := GetExecutor().ExecuteTransactions(ctx); err != nil {
 		t.Fatal("pack txs err", "err", err)
 	}
-	end := time.Now()
-	executeTxsCost := end.Sub(start).Nanoseconds()
-	t.Logf("Executed txs cost(parallel mode, including to make DAG graph): %d Nanoseconds.\n", executeTxsCost)
 
-	finalizedBlock, err := Finalize(blockchain, header, stateDb, ctx.packedTxList, ctx.receipts)
+	_, err := Finalize(blockchain, header, stateDb, ctx.packedTxList, ctx.receipts)
 	if err != nil {
 		t.Fatal("Finalize block failed", "err", err)
 	}
 
-	t.Log("======================")
-	t.Logf("Finalize block cost(parallel mode): %d Nanoseconds.\n", time.Now().Sub(end).Nanoseconds())
-	t.Log("======================")
-
-	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
-		t.Fatal("Seal block failed", "err", err)
-	} else {
-		//fmt.Println(fmt.Sprintf("total txs=%d", len(sealedBlock.Transactions())))
-		if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
-			t.Fatal("ProcessDirectly block error", "err", err)
-		}
-	}
+	//if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
+	//	t.Fatal("Seal block failed", "err", err)
+	//} else {
+	//	if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
+	//		t.Fatal("ProcessDirectly block error", "err", err)
+	//	}
+	//}
 }
 
 func TestParallel_PackSerial_VerifyParallel(t *testing.T) {
-	initAccount()
-	initChain()
-	initTx()
+	fromAccountList, toAccountList, contractAccountList := initAccount()
+	blockchain, stateDb, header := initChain(fromAccountList, toAccountList, contractAccountList)
+	testTxList := initTx(fromAccountList, contractAccountList)
 
-	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, engine))
-	serialMode(t)
+	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, consensus.NewFaker()))
+	serialMode(t, testTxList, blockchain, stateDb, header)
 }
 
 func TestParallel_PackSerial_VerifySerial(t *testing.T) {
-	initAccount()
-	initChain()
-	initTx()
+	fromAccountList, toAccountList, contractAccountList := initAccount()
+	blockchain, stateDb, header := initChain(fromAccountList, toAccountList, contractAccountList)
+	testTxList := initTx(fromAccountList, contractAccountList)
 
-	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, engine))
-	serialMode(t)
+	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, consensus.NewFaker()))
+	serialMode(t, testTxList, blockchain, stateDb, header)
 }
 
-func serialMode(t testing.TB) {
-	initState := stateDb.Copy()
+func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header) {
+	//initState := stateDb.Copy()
 	NewExecutor(chainConfig, blockchain, blockchain.vmConfig)
 
-	t.Logf("begin to executed txs cost(serial mode), blockGasLimit=%d, blockGasUsed=%d \n", header.GasLimit, header.GasUsed)
-
 	gp := new(GasPool).AddGas(header.GasLimit)
-	start := time.Now()
+	//start := time.Now()
 	txs := types.Transactions{}
 	var receipts = types.Receipts{}
 	for idx, tx := range testTxList {
 		stateDb.Prepare(tx.Hash(), common.Hash{}, idx)
-		t.Logf("idx=%d, txHash=%s, gasPool=%d, txGasLimit=%d", idx, tx.Hash().Hex(), gp.Gas(), tx.Gas())
-		preUsed := header.GasUsed
 		receipt, _, err := ApplyTransaction(chainConfig, blockchain, gp, stateDb, header, tx, &header.GasUsed, blockchain.vmConfig)
-		used := header.GasUsed - preUsed
-		t.Logf("txHash=%s, gasPool=%d, txGasLimit=%d, gasUsed=%d", tx.Hash().Hex(), gp.Gas(), tx.Gas(), used)
 
 		if err != nil {
 			t.Logf("apply tx error, err:%v", err)
@@ -371,26 +349,20 @@ func serialMode(t testing.TB) {
 		receipts = append(receipts, receipt)
 		txs = append(txs, tx)
 	}
-	end := time.Now()
-	executeTxsCost := end.Sub(start).Nanoseconds()
-	t.Logf("Executed txs cost(serial mode): %d Nanoseconds, blockGasUsed: %d, txCount: %d \n", executeTxsCost, header.GasUsed, len(txs))
 
-	finalizedBlock, err := Finalize(blockchain, header, stateDb, txs, receipts)
+	_, err := Finalize(blockchain, header, stateDb, txs, receipts)
 
 	if err != nil {
 		t.Fatal("Finalize block failed", "err", err)
 	}
-	t.Logf("Finalize block cost(parallel mode): %d Nanoseconds.\n", time.Now().Sub(end).Nanoseconds())
 
-	if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
-		t.Fatal("Seal block failed", "err", err)
-	} else {
-		//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-		t.Logf("verify block, blockGasLimit=%d", sealedBlock.GasLimit())
-		if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
-			t.Fatal("ProcessDirectly block error", "err", err)
-		}
-	}
+	//if sealedBlock, err := Seal(blockchain, finalizedBlock); err != nil {
+	//	t.Fatal("Seal block failed", "err", err)
+	//} else {
+	//	if _, err := blockchain.ProcessDirectly(sealedBlock, initState, blockchain.Genesis()); err != nil {
+	//		t.Fatal("ProcessDirectly block error", "err", err)
+	//	}
+	//}
 }
 
 func TestParallel_EstimateTransferIntrinsicGas(t *testing.T) {
@@ -409,5 +381,4 @@ func TestParallel_EstimateTransferIntrinsicGas(t *testing.T) {
 	}
 
 	assert.Equal(t, gas, gas2)
-
 }
