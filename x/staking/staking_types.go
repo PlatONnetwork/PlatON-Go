@@ -1298,8 +1298,8 @@ type TransBlockReturnQueue []*TransBlockReturn
 
 type TransBlockReturn struct {
 	TxHash     string
-	From      []byte
-	To        []byte
+	From      common.Address
+	To        common.Address
 	Input  []string
 }
 

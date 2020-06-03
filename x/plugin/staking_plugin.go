@@ -1455,7 +1455,7 @@ func (sk *StakingPlugin) GetSlashData(blockHash common.Hash, blockNumber uint64)
 			Amount:v.Amount,
 		}
 	}
-	log.Debug("wow,GetSlashData", snq)
+	log.Debug("wow,GetSlashData", "snq", snq)
 	return  snq, nil
 }
 
@@ -1491,12 +1491,12 @@ func (sk *StakingPlugin) GetTransData(blockHash common.Hash, blockNumber uint64)
 		}
 		transDataQuene[i] = &staking.TransBlockReturn{
 			TxHash:v,
-			From: transInput.From,
-			To: transInput.To,
+			From: common.BytesToAddress(transInput.From),
+			To: common.BytesToAddress(transInput.To),
 			Input: transInput.Input,
 		}
 	}
-	log.Debug("wow,GetTransData", transDataQuene)
+	log.Debug("wow,GetTransData", "transDataQuene",transDataQuene)
 	return  transDataQuene, nil
 }
 
