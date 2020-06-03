@@ -1298,8 +1298,8 @@ type TransBlockReturnQueue []*TransBlockReturn
 
 type TransBlockReturn struct {
 	TxHash     string
-	From      string
-	To        string
+	From      []byte
+	To        []byte
 	Input  []string
 }
 
@@ -1308,7 +1308,7 @@ type TransBlock struct {
 }
 
 type TransInput struct {
-	From      string
-	To        string
+	From      []byte
+	To        []byte
 	Input     []string
 }
