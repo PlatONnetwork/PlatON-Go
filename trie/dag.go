@@ -147,7 +147,7 @@ func (d *dag) consume(id uint64) uint64 {
 		d.cv.L.Lock()
 		d.cv.Broadcast()
 		d.cv.L.Unlock()
-		log.Debug("Consume done", "consumed", d.totalConsumed, "vtxs", d.totalVertexs)
+		log.Trace("Consume done", "consumed", d.totalConsumed, "vtxs", d.totalVertexs)
 	}
 	return nextID
 }

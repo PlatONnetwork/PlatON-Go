@@ -19,11 +19,12 @@ package staking
 import (
 	"fmt"
 
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
 type StakingDB struct {
@@ -330,14 +331,14 @@ func (db *StakingDB) DelCanMutableStore(blockHash common.Hash, addr common.NodeA
 
 func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
 
-	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
+	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.NodeId, can.StakingBlockNum, can.StakingTxIndex)
 
 	return db.put(blockHash, key, addr.Bytes())
 }
 
 func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
 
-	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
+	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.NodeId, can.StakingBlockNum, can.StakingTxIndex)
 	return db.del(blockHash, key)
 }
 
