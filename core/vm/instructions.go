@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -773,15 +774,16 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 		stack.push(interpreter.intPool.getZero())
 	} else {
 		stack.push(interpreter.intPool.get().SetUint64(1))
-		if IsPlatONPrecompiledContract(toAddr) {
-			saveTransData(interpreter, args, contract.self.Address().Bytes(), addr.Bytes())
-		}
 	}
 	if err == nil || err == errExecutionReverted {
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
 
+	log.Debug("saveTransData ret","ret",ret,"ommon.NoErr.Code",common.Uint32ToBytes(common.NoErr.Code))
+	if IsPlatONPrecompiledContract(toAddr) && bytes.Equal(ret, common.Uint32ToBytes(common.NoErr.Code))  {
+		saveTransData(interpreter, args, contract.self.Address().Bytes(), addr.Bytes())
+	}
 	interpreter.intPool.put(addr, value, inOffset, inSize, retOffset, retSize)
 	return ret, nil
 }
@@ -830,15 +832,15 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract,
 		stack.push(interpreter.intPool.getZero())
 	} else {
 		stack.push(interpreter.intPool.get().SetUint64(1))
-		if IsPlatONPrecompiledContract(toAddr) {
-			saveTransData(interpreter, args, contract.CallerAddress.Bytes(), addr.Bytes())
-		}
 	}
 	if err == nil || err == errExecutionReverted {
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
 
+	if IsPlatONPrecompiledContract(toAddr) && bytes.Equal(ret, common.Uint32ToBytes(common.NoErr.Code))  {
+		saveTransData(interpreter, args, contract.CallerAddress.Bytes(), addr.Bytes())
+	}
 	interpreter.intPool.put(addr, inOffset, inSize, retOffset, retSize)
 	return ret, nil
 }
