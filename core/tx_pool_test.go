@@ -624,10 +624,12 @@ func TestTransactionPostponing(t *testing.T) {
 			} else {
 				tx = transaction(uint64(j), 50000, key, pool.chainconfig.ChainID)
 			}
-			if err := pool.AddRemote(tx); nil != err {
-				t.Fatalf("failed to add transaction: %v", err)
-			}
 			txs = append(txs, tx)
+		}
+	}
+	for i, err := range pool.AddRemotesSync(txs) {
+		if err != nil {
+			t.Fatalf("tx %d: failed to add transactions: %v", i, err)
 		}
 	}
 	// Check that pre and post validations leave the pool as is
