@@ -11,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -363,22 +361,4 @@ func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockCh
 	//		t.Fatal("ProcessDirectly block error", "err", err)
 	//	}
 	//}
-}
-
-func TestParallel_EstimateTransferIntrinsicGas(t *testing.T) {
-	gas, err := EstimateTransferIntrinsicGas([]byte("test"))
-	if err != nil {
-		t.Fatal("error", err)
-	} else {
-		t.Log("gas", gas)
-	}
-
-	gas2, err := EstimateTransferIntrinsicGas([]byte("test"))
-	if err != nil {
-		t.Fatal("error1", err)
-	} else {
-		t.Log("gas2", gas)
-	}
-
-	assert.Equal(t, gas, gas2)
 }
