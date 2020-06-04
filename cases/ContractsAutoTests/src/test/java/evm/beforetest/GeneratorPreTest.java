@@ -98,7 +98,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
-        final Semaphore semaphore = new Semaphore(50);
+        final Semaphore semaphore = new Semaphore(20);
         // 请求总数与文件数定义一致size
         CountDownLatch countDownLatch = new CountDownLatch(size);
         CompileUtil compileUtil = new CompileUtil();
@@ -110,11 +110,13 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     semaphore.acquire();
                     compileUtil.evmCompile(file, buildPath);
                     collector.logStepPass("compile success:" + file);
-                    semaphore.release();
                 } catch (Exception e) {
                     collector.logStepFail("compile fail:" + file, e.toString());
+                } finally {
+                    semaphore.release();
+                    countDownLatch.countDown();
                 }
-                countDownLatch.countDown();
+
             });
         }
 
