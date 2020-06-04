@@ -6,10 +6,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 
 	//"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 type TxDag struct {
@@ -73,6 +75,18 @@ func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs [
 			transferAddressMap[*tx.To()] = index
 		}
 	}
+	// dag print info
+
+	logVerbosity := debug.GetLogVerbosity()
+	if logVerbosity == log.LvlTrace {
+		buff, err := txDag.dag.Print()
+		if err != nil {
+			log.Error("print DAG Graph error!", "blockNumber", blockNumber, "err", err)
+			return nil
+		}
+		log.Trace("DAG Graph", "blockNumber", blockNumber, "info", buff.String())
+	}
+
 	return nil
 }
 
