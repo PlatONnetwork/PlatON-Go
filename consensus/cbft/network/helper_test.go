@@ -27,7 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	types2 "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/mattn/go-colorable"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
@@ -281,9 +280,6 @@ func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, disco
 }
 
 func Test_InitializePeers(t *testing.T) {
-
-	log.PrintOrigins(true)
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
 
 	// Randomly generated ID.
 	nodeIds := RandomID()

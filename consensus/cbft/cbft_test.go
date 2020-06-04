@@ -26,8 +26,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -729,14 +727,6 @@ func TestViewChangeCannibalizeBytes(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.False(t, bytes.Equal(vc, vqc))
-}
-func TestJson(t *testing.T) {
-	log.Root().SetHandler(log.StdoutHandler)
-
-	qc := ctypes.QuorumCert{}
-	if b, err := json.Marshal(&qc); err == nil {
-		log.Info(string(b))
-	}
 }
 
 func Test_StatMessage(t *testing.T) {
