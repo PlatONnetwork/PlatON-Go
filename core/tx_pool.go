@@ -514,6 +514,10 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 	// Check the queue and move transactions over to the pending if possible
 	// or remove those that have become invalid
 	pool.promoteExecutables(nil)
+
+	// Ensure pool.queue and pool.pending sizes stay within the configured limits.
+	pool.truncatePending()
+	pool.truncateQueue()
 }
 
 // Stop terminates the transaction pool.
