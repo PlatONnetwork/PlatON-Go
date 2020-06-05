@@ -1493,7 +1493,7 @@ func (sk *StakingPlugin) GetTransData(blockHash common.Hash, blockNumber uint64)
 			TxHash:v,
 			From: common.BytesToAddress(transInput.From),
 			To: common.BytesToAddress(transInput.To),
-			Input: transInput.Input,
+			TransDatas: transInput.TransDatas,
 		}
 	}
 	log.Debug("wow,GetTransData", "transDataQuene",transDataQuene)

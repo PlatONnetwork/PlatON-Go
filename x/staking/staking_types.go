@@ -1300,7 +1300,7 @@ type TransBlockReturn struct {
 	TxHash     string
 	From      common.Address
 	To        common.Address
-	Input  []string
+	TransDatas     []TransData
 }
 
 type TransBlock struct {
@@ -1310,5 +1310,10 @@ type TransBlock struct {
 type TransInput struct {
 	From      []byte
 	To        []byte
-	Input     []string
+	TransDatas     []TransData
+}
+
+type TransData struct {
+	Input     string
+	Code      uint32
 }

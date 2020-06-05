@@ -17,7 +17,6 @@
 package vm
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -780,9 +779,8 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	}
 	contract.Gas += returnGas
 
-	log.Debug("saveTransData ret","ret",ret,"ommon.NoErr.Code",common.Uint32ToBytes(common.NoErr.Code))
-	if IsPlatONPrecompiledContract(toAddr) && bytes.Equal(ret, common.Uint32ToBytes(common.NoErr.Code))  {
-		saveTransData(interpreter, args, contract.self.Address().Bytes(), addr.Bytes())
+	if IsPlatONPrecompiledContract(toAddr)  {
+		saveTransData(interpreter, args, contract.self.Address().Bytes(), addr.Bytes(), common.BytesToUint32(ret))
 	}
 	interpreter.intPool.put(addr, value, inOffset, inSize, retOffset, retSize)
 	return ret, nil
@@ -838,8 +836,8 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract,
 	}
 	contract.Gas += returnGas
 
-	if IsPlatONPrecompiledContract(toAddr) && bytes.Equal(ret, common.Uint32ToBytes(common.NoErr.Code))  {
-		saveTransData(interpreter, args, contract.CallerAddress.Bytes(), addr.Bytes())
+	if IsPlatONPrecompiledContract(toAddr)  {
+		saveTransData(interpreter, args, contract.CallerAddress.Bytes(), addr.Bytes(), common.BytesToUint32(ret))
 	}
 	interpreter.intPool.put(addr, inOffset, inSize, retOffset, retSize)
 	return ret, nil
@@ -965,7 +963,7 @@ func makeSwap(size int64) executionFunc {
 	}
 }
 
-func saveTransData(interpreter *EVMInterpreter, inputData []byte, from , to []byte) {
+func saveTransData(interpreter *EVMInterpreter, inputData , from , to  []byte , code uint32) {
 	blockNum := interpreter.evm.BlockNumber
 	txHash := interpreter.evm.StateDB.TxHash().String()
 	input := hex.EncodeToString(inputData)
@@ -987,9 +985,9 @@ func saveTransData(interpreter *EVMInterpreter, inputData []byte, from , to []by
 	}
 
 	log.Debug("saveTransData" , "transBlock",transBlock)
-	transHashs := transBlock.TransHashStr
+	transHash := transBlock.TransHashStr
 	flag := true
-	for _,v:= range transHashs{
+	for _,v:= range transHash{
 		if v == txHash{
 			log.Info("saveTransBlock agagin ", "input", input)
 			flag = false
@@ -998,7 +996,7 @@ func saveTransData(interpreter *EVMInterpreter, inputData []byte, from , to []by
 	}
 	if flag {
 		transBlock = staking.TransBlock{
-			TransHashStr: append(transHashs, txHash),
+			TransHashStr: append(transHash, txHash),
 		}
 		transBlockByte, err := rlp.EncodeToBytes(transBlock)
 		if nil != err {
@@ -1008,28 +1006,32 @@ func saveTransData(interpreter *EVMInterpreter, inputData []byte, from , to []by
 		plugin.STAKING_DB.HistoryDB.Put([]byte(blockKey), transBlockByte)
 	}
 
-	var transHash staking.TransInput
+	var transInput staking.TransInput
 	transData, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
 	if nil != err {
 		log.Debug("saveTransData rlp get transHash error ",err)
 	} else {
-		err = rlp.DecodeBytes(transData, &transHash)
+		err = rlp.DecodeBytes(transData, &transInput)
 		if nil != err {
 			log.Error("saveTransData rlp decode transHash error ",err)
 			return
 		}
 	}
-	for _,v:= range transHash.Input{
-		if v == input{
-			log.Info("saveTransData agagin ", "input", input)
-			return
-		}
-	}
+	//for _,v:= range transHash.TransData{
+	//	if v.Input == input{
+	//		log.Info("saveTransData agagin ", "input", input)
+	//		return
+	//	}
+	//}
 	log.Debug("saveTransData" , "transHash",transHash)
-	transHash = staking.TransInput{
+	transDataModule := staking.TransData{
+		Input: input,
+		Code: code,
+	}
+	transInput = staking.TransInput{
 		From: from,
 		To: to,
-		Input: append(transHash.Input, input) ,
+		TransDatas: append(transInput.TransDatas, transDataModule) ,
 	}
 	transHashByte, err := rlp.EncodeToBytes(transHash)
 	if nil != err {
