@@ -4,14 +4,14 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
+
+	"github.com/panjf2000/ants/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/panjf2000/ants/v2"
 )
 
 var (
@@ -32,22 +32,6 @@ type TaskArgs struct {
 	ctx          *ParallelContext
 	idx          int
 	intrinsicGas uint64
-}
-
-var intrinsicGasCache atomic.Value
-
-func EstimateTransferIntrinsicGas(txData []byte) (uint64, error) {
-	intrinsicGasInf := intrinsicGasCache.Load()
-	if intrinsicGasInf != nil {
-		return intrinsicGasInf.(uint64), nil
-	} else {
-		if gas, err := IntrinsicGas(txData, false, nil); err != nil {
-			return uint64(0), err
-		} else {
-			intrinsicGasCache.Store(gas)
-			return gas, nil
-		}
-	}
 }
 
 func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmCfg vm.Config) {
@@ -113,7 +97,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 						}
 					}
 
-					intrinsicGas, err := EstimateTransferIntrinsicGas(tx.Data())
+					intrinsicGas, err := IntrinsicGas(tx.Data(), false, nil)
 					if err != nil {
 						ctx.buildTransferFailedResult(originIdx, err, false)
 						continue

@@ -20,6 +20,8 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -138,7 +140,7 @@ func (b *EthAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *sta
 	vmError := func() error { return nil }
 
 	context := core.NewEVMContext(msg, header, b.eth.BlockChain())
-	return vm.NewEVM(context, state, b.eth.chainConfig, vmCfg), vmError, nil
+	return vm.NewEVM(context, snapshotdb.Instance(), state, b.eth.chainConfig, vmCfg), vmError, nil
 }
 
 func (b *EthAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
@@ -182,7 +184,7 @@ func (b *EthAPIBackend) GetPoolTransaction(hash common.Hash) *types.Transaction 
 }
 
 func (b *EthAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
-	return b.eth.txPool.State().GetNonce(addr), nil
+	return b.eth.txPool.Nonce(addr), nil
 }
 
 func (b *EthAPIBackend) Stats() (pending int, queued int) {

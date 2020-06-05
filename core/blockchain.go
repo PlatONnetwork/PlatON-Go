@@ -26,6 +26,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -41,7 +43,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -206,7 +207,6 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		return nil, err
 	}
 
-	bc.loadStateCache()
 	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
 	//for hash := range BadHashes {
 	//	if header := bc.GetHeaderByHash(hash); header != nil {
@@ -291,31 +291,6 @@ func (bc *BlockChain) loadLastState() error {
 	log.Info("Loaded most recent local fast block", "number", currentFastBlock.Number(), "hash", currentFastBlock.Hash(), "age", common.PrettyAge(time.Unix(currentFastBlock.Time().Int64(), 0)))
 
 	return nil
-}
-
-func (bc *BlockChain) loadStateCache() {
-	go func() {
-		log.Debug("Start load state cache")
-		t := time.Now()
-		tr, err := bc.stateCache.OpenTrie(bc.CurrentBlock().Root())
-		if err != nil {
-			log.Error("Failed to open trie", "err", err)
-			return
-		}
-
-		limit := (uint64(bc.cacheConfig.TrieDBCache*1024*1024) / 8) - 1024
-		c := 0
-		it := tr.NodeIterator(nil)
-		for it.Next(true) {
-			c++
-
-			if bc.stateCache.TrieDB().CacheCapacity() >= limit || time.Since(t) >= 30*time.Second {
-				break
-			}
-		}
-		bc.stateCache.TrieDB().ResetCacheStats()
-		log.Debug("Load state cache", "count", c, "limit", limit, "duration", time.Since(t))
-	}()
 }
 
 // SetHead rewinds the local chain to a new head. In the case of headers, everything

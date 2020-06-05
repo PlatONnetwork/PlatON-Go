@@ -194,7 +194,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canTmp.ProgramVersion, canTmp.Shares, canTmp.NodeId, canTmp.StakingBlockNum, canTmp.StakingTxIndex)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return nil, err
@@ -564,7 +564,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canBase.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.NodeId, canBase.StakingBlockNum, canBase.StakingTxIndex)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
@@ -883,7 +883,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canBase.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.NodeId, canBase.StakingBlockNum, canBase.StakingTxIndex)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
