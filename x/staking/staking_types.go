@@ -1315,5 +1315,5 @@ type TransInput struct {
 
 type TransData struct {
 	Input     string
-	Code      uint32
+	Code      string
 }

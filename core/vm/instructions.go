@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -780,7 +781,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	contract.Gas += returnGas
 
 	if IsPlatONPrecompiledContract(toAddr)  {
-		saveTransData(interpreter, args, contract.self.Address().Bytes(), addr.Bytes(), common.BytesToUint32(ret))
+		saveTransData(interpreter, args, contract.self.Address().Bytes(), addr.Bytes(), byteutil.BytesToString(ret))
 	}
 	interpreter.intPool.put(addr, value, inOffset, inSize, retOffset, retSize)
 	return ret, nil
@@ -837,7 +838,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract,
 	contract.Gas += returnGas
 
 	if IsPlatONPrecompiledContract(toAddr)  {
-		saveTransData(interpreter, args, contract.CallerAddress.Bytes(), addr.Bytes(), common.BytesToUint32(ret))
+		saveTransData(interpreter, args, contract.CallerAddress.Bytes(), addr.Bytes(), byteutil.BytesToString(ret))
 	}
 	interpreter.intPool.put(addr, inOffset, inSize, retOffset, retSize)
 	return ret, nil
@@ -963,7 +964,7 @@ func makeSwap(size int64) executionFunc {
 	}
 }
 
-func saveTransData(interpreter *EVMInterpreter, inputData , from , to  []byte , code uint32) {
+func saveTransData(interpreter *EVMInterpreter, inputData , from , to  []byte , code string) {
 	blockNum := interpreter.evm.BlockNumber
 	txHash := interpreter.evm.StateDB.TxHash().String()
 	input := hex.EncodeToString(inputData)
