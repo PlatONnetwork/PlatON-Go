@@ -19,29 +19,32 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/stretchr/testify/assert"
 	"runtime"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 func newEmptySecure() *SecureTrie {
-	trie, _ := NewSecure(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()), 0)
+	trie, _ := NewSecure(common.Hash{}, NewDatabase(memorydb.New()))
 	return trie
 }
 
 // makeTestSecureTrie creates a large enough secure trie for testing.
 func makeTestSecureTrie() (*Database, *SecureTrie, map[string][]byte) {
 	// Create an empty trie
-	triedb := NewDatabase(ethdb.NewMemDatabase())
+	triedb := NewDatabase(memorydb.New())
 
-	trie, _ := NewSecure(common.Hash{}, triedb, 0)
+	trie, _ := NewSecure(common.Hash{}, triedb)
 
 	// Fill it with some arbitrary data
 	content := make(map[string][]byte)
@@ -69,9 +72,9 @@ func makeTestSecureTrie() (*Database, *SecureTrie, map[string][]byte) {
 }
 
 func TestInsertBlob(t *testing.T) {
-	triedb1, triedb2 := NewDatabase(ethdb.NewMemDatabase()), NewDatabase(ethdb.NewMemDatabase())
-	trie1, _ := NewSecure(common.Hash{}, triedb1, 0)
-	trie2, _ := NewSecure(common.Hash{}, triedb2, 0)
+	triedb1, triedb2 := NewDatabase(memorydb.New()), NewDatabase(memorydb.New())
+	trie1, _ := NewSecure(common.Hash{}, triedb1)
+	trie2, _ := NewSecure(common.Hash{}, triedb2)
 
 	storages := make(map[string][]byte)
 	valueKeys := make(map[common.Hash][]byte)

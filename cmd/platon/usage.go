@@ -24,9 +24,10 @@ import (
 
 	"strings"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
-	"gopkg.in/urfave/cli.v1"
 )
 
 // AppHelpTemplate is the test template for the default, global app help topic.
@@ -123,7 +124,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.CacheDatabaseFlag,
 			utils.CacheGCFlag,
 			utils.CacheTrieDBFlag,
-			utils.TrieCacheGenFlag,
 		},
 	},
 	{
