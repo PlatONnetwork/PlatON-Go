@@ -8,15 +8,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTrieDAG2(t *testing.T) {
-	triedb := NewDatabase(ethdb.NewMemDatabase())
+	triedb := NewDatabase(memorydb.New())
 
 	tr, _ := New(common.Hash{}, triedb)
 
@@ -154,7 +156,7 @@ func testTrieDAGRnd2(t *testing.T, n int) {
 }
 
 func TestDAGCommit(t *testing.T) {
-	triedb := NewDatabase(ethdb.NewMemDatabase())
+	triedb := NewDatabase(memorydb.New())
 	tr, _ := New(common.Hash{}, triedb)
 
 	tr.Update([]byte("adabce"), []byte("12312312"))
