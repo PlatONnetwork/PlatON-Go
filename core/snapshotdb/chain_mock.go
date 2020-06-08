@@ -35,7 +35,7 @@ func newTestchain(path string) *testchain {
 	}
 	ch.db = db
 	SetDBBlockChain(ch)
-	go ch.db.loopWriteJournal()
+	go ch.db.loopWriteWal()
 
 	return ch
 }
@@ -52,7 +52,7 @@ func (c *testchain) reOpenSnapshotDB() {
 		panic(err)
 	}
 	c.db = db
-	go c.db.loopWriteJournal()
+	go c.db.loopWriteWal()
 
 }
 

@@ -226,7 +226,7 @@ func newBlockBaseDB(db *snapshotDB, kvs kvs, head *types.Header) error {
 	if err := db.Commit(hash); err != nil {
 		return err
 	}
-	db.journalSync.Wait()
+	db.walSync.Wait()
 	return db.Compaction()
 }
 
