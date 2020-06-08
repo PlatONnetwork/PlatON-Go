@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 )
 
 func TestParallelStateDB_justCreateObject(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	statedb, _ := New(common.Hash{}, NewDatabase(db))
 
 	statedb.justCreateObject(accountAddr)
@@ -32,7 +33,7 @@ func TestParallelStateDB_justCreateObject(t *testing.T) {
 }
 
 func TestParallelStateDB_GetOrNewParallelStateObject(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	statedb, _ := New(common.Hash{}, NewDatabase(db))
 	statedb.GetOrNewParallelStateObject(accountAddr)
 	if _, ok := statedb.stateObjects[accountAddr]; ok {
@@ -41,7 +42,7 @@ func TestParallelStateDB_GetOrNewParallelStateObject(t *testing.T) {
 }
 
 func TestParallelStateDB_justGetStateObject(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	statedb, _ := New(common.Hash{}, NewDatabase(db))
 	stateObj := statedb.justGetStateObject(accountAddr)
 	assert.Nil(t, stateObj)
@@ -51,7 +52,7 @@ func TestParallelStateDB_justGetStateObject(t *testing.T) {
 }
 
 func TestParallelStateDB_justGetStateObjectCache(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	statedb, _ := New(common.Hash{}, NewDatabase(db))
 	stateObj := statedb.justGetStateObjectCache(accountAddr)
 	assert.Nil(t, stateObj)
@@ -62,7 +63,7 @@ func TestParallelStateDB_justGetStateObjectCache(t *testing.T) {
 
 func TestParallelStateDB_rlp(t *testing.T) {
 
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	statedb, _ := New(common.Hash{}, NewDatabase(db))
 
 	var count = 6000

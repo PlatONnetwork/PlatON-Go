@@ -25,12 +25,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -75,8 +78,7 @@ func TestCleaner(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "platon")
 	assert.Nil(t, err)
 	defer os.RemoveAll(tmpDir)
-
-	db, err := ethdb.NewLDBDatabase(tmpDir, 100, 1024)
+	db, err := leveldb.New(tmpDir, 100, 1024, "")
 	assert.Nil(t, err)
 
 	blockchain, err := newBlockChainForTesting(db)
@@ -132,7 +134,7 @@ func TestStopCleaner(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.RemoveAll(tmpDir)
 
-	db, err := ethdb.NewLDBDatabase(tmpDir, 100, 1024)
+	db, err := leveldb.New(tmpDir, 100, 1024, "")
 	assert.Nil(t, err)
 
 	blockchain, err := newBlockChainForTesting(db)

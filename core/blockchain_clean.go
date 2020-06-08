@@ -156,11 +156,7 @@ func (c *Cleaner) loop() {
 func (c *Cleaner) cleanup() {
 	defer c.cleaning.Set(false)
 
-	db, ok := c.blockchain.db.(*ethdb.LDBDatabase)
-	if !ok {
-		log.Warn("The database not a leveldb, discard cleanup operation")
-		return
-	}
+	db := c.blockchain.db
 
 	lastNumber := atomic.LoadUint64(&c.lastNumber)
 	currentBlock := c.blockchain.CurrentBlock()

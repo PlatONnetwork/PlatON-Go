@@ -5,25 +5,26 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 type account struct{}
 
-func (account) SubBalance(amount *big.Int)                          {}
-func (account) AddBalance(amount *big.Int)                          {}
-func (account) SetAddress(common.Address)                           {}
-func (account) Value() *big.Int                                     { return nil }
-func (account) SetBalance(*big.Int)                                 {}
-func (account) SetNonce(uint64)                                     {}
-func (account) Balance() *big.Int                                   { return nil }
-func (account) Address() common.Address                             { return common.Address{} }
-func (account) ReturnGas(*big.Int)                                  {}
-func (account) SetCode(common.Hash, []byte)                         {}
-func (account) ForEachStorage(cb func(key  common.Hash, value []byte) bool) {}
+func (account) SubBalance(amount *big.Int)                                 {}
+func (account) AddBalance(amount *big.Int)                                 {}
+func (account) SetAddress(common.Address)                                  {}
+func (account) Value() *big.Int                                            { return nil }
+func (account) SetBalance(*big.Int)                                        {}
+func (account) SetNonce(uint64)                                            {}
+func (account) Balance() *big.Int                                          { return nil }
+func (account) Address() common.Address                                    { return common.Address{} }
+func (account) ReturnGas(*big.Int)                                         {}
+func (account) SetCode(common.Hash, []byte)                                {}
+func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
 func NewEVMWithCtx(cfg *Config) *vm.EVM {
 	vmenv := NewEnv(cfg)
@@ -42,7 +43,7 @@ func TestEVMCallError(t *testing.T) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
 	}
 	var (
 		vmenv  = NewEVMWithCtx(cfg)
@@ -61,7 +62,7 @@ func baseConfig(cfg *Config) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
@@ -171,7 +172,7 @@ func TestCreate(t *testing.T) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
@@ -277,7 +278,7 @@ func TestOthers(t *testing.T) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
 	}
 	var (
 		vmenv = NewEVMWithCtx(cfg)

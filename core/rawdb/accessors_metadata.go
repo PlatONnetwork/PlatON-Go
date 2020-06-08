@@ -19,6 +19,8 @@ package rawdb
 import (
 	"encoding/json"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -28,7 +30,7 @@ import (
 )
 
 // ReadDatabaseVersion retrieves the version number of the database.
-func ReadDatabaseVersion(db DatabaseReader) int {
+func ReadDatabaseVersion(db ethdb.Reader) int {
 	var version uint64
 
 	enc, _ := db.Get(databaseVerisionKey)
@@ -38,7 +40,7 @@ func ReadDatabaseVersion(db DatabaseReader) int {
 }
 
 // WriteDatabaseVersion stores the version number of the database
-func WriteDatabaseVersion(db DatabaseWriter, version int) {
+func WriteDatabaseVersion(db ethdb.Writer, version int) {
 	enc, _ := rlp.EncodeToBytes(uint64(version))
 	if err := db.Put(databaseVerisionKey, enc); err != nil {
 		log.Crit("Failed to store the database version", "err", err)
@@ -46,7 +48,7 @@ func WriteDatabaseVersion(db DatabaseWriter, version int) {
 }
 
 // ReadChainConfig retrieves the consensus settings based on the given genesis hash.
-func ReadChainConfig(db DatabaseReader, hash common.Hash) *params.ChainConfig {
+func ReadChainConfig(db ethdb.Reader, hash common.Hash) *params.ChainConfig {
 	data, _ := db.Get(configKey(hash))
 	if len(data) == 0 {
 		return nil
@@ -60,7 +62,7 @@ func ReadChainConfig(db DatabaseReader, hash common.Hash) *params.ChainConfig {
 }
 
 // WriteChainConfig writes the chain config settings to the database.
-func WriteChainConfig(db DatabaseWriter, hash common.Hash, cfg *params.ChainConfig) {
+func WriteChainConfig(db ethdb.Writer, hash common.Hash, cfg *params.ChainConfig) {
 	if cfg == nil {
 		return
 	}
@@ -74,7 +76,7 @@ func WriteChainConfig(db DatabaseWriter, hash common.Hash, cfg *params.ChainConf
 }
 
 // WriteEconomicModel writes the EconomicModel settings to the database.
-func WriteEconomicModel(db DatabaseWriter, hash common.Hash, ec *xcom.EconomicModel) {
+func WriteEconomicModel(db ethdb.Writer, hash common.Hash, ec *xcom.EconomicModel) {
 	if ec == nil {
 		return
 	}
@@ -89,7 +91,7 @@ func WriteEconomicModel(db DatabaseWriter, hash common.Hash, ec *xcom.EconomicMo
 }
 
 // ReadEconomicModel retrieves the EconomicModel settings based on the given genesis hash.
-func ReadEconomicModel(db DatabaseReader, hash common.Hash) *xcom.EconomicModel {
+func ReadEconomicModel(db ethdb.Reader, hash common.Hash) *xcom.EconomicModel {
 	data, _ := db.Get(economicModelKey(hash))
 	if len(data) == 0 {
 		return nil
@@ -105,14 +107,14 @@ func ReadEconomicModel(db DatabaseReader, hash common.Hash) *xcom.EconomicModel 
 }
 
 // ReadPreimage retrieves a single preimage of the provided hash.
-func ReadPreimage(db DatabaseReader, hash common.Hash) []byte {
+func ReadPreimage(db ethdb.Reader, hash common.Hash) []byte {
 	data, _ := db.Get(preimageKey(hash))
 	return data
 }
 
 // WritePreimages writes the provided set of preimages to the database. `number` is the
 // current block number, and is used for debug messages only.
-func WritePreimages(db DatabaseWriter, number uint64, preimages map[common.Hash][]byte) {
+func WritePreimages(db ethdb.Writer, number uint64, preimages map[common.Hash][]byte) {
 	for hash, preimage := range preimages {
 		if err := db.Put(preimageKey(hash), preimage); err != nil {
 			log.Crit("Failed to store trie preimage", "err", err)

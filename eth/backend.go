@@ -127,7 +127,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
 	}
 	// Assemble the Ethereum object
-	chainDb, err := CreateDB(ctx, config, "chaindata")
+	chainDb, err := ctx.OpenDatabase("chaindata", config.DatabaseCache, config.DatabaseHandles, "eth/db/chaindata/")
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				return nil, err
 			}
 
-			chainDb, err = CreateDB(ctx, config, "chaindata")
+			chainDb, err = ctx.OpenDatabase("chaindata", config.DatabaseCache, config.DatabaseHandles, "eth/db/chaindata/")
 			if err != nil {
 				return nil, err
 			}
@@ -397,18 +397,6 @@ func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 		}
 	}
 	return nil
-}
-
-// CreateDB creates the chain database.
-func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Database, error) {
-	db, err := ctx.OpenDatabase(name, config.DatabaseCache, config.DatabaseHandles)
-	if err != nil {
-		return nil, err
-	}
-	if db, ok := db.(*ethdb.LDBDatabase); ok {
-		db.Meter("eth/db/chaindata/")
-	}
-	return db, nil
 }
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
