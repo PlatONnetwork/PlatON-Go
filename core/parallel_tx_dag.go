@@ -76,7 +76,6 @@ func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs [
 		}
 	}
 	// dag print info
-
 	logVerbosity := debug.GetLogVerbosity()
 	if logVerbosity == log.LvlTrace {
 		buff, err := txDag.dag.Print()

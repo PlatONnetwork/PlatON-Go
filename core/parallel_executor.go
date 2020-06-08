@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 	"math/big"
 	"runtime"
 	"sync"
@@ -129,6 +130,12 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 		log.Trace("Finalise stateDB cost", "number", ctx.header.Number, "time", time.Since(start))
 	}
 
+	// dag print info
+	logVerbosity := debug.GetLogVerbosity()
+	if logVerbosity == log.LvlTrace {
+		inf := ctx.txListInfo()
+		log.Trace("TxList Info", "blockNumber", ctx.header.Number, "txList", inf)
+	}
 	return nil
 }
 
@@ -144,6 +151,12 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 		ctx.buildTransferFailedResult(idx, err, true)
 		return
 	}
+
+	if msg.Gas() < intrinsicGas {
+		ctx.buildTransferFailedResult(idx, vm.ErrOutOfGas, true)
+		return
+	}
+
 	start := time.Now()
 	fromObj := ctx.GetState().GetOrNewParallelStateObject(msg.From())
 	if start.Add(30 * time.Millisecond).Before(time.Now()) {
@@ -161,11 +174,6 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 		return
 	} else if fromObj.GetNonce() > msg.Nonce() {
 		ctx.buildTransferFailedResult(idx, ErrNonceTooLow, true)
-		return
-	}
-
-	if msg.Gas() < intrinsicGas {
-		ctx.buildTransferFailedResult(idx, vm.ErrOutOfGas, true)
 		return
 	}
 
