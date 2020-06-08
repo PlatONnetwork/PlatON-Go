@@ -81,8 +81,8 @@ var (
 	}
 	// TestServerIndexerConfig wraps a set of configs as a test indexer config for server side.
 	TestServerIndexerConfig = &IndexerConfig{
-		ChtSize:           512,
-		PairChtSize:       2048,
+		ChtSize:           64,
+		PairChtSize:       512,
 		ChtConfirms:       4,
 		BloomSize:         64,
 		BloomConfirms:     4,
@@ -92,6 +92,7 @@ var (
 	// TestClientIndexerConfig wraps a set of configs as a test indexer config for client side.
 	TestClientIndexerConfig = &IndexerConfig{
 		ChtSize:           512,
+		PairChtSize:       64,
 		ChtConfirms:       32,
 		BloomSize:         512,
 		BloomConfirms:     32,
