@@ -49,7 +49,6 @@ type LeafCallback func(leaf []byte, parent common.Hash) error
 type Trie struct {
 	db           *Database
 	root         node
-	originalRoot common.Hash
 
 	dag *trieDag
 }
@@ -72,7 +71,6 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 	}
 	trie := &Trie{
 		db:           db,
-		originalRoot: root,
 		dag:          newTrieDag(),
 	}
 	// If root is not empty, restore the node from the DB (the whole tree)
@@ -593,7 +591,6 @@ func (t *Trie) DeepCopyTrie() *Trie {
 	return &Trie{
 		db:           t.db,
 		root:         cpyRoot,
-		originalRoot: t.originalRoot,
 		//dag:          t.dag.DeepCopy(),
 		dag: newTrieDag(),
 	}
