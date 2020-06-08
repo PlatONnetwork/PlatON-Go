@@ -27,9 +27,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -45,7 +49,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -224,7 +227,7 @@ func genesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 func TestInnerAgency(t *testing.T) {
 	bls.Init(bls.BLS12_381)
-	testdb := ethdb.NewMemDatabase()
+	testdb := rawdb.NewMemoryDatabase()
 	balanceBytes, _ := hexutil.Decode("0x2000000000000000000000000000000000000000000000000000000000000")
 	balance := big.NewInt(0)
 	genesis, chainConfig := genesisBlockForTesting(testdb, testAddress, balance.SetBytes(balanceBytes))
@@ -340,7 +343,7 @@ func TestInnerAgency(t *testing.T) {
 }
 
 func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {
-	testdb := ethdb.NewMemDatabase()
+	testdb := rawdb.NewMemoryDatabase()
 	balanceBytes, _ := hexutil.Decode("0x2000000000000000000000000000000000000000000000000000000000000")
 	balance := big.NewInt(0)
 	genesis, chainConfig := genesisBlockForTesting(testdb, testAddress, balance.SetBytes(balanceBytes))
