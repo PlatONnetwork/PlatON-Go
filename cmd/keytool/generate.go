@@ -92,7 +92,7 @@ If you want to encrypt an existing private key, it can be specified by setting
 		}
 
 		// Encrypt key with passphrase.
-		passphrase := getPassphrase(ctx)
+		passphrase := getPassphrase(ctx, true)
 		keyjson, err := keystore.EncryptKey(key, passphrase, keystore.StandardScryptN, keystore.StandardScryptP)
 		if err != nil {
 			utils.Fatalf("Error encrypting key: %v", err)
