@@ -754,9 +754,11 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memo
 }
 
 func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+
 	// Pop gas. The actual gas in interpreter.evm.callGasTemp.
 	interpreter.intPool.put(stack.pop())
 	gas := interpreter.evm.callGasTemp
+
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.BigToAddress(addr)
@@ -1008,11 +1010,11 @@ func saveTransData(interpreter *EVMInterpreter, inputData , from , to  []byte , 
 	var transInput staking.TransInput
 	transData, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
 	if nil != err {
-		log.Debug("saveTransData rlp get transHash error ",err)
+		log.Debug("saveTransData rlp get transHash error ","err", err)
 	} else {
 		err = rlp.DecodeBytes(transData, &transInput)
 		if nil != err {
-			log.Error("saveTransData rlp decode transHash error ",err)
+			log.Error("saveTransData rlp decode transHash error ","err", err)
 			return
 		}
 	}
@@ -1032,7 +1034,7 @@ func saveTransData(interpreter *EVMInterpreter, inputData , from , to  []byte , 
 		To: to,
 		TransDatas: append(transInput.TransDatas, transDataModule) ,
 	}
-	transHashByte, err := rlp.EncodeToBytes(transHash)
+	transHashByte, err := rlp.EncodeToBytes(transInput)
 	if nil != err {
 		log.Error("Failed to transHashByte EncodeToBytes on saveTransData", "err", err)
 		return
