@@ -26,6 +26,8 @@ import (
 	"reflect"
 	"unicode"
 
+	"github.com/PlatONnetwork/PlatON-Go/platonstats"
+
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -179,12 +181,14 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
+	platonstats.SetPlatonStatsLogPath(stack.ResolvePath("./"))
 
 	utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Add the Ethereum Stats daemon if requested.
 	if cfg.Ethstats.URL != "" {
-		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
+		//utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
+		utils.RegisterPlatonStatsService(stack, cfg.Ethstats.URL)
 	}
 	return stack
 }
@@ -192,12 +196,13 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, platonConfig) {
 	stack, cfg := makeConfigNode(ctx)
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
-
+	platonstats.SetPlatonStatsLogPath(stack.ResolvePath("./"))
 	utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Add the Ethereum Stats daemon if requested.
 	if cfg.Ethstats.URL != "" {
-		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
+		//utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
+		utils.RegisterPlatonStatsService(stack, cfg.Ethstats.URL)
 	}
 	return stack, cfg
 }

@@ -493,7 +493,8 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 		return err
 	}
 
-	if err := sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), epoch, canAddr, can); nil != err {
+	var err error
+	if err = sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), epoch, canAddr, can); nil != err {
 		return err
 	}
 
@@ -526,6 +527,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
+// 如果realEpoch==0，表示解除委托操作后，未生效质押资金都已经原路退回，并且没有生效的质押资金，因此不需要再冻结生效质押资金了。
 func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64,
 	canAddr common.NodeAddress, can *staking.Candidate) error {
 
@@ -548,8 +550,10 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 		can.RestrictingPlanHes = new(big.Int).SetInt64(0)
 	}
 
+	//var realSettleEpoch uint64
+	var err error
 	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
-		if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
+		if err = sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Add UnStakeItemStore failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
@@ -3391,6 +3395,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 		return err
 	}
 
+	// TODO stats: 这里还需要重新当前epoch吗?
 	refundEpoch = xutil.CalculateEpoch(blockNumber) + duration
 
 	if maxEndVoteEpoch <= refundEpoch {
@@ -3407,6 +3412,9 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum); nil != err {
 		return err
 	}
+
+	//stats: 保存需要清算的质押资金信息
+	common.GetExeBlockData(blockNumber).AddUnstakingRefundItem(nodeId, canAddr, targetEpoch)
 	return nil
 }
 

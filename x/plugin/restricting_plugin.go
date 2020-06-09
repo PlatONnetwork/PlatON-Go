@@ -73,12 +73,12 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 	if xutil.IsEndOfEpoch(head.Number.Uint64()) {
 		expect := xutil.CalculateEpoch(head.Number.Uint64())
 		rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "currBlock", head.Number, "expectBlock", head.Number, "expectEpoch", expect)
-		if err := rp.releaseRestricting(expect, state); err != nil {
+		if err := rp.releaseRestricting(head.Number.Uint64(), expect, state); err != nil {
 			return err
 		}
 		if ok, _ := xcom.IsYearEnd(blockHash, head.Number.Uint64()); ok {
 			rp.log.Info(fmt.Sprintf("release genesis restricting plan, blocknumber:%d", head.Number.Uint64()))
-			return rp.releaseGenesisRestrictingPlans(blockHash, state)
+			return rp.releaseGenesisRestrictingPlans(head.Number.Uint64(), blockHash, state)
 		}
 	}
 	return nil
@@ -180,7 +180,7 @@ func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) e
 }
 
 // release genesis restricting plans
-func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Hash, statedb xcom.StateDB) error {
+func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockNumber uint64, blockHash common.Hash, statedb xcom.StateDB) error {
 
 	plansBytes := statedb.GetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting)
 	var genesisAllowancePlans []*big.Int
@@ -194,6 +194,10 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 				allowance := genesisAllowancePlans[0]
 				statedb.SubBalance(vm.RestrictingContractAddr, allowance)
 				statedb.AddBalance(vm.RewardManagerPoolAddr, allowance)
+
+				//stats: 增加锁仓释放项目
+				common.GetExeBlockData(blockNumber).AddRestrictingReleaseItem(vm.RewardManagerPoolAddr, allowance.Uint64())
+
 				rp.log.Info("Genesis restricting plan release", "remains", remains, "allowance", allowance)
 				genesisAllowancePlans = append(genesisAllowancePlans[:0], genesisAllowancePlans[1:]...)
 				if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {
@@ -499,7 +503,7 @@ func (rp *RestrictingPlugin) storeAmount2ReleaseAmount(state xcom.StateDB, epoch
 }
 
 // releaseRestricting will release restricting plans on target epoch
-func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB) error {
+func (rp *RestrictingPlugin) releaseRestricting(blockNumber uint64, epoch uint64, state xcom.StateDB) error {
 
 	rp.log.Info("Call releaseRestricting begin", "epoch", epoch)
 	releaseEpochKey, numbers := rp.getReleaseEpochNumber(state, epoch)
@@ -534,11 +538,18 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 			if canRelease.Cmp(releaseAmount) >= 0 {
 				rp.transferAmount(state, vm.RestrictingContractAddr, account, releaseAmount)
 				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, releaseAmount)
+
+				//stats: 增加释放列表
+				common.GetExeBlockData(blockNumber).AddRestrictingReleaseItem(account, releaseAmount.Uint64())
+
 			} else {
 				needRelease := new(big.Int).Sub(releaseAmount, canRelease)
 				rp.transferAmount(state, vm.RestrictingContractAddr, account, canRelease)
 				restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, needRelease)
 				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, canRelease)
+
+				//stats: 增加释放列表
+				common.GetExeBlockData(blockNumber).AddRestrictingReleaseItem(account, canRelease.Uint64())
 			}
 		}
 

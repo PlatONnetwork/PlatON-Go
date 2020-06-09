@@ -27,6 +27,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/platonstats"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -1323,6 +1325,18 @@ func RegisterEthStatsService(stack *node.Node, url string) {
 		return ethstats.New(url, ethServ, lesServ)
 	}); err != nil {
 		Fatalf("Failed to register the PlatON-Go Stats service: %v", err)
+	}
+}
+
+func RegisterPlatonStatsService(stack *node.Node, url string) {
+	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+		// Retrieve both eth and les services
+		var ethServ *eth.Ethereum
+		ctx.Service(&ethServ)
+
+		return platonstats.New(url, ethServ)
+	}); err != nil {
+		Fatalf("Failed to register the PlatON stats service: %v", err)
 	}
 }
 

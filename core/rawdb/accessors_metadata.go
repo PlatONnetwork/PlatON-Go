@@ -18,6 +18,7 @@ package rawdb
 
 import (
 	"encoding/json"
+	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -120,4 +121,33 @@ func WritePreimages(db DatabaseWriter, number uint64, preimages map[common.Hash]
 	}
 	preimageCounter.Inc(int64(len(preimages)))
 	preimageHitCounter.Inc(int64(len(preimages)))
+}
+
+func WriteExeBlockData(db DatabaseWriter, blockNumber *big.Int, data *common.ExeBlockData) {
+	if data == nil {
+		return
+	}
+	encoded := common.MustRlpEncode(data)
+	if err := db.Put(exeBlockDataKey(blockNumber), encoded); err != nil {
+		log.Crit("Failed to write ExeBlockData", "blockNumber", blockNumber, "err", err)
+	}
+}
+
+func ReadExeBlockData(db DatabaseReader, blockNumber *big.Int) *common.ExeBlockData {
+	bytes, _ := db.Get(exeBlockDataKey(blockNumber))
+	if len(bytes) == 0 {
+		return nil
+	}
+	var data common.ExeBlockData
+	if err := rlp.DecodeBytes(bytes, &data); err != nil {
+		log.Crit("Failed to read ExeBlockData", "blockNumber", blockNumber, "err", err)
+		return nil
+	}
+	return &data
+}
+
+func DeleteExeBlockData(db DatabaseDeleter, blockNumber *big.Int) {
+	if err := db.Delete(exeBlockDataKey(blockNumber)); err != nil {
+		log.Crit("Failed to delete ExeBlockData", "blockNumber", blockNumber, "err", err)
+	}
 }

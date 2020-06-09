@@ -19,10 +19,11 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -95,12 +96,16 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 	stakingReward := new(big.Int)
 	var err error
 
+	var rewardData = &common.RewardData{}
 	if head.Number.Uint64() == common.Big1.Uint64() {
 		packageReward, stakingReward, err = rmp.CalcEpochReward(blockHash, head, state)
 		if nil != err {
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
+
+		//stats: 待分配的出块奖励金额，每个结算周期可能不一样
+		rewardData.BlockRewardAmount = packageReward.Uint64()
 	} else {
 		packageReward, err = LoadNewBlockReward(blockHash, rmp.db)
 		if nil != err {
@@ -112,8 +117,12 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			log.Error("Load StakingReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
+
+		//stats: 待分配的出块奖励金额，每个结算周期可能不一样
+		rewardData.BlockRewardAmount = packageReward.Uint64()
 	}
 
+	//stats: 收集分配奖励金额（只分配到出块节点，以及所有有效委托的奖励）
 	if err := rmp.AllocatePackageBlock(blockHash, head, packageReward, state); err != nil {
 		return err
 	}
@@ -135,9 +144,25 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
+
+		//stats: 收集待分配的质押奖励金额，每个结算周期可能不一样
+		rewardData.StakingRewardAmount = stakingReward.Uint64()
+		rewardData.CandidateInfoList = convertVerifier(verifierList)
+		common.GetExeBlockData(blockNumber).RewardData = rewardData
 	}
 
 	return nil
+}
+
+func convertVerifier(verifierList []*staking.Candidate) []*common.CandidateInfo {
+	candidateInfoList := make([]*common.CandidateInfo, len(verifierList))
+	for _, verifier := range verifierList {
+		candidateInfo := &common.CandidateInfo{
+			NodeID: verifier.NodeId, MinerAddress: verifier.BenefitAddress,
+		}
+		candidateInfoList = append(candidateInfoList, candidateInfo)
+	}
+	return candidateInfoList
 }
 
 // Confirmed does nothing
@@ -161,14 +186,16 @@ func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
 	return false
 }
 
-func (rmp *RewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
+func (rmp *RewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) (common.Address, *big.Int) {
 	platonFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
 	state.AddBalance(xcom.PlatONFundAccount(), platonFoundationIncr)
+	return xcom.PlatONFundAccount(), platonFoundationIncr
 }
 
-func (rmp *RewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
+func (rmp *RewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) (common.Address, *big.Int) {
 	developerFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
 	state.AddBalance(xcom.CDFAccount(), developerFoundationIncr)
+	return xcom.CDFAccount(), developerFoundationIncr
 }
 func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))
@@ -178,6 +205,9 @@ func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, cu
 // increaseIssuance used for increase issuance at the end of each year
 func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xcom.StateDB, blockNumber uint64, blockHash common.Hash) error {
 	var currIssuance *big.Int
+
+	//stats: 收集增发数据
+	additionalIssuance := &common.AdditionalIssuanceData{}
 	//issuance increase
 	{
 		histIssuance := GetHistoryCumulativeIssue(state, lastYear)
@@ -196,17 +226,33 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
 
+		//stats: 收集增发数据
+		additionalIssuance.AdditionalBase = histIssuance.Uint64()
+		additionalIssuance.AdditionalAmount = currIssuance.Uint64()
+		additionalIssuance.AdditionalRate = increaseIssuanceRatio
 	}
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
+
+	//stats: 收集增发数据
+	additionalIssuance.AddIssuanceItem(vm.RewardManagerPoolAddr, rewardpoolIncr.Uint64())
+
 	lessBalance := new(big.Int).Sub(currIssuance, rewardpoolIncr)
 	if rmp.isLessThanFoundationYear(thisYear) {
 		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer", "thisYear", thisYear, "developBalance", lessBalance)
-		rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
+		address, amount := rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
+		//stats: 收集增发数据
+		additionalIssuance.AddIssuanceItem(address, amount.Uint64())
 	} else {
 		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "develop and platon Balance", lessBalance)
-		rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
-		rmp.addPlatONFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
+
+		address, amount := rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
+		//stats: 收集增发数据
+		additionalIssuance.AddIssuanceItem(address, amount.Uint64())
+
+		address, amount = rmp.addPlatONFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
+		//stats: 收集增发数据
+		additionalIssuance.AddIssuanceItem(address, amount.Uint64())
 	}
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)
