@@ -133,7 +133,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
-	hDB, error := CreateDB(ctx, config, "historydata")
+	hDB, error := ctx.OpenDatabase("historydata",config.DatabaseCache, config.DatabaseHandles, "eth/db/historydata/" )
 	if error != nil {
 		return nil, error
 	}
