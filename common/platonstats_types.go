@@ -70,7 +70,7 @@ type RestrictingReleaseItem struct {
 	ReleaseAmount uint64  //释放金额
 }
 
-var ExeBlockDataCollector map[uint64]*ExeBlockData
+var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
 
 func GetExeBlockData(blockNumber uint64) *ExeBlockData {
 	return ExeBlockDataCollector[blockNumber]
