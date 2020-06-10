@@ -69,8 +69,13 @@ type RestrictingReleaseItem struct {
 
 var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
 
-func GetExeBlockData(blockNumber uint64) *ExeBlockData {
-	return ExeBlockDataCollector[blockNumber]
+func PopExeBlockData(blockNumber uint64) *ExeBlockData {
+	exeBlockData, ok := ExeBlockDataCollector[blockNumber]
+	if ok {
+		delete(ExeBlockDataCollector, blockNumber)
+		return exeBlockData
+	}
+	return nil
 }
 
 func InitExeBlockData(blockNumber uint64) {
@@ -119,5 +124,12 @@ func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByVali
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.DuplicatedSignSlashingSetting = &DuplicatedSignSlashingSetting{PenaltyRatioByValidStakings: penaltyRatioByValidStakings, RewardRatioByPenalties: rewardRatioByPenalties}
+	}
+}
+
+func CollectZeroSlashingItem(blockNumber uint64, zeroSlashingItemList []*ZeroSlashingItem) {
+	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+		d := ExeBlockDataCollector[blockNumber]
+		d.ZeroSlashingItemList = zeroSlashingItemList
 	}
 }

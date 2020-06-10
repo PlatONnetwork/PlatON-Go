@@ -170,7 +170,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				}
 
 				//stats: 收集零出块惩罚数据
-				common.GetExeBlockData(header.Number.Uint64()).ZeroSlashingItemList = convertSlashNodeItem(slashQueue)
+				common.CollectZeroSlashingItem(header.Number.Uint64(), convertSlashNodeItem(slashQueue))
 			}
 
 		}

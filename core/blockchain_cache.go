@@ -306,7 +306,7 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
 
 		//stats: 保存 ExeBlockData in snapshotDB
-		rawdb.WriteExeBlockData(bcc.db, block.Number(), common.GetExeBlockData(block.NumberU64()))
+		rawdb.WriteExeBlockData(bcc.db, block.Number(), common.PopExeBlockData(block.NumberU64()))
 
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())
