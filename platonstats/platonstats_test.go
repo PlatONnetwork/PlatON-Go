@@ -124,12 +124,10 @@ func Test_StatsService(t *testing.T) {
 }
 
 func Test_Log(t *testing.T) {
-	logFile := "d:\\swap\\platonstats.log"
-
 	blockNumber := uint64(121)
-	writeBlockNumber(logFile, blockNumber)
+	writeBlockNumber(blockNumber)
 
-	if blockNo, err := readBlockNumber(logFile); err != nil {
+	if blockNo, err := readBlockNumber(); err != nil {
 		t.Fatal("Failed to read stats service log", "error", err)
 	} else {
 		t.Log("read the number from log", "number", blockNo)

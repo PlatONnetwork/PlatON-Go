@@ -26,8 +26,6 @@ import (
 	"reflect"
 	"unicode"
 
-	"github.com/PlatONnetwork/PlatON-Go/platonstats"
-
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -77,15 +75,15 @@ var tomlSettings = toml.Config{
 type ethstatsConfig struct {
 	URL string `toml:",omitempty"`
 }
-type platonstatsConfig struct {
+type statsConfig struct {
 	URL string `toml:",omitempty"`
 }
 
 type platonConfig struct {
-	Eth         eth.Config
-	Node        node.Config
-	Ethstats    ethstatsConfig
-	Platonstats platonstatsConfig
+	Eth  eth.Config
+	Node node.Config
+	//Ethstats ethstatsConfig
+	Stats statsConfig
 }
 
 func loadConfig(file string, cfg *platonConfig) error {
@@ -175,8 +173,8 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
 	}*/
 
-	if ctx.GlobalIsSet(utils.PlatonStatsURLFlag.Name) {
-		cfg.Platonstats.URL = ctx.GlobalString(utils.PlatonStatsURLFlag.Name)
+	if ctx.GlobalIsSet(utils.StatsURLFlag.Name) {
+		cfg.Stats.URL = ctx.GlobalString(utils.StatsURLFlag.Name)
 	}
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
 
@@ -188,14 +186,11 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
-	platonstats.SetPlatonStatsLogPath(stack.ResolvePath("./"))
-
 	utils.RegisterEthService(stack, &cfg.Eth)
 
-	// Add the Ethereum Stats daemon if requested.
-	if cfg.Ethstats.URL != "" {
-		//utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
-		utils.RegisterPlatonStatsService(stack, cfg.Ethstats.URL)
+	// Add the PlatON Stats daemon if requested.
+	if cfg.Stats.URL != "" {
+		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Node.DataDir)
 	}
 	return stack
 }
@@ -203,13 +198,11 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, platonConfig) {
 	stack, cfg := makeConfigNode(ctx)
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
-	platonstats.SetPlatonStatsLogPath(stack.ResolvePath("./"))
 	utils.RegisterEthService(stack, &cfg.Eth)
 
-	// Add the Ethereum Stats daemon if requested.
-	if cfg.Ethstats.URL != "" {
-		//utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
-		utils.RegisterPlatonStatsService(stack, cfg.Ethstats.URL)
+	// Add the PlatON Stats daemon if requested.
+	if cfg.Stats.URL != "" {
+		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Node.DataDir)
 	}
 	return stack, cfg
 }

@@ -46,15 +46,8 @@ const (
 )
 
 var (
-	statsLogPath = "./"
-	statsLogFile = "platonstats.log"
+	statsLogFile = "./platonstats.log"
 )
-
-func SetPlatonStatsLogPath(path string) {
-	statsLogPath = path
-	statsLogFile = filepath.Join(statsLogPath, statsLogFile)
-	log.Info("PlatON stats service log file", "path", statsLogFile)
-}
 
 type platonStats interface {
 	SubscribeSampleEvent(ch chan<- SampleEvent) event.Subscription
@@ -73,9 +66,9 @@ type StatsBlockExt struct {
 type PlatonStatsService struct {
 	server *p2p.Server // Peer-to-peer server to retrieve networking infos
 
-	kafkaUrl string
-	eth      *eth.Ethereum // Full Ethereum service if monitoring a full node
-
+	kafkaUrl      string
+	eth           *eth.Ethereum // Full Ethereum service if monitoring a full node
+	datadir       string
 	blockProducer sarama.SyncProducer
 	msgProducer   sarama.AsyncProducer
 
@@ -89,10 +82,14 @@ var (
 	platonStatsService *PlatonStatsService
 )
 
-func New(kafkaUrl string, ethServ *eth.Ethereum) (*PlatonStatsService, error) {
+func New(kafkaUrl string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
 	platonStatsService = &PlatonStatsService{
 		kafkaUrl: kafkaUrl,
 		eth:      ethServ,
+		datadir:  datadir,
+	}
+	if len(datadir) > 0 {
+		statsLogFile = filepath.Join(datadir, statsLogFile)
 	}
 	return platonStatsService, nil
 }
@@ -183,7 +180,7 @@ func (s *PlatonStatsService) blockMsgLoop() {
 	var nextBlockNumber uint64
 	nextBlockNumber = 0
 
-	if loggedBlockNumber, err := readBlockNumber(statsLogFile); err == nil {
+	if loggedBlockNumber, err := readBlockNumber(); err == nil {
 		nextBlockNumber = loggedBlockNumber + 1
 	}
 
@@ -191,7 +188,7 @@ func (s *PlatonStatsService) blockMsgLoop() {
 		nextBlock := s.BlockChain().GetBlockByNumber(nextBlockNumber)
 		if nextBlock != nil {
 			if err := s.reportBlockMsg(nextBlock); err == nil {
-				if err := writeBlockNumber(statsLogFile, nextBlockNumber); err == nil {
+				if err := writeBlockNumber(nextBlockNumber); err == nil {
 					nextBlockNumber = nextBlockNumber + 1
 				}
 			}
@@ -250,8 +247,8 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	return nil
 }
 
-func readBlockNumber(file string) (uint64, error) {
-	if bytes, err := ioutil.ReadFile(file); err != nil || len(bytes) == 0 {
+func readBlockNumber() (uint64, error) {
+	if bytes, err := ioutil.ReadFile(statsLogFile); err != nil || len(bytes) == 0 {
 		return 0, errors.New("Failed to read PlatON stats service log")
 	} else {
 		if blockNumber, err := strconv.ParseUint(string(bytes), 10, 64); err != nil {
@@ -263,8 +260,8 @@ func readBlockNumber(file string) (uint64, error) {
 	}
 }
 
-func writeBlockNumber(file string, blockNumber uint64) error {
-	return ioutil.WriteFile(file, []byte(strconv.FormatUint(blockNumber, 10)), 666)
+func writeBlockNumber(blockNumber uint64) error {
+	return ioutil.WriteFile(statsLogFile, []byte(strconv.FormatUint(blockNumber, 10)), 666)
 }
 
 func (s *PlatonStatsService) sampleMsgLoop() {

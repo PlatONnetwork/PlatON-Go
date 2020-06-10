@@ -233,7 +233,7 @@ func (s *MockPlatonStatsService) blockMsgLoop() {
 	var nextBlockNumber uint64
 	nextBlockNumber = 0
 
-	if loggedBlockNumber, err := readBlockNumber(statsLogFile); err == nil {
+	if loggedBlockNumber, err := readBlockNumber(); err == nil {
 		nextBlockNumber = loggedBlockNumber + 1
 	}
 
@@ -242,7 +242,7 @@ func (s *MockPlatonStatsService) blockMsgLoop() {
 		nextBlock := s.BlockChain().GetBlockByNumber(nextBlockNumber)
 		if nextBlock != nil {
 			if err := s.reportBlockMsg(nextBlock); err == nil {
-				if err := writeBlockNumber(statsLogFile, nextBlockNumber); err == nil {
+				if err := writeBlockNumber(nextBlockNumber); err == nil {
 					log.Debug("Success to write stats service log", "blockNumber", nextBlock.NumberU64())
 					nextBlockNumber = nextBlockNumber + 1
 				} else {
