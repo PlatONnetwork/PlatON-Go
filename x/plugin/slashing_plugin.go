@@ -180,11 +180,11 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 
 func convertSlashNodeItem(slashItemList []*staking.SlashNodeItem) []*common.ZeroSlashingItem {
 	zeroSlashingItemList := make([]*common.ZeroSlashingItem, len(slashItemList))
-	for _, slashNodeItem := range slashItemList {
+	for idx, slashNodeItem := range slashItemList {
 		zeroSlashingItem := &common.ZeroSlashingItem{
 			NodeID: slashNodeItem.NodeId, SlashingAmount: slashNodeItem.Amount.Uint64(),
 		}
-		zeroSlashingItemList = append(zeroSlashingItemList, zeroSlashingItem)
+		zeroSlashingItemList[idx] = zeroSlashingItem
 	}
 	return zeroSlashingItemList
 }
