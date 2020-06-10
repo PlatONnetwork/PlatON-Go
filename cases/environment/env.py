@@ -330,6 +330,11 @@ class TestEnvironment:
 
         return self.executor(close, self.get_all_nodes())
 
+    def clean_supervisor_confs(self):
+        def clean(server: Server):
+            return server.clean_supervisor_conf()
+        return self.executor(clean, self.server_list)
+
     def start_nodes(self, node_list: List[Node], init_chain=True):
         """
         Boot node
