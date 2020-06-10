@@ -129,7 +129,7 @@ func WriteExeBlockData(db DatabaseWriter, blockNumber *big.Int, data *common.Exe
 	}
 
 	jsonBytes, _ := json.Marshal(data)
-	log.Debug("WriteExeBlockData", "blockNumber", blockNumber, "data", string(jsonBytes))
+	log.Info("WriteExeBlockData", "blockNumber", blockNumber, "data", string(jsonBytes))
 
 	encoded := common.MustRlpEncode(data)
 	if err := db.Put(exeBlockDataKey(blockNumber), encoded); err != nil {
