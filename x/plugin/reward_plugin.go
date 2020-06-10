@@ -156,11 +156,11 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 
 func convertVerifier(verifierList []*staking.Candidate) []*common.CandidateInfo {
 	candidateInfoList := make([]*common.CandidateInfo, len(verifierList))
-	for _, verifier := range verifierList {
+	for idx, verifier := range verifierList {
 		candidateInfo := &common.CandidateInfo{
 			NodeID: verifier.NodeId, MinerAddress: verifier.BenefitAddress,
 		}
-		candidateInfoList = append(candidateInfoList, candidateInfo)
+		candidateInfoList[idx] = candidateInfo
 	}
 	return candidateInfoList
 }
