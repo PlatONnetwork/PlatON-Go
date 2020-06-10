@@ -1,6 +1,7 @@
 package platonstats
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -54,7 +55,11 @@ func buildExeBlockData() *common.ExeBlockData {
 }
 func Test_rlp_Data(t *testing.T) {
 	NewMockPlatonStatsService()
-	bytes := common.MustRlpEncode(buildExeBlockData())
+	blockData := buildExeBlockData()
+	json, _ := json.Marshal(blockData)
+	t.Log("blockData", string(json))
+
+	bytes := common.MustRlpEncode(blockData)
 
 	hex := fmt.Sprintf("encoded: %q", bytes)
 	t.Log(hex)
