@@ -37,18 +37,20 @@ func TestUrl(t *testing.T) {
 }
 
 func buildExeBlockData() *common.ExeBlockData {
+	blockNumber := uint64(100)
+	common.InitExeBlockData(blockNumber)
+
 	candidate := &common.CandidateInfo{nodeId, address}
 	candidateInfoList := []*common.CandidateInfo{candidate}
 
-	exeBlockData := new(common.ExeBlockData)
-	exeBlockData.AddRestrictingReleaseItem(address, 111)
-	exeBlockData.AddUnstakingRefundItem(nodeId, nodeAddress, 222)
-	exeBlockData.AttachDuplicatedSignSlashingSetting(2000, 60)
+	common.CollectRestrictingReleaseItem(blockNumber, address, 111)
+	common.CollectUnstakingRefundItem(blockNumber, nodeId, nodeAddress, 222)
+	common.CollectDuplicatedSignSlashingSetting(blockNumber, 2000, 60)
 
 	rewardData := &common.RewardData{BlockRewardAmount: 12, StakingRewardAmount: 12, CandidateInfoList: candidateInfoList}
-	exeBlockData.RewardData = rewardData
+	common.CollectRewardData(blockNumber, rewardData)
 
-	return exeBlockData
+	return common.GetExeBlockData(blockNumber)
 }
 func Test_rlp_Data(t *testing.T) {
 

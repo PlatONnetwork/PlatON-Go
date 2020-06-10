@@ -167,9 +167,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 	//	cfg.Eth.CbftConfig = *cbftConfig
 	//}
 
-	//if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
-	//	cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
-	//}
+	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
+		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
+	}
 
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
 

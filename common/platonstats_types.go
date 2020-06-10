@@ -1,11 +1,8 @@
 package common
 
-import (
-	"bytes"
-	"strconv"
-)
-
 //type NodeID [64]byte
+
+var PlatONStatsServiceRunning bool = false
 
 type GenesisData struct {
 	AllocItemList []*AllocItem
@@ -76,15 +73,16 @@ func GetExeBlockData(blockNumber uint64) *ExeBlockData {
 	return ExeBlockDataCollector[blockNumber]
 }
 
-func InitExeBlockData(blockNumber uint64) *ExeBlockData {
-	exeBlockData := &ExeBlockData{
-		ZeroSlashingItemList:       make([]*ZeroSlashingItem, 0),
-		UnstakingRefundItemList:    make([]*UnstakingRefundItem, 0),
-		RestrictingReleaseItemList: make([]*RestrictingReleaseItem, 0),
-	}
+func InitExeBlockData(blockNumber uint64) {
+	if PlatONStatsServiceRunning {
+		exeBlockData := &ExeBlockData{
+			ZeroSlashingItemList:       make([]*ZeroSlashingItem, 0),
+			UnstakingRefundItemList:    make([]*UnstakingRefundItem, 0),
+			RestrictingReleaseItemList: make([]*RestrictingReleaseItem, 0),
+		}
 
-	ExeBlockDataCollector[blockNumber] = exeBlockData
-	return exeBlockData
+		ExeBlockDataCollector[blockNumber] = exeBlockData
+	}
 }
 
 type ExeBlockData struct {
@@ -96,63 +94,30 @@ type ExeBlockData struct {
 	RestrictingReleaseItemList    []*RestrictingReleaseItem      `rlp:"nil"`
 }
 
-func (d *ExeBlockData) AddUnstakingRefundItem(nodeId [64]byte, nodeAddress NodeAddress, refundEpochNo uint64) {
-	//todo: test
-	d.UnstakingRefundItemList = append(d.UnstakingRefundItemList, &UnstakingRefundItem{NodeID: nodeId, NodeAddress: nodeAddress, RefundEpochNo: refundEpochNo})
-}
-
-func (d *ExeBlockData) AddRestrictingReleaseItem(destAddress Address, releaseAmount uint64) {
-	//todo: test
-	d.RestrictingReleaseItemList = append(d.RestrictingReleaseItemList, &RestrictingReleaseItem{DestAddress: destAddress, ReleaseAmount: releaseAmount})
-}
-
-func (d *ExeBlockData) AttachDuplicatedSignSlashingSetting(penaltyRatioByValidStakings, rewardRatioByPenalties uint32) {
-	d.DuplicatedSignSlashingSetting = &DuplicatedSignSlashingSetting{PenaltyRatioByValidStakings: penaltyRatioByValidStakings, RewardRatioByPenalties: rewardRatioByPenalties}
-}
-
-var KeyDelimiter = []byte(":")
-var ExeBlockDataKey = []byte("ExeBlockDataKey")
-
-//todo: refer to blockchian.go's writeHeader(header *types.Header) error {
-func ExeBlockDataKeyValue(blockNumber uint64) []byte {
-	return bytes.Join([][]byte{
-		ExeBlockDataKey,
-		[]byte(strconv.FormatUint(blockNumber, 10)),
-	}, KeyDelimiter)
-}
-
-/*
-func AddUnstakingRefundItem(blockHash Hash, blockNumber uint64, nodeID discover.NodeID, nodeAddress NodeAddress, refundEpochNo uint64) error {
-	item := &UnstakingRefundItem{NodeID: nodeID, NodeAddress: nodeAddress, RefundEpochNo: refundEpochNo}
-	if unstakingRefundData, err := GetUnstakingRefundData(blockHash, blockNumber); err != nil {
-		return err
-	} else {
-		if unstakingRefundData == nil {
-			list := []*UnstakingRefundItem{item}
-			unstakingRefundData = &UnstakingRefundData{UnstakingRefundItemList: list}
-		} else {
-			unstakingRefundData.UnstakingRefundItemList = append(unstakingRefundData.UnstakingRefundItemList, item)
-		}
-		return snapshotdb.Instance().Put(blockHash, UnstakingRefundItemListKeyValue(blockNumber), MustRlpEncode(unstakingRefundData))
+func CollectUnstakingRefundItem(blockNumber uint64, nodeId [64]byte, nodeAddress NodeAddress, refundEpochNo uint64) {
+	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+		d := ExeBlockDataCollector[blockNumber]
+		d.UnstakingRefundItemList = append(d.UnstakingRefundItemList, &UnstakingRefundItem{NodeID: nodeId, NodeAddress: nodeAddress, RefundEpochNo: refundEpochNo})
 	}
 }
 
-func GetUnstakingRefundData(blockHash Hash, blockNumber uint64) (*UnstakingRefundData, error) {
-	key := UnstakingRefundItemListKeyValue(blockNumber)
-	bytes, err := snapshotdb.Instance().Get(blockHash, key)
-	if err != nil && err != snapshotdb.ErrNotFound {
-		return nil, err
+func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, releaseAmount uint64) {
+	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+		d := ExeBlockDataCollector[blockNumber]
+		d.RestrictingReleaseItemList = append(d.RestrictingReleaseItemList, &RestrictingReleaseItem{DestAddress: destAddress, ReleaseAmount: releaseAmount})
 	}
-	var unstakingRefundData *UnstakingRefundData
-	if len(bytes) > 0 {
-		if err = rlp.DecodeBytes(bytes, unstakingRefundData); err != nil {
-			return nil, err
-		}
+}
+
+func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
+	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+		d := ExeBlockDataCollector[blockNumber]
+		d.RewardData = rewardData
 	}
-	return unstakingRefundData, nil
 }
-func RemoveUnstakingRefundData(blockHash Hash, blockNumber uint64) error {
-	key := UnstakingRefundItemListKeyValue(blockNumber)
-	return snapshotdb.Instance().Del(blockHash, key)
+
+func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByValidStakings, rewardRatioByPenalties uint32) {
+	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+		d := ExeBlockDataCollector[blockNumber]
+		d.DuplicatedSignSlashingSetting = &DuplicatedSignSlashingSetting{PenaltyRatioByValidStakings: penaltyRatioByValidStakings, RewardRatioByPenalties: rewardRatioByPenalties}
+	}
 }
-*/

@@ -196,7 +196,7 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockNumber uint64, 
 				statedb.AddBalance(vm.RewardManagerPoolAddr, allowance)
 
 				//stats: 增加锁仓释放项目
-				common.GetExeBlockData(blockNumber).AddRestrictingReleaseItem(vm.RewardManagerPoolAddr, allowance.Uint64())
+				common.CollectRestrictingReleaseItem(blockNumber, vm.RewardManagerPoolAddr, allowance.Uint64())
 
 				rp.log.Info("Genesis restricting plan release", "remains", remains, "allowance", allowance)
 				genesisAllowancePlans = append(genesisAllowancePlans[:0], genesisAllowancePlans[1:]...)
@@ -540,7 +540,7 @@ func (rp *RestrictingPlugin) releaseRestricting(blockNumber uint64, epoch uint64
 				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, releaseAmount)
 
 				//stats: 增加释放列表
-				common.GetExeBlockData(blockNumber).AddRestrictingReleaseItem(account, releaseAmount.Uint64())
+				common.CollectRestrictingReleaseItem(blockNumber, account, releaseAmount.Uint64())
 
 			} else {
 				needRelease := new(big.Int).Sub(releaseAmount, canRelease)
@@ -549,7 +549,7 @@ func (rp *RestrictingPlugin) releaseRestricting(blockNumber uint64, epoch uint64
 				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, canRelease)
 
 				//stats: 增加释放列表
-				common.GetExeBlockData(blockNumber).AddRestrictingReleaseItem(account, canRelease.Uint64())
+				common.CollectRestrictingReleaseItem(blockNumber, account, canRelease.Uint64())
 			}
 		}
 

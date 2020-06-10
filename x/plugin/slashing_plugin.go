@@ -673,7 +673,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		"the txHash", stateDB.TxHash().TerminalString())
 
 	//stats: 收集区块执行数据
-	common.GetExeBlockData(blockNumber).AttachDuplicatedSignSlashingSetting(fraction, rewardFraction)
+	common.CollectDuplicatedSignSlashingSetting(blockNumber, fraction, rewardFraction)
 	return nil
 }
 
