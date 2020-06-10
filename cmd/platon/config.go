@@ -77,11 +77,15 @@ var tomlSettings = toml.Config{
 type ethstatsConfig struct {
 	URL string `toml:",omitempty"`
 }
+type platonstatsConfig struct {
+	URL string `toml:",omitempty"`
+}
 
 type platonConfig struct {
-	Eth      eth.Config
-	Node     node.Config
-	Ethstats ethstatsConfig
+	Eth         eth.Config
+	Node        node.Config
+	Ethstats    ethstatsConfig
+	Platonstats platonstatsConfig
 }
 
 func loadConfig(file string, cfg *platonConfig) error {
@@ -167,10 +171,13 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 	//	cfg.Eth.CbftConfig = *cbftConfig
 	//}
 
-	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
+	/*if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
 		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
-	}
+	}*/
 
+	if ctx.GlobalIsSet(utils.PlatonStatsURLFlag.Name) {
+		cfg.Platonstats.URL = ctx.GlobalString(utils.PlatonStatsURLFlag.Name)
+	}
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
 
 	return stack, cfg

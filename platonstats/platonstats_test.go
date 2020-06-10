@@ -53,7 +53,7 @@ func buildExeBlockData() *common.ExeBlockData {
 	return common.GetExeBlockData(blockNumber)
 }
 func Test_rlp_Data(t *testing.T) {
-
+	NewMockPlatonStatsService()
 	bytes := common.MustRlpEncode(buildExeBlockData())
 
 	hex := fmt.Sprintf("encoded: %q", bytes)

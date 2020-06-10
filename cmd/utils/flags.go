@@ -312,10 +312,16 @@ var (
 		Value: "",
 	}
 	// Logging and debug settings
-	EthStatsURLFlag = cli.StringFlag{
+	/*EthStatsURLFlag = cli.StringFlag{
 		Name:  "ethstats",
 		Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
 	}
+	*/
+	PlatonStatsURLFlag = cli.StringFlag{
+		Name:  "platonstats",
+		Usage: "Reporting URL of a platonstats service (host:port)",
+	}
+
 	NoCompactionFlag = cli.BoolFlag{
 		Name:  "nocompaction",
 		Usage: "Disables db compaction after import",
