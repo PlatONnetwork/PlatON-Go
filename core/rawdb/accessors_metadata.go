@@ -127,6 +127,10 @@ func WriteExeBlockData(db DatabaseWriter, blockNumber *big.Int, data *common.Exe
 	if data == nil {
 		return
 	}
+
+	jsonBytes, _ := json.Marshal(data)
+	log.Debug("WriteExeBlockData", "blockNumber", blockNumber, "data", string(jsonBytes))
+
 	encoded := common.MustRlpEncode(data)
 	if err := db.Put(exeBlockDataKey(blockNumber), encoded); err != nil {
 		log.Crit("Failed to write ExeBlockData", "blockNumber", blockNumber, "err", err)
