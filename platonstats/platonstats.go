@@ -131,17 +131,8 @@ func (s *PlatonStatsService) Start(server *p2p.Server) error {
 		s.blockProducer = blockProducer
 	}
 
-	defer func() {
-		if s.msgProducer != nil {
-			s.msgProducer.AsyncClose()
-		}
-		if s.blockProducer != nil {
-			s.blockProducer.Close()
-		}
-	}()
-
 	go s.blockMsgLoop()
-	go s.sampleMsgLoop()
+	//go s.sampleMsgLoop()
 
 	common.PlatONStatsServiceRunning = true
 	log.Info("PlatON stats daemon started")
@@ -170,6 +161,12 @@ func (s *PlatonStatsService) Stop() error {
 	s.stopOnce.Do(func() {
 		close(s.stopSampleMsg)
 		close(s.stopBlockMsg)
+		if s.msgProducer != nil {
+			s.msgProducer.AsyncClose()
+		}
+		if s.blockProducer != nil {
+			s.blockProducer.Close()
+		}
 	})
 
 	log.Info("PlatON stats daemon stopped")
