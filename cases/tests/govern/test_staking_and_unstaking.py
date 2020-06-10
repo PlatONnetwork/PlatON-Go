@@ -801,9 +801,11 @@ class TestSlashing:
                                  '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
-
+        result = proposal_vote(pip, proposaltype=pip.cfg.param_proposal)
+        assert_code(result, 0)
         proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Get param proposal information : {}'.format(proposalinfo_param))
+
         result = pip.submitCancel(pip.node.node_id, str(time.time()), 14, proposalinfo_param.get('ProposalID'),
                                   pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel result : {}'.format(result))
