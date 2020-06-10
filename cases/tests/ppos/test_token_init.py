@@ -50,7 +50,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
             "balance": surplus_amount
         }
     }
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -85,7 +85,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
 
 @allure.title("Two distribution-Transfer amount：{value}")
 @pytest.mark.P0
-@pytest.mark.parametrize('value', [1000, 0.000000000000000001, 100000000])
+@pytest.mark.parametrize('value', [0, 1000, 0.000000000000000001, 100000000])
 def test_IT_SD_004_to_006(client_consensus, value):
     """
     IT_SD_006:二次分配：普通钱包转keyshard钱包
@@ -616,7 +616,7 @@ def test_AL_BI_002(new_genesis_env, staking_cfg):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 5
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     client_noc_list_obj = get_clients_noconsensus(new_genesis_env, staking_cfg)
@@ -801,7 +801,7 @@ def test_AL_NBI_004_to_006(new_genesis_env, client_new_node, reset_environment):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.staking.maxValidators = 4
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # create pledge node
@@ -1146,7 +1146,7 @@ def test_AL_NBI_018(new_genesis_env, client_new_node):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.reward.newBlockRate = 60
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -1495,12 +1495,16 @@ def send_batch_transactions(obj, transaction_list):
     """
 
     """
+    hx_list = []
     for transactions_dict in transaction_list:
         from_address = transactions_dict['from']
         to_address = transactions_dict['to']
         data = transactions_dict['data']
         gasPrice = obj.node.web3.platon.gasPrice
-        value = transactions_dict['amount']
+        if transactions_dict['amount'] is not None:
+            value = obj.node.web3.toWei(transactions_dict['amount'], 'ether')
+        else:
+            value = ''
         if transactions_dict['data'] is not None:
             transaction_data = {"to": to_address, "data": transactions_dict['data'], "from": from_address}
             gas = obj.node.web3.platon.estimateGas(transaction_data)
@@ -1512,6 +1516,8 @@ def send_batch_transactions(obj, transaction_list):
             nonce = transactions_dict['nonce']
         result = sendTransaction_input_nonce(obj, data, from_address, to_address, gasPrice, gas, value, nonce)
         print(result)
+        hx_list.append(result)
+    return hx_list
 
 
 def test_PT_AC_001(client_consensus):
@@ -1522,15 +1528,19 @@ def test_PT_AC_001(client_consensus):
     economic = client.economic
     node = client.node
     transaction_list = []
+    print(node.node_mark)
     # nonce = 0
-    for i in range(5):
+    for i in range(10):
         addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
         addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(0, 'ether'))
-        print(addres2)
-        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': 0, 'data': ''}
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None, 'data': ''}
         # nonce = nonce + 1
         transaction_list.append(transaction_dict)
     send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    for addreslist in transaction_list:
+        balance = node.eth.getBalance(addreslist['to'])
+        print(addreslist['to'], balance)
 
 
 def test_PT_AC_002(client_consensus):
@@ -1541,13 +1551,19 @@ def test_PT_AC_002(client_consensus):
     economic = client.economic
     node = client.node
     transaction_list = []
-    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-    for i in range(5):
-        addres2, private_key2 = economic.account.generate_account(node.web3, 100)
-        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(110, 'ether'))
+    nonce = node.eth.getTransactionCount(addres1)
+    for i in range(10):
+        addres2, private_key2 = economic.account.generate_account(node.web3, 0)
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce, 'data': ''}
         transaction_list.append(transaction_dict)
+        nonce = nonce + 1
     print(transaction_list)
-    return transaction_list
+    send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    for addreslist in transaction_list:
+        balance = node.eth.getBalance(addreslist['to'])
+        print(addreslist['to'], balance)
 
 
 def test_PT_AC_003(client_consensus):
@@ -1558,15 +1574,26 @@ def test_PT_AC_003(client_consensus):
     economic = client.economic
     node = client.node
     transaction_list = []
-    for i in range(5):
-        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-        addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-        transaction_dict1 = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
-        transaction_dict2 = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
+    for i in range(10):
+        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(11, 'ether'))
+        addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(11, 'ether'))
+        # nonce1 = node.eth.getTransactionCount(addres1)
+        # nonce2 = node.eth.getTransactionCount(addres2)
+        transaction_dict1 = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None, 'data': ''}
+        transaction_dict2 = {'from': addres2, 'from_private': private_key2, 'to': addres1, 'to_private': private_key1, 'amount': 10, 'nonce': None, 'data': ''}
         transaction_list.append(transaction_dict1)
         transaction_list.append(transaction_dict2)
     print(transaction_list)
-    return transaction_list
+
+    for list1 in transaction_list:
+        balance1 = node.eth.getBalance(list1['to'])
+        print(list1['to'], balance1)
+
+    send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    for addreslist in transaction_list:
+        balance = node.eth.getBalance(addreslist['to'])
+        print(addreslist['to'], balance)
 
 
 def test_PT_AC_004(client_consensus):
@@ -1577,13 +1604,18 @@ def test_PT_AC_004(client_consensus):
     economic = client.economic
     node = client.node
     transaction_list = []
-    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-    for i in range(5):
-        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
+    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(101, 'ether'))
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(0, 'ether'))
+    nonce = node.eth.getTransactionCount(addres1)
+    for i in range(10):
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce, 'data': ''}
         transaction_list.append(transaction_dict)
+        nonce = nonce + 1
     print(transaction_list)
-    return transaction_list
+    send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    balance = node.eth.getBalance(transaction_list[0]['to'])
+    print(balance)
 
 
 def test_PT_AC_005(client_consensus):
@@ -1595,22 +1627,25 @@ def test_PT_AC_005(client_consensus):
     node = client.node
     transaction_list = []
     addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-    nonce = client_consensus.node.web3.platon.getTransactionCount(addres1)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce}
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(0, 'ether'))
+    nonce = node.eth.getTransactionCount(addres1)
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+1}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+1, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+2}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+2, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+2}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+2, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+3}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+3, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+4}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+4, 'data': ''}
     transaction_list.append(transaction_dict)
     print(transaction_list)
-    return transaction_list
+    send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    balance = node.eth.getBalance(transaction_list[0]['to'])
+    print(balance)
 
 
 def test_PT_AC_006(client_consensus):
@@ -1622,20 +1657,23 @@ def test_PT_AC_006(client_consensus):
     node = client.node
     transaction_list = []
     addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
-    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(0, 'ether'))
     nonce = client_consensus.node.web3.platon.getTransactionCount(addres1)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+1}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+1, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+3}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+3, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+4}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+4, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+5}
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': nonce+5, 'data': ''}
     transaction_list.append(transaction_dict)
     print(transaction_list)
-    return transaction_list
+    send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    balance = node.eth.getBalance(transaction_list[0]['to'])
+    print(balance)
 
 
 def test_PT_AC_007(client_consensus):
@@ -1646,12 +1684,17 @@ def test_PT_AC_007(client_consensus):
     economic = client.economic
     node = client.node
     transaction_list = []
+    balance = node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
+    print(balance)
     for i in range(10):
         addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': EconomicConfig.INCENTIVEPOOL_ADDRESS, 'to_private': None, 'amount': 10, 'nonce': None}
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': EconomicConfig.STAKING_ADDRESS, 'to_private': None, 'amount': 10, 'nonce': None, 'data': ''}
         transaction_list.append(transaction_dict)
     print(transaction_list)
-    return transaction_list
+    send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    balance = node.eth.getBalance(transaction_list[0]['to'])
+    print(balance)
 
 
 def test_PT_AC_008(client_consensus):
@@ -1663,11 +1706,18 @@ def test_PT_AC_008(client_consensus):
     node = client.node
     transaction_list = []
     addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    balance = node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
+    print(balance)
+    nonce = node.eth.getTransactionCount(addres1)
     for i in range(10):
-        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': EconomicConfig.INCENTIVEPOOL_ADDRESS, 'to_private': None, 'amount': 10, 'nonce': None}
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': EconomicConfig.STAKING_ADDRESS, 'to_private': None, 'amount': 10, 'nonce': nonce, 'data': ''}
         transaction_list.append(transaction_dict)
+        nonce = nonce + 1
     print(transaction_list)
-    return transaction_list
+    send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    balance = node.eth.getBalance(transaction_list[0]['to'])
+    print(balance)
 
 
 def test_PT_AC_009(client_consensus):
@@ -1679,16 +1729,16 @@ def test_PT_AC_009(client_consensus):
     node = client.node
     transaction_list = []
     addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
-    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
-    addres3, private_key3 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 5, 'nonce': None}
+    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(1, 'ether'))
+    addres3, private_key3 = economic.account.generate_account(node.web3, node.web3.toWei(6, 'ether'))
+    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 5, 'nonce': None, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres2, 'from_private': private_key2, 'to': addres3, 'to_private': private_key3, 'amount': 5, 'nonce': None}
+    transaction_dict = {'from': addres2, 'from_private': private_key2, 'to': addres3, 'to_private': private_key3, 'amount': 5, 'nonce': None, 'data': ''}
     transaction_list.append(transaction_dict)
-    transaction_dict = {'from': addres3, 'from_private': private_key3, 'to': addres1, 'to_private': private_key1, 'amount': 10, 'nonce': None}
+    transaction_dict = {'from': addres3, 'from_private': private_key3, 'to': addres1, 'to_private': private_key1, 'amount': 10, 'nonce': None, 'data': ''}
     transaction_list.append(transaction_dict)
     print(transaction_list)
-    return transaction_list
+    send_batch_transactions(client, transaction_list)
 
 
 def test_PT_AC_010(client_consensus):
@@ -1709,71 +1759,29 @@ def test_PT_AC_010(client_consensus):
     transaction_dict = {'from': addres2, 'from_private': private_key3, 'to': addres3, 'to_private': private_key1, 'amount': 5, 'nonce': None}
     transaction_list.append(transaction_dict)
     print(transaction_list)
-    return transaction_list
-
-
-def test_PT_AC_013(client_consensus):
-    """
-    gas和余额不足（二）
-    """
-    client = client_consensus
-    economic = client.economic
-    node = client.node
-    transaction_list = []
-    for i in range(10):
-        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-        addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
-        transaction_list.append(transaction_dict)
-    print(transaction_list)
-    return transaction_list
-
-
-def test_PT_AC_014(client_consensus):
-    """
-    质押并行交易（一）
-    """
-    client = client_consensus
-    economic = client.economic
-    node = client.node
-    transaction_list = []
-    for i in range(3):
-        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres1, 'to_private': private_key1, 'amount': 10, 'nonce': None, 'data': ''}
-        transaction_list.append(transaction_dict)
-        address, private_key = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-        benifit_address, _ = economic.account.generate_account(node.web3, 0)
-        program_version_sign = node.program_version_sign
-        program_version = node.program_version
-        bls_pubkey = node.blspubkey
-        bls_proof = node.schnorr_NIZK_prove
-        benifit_address = bech32_address_bytes(benifit_address)
-        if program_version_sign[:2] == '0x':
-            program_version_sign = program_version_sign[2:]
-        data = HexBytes(rlp.encode([rlp.encode(int(1000)), rlp.encode(0), rlp.encode(benifit_address),
-                                    rlp.encode(bytes.fromhex(node.node_id)), rlp.encode("platon"), rlp.encode("platon1"),
-                                    rlp.encode("http://www.platon.network"), rlp.encode("The PlatON Node"),
-                                    rlp.encode(economic.create_staking_limit), rlp.encode(0), rlp.encode(program_version),
-                                    rlp.encode(bytes.fromhex(program_version_sign)), rlp.encode(bytes.fromhex(bls_pubkey)),
-                                    rlp.encode(bytes.fromhex(bls_proof))])).hex()
-        transaction_dict = {'from': address, 'from_private': private_key, 'to': EconomicConfig.STAKING_ADDRESS, 'to_private': None, 'data': data, 'amount': 10, 'nonce': None}
-        transaction_list.append(transaction_dict)
-    print(transaction_list)
     send_batch_transactions(client, transaction_list)
 
+#
+# def test_PT_AC_013(client_consensus):
+#     """
+#       并发交易数大于线程数
+#     """
+#     client = client_consensus
+#     economic = client.economic
+#     node = client.node
+#     transaction_list = []
+#     for i in range(10):
+#         addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+#         addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+#         transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None}
+#         transaction_list.append(transaction_dict)
+#     print(transaction_list)
+#     send_batch_transactions(client, transaction_list)
 
-def test_PT_AC_015(client_consensus):
-    """
-    质押并行交易(二)
-    """
-    client = client_consensus
+
+def create_staking(client):
     economic = client.economic
     node = client.node
-    transaction_list = []
-    addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2, 'amount': 10, 'nonce': None, 'data': ''}
-    transaction_list.append(transaction_dict)
     address, private_key = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     benifit_address, _ = economic.account.generate_account(node.web3, 0)
     program_version_sign = node.program_version_sign
@@ -1790,14 +1798,90 @@ def test_PT_AC_015(client_consensus):
                                 rlp.encode(bytes.fromhex(program_version_sign)), rlp.encode(bytes.fromhex(bls_pubkey)),
                                 rlp.encode(bytes.fromhex(bls_proof))])).hex()
     transaction_dict = {'from': address, 'from_private': private_key, 'to': EconomicConfig.STAKING_ADDRESS, 'to_private': None, 'data': data, 'amount': 10, 'nonce': None}
+    return transaction_dict
+
+
+def test_PT_AC_014(client_consensus):
+    """
+    质押并行交易（一）
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    for i in range(3):
+        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres1, 'to_private': private_key1, 'amount': 10, 'nonce': None, 'data': ''}
+        transaction_list.append(transaction_dict)
+        transaction_dict = create_staking(client)
+        transaction_list.append(transaction_dict)
+    print(transaction_list)
+    hx_list = send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    print(hx_list)
+    result = node.eth.analyzeReceiptByHash(hx_list[5])
+    print(result)
+
+
+def test_PT_AC_015(client_consensus):
+    """
+    质押并行交易(二)
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    for i in range(2):
+        addres3, private_key4 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+        addres5, private_key6 = economic.account.generate_account(node.web3, node.web3.toWei(0, 'ether'))
+        transaction_dict = {'from': addres3, 'from_private': private_key4, 'to': addres5, 'to_private': private_key6, 'amount': 10, 'nonce': None, 'data': ''}
+        transaction_list.append(transaction_dict)
+    transaction_dict = create_staking(client)
     transaction_list.append(transaction_dict)
     for i in range(3):
-        addres3, private_key4 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-        addres5, private_key6 = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        addres3, private_key4 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+        addres5, private_key6 = economic.account.generate_account(node.web3, node.web3.toWei(0, 'ether'))
         transaction_dict = {'from': addres3, 'from_private': private_key4, 'to': addres5, 'to_private': private_key6, 'amount': 10, 'nonce': None, 'data': ''}
+        transaction_list.append(transaction_dict)
+    transaction_dict = create_staking(client)
+    transaction_list.append(transaction_dict)
+    for i in range(3):
+        addres3, private_key4 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+        addres5, private_key6 = economic.account.generate_account(node.web3, node.web3.toWei(0, 'ether'))
+        transaction_dict = {'from': addres3, 'from_private': private_key4, 'to': addres5, 'to_private': private_key6, 'amount': 10, 'nonce': None, 'data': ''}
+        transaction_list.append(transaction_dict)
+    transaction_dict = create_staking(client)
+    transaction_list.append(transaction_dict)
+    print(transaction_list)
+    hx_list = send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    print(hx_list)
+    result = node.eth.analyzeReceiptByHash(hx_list[-1])
+    print(result)
+
+
+def test_PT_AC_016(client_consensus):
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    transaction_list = []
+    transaction_dict = create_staking(client)
+    data = transaction_dict['data']
+    print(data)
+    for i in range(5):
+        addres1, private_key1 = economic.account.generate_account(node.web3, node.web3.toWei(100, 'ether'))
+        addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(0, 'ether'))
+        transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': EconomicConfig.STAKING_ADDRESS, 'to_private': private_key2, 'amount': 0, 'nonce': None, 'data': data}
         transaction_list.append(transaction_dict)
     print(transaction_list)
     send_batch_transactions(client, transaction_list)
+    time.sleep(5)
+    for addreslist in transaction_list:
+        balance1 = node.eth.getBalance(addreslist['from'])
+        balance2 = node.eth.getBalance(addreslist['to'])
+        print("from", addreslist['from'], balance1)
+        print("to", addreslist['to'], balance2)
+
 
 
 def RO_T_001(new_genesis_env, client_noconsensus):
@@ -1808,7 +1892,7 @@ def RO_T_001(new_genesis_env, client_noconsensus):
     genesis.config.cbft.period = 30000
     genesis.economicModel.common.maxEpochMinutes = 9
     genesis.economicModel.common.additionalCycleTime = 40
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -1900,3 +1984,6 @@ def RO_T_001(new_genesis_env, client_noconsensus):
 
     node.ppos.need_analyze = True
     economic.wait_settlement_blocknum(node, 1)
+
+def test2223(client_consensus):
+    client_consensus.economic.env.deploy_all()

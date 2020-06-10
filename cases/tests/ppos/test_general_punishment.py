@@ -519,7 +519,7 @@ def test_VP_GPFV_013(new_genesis_env, clients_consensus):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 5
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -567,7 +567,7 @@ def test_VP_GPFV_014(new_genesis_env, clients_noconsensus):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 5
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -629,7 +629,7 @@ def test_VP_GPFV_014(new_genesis_env, clients_noconsensus):
 #     # Change configuration parameters
 #     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
 #     genesis.economicModel.slashing.slashBlocksReward = 13
-#     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+#     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
 #     genesis.to_file(new_file)
 #     new_genesis_env.deploy_all(new_file)
 #
@@ -694,7 +694,7 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 25
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -760,7 +760,7 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 15
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -819,7 +819,7 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
 #     # Change configuration parameters
 #     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
 #     genesis.economicModel.slashing.slashBlocksReward = 13
-#     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+#     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
 #     genesis.to_file(new_file)
 #     new_genesis_env.deploy_all(new_file)
 #
@@ -889,7 +889,7 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 25
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -955,7 +955,7 @@ def test_VP_GPFV_020(new_genesis_env, clients_noconsensus):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 5
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 

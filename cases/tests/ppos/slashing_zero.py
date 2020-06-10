@@ -67,7 +67,7 @@ def update_zero_produce_env(global_test_env):
     genesis = from_dict(data_class=Genesis, data=genesis_config)
     genesis.economicModel.slashing.zeroProduceCumulativeTime = 4
     genesis.economicModel.slashing.zeroProduceNumberThreshold = 3
-    genesis_path = global_test_env.cfg.env_tmp + "/genesis.json"
+    genesis_path = global_test_env.cfg.env_tmp + "/genesis_0.13.0.json"
 
     genesis.to_file(genesis_path)
 

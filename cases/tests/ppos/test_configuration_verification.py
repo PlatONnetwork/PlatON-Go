@@ -32,7 +32,7 @@ def reset_cfg_env_node(global_test_env):
     genesis = from_dict(data_class=Genesis, data=genesis_config)
     id_cfg = id(cfg)
     setattr(new_env_node, "genesis", genesis)
-    setattr(new_env_node, "genesis_path", global_test_env.cfg.env_tmp + "/genesis.json")
+    setattr(new_env_node, "genesis_path", global_test_env.cfg.env_tmp + "/genesis_0.13.0.json")
     yield new_env_node
     new_env_node.stop()
     if id_cfg != id(global_test_env.cfg) or id(genesis_config) != id(global_test_env.genesis_config):

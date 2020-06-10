@@ -89,6 +89,7 @@ def test_DG_TR_002(client_consensus, reset_environment):
     log.info("View built-in node information：{}".format(candidate_info))
     assert candidate_info["Ret"]["RewardPer"] == 0
     log.info("editing built in nodes")
+    economic.wait_settlement_blocknum(node, 1)
     result = client_consensus.staking.edit_candidate(economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS, economic.cfg.INCENTIVEPOOL_ADDRESS,
                                                      reward_per=reward)
     assert_code(result, 0)
@@ -116,6 +117,7 @@ def test_DG_TR_003(staking_node_client):
     assert_code(result, 0)
     reward = 2000
     log.info("modify node dividend ratio")
+    economic.wait_settlement_blocknum(node, 1)
     result = staking_node_client.staking.edit_candidate(staking_node_client.staking_address,
                                                         staking_node_client.staking_address, reward_per=reward)
     assert_code(result, 0)
@@ -134,7 +136,7 @@ def test_DG_TR_003(staking_node_client):
     assert_reward_per(candidate_info, reward)
     delegate_reward = economic.calculate_delegate_reward(node, block_reward, staking_reward)
     log.info("the total commission reward is:{}".format(delegate_reward))
-    assert_reward_total(candidate_info, delegate_reward, calculate_pool_balance(node, economic))
+    assert_reward_total(candidate_info, von_amount(delegate_reward, 3), calculate_pool_balance(node, economic))
 
 
 @pytest.mark.P1
@@ -222,14 +224,14 @@ def test_DG_TR_003_03(staking_node_client, reset_environment):
     node = staking_node_client.node
     result = staking_node_client.delegate.delegate(0, staking_node_client.delegate_address)
     assert_code(result, 0)
-    addition_reward = 1000 + economic.genesis.economicModel.staking.rewardPerMaxChangeRange + 1
+    addition_reward = 2000 + economic.genesis.economicModel.staking.rewardPerMaxChangeRange + 1
     log.info("modify node dividend ratio")
     economic.wait_settlement_blocknum(node, 1)
     result = staking_node_client.staking.edit_candidate(staking_node_client.staking_address,
                                                         staking_node_client.staking_address, reward_per=addition_reward)
     assert_code(result, 301009)
 
-    reduce_reward = 1000 - (economic.genesis.economicModel.staking.rewardPerMaxChangeRange + 1)
+    reduce_reward = 2000 - (economic.genesis.economicModel.staking.rewardPerMaxChangeRange + 1)
     log.info("modify node dividend ratio")
     result = staking_node_client.staking.edit_candidate(staking_node_client.staking_address,
                                                         staking_node_client.staking_address, reward_per=reduce_reward)
@@ -279,7 +281,7 @@ def DG_TR_003_05(client_noconsensus):
 def test_DG_TR_003_06(client_noconsensus):
     """
     调整非内置节点分红比例时限
-    :param staking_node_client:今晚
+    :param staking_node_client:
     :return:
     """
     economic = client_noconsensus.economic
@@ -776,7 +778,7 @@ def test_DG_TR_016(client_new_node, reset_environment):
     staking_address, delegate_address, ben_address = create_staking_dif_ben(delegate_node_client, reward=reward)
     result = delegate_node_client.delegate.delegate(0, delegate_address)
     assert_code(result, 0)
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement_blocknum(node, 1)
     switch_block = calculate_switch_block(node, economic)
     start_balance = node.eth.getBalance(ben_address, switch_block)
     block_reward, staking_reward = economic.get_current_year_reward(node)
@@ -791,7 +793,7 @@ def test_DG_TR_016(client_new_node, reset_environment):
     block_num = economic.get_number_blocks_in_interval(node)
     candidate_info = delegate_node_client.ppos.getCandidateInfo(node.node_id)
     total_reward_one, delegate_reward_one = calculate_reward(block_reward, staking_reward, block_num, reward)
-    assert_reward_total(candidate_info, delegate_reward_one, calculate_pool_balance(node, economic))
+    assert_reward_total(candidate_info, von_amount(delegate_reward_one, 2), calculate_pool_balance(node, economic))
     assert_reward_per(candidate_info, update_reward)
     switch_block = calculate_switch_block(node, economic)
     end_balance_one = node.eth.getBalance(ben_address, switch_block)
@@ -805,7 +807,7 @@ def test_DG_TR_016(client_new_node, reset_environment):
     assert candidate_info["Ret"]["RewardPer"] == update_reward
     block_num = economic.get_number_blocks_in_interval(node)
     total_reward_two, delegate_reward_two = calculate_reward(block_reward, staking_reward, block_num, update_reward)
-    assert_reward_total(candidate_info, delegate_reward_one + delegate_reward_two, calculate_pool_balance(node, economic))
+    assert_reward_total(candidate_info, von_amount(delegate_reward_one, 2) + delegate_reward_two, calculate_pool_balance(node, economic))
     end_balance_two = node.eth.getBalance(ben_address, switch_block)
     assert end_balance_two - end_balance_one == total_reward_two - delegate_reward_two
 

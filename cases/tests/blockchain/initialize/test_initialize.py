@@ -17,9 +17,9 @@ def restart_env(global_test_env):
 @pytest.mark.P1
 def test_CH_IN_012(global_test_env):
     """
-    View the creation account created in the genesis.json file
+    View the creation account created in the genesis_0.13.0.json file
     """
-    log.info("View the creation account created in the genesis.json file")
+    log.info("View the creation account created in the genesis_0.13.0.json file")
     w3_list = [one_node.web3 for one_node in global_test_env.consensus_node_list]
     for w3 in w3_list:
         for one_address in global_test_env.genesis_config['alloc']:

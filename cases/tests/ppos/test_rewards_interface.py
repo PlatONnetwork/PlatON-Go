@@ -1,4 +1,5 @@
 from common.log import log
+from tests.lib import EconomicConfig
 from tests.lib.utils import assert_code, get_pledge_list
 from common.key import mock_duplicate_sign
 from tests.lib.utils import wait_block_number, get_the_dynamic_parameter_gas_fee, get_getDelegateReward_gas_fee
@@ -12,11 +13,13 @@ from conf import settings as conf
 delegate_amount = 10 ** 18 * 1000
 init_amount = 10 ** 18 * 10000
 
+
 def get_new_value(value):
     if value == 10000:
         return value - 1
     else:
         return value + 1
+
 
 def assert_cumulativeIncome_delegateepoch(client, address, delegateepoch=None):
     stakingnum = client.staking.get_stakingblocknum()
@@ -165,6 +168,7 @@ class TestCreateStaking:
         assert_code(result, 0)
         self.assert_rewardsper_staking(clients_consensus[1], value)
 
+
 class TestEditCandidate:
     def assert_rewardsper(self, client, rewardsper, nextrewardsper):
         assert_code(client.staking.get_rewardper(client.node), rewardsper)
@@ -184,45 +188,45 @@ class TestEditCandidate:
         client = client_verifier
         value = client.staking.get_rewardper(client.node)
         newvalue = get_new_value(value)
-        result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
-                                               reward_per=newvalue)
-        assert_code(result, 0)
-        self.assert_rewardsper(client, value, newvalue)
+        print(value, newvalue)
+        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
+        #                                        reward_per=newvalue)
+        # assert_code(result, 0)
+        # self.assert_rewardsper(client, value, newvalue)
+        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
+        #                                        reward_per=0)
+        # print(result)
+        # assert_code(result, 0)
+        # self.assert_rewardsper(client, 1, 0)
+        #
+        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
+        #                                        reward_per=10000)
+        # assert_code(result, 301009)
+        #
+        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
+        #                                        reward_per=10001)
+        # log.info('Edit candidate information reward percent is 10001, result : {}'.format(result))
+        # assert_code(result, 301007)
+        #
+        # try:
+        #     client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
+        #                                        reward_per=-1)
+        # except TypeError as e:
+        #     str(e) == 'Did not find sedes handling type int'
+        #
+        # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
+        #                                        reward_per='2')
+        # log.info('Edit candidate information reward percent is string, result : {}'.format(result))
+        # assert_code(result, 0)
 
-        result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
-                                               reward_per=0)
-        assert_code(result, 0)
-        self.assert_rewardsper(client, value, 0)
-
-        result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
-                                               reward_per=1)
-        assert_code(result, 0)
-        self.assert_rewardsper(client, value, 1)
-
-        result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
-                                               reward_per=10000)
-        assert_code(result, 0)
-        self.assert_rewardsper(client, value, 10000)
-        result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
-                                               reward_per=10001)
-        log.info('Edit candidate information reward percent is 10001, result : {}'.format(result))
-        assert_code(result, 301007)
-
-        try:
-            client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
-                                               reward_per=-1)
-        except TypeError as e:
-            str(e) == 'Did not find sedes handling type int'
-        result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
-                                               reward_per='1')
-        log.info('Edit candidate information reward percent is string, result : {}'.format(result))
-        assert_code(result, 0)
-
-        try:
-            client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
-                                               reward_per=10000000000000000000000000000000000000000000000)
-        except ValueError as e:
-            str(e) == "gas required exceeds allowance or always failing transaction"
+        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
+        #                                    reward_per=10000000000000000000000000000000000000000000000)
+        # assert_code(result, 301007)
 
     @pytest.mark.P2
     def test_MPI_028_MPI_030_MPI_032(self, client_new_node):
@@ -232,7 +236,7 @@ class TestEditCandidate:
                                                amount=2*client.economic.genesis.economicModel.staking.stakeThreshold,
                                                reward_per=100)
         assert_code(result, 0)
-        client.economic.wait_settlement_blocknum(client.node)
+        client.economic.wait_settlement_blocknum(client.node, 1)
         verifier_list = get_pledge_list(client.ppos.getVerifierList)
         assert client.node.node_id in verifier_list
         address_delegate, _ = client.economic.account.generate_account(client.node.web3, init_amount)
@@ -247,7 +251,7 @@ class TestEditCandidate:
         assert_code(vaule, 100)
         assert_code(newvalue, 101)
 
-        client.economic.wait_settlement_blocknum(client.node)
+        client.economic.wait_settlement_blocknum(client.node, 1)
         result = client.staking.edit_candidate(address, address, reward_per=99)
 
         assert_code(result, 0)
@@ -257,14 +261,9 @@ class TestEditCandidate:
         assert_code(vaule, 101)
         assert_code(newvalue, 99)
 
-        client.economic.wait_settlement_blocknum(client.node)
+        client.economic.wait_settlement_blocknum(client.node, 1)
         result = client.staking.edit_candidate(address, address, reward_per=9999)
-        assert_code(result, 0)
-        assert_code(99, client.staking.get_rewardper())
-        assert_code(9999, client.staking.get_rewardper(isnext=True))
-        vaule, newvalue = get_pledge_list(client.ppos.getCandidateList, nodeid=client.node.node_id)
-        assert_code(vaule, 99)
-        assert_code(newvalue, 9999)
+        assert_code(result, 301009)
 
     @pytest.mark.P2
     def test_MPI_033(self,new_genesis_env, clients_verifier):
@@ -296,6 +295,8 @@ class TestEditCandidate:
         address, _ = client.economic.account.generate_account(client.node.web3, 10**18 * 10000000)
         result = client.staking.create_staking(0, address, address, reward_per=100)
         assert_code(result, 0)
+
+        client.economic.wait_settlement_blocknum(client.node, 1)
         result = client.staking.edit_candidate(address, address, reward_per=101)
         assert_code(result, 0)
         assert_code(100, client.staking.get_rewardper())
@@ -332,6 +333,7 @@ class TestEditCandidate:
         client = client_verifier
         value, nextvalue = get_pledge_list(client.ppos.getVerifierList, client.node.node_id)
         newvalue = get_new_value(value)
+        client.economic.wait_settlement_blocknum(client.node, 1)
         result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
                                                reward_per=newvalue)
         assert_code(result, 0)
@@ -1316,6 +1318,7 @@ class TestwithdrawDelegateReward():
         gas = get_getDelegateReward_gas_fee(client1, 1, 1)
         assert balance_address2_before_withdraw - gas + reward_address2 == balance_address2
 
+
 class TestGas:
     @pytest.mark.P1
     def test_IN_GA_001_IN_GA_002(self, clients_new_node, reset_environment):
@@ -1323,6 +1326,8 @@ class TestGas:
         client2 = clients_new_node[1]
         address1, _ = client1.economic.account.generate_account(client1.node.web3, init_amount)
         address2, _ = client1.economic.account.generate_account(client1.node.web3, init_amount)
+        balance = client1.node.eth.getBalance(address1)
+        print(balance)
         staking_and_delegate(client1, address1)
         stakingnum = client1.staking.get_stakingblocknum()
         balance_address1 = client1.node.eth.getBalance(address1)
@@ -1330,16 +1335,21 @@ class TestGas:
         data = rlp.encode([rlp.encode(int(1004)), rlp.encode(0), rlp.encode(bytes.fromhex(client1.node.node_id)),
                            rlp.encode(10 ** 18 * 1000)])
         gas = (21000 + 6000 + 16000 + get_the_dynamic_parameter_gas_fee(data)) * client1.node.eth.gasPrice
-        assert 10 ** 18 * 9000 - gas == balance_address1
-
-        staking_and_delegate(client2, address1)
+        assert balance - delegate_amount - gas == balance_address1
         time.sleep(3)
+
+        balance_address1 = client2.node.eth.getBalance(address1)
+        print('balance_address1: {}'.format(balance_address1))
+        staking_and_delegate(client2, address1)
         balance_address1_1 = client2.node.eth.getBalance(address1)
         log.info('Address {} balance : {}'.format(address1, balance_address1_1))
         data = rlp.encode([rlp.encode(int(1004)), rlp.encode(0), rlp.encode(bytes.fromhex(client1.node.node_id)),
                            rlp.encode(10 ** 18 * 1000)])
         gas = (21000 + 6000 + 16000 + get_the_dynamic_parameter_gas_fee(data)) * client1.node.eth.gasPrice
-        assert balance_address1 - gas - 10 ** 18 * 1000 == balance_address1_1
+        transaction_data = {"to": EconomicConfig.STAKING_ADDRESS, "data": data, "from": address1}
+        estimated_gas = client1.node.eth.estimateGas(transaction_data)
+        print(gas, estimated_gas)
+        assert balance_address1 - gas - delegate_amount == balance_address1_1
 
         client1.delegate.withdrew_delegate(stakingnum, address1, amount=10**18 * 100)
         banlance_address1_after_withdraw = client1.node.eth.getBalance(address1)
@@ -1636,7 +1646,7 @@ class TestNet:
     @pytest.mark.P2
     def test_DD_NE_002(self, global_test_env):
         test_node = self.deploy_me(global_test_env, 'testnet')
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 101
+        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 103
         assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 2000
 
     @pytest.mark.P2

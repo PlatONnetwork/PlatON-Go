@@ -49,7 +49,7 @@ def test_CH_IN_005(global_test_env):
     genesis_data = global_test_env.genesis_config
     genesis = from_dict(data_class=Genesis, data=genesis_data)
     genesis.config.cbft.initialNodes = [{"node": test_node.enode, "blsPubKey": test_node.blspubkey}]
-    file = test_node.local_node_tmp + "/genesis.json"
+    file = test_node.local_node_tmp + "/genesis_0.13.0.json"
     genesis.to_file(file)
     test_node.deploy_me(file)
     time.sleep(5)
@@ -70,7 +70,7 @@ def test_CH_IN_009(global_test_env):
     log.info("test node :{}".format(test_node.node_mark))
     genesis = from_dict(data_class=Genesis, data=global_test_env.genesis_config)
     genesis.config.cbft.initialNodes = [{"node": test_node.enode, "blsPubKey": test_node.blspubkey}]
-    file = test_node.local_node_tmp + "/genesis.json"
+    file = test_node.local_node_tmp + "/genesis_0.13.0.json"
     genesis.to_file(file)
     test_node.deploy_me(file)
     log.info(test_node.running)

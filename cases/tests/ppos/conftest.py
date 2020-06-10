@@ -31,7 +31,7 @@ def create_staking(client, reward):
 
 @pytest.fixture()
 def staking_node_client(client_new_node):
-    reward = 1000
+    reward = 2000
     staking_address, delegate_address = create_staking(client_new_node, reward)
     setattr(client_new_node, "staking_address", staking_address)
     setattr(client_new_node, "delegate_address", delegate_address)

@@ -16,7 +16,7 @@ def update_zero_produce(new_genesis_env, cumulativetime=4, numberthreshold=3):
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.zeroProduceCumulativeTime = cumulativetime
     genesis.economicModel.slashing.zeroProduceNumberThreshold = numberthreshold
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -92,7 +92,7 @@ def test_ZB_NP_01(new_genesis_env, client_noconsensus):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.staking.maxValidators = 4
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # start execution use case
@@ -1732,7 +1732,7 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
 #     genesis.economicModel.staking.maxValidators = 7
 #     genesis.economicModel.slashing.zeroProduceNumberThreshold = 2
 #     genesis.economicModel.slashing.zeroProduceCumulativeTime = 4
-#     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+#     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
 #     genesis.to_file(new_file)
 #     new_genesis_env.deploy_all(new_file)
 #     economic_old = clients_noconsensus[0].economic
@@ -1823,7 +1823,7 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
 #     genesis.economicModel.staking.maxValidators = 7
 #     genesis.economicModel.slashing.zeroProduceNumberThreshold = 3
 #     genesis.economicModel.slashing.zeroProduceCumulativeTime = 4
-#     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+#     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
 #     genesis.to_file(new_file)
 #     new_genesis_env.deploy_all(new_file)
 #     economic = clients_consensus[0].economic
