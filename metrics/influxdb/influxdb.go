@@ -5,9 +5,10 @@ import (
 	uurl "net/url"
 	"time"
 
+	"github.com/influxdata/influxdb/client"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/influxdata/influxdb/client"
 )
 
 type reporter struct {
@@ -35,7 +36,7 @@ func InfluxDB(r metrics.Registry, d time.Duration, url, database, username, pass
 func InfluxDBWithTags(r metrics.Registry, d time.Duration, url, database, username, password, namespace string, tags map[string]string) {
 	u, err := uurl.Parse(url)
 	if err != nil {
-		log.Warn("Unable to parse InfluxDB", "url", url, "err", err)
+		log.Warn("unable to parse InfluxDB", "url", url, "err", err)
 		return
 	}
 
@@ -51,7 +52,7 @@ func InfluxDBWithTags(r metrics.Registry, d time.Duration, url, database, userna
 		cache:     make(map[string]int64),
 	}
 	if err := rep.makeClient(); err != nil {
-		log.Warn("Unable to make InfluxDB client", "err", err)
+		log.Warn("unable to make InfluxDB client", "err", err)
 		return
 	}
 
@@ -63,6 +64,7 @@ func (r *reporter) makeClient() (err error) {
 		URL:      r.url,
 		Username: r.username,
 		Password: r.password,
+		Timeout:  10 * time.Second,
 	})
 
 	return
@@ -76,7 +78,7 @@ func (r *reporter) run() {
 		select {
 		case <-intervalTicker:
 			if err := r.send(); err != nil {
-				log.Warn("Unable to send to InfluxDB", "err", err)
+				log.Warn("unable to send to InfluxDB", "err", err)
 			}
 		case <-pingTicker:
 			_, _, err := r.client.Ping()
@@ -84,7 +86,7 @@ func (r *reporter) run() {
 				log.Warn("Got error while sending a ping to InfluxDB, trying to recreate client", "err", err)
 
 				if err = r.makeClient(); err != nil {
-					log.Warn("Unable to make InfluxDB client", "err", err)
+					log.Warn("unable to make InfluxDB client", "err", err)
 				}
 			}
 		}
