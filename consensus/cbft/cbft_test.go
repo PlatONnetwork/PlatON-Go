@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
 	"github.com/stretchr/testify/assert"
@@ -636,6 +638,12 @@ func TestShouldSeal(t *testing.T) {
 	should, err = node.engine.ShouldSeal(time.Now())
 	assert.NotNil(t, err.Error())
 	assert.False(t, should)
+}
+
+func TestCbft_CreateGenesis(t *testing.T) {
+	var db = rawdb.NewMemoryDatabase()
+	_, block := CreateGenesis(db)
+	fmt.Println(block.Root().Hex())
 }
 
 func TestInsertChain(t *testing.T) {
