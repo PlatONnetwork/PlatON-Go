@@ -65,31 +65,30 @@
 //        BigInteger nonce = null;
 //        try {
 //            web3j = Web3j.build(new HttpService(driverService.param.get("nodeUrl")));
-//            //credentials = Credentials.create(driverService.param.get("privateKeyOfTransferFrom"));
+//            credentials = Credentials.create(driverService.param.get("privateKey"));
 //
 //
-//            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "all_addr_and_private_keys.json").toUri().getPath());
+//            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "lax_bech32_all_addr_and_private_keys.json").toUri().getPath());
 //            String jsonContent = OneselfFileUtil.readFile(filePath);
 //
 //            JSONArray jsonArray = JSONArray.parseArray(jsonContent);
 //            for (int i = 0; i < jsonArray.size(); i++) {
-//                Thread.sleep(100); // 7928
-//                // transferTo = jsonArray.getJSONObject(i).getString("address");
+//                Thread.sleep(1000); // 1680
+//                transferTo = jsonArray.getJSONObject(i).getString("address");
 //                try {
-//                    transferTo = driverService.param.get("address");
-//
-//                    credentials = Credentials.create(jsonArray.getJSONObject(i).getString("private_key"));
 //                    RawTransactionManager transactionManager = new RawTransactionManager(web3j, credentials, chainId);
 //                    Transfer transfer = new Transfer(web3j, transactionManager);
 //
-//                    amount = "900000";
-//                    TransactionReceipt transactionReceipt = transfer.sendFunds(transferTo, new BigDecimal(amount), Convert.Unit.LAT).send();
+//                    amount = "100000";
+//                    //TransactionReceipt transactionReceipt = transfer.sendFunds(transferTo, new BigDecimal(amount), Convert.Unit.LAT).send();
 //
-//                    BigInteger endBalance = web3j.platonGetBalance(transferTo, DefaultBlockParameterName.LATEST).send().getBalance();
-//                    collector.logStepPass("transferTo:" + transferTo + ",endBalance:" + endBalance);
-//                    collector.logStepPass("time:" + i + ", txHash:" + transactionReceipt.getTransactionHash());
+//                    transfer.sendFunds(transferTo, new BigDecimal(amount), Convert.Unit.LAT).sendAsync();
+//
+//                    //BigInteger endBalance = web3j.platonGetBalance(transferTo, DefaultBlockParameterName.LATEST).send().getBalance();
+//                    //collector.logStepPass("transferTo:" + transferTo + ",endBalance:" + endBalance);
+//                    collector.logStepPass("time:" + i);
 //                } catch (Exception e) {
-//
+//                    e.printStackTrace();
 //                }
 //
 //            }
