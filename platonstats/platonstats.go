@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/syndtr/goleveldb/leveldb/errors"
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -208,7 +208,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		}
 	} else {
 		receipts = s.BlockChain().GetReceiptsByHash(block.Hash())
-		exeBlockData = rawdb.ReadExeBlockData(s.ChainDb(), block.Number())
+		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
 	}
 
 	statsBlockExt := &StatsBlockExt{
@@ -240,7 +240,8 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		log.Info("send block message success.", "blockNumber=", block.NumberU64(), "partition", partition, "offset", offset)
 	}
 
-	rawdb.DeleteExeBlockData(s.ChainDb(), block.Number())
+	//不从statsdb中删除统计需要的过程数据。
+	//statsdb.Instance().DeleteExeBlockData(block.Number())
 	return nil
 }
 

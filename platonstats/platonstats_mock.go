@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 
@@ -83,7 +83,7 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 		}
 	} else {
 		receipts = s.BlockChain().GetReceiptsByHash(block.Hash())
-		exeBlockData = rawdb.ReadExeBlockData(s.ChainDb(), block.Number())
+		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
 	}
 
 	statsBlockExt := &StatsBlockExt{
@@ -118,7 +118,7 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 		log.Info("send block message success.", "blockNumber=", block.NumberU64(), "partition", partition, "offset", offset)
 	}
 
-	rawdb.DeleteExeBlockData(s.ChainDb(), block.Number())
+	//statsdb.Instance().DeleteExeBlockData(block.Number())
 	return nil
 }
 func (s *MockPlatonStatsService) sampleMsgLoop() {

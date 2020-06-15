@@ -527,7 +527,6 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
-// 如果realEpoch==0，表示解除委托操作后，未生效质押资金都已经原路退回，并且没有生效的质押资金，因此不需要再冻结生效质押资金了。
 func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64,
 	canAddr common.NodeAddress, can *staking.Candidate) error {
 

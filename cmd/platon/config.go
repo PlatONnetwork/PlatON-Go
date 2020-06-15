@@ -26,6 +26,8 @@ import (
 	"reflect"
 	"unicode"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
+
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -186,6 +188,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
+	statsdb.SetDBPath(stack.ResolvePath(statsdb.DBPath))
 	utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Add the PlatON Stats daemon if requested.
@@ -198,6 +201,8 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, platonConfig) {
 	stack, cfg := makeConfigNode(ctx)
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
+	statsdb.SetDBPath(stack.ResolvePath(statsdb.DBPath))
+
 	utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Add the PlatON Stats daemon if requested.

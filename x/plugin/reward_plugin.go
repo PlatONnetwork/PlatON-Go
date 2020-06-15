@@ -122,7 +122,6 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		rewardData.BlockRewardAmount = packageReward.Uint64()
 	}
 
-	//stats: 收集分配奖励金额（只分配到出块节点，以及所有有效委托的奖励）
 	if err := rmp.AllocatePackageBlock(blockHash, head, packageReward, state); err != nil {
 		return err
 	}
@@ -227,6 +226,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
 
 		//stats: 收集增发数据
+		additionalIssuance.AdditionalNo = thisYear
 		additionalIssuance.AdditionalBase = histIssuance.Uint64()
 		additionalIssuance.AdditionalAmount = currIssuance.Uint64()
 		additionalIssuance.AdditionalRate = increaseIssuanceRatio

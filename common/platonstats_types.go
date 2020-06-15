@@ -18,7 +18,7 @@ func (g *GenesisData) AddAllocItem(address Address, amount uint64) {
 }
 
 type AdditionalIssuanceData struct {
-	AdditionalNo     uint64          //增发周期
+	AdditionalNo     uint32          //增发周期
 	AdditionalBase   uint64          //增发基数
 	AdditionalRate   uint16          //增发比例 单位：万分之一
 	AdditionalAmount uint64          //增发金额
@@ -90,6 +90,10 @@ func InitExeBlockData(blockNumber uint64) {
 	}
 }
 
+func GetExeBlockData(blockNumber uint64) *ExeBlockData {
+	return ExeBlockDataCollector[blockNumber]
+}
+
 type ExeBlockData struct {
 	AdditionalIssuanceData        *AdditionalIssuanceData        `rlp:"nil"`
 	RewardData                    *RewardData                    `rlp:"nil"`
@@ -123,7 +127,10 @@ func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
 func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByValidStakings, rewardRatioByPenalties uint32) {
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
-		d.DuplicatedSignSlashingSetting = &DuplicatedSignSlashingSetting{PenaltyRatioByValidStakings: penaltyRatioByValidStakings, RewardRatioByPenalties: rewardRatioByPenalties}
+		if d.DuplicatedSignSlashingSetting != nil {
+			//在同一个区块中，只要设置一次即可
+			d.DuplicatedSignSlashingSetting = &DuplicatedSignSlashingSetting{PenaltyRatioByValidStakings: penaltyRatioByValidStakings, RewardRatioByPenalties: rewardRatioByPenalties}
+		}
 	}
 }
 

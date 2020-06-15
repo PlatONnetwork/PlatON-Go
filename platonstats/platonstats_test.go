@@ -7,11 +7,11 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
+
 	"gotest.tools/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/Shopify/sarama"
 
@@ -60,16 +60,14 @@ func Test_rlp_Data(t *testing.T) {
 	t.Log("blockData", string(json))
 
 	bytes := common.MustRlpEncode(blockData)
-
-	hex := fmt.Sprintf("encoded: %q", bytes)
-	t.Log(hex)
+	t.Log("encode data", "hex", common.Bytes2Hex(bytes))
 
 	var data common.ExeBlockData
 	if len(bytes) > 0 {
 		if err := rlp.DecodeBytes(bytes, &data); err != nil {
 			t.Fatal("Failed to rlp decode bytes to ExeBlockData", err)
 		} else {
-			t.Log("ExeBlockData", common.Bytes2Hex(data.RewardData.CandidateInfoList[0].NodeID[:]))
+			t.Log("ExeBlockData.RewardData.CandidateInfoList[0].NodeID", common.Bytes2Hex(data.RewardData.CandidateInfoList[0].NodeID[:]))
 			t.Log("AdditionalIssuanceData==nil", data.AdditionalIssuanceData == nil)
 
 		}
@@ -79,8 +77,8 @@ func Test_rlp_Data(t *testing.T) {
 func Test_Kafka_producer(t *testing.T) {
 	s := NewMockPlatonStatsService()
 
-	statsLogFile = "d:\\swap\\platonstats.log"
-
+	statsLogFile = "d:\\swap\\statsdb\\platonstats.log"
+	statsdb.SetDBPath("d:\\swap\\statsdb")
 	var blockProducer sarama.SyncProducer
 	var err error
 	if blockProducer, err = sarama.NewSyncProducer([]string{"192.168.112.32:9092"}, blockProducerConfig()); err != nil {
@@ -98,7 +96,7 @@ func Test_Kafka_producer(t *testing.T) {
 
 	nextBlock := s.BlockChain().GetBlockByNumber(10)
 
-	rawdb.WriteExeBlockData(s.chainDb, nextBlock.Number(), buildExeBlockData())
+	statsdb.Instance().WriteExeBlockData(nextBlock.Number(), buildExeBlockData())
 
 	if err = s.reportBlockMsg(nextBlock); err != nil {
 		t.Fatal("Failed to report BlockMsg", "error", err)

@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -306,7 +306,7 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
 
 		//stats: 保存 ExeBlockData in snapshotDB
-		rawdb.WriteExeBlockData(bcc.db, block.Number(), common.PopExeBlockData(block.NumberU64()))
+		statsdb.Instance().WriteExeBlockData(block.Number(), common.PopExeBlockData(block.NumberU64()))
 
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())

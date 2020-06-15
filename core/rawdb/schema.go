@@ -19,7 +19,6 @@ package rawdb
 
 import (
 	"encoding/binary"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
@@ -57,8 +56,6 @@ var (
 	preimagePrefix      = []byte("secure-key-")        // preimagePrefix + hash -> preimage
 	configPrefix        = []byte("ethereum-config-")   // config prefix for the db
 	economicModelPrefix = []byte("economicModel-key-") // economicModel prefix for the db
-
-	exeBlockDataPrefix = []byte("exeBlockData-key-") // ExeBlockData prefix for the db
 
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
@@ -140,7 +137,4 @@ func configKey(hash common.Hash) []byte {
 // economicModelKey = economicModelPrefix + hash
 func economicModelKey(hash common.Hash) []byte {
 	return append(economicModelPrefix, hash.Bytes()...)
-}
-func exeBlockDataKey(blockNumber *big.Int) []byte {
-	return append(exeBlockDataPrefix, blockNumber.Bytes()...)
 }
