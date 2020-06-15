@@ -816,7 +816,7 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 		}
 	}
 
-	_, returnGas, err := ctx.evm.Call(ctx.contract, addr, nil, gas, bValue)
+	_, returnGas, err := ctx.evm.Call(InvokedByContract, ctx.contract, addr, nil, gas, bValue)
 
 	var status int32
 
@@ -1046,7 +1046,7 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 		}
 	}
 
-	ret, returnGas, err := ctx.evm.Call(ctx.contract, addr, input, gas, bValue)
+	ret, returnGas, err := ctx.evm.Call(InvokedByContract, ctx.contract, addr, input, gas, bValue)
 
 	var status int32
 

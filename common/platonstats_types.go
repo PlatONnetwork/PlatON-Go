@@ -4,11 +4,25 @@ package common
 
 var PlatONStatsServiceRunning bool = false
 
+type EmbedTransferTx struct {
+	TxHash Hash    `rlp:"nil"`
+	From   Address `rlp:"nil"`
+	To     Address `rlp:"nil"`
+	Amount uint64
+}
+
+type EmbedContractTx struct {
+	TxHash          Hash    `rlp:"nil"`
+	From            Address `rlp:"nil"`
+	ContractAddress Address `rlp:"nil"`
+	Input           []byte  `rlp:"nil"`
+}
+
 type GenesisData struct {
-	AllocItemList []*AllocItem
+	AllocItemList []*AllocItem `rlp:"nil"`
 }
 type AllocItem struct {
-	Address Address
+	Address Address `rlp:"nil"`
 	Amount  uint64
 }
 
@@ -22,11 +36,11 @@ type AdditionalIssuanceData struct {
 	AdditionalBase   uint64          //增发基数
 	AdditionalRate   uint16          //增发比例 单位：万分之一
 	AdditionalAmount uint64          //增发金额
-	IssuanceItemList []*IssuanceItem //增发分配
+	IssuanceItemList []*IssuanceItem `rlp:"nil"` //增发分配
 }
 
 type IssuanceItem struct {
-	Address Address //增发金额分配地址
+	Address Address `rlp:"nil"` //增发金额分配地址
 	Amount  uint64  //增发金额
 }
 
@@ -57,13 +71,13 @@ type DuplicatedSignSlashingSetting struct {
 }
 
 type UnstakingRefundItem struct {
-	NodeID        [64]byte    //备选节点ID
-	NodeAddress   NodeAddress //备选节点地址
+	NodeID        [64]byte    `rlp:"nil"` //备选节点ID
+	NodeAddress   NodeAddress `rlp:"nil"` //备选节点地址
 	RefundEpochNo uint64      //解除质押,资金真正退回的结算周期（此周期最后一个块的endBlocker里
 }
 
 type RestrictingReleaseItem struct {
-	DestAddress   Address //释放地址
+	DestAddress   Address `rlp:"nil"` //释放地址
 	ReleaseAmount uint64  //释放金额
 }
 
@@ -101,6 +115,8 @@ type ExeBlockData struct {
 	DuplicatedSignSlashingSetting *DuplicatedSignSlashingSetting `rlp:"nil"`
 	UnstakingRefundItemList       []*UnstakingRefundItem         `rlp:"nil"`
 	RestrictingReleaseItemList    []*RestrictingReleaseItem      `rlp:"nil"`
+	EmbedTransferTxList           []*EmbedTransferTx             `rlp:"nil"`
+	EmbedContractTxList           []*EmbedContractTx             `rlp:"nil"`
 }
 
 func CollectUnstakingRefundItem(blockNumber uint64, nodeId [64]byte, nodeAddress NodeAddress, refundEpochNo uint64) {
@@ -138,5 +154,19 @@ func CollectZeroSlashingItem(blockNumber uint64, zeroSlashingItemList []*ZeroSla
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.ZeroSlashingItemList = zeroSlashingItemList
+	}
+}
+
+func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, amount uint64) {
+	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+		d := ExeBlockDataCollector[blockNumber]
+		d.EmbedTransferTxList = append(d.EmbedTransferTxList, &EmbedTransferTx{TxHash: txHash, From: from, To: to, Amount: amount})
+	}
+}
+
+func CollectEmbedContractTx(blockNumber uint64, txHash Hash, from, contractAddress Address, input []byte) {
+	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+		d := ExeBlockDataCollector[blockNumber]
+		d.EmbedContractTxList = append(d.EmbedContractTxList, &EmbedContractTx{TxHash: txHash, From: from, ContractAddress: contractAddress, Input: input})
 	}
 }

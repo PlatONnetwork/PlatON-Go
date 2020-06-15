@@ -17,11 +17,7 @@
 package core
 
 import (
-	"bytes"
 	"math/big"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -109,28 +105,6 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
-	db.AddLog(buildLog(sender, recipient, amount))
-}
-
-func buildLog(from, to common.Address, amount *big.Int) *types.Log {
-	transferItem := buildTransferItem(from, to, amount)
-
-	buf := new(bytes.Buffer)
-
-	err := rlp.Encode(buf, transferItem)
-	if err != nil {
-		log.Error("Cannot RlpEncode transferItem", "err", err)
-		panic("Cannot RlpEncode transferItem")
-	}
-
-	//当交易是个合约交易，通过to判断是否是合约交易，参考parallel_tx_dag.go
-	// if tx.To() == nil || vm.IsPrecompiledContract(*tx.To()) || state.GetCodeSize(*tx.To()) > 0
-	//只有在是合约交易时，这个log才有意义。
-	//另外，这个对跟踪系统来说，需要了解：
-	//对于合约交易来说，log可能有多个，那么Address==nil的，就是记录转账的log（这个log只是rlpEncode了一次）
-	return &types.Log{
-		Data: buf.Bytes(),
-	}
 }
 
 type transferItem struct {

@@ -55,7 +55,7 @@ func (db *StatsDB) WriteExeBlockData(blockNumber *big.Int, data *common.ExeBlock
 
 	encoded := common.MustRlpEncode(data)
 	if err := db.PutLevelDB(blockNumber.Bytes(), encoded); err != nil {
-		log.Crit("Failed to write ExeBlockData", "blockNumber", blockNumber, "err", err)
+		log.Crit("Failed to write ExeBlockData", "blockNumber", blockNumber, "data", common.Bytes2Hex(encoded), "err", err)
 	}
 }
 
@@ -66,7 +66,7 @@ func (db *StatsDB) ReadExeBlockData(blockNumber *big.Int) *common.ExeBlockData {
 	}
 	var data common.ExeBlockData
 	if err := rlp.DecodeBytes(bytes, &data); err != nil {
-		log.Crit("Failed to read ExeBlockData", "blockNumber", blockNumber, "err", err)
+		log.Crit("Failed to read ExeBlockData", "blockNumber", blockNumber, "data", common.Bytes2Hex(bytes), "err", err)
 		return nil
 	}
 	return &data

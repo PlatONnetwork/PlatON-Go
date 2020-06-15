@@ -78,7 +78,7 @@ func Test_Kafka_producer(t *testing.T) {
 	s := NewMockPlatonStatsService()
 
 	statsLogFile = "d:\\swap\\statsdb\\platonstats.log"
-	statsdb.SetDBPath("d:\\swap\\statsdb")
+
 	var blockProducer sarama.SyncProducer
 	var err error
 	if blockProducer, err = sarama.NewSyncProducer([]string{"192.168.112.32:9092"}, blockProducerConfig()); err != nil {
@@ -110,6 +110,7 @@ func Test_StatsService(t *testing.T) {
 
 	s.kafkaUrl = "192.168.112.32:9092"
 	statsLogFile = "d:\\swap\\platonstats.log"
+	statsdb.SetDBPath("d:\\swap\\statsdb")
 
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 

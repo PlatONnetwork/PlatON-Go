@@ -35,6 +35,9 @@ import (
 // deployed contract addresses (relevant after the account abstraction).
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
+const InvokedByTx = false
+const InvokedByContract = true
+
 type (
 	// CanTransferFunc is the signature of a transfer guard function
 	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
@@ -239,7 +242,7 @@ func (evm *EVM) Interpreter() Interpreter {
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil
 	}
@@ -299,6 +302,20 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			contract.UseGas(contract.Gas)
 		}
 	}
+
+	//stats: 收集隐含交易
+	// Call修改的是被调用者的storage
+	if invokedByContract {
+		if value.Uint64() > 0 {
+			common.CollectEmbedTransferTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), value.Uint64())
+		}
+		if contract.CodeAddr != nil {
+			if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
+				common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
+			}
+		}
+	}
+
 	return ret, contract.Gas, err
 }
 
@@ -340,6 +357,14 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 			contract.UseGas(contract.Gas)
 		}
 	}
+	//stats: 收集隐含交易。
+	//CallCode，肯定是合约内部调用的。
+	//CallCode的msg.sender，不会一直使用原始调用者的地址。CallCode修改的是调用者的storage修改的是调用者的storage。
+	if contract.CodeAddr != nil {
+		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
+			common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
+		}
+	}
 	return ret, contract.Gas, err
 }
 
@@ -373,6 +398,15 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 			contract.UseGas(contract.Gas)
 		}
 	}
+
+	//stats: 收集隐含交易。
+	//DelegateCall，肯定是合约内部调用的。DelegateCall的msg.sender，会一直使用原始调用者的地址。
+	if contract.CodeAddr != nil {
+		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
+			common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
+		}
+	}
+
 	return ret, contract.Gas, err
 }
 
@@ -409,6 +443,15 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 			contract.UseGas(contract.Gas)
 		}
 	}
+
+	//stats: 收集隐含交易。
+	//StaticCall，肯定是合约内部调用的，因为目前Solidity中并没有一个low level API可以直接调用它，仅仅是计划将来在编译器层面把调用view和pure类型的函数编译成STATICCALL指
+	if contract.CodeAddr != nil {
+		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
+			common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
+		}
+	}
+
 	return ret, contract.Gas, err
 }
 

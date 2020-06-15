@@ -13,17 +13,17 @@ import (
 
 type account struct{}
 
-func (account) SubBalance(amount *big.Int)                          {}
-func (account) AddBalance(amount *big.Int)                          {}
-func (account) SetAddress(common.Address)                           {}
-func (account) Value() *big.Int                                     { return nil }
-func (account) SetBalance(*big.Int)                                 {}
-func (account) SetNonce(uint64)                                     {}
-func (account) Balance() *big.Int                                   { return nil }
-func (account) Address() common.Address                             { return common.Address{} }
-func (account) ReturnGas(*big.Int)                                  {}
-func (account) SetCode(common.Hash, []byte)                         {}
-func (account) ForEachStorage(cb func(key  common.Hash, value []byte) bool) {}
+func (account) SubBalance(amount *big.Int)                                 {}
+func (account) AddBalance(amount *big.Int)                                 {}
+func (account) SetAddress(common.Address)                                  {}
+func (account) Value() *big.Int                                            { return nil }
+func (account) SetBalance(*big.Int)                                        {}
+func (account) SetNonce(uint64)                                            {}
+func (account) Balance() *big.Int                                          { return nil }
+func (account) Address() common.Address                                    { return common.Address{} }
+func (account) ReturnGas(*big.Int)                                         {}
+func (account) SetCode(common.Hash, []byte)                                {}
+func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
 func NewEVMWithCtx(cfg *Config) *vm.EVM {
 	vmenv := NewEnv(cfg)
@@ -49,6 +49,7 @@ func TestEVMCallError(t *testing.T) {
 		sender = vm.AccountRef(cfg.Origin)
 	)
 	vmenv.Call(
+		vm.InvokedByTx,
 		sender,
 		common.BytesToAddress([]byte("contract")),
 		nil,
@@ -93,6 +94,7 @@ func TestEVMCall(t *testing.T) {
 	sender := vm.AccountRef(cfg.Origin)
 	// Call the code with the given configuration.
 	vmenv.Call(
+		vm.InvokedByTx,
 		sender,
 		common.BytesToAddress([]byte("contract")),
 		nil,
