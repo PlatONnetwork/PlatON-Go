@@ -45,6 +45,7 @@ type Transaction struct {
 
 	//for parallel executor only
 	intrinsicGas uint64
+	fromAddr     *common.Address
 }
 
 type txdata struct {
@@ -258,6 +259,14 @@ func (tx *Transaction) FromAddr(signer Signer) common.Address {
 	}
 	tx.from.Store(sigCache{signer: signer, from: addr})
 	return addr
+}
+
+func (tx *Transaction) SetFromAddr(from *common.Address) {
+	tx.fromAddr = from
+}
+
+func (tx *Transaction) GetFromAddr() *common.Address {
+	return tx.fromAddr
 }
 
 func (tx *Transaction) SetIntrinsicGas(intrinsicGas uint64) {

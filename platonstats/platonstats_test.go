@@ -3,9 +3,12 @@ package platonstats
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"regexp"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
@@ -14,8 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/Shopify/sarama"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
@@ -37,8 +38,9 @@ func TestUrl(t *testing.T) {
 	}
 }
 
-func buildExeBlockData() *common.ExeBlockData {
+func buildStatsBlockExt() *StatsBlockExt {
 	blockNumber := uint64(100)
+
 	common.InitExeBlockData(blockNumber)
 
 	candidate := &common.CandidateInfo{nodeId, address}
@@ -51,27 +53,39 @@ func buildExeBlockData() *common.ExeBlockData {
 	rewardData := &common.RewardData{BlockRewardAmount: 12, StakingRewardAmount: 12, CandidateInfoList: candidateInfoList}
 	common.CollectRewardData(blockNumber, rewardData)
 
-	return common.GetExeBlockData(blockNumber)
+	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, 1)
+	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x02}, address, address, 2)
+
+	statsData := new(StatsBlockExt)
+	statsData.ExeBlockData = common.GetExeBlockData(blockNumber)
+
+	tx1 := types.NewTransaction(1, address, big.NewInt(1), 30000, big.NewInt(1), nil)
+	tx2 := types.NewTransaction(2, address, big.NewInt(2), 30000, big.NewInt(2), nil)
+	statsData.Txs = convertTxs(types.Transactions{tx1, tx2})
+
+	return statsData
 }
 func Test_rlp_Data(t *testing.T) {
 	NewMockPlatonStatsService()
-	blockData := buildExeBlockData()
-	json, _ := json.Marshal(blockData)
-	t.Log("blockData", string(json))
+	statsData := buildStatsBlockExt()
 
-	bytes := common.MustRlpEncode(blockData)
-	t.Log("encode data", "hex", common.Bytes2Hex(bytes))
+	jsonBytes, err := json.Marshal(statsData)
+	if err != nil {
+		t.Fatal("Failed to marshal statsData to json format", err)
+	} else {
+		t.Log("json format:" + string(jsonBytes))
 
-	var data common.ExeBlockData
-	if len(bytes) > 0 {
-		if err := rlp.DecodeBytes(bytes, &data); err != nil {
-			t.Fatal("Failed to rlp decode bytes to ExeBlockData", err)
-		} else {
-			t.Log("ExeBlockData.RewardData.CandidateInfoList[0].NodeID", common.Bytes2Hex(data.RewardData.CandidateInfoList[0].NodeID[:]))
-			t.Log("AdditionalIssuanceData==nil", data.AdditionalIssuanceData == nil)
-
-		}
+		/*var data StatsBlockExt
+		if len(jsonBytes) > 0 {
+			if err := json.Unmarshal(jsonBytes, &data); err != nil {
+				t.Fatal("Failed to unmarshal json to statsData", err)
+			} else {
+				t.Log("ExeBlockData.RewardData.CandidateInfoList[0].NodeID", common.Bytes2Hex(data.ExeBlockData.RewardData.CandidateInfoList[0].NodeID[:]))
+				t.Log("AdditionalIssuanceData==nil", data.ExeBlockData.AdditionalIssuanceData == nil)
+			}
+		}*/
 	}
+
 }
 
 func Test_Kafka_producer(t *testing.T) {
@@ -97,7 +111,7 @@ func Test_Kafka_producer(t *testing.T) {
 
 	nextBlock := s.BlockChain().GetBlockByNumber(10)
 
-	statsdb.Instance().WriteExeBlockData(nextBlock.Number(), buildExeBlockData())
+	statsdb.Instance().WriteExeBlockData(nextBlock.Number(), buildStatsBlockExt().ExeBlockData)
 
 	if err = s.reportBlockMsg(nextBlock); err != nil {
 		t.Fatal("Failed to report BlockMsg", "error", err)

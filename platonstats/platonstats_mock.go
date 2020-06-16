@@ -87,7 +87,9 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 	}
 
 	statsBlockExt := &StatsBlockExt{
-		Block:        block,
+		Brief:        collectBrief(block),
+		Header:       block.Header(),
+		Txs:          convertTxs(block.Transactions()),
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
 		GenesisData:  genesisData,

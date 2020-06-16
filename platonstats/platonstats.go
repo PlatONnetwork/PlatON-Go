@@ -1,6 +1,7 @@
 package platonstats
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -57,23 +58,34 @@ type platonStats interface {
 }
 
 type Brief struct {
-	BlockType   common.BlockType
-	EpochNo     uint64
-	NodeID      discover.NodeID    `rlp:"nil"`
-	NodeAddress common.NodeAddress `rlp:"nil"`
+	BlockType   common.BlockType   `json:"blockType"`
+	EpochNo     uint64             `json:"epochNo"`
+	NodeID      discover.NodeID    `json:"nodeId"`
+	NodeAddress common.NodeAddress `json:"nodeAddress"`
+}
+
+type Tx struct {
+	Hash     common.Hash     `json:"hash"`
+	Nonce    uint64          `json:"nonce"`
+	From     *common.Address `json:"from"`
+	To       *common.Address `json:"to"`
+	Value    uint64          `json:"value"`
+	gas      uint64          `json:"gas"`
+	GasPrice uint64          `json:"gasPrice"`
+	Input    []byte          `json:"input"`
 }
 
 type StatsBlockExt struct {
-	Brief        *Brief               `rlp:"nil"`
-	Block        *types.Block         `rlp:"nil"`
-	Receipts     []*types.Receipt     `rlp:"nil"`
-	ExeBlockData *common.ExeBlockData `rlp:"nil"`
-	GenesisData  *common.GenesisData  `rlp:"nil"`
+	Brief        *Brief               `json:"brief,omitempty"`
+	Header       *types.Header        `json:"header,omitempty"`
+	Txs          []*Tx                `json:"txs,omitempty"`
+	Receipts     []*types.Receipt     `json:"receipts,omitempty"`
+	ExeBlockData *common.ExeBlockData `json:"exeBlocData,omitempty"`
+	GenesisData  *common.GenesisData  `json:"GenesisData,omitempty"`
 }
 
 type PlatonStatsService struct {
-	server *p2p.Server // Peer-to-peer server to retrieve networking infos
-
+	server        *p2p.Server // Peer-to-peer server to retrieve networking infos
 	kafkaUrl      string
 	eth           *eth.Ethereum // Full Ethereum service if monitoring a full node
 	datadir       string
@@ -221,15 +233,16 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 
 	statsBlockExt := &StatsBlockExt{
 		Brief:        collectBrief(block),
-		Block:        block,
+		Header:       block.Header(),
+		Txs:          convertTxs(block.Transactions()),
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
 		GenesisData:  genesisData,
 	}
 
-	data, err := rlp.EncodeToBytes(statsBlockExt)
+	json, err := json.Marshal(statsBlockExt)
 	if err != nil {
-		log.Error("encode platon stats block ext message error")
+		log.Error("marshal platon stats block message to json string error")
 		return err
 	}
 	// send message
@@ -237,7 +250,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		Topic:     kafkaBlockTopic,
 		Partition: 0,
 		Key:       sarama.StringEncoder(strconv.FormatUint(block.NumberU64(), 10)),
-		Value:     sarama.ByteEncoder(data),
+		Value:     sarama.ByteEncoder(json),
 		Timestamp: time.Now(),
 	}
 
@@ -354,4 +367,21 @@ func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.Gen
 		}
 	}
 	return genesisData, nil
+}
+
+func convertTxs(transactions types.Transactions) []*Tx {
+	txs := make([]*Tx, transactions.Len())
+	for idx, t := range transactions {
+		tx := new(Tx)
+		tx.Hash = t.Hash()
+		tx.Nonce = tx.Nonce
+		tx.From = t.GetFromAddr()
+		tx.To = t.To()
+		tx.Value = t.Value().Uint64()
+		tx.gas = t.Gas()
+		tx.GasPrice = t.GasPrice().Uint64()
+		tx.Input = t.Data()
+		txs[idx] = tx
+	}
+	return txs
 }
