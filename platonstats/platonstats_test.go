@@ -78,6 +78,7 @@ func Test_Kafka_producer(t *testing.T) {
 	s := NewMockPlatonStatsService()
 
 	statsLogFile = "d:\\swap\\statsdb\\platonstats.log"
+	statsdb.SetDBPath("d:\\swap\\statsdb")
 
 	var blockProducer sarama.SyncProducer
 	var err error

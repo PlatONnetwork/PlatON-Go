@@ -8,6 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -16,8 +21,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
@@ -53,10 +56,15 @@ type platonStats interface {
 	SubscribeSampleEvent(ch chan<- SampleEvent) event.Subscription
 }
 
+type Brief struct {
+	BlockType   common.BlockType
+	EpochNo     uint64
+	NodeID      discover.NodeID    `rlp:"nil"`
+	NodeAddress common.NodeAddress `rlp:"nil"`
+}
+
 type StatsBlockExt struct {
-	BlockType    uint8
-	EpochNo      uint64
-	NodeID       discover.NodeID      `rlp:"nil"`
+	Brief        *Brief               `rlp:"nil"`
 	Block        *types.Block         `rlp:"nil"`
 	Receipts     []*types.Receipt     `rlp:"nil"`
 	ExeBlockData *common.ExeBlockData `rlp:"nil"`
@@ -212,6 +220,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	}
 
 	statsBlockExt := &StatsBlockExt{
+		Brief:        collectBrief(block),
 		Block:        block,
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
@@ -243,6 +252,39 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	//不从statsdb中删除统计需要的过程数据。
 	//statsdb.Instance().DeleteExeBlockData(block.Number())
 	return nil
+}
+
+func collectBrief(block *types.Block) *Brief {
+	bn := block.NumberU64()
+	brief := new(Brief)
+	brief.BlockType = common.GeneralBlock
+	brief.EpochNo = xutil.CalculateEpoch(bn)
+
+	if nodeID, nodeAddress, err := discover.ExtractNode(block.Header().SealHash(), block.Header().Extra[32:97]); err != nil {
+		log.Error("cannot extract node info from block seal hash and signature")
+		panic(err)
+	} else {
+		brief.NodeID = nodeID
+		brief.NodeAddress = nodeAddress
+	}
+
+	if bn == 0 {
+		brief.BlockType = common.GenesisBlock
+	} else if yes, err := xcom.IsYearEnd(common.ZeroHash, bn); err != nil {
+		panic(err)
+	} else if yes {
+		brief.BlockType = common.EndOfYear
+	} else if xutil.IsElection(bn) {
+		brief.BlockType = common.ConsensusElectionBlock
+	} else if xutil.IsBeginOfConsensus(bn) {
+		brief.BlockType = common.ConsensusBeginBlock
+	} else if xutil.IsBeginOfEpoch(bn) {
+		brief.BlockType = common.EpochBeginBlock
+	} else if xutil.IsEndOfEpoch(bn) {
+		brief.BlockType = common.EpochEndBlock
+	}
+
+	return brief
 }
 
 func readBlockNumber() (uint64, error) {

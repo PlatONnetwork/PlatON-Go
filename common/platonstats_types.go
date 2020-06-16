@@ -4,6 +4,19 @@ package common
 
 var PlatONStatsServiceRunning bool = false
 
+type BlockType uint8
+
+const (
+	GenesisBlock BlockType = iota
+	GeneralBlock
+	ConsensusBeginBlock
+	ConsensusElectionBlock
+	ConsensusEndBlock
+	EpochBeginBlock
+	EpochEndBlock
+	EndOfYear
+)
+
 type EmbedTransferTx struct {
 	TxHash Hash    `rlp:"nil"`
 	From   Address `rlp:"nil"`
