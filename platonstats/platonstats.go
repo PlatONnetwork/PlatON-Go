@@ -269,20 +269,14 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 
 func collectBrief(block *types.Block) *Brief {
 	bn := block.NumberU64()
+
 	brief := new(Brief)
 	brief.BlockType = common.GeneralBlock
 	brief.EpochNo = xutil.CalculateEpoch(bn)
 
-	if nodeID, nodeAddress, err := discover.ExtractNode(block.Header().SealHash(), block.Header().Extra[32:97]); err != nil {
-		log.Error("cannot extract node info from block seal hash and signature")
-		panic(err)
-	} else {
-		brief.NodeID = nodeID
-		brief.NodeAddress = nodeAddress
-	}
-
 	if bn == 0 {
 		brief.BlockType = common.GenesisBlock
+		return brief
 	} else if yes, err := xcom.IsYearEnd(common.ZeroHash, bn); err != nil {
 		panic(err)
 	} else if yes {
@@ -295,6 +289,13 @@ func collectBrief(block *types.Block) *Brief {
 		brief.BlockType = common.EpochBeginBlock
 	} else if xutil.IsEndOfEpoch(bn) {
 		brief.BlockType = common.EpochEndBlock
+	}
+	if nodeID, nodeAddress, err := discover.ExtractNode(block.Header().SealHash(), block.Header().Extra[32:97]); err != nil {
+		log.Error("cannot extract node info from block seal hash and signature")
+		panic(err)
+	} else {
+		brief.NodeID = nodeID
+		brief.NodeAddress = nodeAddress
 	}
 
 	return brief
