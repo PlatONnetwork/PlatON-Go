@@ -12,8 +12,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -57,28 +55,46 @@ type platonStats interface {
 	SubscribeSampleEvent(ch chan<- SampleEvent) event.Subscription
 }
 
-type Brief struct {
-	BlockType   common.BlockType   `json:"blockType"`
-	EpochNo     uint64             `json:"epochNo"`
-	NodeID      discover.NodeID    `json:"nodeId"`
-	NodeAddress common.NodeAddress `json:"nodeAddress"`
+type blockdata struct {
+	Number       uint64             `json:"number"    gencodec:"required"`
+	Hash         common.Hash        `json:"hash"    gencodec:"required"`
+	ParentHash   common.Hash        `json:"parentHash"    gencodec:"required"`
+	LogsBloom    types.Bloom        `json:"logsBloom"    gencodec:"required"`
+	StateRoot    common.Hash        `json:"stateRoot"    gencodec:"required"`
+	ReceiptsRoot common.Hash        `json:"receiptsRoot"    gencodec:"required"`
+	Miner        common.Address     `json:"miner"    gencodec:"required"`
+	ExtraData    []byte             `json:"extraData"    gencodec:"required"`
+	GasLimit     uint64             `json:"gasLimit"    gencodec:"required"`
+	GasUsed      uint64             `json:"gasUsed"    gencodec:"required"`
+	Timestamp    string             `json:"timestamp"    gencodec:"required"`
+	Transactions types.Transactions `json:"transactions"    gencodec:"required"`
 }
 
-type Tx struct {
-	Hash     common.Hash     `json:"hash"`
-	Nonce    uint64          `json:"nonce"`
-	From     *common.Address `json:"from"`
-	To       *common.Address `json:"to"`
-	Value    uint64          `json:"value"`
-	gas      uint64          `json:"gas"`
-	GasPrice uint64          `json:"gasPrice"`
-	Input    []byte          `json:"input"`
+func convertBlock(block *types.Block) *blockdata {
+	blk := new(blockdata)
+	blk.Number = block.NumberU64()
+	blk.Hash = block.Hash()
+	blk.ParentHash = block.ParentHash()
+	blk.LogsBloom = block.Bloom()
+	blk.StateRoot = block.Root()
+	blk.ReceiptsRoot = block.ReceiptHash()
+	blk.Miner = block.Coinbase()
+	blk.ExtraData = block.Extra()
+	blk.GasLimit = block.GasLimit()
+	blk.GasUsed = block.GasUsed()
+	blk.Transactions = block.Transactions()
+	return blk
+}
+
+type Brief struct {
+	BlockType common.BlockType `json:"blockType"`
+	EpochNo   uint64           `json:"epochNo"`
 }
 
 type StatsBlockExt struct {
-	Brief        *Brief               `json:"brief,omitempty"`
-	Header       *types.Header        `json:"header,omitempty"`
-	Txs          []*Tx                `json:"txs,omitempty"`
+	BlockType    common.BlockType     `json:"blockType"`
+	EpochNo      uint64               `json:"epochNo"`
+	Block        *blockdata           `json:"block,omitempty"`
 	Receipts     []*types.Receipt     `json:"receipts,omitempty"`
 	ExeBlockData *common.ExeBlockData `json:"exeBlocData,omitempty"`
 	GenesisData  *common.GenesisData  `json:"GenesisData,omitempty"`
@@ -91,7 +107,6 @@ type PlatonStatsService struct {
 	datadir       string
 	blockProducer sarama.SyncProducer
 	msgProducer   sarama.AsyncProducer
-
 	stopSampleMsg chan struct{}
 	stopBlockMsg  chan struct{}
 	stopOnce      sync.Once
@@ -231,10 +246,12 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
 	}
 
+	brief := collectBrief(block)
+
 	statsBlockExt := &StatsBlockExt{
-		Brief:        collectBrief(block),
-		Header:       block.Header(),
-		Txs:          convertTxs(block.Transactions()),
+		BlockType:    brief.BlockType,
+		EpochNo:      brief.EpochNo,
+		Block:        convertBlock(block),
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
 		GenesisData:  genesisData,
@@ -244,6 +261,8 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	if err != nil {
 		log.Error("marshal platon stats block message to json string error")
 		return err
+	} else {
+		log.Debug("marshal platon stats block", "json", string(json))
 	}
 	// send message
 	msg := &sarama.ProducerMessage{
@@ -290,13 +309,13 @@ func collectBrief(block *types.Block) *Brief {
 	} else if xutil.IsEndOfEpoch(bn) {
 		brief.BlockType = common.EpochEndBlock
 	}
-	if nodeID, nodeAddress, err := discover.ExtractNode(block.Header().SealHash(), block.Header().Extra[32:97]); err != nil {
-		log.Error("cannot extract node info from block seal hash and signature")
-		panic(err)
-	} else {
-		brief.NodeID = nodeID
-		brief.NodeAddress = nodeAddress
-	}
+	/*	if nodeID, nodeAddress, err := discover.ExtractNode(block.Header().SealHash(), block.Header().Extra[32:97]); err != nil {
+			log.Error("cannot extract node info from block seal hash and signature")
+			panic(err)
+		} else {
+			brief.NodeID = nodeID
+			brief.NodeAddress = nodeAddress
+		}*/
 
 	return brief
 }
@@ -370,7 +389,7 @@ func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.Gen
 	return genesisData, nil
 }
 
-func convertTxs(transactions types.Transactions) []*Tx {
+/*func convertTxs(transactions types.Transactions) []*Tx {
 	txs := make([]*Tx, transactions.Len())
 	for idx, t := range transactions {
 		tx := new(Tx)
@@ -385,4 +404,4 @@ func convertTxs(transactions types.Transactions) []*Tx {
 		txs[idx] = tx
 	}
 	return txs
-}
+}*/

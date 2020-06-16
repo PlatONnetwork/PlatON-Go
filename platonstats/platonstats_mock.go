@@ -1,6 +1,7 @@
 package platonstats
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -83,32 +84,39 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 		}
 	} else {
 		receipts = s.BlockChain().GetReceiptsByHash(block.Hash())
-		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
-	}
 
+		//tx1 := types.NewTransaction(1, common.Address{0x01, 0x02}, big.NewInt(1), 30000, big.NewInt(1), nil)
+		//tx2 := types.NewTransaction(2, common.Address{0x01, 0x02}, big.NewInt(2), 30000, big.NewInt(2), nil)
+
+		//block.SetTransactions(types.Transactions{tx1, tx2})
+
+		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
+
+	}
+	brief := collectBrief(block)
 	statsBlockExt := &StatsBlockExt{
-		Brief:        collectBrief(block),
-		Header:       block.Header(),
-		Txs:          convertTxs(block.Transactions()),
+		BlockType:    brief.BlockType,
+		EpochNo:      brief.EpochNo,
+		Block:        convertBlock(block),
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
 		GenesisData:  genesisData,
 	}
 
-	blockExtBytes, err := rlp.EncodeToBytes(statsBlockExt)
+	json, err := json.Marshal(statsBlockExt)
 	if err != nil {
-		log.Error("encode platon stats block ext message error")
+		log.Error("marshal platon stats block message to json string error")
 		return err
+	} else {
+		log.Debug("marshal platon stats block", "json", string(json))
 	}
-	data := common.Bytes2Hex(blockExtBytes)
-	log.Info("Prepare to send PlatON block ext message to Kafka", "blockNumber", block.NumberU64(), "hex", data)
 
 	// send message
 	msg := &sarama.ProducerMessage{
 		Topic:     kafkaBlockTopic,
 		Partition: 0,
 		Key:       sarama.StringEncoder(strconv.FormatUint(block.NumberU64(), 10)),
-		Value:     sarama.StringEncoder(common.Bytes2Hex(blockExtBytes)),
+		Value:     sarama.ByteEncoder(json),
 		Timestamp: time.Now(),
 	}
 
