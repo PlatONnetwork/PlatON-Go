@@ -35,6 +35,8 @@ type StateDB interface {
 	SetNonce(common.Address, uint64)
 
 	GetCodeHash(common.Address) common.Hash
+	GetProof(common.Address) (ProofList, error)
+	GetStorageProof(common.Address, common.Hash) (ProofList, error)
 	GetCode(common.Address) []byte
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
@@ -74,6 +76,14 @@ type StateDB interface {
 	TxIdx() uint32
 
 	IntermediateRoot(deleteEmptyObjects bool) common.Hash
+}
+
+// MerkleProof
+type ProofList [][]byte
+
+func (n *ProofList) Put(key []byte, value []byte) error {
+	*n = append(*n, value)
+	return nil
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM

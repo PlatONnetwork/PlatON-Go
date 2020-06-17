@@ -18,7 +18,9 @@
 package state
 
 import (
+	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"math/big"
 	"sort"
 	"sync"
@@ -336,6 +338,24 @@ func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
 		return stateObject.removePrefixValue(stateObject.GetState(self.db, key))
 	}
 	return []byte{}
+}
+
+// GetProof returns the MerkleProof for a given Account
+func (self *StateDB) GetProof(a common.Address) (vm.ProofList, error) {
+	var proof vm.ProofList
+	err := self.trie.Prove(crypto.Keccak256(a.Bytes()), 0, &proof)
+	return proof, err
+}
+
+// GetProof returns the StorageProof for given key
+func (self *StateDB) GetStorageProof(a common.Address, key common.Hash) (vm.ProofList, error) {
+	var proof vm.ProofList
+	trie := self.StorageTrie(a)
+	if trie == nil {
+		return proof, errors.New("storage trie for requested address does not exist")
+	}
+	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
+	return proof, err
 }
 
 // GetCommittedState retrieves a value from the given account's committed storage trie.
