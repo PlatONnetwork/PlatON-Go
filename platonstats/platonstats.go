@@ -269,7 +269,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		Topic:     kafkaBlockTopic,
 		Partition: 0,
 		Key:       sarama.StringEncoder(strconv.FormatUint(block.NumberU64(), 10)),
-		Value:     sarama.ByteEncoder(json),
+		Value:     sarama.StringEncoder(string(json)),
 		Timestamp: time.Now(),
 	}
 
