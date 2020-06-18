@@ -147,9 +147,11 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		//stats: 收集待分配的质押奖励金额，每个结算周期可能不一样
 		rewardData.StakingRewardAmount = stakingReward.Uint64()
 		rewardData.CandidateInfoList = convertVerifier(verifierList)
-		common.CollectRewardData(blockNumber, rewardData)
+
 	}
 
+	//stats:收集待分配的奖励金额
+	common.CollectRewardData(blockNumber, rewardData)
 	return nil
 }
 
