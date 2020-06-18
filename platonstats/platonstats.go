@@ -151,18 +151,23 @@ func (s *PlatonStatsService) APIs() []rpc.API { return nil }
 
 // Start implements node.Service, starting up the monitoring and reporting daemon.
 func (s *PlatonStatsService) Start(server *p2p.Server) error {
+	log.Info("PlatON stats server starting....")
 	s.server = server
 	urls := []string{s.kafkaUrl}
 
 	if msgProducer, err := sarama.NewAsyncProducer(urls, msgProducerConfig()); err != nil {
+		log.Error("Failed to init msg Kafka async producer....", "err", err)
 		return err
 	} else {
+		log.Info("Success to init msg Kafka async producer....")
 		s.msgProducer = msgProducer
 	}
 
 	if blockProducer, err := sarama.NewSyncProducer(urls, blockProducerConfig()); err != nil {
+		log.Error("Failed to init msg Kafka sync producer....", "err", err)
 		return err
 	} else {
+		log.Info("Success to init msg Kafka sync producer....")
 		s.blockProducer = blockProducer
 	}
 
