@@ -262,7 +262,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		log.Error("marshal platon stats block message to json string error")
 		return err
 	} else {
-		log.Debug("marshal platon stats block", "json", string(json))
+		log.Info("marshal platon stats block", "blockNumber=", block.NumberU64(), "json", string(json))
 	}
 	// send message
 	msg := &sarama.ProducerMessage{
