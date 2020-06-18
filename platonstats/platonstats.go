@@ -259,7 +259,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 
 	json, err := json.Marshal(statsBlockExt)
 	if err != nil {
-		log.Error("marshal platon stats block message to json string error")
+		log.Error("marshal platon stats block message to json string error", "blockNumber=", block.NumberU64(), "err", err)
 		return err
 	} else {
 		log.Info("marshal platon stats block", "blockNumber=", block.NumberU64(), "json", string(json))
