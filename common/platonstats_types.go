@@ -128,8 +128,8 @@ type ExeBlockData struct {
 	DuplicatedSignSlashingSetting *DuplicatedSignSlashingSetting `json:"duplicatedSignSlashingSetting,omitempty"`
 	UnstakingRefundItemList       []*UnstakingRefundItem         `json:"unstakingRefundItemList,omitempty"`
 	RestrictingReleaseItemList    []*RestrictingReleaseItem      `json:"restrictingReleaseItemList,omitempty"`
-	EmbedTransferTxMap            map[Hash][]*EmbedTransferTx    `json:"embedTransferTxMap,omitempty"`
-	EmbedContractTxMap            map[Hash][]*EmbedContractTx    `json:"embedContractTxMap,omitempty"`
+	EmbedTransferTxMap            map[Hash][]*EmbedTransferTx    `json:"embedTransferTxMap,omitempty"` //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
+	EmbedContractTxMap            map[Hash][]*EmbedContractTx    `json:"embedContractTxMap,omitempty"` //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
 }
 
 func CollectUnstakingRefundItem(blockNumber uint64, nodeId [64]byte, nodeAddress NodeAddress, refundEpochNo uint64) {
