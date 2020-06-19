@@ -17,6 +17,7 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -306,8 +307,12 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
 
 		//stats: 保存 ExeBlockData in snapshotDB
-		log.Debug("Execute block finished, write ExeBlockData", "number", block.NumberU64())
-		statsdb.Instance().WriteExeBlockData(block.Number(), common.PopExeBlockData(block.NumberU64()))
+
+		exeBlockData := common.PopExeBlockData(block.NumberU64())
+		json, _ := json.Marshal(exeBlockData)
+
+		log.Debug("Execute block finished, write ExeBlockData", "number", block.NumberU64(), "exeBlockData", string(json))
+		statsdb.Instance().WriteExeBlockData(block.Number(), exeBlockData)
 
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())

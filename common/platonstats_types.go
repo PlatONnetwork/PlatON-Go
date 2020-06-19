@@ -101,15 +101,18 @@ type RestrictingReleaseItem struct {
 var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
 
 func PopExeBlockData(blockNumber uint64) *ExeBlockData {
-	exeBlockData, ok := ExeBlockDataCollector[blockNumber]
-
-	json, _ := json.Marshal(exeBlockData)
-	log.Debug("PopExeBlockData", "exeBlockData", string(json))
-	if ok {
-		delete(ExeBlockDataCollector, blockNumber)
-		return exeBlockData
+	log.Debug("PopExeBlockData", "blockNumber", blockNumber)
+	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+		exeBlockData, ok := ExeBlockDataCollector[blockNumber]
+		json, _ := json.Marshal(exeBlockData)
+		log.Debug("PopExeBlockData", "blockNumber", blockNumber, "exeBlockData", string(json))
+		if ok {
+			delete(ExeBlockDataCollector, blockNumber)
+			return exeBlockData
+		}
+		return nil
 	}
-	return nil
+
 }
 
 func InitExeBlockData(blockNumber uint64) {
