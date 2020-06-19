@@ -1,6 +1,8 @@
 package core
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"sync"
@@ -251,4 +253,15 @@ func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteE
 			}
 		}
 	}
+}
+
+func (ctx *ParallelContext) txListInfo() string {
+	var buffer bytes.Buffer
+	if len(ctx.txList) > 0 {
+		for i, tx := range ctx.txList {
+			buffer.WriteString(fmt.Sprintf("index:%d, from:%s, to:%s, value:%s, nonce:%d, data:%s \n ",
+				i, tx.FromAddr(ctx.signer), tx.To(), tx.Value().String(), tx.Nonce(), common.Bytes2Hex(tx.Data())))
+		}
+	}
+	return buffer.String()
 }
