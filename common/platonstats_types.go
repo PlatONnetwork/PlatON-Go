@@ -40,14 +40,18 @@ func (a Input) MarshalText() ([]byte, error) {
 
 // UnmarshalText parses a hash in hex syntax.
 func (a *Input) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("common.Input", input, *a)
-	/*aa := make(Input, len(input))
-	err := hexutil.UnmarshalFixedText("common.Input", input, aa)
+	hexBytes, err := hexutil.Decode(string(input[1 : len(input)-1]))
 	if err != nil {
-		return errors.New(" Unmarshal Input error")
+		return err
+	}
+	aa := make(Input, len(hexBytes))
+
+	err = hexutil.UnmarshalFixedText("common.Input", input, aa)
+	if err != nil {
+		return err
 	}
 	a = &aa
-	return nil*/
+	return nil
 }
 
 // UnmarshalJSON parses a hash in hex syntax.
