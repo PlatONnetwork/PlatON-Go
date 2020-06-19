@@ -35,8 +35,6 @@ type StateDB interface {
 	SetNonce(common.Address, uint64)
 
 	GetCodeHash(common.Address) common.Hash
-	GetProof(common.Address) (ProofList, error)
-	GetStorageProof(common.Address, common.Hash) (ProofList, error)
 	GetCode(common.Address) []byte
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int

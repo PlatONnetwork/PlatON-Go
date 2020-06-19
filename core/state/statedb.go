@@ -20,7 +20,6 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"math/big"
 	"sort"
 	"sync"
@@ -340,22 +339,33 @@ func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
 	return []byte{}
 }
 
+type proofList [][]byte
+
+func (n *proofList) Put(key []byte, value []byte) error {
+	*n = append(*n, value)
+	return nil
+}
+
+func (n *proofList) Delete(key []byte) error {
+	panic("not supported")
+}
+
 // GetProof returns the MerkleProof for a given Account
-func (self *StateDB) GetProof(a common.Address) (vm.ProofList, error) {
-	var proof vm.ProofList
-	err := self.trie.Prove(crypto.Keccak256(a.Bytes()), 0, &proof)
-	return proof, err
+func (s *StateDB) GetProof(a common.Address) ([][]byte, error) {
+	var proof proofList
+	err := s.trie.Prove(crypto.Keccak256(a.Bytes()), 0, &proof)
+	return [][]byte(proof), err
 }
 
 // GetProof returns the StorageProof for given key
-func (self *StateDB) GetStorageProof(a common.Address, key common.Hash) (vm.ProofList, error) {
-	var proof vm.ProofList
-	trie := self.StorageTrie(a)
+func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, error) {
+	var proof proofList
+	trie := s.StorageTrie(a)
 	if trie == nil {
 		return proof, errors.New("storage trie for requested address does not exist")
 	}
 	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
-	return proof, err
+	return [][]byte(proof), err
 }
 
 // GetCommittedState retrieves a value from the given account's committed storage trie.
