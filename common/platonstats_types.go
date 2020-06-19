@@ -164,6 +164,8 @@ func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.RewardData = rewardData
+
+		log.Debug("CollectRewardData ok", "blockNumber", blockNumber, "rewardData", rewardData.BlockRewardAmount)
 	}
 }
 
