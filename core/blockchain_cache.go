@@ -296,8 +296,8 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	common.InitExeBlockData(block.NumberU64())
 
 	receipts, err := bcc.ProcessDirectly(block, state, parent)
-	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(),
-		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "duration", time.Since(t), "makeState", elapse, "err", err)
+	log.Debug("Execute block", "number", block.NumberU64(), "hash", block.Hash(),
+		"parentNumber", parent.NumberU64(), "parentHash", parent.Hash(), "duration", time.Since(t), "makeState", elapse, "err", err)
 	if err == nil {
 		//save the receipts and state to consensusCache
 		sealHash := block.Header().SealHash()
@@ -306,6 +306,7 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
 
 		//stats: 保存 ExeBlockData in snapshotDB
+		log.Debug("Execute block finished, write ExeBlockData", "number", block.NumberU64())
 		statsdb.Instance().WriteExeBlockData(block.Number(), common.PopExeBlockData(block.NumberU64()))
 
 	} else {
