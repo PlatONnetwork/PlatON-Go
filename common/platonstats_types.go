@@ -1,6 +1,10 @@
 package common
 
-import "github.com/PlatONnetwork/PlatON-Go/log"
+import (
+	"encoding/json"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+)
 
 //type NodeID [64]byte
 
@@ -98,7 +102,9 @@ var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
 
 func PopExeBlockData(blockNumber uint64) *ExeBlockData {
 	exeBlockData, ok := ExeBlockDataCollector[blockNumber]
-	log.Debug("PopExeBlockData", "exeBlockData==nil", exeBlockData == nil)
+
+	json, _ := json.Marshal(exeBlockData)
+	log.Debug("PopExeBlockData", "exeBlockData", string(json))
 	if ok {
 		delete(ExeBlockDataCollector, blockNumber)
 		return exeBlockData
@@ -136,6 +142,7 @@ type ExeBlockData struct {
 }
 
 func CollectUnstakingRefundItem(blockNumber uint64, nodeId [64]byte, nodeAddress NodeAddress, refundEpochNo uint64) {
+	log.Debug("CollectUnstakingRefundItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "nodeAddress", nodeAddress.Hex(), "refundEpochNo", refundEpochNo)
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.UnstakingRefundItemList = append(d.UnstakingRefundItemList, &UnstakingRefundItem{NodeID: nodeId, NodeAddress: nodeAddress, RefundEpochNo: refundEpochNo})
@@ -143,6 +150,7 @@ func CollectUnstakingRefundItem(blockNumber uint64, nodeId [64]byte, nodeAddress
 }
 
 func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, releaseAmount uint64) {
+	log.Debug("CollectRestrictingReleaseItem", "blockNumber", blockNumber, "destAddress", destAddress, "releaseAmount", releaseAmount)
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.RestrictingReleaseItemList = append(d.RestrictingReleaseItemList, &RestrictingReleaseItem{DestAddress: destAddress, ReleaseAmount: releaseAmount})
@@ -158,6 +166,7 @@ func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
 }
 
 func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByValidStakings, rewardRatioByPenalties uint32) {
+	log.Debug("CollectDuplicatedSignSlashingSetting", "blockNumber", blockNumber, "penaltyRatioByValidStakings", penaltyRatioByValidStakings, "rewardRatioByPenalties", rewardRatioByPenalties)
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		if d.DuplicatedSignSlashingSetting != nil {
@@ -168,6 +177,8 @@ func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByVali
 }
 
 func CollectZeroSlashingItem(blockNumber uint64, zeroSlashingItemList []*ZeroSlashingItem) {
+	json, _ := json.Marshal(zeroSlashingItemList)
+	log.Debug("CollectZeroSlashingItem", "blockNumber", blockNumber, "zeroSlashingItemList", string(json))
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.ZeroSlashingItemList = zeroSlashingItemList
@@ -175,6 +186,7 @@ func CollectZeroSlashingItem(blockNumber uint64, zeroSlashingItemList []*ZeroSla
 }
 
 func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, amount uint64) {
+	log.Debug("CollectEmbedTransferTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.EmbedTransferTxMap[txHash] = append(d.EmbedTransferTxMap[txHash], &EmbedTransferTx{From: from, To: to, Amount: amount})
@@ -182,6 +194,7 @@ func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, a
 }
 
 func CollectEmbedContractTx(blockNumber uint64, txHash Hash, from, contractAddress Address, input []byte) {
+	log.Debug("CollectEmbedContractTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "contractAddress", from.Bech32(), "input", Bytes2Hex(input), "amount", amount)
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.EmbedContractTxMap[txHash] = append(d.EmbedContractTxMap[txHash], &EmbedContractTx{From: from, ContractAddress: contractAddress, Input: input})
