@@ -35,8 +35,7 @@ func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs [
 			continue
 		}
 
-		//if tx.To() == nil || vm.IsPrecompiledContract(*tx.To()) || state.GetCodeSize(*tx.To()) > 0 {
-		if exe.isContract(*tx.To(), state) {
+		if exe.isContract(tx.To(), state) {
 			txDag.contracts[index] = struct{}{}
 			if index > 0 {
 				if index-latestPrecompiledIndex > 1 {
