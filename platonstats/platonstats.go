@@ -96,7 +96,7 @@ type StatsBlockExt struct {
 	EpochNo      uint64               `json:"epochNo"`
 	Block        *blockdata           `json:"block,omitempty"`
 	Receipts     []*types.Receipt     `json:"receipts,omitempty"`
-	ExeBlockData *common.ExeBlockData `json:"exeBlocData,omitempty"`
+	ExeBlockData *common.ExeBlockData `json:"exeBlockData,omitempty"`
 	GenesisData  *common.GenesisData  `json:"GenesisData,omitempty"`
 }
 
