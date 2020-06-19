@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -104,13 +106,17 @@ func convertBlock(block *types.Block) *blockdata {
 }
 
 type Brief struct {
-	BlockType common.BlockType `json:"blockType"`
-	EpochNo   uint64           `json:"epochNo"`
+	BlockType   common.BlockType
+	EpochNo     uint64
+	NodeID      common.NodeID
+	NodeAddress common.NodeAddress
 }
 
 type StatsBlockExt struct {
 	BlockType    common.BlockType     `json:"blockType"`
 	EpochNo      uint64               `json:"epochNo"`
+	NodeID       common.NodeID        `json:"nodeID,omitempty"`
+	NodeAddress  common.NodeAddress   `json:"nodeAddress,omitempty"`
 	Block        *blockdata           `json:"block,omitempty"`
 	Receipts     []*types.Receipt     `json:"receipts,omitempty"`
 	ExeBlockData *common.ExeBlockData `json:"exeBlockData,omitempty"`
@@ -271,6 +277,8 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	statsBlockExt := &StatsBlockExt{
 		BlockType:    brief.BlockType,
 		EpochNo:      brief.EpochNo,
+		NodeID:       brief.NodeID,
+		NodeAddress:  brief.NodeAddress,
 		Block:        convertBlock(block),
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
@@ -329,13 +337,13 @@ func collectBrief(block *types.Block) *Brief {
 	} else if xutil.IsEndOfEpoch(bn) {
 		brief.BlockType = common.EpochEndBlock
 	}
-	/*	if nodeID, nodeAddress, err := discover.ExtractNode(block.Header().SealHash(), block.Header().Extra[32:97]); err != nil {
-			log.Error("cannot extract node info from block seal hash and signature")
-			panic(err)
-		} else {
-			brief.NodeID = nodeID
-			brief.NodeAddress = nodeAddress
-		}*/
+	if nodeID, nodeAddress, err := discover.ExtractNode(block.Header().SealHash(), block.Header().Extra[32:97]); err != nil {
+		log.Error("cannot extract node info from block seal hash and signature")
+		panic(err)
+	} else {
+		brief.NodeID = common.NodeID(nodeID)
+		brief.NodeAddress = nodeAddress
+	}
 
 	return brief
 }
