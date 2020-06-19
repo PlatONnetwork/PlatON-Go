@@ -2,7 +2,9 @@ package common
 
 import (
 	"encoding/json"
-	"fmt"
+	"reflect"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
@@ -10,14 +12,58 @@ import (
 type BlockType uint8
 type NodeID [512 / 8]byte
 
-func (nodeId NodeID) MarshalJSON() ([]byte, error) {
-	return json.Marshal(fmt.Sprintf("0x%x", nodeId))
-}
-
 type Input []byte
 
-func (input Input) MarshalJSON() ([]byte, error) {
-	return json.Marshal(fmt.Sprintf("0x%x", input))
+var nodeIdT = reflect.TypeOf(NodeID{})
+
+// MarshalText returns the hex representation of a.
+func (a NodeID) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(a[:]).MarshalText()
+}
+
+// UnmarshalText parses a hash in hex syntax.
+func (a *NodeID) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("common.NodeID", input, a[:])
+}
+
+// UnmarshalJSON parses a hash in hex syntax.
+func (a *NodeID) UnmarshalJSON(input []byte) error {
+	return hexutil.UnmarshalFixedJSON(nodeIdT, input, a[:])
+}
+
+var inputT = reflect.TypeOf(Input{})
+
+// MarshalText returns the hex representation of a.
+func (a Input) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(a[:]).MarshalText()
+}
+
+// UnmarshalText parses a hash in hex syntax.
+func (a *Input) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("common.Input", input, *a)
+	/*aa := make(Input, len(input))
+	err := hexutil.UnmarshalFixedText("common.Input", input, aa)
+	if err != nil {
+		return errors.New(" Unmarshal Input error")
+	}
+	a = &aa
+	return nil*/
+}
+
+// UnmarshalJSON parses a hash in hex syntax.
+func (a *Input) UnmarshalJSON(input []byte) error {
+	//string(input)="0x0102030405", so, firstly remove the "", and then, to decode it.
+	hexBytes, err := hexutil.Decode(string(input[1 : len(input)-1]))
+	if err != nil {
+		return err
+	}
+	aa := make(Input, len(hexBytes))
+	err = hexutil.UnmarshalFixedJSON(inputT, input, aa)
+	if err != nil {
+		return err
+	}
+	a = &aa
+	return nil
 }
 
 const (

@@ -52,6 +52,7 @@ func buildExeBlockData() *common.ExeBlockData {
 
 	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, 1)
 	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x02}, address, address, 2)
+	common.CollectEmbedContractTx(blockNumber, common.Hash{0x03}, address, address, []byte{0x01, 0x02, 0x03, 0x04, 0x05})
 
 	return common.GetExeBlockData(blockNumber)
 }
@@ -65,15 +66,15 @@ func Test_rlp_Data(t *testing.T) {
 	} else {
 		t.Log("json format:" + string(jsonBytes))
 
-		/*var data StatsBlockExt
+		var data common.ExeBlockData
 		if len(jsonBytes) > 0 {
 			if err := json.Unmarshal(jsonBytes, &data); err != nil {
 				t.Fatal("Failed to unmarshal json to statsData", err)
 			} else {
-				t.Log("ExeBlockData.RewardData.CandidateInfoList[0].NodeID", common.Bytes2Hex(data.ExeBlockData.RewardData.CandidateInfoList[0].NodeID[:]))
-				t.Log("AdditionalIssuanceData==nil", data.ExeBlockData.AdditionalIssuanceData == nil)
+				t.Log("ExeBlockData.RewardData.CandidateInfoList[0].NodeID", common.Bytes2Hex(data.RewardData.CandidateInfoList[0].NodeID[:]))
+				t.Log("AdditionalIssuanceData==nil", data.AdditionalIssuanceData == nil)
 			}
-		}*/
+		}
 	}
 
 }
