@@ -47,8 +47,8 @@ type LeafCallback func(leaf []byte, parent common.Hash) error
 //
 // Trie is not safe for concurrent use.
 type Trie struct {
-	db           *Database
-	root         node
+	db   *Database
+	root node
 
 	dag *trieDag
 }
@@ -70,8 +70,8 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 		panic("trie.New called without a database")
 	}
 	trie := &Trie{
-		db:           db,
-		dag:          newTrieDag(),
+		db:  db,
+		dag: newTrieDag(),
 	}
 	// If root is not empty, restore the node from the DB (the whole tree)
 	if root != (common.Hash{}) && root != emptyRoot {
@@ -571,7 +571,7 @@ func (t *Trie) parallelHashRoot(db *Database, onleaf LeafCallback) (node, node, 
 	if t.root == nil {
 		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
-	if len(t.dag.nodes) > 0 {
+	if len(t.dag.nodes) > 100 {
 		//t.dag.init(t.root)
 		return t.dag.hash(db, true, onleaf)
 	} else {
@@ -589,8 +589,8 @@ func (t *Trie) DeepCopyTrie() *Trie {
 	}
 	t.copyNode(cpyRoot)
 	return &Trie{
-		db:           t.db,
-		root:         cpyRoot,
+		db:   t.db,
+		root: cpyRoot,
 		//dag:          t.dag.DeepCopy(),
 		dag: newTrieDag(),
 	}
