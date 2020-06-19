@@ -110,9 +110,8 @@ func PopExeBlockData(blockNumber uint64) *ExeBlockData {
 			delete(ExeBlockDataCollector, blockNumber)
 			return exeBlockData
 		}
-		return nil
 	}
-
+	return nil
 }
 
 func InitExeBlockData(blockNumber uint64) {
