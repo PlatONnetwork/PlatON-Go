@@ -1,7 +1,10 @@
 package core
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
+	"github.com/hashicorp/golang-lru"
 	"math/big"
 	"runtime"
 	"sync"
@@ -15,6 +18,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
+const (
+	// Number of contractAddress->bool associations to keep.
+	contractCacheSize = 10000
+)
+
 var (
 	executorOnce sync.Once
 	executor     Executor
@@ -26,7 +34,8 @@ type Executor struct {
 	vmCfg        vm.Config
 	signer       types.Signer
 
-	workerPool *ants.PoolWithFunc
+	workerPool    *ants.PoolWithFunc
+	contractCache *lru.Cache
 }
 
 type TaskArgs struct {
@@ -51,6 +60,8 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		executor.chainContext = chainContext
 		executor.signer = types.NewEIP155Signer(chainConfig.ChainID)
 		executor.vmCfg = vmCfg
+		csc, _ := lru.New(contractCacheSize)
+		executor.contractCache = csc
 	})
 }
 
@@ -66,7 +77,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	if len(ctx.txList) > 0 {
 		txDag := NewTxDag(exe.signer)
 		start := time.Now()
-		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList, start); err != nil {
+		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList, exe); err != nil {
 			return err
 		}
 		log.Trace("Make dag graph cost", "number", ctx.header.Number.Uint64(), "time", time.Since(start))
@@ -213,4 +224,15 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	ctx.GetState().IncreaseTxIdx()
 	ctx.AddReceipt(receipt)
 	log.Debug("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
+}
+
+func (exe *Executor) isContract(address common.Address, state *state.StateDB) bool {
+	if cached, ok := exe.contractCache.Get(address); ok {
+		return cached.(bool)
+	}
+	isContract := &address == nil || vm.IsPrecompiledContract(address) || state.GetCodeSize(address) > 0
+	if isContract {
+		exe.contractCache.Add(address, true)
+	}
+	return isContract
 }
