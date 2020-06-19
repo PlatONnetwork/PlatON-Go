@@ -103,7 +103,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
-
+		log.Info("Block 1 reward", "packageReward", packageReward.Uint64())
 		//stats: 待分配的出块奖励金额，每个结算周期可能不一样
 		rewardData.BlockRewardAmount = packageReward.Uint64()
 	} else {
