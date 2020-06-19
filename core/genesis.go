@@ -22,11 +22,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"io"
 	"math/big"
 	"os"
 	"strings"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -337,7 +338,10 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
 	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
+	log.Debug("genesis block alloc", "address", xcom.PlatONFundAccount().Bech32(), "balance", xcom.PlatONFundBalance())
+
 	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())
+	log.Debug("genesis block alloc", "address", xcom.CDFAccount().Bech32(), "balance", xcom.CDFBalance())
 
 	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.PlatONFundBalance())
 	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.CDFBalance())
@@ -349,6 +353,8 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		for key, value := range account.Storage {
 
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
+
+			log.Info("genesis block alloc", "address", addr.Bech32(), "balance", value)
 		}
 
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)

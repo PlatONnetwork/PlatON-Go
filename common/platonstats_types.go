@@ -2,13 +2,23 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
-//type NodeID [64]byte
-
 type BlockType uint8
+type NodeID [512 / 8]byte
+
+func (nodeId NodeID) MarshalJSON() ([]byte, error) {
+	return json.Marshal(fmt.Sprintf("0x%x", nodeId))
+}
+
+type Input []byte
+
+func (input Input) MarshalJSON() ([]byte, error) {
+	return json.Marshal(fmt.Sprintf("0x%x", input))
+}
 
 const (
 	GenesisBlock BlockType = iota
@@ -30,7 +40,7 @@ type EmbedTransferTx struct {
 type EmbedContractTx struct {
 	From            Address `json:"from,omitempty"`
 	ContractAddress Address `json:"contractAddress,omitempty"`
-	Input           []byte  `json:"input,omitempty"`
+	Input           Input   `json:"input,omitempty"`
 }
 
 type GenesisData struct {
@@ -38,7 +48,7 @@ type GenesisData struct {
 }
 type AllocItem struct {
 	Address Address `json:"address,omitempty"`
-	Amount  uint64  `json:"amount,omitempty"`
+	Amount  uint64  `json:"amount"`
 }
 
 func (g *GenesisData) AddAllocItem(address Address, amount uint64) {
@@ -71,13 +81,13 @@ type RewardData struct {
 }
 
 type CandidateInfo struct {
-	NodeID       [64]byte `json:"nodeId,omitempty"`       //备选节点ID
-	MinerAddress Address  `json:"minerAddress,omitempty"` //备选节点的矿工地址（收益地址）
+	NodeID       NodeID  `json:"nodeId,omitempty"`       //备选节点ID
+	MinerAddress Address `json:"minerAddress,omitempty"` //备选节点的矿工地址（收益地址）
 }
 
 type ZeroSlashingItem struct {
-	NodeID         [64]byte `json:"nodeId,omitempty"` //备选节点ID
-	SlashingAmount uint64   `json:"slashingAmount"`   //0出块处罚金(从质押金扣)
+	NodeID         NodeID `json:"nodeId,omitempty"` //备选节点ID
+	SlashingAmount uint64 `json:"slashingAmount"`   //0出块处罚金(从质押金扣)
 }
 
 type DuplicatedSignSlashingSetting struct {
@@ -86,7 +96,7 @@ type DuplicatedSignSlashingSetting struct {
 }
 
 type UnstakingRefundItem struct {
-	NodeID        [64]byte    `json:"nodeId,omitempty"`      //备选节点ID
+	NodeID        NodeID      `json:"nodeId,omitempty"`      //备选节点ID
 	NodeAddress   NodeAddress `json:"nodeAddress,omitempty"` //备选节点地址
 	RefundEpochNo uint64      `json:"refundEpochNo"`         //解除质押,资金真正退回的结算周期（此周期最后一个块的endBlocker里
 }
@@ -133,7 +143,7 @@ type ExeBlockData struct {
 	EmbedContractTxMap            map[Hash][]*EmbedContractTx    `json:"embedContractTxMap,omitempty"` //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
 }
 
-func CollectUnstakingRefundItem(blockNumber uint64, nodeId [64]byte, nodeAddress NodeAddress, refundEpochNo uint64) {
+func CollectUnstakingRefundItem(blockNumber uint64, nodeId NodeID, nodeAddress NodeAddress, refundEpochNo uint64) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectUnstakingRefundItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "nodeAddress", nodeAddress.Hex(), "refundEpochNo", refundEpochNo)
 		exeBlockData.UnstakingRefundItemList = append(exeBlockData.UnstakingRefundItemList, &UnstakingRefundItem{NodeID: nodeId, NodeAddress: nodeAddress, RefundEpochNo: refundEpochNo})

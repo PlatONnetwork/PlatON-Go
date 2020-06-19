@@ -62,12 +62,20 @@ type blockdata struct {
 	LogsBloom    types.Bloom        `json:"logsBloom"    gencodec:"required"`
 	StateRoot    common.Hash        `json:"stateRoot"    gencodec:"required"`
 	ReceiptsRoot common.Hash        `json:"receiptsRoot"    gencodec:"required"`
+	TxHash       common.Hash        `json:"transactionsRoot" gencodec:"required"`
 	Miner        common.Address     `json:"miner"    gencodec:"required"`
 	ExtraData    []byte             `json:"extraData"    gencodec:"required"`
 	GasLimit     uint64             `json:"gasLimit"    gencodec:"required"`
 	GasUsed      uint64             `json:"gasUsed"    gencodec:"required"`
-	Timestamp    string             `json:"timestamp"    gencodec:"required"`
+	Timestamp    uint64             `json:"timestamp"    gencodec:"required"`
 	Transactions types.Transactions `json:"transactions"    gencodec:"required"`
+	Nonce        Nonce              `json:"nonce"    gencodec:"required"`
+}
+
+type Nonce []byte
+
+func (nonce Nonce) MarshalJSON() ([]byte, error) {
+	return json.Marshal(fmt.Sprintf("0x%x", nonce))
 }
 
 func convertBlock(block *types.Block) *blockdata {
@@ -78,11 +86,14 @@ func convertBlock(block *types.Block) *blockdata {
 	blk.LogsBloom = block.Bloom()
 	blk.StateRoot = block.Root()
 	blk.ReceiptsRoot = block.ReceiptHash()
+	blk.TxHash = block.TxHash()
 	blk.Miner = block.Coinbase()
 	blk.ExtraData = block.Extra()
 	blk.GasLimit = block.GasLimit()
 	blk.GasUsed = block.GasUsed()
+	blk.Timestamp = block.Time().Uint64()
 	blk.Transactions = block.Transactions()
+	blk.Nonce = block.Nonce()
 	return blk
 }
 

@@ -159,7 +159,7 @@ func convertVerifier(verifierList []*staking.Candidate) []*common.CandidateInfo 
 	candidateInfoList := make([]*common.CandidateInfo, len(verifierList))
 	for idx, verifier := range verifierList {
 		candidateInfo := &common.CandidateInfo{
-			NodeID: verifier.NodeId, MinerAddress: verifier.BenefitAddress,
+			NodeID: common.NodeID(verifier.NodeId), MinerAddress: verifier.BenefitAddress,
 		}
 		candidateInfoList[idx] = candidateInfo
 	}
@@ -667,6 +667,7 @@ func GetHistoryCumulativeIssue(state xcom.StateDB, year uint32) *big.Int {
 func SetYearEndBalance(state xcom.StateDB, year uint32, balance *big.Int) {
 	yearEndBalanceKey := reward.HistoryBalancePrefix(year)
 	state.SetState(vm.RewardManagerPoolAddr, yearEndBalanceKey, balance.Bytes())
+	log.Info("SetYearEndBalance", "address", vm.RewardManagerPoolAddr.Bech32(), "balance", balance)
 }
 
 func GetYearEndBalance(state xcom.StateDB, year uint32) *big.Int {

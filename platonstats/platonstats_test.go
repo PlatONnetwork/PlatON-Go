@@ -40,11 +40,11 @@ func buildExeBlockData() *common.ExeBlockData {
 
 	common.InitExeBlockData(blockNumber)
 
-	candidate := &common.CandidateInfo{nodeId, address}
+	candidate := &common.CandidateInfo{common.NodeID(nodeId), address}
 	candidateInfoList := []*common.CandidateInfo{candidate}
 
 	common.CollectRestrictingReleaseItem(blockNumber, address, 111)
-	common.CollectUnstakingRefundItem(blockNumber, nodeId, nodeAddress, 222)
+	common.CollectUnstakingRefundItem(blockNumber, common.NodeID(nodeId), nodeAddress, 222)
 	common.CollectDuplicatedSignSlashingSetting(blockNumber, 2000, 60)
 
 	rewardData := &common.RewardData{BlockRewardAmount: 12, StakingRewardAmount: 12, CandidateInfoList: candidateInfoList}

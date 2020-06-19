@@ -3413,7 +3413,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 	}
 
 	//stats: 保存需要清算的质押资金信息
-	common.CollectUnstakingRefundItem(blockNumber, nodeId, canAddr, targetEpoch)
+	common.CollectUnstakingRefundItem(blockNumber, common.NodeID(nodeId), canAddr, targetEpoch)
 	return nil
 }
 
