@@ -171,10 +171,10 @@ func (s *PlatonStatsService) Start(server *p2p.Server) error {
 		s.blockProducer = blockProducer
 	}
 
+	common.PlatONStatsServiceRunning = true
+
 	go s.blockMsgLoop()
 	//go s.sampleMsgLoop()
-
-	common.PlatONStatsServiceRunning = true
 	log.Info("PlatON stats daemon started")
 	return nil
 }
