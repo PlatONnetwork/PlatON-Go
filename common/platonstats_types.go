@@ -194,7 +194,7 @@ func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, a
 }
 
 func CollectEmbedContractTx(blockNumber uint64, txHash Hash, from, contractAddress Address, input []byte) {
-	log.Debug("CollectEmbedContractTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "contractAddress", from.Bech32(), "input", Bytes2Hex(input), "amount", amount)
+	log.Debug("CollectEmbedContractTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "contractAddress", from.Bech32(), "input", Bytes2Hex(input))
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.EmbedContractTxMap[txHash] = append(d.EmbedContractTxMap[txHash], &EmbedContractTx{From: from, ContractAddress: contractAddress, Input: input})
