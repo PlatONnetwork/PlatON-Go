@@ -64,12 +64,18 @@ type blockdata struct {
 	ReceiptsRoot common.Hash        `json:"receiptsRoot"    gencodec:"required"`
 	TxHash       common.Hash        `json:"transactionsRoot" gencodec:"required"`
 	Miner        common.Address     `json:"miner"    gencodec:"required"`
-	ExtraData    []byte             `json:"extraData"    gencodec:"required"`
+	ExtraData    ExtraData          `json:"extraData"    gencodec:"required"`
 	GasLimit     uint64             `json:"gasLimit"    gencodec:"required"`
 	GasUsed      uint64             `json:"gasUsed"    gencodec:"required"`
 	Timestamp    uint64             `json:"timestamp"    gencodec:"required"`
 	Transactions types.Transactions `json:"transactions"    gencodec:"required"`
 	Nonce        Nonce              `json:"nonce"    gencodec:"required"`
+}
+
+type ExtraData []byte
+
+func (extraData ExtraData) MarshalJSON() ([]byte, error) {
+	return json.Marshal(fmt.Sprintf("0x%x", extraData))
 }
 
 type Nonce []byte
@@ -88,7 +94,7 @@ func convertBlock(block *types.Block) *blockdata {
 	blk.ReceiptsRoot = block.ReceiptHash()
 	blk.TxHash = block.TxHash()
 	blk.Miner = block.Coinbase()
-	blk.ExtraData = block.Extra()
+	blk.ExtraData = ExtraData(block.Extra())
 	blk.GasLimit = block.GasLimit()
 	blk.GasUsed = block.GasUsed()
 	blk.Timestamp = block.Time().Uint64()
