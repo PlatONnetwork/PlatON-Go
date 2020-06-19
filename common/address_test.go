@@ -8,12 +8,12 @@ import (
 	"testing"
 )
 
-func TestEmptyAddress(t *testing.T) {
-	add := MustBech32ToAddress("")
-	if add != ZeroAddr {
-		t.Error("ZeroAddr not compare")
-	}
-}
+//func TestEmptyAddress(t *testing.T) {
+//	add := MustBech32ToAddress("")
+//	if add != ZeroAddr {
+//		t.Error("ZeroAddr not compare")
+//	}
+//}
 
 func TestIsStringAddress(t *testing.T) {
 	tests := []struct {
@@ -106,10 +106,10 @@ func TestAddressHexChecksum(t *testing.T) {
 		{"0xdbf03b407c01e7cd3cbea99509d93f8dddc8c6fb", ZeroAddr},
 		{"0xd1220a0cf47c7b9be7a2e6ba89f429762e7b9adb", ZeroAddr},
 		// Ensure that non-standard length input values are handled correctly
-		{"0xa", ZeroAddr},
-		{"0x0a", ZeroAddr},
-		{"0x00a", ZeroAddr},
-		{"0x000000000000000000000000000000000000000a", ZeroAddr},
+		//{"0xa", ZeroAddr},
+		//{"0x0a", ZeroAddr},
+		//{"0x00a", ZeroAddr},
+		//{"0x000000000000000000000000000000000000000a", ZeroAddr},
 		{"lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", MustBech32ToAddress("lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4")},
 	}
 	for i, test := range tests {
