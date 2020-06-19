@@ -61,6 +61,8 @@ func (db *StatsDB) WriteExeBlockData(blockNumber *big.Int, data *common.ExeBlock
 
 func (db *StatsDB) ReadExeBlockData(blockNumber *big.Int) *common.ExeBlockData {
 	bytes, _ := db.GetLevelDB(blockNumber.Bytes())
+
+	log.Info("ReadExeBlockData", "blockNumber", blockNumber, "dataLength", len(bytes))
 	if len(bytes) == 0 {
 		return nil
 	}
