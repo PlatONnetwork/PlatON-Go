@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -42,7 +42,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -728,14 +727,6 @@ func TestViewChangeCannibalizeBytes(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.False(t, bytes.Equal(vc, vqc))
-}
-func TestJson(t *testing.T) {
-	log.Root().SetHandler(log.StdoutHandler)
-
-	qc := ctypes.QuorumCert{}
-	if b, err := json.Marshal(&qc); err == nil {
-		log.Info(string(b))
-	}
 }
 
 func Test_StatMessage(t *testing.T) {

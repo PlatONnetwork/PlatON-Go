@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -83,7 +85,7 @@ type testWorkerBackend struct {
 
 func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine, n int, mux *event.TypeMux) *testWorkerBackend {
 	var (
-		db    = ethdb.NewMemDatabase()
+		db    = rawdb.NewMemoryDatabase()
 		gspec = core.Genesis{
 			Config: chainConfig,
 			Alloc:  core.GenesisAlloc{testBankAddress: {Balance: testBankFunds}},
@@ -147,6 +149,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 
 	event := new(event.TypeMux)
 	backend := newTestWorkerBackend(t, chainConfig, engine, blocks, event)
+	core.NewExecutor(chainConfig, backend.chain, vm.Config{})
 
 	bftResultSub := event.Subscribe(cbfttypes.CbftResult{})
 	core.NewBlockChainReactor(event, chainConfig.ChainID)
@@ -190,77 +193,77 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 //	testEmptyWork(t, chainConfig, consensus.NewFaker())
 //}
 
-func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
-	defer engine.Close()
-
-	minningConfig := &core.MiningConfig{
-		MiningLogAtDepth:       7,
-		TxChanSize:             4096,
-		ChainHeadChanSize:      10,
-		ChainSideChanSize:      10,
-		ResultQueueSize:        10,
-		ResubmitAdjustChanSize: 10,
-		MinRecommitInterval:    1 * time.Second,
-		MaxRecommitInterval:    15 * time.Second,
-		IntervalAdjustRatio:    0.1,
-		IntervalAdjustBias:     200 * 1000.0 * 1000.0,
-		StaleThreshold:         7,
-		DefaultCommitRatio:     0.95,
-	}
-	w, _ := newTestWorker(t, chainConfig, minningConfig, engine, 0)
-
-	defer w.close()
-
-	var (
-		taskCh    = make(chan struct{}, 2)
-		taskIndex int
-	)
-
-	checkEqual := func(t *testing.T, task *task, index int) {
-		receiptLen, balance := 0, big.NewInt(0)
-		if index == 1 {
-			receiptLen, balance = 1, big.NewInt(1000)
-		}
-		if len(task.receipts) != receiptLen {
-			t.Errorf("receipt number mismatch: have %d, want %d", len(task.receipts), receiptLen)
-		}
-		if task.state.GetBalance(testUserAddress).Cmp(balance) != 0 {
-			t.Errorf("account balance mismatch: have %d, want %d", task.state.GetBalance(testUserAddress), balance)
-		}
-	}
-
-	w.newTaskHook = func(task *task) {
-		if task.block.NumberU64() == 1 {
-			checkEqual(t, task, taskIndex)
-			taskIndex += 1
-			taskCh <- struct{}{}
-		}
-	}
-	w.fullTaskHook = func() {
-		time.Sleep(1000 * time.Millisecond)
-	}
-
-	// Ensure worker has finished initialization
-	go func() {
-		for {
-			b := w.pendingBlock()
-			if b != nil && b.NumberU64() == 1 {
-				break
-			}
-		}
-	}()
-
-	go w.start()
-	go func() {
-		for i := 0; i < 2; i += 1 {
-			select {
-			case <-taskCh:
-			case <-time.NewTimer(2 * time.Second).C:
-				t.Error("new task timeout")
-			}
-		}
-	}()
-}
+//func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
+//	defer engine.Close()
+//
+//	minningConfig := &core.MiningConfig{
+//		MiningLogAtDepth:       7,
+//		TxChanSize:             4096,
+//		ChainHeadChanSize:      10,
+//		ChainSideChanSize:      10,
+//		ResultQueueSize:        10,
+//		ResubmitAdjustChanSize: 10,
+//		MinRecommitInterval:    1 * time.Second,
+//		MaxRecommitInterval:    15 * time.Second,
+//		IntervalAdjustRatio:    0.1,
+//		IntervalAdjustBias:     200 * 1000.0 * 1000.0,
+//		StaleThreshold:         7,
+//		DefaultCommitRatio:     0.95,
+//	}
+//	w, _ := newTestWorker(t, chainConfig, minningConfig, engine, 0)
+//
+//	defer w.close()
+//
+//	var (
+//		taskCh    = make(chan struct{}, 2)
+//		taskIndex int
+//	)
+//
+//	checkEqual := func(t *testing.T, task *task, index int) {
+//		receiptLen, balance := 0, big.NewInt(0)
+//		if index == 1 {
+//			receiptLen, balance = 1, big.NewInt(1000)
+//		}
+//		if len(task.receipts) != receiptLen {
+//			t.Errorf("receipt number mismatch: have %d, want %d", len(task.receipts), receiptLen)
+//		}
+//		if task.state.GetBalance(testUserAddress).Cmp(balance) != 0 {
+//			t.Errorf("account balance mismatch: have %d, want %d", task.state.GetBalance(testUserAddress), balance)
+//		}
+//	}
+//
+//	w.newTaskHook = func(task *task) {
+//		if task.block.NumberU64() == 1 {
+//			checkEqual(t, task, taskIndex)
+//			taskIndex += 1
+//			taskCh <- struct{}{}
+//		}
+//	}
+//	w.fullTaskHook = func() {
+//		time.Sleep(1000 * time.Millisecond)
+//	}
+//
+//	// Ensure worker has finished initialization
+//	go func() {
+//		for {
+//			b := w.pendingBlock()
+//			if b != nil && b.NumberU64() == 1 {
+//				break
+//			}
+//		}
+//	}()
+//
+//	go w.start()
+//	go func() {
+//		for i := 0; i < 2; i += 1 {
+//			select {
+//			case <-taskCh:
+//			case <-time.NewTimer(2 * time.Second).C:
+//				t.Error("new task timeout")
+//			}
+//		}
+//	}()
+//}
 
 func TestPendingStateAndBlockCbft(t *testing.T) {
 	testPendingStateAndBlock(t, chainConfig, consensus.NewFaker())

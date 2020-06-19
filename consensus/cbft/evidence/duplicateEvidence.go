@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -22,8 +22,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 
@@ -86,7 +84,7 @@ func (d DuplicatePrepareBlockEvidence) Error() string {
 }
 
 // Validate verify the validity of the DuplicatePrepareBlockEvidence
-// the same epoch,viewNumber,blockNumber,node address and different blockHash
+// the same epoch,viewNumber,blockNumber,nodeId and different blockHash
 func (d DuplicatePrepareBlockEvidence) Validate() error {
 	if d.PrepareA.Epoch != d.PrepareB.Epoch {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence, epoch is different, prepareA:%d, prepareB:%d", d.PrepareA.Epoch, d.PrepareB.Epoch)
@@ -98,9 +96,9 @@ func (d DuplicatePrepareBlockEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence, blockNumber is different, prepareA:%d, prepareB:%d", d.PrepareA.BlockNumber, d.PrepareB.BlockNumber)
 	}
 	validateNodeA, validateNodeB := d.PrepareA.ValidateNode, d.PrepareB.ValidateNode
-	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address ||
-		validateNodeA.NodeID != validateNodeB.NodeID || !bytes.Equal(validateNodeA.BlsPubKey.Serialize(), validateNodeB.BlsPubKey.Serialize()) {
-		return fmt.Errorf("DuplicatePrepareBlockEvidence, validator do not match, prepareA:%s, prepareB:%s", validateNodeA.Address, validateNodeB.Address)
+	if validateNodeA.Index != validateNodeB.Index || validateNodeA.NodeID != validateNodeB.NodeID ||
+		!bytes.Equal(validateNodeA.BlsPubKey.Serialize(), validateNodeB.BlsPubKey.Serialize()) {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence, validator do not match, prepareA:%s, prepareB:%s", validateNodeA.NodeID.TerminalString(), validateNodeB.NodeID.TerminalString())
 	}
 	if d.PrepareA.BlockHash == d.PrepareB.BlockHash {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence, blockHash is equal, prepareA:%s, prepareB:%s", d.PrepareA.BlockHash.String(), d.PrepareB.BlockHash.String())
@@ -113,10 +111,6 @@ func (d DuplicatePrepareBlockEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence, prepareB verify failed")
 	}
 	return nil
-}
-
-func (d DuplicatePrepareBlockEvidence) Address() common.Address {
-	return d.PrepareA.ValidateNode.Address
 }
 
 func (d DuplicatePrepareBlockEvidence) NodeID() discover.NodeID {
@@ -185,7 +179,7 @@ func (d DuplicatePrepareVoteEvidence) Error() string {
 }
 
 // Validate verify the validity of the duplicatePrepareVoteEvidence
-// the same epoch,viewNumber,blockNumber,node address and different blockHash
+// the same epoch,viewNumber,blockNumber,nodeId and different blockHash
 func (d DuplicatePrepareVoteEvidence) Validate() error {
 	if d.VoteA.Epoch != d.VoteB.Epoch {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence, epoch is different, voteA:%d, voteB:%d", d.VoteA.Epoch, d.VoteB.Epoch)
@@ -197,9 +191,9 @@ func (d DuplicatePrepareVoteEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence, blockNumber is different, voteA:%d, voteB:%d", d.VoteA.BlockNumber, d.VoteB.BlockNumber)
 	}
 	validateNodeA, validateNodeB := d.VoteA.ValidateNode, d.VoteB.ValidateNode
-	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address ||
-		validateNodeA.NodeID != validateNodeB.NodeID || !bytes.Equal(validateNodeA.BlsPubKey.Serialize(), validateNodeB.BlsPubKey.Serialize()) {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence, validator do not match, voteA:%s, voteB:%s", validateNodeA.Address, validateNodeB.Address)
+	if validateNodeA.Index != validateNodeB.Index || validateNodeA.NodeID != validateNodeB.NodeID ||
+		!bytes.Equal(validateNodeA.BlsPubKey.Serialize(), validateNodeB.BlsPubKey.Serialize()) {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence, validator do not match, voteA:%s, voteB:%s", validateNodeA.NodeID.TerminalString(), validateNodeB.NodeID.TerminalString())
 	}
 	if d.VoteA.BlockHash == d.VoteB.BlockHash {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence, blockHash is equal, voteA:%s, voteB:%s", d.VoteA.BlockHash.String(), d.VoteB.BlockHash.String())
@@ -212,10 +206,6 @@ func (d DuplicatePrepareVoteEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence, voteB verify failed")
 	}
 	return nil
-}
-
-func (d DuplicatePrepareVoteEvidence) Address() common.Address {
-	return d.VoteA.ValidateNode.Address
 }
 
 func (d DuplicatePrepareVoteEvidence) NodeID() discover.NodeID {
@@ -284,7 +274,7 @@ func (d DuplicateViewChangeEvidence) Error() string {
 }
 
 // Validate verify the validity of the duplicateViewChangeEvidence
-// the same epoch,viewNumber,blockNumber,node address and different blockHash
+// the same epoch,viewNumber,nodeId and different block
 func (d DuplicateViewChangeEvidence) Validate() error {
 	if d.ViewA.Epoch != d.ViewB.Epoch {
 		return fmt.Errorf("DuplicateViewChangeEvidence, epoch is different, viewA:%d, viewB:%d", d.ViewA.Epoch, d.ViewB.Epoch)
@@ -293,9 +283,9 @@ func (d DuplicateViewChangeEvidence) Validate() error {
 		return fmt.Errorf("DuplicateViewChangeEvidence, viewNumber is different, viewA:%d, viewB:%d", d.ViewA.ViewNumber, d.ViewB.ViewNumber)
 	}
 	validateNodeA, validateNodeB := d.ViewA.ValidateNode, d.ViewB.ValidateNode
-	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address ||
-		validateNodeA.NodeID != validateNodeB.NodeID || !bytes.Equal(validateNodeA.BlsPubKey.Serialize(), validateNodeB.BlsPubKey.Serialize()) {
-		return fmt.Errorf("DuplicateViewChangeEvidence, validator do not match, viewA:%s, viewB:%s", validateNodeA.Address, validateNodeB.Address)
+	if validateNodeA.Index != validateNodeB.Index || validateNodeA.NodeID != validateNodeB.NodeID ||
+		!bytes.Equal(validateNodeA.BlsPubKey.Serialize(), validateNodeB.BlsPubKey.Serialize()) {
+		return fmt.Errorf("DuplicateViewChangeEvidence, validator do not match, viewA:%s, viewB:%s", validateNodeA.NodeID.TerminalString(), validateNodeB.NodeID.TerminalString())
 	}
 	if d.ViewA.BlockNumber == d.ViewB.BlockNumber && d.ViewA.BlockHash == d.ViewB.BlockHash {
 		return fmt.Errorf("DuplicateViewChangeEvidence, blockNumber and blockHash is equal, viewANumber:%d, viewAHash:%s, viewANumber:%d, viewBHash:%s", d.ViewA.BlockNumber, d.ViewA.BlockHash.String(), d.ViewB.BlockNumber, d.ViewB.BlockHash.String())
@@ -308,10 +298,6 @@ func (d DuplicateViewChangeEvidence) Validate() error {
 		return fmt.Errorf("DuplicateViewChangeEvidence, ViewB verify failed")
 	}
 	return nil
-}
-
-func (d DuplicateViewChangeEvidence) Address() common.Address {
-	return d.ViewA.ValidateNode.Address
 }
 
 func (d DuplicateViewChangeEvidence) NodeID() discover.NodeID {

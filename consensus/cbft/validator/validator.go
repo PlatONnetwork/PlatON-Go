@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -58,7 +58,7 @@ func newValidators(nodes []params.CbftNode, validBlockNumber uint64) *cbfttypes.
 
 		vds.Nodes[node.Node.ID] = &cbfttypes.ValidateNode{
 			Index:     uint32(i),
-			Address:   crypto.PubkeyToAddress(*pubkey),
+			Address:   crypto.PubkeyToNodeAddress(*pubkey),
 			PubKey:    pubkey,
 			NodeID:    node.Node.ID,
 			BlsPubKey: &blsPubKey,
@@ -421,14 +421,14 @@ func (vp *ValidatorPool) getValidatorByNodeID(epoch uint64, nodeID discover.Node
 }
 
 // GetValidatorByAddr get the validator by address.
-func (vp *ValidatorPool) GetValidatorByAddr(epoch uint64, addr common.Address) (*cbfttypes.ValidateNode, error) {
+func (vp *ValidatorPool) GetValidatorByAddr(epoch uint64, addr common.NodeAddress) (*cbfttypes.ValidateNode, error) {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
 	return vp.getValidatorByAddr(epoch, addr)
 }
 
-func (vp *ValidatorPool) getValidatorByAddr(epoch uint64, addr common.Address) (*cbfttypes.ValidateNode, error) {
+func (vp *ValidatorPool) getValidatorByAddr(epoch uint64, addr common.NodeAddress) (*cbfttypes.ValidateNode, error) {
 	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.FindNodeByAddress(addr)
 	}

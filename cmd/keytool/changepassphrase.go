@@ -5,9 +5,10 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var newPassphraseFlag = cli.StringFlag{
@@ -35,7 +36,7 @@ Change the passphrase of a keyfile.`,
 		}
 
 		// Decrypt key with passphrase.
-		passphrase := getPassphrase(ctx)
+		passphrase := getPassphrase(ctx, false)
 		key, err := keystore.DecryptKey(keyjson, passphrase)
 		if err != nil {
 			utils.Fatalf("Error decrypting key: %v", err)

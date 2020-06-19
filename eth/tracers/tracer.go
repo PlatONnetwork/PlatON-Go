@@ -345,7 +345,7 @@ func New(code string) (*Tracer, error) {
 		if ptr, size := ctx.GetBuffer(-1); ptr != nil {
 			addr = common.BytesToAddress(makeSlice(ptr, size))
 		} else {
-			addr = common.HexToAddress(ctx.GetString(-1))
+			addr = common.MustBech32ToAddress(ctx.GetString(-1))
 		}
 		ctx.Pop()
 		copy(makeSlice(ctx.PushFixedBuffer(20), 20), addr[:])
@@ -356,7 +356,7 @@ func New(code string) (*Tracer, error) {
 		if ptr, size := ctx.GetBuffer(-2); ptr != nil {
 			from = common.BytesToAddress(makeSlice(ptr, size))
 		} else {
-			from = common.HexToAddress(ctx.GetString(-2))
+			from = common.MustBech32ToAddress(ctx.GetString(-2))
 		}
 		nonce := uint64(ctx.GetInt(-1))
 		ctx.Pop2()

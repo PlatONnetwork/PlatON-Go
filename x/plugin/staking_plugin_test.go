@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -194,7 +194,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canTmp.ProgramVersion, canTmp.Shares, canTmp.NodeId, canTmp.StakingBlockNum, canTmp.StakingTxIndex)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return nil, err
@@ -564,7 +564,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canBase.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.NodeId, canBase.StakingBlockNum, canBase.StakingTxIndex)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
@@ -883,7 +883,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canBase.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.NodeId, canBase.StakingBlockNum, canBase.StakingTxIndex)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
@@ -2131,11 +2131,11 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToNodeAddress(addrSuffix).Hex(), "err", err)
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		addr := common.BytesToNodeAddress(addrSuffix)
 
 		val := &staking.Validator{
 			NodeAddress:     addr,
@@ -2317,11 +2317,11 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToNodeAddress(addrSuffix).Hex(), "err", err)
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		addr := common.BytesToNodeAddress(addrSuffix)
 
 		val := &staking.Validator{
 			NodeAddress:     addr,
@@ -2533,11 +2533,11 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToNodeAddress(addrSuffix).Hex(), "err", err)
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		addr := common.BytesToNodeAddress(addrSuffix)
 
 		val := &staking.Validator{
 			NodeAddress:     addr,
@@ -2585,7 +2585,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	}
 
 	sla := new(big.Int).Div(slash2.Released, big.NewInt(10))
-	caller := common.HexToAddress("0xe4a22694827bFa617bF039c937403190477934bF")
+	caller := common.MustBech32ToAddress("lax1uj3zd9yz00axz7ls88ynwsp3jprhjd9ldx9qpm")
 
 	slashItem2 := &staking.SlashNodeItem{
 		NodeId:      slash2.NodeId,
@@ -3435,7 +3435,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		blsKey.SetByCSPRNG()
 		privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
 		nodeId := discover.PubkeyID(&privKey.PublicKey)
-		addr := crypto.PubkeyToAddress(privKey.PublicKey)
+		addr := crypto.PubkeyToNodeAddress(privKey.PublicKey)
 
 		var blsKeyHex bls.PublicKeyHex
 		b, _ := blsKey.GetPublicKey().MarshalText()
@@ -3492,7 +3492,7 @@ func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 
 		tempPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		nodeId := discover.PubkeyID(&tempPrivateKey.PublicKey)
-		addr := crypto.PubkeyToAddress(tempPrivateKey.PublicKey)
+		addr := crypto.PubkeyToNodeAddress(tempPrivateKey.PublicKey)
 		v := &staking.Validator{
 			NodeAddress: addr,
 			NodeId:      nodeId,

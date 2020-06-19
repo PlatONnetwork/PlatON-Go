@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -176,7 +176,7 @@ func (cbft *Cbft) OnViewTimeout() {
 	cbft.log.Info("Current view timeout", "view", cbft.state.ViewString())
 	node, err := cbft.isCurrentValidator()
 	if err != nil {
-		cbft.log.Error("ViewTimeout local node is not validator")
+		cbft.log.Info("ViewTimeout local node is not validator")
 		return
 	}
 
@@ -335,6 +335,11 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 				cbft.state.SetExecuting(index, true)
 				if cbft.executeFinishHook != nil {
 					cbft.executeFinishHook(index)
+				}
+				_, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+				if err != nil {
+					cbft.log.Debug("Current node is not validator,no need to sign block", "err", err, "hash", s.Hash, "number", s.Number)
+					return
 				}
 				if err := cbft.signBlock(block.Hash(), block.NumberU64(), index); err != nil {
 					cbft.log.Error("Sign block failed", "err", err, "hash", s.Hash, "number", s.Number)
@@ -604,7 +609,7 @@ func (cbft *Cbft) tryChangeView() {
 func (cbft *Cbft) richViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) {
 	node, err := cbft.isCurrentValidator()
 	if err != nil {
-		cbft.log.Error("Local node is not validator")
+		cbft.log.Info("Local node is not validator")
 		return
 	}
 	hadSend := cbft.state.ViewChangeByIndex(uint32(node.Index))

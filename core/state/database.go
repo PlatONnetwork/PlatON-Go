@@ -20,20 +20,14 @@ import (
 	"fmt"
 	"sync"
 
+	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	lru "github.com/hashicorp/golang-lru"
 )
 
-// Trie cache generation limit after which to evict trie nodes from memory.
-var MaxTrieCacheGen = uint16(120)
-
 const (
-	// Number of past tries to keep. This value is chosen such that
-	// reasonable chain reorg depths will hit an existing trie.
-	maxPastTries = 12
-
 	// Number of codehash->size associations to keep.
 	codeSizeCacheSize = 100000
 )
@@ -58,7 +52,6 @@ type Database interface {
 
 	// TrieDB retrieves the low level trie database used for data storage.
 	TrieDB() *trie.Database
-
 }
 
 // Trie is a Ethereum Merkle Trie.
@@ -67,10 +60,12 @@ type Trie interface {
 	TryUpdate(key, value []byte) error
 	TryDelete(key []byte) error
 	Commit(onleaf trie.LeafCallback) (common.Hash, error)
+	ParallelCommit(onleaf trie.LeafCallback) (common.Hash, error)
 	Hash() common.Hash
+	ParallelHash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
-	Prove(key []byte, fromLevel uint, proofDb ethdb.Putter) error
+	Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error
 }
 
 // NewDatabase creates a backing store for state. The returned database is safe for
@@ -78,12 +73,7 @@ type Trie interface {
 // intermediate trie-node memory pool between the low level storage layer and the
 // high level trie abstraction.
 func NewDatabase(db ethdb.Database) Database {
-	//LRU
-	csc, _ := lru.New(codeSizeCacheSize)
-	return &cachingDB{
-		db:            trie.NewDatabase(db),
-		codeSizeCache: csc,
-	}
+	return NewDatabaseWithCache(db, 0)
 }
 
 func NewDatabaseWithCache(db ethdb.Database, cache int) Database {
@@ -104,43 +94,17 @@ type cachingDB struct {
 
 //OpenTrie opens the main account trie.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	for i := len(db.pastTries) - 1; i >= 0; i-- {
-		if db.pastTries[i].Hash() == root {
-			return cachedTrie{db.pastTries[i].Copy(), db}, nil
-		}
-	}
-	tr, err := trie.NewSecure(root, db.db, MaxTrieCacheGen)
-	if err != nil {
-		return nil, err
-	}
-	return cachedTrie{tr, db}, nil
-}
-
-func (db *cachingDB) pushTrie(t *trie.SecureTrie) {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	if len(db.pastTries) >= maxPastTries {
-		copy(db.pastTries, db.pastTries[1:])
-		db.pastTries[len(db.pastTries)-1] = t
-	} else {
-		db.pastTries = append(db.pastTries, t)
-	}
+	return trie.NewSecure(root, db.db)
 }
 
 // OpenStorageTrie opens the storage trie of an account.
 func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash) (Trie, error) {
-	return trie.NewSecure(root, db.db, 0)
+	return trie.NewSecure(root, db.db)
 }
 
 // CopyTrie returns an independent copy of the given trie.
 func (db *cachingDB) CopyTrie(t Trie) Trie {
 	switch t := t.(type) {
-	case cachedTrie:
-		return cachedTrie{t.SecureTrie.Copy(), db}
 	case *trie.SecureTrie:
 		return t.Copy()
 	default:
@@ -150,8 +114,6 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 
 func (db *cachingDB) NewTrie(t Trie) Trie {
 	switch t := t.(type) {
-	case cachedTrie:
-		return cachedTrie{t.SecureTrie.New(), db}
 	case *trie.SecureTrie:
 		return t.New()
 	default:
@@ -168,7 +130,6 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 	return code, err
 }
 
-
 // ContractCodeSize retrieves a particular contracts code's size.
 func (db *cachingDB) ContractCodeSize(addrHash, codeHash common.Hash) (int, error) {
 	if cached, ok := db.codeSizeCache.Get(codeHash); ok {
@@ -181,22 +142,4 @@ func (db *cachingDB) ContractCodeSize(addrHash, codeHash common.Hash) (int, erro
 // TrieDB retrieves any intermediate trie-node caching layer.
 func (db *cachingDB) TrieDB() *trie.Database {
 	return db.db
-}
-
-// cachedTrie inserts its trie into a cachingDB on commit.
-type cachedTrie struct {
-	*trie.SecureTrie
-	db *cachingDB
-}
-
-func (m cachedTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
-	root, err := m.SecureTrie.Commit(onleaf)
-	if err == nil {
-		m.db.pushTrie(m.SecureTrie)
-	}
-	return root, err
-}
-
-func (m cachedTrie) Prove(key []byte, fromLevel uint, proofDb ethdb.Putter) error {
-	return m.SecureTrie.Prove(key, fromLevel, proofDb)
 }

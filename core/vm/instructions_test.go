@@ -39,7 +39,7 @@ type twoOperandTest struct {
 
 func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error)) {
 	var (
-		env            = NewEVM(Context{Ctx: context.TODO()}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{Ctx: context.TODO()}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -80,7 +80,7 @@ func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64
 
 func TestByteOp(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
@@ -451,7 +451,7 @@ func TestOpAddmod(t *testing.T) {
 		{v(-2), v(0), v(2), v(0)},
 	}
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -510,7 +510,7 @@ func TestOpMulmod(t *testing.T) {
 		{v(-2), v(0), v(2), v(0)},
 	}
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -599,7 +599,7 @@ func TestOpSAR(t *testing.T) {
 // Contains memory data.
 func testGlobalOperandOp(t *testing.T, stateDB StateDB, memory *Memory, contract *Contract, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error)) {
 	var (
-		env            = NewEVM(Context{}, stateDB, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, stateDB, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -771,7 +771,7 @@ func TestOpCallDataCopy(t *testing.T) {
 		Input:         []byte{0x01, 0x02, 0x03, 0x04},
 	}
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -799,7 +799,7 @@ func TestOpCallDataCopy(t *testing.T) {
 
 func TestOpReturnDataSize(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -816,7 +816,7 @@ func TestOpReturnDataSize(t *testing.T) {
 
 func TestOpCodeSize(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -858,7 +858,7 @@ func TestOpReturnDataCopy(t *testing.T) {
 		Input:         []byte{0x01, 0x02, 0x03, 0x04},
 	}
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -941,7 +941,7 @@ func createMockState() StateDB {
 func TestOpExtCodeSize(t *testing.T) {
 	statedb := createMockState()
 	var (
-		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, statedb, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -967,7 +967,7 @@ func TestOpExtCodeSize(t *testing.T) {
 func TestOpCodeCopy(t *testing.T) {
 	statedb := createMockState()
 	var (
-		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, statedb, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -992,7 +992,7 @@ func TestOpCodeCopy(t *testing.T) {
 func TestOpExtCodeCopy(t *testing.T) {
 	statedb := createMockState()
 	var (
-		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, statedb, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -1018,7 +1018,7 @@ func TestOpExtCodeCopy(t *testing.T) {
 func TestOpExtCodeHash(t *testing.T) {
 	statedb := createMockState()
 	var (
-		env            = NewEVM(Context{}, statedb, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, statedb, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -1035,7 +1035,7 @@ func TestOpExtCodeHash(t *testing.T) {
 
 func TestOpGasprice(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -1052,7 +1052,7 @@ func TestOpGasprice(t *testing.T) {
 
 func TestOpBlockhash(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -1082,7 +1082,7 @@ func TestOpBlockhash(t *testing.T) {
 
 func TestOpCoinbase(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -1099,7 +1099,7 @@ func TestOpCoinbase(t *testing.T) {
 
 func buildEnv(statedb StateDB) (*EVM, *Stack, uint64, *EVMInterpreter) {
 	var (
-		env            = NewEVM(Context{Ctx: context.TODO()}, statedb, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{Ctx: context.TODO()}, nil, statedb, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -1540,7 +1540,7 @@ func TestOpRevert(t *testing.T) {
 
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
@@ -1775,7 +1775,7 @@ func BenchmarkOpIsZero(b *testing.B) {
 
 func TestOpMstore(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
@@ -1801,7 +1801,7 @@ func TestOpMstore(t *testing.T) {
 
 func BenchmarkOpMstore(bench *testing.B) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)

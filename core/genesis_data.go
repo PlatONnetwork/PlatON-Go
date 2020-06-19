@@ -138,7 +138,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		// about can power ...
-		powerKey := staking.TallyPowerKey(mutable.Shares, base.StakingBlockNum, base.StakingTxIndex, base.ProgramVersion)
+		powerKey := staking.TallyPowerKey(base.ProgramVersion, mutable.Shares, base.NodeId, base.StakingBlockNum, base.StakingTxIndex)
 		lastHash, err = putbasedbFn(powerKey, nodeAddr.Bytes(), lastHash)
 		if nil != err {
 			return lastHash, fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. nodeId:%s, error:%s",
@@ -166,7 +166,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 	lastHash, err := putbasedbFn(staking.GetAccountStakeRcKey(xcom.CDFAccount()), common.Uint64ToBytes(uint64(length)), lastHash)
 	if nil != err {
 		return lastHash, fmt.Errorf("Failed to Store Staking Account Reference Count. account: %s, error:%s",
-			xcom.CDFAccount().Hex(), err.Error())
+			xcom.CDFAccount().String(), err.Error())
 	}
 
 	validatorArr, err := rlp.EncodeToBytes(validatorQueue)

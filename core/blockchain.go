@@ -26,6 +26,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -41,7 +43,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -188,8 +189,10 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		vmConfig:       vmConfig,
 		badBlocks:      badBlocks,
 	}
+
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
-	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
+	bc.SetProcessor(NewParallelStateProcessor(chainConfig, bc, engine))
+	//bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
 
 	var err error
 	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.getProcInterrupt)
@@ -204,7 +207,6 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		return nil, err
 	}
 
-	bc.loadStateCache()
 	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
 	//for hash := range BadHashes {
 	//	if header := bc.GetHeaderByHash(hash); header != nil {
@@ -291,31 +293,6 @@ func (bc *BlockChain) loadLastState() error {
 	return nil
 }
 
-func (bc *BlockChain) loadStateCache() {
-	go func() {
-		log.Debug("Start load state cache")
-		t := time.Now()
-		tr, err := bc.stateCache.OpenTrie(bc.CurrentBlock().Root())
-		if err != nil {
-			log.Error("Failed to open trie", "err", err)
-			return
-		}
-
-		limit := (uint64(bc.cacheConfig.TrieDBCache*1024*1024) / 8) - 1024
-		c := 0
-		it := tr.NodeIterator(nil)
-		for it.Next(true) {
-			c++
-
-			if bc.stateCache.TrieDB().CacheCapacity() >= limit || time.Since(t) >= 30*time.Second {
-				break
-			}
-		}
-		bc.stateCache.TrieDB().ResetCacheStats()
-		log.Debug("Load state cache", "count", c, "limit", limit, "duration", time.Since(t))
-	}()
-}
-
 // SetHead rewinds the local chain to a new head. In the case of headers, everything
 // above the new head will be deleted and the new one set. In the case of blocks
 // though, the head may be further rewound if block bodies are missing (non-archive
@@ -327,7 +304,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 	defer bc.mu.Unlock()
 
 	// Rewind the header chain, deleting all block bodies until then
-	delFn := func(db rawdb.DatabaseDeleter, hash common.Hash, num uint64) {
+	delFn := func(db ethdb.Writer, hash common.Hash, num uint64) {
 		rawdb.DeleteBody(db, hash, num)
 	}
 	bc.hc.SetHead(head, delFn)
@@ -378,7 +355,7 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	if block == nil {
 		return fmt.Errorf("non existent block [%x…]", hash[:4])
 	}
-	if _, err := trie.NewSecure(block.Root(), bc.stateCache.TrieDB(), 0); err != nil {
+	if _, err := trie.NewSecure(block.Root(), bc.stateCache.TrieDB()); err != nil {
 		return err
 	}
 	// If all checks out, manually set the head block
@@ -447,6 +424,11 @@ func (bc *BlockChain) StateAt(root common.Hash) (*state.StateDB, error) {
 	return state.New(root, bc.stateCache)
 }
 
+// StateCache returns the caching database underpinning the blockchain instance.
+func (bc *BlockChain) StateCache() state.Database {
+	return bc.stateCache
+}
+
 // Reset purges the entire blockchain, restoring it to its genesis state.
 //func (bc *BlockChain) Reset() error {
 //	return bc.ResetWithGenesisBlock(bc.genesisBlock)
@@ -489,7 +471,11 @@ func (bc *BlockChain) repair(head **types.Block) error {
 			return nil
 		}
 		// Otherwise rewind one block and recheck state availability there
-		(*head) = bc.GetBlock((*head).ParentHash(), (*head).NumberU64()-1)
+		block := bc.GetBlock((*head).ParentHash(), (*head).NumberU64()-1)
+		if block == nil {
+			return fmt.Errorf("missing block %d [%x]", (*head).NumberU64()-1, (*head).ParentHash())
+		}
+		(*head) = block
 	}
 }
 
@@ -955,6 +941,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Irrelevant of the canonical status, write the block itself to the database
 	rawdb.WriteBlock(bc.db, block)
 	root, err := state.Commit(true)
+
 	if err != nil {
 		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
@@ -1239,7 +1226,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 		bc.reportBlock(block, receipts, err)
 		return nil, err
 	}
-	log.Debug("execute block time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
+	log.Debug("Execute block time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
 
 	// Validate the state using the default validator
 	err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)

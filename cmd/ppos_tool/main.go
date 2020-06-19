@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -52,7 +52,7 @@ type Ppos_1000 struct {
 	Website            string
 	Details            string
 	Amount             *big.Int
-	RewardPer 		   uint16
+	RewardPer          uint16
 	ProgramVersion     uint32
 	ProgramVersionSign common.VersionSign
 	BlsPubKey          bls.PublicKeyHex
@@ -63,7 +63,7 @@ type Ppos_1000 struct {
 type Ppos_1001 struct {
 	BenefitAddress common.Address
 	NodeId         discover.NodeID
-	RewardPer 	   uint16
+	RewardPer      uint16
 	ExternalId     string
 	NodeName       string
 	Website        string
@@ -112,9 +112,6 @@ type Ppos_1104 struct {
 type Ppos_1105 struct {
 	NodeId discover.NodeID
 }
-
-
-
 
 // submitText
 type Ppos_2000 struct {
@@ -201,7 +198,7 @@ type Ppos_2106 struct {
 // reportDuplicateSign
 type Ppos_3000 struct {
 	DupType uint8
-	Data string
+	Data    string
 }
 
 // checkDuplicateSign
@@ -224,42 +221,41 @@ type Ppos_4100 struct {
 
 // withdrawDelegateReward
 type Ppos_5000 struct {
-
 }
 
 type Ppos_5100 struct {
-	Addr common.Address
+	Addr    common.Address
 	NodeIDs []discover.NodeID
 }
 
 type decDataConfig struct {
-	P1000  Ppos_1000
-	P1001  Ppos_1001
-	P1002  Ppos_1002
-	P1003  Ppos_1003
-	P1004  Ppos_1004
-	P1005  Ppos_1005
-	P1103  Ppos_1103
-	P1104  Ppos_1104
-	P1105  Ppos_1105
-	P2000  Ppos_2000
-	P2001  Ppos_2001
-	P2002  Ppos_2002
-	P2005  Ppos_2005
-	P2003  Ppos_2003
-	P2004  Ppos_2004
-	P2100  Ppos_2100
-	P2101  Ppos_2101
-	P2102  Ppos_2102
-	P2103  Ppos_2103
-	P2104  Ppos_2104
-	P2105  Ppos_2105
-	P2106  Ppos_2106
-	P3000  Ppos_3000
-	P3001  Ppos_3001
-	P4000  Ppos_4000
-	P4100  Ppos_4100
-	P5100  Ppos_5100
+	P1000 Ppos_1000
+	P1001 Ppos_1001
+	P1002 Ppos_1002
+	P1003 Ppos_1003
+	P1004 Ppos_1004
+	P1005 Ppos_1005
+	P1103 Ppos_1103
+	P1104 Ppos_1104
+	P1105 Ppos_1105
+	P2000 Ppos_2000
+	P2001 Ppos_2001
+	P2002 Ppos_2002
+	P2005 Ppos_2005
+	P2003 Ppos_2003
+	P2004 Ppos_2004
+	P2100 Ppos_2100
+	P2101 Ppos_2101
+	P2102 Ppos_2102
+	P2103 Ppos_2103
+	P2104 Ppos_2104
+	P2105 Ppos_2105
+	P2106 Ppos_2106
+	P3000 Ppos_3000
+	P3001 Ppos_3001
+	P4000 Ppos_4000
+	P4100 Ppos_4100
+	P5100 Ppos_5100
 }
 
 func parseConfigJson(configPath string, v *decDataConfig) error {

@@ -24,7 +24,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
 )
 
 var (
@@ -37,25 +36,6 @@ var (
 	emptyStorage = crypto.Keccak256Hash(nil)
 )
 
-var (
-	cacheMissCounter   = metrics.NewRegisteredCounter("trie/cachemiss", nil)
-	cacheUnloadCounter = metrics.NewRegisteredCounter("trie/cacheunload", nil)
-)
-
-// CacheMisses retrieves a global counter measuring the number of cache misses
-// the trie had since process startup. This isn't useful for anything apart from
-// trie debugging purposes.
-func CacheMisses() int64 {
-	return cacheMissCounter.Count()
-}
-
-// CacheUnloads retrieves a global counter measuring the number of cache unloads
-// the trie did since process startup. This isn't useful for anything apart from
-// trie debugging purposes.
-func CacheUnloads() int64 {
-	return cacheUnloadCounter.Count()
-}
-
 // LeafCallback is a callback type invoked when a trie operation reaches a leaf
 // node. It's used by state sync and commit to allow handling external references
 // between account and storage tries.
@@ -67,27 +47,16 @@ type LeafCallback func(leaf []byte, parent common.Hash) error
 //
 // Trie is not safe for concurrent use.
 type Trie struct {
-	db           *Database
-	root         node
-	originalRoot common.Hash
+	db   *Database
+	root node
 
-	// Cache generation values.
-	// cachegen increases by one with each commit operation.
-	// new nodes are tagged with the current generation and unloaded
-	// when their generation is older than than cachegen-cachelimit.
-	cachegen, cachelimit uint16
-}
-
-// SetCacheLimit sets the number of 'cache generations' to keep.
-// A cache generation is created by a call to Commit.
-func (t *Trie) SetCacheLimit(l uint16) {
-	t.cachelimit = l
+	dag *trieDag
 }
 
 // newFlag returns the cache flag value for a newly created node.
 func (t *Trie) newFlag() nodeFlag {
 	dirty := true
-	return nodeFlag{hash: &hashNode{}, dirty: &dirty, gen: t.cachegen}
+	return nodeFlag{hash: &hashNode{}, dirty: &dirty}
 }
 
 // New creates a trie with an existing root node from db.
@@ -101,8 +70,8 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 		panic("trie.New called without a database")
 	}
 	trie := &Trie{
-		db:           db,
-		originalRoot: root,
+		db:  db,
+		dag: newTrieDag(),
 	}
 	// If root is not empty, restore the node from the DB (the whole tree)
 	if root != (common.Hash{}) && root != emptyRoot {
@@ -158,14 +127,12 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode
 		if err == nil && didResolve {
 			n = n.copy()
 			n.Val = newnode
-			n.flags.gen = t.cachegen
 		}
 		return value, n, didResolve, err
 	case *fullNode:
 		value, newnode, didResolve, err = t.tryGet(n.Children[key[pos]], key, pos+1)
 		if err == nil && didResolve {
 			n = n.copy()
-			n.flags.gen = t.cachegen
 			n.Children[key[pos]] = newnode
 		}
 		return value, n, didResolve, err
@@ -190,6 +157,9 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode
 func (t *Trie) Update(key, value []byte) {
 	if err := t.TryUpdate(key, value); err != nil {
 		log.Error(fmt.Sprintf("Unhandled trie error: %v", err))
+		if t.dag != nil {
+			t.dag.clear()
+		}
 	}
 }
 
@@ -204,7 +174,7 @@ func (t *Trie) Update(key, value []byte) {
 func (t *Trie) TryUpdate(key, value []byte) error {
 	k := keybytesToHex(key)
 	if len(value) != 0 {
-		_, n, err := t.insert(t.root, nil, k, valueNode(value))
+		_, n, err := t.insert(t.root, nil, nil, k, valueNode(value))
 		if err != nil {
 			return err
 		}
@@ -214,15 +184,24 @@ func (t *Trie) TryUpdate(key, value []byte) error {
 		if err != nil {
 			return err
 		}
+		if t.dag != nil {
+			t.dag.delVertexAndEdgeByNode(nil, t.root)
+			t.dag.addVertexAndEdge(nil, nil, n)
+		}
 		t.root = n
 	}
 	return nil
 }
 
-func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error) {
+func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, node, error) {
 	if len(key) == 0 {
 		if v, ok := n.(valueNode); ok {
 			return !bytes.Equal(v, value.(valueNode)), value, nil
+		}
+		if t.dag != nil {
+			//fmt.Printf("239: del vtx -> prefix: %x\n", prefix)
+			t.dag.delVertexAndEdgeByNode(prefix, value)
+			t.dag.addVertexAndEdge(fprefix, prefix, value)
 		}
 		return true, value, nil
 	}
@@ -232,42 +211,83 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 		// If the whole key matches, keep this short node as is
 		// and only update the value.
 		if matchlen == len(n.Key) {
-			dirty, nn, err := t.insert(n.Val, append(prefix, key[:matchlen]...), key[matchlen:], value)
+			dirty, nn, err := t.insert(n.Val, append(prefix, key[:matchlen]...), append(prefix, key[:matchlen]...), key[matchlen:], value)
 			if !dirty || err != nil {
 				return false, n, err
 			}
-			return true, &shortNode{n.Key, nn, t.newFlag()}, nil
+			rn := &shortNode{n.Key, nn, t.newFlag()}
+			if t.dag != nil {
+				//fmt.Printf("257: del vtx -> prefix: %x\n", append(prefix, n.Key...))
+				t.dag.delVertexAndEdge(append(prefix, n.Key...))
+				t.dag.addVertexAndEdge(fprefix, prefix, rn)
+			}
+			return true, rn, nil
 		}
 		// Otherwise branch out at the index where they differ.
 		branch := &fullNode{flags: t.newFlag()}
+		pprefix := common.CopyBytes(prefix)
+		if matchlen > 0 {
+			pprefix = append(pprefix, key[:matchlen]...)
+		}
+		pprefix = append(pprefix, fullNodeSuffix...)
+		if t.dag != nil {
+			//fmt.Printf("281: del vtx -> prefix: %x\n", append(prefix, n.Key...))
+			t.dag.delVertexAndEdge(append(prefix, n.Key...))
+		}
 		var err error
-		_, branch.Children[n.Key[matchlen]], err = t.insert(nil, append(prefix, n.Key[:matchlen+1]...), n.Key[matchlen+1:], n.Val)
+		_, branch.Children[n.Key[matchlen]], err = t.insert(nil, pprefix, append(prefix, n.Key[:matchlen+1]...), n.Key[matchlen+1:], n.Val)
 		if err != nil {
 			return false, nil, err
 		}
-		_, branch.Children[key[matchlen]], err = t.insert(nil, append(prefix, key[:matchlen+1]...), key[matchlen+1:], value)
+		_, branch.Children[key[matchlen]], err = t.insert(nil, pprefix, append(prefix, key[:matchlen+1]...), key[matchlen+1:], value)
 		if err != nil {
 			return false, nil, err
 		}
+
 		// Replace this shortNode with the branch if it occurs at index 0.
 		if matchlen == 0 {
+			if t.dag != nil {
+				t.dag.addVertexAndEdge(fprefix, prefix, branch)
+			}
 			return true, branch, nil
 		}
+		if t.dag != nil {
+			t.dag.addVertexAndEdge(append(prefix, key[:matchlen]...), append(prefix, key[:matchlen]...), branch)
+		}
 		// Otherwise, replace it with a short node leading up to the branch.
-		return true, &shortNode{key[:matchlen], branch, t.newFlag()}, nil
+		nn := &shortNode{key[:matchlen], branch, t.newFlag()}
+		if t.dag != nil {
+			t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		}
+		return true, nn, nil
 
 	case *fullNode:
-		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
+		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, fullNodeSuffix...), append(prefix, key[0]), key[1:], value)
 		if !dirty || err != nil {
 			return false, n, err
+		}
+		if t.dag != nil {
+			//fmt.Printf("302: del vtx -> prefix: %x\n", append(prefix, fullNodeSuffix...))
+			t.dag.delVertexAndEdge(append(prefix, fullNodeSuffix...))
 		}
 		n = n.copy()
 		n.flags = t.newFlag()
 		n.Children[key[0]] = nn
+		if t.dag != nil {
+			t.dag.addVertexAndEdge(fprefix, prefix, n)
+		}
 		return true, n, nil
 
 	case nil:
-		return true, &shortNode{key, value, t.newFlag()}, nil
+		if t.dag != nil {
+			//fmt.Printf("320: del vtx -> prefix: %x\n", append(prefix, key...))
+			t.dag.delVertexAndEdge(append(prefix, key...))
+		}
+		nn := &shortNode{key, value, t.newFlag()}
+		if t.dag != nil {
+			t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		}
+		return true, nn, nil
 
 	case hashNode:
 		// We've hit a part of the trie that isn't loaded yet. Load
@@ -277,10 +297,12 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 		if err != nil {
 			return false, nil, err
 		}
-		dirty, nn, err := t.insert(rn, prefix, key, value)
+		dirty, nn, err := t.insert(rn, fprefix, prefix, key, value)
 		if !dirty || err != nil {
 			return false, rn, err
 		}
+
+		t.dag.addVertexAndEdge(fprefix, prefix, nn)
 		return true, nn, nil
 
 	default:
@@ -303,6 +325,8 @@ func (t *Trie) TryDelete(key []byte) error {
 	if err != nil {
 		return err
 	}
+	t.dag.delVertexAndEdgeByNode(nil, t.root)
+	t.dag.addVertexAndEdge(nil, nil, n)
 	t.root = n
 	return nil
 }
@@ -318,6 +342,10 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			return false, n, nil // don't replace n on mismatch
 		}
 		if matchlen == len(key) {
+			if t.dag != nil {
+				//fmt.Printf("382: del vtx -> prefix: %x\n", append(prefix, key...))
+				t.dag.delVertexAndEdge(append(prefix, key...))
+			}
 			return true, nil, nil // remove n entirely for whole matches
 		}
 		// The key is longer than n.Key. Remove the remaining suffix
@@ -328,6 +356,10 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 		if !dirty || err != nil {
 			return false, n, err
 		}
+		if t.dag != nil {
+			//fmt.Printf("397: del vtx -> prefix: %x\n", append(prefix, n.Key...))
+			t.dag.delVertexAndEdge(append(prefix, n.Key...))
+		}
 		switch child := child.(type) {
 		case *shortNode:
 			// Deleting from the subtrie reduced it to another
@@ -336,8 +368,22 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			// always creates a new slice) instead of append to
 			// avoid modifying n.Key since it might be shared with
 			// other nodes.
+			if t.dag != nil {
+				//fmt.Printf("405: del vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
+				t.dag.delVertexAndEdgeByNode(append(prefix, concat(n.Key, child.Key...)...), child.Val)
+				//fmt.Printf("407: del vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
+				t.dag.delVertexAndEdgeByNode(append(prefix, n.Key...), child)
+				//fmt.Printf("409: add vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
+				t.dag.addVertexAndEdge(append(prefix, concat(n.Key, child.Key...)...), append(prefix, concat(n.Key, child.Key...)...), child.Val)
+			}
 			return true, &shortNode{concat(n.Key, child.Key...), child.Val, t.newFlag()}, nil
 		default:
+			if t.dag != nil {
+				//fmt.Printf("414: dev vtx -> prefix: %x\n", append(prefix, n.Key...))
+				t.dag.delVertexAndEdgeByNode(append(prefix, n.Key...), child)
+				//fmt.Printf("417: add vtx -> prefix: %x\n", append(prefix, n.Key...))
+				t.dag.addVertexAndEdge(append(prefix, n.Key...), append(prefix, n.Key...), child)
+			}
 			return true, &shortNode{n.Key, child, t.newFlag()}, nil
 		}
 
@@ -371,6 +417,10 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			}
 		}
 		if pos >= 0 {
+			if t.dag != nil {
+				//fmt.Printf("452: del vtx -> prefix: %x\n", append(prefix, fullNodeSuffix...))
+				t.dag.delVertexAndEdge(append(prefix, fullNodeSuffix...))
+			}
 			if pos != 16 {
 				// If the remaining entry is a short node, it replaces
 				// n and its key gets the missing nibble tacked to the
@@ -384,14 +434,30 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 				}
 				if cnode, ok := cnode.(*shortNode); ok {
 					k := append([]byte{byte(pos)}, cnode.Key...)
+					if t.dag != nil {
+						//fmt.Printf("469: del vtx -> prefix: %x\n", append(prefix, byte(pos)))
+						t.dag.delVertexAndEdgeByNode(append(prefix, byte(pos)), cnode)
+						//fmt.Printf("473: add vtx -> prefix: %x\n", append(prefix, k...))
+						t.dag.addVertexAndEdge(append(prefix, k...), append(prefix, k...), cnode.Val)
+					}
 					return true, &shortNode{k, cnode.Val, t.newFlag()}, nil
 				}
 			}
 			// Otherwise, n is replaced by a one-nibble short node
 			// containing the child.
+			if t.dag != nil {
+				//fmt.Printf("479: del vtx -> prefix: %x\n", append(prefix, byte(pos)))
+				t.dag.delVertexAndEdgeByNode(append(prefix, byte(pos)), n.Children[pos])
+				//fmt.Printf("484: add vtx -> prefix: %x\n", append(prefix, byte(pos)))
+				t.dag.addVertexAndEdge(append(prefix, byte(pos)), append(prefix, byte(pos)), n.Children[pos])
+			}
 			return true, &shortNode{[]byte{byte(pos)}, n.Children[pos], t.newFlag()}, nil
 		}
 		// n still contains at least two values and cannot be reduced.
+		if t.dag != nil {
+			//fmt.Printf("491: add vtx -> prefix: %x\n", append(prefix, key[0]))
+			t.dag.addVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, key[0]), nn)
+		}
 		return true, n, nil
 
 	case valueNode:
@@ -434,10 +500,9 @@ func (t *Trie) resolve(n node, prefix []byte) (node, error) {
 }
 
 func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
-	cacheMissCounter.Inc(1)
 
 	hash := common.BytesToHash(n)
-	if node := t.db.node(hash, t.cachegen); node != nil {
+	if node := t.db.node(hash); node != nil {
 		return node, nil
 	}
 	return nil, &MissingNodeError{NodeHash: hash, Path: prefix}
@@ -455,6 +520,14 @@ func (t *Trie) Hash() common.Hash {
 	return common.BytesToHash(hash.(hashNode))
 }
 
+func (t *Trie) ParallelHash() common.Hash {
+	hash, cached, err := t.parallelHashRoot(nil, nil)
+	if err == nil {
+		t.root = cached
+	}
+	return common.BytesToHash(hash.(hashNode))
+}
+
 // Commit writes all nodes to the trie's memory database, tracking the internal
 // and external (for account tries) references.
 func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
@@ -466,7 +539,22 @@ func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 		return common.Hash{}, err
 	}
 	t.root = cached
-	t.cachegen++
+	return common.BytesToHash(hash.(hashNode)), nil
+}
+
+func (t *Trie) ParallelCommit(onleaf LeafCallback) (root common.Hash, err error) {
+	if t.db == nil {
+		panic("commit called on trie with nil database")
+	}
+
+	hash, cached, err := t.parallelHashRoot(t.db, onleaf)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	t.root = cached
+
+	// clear dag
+	t.dag.clear()
 	return common.BytesToHash(hash.(hashNode)), nil
 }
 
@@ -474,10 +562,23 @@ func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	if t.root == nil {
 		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
-	h := newHasher(t.cachegen, t.cachelimit, onleaf)
+	h := newHasher(onleaf)
 	defer returnHasherToPool(h)
 	return h.hash(t.root, db, true)
 }
+
+func (t *Trie) parallelHashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
+	if t.root == nil {
+		return hashNode(emptyRoot.Bytes()), nil, nil
+	}
+	if len(t.dag.nodes) > 100 {
+		//t.dag.init(t.root)
+		return t.dag.hash(db, true, onleaf)
+	} else {
+		return t.hashRoot(db, onleaf)
+	}
+}
+
 func (t *Trie) DeepCopyTrie() *Trie {
 	cpyRoot := t.root
 	switch n := t.root.(type) {
@@ -488,11 +589,10 @@ func (t *Trie) DeepCopyTrie() *Trie {
 	}
 	t.copyNode(cpyRoot)
 	return &Trie{
-		db:           t.db,
-		root:         cpyRoot,
-		originalRoot: t.originalRoot,
-		cachegen:     t.cachegen,
-		cachelimit:   t.cachelimit,
+		db:   t.db,
+		root: cpyRoot,
+		//dag:          t.dag.DeepCopy(),
+		dag: newTrieDag(),
 	}
 }
 

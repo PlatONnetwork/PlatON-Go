@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -29,8 +29,9 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/pkg/errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"reflect"
 	"sync"
@@ -316,7 +317,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	err := cbft.recordMessage(msg)
 	//cbft.log.Debug("Record message", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "duration", time.Since(begin))
 	if err != nil {
-		cbft.log.Error("ReceiveMessage failed", "err", err)
+		cbft.log.Warn("ReceiveMessage failed", "err", err)
 		return err
 	}
 
@@ -332,7 +333,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	case cbft.peerMsgCh <- msg:
 		cbft.log.Debug("Received message from peer", "peer", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String(), "peerMsgCh", len(cbft.peerMsgCh))
 	case <-cbft.exitCh:
-		cbft.log.Error("Cbft exit")
+		cbft.log.Warn("Cbft exit")
 	default:
 		cbft.log.Debug("peerMsgCh is full, discard", "peerMsgCh", len(cbft.peerMsgCh))
 	}
@@ -346,7 +347,7 @@ func (cbft *Cbft) recordMessage(msg *ctypes.MsgInfo) error {
 	defer cbft.queuesLock.Unlock()
 	count := cbft.queues[msg.PeerID] + 1
 	if int64(count) > cbft.config.Option.MaxQueuesLimit {
-		log.Error("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
+		log.Warn("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
 		// Need further confirmation.
 		// todo: Is the program exiting or dropping the message here?
 		return fmt.Errorf("execeed max queues limit")
@@ -417,9 +418,16 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 // Possible message types are:
 //  PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
 func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
+	// If the node is synchronizing the block, discard sync msg directly and do not count the msg
+	// When the syncMsgCh channel is congested, it is easy to cause a message backlog
+	if utils.True(&cbft.syncing) {
+		cbft.log.Debug("Currently syncing, consensus message pause, discard sync msg")
+		return nil
+	}
+
 	err := cbft.recordMessage(msg)
 	if err != nil {
-		cbft.log.Error("ReceiveMessage failed", "err", err)
+		cbft.log.Warn("ReceiveMessage failed", "err", err)
 		return err
 	}
 
@@ -431,7 +439,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	case cbft.syncMsgCh <- msg:
 		cbft.log.Debug("Receive synchronization related messages from peer", "peer", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
 	case <-cbft.exitCh:
-		cbft.log.Error("Cbft exit")
+		cbft.log.Warn("Cbft exit")
 	default:
 		cbft.log.Debug("syncMsgCh is full, discard", "syncMsgCh", len(cbft.syncMsgCh))
 	}
@@ -893,7 +901,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 	err = cbft.blockCacheWriter.Execute(block, parent)
 	if err != nil {
-		cbft.log.Error("Execting block fail", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash())
+		cbft.log.Error("Execting block fail", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash(), "err", err)
 		return errors.New("failed to executed block")
 	}
 

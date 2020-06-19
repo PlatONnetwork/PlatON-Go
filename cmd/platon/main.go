@@ -28,6 +28,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/elastic/gosigar"
+	"github.com/panjf2000/ants/v2"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
@@ -39,8 +43,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/elastic/gosigar"
-	"gopkg.in/urfave/cli.v1"
 )
 
 const (
@@ -83,7 +85,6 @@ var (
 		utils.CacheDatabaseFlag,
 		utils.CacheGCFlag,
 		utils.CacheTrieDBFlag,
-		utils.TrieCacheGenFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,
@@ -179,8 +180,8 @@ var (
 )
 
 func init() {
-	// Initialize the CLI app and start Geth
-	app.Action = geth
+	// Initialize the CLI app and start PlatON
+	app.Action = platon
 	app.HideVersion = true // we have a command to print the version
 	app.Copyright = "Copyright 2019 The PlatON-Go Authors"
 	app.Commands = []cli.Command{
@@ -270,6 +271,7 @@ func init() {
 	app.After = func(ctx *cli.Context) error {
 		debug.Exit()
 		console.Stdin.Close() // Resets terminal mode.
+		ants.Release()
 		return nil
 	}
 }
@@ -284,7 +286,7 @@ func main() {
 // platon is the main entry point into the system if no special subcommand is ran.
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
-func geth(ctx *cli.Context) error {
+func platon(ctx *cli.Context) error {
 	if args := ctx.Args(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}

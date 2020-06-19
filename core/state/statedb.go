@@ -876,12 +876,13 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			// Thus, we can safely ignore it here
 			continue
 		}
-
 		if stateObject.suicided || (deleteEmptyObjects && stateObject.empty()) {
 			s.deleteStateObject(stateObject)
 		} else {
 			stateObject.updateRoot(s.db)
 			s.updateStateObject(stateObject)
+			log.Trace("Finalise single", "address", stateObject.address.String(), "balance", stateObject.Balance().Uint64(), "nonce", stateObject.Nonce(),
+				"codeHash", common.Bytes2Hex(stateObject.CodeHash()), "storageRoot", stateObject.data.Root.String(), "storageKeyPrefix", common.Bytes2Hex(stateObject.data.StorageKeyPrefix))
 		}
 		s.stateObjectsDirty[addr] = struct{}{}
 	}
@@ -894,11 +895,13 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 // goes into transaction receipts.
 func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	s.Finalise(deleteEmptyObjects)
-	return s.trie.Hash()
+	//return s.trie.Hash()
+	return s.trie.ParallelHash()
 }
 
 func (s *StateDB) Root() common.Hash {
-	return s.trie.Hash()
+	//return s.trie.Hash()
+	return s.trie.ParallelHash()
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
@@ -949,7 +952,8 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		delete(s.stateObjectsDirty, addr)
 	}
 	// Write trie changes.
-	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	//root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	root, err = s.trie.ParallelCommit(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
@@ -964,7 +968,6 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		return nil
 	})
 
-	log.Trace("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }
 
@@ -1005,4 +1008,46 @@ func (self *StateDB) GetString(addr common.Address, key []byte) string {
 func (self *StateDB) GetByte(addr common.Address, key []byte) byte {
 	ret := self.GetState(addr, key)
 	return ret[0]
+}
+
+func (s *StateDB) AddMinerEarnings(addr common.Address, amount *big.Int) {
+	stateObject := s.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		//stateObject.db = s
+		stateObject.AddBalance(amount)
+	}
+}
+
+func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjects bool) {
+	if from.stateObject.address != to.stateObject.address {
+		if from.stateObject.suicided || (deleteEmptyObjects && from.stateObject.empty()) {
+			log.Warn("deleteStateObject", "from", from.stateObject.address.String(), "suicided", from.stateObject.suicided, "empty", from.stateObject.empty())
+			s.deleteStateObject(from.stateObject)
+		} else {
+			s.stateObjects[from.stateObject.address] = from.stateObject
+			s.journal.append(balanceChange{
+				account: &from.stateObject.address,
+				prev:    from.prevAmount,
+			})
+			s.stateObjectsDirty[from.stateObject.address] = struct{}{}
+		}
+	}
+	if to.stateObject.suicided || (deleteEmptyObjects && to.stateObject.empty()) {
+		log.Warn("deleteStateObject", "to", to.stateObject.address.String(), "suicided", to.stateObject.suicided, "empty", to.stateObject.empty())
+		s.deleteStateObject(to.stateObject)
+	} else {
+		if to.createFlag {
+			s.journal.append(createObjectChange{account: &to.stateObject.address})
+		}
+		s.stateObjects[to.stateObject.address] = to.stateObject
+		s.journal.append(balanceChange{
+			account: &to.stateObject.address,
+			prev:    to.prevAmount,
+		})
+		s.stateObjectsDirty[to.stateObject.address] = struct{}{}
+	}
+}
+
+func (self *StateDB) IncreaseTxIdx() {
+	self.txIndex++
 }

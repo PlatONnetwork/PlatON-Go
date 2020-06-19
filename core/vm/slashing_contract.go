@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -17,8 +17,8 @@
 package vm
 
 import (
-	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
@@ -91,7 +91,7 @@ func (sc *SlashingContract) reportDuplicateSign(dupType uint8, data string) ([]b
 	}
 
 	log.Debug("Call reportDuplicateSign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-		"TxHash", txHash.Hex(), "from", from.Hex())
+		"TxHash", txHash.Hex(), "from", from.String())
 	evidence, err := sc.Plugin.DecodeEvidence(consensus.EvidenceType(dupType), data)
 	if nil != err {
 		return txResultHandler(vm.SlashingContractAddr, sc.Evm, "reportDuplicateSign",
@@ -111,18 +111,18 @@ func (sc *SlashingContract) reportDuplicateSign(dupType uint8, data string) ([]b
 }
 
 // Check if the node has double sign behavior at a certain block height
-func (sc *SlashingContract) checkDuplicateSign(dupType uint8, addr common.Address, blockNumber uint64) ([]byte, error) {
-	log.Info("checkDuplicateSign exist", "blockNumber", blockNumber, "addr", hex.EncodeToString(addr.Bytes()), "dupType", dupType)
-	txHash, err := sc.Plugin.CheckDuplicateSign(addr, blockNumber, consensus.EvidenceType(dupType), sc.Evm.StateDB)
+func (sc *SlashingContract) checkDuplicateSign(dupType uint8, nodeId discover.NodeID, blockNumber uint64) ([]byte, error) {
+	log.Info("checkDuplicateSign exist", "blockNumber", blockNumber, "nodeId", nodeId.TerminalString(), "dupType", dupType)
+	txHash, err := sc.Plugin.CheckDuplicateSign(nodeId, blockNumber, consensus.EvidenceType(dupType), sc.Evm.StateDB)
 	var data string
 
 	if nil != err {
-		return callResultHandler(sc.Evm, fmt.Sprintf("checkDuplicateSign, duplicateSignBlockNum: %d, addr: %s, dupType: %d",
-			blockNumber, addr, dupType), data, common.InternalError.Wrap(err.Error())), nil
+		return callResultHandler(sc.Evm, fmt.Sprintf("checkDuplicateSign, duplicateSignBlockNum: %d, nodeId: %s, dupType: %d",
+			blockNumber, nodeId, dupType), data, common.InternalError.Wrap(err.Error())), nil
 	}
 	if len(txHash) > 0 {
 		data = hexutil.Encode(txHash)
 	}
-	return callResultHandler(sc.Evm, fmt.Sprintf("checkDuplicateSign, duplicateSignBlockNum: %d, addr: %s, dupType: %d",
-		blockNumber, addr, dupType), data, nil), nil
+	return callResultHandler(sc.Evm, fmt.Sprintf("checkDuplicateSign, duplicateSignBlockNum: %d, nodeId: %s, dupType: %d",
+		blockNumber, nodeId, dupType), data, nil), nil
 }

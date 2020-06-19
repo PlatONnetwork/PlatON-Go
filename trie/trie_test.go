@@ -19,9 +19,7 @@ package trie
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -29,13 +27,18 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
-	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
+
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/davecgh/go-spew/spew"
 )
 
 func init() {
@@ -45,7 +48,7 @@ func init() {
 
 // Used for testing
 func newEmpty() *Trie {
-	trie, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))
+	trie, _ := New(common.Hash{}, NewDatabase(memorydb.New()))
 	return trie
 }
 
@@ -69,7 +72,7 @@ func TestNull(t *testing.T) {
 }
 
 func TestMissingRoot(t *testing.T) {
-	trie, err := New(common.HexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"), NewDatabase(ethdb.NewMemDatabase()))
+	trie, err := New(common.HexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"), NewDatabase(memorydb.New()))
 	if trie != nil {
 		t.Error("New returned non-nil trie for invalid root")
 	}
@@ -82,7 +85,7 @@ func TestMissingNodeDisk(t *testing.T)    { testMissingNode(t, false) }
 func TestMissingNodeMemonly(t *testing.T) { testMissingNode(t, true) }
 
 func testMissingNode(t *testing.T, memonly bool) {
-	diskdb := ethdb.NewMemDatabase()
+	diskdb := memorydb.New()
 	triedb := NewDatabase(diskdb)
 
 	trie, _ := New(common.Hash{}, triedb)
@@ -121,7 +124,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 
 	hash := common.HexToHash("0xe1d943cc8f061a0c0b98162830b970395ac9315654824bf21b73b891365262f9")
 	if memonly {
-		delete(triedb.nodes, hash)
+		delete(triedb.dirties, hash)
 	} else {
 		diskdb.Delete(hash[:])
 	}
@@ -318,45 +321,38 @@ func TestLargeValue(t *testing.T) {
 	trie.Hash()
 }
 
-type countingDB struct {
-	ethdb.Database
-	gets map[string]int
-}
-
-func (db *countingDB) Get(key []byte) ([]byte, error) {
-	db.gets[string(key)]++
-	return db.Database.Get(key)
-}
-
-// TestCacheUnload checks that decoded nodes are unloaded after a
-// certain number of commit operations.
-func TestCacheUnload(t *testing.T) {
-	// Create test trie with two branches.
-	trie := newEmpty()
-	key1 := "---------------------------------"
-	key2 := "---some other branch"
-	updateString(trie, key1, "this is the branch of key1.")
-	updateString(trie, key2, "this is the branch of key2.")
-
-	root, _ := trie.Commit(nil)
-	trie.db.Commit(root, true, true)
-
-	// Commit the trie repeatedly and access key1.
-	// The branch containing it is loaded from DB exactly two times:
-	// in the 0th and 6th iteration.
-	db := &countingDB{Database: trie.db.diskdb, gets: make(map[string]int)}
-	trie, _ = New(root, NewDatabase(db))
-	trie.SetCacheLimit(5)
-	for i := 0; i < 12; i++ {
-		getString(trie, key1)
-		trie.Commit(nil)
+// TestRandomCases tests som cases that were found via random fuzzing
+func TestRandomCases(t *testing.T) {
+	var rt []randTestStep = []randTestStep{
+		{op: 6, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 0
+		{op: 6, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 1
+		{op: 0, key: common.Hex2Bytes("d51b182b95d677e5f1c82508c0228de96b73092d78ce78b2230cd948674f66fd1483bd"), value: common.Hex2Bytes("0000000000000002")},           // step 2
+		{op: 2, key: common.Hex2Bytes("c2a38512b83107d665c65235b0250002882ac2022eb00711552354832c5f1d030d0e408e"), value: common.Hex2Bytes("")},                         // step 3
+		{op: 3, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 4
+		{op: 3, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 5
+		{op: 6, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 6
+		{op: 3, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 7
+		{op: 0, key: common.Hex2Bytes("c2a38512b83107d665c65235b0250002882ac2022eb00711552354832c5f1d030d0e408e"), value: common.Hex2Bytes("0000000000000008")},         // step 8
+		{op: 0, key: common.Hex2Bytes("d51b182b95d677e5f1c82508c0228de96b73092d78ce78b2230cd948674f66fd1483bd"), value: common.Hex2Bytes("0000000000000009")},           // step 9
+		{op: 2, key: common.Hex2Bytes("fd"), value: common.Hex2Bytes("")},                                                                                               // step 10
+		{op: 6, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 11
+		{op: 6, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 12
+		{op: 0, key: common.Hex2Bytes("fd"), value: common.Hex2Bytes("000000000000000d")},                                                                               // step 13
+		{op: 6, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 14
+		{op: 1, key: common.Hex2Bytes("c2a38512b83107d665c65235b0250002882ac2022eb00711552354832c5f1d030d0e408e"), value: common.Hex2Bytes("")},                         // step 15
+		{op: 3, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 16
+		{op: 0, key: common.Hex2Bytes("c2a38512b83107d665c65235b0250002882ac2022eb00711552354832c5f1d030d0e408e"), value: common.Hex2Bytes("0000000000000011")},         // step 17
+		{op: 5, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 18
+		{op: 3, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 19
+		{op: 0, key: common.Hex2Bytes("d51b182b95d677e5f1c82508c0228de96b73092d78ce78b2230cd948674f66fd1483bd"), value: common.Hex2Bytes("0000000000000014")},           // step 20
+		{op: 0, key: common.Hex2Bytes("d51b182b95d677e5f1c82508c0228de96b73092d78ce78b2230cd948674f66fd1483bd"), value: common.Hex2Bytes("0000000000000015")},           // step 21
+		{op: 0, key: common.Hex2Bytes("c2a38512b83107d665c65235b0250002882ac2022eb00711552354832c5f1d030d0e408e"), value: common.Hex2Bytes("0000000000000016")},         // step 22
+		{op: 5, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 23
+		{op: 1, key: common.Hex2Bytes("980c393656413a15c8da01978ed9f89feb80b502f58f2d640e3a2f5f7a99a7018f1b573befd92053ac6f78fca4a87268"), value: common.Hex2Bytes("")}, // step 24
+		{op: 1, key: common.Hex2Bytes("fd"), value: common.Hex2Bytes("")},                                                                                               // step 25
 	}
-	// Check that it got loaded two times.
-	for dbkey, count := range db.gets {
-		if count != 2 {
-			t.Errorf("db key %x loaded %d times, want %d times", []byte(dbkey), count, 2)
-		}
-	}
+	runRandTest(rt)
+
 }
 
 // randTest performs random trie operations.
@@ -378,7 +374,6 @@ const (
 	opHash
 	opReset
 	opItercheckhash
-	opCheckCacheInvariant
 	opMax // boundary value, not an actual op
 )
 
@@ -413,7 +408,7 @@ func (randTest) Generate(r *rand.Rand, size int) reflect.Value {
 }
 
 func runRandTest(rt randTest) bool {
-	triedb := NewDatabase(ethdb.NewMemDatabase())
+	triedb := NewDatabase(memorydb.New())
 
 	tr, _ := New(common.Hash{}, triedb)
 	values := make(map[string]string) // tracks content of the trie
@@ -455,60 +450,111 @@ func runRandTest(rt randTest) bool {
 				checktr.Update(it.Key, it.Value)
 			}
 			if tr.Hash() != checktr.Hash() {
+				//fmt.Printf("phash: %x, chash: %x\n", tr.Hash(), checktr.Hash())
 				rt[i].err = fmt.Errorf("hash mismatch in opItercheckhash")
 			}
-		case opCheckCacheInvariant:
-			rt[i].err = checkCacheInvariant(tr.root, nil, tr.cachegen, false, 0)
 		}
 		// Abort the test on error.
 		if rt[i].err != nil {
+			//fmt.Printf("i: %d, err: %v, i-1_op: %d\n", i, rt[i].err, rt[i-1].op)
 			return false
 		}
 	}
 	return true
 }
+
+func runRandParallelTest(rt randTest) bool {
+	triedb := NewDatabase(memorydb.New())
+
+	tr, _ := New(common.Hash{}, triedb)
+	values := make(map[string]string) // tracks content of the trie
+	tmpVals := make(map[string][]byte)
+
+	for i, step := range rt {
+		switch step.op {
+		case opUpdate:
+			//fmt.Printf("%d: opUpdate, len: %d\n", i, len(values))
+			tr.Update(step.key, step.value)
+			values[string(step.key)] = string(step.value)
+			tmpVals[string(step.key)] = step.value
+		case opDelete:
+			//fmt.Printf("%d: opDelete, len: %d\n", i, len(values))
+			tr.Delete(step.key)
+			//fmt.Printf("del -> %x\n", step.key)
+			delete(values, string(step.key))
+			delete(tmpVals, string(step.key))
+		case opGet:
+			//fmt.Printf("%d: opGet, len: %d\n", i, len(values))
+			v := tr.Get(step.key)
+			want := values[string(step.key)]
+			if string(v) != want {
+				rt[i].err = fmt.Errorf("mismatch for key 0x%x, got 0x%x want 0x%x", step.key, v, want)
+				tr.Get(step.key)
+			}
+		case opCommit:
+			//fmt.Printf("%d: opGet, len: %d\n", i, len(values))
+			_, rt[i].err = tr.ParallelCommit(nil)
+		case opHash:
+			//fmt.Printf("%d: opHash, len: %d\n", i, len(values))
+			tr.ParallelHash()
+		case opReset:
+			//fmt.Printf("%d: opReset, len: %d\n", i, len(values))
+			hash, err := tr.ParallelCommit(nil)
+			if err != nil {
+				rt[i].err = err
+				return false
+			}
+			newtr, err := New(hash, triedb)
+			if err != nil {
+				rt[i].err = err
+				return false
+			}
+			tr = newtr
+		case opItercheckhash:
+			//fmt.Printf("%d: opItercheckhash, len: %d\n", i, len(values))
+			checktr, _ := New(common.Hash{}, triedb)
+			it := NewIterator(tr.NodeIterator(nil))
+			for it.Next() {
+				checktr.Update(it.Key, it.Value)
+			}
+			if tr.ParallelHash() != checktr.Hash() {
+				//fmt.Printf("phash: %x, chash: %x\n", tr.ParallelHash2(), checktr.Hash())
+				rt[i].err = fmt.Errorf("hash mismatch in opItercheckhash")
+
+				nt, _ := New(common.Hash{}, triedb)
+				it := NewIterator(tr.NodeIterator(nil))
+				for it.Next() {
+					nt.Update(it.Key, it.Value)
+				}
+			}
+		}
+		// Abort the test on error.
+		if rt[i].err != nil {
+			//fmt.Printf("i: %d, err: %v, i-1_op: %d, i_op: %d\n", i, rt[i].err, rt[i-1].op, rt[i].op)
+			return false
+		}
+	}
+	return true
+}
+
 func TestNewFlag(t *testing.T) {
 	trie := &Trie{}
 	trie.newFlag()
 	trie.newFlag()
 
 }
-func checkCacheInvariant(n, parent node, parentCachegen uint16, parentDirty bool, depth int) error {
-	var children []node
-	var flag nodeFlag
-	switch n := n.(type) {
-	case *shortNode:
-		flag = n.flags
-		children = []node{n.Val}
-	case *fullNode:
-		flag = n.flags
-		children = n.Children[:]
-	default:
-		return nil
-	}
-
-	errorf := func(format string, args ...interface{}) error {
-		msg := fmt.Sprintf(format, args...)
-		msg += fmt.Sprintf("\nat depth %d node %s", depth, spew.Sdump(n))
-		msg += fmt.Sprintf("parent: %s", spew.Sdump(parent))
-		return errors.New(msg)
-	}
-	if flag.gen > parentCachegen {
-		return errorf("cache invariant violation: %d > %d\n", flag.gen, parentCachegen)
-	}
-	if depth > 0 && !parentDirty && *flag.dirty {
-		return errorf("cache invariant violation: %d > %d\n", flag.gen, parentCachegen)
-	}
-	for _, child := range children {
-		if err := checkCacheInvariant(child, n, flag.gen, *flag.dirty, depth+1); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 func TestRandom(t *testing.T) {
 	if err := quick.Check(runRandTest, nil); err != nil {
+		if cerr, ok := err.(*quick.CheckError); ok {
+			t.Fatalf("random test iteration %d failed: %s", cerr.Count, spew.Sdump(cerr.In))
+		}
+		t.Fatal(err)
+	}
+}
+
+func TestRandomParalle(t *testing.T) {
+	if err := quick.Check(runRandParallelTest, nil); err != nil {
 		if cerr, ok := err.(*quick.CheckError); ok {
 			t.Fatalf("random test iteration %d failed: %s", cerr.Count, spew.Sdump(cerr.In))
 		}
@@ -546,7 +592,7 @@ func benchGet(b *testing.B, commit bool) {
 	b.StopTimer()
 
 	if commit {
-		ldb := trie.db.diskdb.(*ethdb.LDBDatabase)
+		ldb := trie.db.diskdb.(*leveldb.Database)
 		ldb.Close()
 		os.RemoveAll(ldb.Path())
 	}
@@ -589,6 +635,7 @@ func BenchmarkHash(b *testing.B) {
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
+	trie.dag = nil
 	for i := 0; i < len(addresses); i++ {
 		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 	}
@@ -597,12 +644,43 @@ func BenchmarkHash(b *testing.B) {
 	trie.Hash()
 }
 
+func BenchmarkParallelHash2(b *testing.B) {
+	// Make the random benchmark deterministic
+	random := rand.New(rand.NewSource(0))
+
+	// Create a realistic account trie to hash
+	addresses := make([][20]byte, b.N)
+	for i := 0; i < len(addresses); i++ {
+		for j := 0; j < len(addresses[i]); j++ {
+			addresses[i][j] = byte(random.Intn(256))
+		}
+	}
+	accounts := make([][]byte, len(addresses))
+	for i := 0; i < len(accounts); i++ {
+		var (
+			nonce   = uint64(random.Int63())
+			balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
+			root    = emptyRoot
+			code    = crypto.Keccak256(nil)
+		)
+		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
+	}
+	// Insert the accounts into the trie and hash it
+	trie := newEmpty()
+	for i := 0; i < len(addresses); i++ {
+		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+	}
+	b.ResetTimer()
+	b.ReportAllocs()
+	trie.ParallelHash()
+}
+
 func tempDB() (string, *Database) {
 	dir, err := ioutil.TempDir("", "trie-bench")
 	if err != nil {
 		panic(fmt.Sprintf("can't create temporary directory: %v", err))
 	}
-	diskdb, err := ethdb.NewLDBDatabase(dir, 256, 0)
+	diskdb, err := leveldb.New(dir, 256, 0, "")
 	if err != nil {
 		panic(fmt.Sprintf("can't create temporary database: %v", err))
 	}
@@ -622,11 +700,10 @@ func deleteString(trie *Trie, k string) {
 }
 
 func TestDeepCopy(t *testing.T) {
-	memdb := ethdb.NewMemDatabase()
+	memdb := memorydb.New()
 	triedb := NewDatabase(memdb)
 	root := common.Hash{}
-	tr, _ := NewSecure(root, triedb, 0)
-	start := time.Now()
+	tr, _ := NewSecure(root, triedb)
 	kv := make(map[common.Hash][]byte)
 	leafCB := func(leaf []byte, parent common.Hash) error {
 		var valueKey common.Hash
@@ -643,7 +720,6 @@ func TestDeepCopy(t *testing.T) {
 	k, v := randBytes(32), randBytes(32)
 	parent := root
 	for j := 0; j < 1; j++ {
-		start = time.Now()
 		for i := 1; i < 100; i++ {
 			binary.BigEndian.PutUint32(k, uint32(i))
 			binary.BigEndian.PutUint32(v, uint32(i))
@@ -655,10 +731,10 @@ func TestDeepCopy(t *testing.T) {
 		parent = root
 		triedb.Reference(root, common.Hash{})
 		triedb.Commit(root, false, false)
-		fmt.Println("commit db", "count", j, time.Since(start))
+		//fmt.Println("commit db", "count", j, time.Since(start))
 	}
 
-	tr2, _ := NewSecure(root, triedb, 0)
+	tr2, _ := NewSecure(root, triedb)
 	for i := 100; i < 200; i++ {
 		binary.BigEndian.PutUint32(k, uint32(i))
 		binary.BigEndian.PutUint32(v, uint32(i))
@@ -743,7 +819,7 @@ func TestOneTrieCollision(t *testing.T) {
 		return nil
 	}
 
-	mem := ethdb.NewMemDatabase()
+	mem := memorydb.New()
 	memdb := NewDatabase(mem)
 	trie, _ := New(common.Hash{}, memdb)
 	for _, d := range trieData1 {
@@ -788,9 +864,9 @@ func TestTwoTrieCollision(t *testing.T) {
 		{common.BytesToHash([]byte{2, 0}).Bytes()[:31], []byte{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}},
 	}
 
-	mem1 := ethdb.NewMemDatabase()
+	mem1 := memorydb.New()
 	memdb1 := NewDatabase(mem1)
-	mem2 := ethdb.NewMemDatabase()
+	mem2 := memorydb.New()
 	memdb2 := NewDatabase(mem2)
 	trie1, _ := New(common.Hash{}, memdb1)
 	trie2, _ := New(common.Hash{}, memdb2)
@@ -808,11 +884,63 @@ func TestTwoTrieCollision(t *testing.T) {
 	memdb2.Commit(root2, false, false)
 
 	dup := 0
-	for _, k := range mem1.Keys() {
-		_, err := mem2.Get(k)
+	itr := mem1.NewIterator()
+	for itr.Next() {
+		_, err := mem2.Get(itr.Key())
 		if err != nil {
 			dup++
 		}
 	}
 	assert.NotZero(t, dup)
+}
+
+func TestCommitAfterHash(t *testing.T) {
+	// Create a realistic account trie to hash
+	addresses, accounts := makeAccounts(1000)
+	trie := newEmpty()
+	for i := 0; i < len(addresses); i++ {
+		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+	}
+	// Insert the accounts into the trie and hash it
+	trie.Hash()
+	trie.Commit(nil)
+	root := trie.Hash()
+	exp := common.HexToHash("e5e9c29bb50446a4081e6d1d748d2892c6101c1e883a1f77cf21d4094b697822")
+	if exp != root {
+		t.Errorf("got %x, exp %x", root, exp)
+	}
+	root, _ = trie.Commit(nil)
+	if exp != root {
+		t.Errorf("got %x, exp %x", root, exp)
+	}
+}
+
+func makeAccounts(size int) (addresses [][20]byte, accounts [][]byte) {
+	// Make the random benchmark deterministic
+	random := rand.New(rand.NewSource(0))
+	// Create a realistic account trie to hash
+	addresses = make([][20]byte, size)
+	for i := 0; i < len(addresses); i++ {
+		for j := 0; j < len(addresses[i]); j++ {
+			addresses[i][j] = byte(random.Intn(256))
+		}
+	}
+	accounts = make([][]byte, len(addresses))
+	for i := 0; i < len(accounts); i++ {
+		var (
+			nonce   = uint64(random.Int63())
+			balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
+			root    = emptyRoot
+			code    = crypto.Keccak256(nil)
+		)
+		accounts[i], _ = rlp.EncodeToBytes(&account{nonce, balance, root, code})
+	}
+	return addresses, accounts
+}
+
+type account struct {
+	Nonce   uint64
+	Balance *big.Int
+	Root    common.Hash
+	Code    []byte
 }

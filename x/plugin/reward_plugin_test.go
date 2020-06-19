@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -53,12 +54,12 @@ func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, 
 		if nil != err {
 			return nil, err
 		}
-		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+		addr := crypto.PubkeyToNodeAddress(privateKey.PublicKey)
 		nodeId := discover.PubkeyID(&privateKey.PublicKey)
 		canTmp := &staking.Candidate{
 			CandidateBase: &staking.CandidateBase{
 				NodeId:         nodeId,
-				BenefitAddress: addr,
+				BenefitAddress: common.Address(addr),
 				Description:    staking.Description{},
 			},
 			CandidateMutable: &staking.CandidateMutable{},
@@ -178,6 +179,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	var plugin = RewardMgrInstance()
 	StakingInstance()
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
 	plugin.SetCurrentNodeID(nodeIdArr[0])
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
@@ -259,13 +261,13 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 		if xutil.IsEndOfEpoch(currentHeader.Number.Uint64()) {
 			everyValidatorReward := new(big.Int).Div(stakingReward, big.NewInt(int64(len(validatorQueueList))))
 			for _, value := range validatorQueueList {
-				balance := accounts[value.NodeAddress]
+				balance := accounts[common.Address(value.NodeAddress)]
 				if balance == nil {
 					balance = new(big.Int)
-					accounts[value.NodeAddress] = balance
+					accounts[common.Address(value.NodeAddress)] = balance
 				}
 				balance.Add(balance, everyValidatorReward)
-				assert.Equal(t, balance, mockDB.GetBalance(value.NodeAddress))
+				assert.Equal(t, balance, mockDB.GetBalance(common.Address(value.NodeAddress)))
 			}
 
 			validatorQueueList, err = buildTestStakingData(currentHeader.Number.Uint64()+1, currentHeader.Number.Uint64()+xutil.CalcBlocksEachEpoch())
@@ -290,20 +292,32 @@ func TestIncreaseIssuance(t *testing.T) {
 
 	mockDB := buildStateDB(t)
 
-	thisYear, lastYear := uint32(2), uint32(1)
+	initIncreaseIssuanceRatio := xcom.IncreaseIssuanceRatio()
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
+
+	thisYear, lastYear := uint32(1), uint32(0)
+
+	genesisIssue := new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))
+	SetYearEndCumulativeIssue(mockDB, 0, genesisIssue)
 
 	lastIssue := GetHistoryCumulativeIssue(mockDB, lastYear)
 
-	mockDB.AddBalance(vm.RestrictingContractAddr, new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18)))
+	mockDB.AddBalance(vm.RestrictingContractAddr, genesisIssue)
 
-	plugin.increaseIssuance(thisYear, lastYear, mockDB)
+	if err := plugin.increaseIssuance(thisYear, lastYear, mockDB, 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
 
 	newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
 
-	tmp := new(big.Int).Sub(newIssue, lastIssue)
-	assert.Equal(t, lastIssue, tmp.Mul(tmp, big.NewInt(IncreaseIssue)))
+	increaseIssuanceRatio, err := gov.GovernIncreaseIssuanceRatio(1, common.ZeroHash)
+	if nil != err {
+		t.Fatal(err)
+	}
 
-	lastYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(lastYear)))
+	tmp := new(big.Int).Sub(newIssue, lastIssue)
+	assert.Equal(t, increaseIssuanceRatio, initIncreaseIssuanceRatio)
+	assert.Equal(t, tmp, new(big.Int).Div(new(big.Int).Mul(lastIssue, big.NewInt(int64(initIncreaseIssuanceRatio))), big.NewInt(int64(10000))))
 
 	if plugin.isLessThanFoundationYear(thisYear) {
 		mockDB.GetBalance(xcom.CDFAccount())
@@ -312,11 +326,119 @@ func TestIncreaseIssuance(t *testing.T) {
 		mockDB.GetBalance(xcom.CDFAccount())
 		mockDB.GetBalance(xcom.PlatONFundAccount())
 	}
-	mockDB.GetBalance(vm.RewardManagerPoolAddr)
 
-	thisYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(thisYear)))
+}
 
-	assert.Equal(t, new(big.Int).Sub(thisYearIssue, lastYearIssue), new(big.Int).Div(lastYearIssue, big.NewInt(IncreaseIssue)))
+func TestZeroIncreaseIssuance(t *testing.T) {
+	var plugin = RewardMgrInstance()
+
+	_, genesis, _ := newChainState()
+
+	mockDB := buildStateDB(t)
+
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
+
+	if err := snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	defer func() {
+		snapshotdb.Instance().Clear()
+	}()
+
+	if err := gov.SetGovernParam(gov.ModuleReward, gov.KeyIncreaseIssuanceRatio, "", "0", 0, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+
+	thisYear, lastYear := uint32(1), uint32(0)
+
+	genesisIssue := new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))
+	SetYearEndCumulativeIssue(mockDB, 0, genesisIssue)
+
+	lastIssue := GetHistoryCumulativeIssue(mockDB, lastYear)
+
+	mockDB.AddBalance(vm.RestrictingContractAddr, genesisIssue)
+
+	if err := plugin.increaseIssuance(thisYear, lastYear, mockDB, 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+
+	newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
+
+	increaseIssuanceRatio, err := gov.GovernIncreaseIssuanceRatio(1, common.ZeroHash)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	tmp := new(big.Int).Sub(newIssue, lastIssue)
+	assert.Equal(t, increaseIssuanceRatio, uint16(0))
+	assert.Equal(t, tmp.Uint64(), uint64(0))
+
+}
+
+func TestCDFAccountOneYearIncreaseIssuance(t *testing.T) {
+	var plugin = RewardMgrInstance()
+
+	mockDB := buildStateDB(t)
+
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
+
+	thisYear, lastYear := uint32(1), uint32(0)
+
+	genesisIssue := new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))
+	SetYearEndCumulativeIssue(mockDB, 0, genesisIssue)
+
+	lastIssue := GetHistoryCumulativeIssue(mockDB, lastYear)
+
+	mockDB.AddBalance(vm.RestrictingContractAddr, genesisIssue)
+
+	CDFAccountBalance := mockDB.GetBalance(xcom.CDFAccount())
+	if err := plugin.increaseIssuance(thisYear, lastYear, mockDB, 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+
+	newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
+
+	currIssue := new(big.Int).Sub(newIssue, lastIssue)
+
+	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.CDFAccount()), CDFAccountBalance)
+	rewardpoolIncr := percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate))
+	assert.Equal(t, currCDFAccountBalance, new(big.Int).Sub(currIssue, rewardpoolIncr))
+
+}
+
+func TestCDFAccountTenYearIncreaseIssuance(t *testing.T) {
+	var plugin = RewardMgrInstance()
+
+	mockDB := buildStateDB(t)
+
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
+
+	thisYear, lastYear := uint32(10), uint32(0)
+
+	genesisIssue := new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))
+	SetYearEndCumulativeIssue(mockDB, 0, genesisIssue)
+
+	lastIssue := GetHistoryCumulativeIssue(mockDB, lastYear)
+
+	mockDB.AddBalance(vm.RestrictingContractAddr, genesisIssue)
+
+	CDFAccountBalance := mockDB.GetBalance(xcom.CDFAccount())
+	PlatONFundAccountBalance := mockDB.GetBalance(xcom.PlatONFundAccount())
+	if err := plugin.increaseIssuance(thisYear, lastYear, mockDB, 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+
+	newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
+
+	currIssue := new(big.Int).Sub(newIssue, lastIssue)
+
+	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.CDFAccount()), CDFAccountBalance)
+	currPlatONFundAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.PlatONFundAccount()), PlatONFundAccountBalance)
+
+	lessBalance := new(big.Int).Sub(currIssue, percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate)))
+	assert.Equal(t, currCDFAccountBalance, percentageCalculation(lessBalance, uint64(AfterFoundationYearDeveloperRewardRate)))
+	assert.Equal(t, currPlatONFundAccountBalance, percentageCalculation(lessBalance, uint64(AfterFoundationYearFoundRewardRate)))
+
 }
 
 func TestSaveRewardDelegateRewardPer(t *testing.T) {
@@ -598,7 +720,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	validatorQueue := make(staking.ValidatorQueue, 0)
 	validatorQueue = append(validatorQueue, &staking.Validator{
 		NodeId:          nodeID,
-		NodeAddress:     canBase.BenefitAddress,
+		NodeAddress:     common.NodeAddress(canBase.BenefitAddress),
 		StakingBlockNum: canBase.StakingBlockNum,
 	})
 

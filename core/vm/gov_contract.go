@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -121,7 +121,7 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitText of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
@@ -154,7 +154,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitVersion of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
@@ -192,7 +192,7 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitCancel of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
@@ -228,7 +228,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitParam of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
@@ -266,7 +266,7 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call vote of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"verifierID", verifier.TerminalString(),
@@ -301,7 +301,7 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call declareVersion of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"activeNode", activeNode.TerminalString(),
@@ -327,7 +327,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getProposal of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
@@ -343,7 +343,7 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getTallyResult of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
@@ -362,7 +362,7 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call listProposal of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
@@ -377,7 +377,7 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getActiveVersion of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
@@ -392,7 +392,7 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getAccuVerifiesCount of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"blockHash", blockHash,
@@ -426,7 +426,7 @@ func (gc *GovContract) getGovernParamValue(module, name string) ([]byte, error) 
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getGovernParamValue of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"module", module,
 		"name", name,
@@ -444,7 +444,7 @@ func (gc *GovContract) listGovernParam(module string) ([]byte, error) {
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call listGovernParam of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"module", module,
 		"blockNumber", blockNumber)

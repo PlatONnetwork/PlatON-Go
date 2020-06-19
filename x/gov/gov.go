@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -35,9 +35,9 @@ type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
 	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error)
 	GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error)
-	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
-	GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error)
-	GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error)
+	GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error)
+	GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error)
+	GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error)
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
 }
 
@@ -46,6 +46,7 @@ const (
 	ModuleSlashing = "slashing"
 	ModuleBlock    = "block"
 	ModuleTxPool   = "txPool"
+	ModuleReward   = "reward"
 )
 
 const (
@@ -61,6 +62,9 @@ const (
 	KeyMaxTxDataLimit             = "maxTxDataLimit"
 	KeyZeroProduceNumberThreshold = "zeroProduceNumberThreshold"
 	KeyZeroProduceCumulativeTime  = "zeroProduceCumulativeTime"
+	KeyRewardPerMaxChangeRange    = "rewardPerMaxChangeRange"
+	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
+	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
 )
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
@@ -806,6 +810,48 @@ func GovernZeroProduceNumberThreshold(blockNumber uint64, blockHash common.Hash)
 
 func GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) (uint16, error) {
 	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceCumulativeTime, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernRewardPerMaxChangeRange(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerMaxChangeRange, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerChangeInterval, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernIncreaseIssuanceRatio(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleReward, KeyIncreaseIssuanceRatio, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}

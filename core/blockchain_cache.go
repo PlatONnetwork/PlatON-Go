@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package core
 
 import (
@@ -133,14 +149,8 @@ func (pbc *BlockChainCache) ReadOnlyStateDB(sealHash common.Hash) *state.StateDB
 func (pbc *BlockChainCache) WriteReceipts(sealHash common.Hash, receipts []*types.Receipt, blockNum uint64) {
 	pbc.receiptsMu.Lock()
 	defer pbc.receiptsMu.Unlock()
-	obj, exist := pbc.receiptsCache[sealHash]
-	if exist {
-		// FIXME: removing in productive environment
-		// Only for test
-		if types.DeriveSha(types.Receipts(obj.receipts)) != types.DeriveSha(types.Receipts(receipts)) {
-			panic("invalid receipts")
-		}
-	} else {
+	_, exist := pbc.receiptsCache[sealHash]
+	if !exist {
 		pbc.receiptsCache[sealHash] = &receiptsCache{receipts: receipts, blockNum: blockNum}
 	}
 }
