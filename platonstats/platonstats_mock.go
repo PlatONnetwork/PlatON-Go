@@ -59,7 +59,6 @@ func NewMockPlatonStatsService() *MockPlatonStatsService {
 	chain := makeBlockChain(bft.CurrentBlock(), 121, consensus.NewFaker(), statsService.chainDb, 0)
 	statsService.blockChain = chain
 
-	common.PlatONStatsServiceRunning.Store(true)
 	return statsService
 }
 

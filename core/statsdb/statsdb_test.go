@@ -35,7 +35,6 @@ func buildExeBlockData() *common.ExeBlockData {
 }
 
 func Test_DB(t *testing.T) {
-	common.PlatONStatsServiceRunning.Store(true)
 	SetDBPath("d:\\swap\\statsdb")
 
 	blockData := buildExeBlockData()
