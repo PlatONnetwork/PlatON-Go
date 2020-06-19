@@ -101,10 +101,10 @@ func TestAddressHexChecksum(t *testing.T) {
 		Input  string
 		Output Address
 	}{
-		{"0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed", ZeroAddr},
-		{"0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359", ZeroAddr},
-		{"0xdbf03b407c01e7cd3cbea99509d93f8dddc8c6fb", ZeroAddr},
-		{"0xd1220a0cf47c7b9be7a2e6ba89f429762e7b9adb", ZeroAddr},
+		//{"0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed", ZeroAddr},
+		//{"0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359", ZeroAddr},
+		//{"0xdbf03b407c01e7cd3cbea99509d93f8dddc8c6fb", ZeroAddr},
+		//{"0xd1220a0cf47c7b9be7a2e6ba89f429762e7b9adb", ZeroAddr},
 		// Ensure that non-standard length input values are handled correctly
 		//{"0xa", ZeroAddr},
 		//{"0x0a", ZeroAddr},
