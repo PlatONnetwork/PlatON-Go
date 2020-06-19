@@ -22,23 +22,23 @@ const (
 )
 
 type EmbedTransferTx struct {
-	From   Address `json:"from"`
-	To     Address `json:"to"`
+	From   Address `json:"from,omitempty"`
+	To     Address `json:"to,omitempty"`
 	Amount uint64  `json:"amount"`
 }
 
 type EmbedContractTx struct {
-	From            Address `json:"from"`
-	ContractAddress Address `json:"contractAddress"`
-	Input           []byte  `json:"input"`
+	From            Address `json:"from,omitempty"`
+	ContractAddress Address `json:"contractAddress,omitempty"`
+	Input           []byte  `json:"input,omitempty"`
 }
 
 type GenesisData struct {
-	AllocItemList []*AllocItem `json:"allocItemList"`
+	AllocItemList []*AllocItem `json:"allocItemList,omitempty"`
 }
 type AllocItem struct {
-	Address Address `json:"address"`
-	Amount  uint64  `json:"amount"`
+	Address Address `json:"address,omitempty"`
+	Amount  uint64  `json:"amount,omitempty"`
 }
 
 func (g *GenesisData) AddAllocItem(address Address, amount uint64) {
@@ -47,16 +47,16 @@ func (g *GenesisData) AddAllocItem(address Address, amount uint64) {
 }
 
 type AdditionalIssuanceData struct {
-	AdditionalNo     uint32          `json:"additionalNo"`     //增发周期
-	AdditionalBase   uint64          `json:"additionalBase"`   //增发基数
-	AdditionalRate   uint16          `json:"additionalRate"`   //增发比例 单位：万分之一
-	AdditionalAmount uint64          `json:"additionalAmount"` //增发金额
-	IssuanceItemList []*IssuanceItem `json:"issuanceItemList"` //增发分配
+	AdditionalNo     uint32          `json:"additionalNo"`               //增发周期
+	AdditionalBase   uint64          `json:"additionalBase"`             //增发基数
+	AdditionalRate   uint16          `json:"additionalRate"`             //增发比例 单位：万分之一
+	AdditionalAmount uint64          `json:"additionalAmount"`           //增发金额
+	IssuanceItemList []*IssuanceItem `json:"issuanceItemList,omitempty"` //增发分配
 }
 
 type IssuanceItem struct {
-	Address Address `json:"address"` //增发金额分配地址
-	Amount  uint64  `json:"amount"`  //增发金额
+	Address Address `json:"address,omitempty"` //增发金额分配地址
+	Amount  uint64  `json:"amount"`            //增发金额
 }
 
 func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount uint64) {
@@ -65,19 +65,19 @@ func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount uint64)
 }
 
 type RewardData struct {
-	BlockRewardAmount   uint64           `json:"blockRewardAmount"`   //出块奖励
-	StakingRewardAmount uint64           `json:"stakingRewardAmount"` //一结算周期内所有101节点的质押奖励
-	CandidateInfoList   []*CandidateInfo `json:"candidateInfoList"`   //备选节点信息
+	BlockRewardAmount   uint64           `json:"blockRewardAmount"`           //出块奖励
+	StakingRewardAmount uint64           `json:"stakingRewardAmount"`         //一结算周期内所有101节点的质押奖励
+	CandidateInfoList   []*CandidateInfo `json:"candidateInfoList,omitempty"` //备选节点信息
 }
 
 type CandidateInfo struct {
-	NodeID       [64]byte `json:"nodeId"`       //备选节点ID
-	MinerAddress Address  `json:"minerAddress"` //备选节点的矿工地址（收益地址）
+	NodeID       [64]byte `json:"nodeId,omitempty"`       //备选节点ID
+	MinerAddress Address  `json:"minerAddress,omitempty"` //备选节点的矿工地址（收益地址）
 }
 
 type ZeroSlashingItem struct {
-	NodeID         [64]byte `json:"nodeId"`         //备选节点ID
-	SlashingAmount uint64   `json:"slashingAmount"` //0出块处罚金(从质押金扣)
+	NodeID         [64]byte `json:"nodeId,omitempty"` //备选节点ID
+	SlashingAmount uint64   `json:"slashingAmount"`   //0出块处罚金(从质押金扣)
 }
 
 type DuplicatedSignSlashingSetting struct {
@@ -86,14 +86,14 @@ type DuplicatedSignSlashingSetting struct {
 }
 
 type UnstakingRefundItem struct {
-	NodeID        [64]byte    `json:"nodeId"`        //备选节点ID
-	NodeAddress   NodeAddress `json:"nodeAddress"`   //备选节点地址
-	RefundEpochNo uint64      `json:"refundEpochNo"` //解除质押,资金真正退回的结算周期（此周期最后一个块的endBlocker里
+	NodeID        [64]byte    `json:"nodeId,omitempty"`      //备选节点ID
+	NodeAddress   NodeAddress `json:"nodeAddress,omitempty"` //备选节点地址
+	RefundEpochNo uint64      `json:"refundEpochNo"`         //解除质押,资金真正退回的结算周期（此周期最后一个块的endBlocker里
 }
 
 type RestrictingReleaseItem struct {
-	DestAddress   Address `json:"destAddress"`   //释放地址
-	ReleaseAmount uint64  `json:"releaseAmount"` //释放金额
+	DestAddress   Address `json:"destAddress,omitempty,omitempty"` //释放地址
+	ReleaseAmount uint64  `json:"releaseAmount"`                   //释放金额
 }
 
 var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
