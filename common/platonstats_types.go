@@ -161,11 +161,17 @@ func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, rele
 
 func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
 	log.Debug("CollectRewardData", "blockNumber", blockNumber, "rewardData", rewardData.BlockRewardAmount)
-	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
-		d := ExeBlockDataCollector[blockNumber]
-		d.RewardData = rewardData
+	if PlatONStatsServiceRunning {
+		if ExeBlockDataCollector[blockNumber] != nil {
+			d := ExeBlockDataCollector[blockNumber]
+			d.RewardData = rewardData
 
-		log.Debug("CollectRewardData ok", "blockNumber", blockNumber, "rewardData", rewardData.BlockRewardAmount)
+			log.Debug("CollectRewardData ok", "blockNumber", blockNumber, "rewardData", rewardData.BlockRewardAmount)
+		} else {
+			log.Debug("CollectRewardData, ExeBlockDataCollector not init", "blockNumber", blockNumber, "rewardData", rewardData.BlockRewardAmount)
+		}
+	} else {
+		log.Debug("CollectRewardData, stats service is not running", "blockNumber", blockNumber, "rewardData", rewardData.BlockRewardAmount)
 	}
 }
 
