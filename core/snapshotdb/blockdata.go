@@ -18,9 +18,12 @@ package snapshotdb
 
 import (
 	"fmt"
+	"io"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 
@@ -44,6 +47,57 @@ type blockData struct {
 type revision struct {
 	id           int
 	journalIndex int
+}
+
+func (b *blockData) DecodeRLP(s *rlp.Stream) error {
+	jk := new(blockWal)
+	if err := s.Decode(jk); err != nil {
+		return err
+	}
+	b.Number = jk.BlockNumber
+	b.ParentHash = jk.ParentHash
+	b.BlockHash = jk.BlockHash
+	b.kvHash = jk.KvHash
+	b.data = memdb.New(DefaultComparer, 100)
+	b.readOnly = true
+	for _, kv := range jk.Data {
+		b.data.Put(kv.Key, kv.Value)
+	}
+	return nil
+}
+
+func (b *blockData) EncodeRLP(w io.Writer) error {
+	jk := new(blockWal)
+	jk.BlockHash = b.BlockHash
+	jk.ParentHash = b.ParentHash
+	jk.BlockNumber = new(big.Int).Set(b.Number)
+	jk.KvHash = b.kvHash
+	jk.Data = make([]journalData, 0)
+	if b.data.Size() != 0 {
+		itr := b.data.NewIterator(nil)
+		defer itr.Release()
+		for itr.Next() {
+			key, val := common.CopyBytes(itr.Key()), common.CopyBytes(itr.Value())
+			jData := journalData{
+				Key:   key,
+				Value: val,
+			}
+			jk.Data = append(jk.Data, jData)
+		}
+	}
+	return rlp.Encode(w, jk)
+}
+
+func (b *blockData) BlockKey() []byte {
+	return EncodeWalKey(b.Number)
+}
+
+func (b *blockData) BlockVal() []byte {
+	val, err := rlp.EncodeToBytes(b)
+	if err != nil {
+		panic("Encode BlockVal to byte fail:" + err.Error())
+	}
+	return val
 }
 
 func (b *blockData) cleanJournal() {
