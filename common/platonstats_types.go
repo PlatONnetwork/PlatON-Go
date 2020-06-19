@@ -1,5 +1,7 @@
 package common
 
+import "github.com/PlatONnetwork/PlatON-Go/log"
+
 //type NodeID [64]byte
 
 var PlatONStatsServiceRunning bool = false
@@ -96,6 +98,7 @@ var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
 
 func PopExeBlockData(blockNumber uint64) *ExeBlockData {
 	exeBlockData, ok := ExeBlockDataCollector[blockNumber]
+	log.Debug("PopExeBlockData", "exeBlockData==nil", exeBlockData == nil)
 	if ok {
 		delete(ExeBlockDataCollector, blockNumber)
 		return exeBlockData
@@ -147,6 +150,7 @@ func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, rele
 }
 
 func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
+	log.Debug("CollectRewardData", "blockNumber", blockNumber, "rewardData", rewardData.BlockRewardAmount)
 	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
 		d := ExeBlockDataCollector[blockNumber]
 		d.RewardData = rewardData
