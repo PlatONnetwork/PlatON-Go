@@ -2,13 +2,14 @@ package common
 
 import (
 	"encoding/json"
+	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 //type NodeID [64]byte
 
-var PlatONStatsServiceRunning bool = false
+var PlatONStatsServiceRunning atomic.Value
 
 type BlockType uint8
 
@@ -101,7 +102,7 @@ type RestrictingReleaseItem struct {
 var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
 
 func PopExeBlockData(blockNumber uint64) *ExeBlockData {
-	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+	if running := PlatONStatsServiceRunning.Load(); running != nil && ExeBlockDataCollector[blockNumber] != nil {
 		exeBlockData, ok := ExeBlockDataCollector[blockNumber]
 		if ok {
 			delete(ExeBlockDataCollector, blockNumber)
@@ -112,7 +113,7 @@ func PopExeBlockData(blockNumber uint64) *ExeBlockData {
 }
 
 func InitExeBlockData(blockNumber uint64) {
-	if PlatONStatsServiceRunning {
+	if running := PlatONStatsServiceRunning.Load(); running != nil {
 		exeBlockData := &ExeBlockData{
 			ZeroSlashingItemList:       make([]*ZeroSlashingItem, 0),
 			UnstakingRefundItemList:    make([]*UnstakingRefundItem, 0),
@@ -141,7 +142,7 @@ type ExeBlockData struct {
 }
 
 func CollectUnstakingRefundItem(blockNumber uint64, nodeId [64]byte, nodeAddress NodeAddress, refundEpochNo uint64) {
-	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+	if running := PlatONStatsServiceRunning.Load(); running != nil && ExeBlockDataCollector[blockNumber] != nil {
 		log.Debug("CollectUnstakingRefundItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "nodeAddress", nodeAddress.Hex(), "refundEpochNo", refundEpochNo)
 		d := ExeBlockDataCollector[blockNumber]
 		d.UnstakingRefundItemList = append(d.UnstakingRefundItemList, &UnstakingRefundItem{NodeID: nodeId, NodeAddress: nodeAddress, RefundEpochNo: refundEpochNo})
@@ -149,7 +150,7 @@ func CollectUnstakingRefundItem(blockNumber uint64, nodeId [64]byte, nodeAddress
 }
 
 func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, releaseAmount uint64) {
-	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+	if running := PlatONStatsServiceRunning.Load(); running != nil && ExeBlockDataCollector[blockNumber] != nil {
 		log.Debug("CollectRestrictingReleaseItem", "blockNumber", blockNumber, "destAddress", destAddress, "releaseAmount", releaseAmount)
 		d := ExeBlockDataCollector[blockNumber]
 		d.RestrictingReleaseItemList = append(d.RestrictingReleaseItemList, &RestrictingReleaseItem{DestAddress: destAddress, ReleaseAmount: releaseAmount})
@@ -157,7 +158,7 @@ func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, rele
 }
 
 func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
-	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+	if running := PlatONStatsServiceRunning.Load(); running != nil && ExeBlockDataCollector[blockNumber] != nil {
 		log.Debug("CollectRewardData", "blockNumber", blockNumber, "rewardData", rewardData.BlockRewardAmount)
 		d := ExeBlockDataCollector[blockNumber]
 		d.RewardData = rewardData
@@ -165,7 +166,7 @@ func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
 }
 
 func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByValidStakings, rewardRatioByPenalties uint32) {
-	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+	if running := PlatONStatsServiceRunning.Load(); running != nil && ExeBlockDataCollector[blockNumber] != nil {
 		log.Debug("CollectDuplicatedSignSlashingSetting", "blockNumber", blockNumber, "penaltyRatioByValidStakings", penaltyRatioByValidStakings, "rewardRatioByPenalties", rewardRatioByPenalties)
 		d := ExeBlockDataCollector[blockNumber]
 		if d.DuplicatedSignSlashingSetting != nil {
@@ -176,7 +177,7 @@ func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByVali
 }
 
 func CollectZeroSlashingItem(blockNumber uint64, zeroSlashingItemList []*ZeroSlashingItem) {
-	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+	if running := PlatONStatsServiceRunning.Load(); running != nil && ExeBlockDataCollector[blockNumber] != nil {
 		json, _ := json.Marshal(zeroSlashingItemList)
 		log.Debug("CollectZeroSlashingItem", "blockNumber", blockNumber, "zeroSlashingItemList", string(json))
 
@@ -186,7 +187,7 @@ func CollectZeroSlashingItem(blockNumber uint64, zeroSlashingItemList []*ZeroSla
 }
 
 func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, amount uint64) {
-	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+	if running := PlatONStatsServiceRunning.Load(); running != nil && ExeBlockDataCollector[blockNumber] != nil {
 		log.Debug("CollectEmbedTransferTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
 		d := ExeBlockDataCollector[blockNumber]
 		d.EmbedTransferTxMap[txHash] = append(d.EmbedTransferTxMap[txHash], &EmbedTransferTx{From: from, To: to, Amount: amount})
@@ -194,7 +195,7 @@ func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, a
 }
 
 func CollectEmbedContractTx(blockNumber uint64, txHash Hash, from, contractAddress Address, input []byte) {
-	if PlatONStatsServiceRunning && ExeBlockDataCollector[blockNumber] != nil {
+	if running := PlatONStatsServiceRunning.Load(); running != nil && ExeBlockDataCollector[blockNumber] != nil {
 		log.Debug("CollectEmbedContractTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "contractAddress", from.Bech32(), "input", Bytes2Hex(input))
 		d := ExeBlockDataCollector[blockNumber]
 		d.EmbedContractTxMap[txHash] = append(d.EmbedContractTxMap[txHash], &EmbedContractTx{From: from, ContractAddress: contractAddress, Input: input})

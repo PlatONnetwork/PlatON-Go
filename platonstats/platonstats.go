@@ -171,7 +171,7 @@ func (s *PlatonStatsService) Start(server *p2p.Server) error {
 		s.blockProducer = blockProducer
 	}
 
-	common.PlatONStatsServiceRunning = true
+	common.PlatONStatsServiceRunning.Store(true)
 
 	go s.blockMsgLoop()
 	//go s.sampleMsgLoop()
