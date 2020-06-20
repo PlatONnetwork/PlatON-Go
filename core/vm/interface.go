@@ -76,6 +76,14 @@ type StateDB interface {
 	IntermediateRoot(deleteEmptyObjects bool) common.Hash
 }
 
+// MerkleProof
+type ProofList [][]byte
+
+func (n *ProofList) Put(key []byte, value []byte) error {
+	*n = append(*n, value)
+	return nil
+}
+
 // CallContext provides a basic interface for the EVM calling conventions. The EVM
 // depends on this context being implemented for doing subcalls and initialising new EVM contracts.
 type CallContext interface {

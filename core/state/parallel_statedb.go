@@ -17,7 +17,7 @@ var (
 func (self *StateDB) GetOrNewParallelStateObject(addr common.Address) *ParallelStateObject {
 	stateObject := self.justGetStateObject(addr)
 	if stateObject == nil || stateObject.deleted {
-		log.Debug("Cannot find stateObject in Parallel", "addr", addr.Hex(), "isNil", stateObject == nil)
+		log.Debug("Cannot find stateObject in Parallel", "addr", addr.Bech32(), "isNil", stateObject == nil)
 		return self.justCreateObject(addr)
 	}
 	return NewParallelStateObject(stateObject, false)

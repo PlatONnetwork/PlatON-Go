@@ -59,7 +59,7 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 	log.Trace("End to execute transactions", "number", header.Number)
 
 	w.current.txs = append(w.current.txs, ctx.GetPackedTxList()...)
-	w.current.tcount += len(w.current.txs)
+	w.current.tcount = len(w.current.txs)
 	w.current.receipts = append(w.current.receipts, ctx.GetReceipts()...)
 	//w.current.header.GasUsed = ctx.GetBlockGasUsed()
 	coalescedLogs = append(coalescedLogs, ctx.GetLogs()...)
