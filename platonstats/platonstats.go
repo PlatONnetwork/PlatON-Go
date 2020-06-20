@@ -328,10 +328,10 @@ func collectBrief(block *types.Block) *Brief {
 		panic(err)
 	} else if yes {
 		brief.BlockType = common.EndOfYear
-	} else if xutil.IsElection(bn) {
+		/*} else if xutil.IsElection(bn) {
 		brief.BlockType = common.ConsensusElectionBlock
-	} else if xutil.IsBeginOfConsensus(bn) {
-		brief.BlockType = common.ConsensusBeginBlock
+			} else if xutil.IsBeginOfConsensus(bn) {
+			brief.BlockType = common.ConsensusBeginBlock*/
 	} else if xutil.IsBeginOfEpoch(bn) {
 		brief.BlockType = common.EpochBeginBlock
 	} else if xutil.IsEndOfEpoch(bn) {
