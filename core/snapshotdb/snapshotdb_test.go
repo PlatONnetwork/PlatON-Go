@@ -918,7 +918,7 @@ func TestSnapshotDB_Compaction222222(t *testing.T) {
 			return
 		}
 	}
-	ch.db.journalSync.Wait()
+	ch.db.walSync.Wait()
 	t.Run("a block kv>2000,commit 1", func(t *testing.T) {
 		err := ch.db.Compaction()
 		if err != nil {

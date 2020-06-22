@@ -22,10 +22,11 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/console"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"gopkg.in/urfave/cli.v1"
 )
 
 // promptPassphrase prompts the user for a passphrase.  Set confirmation to true
@@ -52,7 +53,7 @@ func promptPassphrase(confirmation bool) string {
 // getPassphrase obtains a passphrase given by the user.  It first checks the
 // --passfile command line flag and ultimately prompts the user for a
 // passphrase.
-func getPassphrase(ctx *cli.Context) string {
+func getPassphrase(ctx *cli.Context, confirmation bool) string {
 	// Look for the --passwordfile flag.
 	passphraseFile := ctx.String(passphraseFlag.Name)
 	if passphraseFile != "" {
@@ -65,7 +66,7 @@ func getPassphrase(ctx *cli.Context) string {
 	}
 
 	// Otherwise prompt the user for the passphrase.
-	return promptPassphrase(false)
+	return promptPassphrase(confirmation)
 }
 
 // signHash is a helper function that calculates a hash for the given message

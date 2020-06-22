@@ -28,6 +28,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/elastic/gosigar"
+	"github.com/panjf2000/ants/v2"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
@@ -39,9 +43,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/elastic/gosigar"
-	"github.com/panjf2000/ants/v2"
-	"gopkg.in/urfave/cli.v1"
 )
 
 const (
@@ -84,7 +85,6 @@ var (
 		utils.CacheDatabaseFlag,
 		utils.CacheGCFlag,
 		utils.CacheTrieDBFlag,
-		utils.TrieCacheGenFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,

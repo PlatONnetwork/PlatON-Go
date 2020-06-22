@@ -73,7 +73,7 @@ func MustBech32ToAddress(s string) Address {
 	add, err := Bech32ToAddress(s)
 	if err != nil {
 		log.Error("must Bech32ToAddress fail", "err", err)
-		return Address{}
+		panic(err)
 	}
 	return add
 }

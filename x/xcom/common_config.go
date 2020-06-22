@@ -473,7 +473,7 @@ func CheckRewardPerMaxChangeRange(rewardPerMaxChangeRange uint16) error {
 
 func CheckRewardPerChangeInterval(rewardPerChangeInterval uint16) error {
 	if rewardPerChangeInterval < RewardPerChangeIntervalLowerLimit || rewardPerChangeInterval > RewardPerChangeIntervalUpperLimit {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The RewardPerMaxChangeRange must be [%d, %d]", RewardPerChangeIntervalLowerLimit, RewardPerChangeIntervalUpperLimit))
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The RewardPerChangeInterval must be [%d, %d]", RewardPerChangeIntervalLowerLimit, RewardPerChangeIntervalUpperLimit))
 	}
 	return nil
 }

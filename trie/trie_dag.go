@@ -32,19 +32,14 @@ type trieDag struct {
 
 	lock sync.Mutex
 
-	cachegen   uint16
-	cachelimit uint16
-
 	loged bool
 }
 
 func newTrieDag() *trieDag {
 	return &trieDag{
-		nodes:      make(map[uint64]*dagNode),
-		dag:        newDag(),
-		cachegen:   0,
-		cachelimit: 0,
-		loged:      false,
+		nodes: make(map[uint64]*dagNode),
+		dag:   newDag(),
+		loged: false,
 	}
 }
 
@@ -179,10 +174,6 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 				return hash, c, true
 			}
 
-			if c.canUnload(td.cachegen, td.cachelimit) {
-				cacheUnloadCounter.Inc(1)
-				return hash, hash, true
-			}
 			if !dirty {
 				return hash, c, true
 			}
@@ -192,7 +183,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 
 	process := func() {
 		log.Trace("Do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
-		hasher := newHasher(td.cachegen, td.cachelimit, onleaf)
+		hasher := newHasher(onleaf)
 
 		id := td.dag.waitPop()
 		if id == invalidID {
