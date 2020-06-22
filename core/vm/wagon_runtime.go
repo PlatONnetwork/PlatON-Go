@@ -1226,10 +1226,8 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 
 	// check call depth
 	if ctx.evm.depth > int(params.CallCreateDepth) {
-		panic(ErrDepth)
+		return -1
 	}
-
-	oldContract := ctx.contract.Address()
 
 	input := make([]byte, argsLen)
 	_, err := proc.ReadAt(input, int64(args))
@@ -1238,7 +1236,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	}
 
 	if len(input) == 0 {
-		panic(ErrWASMMigrate)
+		return -1
 	}
 
 	value := make([]byte, valLen)
@@ -1281,7 +1279,8 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	checkGas(ctx, gas)
 	gas = ctx.evm.callGasTemp
 
-	sender := ctx.contract.CallerAddress
+	sender := ctx.contract.caller.Address()
+	oldContract := ctx.contract.Address()
 
 	// check code of old contract
 	oldCode := ctx.evm.StateDB.GetCode(oldContract)
@@ -1291,7 +1290,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 
 	// check balance of sender
 	if !ctx.evm.CanTransfer(ctx.evm.StateDB, sender, bValue) {
-		panic(ErrInsufficientBalance)
+		return -1
 	}
 
 	senderNonce := ctx.evm.StateDB.GetNonce(sender)
@@ -1303,7 +1302,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	// Ensure there's no existing contract already at the designated address
 	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
 	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
-		panic(ErrContractAddressCollision)
+		return -1
 	}
 
 	// Create a new account on the state
@@ -1363,13 +1362,10 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	if maxCodeSizeExceeded && err == nil {
 		err = errMaxCodeSizeExceeded
 	}
-
-	if nil != err {
-		panic(err)
-	}
-
 	ctx.contract.Gas += contract.Gas
-
+	if nil != err {
+		return -1
+	}
 	_, err = proc.WriteAt(newContract.Bytes(), int64(newAddr))
 	if nil != err {
 		panic(err)
