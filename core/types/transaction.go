@@ -62,8 +62,8 @@ type txdata struct {
 	S *big.Int `json:"s" gencodec:"required"`
 
 	// This is only used when marshaling to JSON.
-	Hash *common.Hash   `json:"hash" rlp:"-"`
-	From common.Address `json:"from" rlp:"-"`
+	Hash *common.Hash    `json:"hash" rlp:"-"`
+	From *common.Address `json:"from"`
 }
 
 type txdataMarshaling struct {
@@ -217,7 +217,7 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 
 	var err error
 	msg.from, err = Sender(s, tx)
-	tx.SetFromAddr(msg.from)
+	tx.SetFromAddr(&msg.from)
 	return msg, err
 }
 
@@ -266,16 +266,16 @@ func (tx *Transaction) FromAddr(signer Signer) common.Address {
 	return addr
 }
 
-func (tx *Transaction) SetFromAddr(from common.Address) {
+func (tx *Transaction) SetFromAddr(from *common.Address) {
 	log.Warn("SetFromAddr", "from", from.Bech32())
 	tx.data.From = from
 }
 
-func (tx *Transaction) GetFromAddr() common.Address {
-	if tx.data.From == common.ZeroAddr {
+func (tx *Transaction) GetFromAddr() *common.Address {
+	if tx.data.From == nil || len(tx.data.From) == 0 {
 		log.Warn("GetFromAddr from is ZeroAddr")
 	} else {
-		log.Warn("GetFromAddr ok", "from", tx.data.From.Hex())
+		log.Warn("GetFromAddr ok", "from", tx.data.From.Bech32())
 	}
 	return tx.data.From
 }
