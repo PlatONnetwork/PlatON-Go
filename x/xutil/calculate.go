@@ -84,7 +84,7 @@ func EpochsPerYear() uint64 {
 
 // CalcBlocksEachEpoch return how many blocks per epoch
 func CalcBlocksEachEpoch() uint64 {
-	log.Warn("CalcBlocksEachEpoch", "CalcBlocksEachEpoch", CalcBlocksEachEpoch(), "EpochSize", EpochSize)
+	log.Warn("CalcBlocksEachEpoch", "CalcBlocksEachEpoch", ConsensusSize(), "EpochSize", EpochSize)
 	return ConsensusSize() * EpochSize()
 }
 
