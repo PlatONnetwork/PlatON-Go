@@ -95,19 +95,19 @@ func (gc *GovContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 	switch fcode {
 	case SubmitText:
 		if gasPrice.Cmp(params.SubmitTextProposalGasPrice) < 0 {
-			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
+			return common.InvalidParameter.Wrap(ErrUnderPrice.Error())
 		}
 	case SubmitVersion:
 		if gasPrice.Cmp(params.SubmitVersionProposalGasPrice) < 0 {
-			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
+			return common.InvalidParameter.Wrap(ErrUnderPrice.Error())
 		}
 	case SubmitCancel:
 		if gasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
-			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
+			return common.InvalidParameter.Wrap(ErrUnderPrice.Error())
 		}
 	case SubmitParam:
 		if gasPrice.Cmp(params.SubmitParamProposalGasPrice) < 0 {
-			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
+			return common.InvalidParameter.Wrap(ErrUnderPrice.Error())
 		}
 	}
 
@@ -133,6 +133,10 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 
 	if txHash == common.ZeroHash {
 		return nil, nil
+	}
+
+	if gc.Evm.GasPrice.Cmp(params.SubmitTextProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
 	}
 
 	p := &gov.TextProposal{
@@ -169,6 +173,10 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 
 	if txHash == common.ZeroHash {
 		return nil, nil
+	}
+
+	if gc.Evm.GasPrice.Cmp(params.SubmitVersionProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
 	}
 
 	p := &gov.VersionProposal{
@@ -208,6 +216,10 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		return nil, nil
 	}
 
+	if gc.Evm.GasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
+	}
+
 	p := &gov.CancelProposal{
 		PIPID:           pipID,
 		EndVotingRounds: endVotingRounds,
@@ -243,6 +255,10 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 
 	if txHash == common.ZeroHash {
 		return nil, nil
+	}
+
+	if gc.Evm.GasPrice.Cmp(params.SubmitParamProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
 	}
 
 	p := &gov.ParamProposal{

@@ -19,6 +19,7 @@ package vm
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"testing"
 
@@ -80,6 +81,7 @@ func prepair_sndb(chain *mock.Chain, txHash common.Hash) {
 
 	//prepare gc to run contract
 	gc.Evm = newEvm(chain.CurrentHeader().Number, chain.CurrentHeader().Hash(), chain.StateDB)
+	gc.Evm.GasPrice = big.NewInt(9000000 * 1000000000)
 }
 
 func skip_emptyBlock(chain *mock.Chain, blockNumber uint64) {
@@ -310,6 +312,8 @@ func setup(t *testing.T) *mock.Chain {
 
 	//the contract will retrieve this txHash as ProposalID
 	prepair_sndb(chain, defaultProposalID)
+
+	gc.Evm.GasPrice = big.NewInt(9000000 * 1000000000)
 	return chain
 }
 
