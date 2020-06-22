@@ -45,7 +45,6 @@ type Transaction struct {
 
 	//for parallel executor only
 	intrinsicGas uint64
-	fromAddr     *common.Address
 }
 
 type txdata struct {
@@ -63,7 +62,7 @@ type txdata struct {
 
 	// This is only used when marshaling to JSON.
 	Hash *common.Hash    `json:"hash" rlp:"-"`
-	From *common.Address `json:"from"`
+	From *common.Address `json:"hash" rlp:"-"`
 }
 
 type txdataMarshaling struct {
@@ -136,9 +135,11 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 	hash := tx.Hash()
 	data := tx.data
 	data.Hash = &hash
+	//stats: for PlatON stats
+	var signer Signer = NewEIP155Signer(tx.ChainId())
+	from, _ := Sender(signer, tx)
 
-	from := tx.GetFromAddr()
-	data.From = from
+	data.From = &from
 	return data.MarshalJSON()
 }
 
@@ -217,7 +218,7 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 
 	var err error
 	msg.from, err = Sender(s, tx)
-	tx.SetFromAddr(&msg.from)
+	//tx.SetFromAddr(&msg.from)
 	return msg, err
 }
 
@@ -264,20 +265,6 @@ func (tx *Transaction) FromAddr(signer Signer) common.Address {
 	}
 	tx.from.Store(sigCache{signer: signer, from: addr})
 	return addr
-}
-
-func (tx *Transaction) SetFromAddr(from *common.Address) {
-	log.Warn("SetFromAddr", "from", from.Bech32())
-	tx.data.From = from
-}
-
-func (tx *Transaction) GetFromAddr() *common.Address {
-	if tx.data.From == nil || len(tx.data.From) == 0 {
-		log.Warn("GetFromAddr from is ZeroAddr")
-	} else {
-		log.Warn("GetFromAddr ok", "from", tx.data.From.Bech32())
-	}
-	return tx.data.From
 }
 
 func (tx *Transaction) SetIntrinsicGas(intrinsicGas uint64) {
