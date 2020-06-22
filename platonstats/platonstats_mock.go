@@ -50,7 +50,7 @@ type MockPlatonStatsService struct {
 func NewMockPlatonStatsService() *MockPlatonStatsService {
 	statsService := new(MockPlatonStatsService)
 
-	statsService.chainDb = ethdb.NewMemDatabase()
+	//statsService.chainDb = ethdb.NewMemDatabase()
 	genesis := new(core.Genesis).MustCommit(statsService.chainDb)
 
 	bft := consensus.NewFaker()
@@ -166,7 +166,7 @@ func (s *MockPlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common
 	}
 	*/
 	root := genesisBlock.Root()
-	tr, err := trie.NewSecure(root, trie.NewDatabase(s.ChainDb()), 0)
+	tr, err := trie.NewSecure(root, trie.NewDatabase(s.ChainDb()))
 	if err != nil {
 		return nil, err
 	}
