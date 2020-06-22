@@ -410,7 +410,7 @@ func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.Gen
 	}
 	*/
 	root := genesisBlock.Root()
-	tr, err := trie.NewSecure(root, trie.NewDatabase(s.ChainDb()), 0)
+	tr, err := trie.NewSecure(root, trie.NewDatabase(s.ChainDb()))
 	if err != nil {
 		return nil, err
 	}
