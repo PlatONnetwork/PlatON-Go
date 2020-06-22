@@ -93,10 +93,18 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 
 	}
 	brief := collectBrief(block)
+
+	blockJsonMapping, err := jsonBlock(block)
+	if err != nil {
+		log.Error("marshal block to json string error")
+		return err
+	}
+
 	statsBlockExt := &StatsBlockExt{
-		BlockType:    brief.BlockType,
-		EpochNo:      brief.EpochNo,
-		Block:        jsonBlock(block),
+		BlockType: brief.BlockType,
+		EpochNo:   brief.EpochNo,
+		//Block:        convertBlock(block),
+		Block:        blockJsonMapping,
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
 		GenesisData:  genesisData,
