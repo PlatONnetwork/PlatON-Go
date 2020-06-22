@@ -272,7 +272,7 @@ func (tx *Transaction) SetFromAddr(from *common.Address) {
 }
 
 func (tx *Transaction) GetFromAddr() *common.Address {
-	if len(tx.data.From) == 0 {
+	if tx.data.From == nil || len(tx.data.From) == 0 {
 		log.Warn("GetFromAddr from is Nil")
 	} else {
 		log.Warn("GetFromAddr", "from", tx.data.From.Bech32())
