@@ -1302,7 +1302,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	// Ensure there's no existing contract already at the designated address
 	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
 	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
-		return -1
+		panic(ErrContractAddressCollision)
 	}
 
 	// Create a new account on the state
