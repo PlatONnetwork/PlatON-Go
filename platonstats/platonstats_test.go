@@ -1,11 +1,23 @@
 package platonstats
 
 import (
+	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"math/rand"
 	"os"
 	"regexp"
 	"testing"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethclient"
+	"github.com/stretchr/testify/require"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
@@ -143,5 +155,110 @@ func Test_Log(t *testing.T) {
 		t.Log("read the number from log", "number", blockNo)
 		assert.Equal(t, blockNumber, blockNo)
 	}
+}
 
+// 交易发起方keystore文件地址
+var fromKeyStoreFile = "D:\\swap\\keystore\\UTC--2020-06-15T06-46-38.833974074Z--493301712671ada506ba6ca7891f436d29185821"
+
+// keystore文件对应的密码
+var password = "88888888"
+
+// http服务地址, 例:http://localhost:8545
+var httpUrl = "http://192.168.112.31:6901"
+
+type PriAccount struct {
+	Priv    *ecdsa.PrivateKey
+	Nonce   uint64
+	Address common.Address
+}
+
+func generateAccount(size int) []*PriAccount {
+	addrs := make([]*PriAccount, size)
+	for i := 0; i < size; i++ {
+		privateKey, _ := crypto.GenerateKey()
+		address := crypto.PubkeyToAddress(privateKey.PublicKey)
+		addrs[i] = &PriAccount{privateKey, 0, address}
+	}
+	return addrs
+}
+
+func Test_SendTx(t *testing.T) {
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	accountsize := 1000
+	signer := types.NewEIP155Signer(big.NewInt(1021))
+
+	// 数量
+	initAmount, _ := new(big.Int).SetString("100000000000000000000", 10)
+	// 数量
+	amount := big.NewInt(1)
+
+	// gasLimit
+	var gasLimit uint64 = 30000
+
+	// gasPrice
+	var gasPrice = new(big.Int).SetInt64(10000)
+
+	// 创建客户端
+	client, err := ethclient.Dial(httpUrl)
+	require.NoError(t, err)
+
+	// 交易发送方
+	// 获取私钥方式一，通过keystore文件
+	fromKeystore, err := ioutil.ReadFile(fromKeyStoreFile)
+	require.NoError(t, err)
+	fromKey, err := keystore.DecryptKey(fromKeystore, password)
+	fromPrivkey := fromKey.PrivateKey
+	fromPubkey := fromPrivkey.PublicKey
+	fromAddr := crypto.PubkeyToAddress(fromPubkey)
+
+	// nonce获取
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
+
+	accounts := generateAccount(accountsize)
+
+	//init
+	for _, account := range accounts {
+		// 交易创建
+		tx := types.NewTransaction(nonce, account.Address, initAmount, gasLimit, gasPrice, []byte{})
+
+		// 交易签名
+		signedTx, err := types.SignTx(tx, signer, fromPrivkey)
+
+		//signedTx ,err := types.SignTx(tx,types.HomesteadSigner{},fromPrivkey)
+		require.NoError(t, err)
+		// 交易发送
+		serr := client.SendTransaction(context.Background(), signedTx)
+
+		require.NoError(t, serr)
+
+		nonce = nonce + 1
+	}
+
+	time.Sleep(30 * time.Second)
+
+	for {
+		from := accounts[rand.Int31n(int32(accountsize))]
+		to := accounts[rand.Int31n(int32(accountsize))]
+		for to.Address == from.Address {
+			to = accounts[rand.Int31n(int32(accountsize))]
+		}
+
+		// 交易创建
+		tx := types.NewTransaction(from.Nonce, accounts[rand.Int31n(int32(accountsize))].Address, amount, gasLimit, gasPrice, []byte{})
+
+		// 交易签名
+		signedTx, err := types.SignTx(tx, signer, from.Priv)
+
+		//signedTx ,err := types.SignTx(tx,types.HomesteadSigner{},fromPrivkey)
+		require.NoError(t, err)
+		// 交易发送
+		serr := client.SendTransaction(context.Background(), signedTx)
+
+		require.NoError(t, serr)
+
+		from.Nonce++
+	}
+
+	// 等待挖矿完成
+	//bind.WaitMined(context.Background(), client, signedTx)
 }
