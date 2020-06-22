@@ -689,6 +689,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Make sure the transaction is signed properly
 	from, err := types.Sender(pool.signer, tx)
+
+	log.Warn("validateTx result", "from", from)
 	if err != nil {
 		return ErrInvalidSender
 	} else {
