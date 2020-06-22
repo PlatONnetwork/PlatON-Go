@@ -267,11 +267,17 @@ func (tx *Transaction) FromAddr(signer Signer) common.Address {
 }
 
 func (tx *Transaction) SetFromAddr(from *common.Address) {
-	tx.fromAddr = from
+	log.Warn("SetFromAddr", "from", from.Bech32())
+	tx.data.From = from
 }
 
 func (tx *Transaction) GetFromAddr() *common.Address {
-	return tx.fromAddr
+	if len(tx.data.From) == 0 {
+		log.Warn("GetFromAddr from is Nil")
+	} else {
+		log.Warn("GetFromAddr", "from", tx.data.From.Bech32())
+	}
+	return tx.data.From
 }
 
 func (tx *Transaction) SetIntrinsicGas(intrinsicGas uint64) {
