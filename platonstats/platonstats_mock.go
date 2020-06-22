@@ -96,7 +96,7 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 	statsBlockExt := &StatsBlockExt{
 		BlockType:    brief.BlockType,
 		EpochNo:      brief.EpochNo,
-		Block:        convertBlock(block),
+		Block:        jsonBlock(block),
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
 		GenesisData:  genesisData,

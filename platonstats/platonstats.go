@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -85,6 +87,13 @@ type Nonce []byte
 func (nonce Nonce) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fmt.Sprintf("0x%x", nonce))
 }
+func jsonBlock(block *types.Block) map[string]interface{} {
+	fields, err := ethapi.RPCMarshalBlock(block, true, true)
+	if err != nil {
+		return nil
+	}
+	return fields
+}
 
 func convertBlock(block *types.Block) *blockdata {
 	blk := new(blockdata)
@@ -113,14 +122,14 @@ type Brief struct {
 }
 
 type StatsBlockExt struct {
-	BlockType    common.BlockType     `json:"blockType"`
-	EpochNo      uint64               `json:"epochNo"`
-	NodeID       common.NodeID        `json:"nodeID,omitempty"`
-	NodeAddress  common.NodeAddress   `json:"nodeAddress,omitempty"`
-	Block        *blockdata           `json:"block,omitempty"`
-	Receipts     []*types.Receipt     `json:"receipts,omitempty"`
-	ExeBlockData *common.ExeBlockData `json:"exeBlockData,omitempty"`
-	GenesisData  *common.GenesisData  `json:"GenesisData,omitempty"`
+	BlockType    common.BlockType       `json:"blockType"`
+	EpochNo      uint64                 `json:"epochNo"`
+	NodeID       common.NodeID          `json:"nodeID,omitempty"`
+	NodeAddress  common.NodeAddress     `json:"nodeAddress,omitempty"`
+	Block        map[string]interface{} `json:"block,omitempty"`
+	Receipts     []*types.Receipt       `json:"receipts,omitempty"`
+	ExeBlockData *common.ExeBlockData   `json:"exeBlockData,omitempty"`
+	GenesisData  *common.GenesisData    `json:"GenesisData,omitempty"`
 }
 
 type PlatonStatsService struct {
@@ -279,7 +288,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		EpochNo:      brief.EpochNo,
 		NodeID:       brief.NodeID,
 		NodeAddress:  brief.NodeAddress,
-		Block:        convertBlock(block),
+		Block:        jsonBlock(block),
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
 		GenesisData:  genesisData,
