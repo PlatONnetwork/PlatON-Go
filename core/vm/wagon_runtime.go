@@ -1297,12 +1297,11 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 
 	// create new contract address
 	newContract := crypto.CreateAddress(sender, senderNonce)
-	ctx.evm.StateDB.SetNonce(sender, senderNonce+1)
 
 	// Ensure there's no existing contract already at the designated address
 	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
 	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
-		return -1
+		panic(ErrContractAddressCollision)
 	}
 
 	// Create a new account on the state
@@ -1364,7 +1363,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	}
 	ctx.contract.Gas += contract.Gas
 	if nil != err {
-		return -1
+		panic(err)
 	}
 	_, err = proc.WriteAt(newContract.Bytes(), int64(newAddr))
 	if nil != err {
