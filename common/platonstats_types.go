@@ -9,7 +9,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
+//uint32(年度<<16 | 结算周期<<8 | 共识周期)
+// 年度：0-中间；1-开始；2-结束
+// 结算周期：0-中间；1-开始；2-结束
+// 共识周期：0-中间；1-开始；2-选举；3-结束
+//type BlockType uint32
+
 type BlockType uint8
+
 type NodeID [512 / 8]byte
 
 type Input []byte
