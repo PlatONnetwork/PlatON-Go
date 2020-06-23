@@ -25,7 +25,7 @@ public class ContractDistoryTransferBalanceTest extends WASMContractPrepareTest 
             author = "hudenian", showName = "wasm.contract_distory销毁合约的余额转移至调用者账户中",sourcePrefix = "wasm")
     public void testDistoryContract() {
 
-        String transferMoney = "1000000000000000000";
+        String transferMoney = "100000000000000000000000000000";
 
         try {
             prepare();
