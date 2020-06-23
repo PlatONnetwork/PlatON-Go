@@ -1293,10 +1293,10 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 		return -1
 	}
 
-	senderNonce := ctx.evm.StateDB.GetNonce(sender)
-
+	nonce := ctx.evm.StateDB.GetNonce(oldContract)
 	// create new contract address
-	newContract := crypto.CreateAddress(sender, senderNonce)
+	newContract := crypto.CreateAddress(oldContract, nonce)
+	ctx.evm.StateDB.SetNonce(oldContract, nonce+1)
 
 	// Ensure there's no existing contract already at the designated address
 	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
