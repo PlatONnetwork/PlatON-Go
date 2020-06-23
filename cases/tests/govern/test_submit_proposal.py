@@ -1313,7 +1313,7 @@ class TestPP:
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange',
                                  '2', pip.node.staking_address,
                                  transaction_cfg=pip.cfg.transaction_cfg)
-        assert_code(result, 3)
+        assert_code(result, 302034)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerMaxChangeRange',
                                  '1', pip.node.staking_address,
                                  transaction_cfg=pip.cfg.transaction_cfg)
@@ -1358,7 +1358,7 @@ class TestPP:
                                          pip.economic.settlement_size * pip.economic.interval) + 1),
                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
-        assert_code(result, 3)
+        assert_code(result, 0)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval',
                                  str(pip.economic.additional_cycle_time * 60 //(
@@ -1381,7 +1381,7 @@ class TestPP:
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval',
                                  '3', pip.node.staking_address,
                                  transaction_cfg=pip.cfg.transaction_cfg)
-        assert_code(result, 3)
+        assert_code(result, 302034)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval',
                                  '2', pip.node.staking_address,
                                  transaction_cfg=pip.cfg.transaction_cfg)
@@ -1435,7 +1435,7 @@ class TestPP:
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio',
                                  '3', pip.node.staking_address,
                                  transaction_cfg=pip.cfg.transaction_cfg)
-        assert_code(result, 3)
+        assert_code(result, 302034)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio',
                                  '0', pip.node.staking_address,
                                  transaction_cfg=pip.cfg.transaction_cfg)

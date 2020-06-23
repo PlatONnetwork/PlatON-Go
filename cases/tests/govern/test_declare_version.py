@@ -890,7 +890,7 @@ class TestPreactiveProposalVE:
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
-        assert_code(result, 302024)
+        assert_code(result, 302028)
 
     @pytest.mark.P2
     @allure.title('There is a preactive proposal, verifier declare version')
