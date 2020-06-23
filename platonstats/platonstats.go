@@ -13,7 +13,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
@@ -341,14 +340,18 @@ func collectBrief(block *types.Block) *Brief {
 	if bn == 0 {
 		brief.BlockType = common.GenesisBlock
 		return brief
-	} else if yes, err := xcom.IsYearEnd(common.ZeroHash, bn); err != nil {
-		panic(err)
-	} else if yes {
-		brief.BlockType = common.EndOfYear
-		/*} else if xutil.IsElection(bn) {
+		/*
+			} else if yes, err := xcom.IsYearEnd(common.ZeroHash, bn); err != nil {
+				panic(err)
+			} else if yes {
+				brief.BlockType = common.EndOfYear
+				} else if xutil.IsElection(bn) {
+				brief.BlockType = common.ConsensusElectionBlock
+					} else if xutil.IsBeginOfConsensus(bn) {
+					brief.BlockType = common.ConsensusBeginBlock
+		*/
+	} else if xutil.IsElection(bn) {
 		brief.BlockType = common.ConsensusElectionBlock
-			} else if xutil.IsBeginOfConsensus(bn) {
-			brief.BlockType = common.ConsensusBeginBlock*/
 	} else if xutil.IsBeginOfEpoch(bn) {
 		brief.BlockType = common.EpochBeginBlock
 	} else if xutil.IsEndOfEpoch(bn) {
