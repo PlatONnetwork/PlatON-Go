@@ -1366,7 +1366,7 @@ class TestPP:
                                  pip.node.staking_address,
                                  transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
-        assert_code(result, 0)
+        assert_code(result, 302032)
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')

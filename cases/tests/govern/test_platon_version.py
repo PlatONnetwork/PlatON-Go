@@ -169,8 +169,8 @@ class TestPlatonVersion:
             new_genesis_env.deploy_all()
         except Exception as e:
             log.info('Deploy failed error measage {}'.format(e.args[0]))
-            index = e.args[0].find('RewardPerChangeInterval')
-            assert e.args[0][index:index + 39] == r'RewardPerChangeInterval must be [2, 28]'
+            index = e.args[0].find('RewardPerChangeInterval must be [2, 28]')
+            assert index != -1
 
         genesis.economicModel.staking.rewardPerMaxChangeRange = 2001
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -178,8 +178,8 @@ class TestPlatonVersion:
             new_genesis_env.deploy_all()
         except Exception as e:
             log.info('Deploy failed error measage {}'.format(e.args[0]))
-            index = e.args[0].find('rewardPerChangeInterval')
-            assert e.args[0][index:index + 41] == r'rewardPerMaxChangeRange must be [2, 28]'
+            index = e.args[0].find('rewardPerMaxChangeRange must be')
+            assert index != -1
 
     @pytest.mark.P2
     def test_VE_DE_019_020(self, new_genesis_env, client_consensus):
