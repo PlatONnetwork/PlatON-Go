@@ -211,17 +211,13 @@ func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteE
 				// Set the receipt logs and create a bloom for filtering
 				// reset log's logIndex and txIndex
 				receipt := resultList[idx].receipt
-				//tx := ctx.GetTx(idx)
 
 				//total with all txs(not only all parallel txs)
 				ctx.CumulateBlockGasUsed(receipt.GasUsed)
-				//log.Debug("tx packed success", "txHash", exe.ctx.GetTx(idx).Hash().Hex(), "txUsedGas", receipt.GasUsed)
 
 				//reset receipt.CumulativeGasUsed
 				receipt.CumulativeGasUsed = ctx.GetBlockGasUsed()
 
-				//receipt.Logs = originState.GetLogs(exe.ctx.GetTx(idx).Hash())
-				//receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 				ctx.AddReceipt(resultList[idx].receipt)
 
 				ctx.AddPackedTx(ctx.GetTx(idx))
@@ -231,13 +227,6 @@ func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteE
 				// Cumulate the miner's earnings
 				ctx.AddEarnings(resultList[idx].minerEarnings)
 
-				// if transfer ok, needn't refund to gasPool
-				/*if tx.Gas() >= receipt.GasUsed {
-					ctx.AddGasPool(tx.Gas() - receipt.GasUsed)
-				} else {
-					log.Error("gas < gasUsed", "txIdx", idx, "gas", tx.Gas(), "gasUsed", receipt.GasUsed)
-					panic("gas < gasUsed")
-				}*/
 			} else {
 				if resultList[idx].needRefundGasPool {
 					tx := ctx.GetTx(idx)

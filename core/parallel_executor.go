@@ -226,13 +226,16 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	log.Debug("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
 }
 
-func (exe *Executor) isContract(address common.Address, state *state.StateDB) bool {
-	if cached, ok := exe.contractCache.Get(address); ok {
+func (exe *Executor) isContract(address *common.Address, state *state.StateDB) bool {
+	if address == nil {
+		return true
+	}
+	if cached, ok := exe.contractCache.Get(*address); ok {
 		return cached.(bool)
 	}
-	isContract := &address == nil || vm.IsPrecompiledContract(address) || state.GetCodeSize(address) > 0
+	isContract := vm.IsPrecompiledContract(*address) || state.GetCodeSize(*address) > 0
 	if isContract {
-		exe.contractCache.Add(address, true)
+		exe.contractCache.Add(*address, true)
 	}
 	return isContract
 }
