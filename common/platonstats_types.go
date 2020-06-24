@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"math/big"
 	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -89,9 +90,9 @@ const (
 )
 
 type EmbedTransferTx struct {
-	From   Address `json:"from,omitempty"`
-	To     Address `json:"to,omitempty"`
-	Amount uint64  `json:"amount"`
+	From   Address  `json:"from,omitempty"`
+	To     Address  `json:"to,omitempty"`
+	Amount *big.Int `json:"amount"`
 }
 
 type EmbedContractTx struct {
@@ -104,36 +105,36 @@ type GenesisData struct {
 	AllocItemList []*AllocItem `json:"allocItemList,omitempty"`
 }
 type AllocItem struct {
-	Address Address `json:"address,omitempty"`
-	Amount  uint64  `json:"amount"`
+	Address Address  `json:"address,omitempty"`
+	Amount  *big.Int `json:"amount"`
 }
 
-func (g *GenesisData) AddAllocItem(address Address, amount uint64) {
+func (g *GenesisData) AddAllocItem(address Address, amount *big.Int) {
 	//todo: test
 	g.AllocItemList = append(g.AllocItemList, &AllocItem{Address: address, Amount: amount})
 }
 
 type AdditionalIssuanceData struct {
 	AdditionalNo     uint32          `json:"additionalNo"`               //增发周期
-	AdditionalBase   uint64          `json:"additionalBase"`             //增发基数
+	AdditionalBase   *big.Int        `json:"additionalBase"`             //增发基数
 	AdditionalRate   uint16          `json:"additionalRate"`             //增发比例 单位：万分之一
-	AdditionalAmount uint64          `json:"additionalAmount"`           //增发金额
+	AdditionalAmount *big.Int        `json:"additionalAmount"`           //增发金额
 	IssuanceItemList []*IssuanceItem `json:"issuanceItemList,omitempty"` //增发分配
 }
 
 type IssuanceItem struct {
-	Address Address `json:"address,omitempty"` //增发金额分配地址
-	Amount  uint64  `json:"amount"`            //增发金额
+	Address Address  `json:"address,omitempty"` //增发金额分配地址
+	Amount  *big.Int `json:"amount"`            //增发金额
 }
 
-func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount uint64) {
+func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount *big.Int) {
 	//todo: test
 	d.IssuanceItemList = append(d.IssuanceItemList, &IssuanceItem{Address: address, Amount: amount})
 }
 
 type RewardData struct {
-	BlockRewardAmount   uint64           `json:"blockRewardAmount"`           //出块奖励
-	StakingRewardAmount uint64           `json:"stakingRewardAmount"`         //一结算周期内所有101节点的质押奖励
+	BlockRewardAmount   *big.Int         `json:"blockRewardAmount"`           //出块奖励
+	StakingRewardAmount *big.Int         `json:"stakingRewardAmount"`         //一结算周期内所有101节点的质押奖励
 	CandidateInfoList   []*CandidateInfo `json:"candidateInfoList,omitempty"` //备选节点信息
 }
 
@@ -143,8 +144,8 @@ type CandidateInfo struct {
 }
 
 type ZeroSlashingItem struct {
-	NodeID         NodeID `json:"nodeId,omitempty"` //备选节点ID
-	SlashingAmount uint64 `json:"slashingAmount"`   //0出块处罚金(从质押金扣)
+	NodeID         NodeID   `json:"nodeId,omitempty"` //备选节点ID
+	SlashingAmount *big.Int `json:"slashingAmount"`   //0出块处罚金(从质押金扣)
 }
 
 type DuplicatedSignSlashingSetting struct {
@@ -159,8 +160,8 @@ type UnstakingRefundItem struct {
 }
 
 type RestrictingReleaseItem struct {
-	DestAddress   Address `json:"destAddress,omitempty,omitempty"` //释放地址
-	ReleaseAmount uint64  `json:"releaseAmount"`                   //释放金额
+	DestAddress   Address  `json:"destAddress,omitempty,omitempty"` //释放地址
+	ReleaseAmount *big.Int `json:"releaseAmount"`                   //释放金额
 }
 
 var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
@@ -207,7 +208,7 @@ func CollectUnstakingRefundItem(blockNumber uint64, nodeId NodeID, nodeAddress N
 	}
 }
 
-func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, releaseAmount uint64) {
+func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, releaseAmount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectRestrictingReleaseItem", "blockNumber", blockNumber, "destAddress", destAddress, "releaseAmount", releaseAmount)
 		exeBlockData.RestrictingReleaseItemList = append(exeBlockData.RestrictingReleaseItemList, &RestrictingReleaseItem{DestAddress: destAddress, ReleaseAmount: releaseAmount})
@@ -239,7 +240,7 @@ func CollectZeroSlashingItem(blockNumber uint64, zeroSlashingItemList []*ZeroSla
 	}
 }
 
-func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, amount uint64) {
+func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, amount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectEmbedTransferTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
 		exeBlockData.EmbedTransferTxMap[txHash] = append(exeBlockData.EmbedTransferTxMap[txHash], &EmbedTransferTx{From: from, To: to, Amount: amount})

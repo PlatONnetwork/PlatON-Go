@@ -181,7 +181,7 @@ func (s *MockPlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common
 			}
 			key := iter.LeafKey()
 			address := common.BytesToAddress(key)
-			balance := obj.Balance.Uint64()
+			balance := obj.Balance
 			genesisData.AddAllocItem(address, balance)
 
 			log.Debug("alloc account", "address", address, "balance", balance)

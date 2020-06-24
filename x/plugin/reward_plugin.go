@@ -105,7 +105,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		}
 		log.Info("Block 1 reward", "packageReward", packageReward.Uint64())
 		//stats: 待分配的出块奖励金额，每个结算周期可能不一样
-		rewardData.BlockRewardAmount = packageReward.Uint64()
+		rewardData.BlockRewardAmount = packageReward
 	} else {
 		packageReward, err = LoadNewBlockReward(blockHash, rmp.db)
 		if nil != err {
@@ -119,7 +119,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		}
 
 		//stats: 待分配的出块奖励金额，每个结算周期可能不一样
-		rewardData.BlockRewardAmount = packageReward.Uint64()
+		rewardData.BlockRewardAmount = packageReward
 	}
 
 	if err := rmp.AllocatePackageBlock(blockHash, head, packageReward, state); err != nil {
@@ -145,7 +145,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		}
 
 		//stats: 收集待分配的质押奖励金额，每个结算周期可能不一样
-		rewardData.StakingRewardAmount = stakingReward.Uint64()
+		rewardData.StakingRewardAmount = stakingReward
 		rewardData.CandidateInfoList = convertVerifier(verifierList)
 
 	}
@@ -229,32 +229,32 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 
 		//stats: 收集增发数据
 		additionalIssuance.AdditionalNo = thisYear
-		additionalIssuance.AdditionalBase = histIssuance.Uint64()
-		additionalIssuance.AdditionalAmount = currIssuance.Uint64()
+		additionalIssuance.AdditionalBase = histIssuance
+		additionalIssuance.AdditionalAmount = currIssuance
 		additionalIssuance.AdditionalRate = increaseIssuanceRatio
 	}
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
 
 	//stats: 收集增发数据
-	additionalIssuance.AddIssuanceItem(vm.RewardManagerPoolAddr, rewardpoolIncr.Uint64())
+	additionalIssuance.AddIssuanceItem(vm.RewardManagerPoolAddr, rewardpoolIncr)
 
 	lessBalance := new(big.Int).Sub(currIssuance, rewardpoolIncr)
 	if rmp.isLessThanFoundationYear(thisYear) {
 		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer", "thisYear", thisYear, "developBalance", lessBalance)
 		address, amount := rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
 		//stats: 收集增发数据
-		additionalIssuance.AddIssuanceItem(address, amount.Uint64())
+		additionalIssuance.AddIssuanceItem(address, amount)
 	} else {
 		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "develop and platon Balance", lessBalance)
 
 		address, amount := rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
 		//stats: 收集增发数据
-		additionalIssuance.AddIssuanceItem(address, amount.Uint64())
+		additionalIssuance.AddIssuanceItem(address, amount)
 
 		address, amount = rmp.addPlatONFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
 		//stats: 收集增发数据
-		additionalIssuance.AddIssuanceItem(address, amount.Uint64())
+		additionalIssuance.AddIssuanceItem(address, amount)
 	}
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)

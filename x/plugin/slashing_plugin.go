@@ -182,7 +182,7 @@ func convertSlashNodeItem(slashItemList []*staking.SlashNodeItem) []*common.Zero
 	zeroSlashingItemList := make([]*common.ZeroSlashingItem, len(slashItemList))
 	for idx, slashNodeItem := range slashItemList {
 		zeroSlashingItem := &common.ZeroSlashingItem{
-			NodeID: common.NodeID(slashNodeItem.NodeId), SlashingAmount: slashNodeItem.Amount.Uint64(),
+			NodeID: common.NodeID(slashNodeItem.NodeId), SlashingAmount: slashNodeItem.Amount,
 		}
 		zeroSlashingItemList[idx] = zeroSlashingItem
 	}

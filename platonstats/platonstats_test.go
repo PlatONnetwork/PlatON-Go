@@ -38,7 +38,7 @@ var (
 	nodeId      = discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384")
 )
 
-func TestUrl(t *testing.T) {
+func T2estUrl(t *testing.T) {
 	re := regexp.MustCompile("([^:@]*)(:([^@]*))?@(.+)")
 	url := "center:myPasswordd@ws://localhost:1900"
 	parts := re.FindStringSubmatch(url)
@@ -55,20 +55,20 @@ func buildExeBlockData() *common.ExeBlockData {
 	candidate := &common.CandidateInfo{common.NodeID(nodeId), address}
 	candidateInfoList := []*common.CandidateInfo{candidate}
 
-	common.CollectRestrictingReleaseItem(blockNumber, address, 111)
+	common.CollectRestrictingReleaseItem(blockNumber, address, big.NewInt(111))
 	common.CollectUnstakingRefundItem(blockNumber, common.NodeID(nodeId), nodeAddress, 222)
 	common.CollectDuplicatedSignSlashingSetting(blockNumber, 2000, 60)
 
-	rewardData := &common.RewardData{BlockRewardAmount: 12, StakingRewardAmount: 12, CandidateInfoList: candidateInfoList}
+	rewardData := &common.RewardData{BlockRewardAmount: big.NewInt(12), StakingRewardAmount: big.NewInt(12), CandidateInfoList: candidateInfoList}
 	common.CollectRewardData(blockNumber, rewardData)
 
-	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, 1)
-	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x02}, address, address, 2)
+	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, big.NewInt(1))
+	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x02}, address, address, big.NewInt(2))
 	common.CollectEmbedContractTx(blockNumber, common.Hash{0x03}, address, address, []byte{0x01, 0x02, 0x03, 0x04, 0x05})
 
 	return common.GetExeBlockData(blockNumber)
 }
-func Test_rlp_Data(t *testing.T) {
+func T2est_encode_Data(t *testing.T) {
 	NewMockPlatonStatsService()
 	exeData := buildExeBlockData()
 
@@ -91,7 +91,30 @@ func Test_rlp_Data(t *testing.T) {
 
 }
 
-func Test_Kafka_producer(t *testing.T) {
+func Test_encode_Data(t *testing.T) {
+	//NewMockPlatonStatsService()
+	exeData := buildExeBlockData()
+
+	jsonBytes, err := json.Marshal(exeData)
+	if err != nil {
+		t.Fatal("Failed to marshal exeData to json format", err)
+	} else {
+		t.Log("json format:" + string(jsonBytes))
+
+		var data common.ExeBlockData
+		if len(jsonBytes) > 0 {
+			if err := json.Unmarshal(jsonBytes, &data); err != nil {
+				t.Fatal("Failed to unmarshal json to statsData", err)
+			} else {
+				t.Log("ExeBlockData.RewardData.CandidateInfoList[0].NodeID", common.Bytes2Hex(data.RewardData.CandidateInfoList[0].NodeID[:]))
+				t.Log("AdditionalIssuanceData==nil", data.AdditionalIssuanceData == nil)
+			}
+		}
+	}
+
+}
+
+func T2est_Kafka_producer(t *testing.T) {
 	s := NewMockPlatonStatsService()
 
 	statsLogFile = "d:\\swap\\statsdb\\platonstats.log"
@@ -123,7 +146,7 @@ func Test_Kafka_producer(t *testing.T) {
 	}
 }
 
-func Test_StatsService(t *testing.T) {
+func T2est_StatsService(t *testing.T) {
 	s := NewMockPlatonStatsService()
 
 	s.kafkaUrl = "192.168.112.32:9092"
@@ -145,7 +168,7 @@ func Test_StatsService(t *testing.T) {
 	fmt.Println("退出信号", q)
 }
 
-func Test_Log(t *testing.T) {
+func T2est_Log(t *testing.T) {
 	blockNumber := uint64(121)
 	writeBlockNumber(blockNumber)
 
@@ -182,7 +205,7 @@ func generateAccount(size int) []*PriAccount {
 	return addrs
 }
 
-func Test_SendTx(t *testing.T) {
+func T2est_SendTx(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	accountsize := 1000
 	signer := types.NewEIP155Signer(big.NewInt(1021))

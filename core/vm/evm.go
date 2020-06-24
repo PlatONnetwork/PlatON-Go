@@ -307,7 +307,7 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 	// Call修改的是被调用者的storage
 	if invokedByContract {
 		if value.Uint64() > 0 {
-			common.CollectEmbedTransferTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), value.Uint64())
+			common.CollectEmbedTransferTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), value)
 		}
 		if contract.CodeAddr != nil {
 			if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {

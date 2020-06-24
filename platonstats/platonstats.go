@@ -428,7 +428,7 @@ func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.Gen
 			}
 			key := iter.LeafKey()
 			address := common.BytesToAddress(key)
-			balance := obj.Balance.Uint64()
+			balance := obj.Balance
 			genesisData.AddAllocItem(address, balance)
 
 			log.Debug("alloc account", "address", address, "balance", balance)
