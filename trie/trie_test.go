@@ -27,6 +27,7 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
 
@@ -943,4 +944,89 @@ type account struct {
 	Balance *big.Int
 	Root    common.Hash
 	Code    []byte
+}
+
+type TriekvPair struct {
+	k []byte
+	v []byte
+}
+
+func genTriekvPairs(n int) []*TriekvPair {
+	var keyPrefix = [][]byte{[]byte("kk1"), []byte("kk1kk1"), []byte("kk2"), []byte("kk2k2"), []byte("kk2kk2")}
+	var randomKey = []byte{'1', '2', 'k', '1', '2', 'k', 'a', 'b', 'c', 'd'}
+
+	appendKey := func(n int) []byte {
+		rk := make([]byte, 0, n)
+		for i := 0; i < n*2; i++ {
+			rk = append(rk, randomKey[rand.Intn(len(randomKey))])
+		}
+		return rk
+	}
+
+	triekvPairs := make([]*TriekvPair, 0, n)
+	for i := 0; i < n; i++ {
+		k := keyPrefix[i%5]
+		k = append(append(k, appendKey(i%10)...), byte(i))
+		v := append([]byte("test"), byte(i))
+		triekvPairs = append(triekvPairs, &TriekvPair{
+			k: k,
+			v: v,
+		})
+	}
+	return triekvPairs
+}
+
+func orderDisrupted(triekvPairs []*TriekvPair) []*TriekvPair {
+	for i := 0; i < len(triekvPairs); i++ {
+		rand := rand.Intn(len(triekvPairs))
+		//fmt.Println("rand", "rand", rand)
+		temp := triekvPairs[rand]
+		triekvPairs[rand] = triekvPairs[i]
+		triekvPairs[i] = temp
+	}
+	return triekvPairs
+}
+
+func TestTrieHashByDisorderedData(t *testing.T) {
+	triekvPairs := genTriekvPairs(1000000)
+
+	start := time.Now()
+	var trie Trie
+	for i := 0; i < len(triekvPairs); i++ {
+		err := trie.TryUpdate(triekvPairs[i].k, triekvPairs[i].v)
+		if err != nil {
+			t.Errorf("TryUpdate Error")
+		}
+	}
+	rootHash := trie.Hash()
+	t.Log("Update trie success", "root", rootHash.String(), "duration", time.Since(start))
+
+	// Disrupted order
+	for i := 0; i < 1; i++ {
+		trie2 := &Trie{}
+		triekvPairs2 := orderDisrupted(triekvPairs)
+		for i := 0; i < len(triekvPairs2); i++ {
+			err := trie2.TryUpdate(triekvPairs2[i].k, triekvPairs2[i].v)
+			if err != nil {
+				t.Errorf("TryUpdate Error")
+			}
+		}
+		rootHash2 := trie2.Hash()
+		t.Log("Update trie success", "root", rootHash2.String())
+
+		assert.Equal(t, rootHash, rootHash2)
+	}
+	//start = time.Now()
+	//st2, _ := NewSecure(common.Hash{}, NewDatabase(memorydb.New()))
+	//triekvPairs2 := orderDisrupted(triekvPairs)
+	//for i := 0; i < len(triekvPairs2); i++ {
+	//	err := st2.TryUpdate(triekvPairs2[i].k, triekvPairs2[i].v)
+	//	if err != nil {
+	//		t.Errorf("TryUpdate Error")
+	//	}
+	//}
+	//rootHash2 := st2.ParallelHash()
+	//t.Log("Update trie success", "root", rootHash2.String(), "duration", time.Since(start))
+	//
+	//assert.Equal(t, rootHash, rootHash2)
 }
