@@ -797,8 +797,9 @@ class TestSlashing:
         pip = clients_consensus[0].pip
         pip_test = clients_consensus[1].pip
         address = pip.node.staking_address
+        balance_before = pip.node.eth.getBalance(address)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
-                                 '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
+                                 '1', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
         result = proposal_vote(pip, proposaltype=pip.cfg.param_proposal)
@@ -816,25 +817,26 @@ class TestSlashing:
         log.info('Get cancel proposal information : {}'.format(proposalinfo_cancel))
 
         shares0 = clients_consensus[0].staking.get_staking_amount(clients_consensus[0].node)
+        log.info('get staking amount {}'.format(shares0))
         log.info('Stop node {}'.format(pip.node.node_id))
         pip.node.stop()
-        wait_block_number(pip_test.node, 3 * pip_test.economic.settlement_size)
-        balance_before = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size - 1)
-        log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size - 1,
-                                                                     balance_before))
-        balance_after = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size)
 
-        log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size,
-                                                                     balance_after))
-        assert balance_after == balance_before
+        # wait_block_number(pip_test.node, 3 * pip_test.economic.settlement_size)
+        # balance_before = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size - 1)
+        # log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size - 1,
+        #                                                              balance_before))
+        # balance_after = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size)
+        # log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size,
+        #                                                              balance_after))
+        # assert balance_after == balance_before
 
         wait_block_number(pip_test.node, 4 * pip_test.economic.settlement_size)
         balance_before = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size - 1,
                                                                      balance_before))
-        balance_after = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size)
-
-        log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size,
+        wait_block_number(pip_test.node, 8 * pip_test.economic.settlement_size)
+        balance_after = pip_test.node.eth.getBalance(address, 8 * pip_test.economic.settlement_size + 1)
+        log.info('Block bumber {} staking address balance {}'.format(8 * pip_test.economic.settlement_size,
                                                                      balance_after))
         assert balance_after - balance_before == shares0
 

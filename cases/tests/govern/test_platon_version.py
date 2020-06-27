@@ -168,7 +168,7 @@ class TestPlatonVersion:
         try:
             new_genesis_env.deploy_all()
         except Exception as e:
-            log.info('Deploy failed error measage {}'.format(e.args[0]))
+            log.info(type(e.args[0]), 'Deploy failed error measage {}'.format(e.args[0]))
             index = e.args[0].find('RewardPerChangeInterval must be [2, 28]')
             assert index != -1
 
@@ -178,7 +178,7 @@ class TestPlatonVersion:
             new_genesis_env.deploy_all()
         except Exception as e:
             log.info('Deploy failed error measage {}'.format(e.args[0]))
-            index = e.args[0].find('rewardPerMaxChangeRange must be')
+            index = e.args[0].find('RewardPerMaxChangeRange must be [1, 2000]')
             assert index != -1
 
     @pytest.mark.P2

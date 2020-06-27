@@ -1377,7 +1377,6 @@ class TestPP:
         new_genesis_env.deploy_all()
         client = clients_consensus[0]
         pip = client.pip
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'rewardPerChangeInterval',
                                  '3', pip.node.staking_address,
                                  transaction_cfg=pip.cfg.transaction_cfg)
@@ -1395,27 +1394,22 @@ class TestPP:
                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', '1.1',
                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', '-2',
                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', '2001',
                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', 6,
                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'reward', 'increaseIssuanceRatio', '2000',
                                  pip.node.staking_address,
                                  transaction_cfg=pip.cfg.transaction_cfg)
@@ -1491,12 +1485,10 @@ class TestPP:
         new_genesis_env.deploy_all()
         client = clients_consensus[0]
         pip = client.pip
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
                                  '1',pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('zeroProduceCumulativeTime {} submit param proposal result :{}'.format(1, result))
         assert_code(result, 3)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceNumberThreshold',
                                  '1', pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         assert_code(result, 0)
@@ -1512,11 +1504,9 @@ class TestPP:
         value = client.pip.pip.getGovernParamValue('slashing', 'zeroProduceNumberThreshold').get('Ret')
         log.info('zeroProduceNumberThreshold new value : {}'.format(value))
         assert int(value) == 1
-
         value, oldvalue = get_governable_parameter_value(client, 'zeroProduceNumberThreshold', flag=1)
         assert value == 1
         assert oldvalue == 2
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'zeroProduceCumulativeTime',
                                  '1', pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         assert_code(result, 0)
@@ -1531,25 +1521,21 @@ class TestPP:
                                      transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302031)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'unStakeFreezeDuration', '100',
                                      pip.node.staking_address,
                                      transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302031)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'SlashBlocksReward', '100',
                                      pip.node.staking_address,
                                      transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302031)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slash BlocksReward', '100',
                                      pip.node.staking_address,
                                      transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302031)
-
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocks./,.Reward', '100',
                                      pip.node.staking_address,
                                      transaction_cfg=pip.cfg.transaction_cfg)
@@ -1656,7 +1642,6 @@ class TestSubmitPPAbnormal:
                                      address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('candidate submit param proposal result :{}'.format(result))
         assert_code(result, 302021)
-
 
 class TestSubmitAgain:
     @pytest.mark.P2
