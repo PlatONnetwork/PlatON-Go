@@ -309,8 +309,8 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 	// Call修改的是被调用者的storage
 	log.Info("to check if called by contract", "invokedByContract", invokedByContract)
 	if invokedByContract {
-		if value.Uint64() > 0 {
-			log.Info("collect embed transfer tx in Call()", "blockNumber", evm.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32(), "amount", value.Uint64())
+		if value.Sign() > 0 {
+			log.Info("collect embed transfer tx in Call()", "blockNumber", evm.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32(), "amount", value)
 			common.CollectEmbedTransferTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), value)
 		}
 		if contract.CodeAddr != nil {
