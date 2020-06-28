@@ -235,7 +235,7 @@ func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
 func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByValidStakings, rewardRatioByPenalties uint32) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectDuplicatedSignSlashingSetting", "blockNumber", blockNumber, "penaltyRatioByValidStakings", penaltyRatioByValidStakings, "rewardRatioByPenalties", rewardRatioByPenalties)
-		if exeBlockData.DuplicatedSignSlashingSetting != nil {
+		if exeBlockData.DuplicatedSignSlashingSetting == nil {
 			//在同一个区块中，只要设置一次即可
 			exeBlockData.DuplicatedSignSlashingSetting = &DuplicatedSignSlashingSetting{PenaltyRatioByValidStakings: penaltyRatioByValidStakings, RewardRatioByPenalties: rewardRatioByPenalties}
 		}
