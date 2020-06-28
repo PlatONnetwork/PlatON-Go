@@ -201,6 +201,14 @@ type ExeBlockData struct {
 	EmbedContractTxMap            map[Hash][]*EmbedContractTx    `json:"embedContractTxMap,omitempty"` //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
 }
 
+func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *AdditionalIssuanceData) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		json, _ := json.Marshal(additionalIssuanceData)
+		log.Debug("CollectAdditionalIssuance", "blockNumber", blockNumber, "additionalIssuanceData", json)
+		exeBlockData.AdditionalIssuanceData = additionalIssuanceData
+	}
+}
+
 func CollectUnstakingRefundItem(blockNumber uint64, nodeId NodeID, nodeAddress NodeAddress, refundEpochNo uint64) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectUnstakingRefundItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "nodeAddress", nodeAddress.Hex(), "refundEpochNo", refundEpochNo)

@@ -208,7 +208,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	var currIssuance *big.Int
 
 	//stats: 收集增发数据
-	additionalIssuance := &common.AdditionalIssuanceData{}
+	additionalIssuance := new(common.AdditionalIssuanceData)
 	//issuance increase
 	{
 		histIssuance := GetHistoryCumulativeIssue(state, lastYear)
@@ -256,6 +256,9 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		//stats: 收集增发数据
 		additionalIssuance.AddIssuanceItem(address, amount)
 	}
+
+	common.CollectAdditionalIssuance(blockNumber, additionalIssuance)
+
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)
 	return nil
