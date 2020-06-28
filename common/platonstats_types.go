@@ -90,12 +90,14 @@ const (
 )
 
 type EmbedTransferTx struct {
+	TxHash Hash     `json:"txHash,omitempty"`
 	From   Address  `json:"from,omitempty"`
 	To     Address  `json:"to,omitempty"`
 	Amount *big.Int `json:"amount"`
 }
 
 type EmbedContractTx struct {
+	TxHash          Hash    `json:"txHash,omitempty"`
 	From            Address `json:"from,omitempty"`
 	ContractAddress Address `json:"contractAddress,omitempty"`
 	Input           Input   `json:"input,omitempty"`
@@ -179,8 +181,8 @@ func InitExeBlockData(blockNumber uint64) {
 		ZeroSlashingItemList:       make([]*ZeroSlashingItem, 0),
 		UnstakingRefundItemList:    make([]*UnstakingRefundItem, 0),
 		RestrictingReleaseItemList: make([]*RestrictingReleaseItem, 0),
-		EmbedTransferTxMap:         make(map[Hash][]*EmbedTransferTx),
-		EmbedContractTxMap:         make(map[Hash][]*EmbedContractTx),
+		EmbedTransferTxList:        make([]*EmbedTransferTx, 0),
+		EmbedContractTxList:        make([]*EmbedContractTx, 0),
 	}
 
 	ExeBlockDataCollector[blockNumber] = exeBlockData
@@ -197,8 +199,8 @@ type ExeBlockData struct {
 	DuplicatedSignSlashingSetting *DuplicatedSignSlashingSetting `json:"duplicatedSignSlashingSetting,omitempty"`
 	UnstakingRefundItemList       []*UnstakingRefundItem         `json:"unstakingRefundItemList,omitempty"`
 	RestrictingReleaseItemList    []*RestrictingReleaseItem      `json:"restrictingReleaseItemList,omitempty"`
-	EmbedTransferTxMap            map[Hash][]*EmbedTransferTx    `json:"embedTransferTxMap,omitempty"` //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
-	EmbedContractTxMap            map[Hash][]*EmbedContractTx    `json:"embedContractTxMap,omitempty"` //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
+	EmbedTransferTxList           []*EmbedTransferTx             `json:"embedTransferTxMap,omitempty"` //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
+	EmbedContractTxList           []*EmbedContractTx             `json:"embedContractTxMap,omitempty"` //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
 }
 
 func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *AdditionalIssuanceData) {
@@ -251,13 +253,13 @@ func CollectZeroSlashingItem(blockNumber uint64, zeroSlashingItemList []*ZeroSla
 func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, amount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectEmbedTransferTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
-		exeBlockData.EmbedTransferTxMap[txHash] = append(exeBlockData.EmbedTransferTxMap[txHash], &EmbedTransferTx{From: from, To: to, Amount: amount})
+		exeBlockData.EmbedTransferTxList = append(exeBlockData.EmbedTransferTxList, &EmbedTransferTx{TxHash: txHash, From: from, To: to, Amount: amount})
 	}
 }
 
 func CollectEmbedContractTx(blockNumber uint64, txHash Hash, from, contractAddress Address, input []byte) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectEmbedContractTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "contractAddress", from.Bech32(), "input", Bytes2Hex(input))
-		exeBlockData.EmbedContractTxMap[txHash] = append(exeBlockData.EmbedContractTxMap[txHash], &EmbedContractTx{From: from, ContractAddress: contractAddress, Input: input})
+		exeBlockData.EmbedContractTxList = append(exeBlockData.EmbedContractTxList, &EmbedContractTx{TxHash: txHash, From: from, ContractAddress: contractAddress, Input: input})
 	}
 }
