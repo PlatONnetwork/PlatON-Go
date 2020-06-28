@@ -156,9 +156,9 @@ type DuplicatedSignSlashingSetting struct {
 }
 
 type UnstakingRefundItem struct {
-	NodeID        NodeID      `json:"nodeId,omitempty"`      //备选节点ID
-	NodeAddress   NodeAddress `json:"nodeAddress,omitempty"` //备选节点地址
-	RefundEpochNo uint64      `json:"refundEpochNo"`         //解除质押,资金真正退回的结算周期（此周期最后一个块的endBlocker里
+	NodeID        NodeID  `json:"nodeId,omitempty"`      //备选节点ID
+	NodeAddress   Address `json:"nodeAddress,omitempty"` //备选节点地址
+	RefundEpochNo uint64  `json:"refundEpochNo"`         //解除质押,资金真正退回的结算周期（此周期最后一个块的endBlocker里
 }
 
 type RestrictingReleaseItem struct {
@@ -214,7 +214,7 @@ func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *Addit
 func CollectUnstakingRefundItem(blockNumber uint64, nodeId NodeID, nodeAddress NodeAddress, refundEpochNo uint64) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectUnstakingRefundItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "nodeAddress", nodeAddress.Hex(), "refundEpochNo", refundEpochNo)
-		exeBlockData.UnstakingRefundItemList = append(exeBlockData.UnstakingRefundItemList, &UnstakingRefundItem{NodeID: nodeId, NodeAddress: nodeAddress, RefundEpochNo: refundEpochNo})
+		exeBlockData.UnstakingRefundItemList = append(exeBlockData.UnstakingRefundItemList, &UnstakingRefundItem{NodeID: nodeId, NodeAddress: Address(nodeAddress), RefundEpochNo: refundEpochNo})
 	}
 }
 
