@@ -22,6 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -305,12 +307,15 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 
 	//stats: 收集隐含交易
 	// Call修改的是被调用者的storage
+	log.Warn("to check if called by contract", "invokedByContract", invokedByContract)
 	if invokedByContract {
 		if value.Uint64() > 0 {
+			log.Warn("collect embed transfer tx", "blockNumber", evm.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32(), "amount", value.Uint64())
 			common.CollectEmbedTransferTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), value)
 		}
 		if contract.CodeAddr != nil {
 			if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
+				log.Warn("collect embed PlantON precompiled contract", "blockNumber", evm.BlockNumber.Uint64(), "contractAddress", contract.CodeAddr.Bech32())
 				common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
 			}
 		}
