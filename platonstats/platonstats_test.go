@@ -62,8 +62,13 @@ func buildExeBlockData() *common.ExeBlockData {
 	rewardData := &common.RewardData{BlockRewardAmount: big.NewInt(12), StakingRewardAmount: big.NewInt(12), CandidateInfoList: candidateInfoList}
 	common.CollectRewardData(blockNumber, rewardData)
 
-	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, big.NewInt(1))
-	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x02}, address, address, big.NewInt(2))
+	value1, _ := new(big.Int).SetString("3000000000000000000000", 10)
+	//value2, _ := new(big.Int).SetString("3000000000000000000000", 10)
+	//value3, _ := new(big.Int).SetString("3000000000000000000000", 10)
+
+	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, value1)
+	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, value1)
+	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, value1)
 	common.CollectEmbedContractTx(blockNumber, common.Hash{0x03}, address, address, []byte{0x01, 0x02, 0x03, 0x04, 0x05})
 
 	return common.GetExeBlockData(blockNumber)

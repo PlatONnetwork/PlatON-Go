@@ -90,10 +90,10 @@ const (
 )
 
 type EmbedTransferTx struct {
-	TxHash Hash     `json:"txHash,omitempty"`
-	From   Address  `json:"from,omitempty"`
-	To     Address  `json:"to,omitempty"`
-	Amount *big.Int `json:"amount"`
+	TxHash Hash    `json:"txHash,omitempty"`
+	From   Address `json:"from,omitempty"`
+	To     Address `json:"to,omitempty"`
+	Amount string  `json:"amount,omitempty"`
 }
 
 type EmbedContractTx struct {
@@ -253,7 +253,7 @@ func CollectZeroSlashingItem(blockNumber uint64, zeroSlashingItemList []*ZeroSla
 func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, amount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectEmbedTransferTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
-		exeBlockData.EmbedTransferTxList = append(exeBlockData.EmbedTransferTxList, &EmbedTransferTx{TxHash: txHash, From: from, To: to, Amount: amount})
+		exeBlockData.EmbedTransferTxList = append(exeBlockData.EmbedTransferTxList, &EmbedTransferTx{TxHash: txHash, From: from, To: to, Amount: amount.String()})
 	}
 }
 
