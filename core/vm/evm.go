@@ -307,7 +307,7 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 
 	//stats: 收集隐含交易
 	// Call修改的是被调用者的storage
-	log.Warn("to check if called by contract", "invokedByContract", invokedByContract)
+	log.Info("to check if called by contract", "invokedByContract", invokedByContract)
 	if invokedByContract {
 		if value.Uint64() > 0 {
 			log.Info("collect embed transfer tx in Call()", "blockNumber", evm.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32(), "amount", value.Uint64())
