@@ -118,14 +118,14 @@ type Brief struct {
 	BlockType   common.BlockType
 	EpochNo     uint64
 	NodeID      common.NodeID
-	NodeAddress common.NodeAddress
+	NodeAddress common.Address
 }
 
 type StatsBlockExt struct {
 	BlockType   common.BlockType       `json:"blockType"`
 	EpochNo     uint64                 `json:"epochNo"`
 	NodeID      common.NodeID          `json:"nodeID,omitempty"`
-	NodeAddress common.NodeAddress     `json:"nodeAddress,omitempty"`
+	NodeAddress common.Address         `json:"nodeAddress,omitempty"`
 	Block       map[string]interface{} `json:"block,omitempty"`
 	//Block        *blockdata           `json:"block,omitempty"`
 	Receipts     []*types.Receipt     `json:"receipts,omitempty"`
@@ -362,7 +362,7 @@ func collectBrief(block *types.Block) *Brief {
 		panic(err)
 	} else {
 		brief.NodeID = common.NodeID(nodeID)
-		brief.NodeAddress = nodeAddress
+		brief.NodeAddress = common.Address(nodeAddress)
 	}
 
 	return brief
