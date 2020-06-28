@@ -113,6 +113,8 @@ func Test_encode_Data(t *testing.T) {
 			} else {
 				t.Log("ExeBlockData.RewardData.CandidateInfoList[0].NodeID", common.Bytes2Hex(data.RewardData.CandidateInfoList[0].NodeID[:]))
 				t.Log("AdditionalIssuanceData==nil", data.AdditionalIssuanceData == nil)
+				t.Log("EmbedTransferTxList[0].amount", data.EmbedTransferTxList[0].Amount)
+				t.Log("EmbedTransferTxList[1].amount", data.EmbedTransferTxList[1].Amount)
 			}
 		}
 	}
