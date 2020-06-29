@@ -1298,7 +1298,9 @@ type TransBlockReturnQueue []*TransBlockReturn
 
 type TransBlockReturn struct {
 	TxHash     string
-	Input  []string
+	From      common.Address
+	To        common.Address
+	TransDatas     []TransData
 }
 
 type TransBlock struct {
@@ -1306,5 +1308,12 @@ type TransBlock struct {
 }
 
 type TransInput struct {
-	Input     []string
+	From      []byte
+	To        []byte
+	TransDatas     []TransData
+}
+
+type TransData struct {
+	Input     string
+	Code      string
 }
