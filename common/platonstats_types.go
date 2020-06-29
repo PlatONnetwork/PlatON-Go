@@ -108,7 +108,7 @@ type GenesisData struct {
 }
 type AllocItem struct {
 	Address Address  `json:"address,omitempty"`
-	Amount  *big.Int `json:"amount"`
+	Amount  *big.Int `json:"amount,omitempty"`
 }
 
 func (g *GenesisData) AddAllocItem(address Address, amount *big.Int) {
@@ -117,16 +117,16 @@ func (g *GenesisData) AddAllocItem(address Address, amount *big.Int) {
 }
 
 type AdditionalIssuanceData struct {
-	AdditionalNo     uint32          `json:"additionalNo"`               //增发周期
-	AdditionalBase   *big.Int        `json:"additionalBase"`             //增发基数
-	AdditionalRate   uint16          `json:"additionalRate"`             //增发比例 单位：万分之一
-	AdditionalAmount *big.Int        `json:"additionalAmount"`           //增发金额
+	AdditionalNo     uint32          `json:"additionalNo,omitempty"`     //增发周期
+	AdditionalBase   *big.Int        `json:"additionalBase,omitempty"`   //增发基数
+	AdditionalRate   uint16          `json:"additionalRate,omitempty"`   //增发比例 单位：万分之一
+	AdditionalAmount *big.Int        `json:"additionalAmount,omitempty"` //增发金额
 	IssuanceItemList []*IssuanceItem `json:"issuanceItemList,omitempty"` //增发分配
 }
 
 type IssuanceItem struct {
 	Address Address  `json:"address,omitempty"` //增发金额分配地址
-	Amount  *big.Int `json:"amount"`            //增发金额
+	Amount  *big.Int `json:"amount,omitempty"`  //增发金额
 }
 
 func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount *big.Int) {
@@ -135,9 +135,9 @@ func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount *big.In
 }
 
 type RewardData struct {
-	BlockRewardAmount   *big.Int         `json:"blockRewardAmount"`           //出块奖励
-	StakingRewardAmount *big.Int         `json:"stakingRewardAmount"`         //一结算周期内所有101节点的质押奖励
-	CandidateInfoList   []*CandidateInfo `json:"candidateInfoList,omitempty"` //备选节点信息
+	BlockRewardAmount   *big.Int         `json:"blockRewardAmount,omitempty"`   //出块奖励
+	StakingRewardAmount *big.Int         `json:"stakingRewardAmount,omitempty"` //一结算周期内所有101节点的质押奖励
+	CandidateInfoList   []*CandidateInfo `json:"candidateInfoList,omitempty"`   //备选节点信息
 }
 
 type CandidateInfo struct {
@@ -146,24 +146,24 @@ type CandidateInfo struct {
 }
 
 type ZeroSlashingItem struct {
-	NodeID         NodeID   `json:"nodeId,omitempty"` //备选节点ID
-	SlashingAmount *big.Int `json:"slashingAmount"`   //0出块处罚金(从质押金扣)
+	NodeID         NodeID   `json:"nodeId,omitempty"`         //备选节点ID
+	SlashingAmount *big.Int `json:"slashingAmount,omitempty"` //0出块处罚金(从质押金扣)
 }
 
 type DuplicatedSignSlashingSetting struct {
-	PenaltyRatioByValidStakings uint32 `json:"penaltyRatioByValidStakings"` //unit:1%%		//罚金 = 有效质押 & PenaltyRatioByValidStakings / 10000
-	RewardRatioByPenalties      uint32 `json:"rewardRatioByPenalties"`      //unit:1%		//给举报人的赏金=罚金 * RewardRatioByPenalties / 100
+	PenaltyRatioByValidStakings uint32 `json:"penaltyRatioByValidStakings,omitempty"` //unit:1%%		//罚金 = 有效质押 & PenaltyRatioByValidStakings / 10000
+	RewardRatioByPenalties      uint32 `json:"rewardRatioByPenalties,omitempty"`      //unit:1%		//给举报人的赏金=罚金 * RewardRatioByPenalties / 100
 }
 
 type UnstakingRefundItem struct {
-	NodeID        NodeID  `json:"nodeId,omitempty"`      //备选节点ID
-	NodeAddress   Address `json:"nodeAddress,omitempty"` //备选节点地址
-	RefundEpochNo uint64  `json:"refundEpochNo"`         //解除质押,资金真正退回的结算周期（此周期最后一个块的endBlocker里
+	NodeID        NodeID  `json:"nodeId,omitempty"`        //备选节点ID
+	NodeAddress   Address `json:"nodeAddress,omitempty"`   //备选节点地址
+	RefundEpochNo uint64  `json:"refundEpochNo,omitempty"` //解除质押,资金真正退回的结算周期（此周期最后一个块的endBlocker里
 }
 
 type RestrictingReleaseItem struct {
 	DestAddress   Address  `json:"destAddress,omitempty,omitempty"` //释放地址
-	ReleaseAmount *big.Int `json:"releaseAmount"`                   //释放金额
+	ReleaseAmount *big.Int `json:"releaseAmount,omitempty"`         //释放金额
 }
 
 var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
