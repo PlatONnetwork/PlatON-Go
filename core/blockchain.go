@@ -43,6 +43,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+
 )
 
 var (
@@ -69,6 +70,8 @@ type CacheConfig struct {
 	DBGCTimeout  time.Duration
 	DBGCMpt      bool
 	DBGCBlock    int
+	DBDisabledCache  bool
+	DBCacheEpoch    uint64
 }
 
 // mining related configuration

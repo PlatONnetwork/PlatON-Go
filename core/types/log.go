@@ -35,7 +35,7 @@ type Log struct {
 	// list of topics provided by the contract.
 	Topics []common.Hash `json:"topics" gencodec:"required"`
 	// supplied by the contract, usually ABI-encoded
-	Data []byte `json:"data" gencodec:"required"`
+	 Data []byte `json:"data" gencodec:"required"`
 
 	// Derived fields. These fields are filled in by the node
 	// but not secured by consensus.
@@ -50,6 +50,16 @@ type Log struct {
 	// index of the log in the receipt
 	Index uint `json:"logIndex" gencodec:"required"`
 
+	// The Removed field is true if this log was reverted due to a chain reorganisation.
+	// You must pay attention to this field if you receive logs through a filter query.
+	Removed bool `json:"removed"`
+}
+
+type LogBlock struct {
+	// supplied by the contract, usually ABI-encoded
+	Data string `json:"data" gencodec:"required"`
+	// index of the log in the receipt
+	Index uint `json:"logIndex" gencodec:"required"`
 	// The Removed field is true if this log was reverted due to a chain reorganisation.
 	// You must pay attention to this field if you receive logs through a filter query.
 	Removed bool `json:"removed"`
