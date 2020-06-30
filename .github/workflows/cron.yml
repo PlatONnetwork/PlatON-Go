@@ -1,4 +1,4 @@
-name: cron_deploy
+name: cron_pressure_test
 
 on:
   push:
