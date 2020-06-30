@@ -1878,7 +1878,7 @@ class TestGas:
             pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 1,
                                   pip.node.staking_address, transaction_cfg=transaction_cfg)
         except ValueError as e:
-            assert e.args[0].get('message') == "the tx data is invalid: Invalid parameter:Gas price under the min gas price."
+            assert e.args[0].get('message') == "the tx data is invalid: Invalid parameter:gas price is lower than minimum"
 
         transaction_cfg = {"gasPrice": 2100000000000000}
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 1,
@@ -1895,7 +1895,7 @@ class TestGas:
             pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '123',
                                 pip.node.staking_address, transaction_cfg=transaction_cfg)
         except ValueError as e:
-            assert e.args[0].get('message') == "the tx data is invalid: Invalid parameter:Gas price under the min gas price."
+            assert e.args[0].get('message') == "the tx data is invalid: Invalid parameter:gas price is lower than minimum"
 
         transaction_cfg = {"gasPrice": 2000000000000000}
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '123',
@@ -1912,7 +1912,7 @@ class TestGas:
             pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
                                transaction_cfg=transaction_cfg)
         except ValueError as e:
-            assert e.args[0].get('message') == "the tx data is invalid: Invalid parameter:Gas price under the min gas price."
+            assert e.args[0].get('message') == "the tx data is invalid: Invalid parameter:gas price is lower than minimum"
 
         transaction_cfg = {"gasPrice": 1500000000000000}
         result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
@@ -1934,7 +1934,7 @@ class TestGas:
             pip.submitCancel(pip.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
                                  pip.node.staking_address, transaction_cfg=transaction_cfg)
         except ValueError as e:
-            assert e.args[0].get('message') == "the tx data is invalid: Invalid parameter:Gas price under the min gas price."
+            assert e.args[0].get('message') == "the tx data is invalid: Invalid parameter:gas price is lower than minimum"
         transaction_cfg = {"gasPrice": 3000000000000000}
         result = pip.submitCancel(pip.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
                                       pip.node.staking_address, transaction_cfg=transaction_cfg)
