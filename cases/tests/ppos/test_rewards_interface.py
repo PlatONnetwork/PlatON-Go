@@ -1336,7 +1336,7 @@ class TestGas:
                            rlp.encode(10 ** 18 * 1000)])
         gas = (21000 + 6000 + 16000 + get_the_dynamic_parameter_gas_fee(data)) * client1.node.eth.gasPrice
         assert balance - delegate_amount - gas == balance_address1
-        time.sleep(3)
+        time.sleep(10)
 
         balance_address1 = client2.node.eth.getBalance(address1)
         print('balance_address1: {}'.format(balance_address1))
