@@ -4,6 +4,8 @@ import allure
 import rlp
 from client_sdk_python.utils.transactions import send_obj_transaction
 from dacite import from_dict
+from platon_account.internal.transactions import bech32_address_bytes
+
 from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
 from client_sdk_python import Web3
@@ -95,14 +97,13 @@ def test_LS_UPV_002_1(client_new_node):
     address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
     lock_amount = node.web3.toWei(1000, 'ether')
     plan = [{'Epoch': 1, 'Amount': lock_amount}]
-    address_hash = address[2:]
-    log.info("address: {}".format(address_hash))
+    account = bech32_address_bytes(address)
     plan_list = []
     for dict_ in plan:
         v = [dict_[k] for k in dict_]
         plan_list.append(v)
     rlp_list = rlp.encode(plan_list)
-    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address_hash)), rlp_list])
+    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(account), rlp_list])
     transaction_data = {"to": address, "data": data}
     aa = node.eth.estimateGas(transaction_data)
     dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
@@ -131,14 +132,13 @@ def test_LS_UPV_002_2(client_new_node):
     address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
     lock_amount = node.web3.toWei(1000, 'ether')
     plan = [{'Epoch': 1, 'Amount': lock_amount}, {'Epoch': 2, 'Amount': lock_amount}]
-    address_hash = address[2:]
-    log.info("address: {}".format(address_hash))
+    account = bech32_address_bytes(address)
     plan_list = []
     for dict_ in plan:
         v = [dict_[k] for k in dict_]
         plan_list.append(v)
     rlp_list = rlp.encode(plan_list)
-    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address_hash)), rlp_list])
+    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(account), rlp_list])
     dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
     gas_total = 21000 + 18000 + 8000 + 21000 * 2 + dynamic_gas
     log.info("gas_total: {}".format(gas_total))
@@ -679,7 +679,7 @@ def test_LS_RV_012(new_genesis_env, clients_new_node):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 30
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -728,7 +728,7 @@ def test_LS_RV_019(new_genesis_env, clients_noconsensus):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 5
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 

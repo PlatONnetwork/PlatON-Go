@@ -32,7 +32,7 @@ def reset_cfg_env_node(global_test_env):
     genesis = from_dict(data_class=Genesis, data=genesis_config)
     id_cfg = id(cfg)
     setattr(new_env_node, "genesis", genesis)
-    setattr(new_env_node, "genesis_path", global_test_env.cfg.env_tmp + "/genesis.json")
+    setattr(new_env_node, "genesis_path", global_test_env.cfg.env_tmp + "/genesis_0.13.0.json")
     yield new_env_node
     new_env_node.stop()
     if id_cfg != id(global_test_env.cfg) or id(genesis_config) != id(global_test_env.genesis_config):
@@ -122,34 +122,34 @@ def test_IP_PR_006_2(value, reset_cfg_env_node):
     assert_error_deploy(reset_cfg_env_node, new_file, "The abnormal redemption amount")
 
 
-@pytest.mark.P2
-def test_IP_PR_007_1(reset_cfg_env_node):
-    """
-    正常范围内的犹豫期(多少个结算周期)
-    """
-    value = 3
-    genesis = reset_cfg_env_node.genesis
-    genesis.economicModel.staking.hesitateRatio = value
-    new_file = reset_cfg_env_node.genesis_path
-    genesis.to_file(new_file)
-    reset_cfg_env_node.deploy_me(new_file)
-    config = reset_cfg_env_node.debug.economicConfig()
-    assert value == config["staking"]["hesitateRatio"]
+# @pytest.mark.P2
+# def test_IP_PR_007_1(reset_cfg_env_node):
+#     """
+#     正常范围内的犹豫期(多少个结算周期)
+#     """
+#     value = 3
+#     genesis = reset_cfg_env_node.genesis
+#     genesis.economicModel.staking.hesitateRatio = value
+#     new_file = reset_cfg_env_node.genesis_path
+#     genesis.to_file(new_file)
+#     reset_cfg_env_node.deploy_me(new_file)
+#     config = reset_cfg_env_node.debug.economicConfig()
+#     assert value == config["staking"]["hesitateRatio"]
 
 
-@pytest.mark.P2
-@pytest.mark.parametrize('value', [-1, 0, ""])
-def test_IP_PR_007(value, reset_cfg_env_node):
-    """
-    修改犹豫期(多少个结算周期)
-    1、犹豫期(多少个结算周期)<=0
-    2、犹豫期(多少个结算周期)=0
-    """
-    genesis = reset_cfg_env_node.genesis
-    genesis.economicModel.staking.hesitateRatio = value
-    new_file = reset_cfg_env_node.genesis_path
-    genesis.to_file(new_file)
-    assert_error_deploy(reset_cfg_env_node, new_file, "An abnormal billing cycle")
+# @pytest.mark.P2
+# @pytest.mark.parametrize('value', [-1, 0, ""])
+# def test_IP_PR_007(value, reset_cfg_env_node):
+#     """
+#     修改犹豫期(多少个结算周期)
+#     1、犹豫期(多少个结算周期)<=0
+#     2、犹豫期(多少个结算周期)=0
+#     """
+#     genesis = reset_cfg_env_node.genesis
+#     genesis.economicModel.staking.hesitateRatio = value
+#     new_file = reset_cfg_env_node.genesis_path
+#     genesis.to_file(new_file)
+#     assert_error_deploy(reset_cfg_env_node, new_file, "An abnormal billing cycle")
 
 
 @pytest.mark.P2

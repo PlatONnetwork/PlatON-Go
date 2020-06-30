@@ -10,7 +10,7 @@ from dacite import from_dict
 from tests.govern.conftest import proposal_vote, version_proposal_vote
 
 
-def submitvpandvote(clients, votingrounds=2, version=None):
+def submitvpandvote(clients, votingrounds=3, version=None):
     pip = clients[0].pip
     if version is None:
         version = pip.cfg.version5
@@ -27,7 +27,7 @@ def submitvpandvote(clients, votingrounds=2, version=None):
         assert_code(result, 0)
 
 
-def createstaking(obj, platon_bin=None):
+def createstaking(obj, platon_bin=None, reward_per=0):
     if isinstance(obj, Client):
         objs = []
         objs.append(obj)
@@ -40,7 +40,7 @@ def createstaking(obj, platon_bin=None):
 
         address, _ = client.economic.account.generate_account(client.node.web3, 10 ** 18 * 10000000)
         result = client.staking.create_staking(0, address, address, amount=10 ** 18 * 2000000,
-                                               transaction_cfg=client.pip.cfg.transaction_cfg)
+                                               transaction_cfg=client.pip.cfg.transaction_cfg, reward_per=reward_per)
         log.info('Node {} staking result : {}'.format(client.node.node_id, result))
         assert_code(result, 0)
 
@@ -116,7 +116,8 @@ def submittpandvote(clients, *args):
     assert_code(result, 0)
     proposalinfo_text = pip.get_effect_proposal_info_of_vote(pip.cfg.text_proposal)
     log.info('Text proposal info {}'.format(proposalinfo_text))
-
+    result = pip.pip.listProposal()
+    print(result)
     for index in range(len(clients)):
         pip = clients[index].pip
         log.info('{}'.format(args[index]))
@@ -214,7 +215,7 @@ class TestVotingStatisticsVP:
     @allure.title('Version proposal statistics function verification')
     def test_VS_EXV_004(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate = 0.25
+        genesis.economicModel.gov.versionProposalSupportRate = 2500
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitvpandvote(clients_consensus[:2])
@@ -234,7 +235,7 @@ class TestVotingStatisticsVP:
     @allure.title('Version proposal statistics function verification')
     def test_VS_EXV_005(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate = 0.5
+        genesis.economicModel.gov.versionProposalSupportRate = 5000
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitvpandvote(clients_consensus[:2])
@@ -254,7 +255,7 @@ class TestVotingStatisticsVP:
     @allure.title('Version proposal statistics function verification')
     def test_VS_EXV_006(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate = 0.5
+        genesis.economicModel.gov.versionProposalSupportRate = 5000
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitvpandvote(clients_consensus[:2])
@@ -275,7 +276,7 @@ class TestVotingStatisticsVP:
     @allure.title('Version proposal statistics function verification')
     def test_VS_EXV_007(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate = 0.5
+        genesis.economicModel.gov.versionProposalSupportRate = 5000
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitvpandvote(clients_consensus[:2])
@@ -295,7 +296,7 @@ class TestVotingStatisticsVP:
     @allure.title('Version proposal statistics function verification')
     def test_VS_EXV_008(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate = 0.5
+        genesis.economicModel.gov.versionProposalSupportRate = 5000
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitvpandvote(clients_consensus[:2])
@@ -316,7 +317,7 @@ class TestVotingStatisticsVP:
     @allure.title('Version proposal statistics function verification')
     def test_VS_EXV_009(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate = 0.5
+        genesis.economicModel.gov.versionProposalSupportRate = 5000
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitvpandvote(clients_consensus[:2], votingrounds=3)
@@ -334,7 +335,7 @@ class TestVotingStatisticsVP:
     @allure.title('Version proposal statistics function verification')
     def test_VS_EXV_010(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate = 0.5
+        genesis.economicModel.gov.versionProposalSupportRate = 5000
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitvpandvote(clients_consensus[:2], votingrounds=3)
@@ -493,7 +494,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_004_VS_EXC_004(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 4990, 10000, 4990)
         pip = clients_consensus[0].pip
         submittpandvote(clients_consensus[:2], 1, 1)
         submitcppandvote(clients_consensus[:2], [1, 1])
@@ -513,7 +514,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_005_VS_EXC_005(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 4990, 10000, 4990)
         pip = clients_consensus[0].pip
         submittpandvote(clients_consensus[:2], 1, 1)
         submitcppandvote(clients_consensus[:2], [1, 1])
@@ -536,7 +537,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_006_VS_EXC_006(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 4990, 10000, 4990)
         pip = clients_consensus[0].pip
         submittpandvote(clients_consensus[:2], 1, 1)
         submitcppandvote(clients_consensus[:2], [1, 1])
@@ -559,7 +560,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_007_VS_EXC_007(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 2490, 10000, 2490)
         pip = clients_consensus[0].pip
         submittpandvote(clients_consensus[:2], 2, 1)
         submitcppandvote(clients_consensus[:2], [2, 1])
@@ -582,7 +583,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_008_VS_EXC_008(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 2490, 10000, 2490)
         pip = clients_consensus[0].pip
         submittpandvote(clients_consensus[:2], 3, 1)
         submitcppandvote(clients_consensus[:2], [3, 1])
@@ -605,7 +606,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_009_VS_EXC_009(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 2490, 10000, 2490)
         pip = clients_consensus[0].pip
         submittpandvote(clients_consensus[:2], 2, 1)
         submitcppandvote(clients_consensus[:2], [2, 1])
@@ -627,7 +628,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_010_VS_EXC_010(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 4990, 10000, 4990)
         pip = clients_consensus[0].pip
         submittpandvote(clients_consensus[:2], 1, 1)
         submitcppandvote(clients_consensus[:2], [1, 1])
@@ -650,7 +651,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_011_VS_EXC_011(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 2499, 10000, 2499)
         pip = clients_consensus[0].pip
         submittpandvote(clients_consensus[:2], 2, 1)
         submitcppandvote(clients_consensus[:2], [2, 1])
@@ -673,7 +674,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_012_VS_EXC_012(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 2499, 10000, 2499)
         pip = clients_consensus[0].pip
         submittpandvote(clients_consensus[:2], 3, 1)
         submitcppandvote(clients_consensus[:2], [3, 1])
@@ -696,7 +697,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_013_VS_EXC_013(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 120, 1, 0.499, 1, 0.499)
+        self.update_setting(new_genesis_env, 500, 120, 10000, 4999, 10000, 4999)
         pip = clients_consensus[0].pip
         pip_test = clients_consensus[1].pip
         submittpandvote(clients_consensus[:2], 1, 1)
@@ -715,7 +716,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_014_VS_EXC_014(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 120, 1, 0.499, 1, 0.499)
+        self.update_setting(new_genesis_env, 500, 120, 10000, 4999, 10000, 4999)
         pip = clients_consensus[0].pip
         pip_test = clients_consensus[1].pip
         submittpandvote(clients_consensus[:2], 2, 1)
@@ -734,7 +735,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_015_VS_EXC_015(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 120, 1, 0.499, 1, 0.499)
+        self.update_setting(new_genesis_env, 500, 120, 10000, 4999, 10000, 4999)
         pip = clients_consensus[0].pip
         pip_test = clients_consensus[1].pip
         submittpandvote(clients_consensus[:2], 3, 1)
@@ -753,7 +754,7 @@ class TestVotingStatisticsTPCP:
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
     def test_VS_EXT_016_VS_EXC_016(self, new_genesis_env, clients_consensus):
-        self.update_setting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
+        self.update_setting(new_genesis_env, 500, 80, 10000, 4999, 10000, 4999)
         pip = clients_consensus[0].pip
         pip_test = clients_consensus[1].pip
         submittpandvote(clients_consensus[:2], 1, 1)
@@ -853,7 +854,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P0
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_007_VS_EP_003(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 1, 0.49)
+        self.update_setting_param(new_genesis_env, 0, 10000, 4900)
         submitppandvote(clients_consensus[:2], 1, 1)
         proposalinfo = clients_consensus[0].pip.get_effect_proposal_info_of_vote(clients_consensus[0].pip.cfg.param_proposal)
         log.info('Get param proposal information {}'.format(proposalinfo))
@@ -869,7 +870,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_008(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 0.5, 0.5)
+        self.update_setting_param(new_genesis_env, 0, 5000, 5000)
         submitppandvote(clients_consensus[:2], 1, 1)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -886,7 +887,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_009(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 0.5, 0.5)
+        self.update_setting_param(new_genesis_env, 0, 5000, 5000)
         submitppandvote(clients_consensus[:2], 1, 1)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -903,7 +904,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_010(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 0.5, 0.5)
+        self.update_setting_param(new_genesis_env, 0, 5000, 5000)
         submitppandvote(clients_consensus[:2], 2, 2)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -920,7 +921,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_011(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 0.5, 0.5)
+        self.update_setting_param(new_genesis_env, 0, 5000, 5000)
         submitppandvote(clients_consensus[:2], 3, 3)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -937,7 +938,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_012(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 0.5, 0.5)
+        self.update_setting_param(new_genesis_env, 0, 5000, 5000)
         submitppandvote(clients_consensus[:2], 1, 1)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -954,7 +955,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_013(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 0.5, 0.5)
+        self.update_setting_param(new_genesis_env, 0, 5000, 5000)
         submitppandvote(clients_consensus[:2], 1, 1)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -971,7 +972,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_014(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 0.5, 0.5)
+        self.update_setting_param(new_genesis_env, 0, 5000, 5000)
         submitppandvote(clients_consensus[:2], 2, 2)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -988,7 +989,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_015(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 0.5, 0.5)
+        self.update_setting_param(new_genesis_env, 0, 5000, 5000)
         submitppandvote(clients_consensus[:2], 3, 3)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -1005,7 +1006,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_016(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 1, 0.249)
+        self.update_setting_param(new_genesis_env, 0, 10000, 2490)
         submitppandvote(clients_consensus[:2], 1, 1)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -1019,7 +1020,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_017(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 1, 0.249)
+        self.update_setting_param(new_genesis_env, 0, 10000, 2490)
         submitppandvote(clients_consensus[:2], 2, 1)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -1033,7 +1034,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_018(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 1, 0.249)
+        self.update_setting_param(new_genesis_env, 0, 10000, 2490)
         submitppandvote(clients_consensus[:2], 3, 1)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
@@ -1047,7 +1048,7 @@ class TestVotingStatisticsPP:
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
     def test_VS_EP_019(self, new_genesis_env, clients_consensus):
-        self.update_setting_param(new_genesis_env, 0, 0.99, 0.25)
+        self.update_setting_param(new_genesis_env, 0, 9900, 2500)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         pip = clients_consensus[0].pip
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)

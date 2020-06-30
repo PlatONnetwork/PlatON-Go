@@ -82,11 +82,9 @@ def test_VP_PV_001_to_003(client_consensus, repor_type, reset_environment):
     incentive_pool_account2 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive pool account1 amount:{} ".format(incentive_pool_account2))
     # assert account reward
-    assert report_amount1 + proportion_reward - report_amount2 < node.web3.toWei(1,
-                                                                                 'ether'), "ErrMsg:report amount {}".format(
+    assert report_amount1 + proportion_reward - report_amount2 < node.web3.toWei(1,'ether'), "ErrMsg:report amount {}".format(
         report_amount2)
-    assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (
-        report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
+    assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
         incentive_pool_account2)
 
 
@@ -323,20 +321,21 @@ def test_VP_PV_016(client_consensus):
     :param client_consensus:
     :return:
     """
-    client = client_consensus
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Obtain information of report evidence
-    report_information, current_block = obtaining_evidence_information(economic, node)
-    # Modification of evidence
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'address',
-                                    economic.account.account_with_money['address'])
-    log.info("Evidence information: {}".format(jsondata))
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
-    assert_code(result, 303000)
+    pass
+#     client = client_consensus
+#     economic = client.economic
+#     node = client.node
+#     # create report address
+#     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+#     # Obtain information of report evidence
+#     report_information, current_block = obtaining_evidence_information(economic, node)
+#     # Modification of evidence
+#     jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'address',
+#                                     economic.account.account_with_money['address'])
+#     log.info("Evidence information: {}".format(jsondata))
+#     # Report verifier Duplicate Sign
+#     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
+#     assert_code(result, 303000)
 
 
 @pytest.mark.P1
@@ -811,7 +810,7 @@ def test_VP_PVF_001(client_consensus, reset_environment):
     result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 0)
     # Query and report violation records
-    evidence_parameter = get_param_by_dict(report_information, 'prepareA', 'validateNode', 'address')
+    evidence_parameter = get_param_by_dict(report_information, 'prepareA', 'validateNode', 'nodeId')
     result = client.ppos.checkDuplicateSign(1, evidence_parameter, current_block)
     assert_code(result, 0)
     assert result['Ret'] is not None, "ErrMsg:Query results {}".format(result['Ret'])
@@ -842,7 +841,7 @@ def test_VP_PVF_002(client_consensus):
     # create account
     report_address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Query and report violation records
-    evidence_parameter = get_param_by_dict(report_information, 'prepareA', 'validateNode', 'address')
+    evidence_parameter = get_param_by_dict(report_information, 'prepareA', 'validateNode', 'nodeId')
     result = client.ppos.checkDuplicateSign(1, evidence_parameter, current_block)
     assert_code(result, 0)
     assert result['Ret'] == "", "ErrMsg:Query results {}".format(result['Ret'])
@@ -1160,3 +1159,67 @@ def test_VP_PVF_009(client_new_node, reset_environment):
         else:
             # wait consensus block
             economic.wait_consensus_blocknum(node)
+
+
+def test_VP_PVF_010(client_consensus):
+    """
+
+    """
+    client = client_consensus
+    economic = client.economic
+    node = client.node
+    client.economic.env.deploy_all()
+    # Obtain penalty proportion and income
+    pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client)
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # view report amount
+    report_amount1 = node.eth.getBalance(report_address)
+    log.info("report account amount:{} ".format(report_amount1))
+    # view Incentive pool account
+    incentive_pool_account1 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    log.info("incentive pool account1 amount:{} ".format(incentive_pool_account1))
+    # Wait for the consensus round to end
+    economic.wait_consensus_blocknum(node)
+    # Get current block height
+    current_block = node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+    assert_code(result, 0)
+    # view Amount of penalty
+    proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
+                                                                          proportion_ratio)
+    # view report amount again
+    report_amount2 = node.eth.getBalance(report_address)
+    log.info("report account amount:{} ".format(report_amount2))
+    # view Incentive pool account again
+    incentive_pool_account2 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    log.info("incentive pool account1 amount:{} ".format(incentive_pool_account2))
+    # assert account reward
+    assert report_amount1 + proportion_reward - report_amount2 < node.web3.toWei(1,'ether'), "ErrMsg:report amount {}".format(
+        report_amount2)
+    assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
+        incentive_pool_account2)
+
+    result = node.ppos.getCandidateInfo(node.node_id)
+    log.info("Candidate Info:{} ".format(result))
+    pledge_amount2 = result['Ret']['Released']
+    result = verification_duplicate_sign(client, 1, 1, report_address, current_block + 1)
+    assert_code(result, 0)
+
+    # view Amount of penalty
+    proportion_reward2, incentive_pool_reward2 = economic.get_report_reward(pledge_amount2, penalty_ratio,
+                                                                          proportion_ratio)
+
+    # view report amount again
+    report_amount3 = node.eth.getBalance(report_address)
+    log.info("report account amount:{} ".format(report_amount3))
+
+    # view Incentive pool account again
+    incentive_pool_account3 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    log.info("incentive pool account1 amount:{} ".format(incentive_pool_account3))
+    # assert account reward
+    assert report_amount2 + proportion_reward2 - report_amount3 < node.web3.toWei(1, 'ether'), "ErrMsg:report amount {}".format(
+        report_amount2 + proportion_reward2 - report_amount3)
+    assert incentive_pool_account3 == incentive_pool_account2 + incentive_pool_reward2 + (report_amount2 + proportion_reward2 - report_amount3), "ErrMsg:Incentive pool account {}".format(
+        incentive_pool_account2)

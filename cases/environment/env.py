@@ -96,7 +96,7 @@ class TestEnvironment:
 
     @property
     def version(self):
-        return ""
+        return "0.13.0"
 
     @property
     def running(self) -> bool:
@@ -124,6 +124,15 @@ class TestEnvironment:
         period = self.genesis_config["config"]["cbft"].get("period")
         amount = self.genesis_config["config"]["cbft"].get("amount")
         return int(period / 1000 / amount)
+
+    def consensus_node_id_list(self) -> List[str]:
+        return [node.node_id for node in self.consensus_node_list]
+
+    def find_node_by_node_id(self, node_id):
+        for node in self.get_all_nodes():
+            if node_id == node.node_id:
+                return node
+        raise Exception("can't find node")
 
     def copy_env(self):
         """
@@ -321,6 +330,11 @@ class TestEnvironment:
 
         return self.executor(close, self.get_all_nodes())
 
+    def clean_supervisor_confs(self):
+        def clean(server: Server):
+            return server.clean_supervisor_conf()
+        return self.executor(clean, self.server_list)
+
     def start_nodes(self, node_list: List[Node], init_chain=True):
         """
         Boot node
@@ -335,8 +349,8 @@ class TestEnvironment:
     def deploy_nodes(self, node_list: List[Node], genesis_file):
         """
         Deployment node
-                                                                Choose whether to empty the environment depending on whether initialization is required
-                                                                Upload all node files
+        Choose whether to empty the environment depending on whether initialization is required
+        Upload all node files
         :param node_list:
         :param genesis_file:
         """
@@ -671,12 +685,27 @@ if __name__ == "__main__":
     from tests.lib import get_no_pledge_node, get_no_pledge_node_list, get_pledge_list, check_node_in_list
     node_filename = abspath("deploy/node/debug_4_4.yml")
     env = create_env(node_file=node_filename)
+    env.shutdown()
+    exit(0)
     # print(os.path.getctime(env.cfg.platon_bin_file))
     # new_cfg = copy.copy(env.cfg)
     # new_cfg.syncmode = "fast"
     # print(env.cfg.syncmode)
     log.info("测试部署")
-    env.deploy_all()
+    env.cfg.syncmode = "fast"
+    # env.deploy_all(abspath("deploy/tmp/genesis_0.8.0.json"))
+    for node in env.get_all_nodes():
+        node.admin.addPeer("enode://d203e37d86f1757ee4bbeafd7a0b0b6f7d4f22afaad3c63337e92d9056251dcca95515cb23d5a040e3416e1ebbb303aa52ea535103b9b8c8c2adc98ea3b41c01@10.10.8.195:16789")
+        print(node.web3.net.peerCount)
+    print(node.ppos.getCandidateList())
+    # env.deploy_all(abspath("deploy/tmp/genesis_0.8.0.json"))
+    # env.shutdown()
+    # stop_nodes = env.consensus_node_list[:2]
+    # for node in stop_nodes:
+    #     print(node.url)
+    # time.sleep(50)
+    # print(env.consensus_node_list[3].url)
+    # env.stop_nodes(stop_nodes)
     # node = env.get_consensus_node_by_index(0)
     # print(node.debug.economicConfig())
     # print(type(node.debug.economicConfig()))

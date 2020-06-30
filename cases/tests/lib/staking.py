@@ -171,6 +171,26 @@ class Staking:
         restrictingplan = int(staking_data.get('RestrictingPlan'))
         return [shares, released, restrictingplan][flag]
 
+    def get_rewardper(self, node=None, isnext=False):
+        '''
+        According to the node to obtain the reward percent
+        :param node:
+        :param isnext:
+        :return:
+        '''
+        if node is None:
+            node = self.node
+        stakinginfo = node.ppos.getCandidateInfo(node.node_id)
+        print(stakinginfo)
+        staking_data = stakinginfo.get('Ret')
+        rewardper = int(staking_data.get('RewardPer'))
+        nextrewardper = int(staking_data.get('NextRewardPer'))
+        if isnext:
+            return nextrewardper
+        else:
+            return rewardper
+
+
     def get_version(self, node=None):
         """
         According to the node to obtain the amount of the deposit
@@ -181,3 +201,14 @@ class Staking:
         staking_data = stakinginfo.get('Ret')
         programversion = staking_data.get('ProgramVersion')
         return programversion
+
+    def get_stakingblocknum(self, node=None):
+        """
+        According to the node to obtain the amount of the deposit
+        """
+        if node is None:
+            node = self.node
+        stakinginfo = node.ppos.getCandidateInfo(node.node_id)
+        staking_data = stakinginfo.get('Ret')
+        stakingblocknum = staking_data.get('StakingBlockNum')
+        return int(stakingblocknum)
