@@ -4,6 +4,7 @@ on:
   push:
     branches: merge-latest-ethereum
 
+
 env:
   GO111MODULE: on
 
