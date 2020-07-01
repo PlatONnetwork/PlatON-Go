@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -22,15 +24,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth"
-
-	"github.com/PlatONnetwork/PlatON-Go/trie"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -406,28 +402,20 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 }
 
 func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.GenesisData, error) {
-	genesisData := &common.GenesisData{}
-	root := genesisBlock.Root()
-	tr, err := trie.NewSecure(root, trie.NewDatabase(s.ChainDb()))
-	if err != nil {
-		return nil, err
+	genesis := s.eth.Genesis()
+
+	if genesis == nil {
+		return nil, fmt.Errorf("cannot get genesis.")
 	}
 
-	iter := tr.NodeIterator(nil)
-	for iter.Next(true) {
-		if iter.Leaf() {
-			var obj state.Account
-			err := rlp.DecodeBytes(iter.LeafBlob(), &obj)
-			if err != nil {
-				return nil, fmt.Errorf("parse account error:%s", err.Error())
-			}
-			key := iter.LeafKey()
-			address := common.BytesToAddress(key)
-			balance := obj.Balance
-			genesisData.AddAllocItem(address, balance)
-			log.Debug("alloc account", "address.Bech32()", address.Bech32(), "balance", balance)
-		}
+	genesisData := &common.GenesisData{}
+	genesisData.AddAllocItem(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
+	genesisData.AddAllocItem(xcom.CDFAccount(), xcom.CDFBalance())
+
+	for address, account := range genesis.Alloc {
+		genesisData.AddAllocItem(address, account.Balance)
 	}
+
 	return genesisData, nil
 }
 
