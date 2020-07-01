@@ -272,7 +272,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	var err error
 	if block.NumberU64() == 0 {
 		if genesisData, err = s.scanGenesis(block); err != nil {
-			log.Error("cannot read genesis block", err)
+			log.Error("cannot read genesis block", "err", err)
 			return err
 		}
 	} else {
@@ -403,9 +403,8 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 
 func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.GenesisData, error) {
 	genesis := s.eth.Genesis()
-
 	if genesis == nil {
-		return nil, fmt.Errorf("cannot get genesis.")
+		return nil, fmt.Errorf("cannot get genesis")
 	}
 
 	genesisData := &common.GenesisData{}

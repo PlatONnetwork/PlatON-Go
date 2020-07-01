@@ -109,7 +109,13 @@ type Ethereum struct {
 
 func (s *Ethereum) Genesis() *core.Genesis {
 	if s.config != nil {
-		return s.config.Genesis
+		if s.config.Genesis != nil {
+			return s.config.Genesis
+		} else {
+			log.Debug("s.config.Genesis is nil", "s.config", s.config)
+		}
+	} else {
+		log.Debug("s.config is nil", "s", s)
 	}
 	return nil
 }
