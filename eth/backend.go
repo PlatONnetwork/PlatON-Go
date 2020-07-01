@@ -107,6 +107,13 @@ type Ethereum struct {
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
+func (s *Ethereum) Genesis() *core.Genesis {
+	if s.config != nil {
+		return s.config.Genesis
+	}
+	return nil
+}
+
 func (s *Ethereum) AddLesServer(ls LesServer) {
 	s.lesServer = ls
 	ls.SetBloomBitsIndexer(s.bloomIndexer)
