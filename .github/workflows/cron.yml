@@ -3,9 +3,6 @@ name: cron_pressure_test
 on:
   push:
     branches: merge-latest-ethereum
-  schedule:
-    - cron: "*/5 * * * *"
-
 
 env:
   GO111MODULE: on
@@ -13,7 +10,7 @@ env:
 jobs:
   build:
     name: Build_Deploy
-    runs-on: ubuntu-18.04
+    runs-on: [self-hosted, Linux, X64, deploy]
     steps:
 
     - name: Set up Go 1.x
@@ -41,3 +38,12 @@ jobs:
     
     - name: Build
       run: make platon
+    
+    - name: Statistics_TPS
+      run: bash /opt/statistics_tps.sh
+    
+    - name: Deploy_platon
+      run: bash /opt/test_deploy.sh
+      
+    - name: Deploy_transfer
+      run: bash /opt/deploy_transfer.sh
