@@ -4,7 +4,6 @@ on:
   push:
     branches: merge-latest-ethereum
 
-
 env:
   GO111MODULE: on
 
@@ -22,6 +21,9 @@ jobs:
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
+      env:
+        GIT_TRACE: 1
+        GIT_CURL_VERBOSE: 1
       with:
           ref: test_actions
           submodules: true 
