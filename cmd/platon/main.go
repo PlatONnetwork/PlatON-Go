@@ -111,6 +111,8 @@ var (
 		utils.RPCVirtualHostsFlag,
 		//utils.EthStatsURLFlag,
 		utils.StatsURLFlag,
+		utils.GenesisFileFlag,
+
 		utils.MetricsEnabledFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,

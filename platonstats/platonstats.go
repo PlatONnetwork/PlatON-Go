@@ -134,6 +134,7 @@ type PlatonStatsService struct {
 	kafkaUrl      string
 	eth           *eth.Ethereum // Full Ethereum service if monitoring a full node
 	datadir       string
+	genesisFile   string
 	blockProducer sarama.SyncProducer
 	msgProducer   sarama.AsyncProducer
 	stopSampleMsg chan struct{}
@@ -146,11 +147,12 @@ var (
 	platonStatsService *PlatonStatsService
 )
 
-func New(kafkaUrl string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
+func New(kafkaUrl string, ethServ *eth.Ethereum, datadir, genesisFile string) (*PlatonStatsService, error) {
 	platonStatsService = &PlatonStatsService{
-		kafkaUrl: kafkaUrl,
-		eth:      ethServ,
-		datadir:  datadir,
+		kafkaUrl:    kafkaUrl,
+		eth:         ethServ,
+		datadir:     datadir,
+		genesisFile: genesisFile,
 	}
 	if len(datadir) > 0 {
 		statsLogFile = filepath.Join(datadir, statsLogFile)
@@ -271,7 +273,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 
 	var err error
 	if block.NumberU64() == 0 {
-		if genesisData, err = s.scanGenesis(block); err != nil {
+		if genesisData, err = s.scanGenesis(); err != nil {
 			log.Error("cannot read genesis block", "err", err)
 			return err
 		}
@@ -401,10 +403,10 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 	}
 }
 
-func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.GenesisData, error) {
-	genesis := s.eth.Genesis()
-	if genesis == nil {
-		return nil, fmt.Errorf("cannot get genesis")
+func (s *PlatonStatsService) scanGenesis() (*common.GenesisData, error) {
+	genesis := new(core.Genesis)
+	if err := genesis.InitGenesisAndSetEconomicConfig(s.genesisFile); err != nil {
+		log.Error("cannot load Genesis file")
 	}
 
 	genesisData := &common.GenesisData{}

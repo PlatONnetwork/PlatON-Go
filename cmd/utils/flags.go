@@ -317,6 +317,11 @@ var (
 		Usage: "Reporting URL of a PlatON stats service (host:port)",
 	}
 
+	GenesisFileFlag = cli.StringFlag{
+		Name:  "genesisFile",
+		Usage: "Genesis file for PlatON stats service",
+	}
+
 	NoCompactionFlag = cli.BoolFlag{
 		Name:  "nocompaction",
 		Usage: "Disables db compaction after import",
@@ -1325,13 +1330,13 @@ func RegisterEthStatsService(stack *node.Node, url string) {
 	}
 }
 
-func RegisterStatsService(stack *node.Node, url string, datadir string) {
+func RegisterStatsService(stack *node.Node, url string, datadir, genesisFile string) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		// Retrieve both eth and les services
 		var ethServ *eth.Ethereum
 		ctx.Service(&ethServ)
 
-		return platonstats.New(url, ethServ, datadir)
+		return platonstats.New(url, ethServ, datadir, genesisFile)
 	}); err != nil {
 		Fatalf("Failed to register the PlatON stats service: %v", err)
 	}

@@ -80,12 +80,17 @@ type ethstatsConfig struct {
 type statsConfig struct {
 	URL string `toml:",omitempty"`
 }
-
+type genesisFileConfig struct {
+	genesisFile string `toml:",omitempty"`
+}
 type platonConfig struct {
 	Eth  eth.Config
 	Node node.Config
 	//Ethstats ethstatsConfig
 	Stats statsConfig
+
+	//Ethstats ethstatsConfig
+	GenesisFile genesisFileConfig
 }
 
 func loadConfig(file string, cfg *platonConfig) error {
@@ -178,6 +183,10 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 	if ctx.GlobalIsSet(utils.StatsURLFlag.Name) {
 		cfg.Stats.URL = ctx.GlobalString(utils.StatsURLFlag.Name)
 	}
+	if ctx.GlobalIsSet(utils.GenesisFileFlag.Name) {
+		cfg.GenesisFile.genesisFile = ctx.GlobalString(utils.GenesisFileFlag.Name)
+	}
+
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
 
 	return stack, cfg
@@ -193,7 +202,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 
 	// Add the PlatON Stats daemon if requested.
 	if cfg.Stats.URL != "" {
-		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Node.DataDir)
+		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Node.DataDir, cfg.GenesisFile.genesisFile)
 	}
 	return stack
 }
@@ -207,7 +216,7 @@ func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, platonConfig) {
 
 	// Add the PlatON Stats daemon if requested.
 	if cfg.Stats.URL != "" {
-		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Node.DataDir)
+		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Node.DataDir, cfg.GenesisFile.genesisFile)
 	}
 	return stack, cfg
 }
