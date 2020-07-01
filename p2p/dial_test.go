@@ -84,7 +84,7 @@ func (t fakeTable) Lookup(discover.NodeID) []*discover.Node  { return nil }
 func (t fakeTable) Resolve(discover.NodeID) *discover.Node   { return nil }
 func (t fakeTable) ReadRandomNodes(buf []*discover.Node) int { return copy(buf, t) }
 
-// This test checks that dynamic dials are launched from discovery results.
+// This test checks that dynamic dials are launched from discovery results
 func TestDialStateDynDial(t *testing.T) {
 	runDialTest(t, dialtest{
 		init: newDialState(nil,nil, fakeTable{}, 5, nil, 75),
