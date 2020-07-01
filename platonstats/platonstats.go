@@ -407,13 +407,6 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 
 func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.GenesisData, error) {
 	genesisData := &common.GenesisData{}
-	/*hash := rawdb.ReadCanonicalHash(s.eth.ChainDb(), 0)
-	println("genesis block hash:", hash.String())
-	block := rawdb.ReadBlock(s.eth.ChainDb(), hash, 0)
-	if block == nil {
-		return nil, fmt.Errorf("cannot read genesis block")
-	}
-	*/
 	root := genesisBlock.Root()
 	tr, err := trie.NewSecure(root, trie.NewDatabase(s.ChainDb()))
 	if err != nil {
@@ -432,8 +425,7 @@ func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.Gen
 			address := common.BytesToAddress(key)
 			balance := obj.Balance
 			genesisData.AddAllocItem(address, balance)
-
-			log.Debug("alloc account", "address", address, "balance", balance)
+			log.Debug("alloc account", "address.Bech32()", address.Bech32(), "balance", balance)
 		}
 	}
 	return genesisData, nil
