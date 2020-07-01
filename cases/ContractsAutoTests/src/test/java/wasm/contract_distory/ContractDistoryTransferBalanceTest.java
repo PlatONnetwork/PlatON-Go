@@ -25,7 +25,7 @@ public class ContractDistoryTransferBalanceTest extends WASMContractPrepareTest 
             author = "hudenian", showName = "wasm.contract_distory销毁合约的余额转移至调用者账户中",sourcePrefix = "wasm")
     public void testDistoryContract() {
 
-        String transferMoney = "100000000000000000000000000000";
+        String transferMoney = "10";
 
         try {
             prepare();
@@ -37,7 +37,9 @@ public class ContractDistoryTransferBalanceTest extends WASMContractPrepareTest 
 
             //合约销毁前往合约转账
             Transfer transfer = new Transfer(web3j, transactionManager);
-            transfer.sendFunds(contractAddress, new BigDecimal(transferMoney), Convert.Unit.VON).send();
+            TransactionReceipt transactionReceiptTransfer = transfer.sendFunds(contractAddress, new BigDecimal(transferMoney), Convert.Unit.VON).send();
+
+            collector.logStepPass("transfer.status：" + transactionReceiptTransfer.getStatus() + ",hash" + transactionReceiptTransfer.getTransactionHash() + ", gas used:" + transactionReceiptTransfer.getGasUsed());
 
             //查询当前调用者余额
             BigInteger originBalance = web3j.platonGetBalance(credentials.getAddress(chainId), DefaultBlockParameterName.LATEST).send().getBalance();
