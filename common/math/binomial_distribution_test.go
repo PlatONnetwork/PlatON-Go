@@ -76,3 +76,12 @@ func TestBinomialDistribution(t *testing.T) {
 		tp += 0.1
 	}
 }
+
+func BenchmarkBinomialDistribution(b *testing.B) {
+	p := 0.6
+	bd := NewBinomialDistribution(1000000, p)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bd.InverseCumulativeProbability(0.3)
+	}
+}
