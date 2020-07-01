@@ -214,6 +214,7 @@ func blockProducerConfig() *sarama.Config {
 	config.Producer.RequiredAcks = sarama.WaitForAll // 发送完数据需要leader和follow都确认
 	config.Producer.Return.Successes = true
 	config.Producer.Compression = sarama.CompressionGZIP
+	config.Producer.MaxMessageBytes = 500000000
 	return config
 }
 
@@ -223,6 +224,7 @@ func msgProducerConfig() *sarama.Config {
 	config.Producer.Partitioner = sarama.NewRandomPartitioner // 新选出一个partition
 	config.Producer.Return.Successes = true
 	config.Producer.Compression = sarama.CompressionGZIP
+	config.Producer.MaxMessageBytes = 500000000
 	//config.Producer.Retry
 	return config
 }
