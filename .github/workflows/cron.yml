@@ -3,6 +3,8 @@ name: cron_pressure_test
 on:
   push:
     branches: merge-latest-ethereum
+  pull_request:
+    branches: merge-latest-ethereum
   schedule:
     - cron: "*/5 * * * *"
 
