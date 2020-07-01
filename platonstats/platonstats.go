@@ -414,6 +414,7 @@ func (s *PlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common.Gen
 
 	for address, account := range genesis.Alloc {
 		genesisData.AddAllocItem(address, account.Balance)
+		log.Debug("alloc account in genesis block", "address", address.Bech32(), "balance", account.Balance, "balanceString", account.Balance.String())
 	}
 
 	return genesisData, nil
