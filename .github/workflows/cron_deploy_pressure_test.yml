@@ -1,4 +1,4 @@
-name: cron_pressure_test
+name: cron_deploy_pressure_test
 
 on:
   schedule:
