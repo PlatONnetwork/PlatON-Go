@@ -361,9 +361,8 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 
+		//stats: 收集创世块中，预先分配的账户余额
 		genesisDataCollector.AddAllocItem(addr, account.Balance)
-		log.Info("collect genesis block alloc", "address", addr.Bech32(), "balance", account.Balance)
-
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
 	log.Debug("genesisIssuance", "amount", genesisIssuance)

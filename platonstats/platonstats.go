@@ -300,10 +300,10 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 
 	json, err := json.Marshal(statsBlockExt)
 	if err != nil {
-		log.Error("marshal platon stats block message to json string error", "blockNumber=", block.NumberU64(), "err", err)
+		log.Error("marshal platon stats block message to json string error", "blockNumber", block.NumberU64(), "err", err)
 		return err
 	} else {
-		log.Info("marshal platon stats block", "blockNumber=", block.NumberU64(), "json", string(json))
+		log.Info("marshal platon stats block", "blockNumber", block.NumberU64(), "json", string(json))
 	}
 	// send message
 	msg := &sarama.ProducerMessage{
@@ -317,9 +317,9 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	partition, offset, err := s.blockProducer.SendMessage(msg)
 
 	if err != nil {
-		log.Error("send block message error.", "blockNumber=", block.NumberU64(), "error", err)
+		log.Error("send block message error", "blockNumber", block.NumberU64(), "error", err)
 	} else {
-		log.Info("send block message success.", "blockNumber=", block.NumberU64(), "partition", partition, "offset", offset)
+		log.Info("send block message success", "blockNumber", block.NumberU64(), "partition", partition, "offset", offset)
 	}
 
 	//不从statsdb中删除统计需要的过程数据。
