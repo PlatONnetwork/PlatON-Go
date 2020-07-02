@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -118,15 +116,14 @@ type Brief struct {
 }
 
 type StatsBlockExt struct {
-	BlockType   common.BlockType       `json:"blockType"`
-	EpochNo     uint64                 `json:"epochNo"`
-	NodeID      common.NodeID          `json:"nodeID,omitempty"`
-	NodeAddress common.Address         `json:"nodeAddress,omitempty"`
-	Block       map[string]interface{} `json:"block,omitempty"`
-	//Block        *blockdata           `json:"block,omitempty"`
-	Receipts     []*types.Receipt     `json:"receipts,omitempty"`
-	ExeBlockData *common.ExeBlockData `json:"exeBlockData,omitempty"`
-	GenesisData  *common.GenesisData  `json:"GenesisData,omitempty"`
+	BlockType    common.BlockType       `json:"blockType"`
+	EpochNo      uint64                 `json:"epochNo"`
+	NodeID       common.NodeID          `json:"nodeID,omitempty"`
+	NodeAddress  common.Address         `json:"nodeAddress,omitempty"`
+	Block        map[string]interface{} `json:"block,omitempty"`
+	Receipts     []*types.Receipt       `json:"receipts,omitempty"`
+	ExeBlockData *common.ExeBlockData   `json:"exeBlockData,omitempty"`
+	GenesisData  *common.GenesisData    `json:"GenesisData,omitempty"`
 }
 
 type PlatonStatsService struct {
@@ -261,7 +258,7 @@ func (s *PlatonStatsService) blockMsgLoop() {
 				}
 			}
 		} else {
-			time.Sleep(time.Microsecond * 100)
+			time.Sleep(time.Microsecond * 50)
 		}
 	}
 }
@@ -273,9 +270,9 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 
 	var err error
 	if block.NumberU64() == 0 {
-		if genesisData, err = s.scanGenesis(); err != nil {
-			log.Error("cannot read genesis block", "err", err)
-			return err
+		if genesisData = statsdb.Instance().ReadGenesisData(); genesisData == nil {
+			log.Error("cannot read genesis data", "err", err)
+			return errors.New("cannot read genesis data")
 		}
 	} else {
 		receipts = s.BlockChain().GetReceiptsByHash(block.Hash())
@@ -401,24 +398,6 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 			return
 		}
 	}
-}
-
-func (s *PlatonStatsService) scanGenesis() (*common.GenesisData, error) {
-	genesis := new(core.Genesis)
-	if err := genesis.InitGenesisAndSetEconomicConfig(s.genesisFile); err != nil {
-		log.Error("cannot load Genesis file")
-	}
-
-	genesisData := &common.GenesisData{}
-	genesisData.AddAllocItem(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
-	genesisData.AddAllocItem(xcom.CDFAccount(), xcom.CDFBalance())
-
-	for address, account := range genesis.Alloc {
-		genesisData.AddAllocItem(address, account.Balance)
-		log.Debug("alloc account in genesis block", "address", address.Bech32(), "balance", account.Balance, "balanceString", account.Balance.String())
-	}
-
-	return genesisData, nil
 }
 
 /*func convertTxs(transactions types.Transactions) []*Tx {

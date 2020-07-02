@@ -104,16 +104,49 @@ type EmbedContractTx struct {
 }
 
 type GenesisData struct {
-	AllocItemList []*AllocItem `json:"allocItemList,omitempty"`
+	AllocItemList             []*AllocItem       `json:"allocItemList,omitempty"`
+	StakingItemList           []*StakingItem     `json:"stakingItemList,omitempty"`
+	RestrictingCreateItemList []*RestrictingItem `json:"restrictingCreateItemList,omitempty"`
+	InitFundItemList          []*InitFundItem    `json:"initFundItemList,omitempty"`
 }
 type AllocItem struct {
 	Address Address  `json:"address,omitempty"`
 	Amount  *big.Int `json:"amount,omitempty"`
 }
 
+type StakingItem struct {
+	NodeID         NodeID   `json:"nodeID,omitempty"`
+	StakingAddress Address  `json:"stakingAddress,omitempty"`
+	BenefitAddress Address  `json:"benefitAddress,omitempty"`
+	NodeName       string   `json:"nodeName,omitempty"`
+	Amount         *big.Int `json:"amount,omitempty"`
+}
+
+type RestrictingItem struct {
+	From        Address    `json:"from,omitempty"`
+	DestAddress Address    `json:"destAddress,omitempty"`
+	Plans       []*big.Int `json:"plans,omitempty"`
+}
+
+type InitFundItem struct {
+	From   Address  `json:"from,omitempty"`
+	To     Address  `json:"to,omitempty"`
+	Amount *big.Int `json:"amount,omitempty"`
+}
+
 func (g *GenesisData) AddAllocItem(address Address, amount *big.Int) {
-	//todo: test
 	g.AllocItemList = append(g.AllocItemList, &AllocItem{Address: address, Amount: amount})
+}
+func (g *GenesisData) AddRestrictingCreateItem(from, to Address, plans []*big.Int) {
+	g.RestrictingCreateItemList = append(g.RestrictingCreateItemList, &RestrictingItem{From: from, DestAddress: to, Plans: plans})
+}
+
+func (g *GenesisData) AddInitFundItem(from, to Address, initAmount *big.Int) {
+	g.InitFundItemList = append(g.InitFundItemList, &InitFundItem{From: from, To: to, Amount: initAmount})
+}
+
+func (g *GenesisData) AddStakingItem(nodeID NodeID, nodeName string, stakingAddress, benefitAddress Address, amount *big.Int) {
+	g.StakingItemList = append(g.StakingItemList, &StakingItem{NodeID: nodeID, NodeName: nodeName, StakingAddress: stakingAddress, BenefitAddress: benefitAddress, Amount: amount})
 }
 
 type AdditionalIssuanceData struct {

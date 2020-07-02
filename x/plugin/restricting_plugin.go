@@ -150,7 +150,7 @@ func (rp *RestrictingPlugin) updateGenesisRestrictingPlans(plans []*big.Int, sta
 }
 
 // init the genesis restricting plans
-func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) error {
+func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(genesisDataCollector *common.GenesisData, statedb xcom.StateDB) error {
 
 	genesisAllowancePlans := []*big.Int{
 		new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18)),
@@ -168,10 +168,16 @@ func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) e
 	statedb.SubBalance(xcom.CDFAccount(), initialRelease)
 	statedb.AddBalance(vm.RewardManagerPoolAddr, initialRelease)
 
+	//stats:创世块，需要从基金账户，预先拨付资金到激励池。后端根据此数据，进行相关账户修改。
+	genesisDataCollector.AddInitFundItem(xcom.CDFAccount(), vm.RewardManagerPoolAddr, initialRelease)
+
 	//transfer 259096239LAT from CDFAccount to vm.RestrictingContractAddr
 	totalRestrictingPlan := new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18))
 	statedb.SubBalance(xcom.CDFAccount(), totalRestrictingPlan)
 	statedb.AddBalance(vm.RestrictingContractAddr, totalRestrictingPlan)
+
+	//stats:收集创世块的锁仓计划，后端和处理普通锁仓计划一样处理账户（先要把plans中的金额累计）
+	genesisDataCollector.AddRestrictingCreateItem(xcom.CDFAccount(), vm.RewardManagerPoolAddr, genesisAllowancePlans)
 
 	if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {
 		return err

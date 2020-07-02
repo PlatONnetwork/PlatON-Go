@@ -24,7 +24,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.StateDB) (common.Hash, error) {
+func genesisStakingData(genesisDataCollector *common.GenesisData, prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.StateDB) (common.Hash, error) {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init staking snapshotdb data, validatorMode is not ppos")
@@ -160,6 +160,9 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 
 		stateDB.SubBalance(xcom.CDFAccount(), new(big.Int).Set(xcom.GeneStakingAmount))
 		stateDB.AddBalance(vm.StakingContractAddr, new(big.Int).Set(xcom.GeneStakingAmount))
+
+		//stats: 收集内置质押节点信息
+		genesisDataCollector.AddStakingItem(common.NodeID(base.NodeId), base.Description.NodeName, base.StakingAddress, base.BenefitAddress, mutable.Shares)
 	}
 
 	// store the account staking Reference Count
@@ -282,7 +285,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 	return nil
 }
 
-func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.BaseDB, genesisIssue *big.Int) error {
+func genesisPluginState(genesisDataCollector *common.GenesisData, g *Genesis, statedb *state.StateDB, snapDB snapshotdb.BaseDB, genesisIssue *big.Int) error {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")
@@ -303,7 +306,7 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.Ba
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
 
-	err := plugin.NewRestrictingPlugin(nil).InitGenesisRestrictingPlans(statedb)
+	err := plugin.NewRestrictingPlugin(nil).InitGenesisRestrictingPlans(genesisDataCollector, statedb)
 	if err != nil {
 		return fmt.Errorf("Failed to init genesis restricting plans, err:%s", err.Error())
 	}

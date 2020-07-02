@@ -43,6 +43,37 @@ type StatsDB struct {
 	dbError error
 }
 
+func (db *StatsDB) WriteGenesisData(data *common.GenesisData) {
+	if data == nil {
+		return
+	}
+	blockNumber := big.NewInt(0)
+
+	if jsonBytes, err := json.Marshal(data); err != nil {
+		log.Crit("Failed to write genesis data", "err", err)
+	} else {
+		if err := db.PutLevelDB(blockNumber.Bytes(), jsonBytes); err != nil {
+			log.Crit("Failed to write genesis data", "data", common.Bytes2Hex(jsonBytes), "err", err)
+		} else {
+			log.Info("Success to write genesis data", "data", string(jsonBytes))
+		}
+	}
+}
+func (db *StatsDB) ReadGenesisData() *common.GenesisData {
+	blockNumber := big.NewInt(0)
+
+	bytes, _ := db.GetLevelDB(blockNumber.Bytes())
+	if len(bytes) == 0 {
+		return nil
+	}
+	var data common.GenesisData
+	if err := json.Unmarshal(bytes, &data); err != nil {
+		log.Crit("Failed to unmarshal genesis data", "data", common.Bytes2Hex(bytes), "err", err)
+		return nil
+	}
+	return &data
+}
+
 func (db *StatsDB) WriteExeBlockData(blockNumber *big.Int, data *common.ExeBlockData) {
 	if data == nil {
 		return
