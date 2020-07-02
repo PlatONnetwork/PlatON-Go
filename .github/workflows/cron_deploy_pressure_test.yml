@@ -2,7 +2,7 @@ name: cron_deploy_pressure_test
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "1 16 * * *"
 
 env:
   GO111MODULE: on
