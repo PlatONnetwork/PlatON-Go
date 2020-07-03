@@ -316,6 +316,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 
 	if err != nil {
 		log.Error("send block message error", "blockNumber", block.NumberU64(), "error", err)
+		return err
 	} else {
 		log.Info("send block message success", "blockNumber", block.NumberU64(), "partition", partition, "offset", offset)
 	}
