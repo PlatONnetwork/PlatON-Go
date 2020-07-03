@@ -8,6 +8,11 @@ env:
   GO111MODULE: on
 
 jobs:
+  statistics:
+    runs-on: [self-hosted, Linux, X64, deploy]
+    steps:
+       - name: Statistics_TPS
+         run: bash /opt/statistics_tps.sh
   build:
     name: Build_Deploy
     runs-on: [self-hosted, Linux, X64, deploy]
@@ -38,9 +43,6 @@ jobs:
     
     - name: Build
       run: make platon
-    
-    - name: Statistics_TPS
-      run: bash /opt/statistics_tps.sh
     
     - name: Deploy_platon
       run: bash /opt/deploy_platon.sh
