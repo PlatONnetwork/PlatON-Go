@@ -131,7 +131,6 @@ type PlatonStatsService struct {
 	kafkaUrl      string
 	eth           *eth.Ethereum // Full Ethereum service if monitoring a full node
 	datadir       string
-	genesisFile   string
 	blockProducer sarama.SyncProducer
 	msgProducer   sarama.AsyncProducer
 	stopSampleMsg chan struct{}
@@ -144,12 +143,11 @@ var (
 	platonStatsService *PlatonStatsService
 )
 
-func New(kafkaUrl string, ethServ *eth.Ethereum, datadir, genesisFile string) (*PlatonStatsService, error) {
+func New(kafkaUrl string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
 	platonStatsService = &PlatonStatsService{
-		kafkaUrl:    kafkaUrl,
-		eth:         ethServ,
-		datadir:     datadir,
-		genesisFile: genesisFile,
+		kafkaUrl: kafkaUrl,
+		eth:      ethServ,
+		datadir:  datadir,
 	}
 	if len(datadir) > 0 {
 		statsLogFile = filepath.Join(datadir, statsLogFile)
