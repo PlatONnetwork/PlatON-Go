@@ -206,7 +206,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MaxEvidenceAge:             uint32(27),
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(15),
-				ZeroProduceNumberThreshold: uint16(3),
+				ZeroProduceNumberThreshold: uint16(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -256,7 +256,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(15),
-				ZeroProduceNumberThreshold: uint16(3),
+				ZeroProduceNumberThreshold: uint16(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -306,7 +306,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(3),
-				ZeroProduceNumberThreshold: uint16(2),
+				ZeroProduceNumberThreshold: uint16(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(160),
@@ -356,7 +356,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MaxEvidenceAge:             uint32(27),
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(15),
-				ZeroProduceNumberThreshold: uint16(3),
+				ZeroProduceNumberThreshold: uint16(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
