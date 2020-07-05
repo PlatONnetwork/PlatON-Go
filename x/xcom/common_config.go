@@ -306,7 +306,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MaxEvidenceAge:             uint32(1),
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(3),
-				ZeroProduceNumberThreshold: uint16(1),
+				ZeroProduceNumberThreshold: uint16(2),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(160),
