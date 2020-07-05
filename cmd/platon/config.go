@@ -24,6 +24,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"strings"
 	"unicode"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
@@ -78,11 +79,10 @@ type ethstatsConfig struct {
 	URL string `toml:",omitempty"`
 }
 type statsConfig struct {
-	URL string `toml:",omitempty"`
+	URL        string `toml:",omitempty"`
+	BlockTopic string `toml:",omitempty"`
 }
-type genesisFileConfig struct {
-	genesisFile string `toml:",omitempty"`
-}
+
 type platonConfig struct {
 	Eth  eth.Config
 	Node node.Config
@@ -177,8 +177,17 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
 	}*/
 
-	if ctx.GlobalIsSet(utils.StatsURLFlag.Name) {
-		cfg.Stats.URL = ctx.GlobalString(utils.StatsURLFlag.Name)
+	if ctx.GlobalIsSet(utils.StatsFlag.Name) {
+		statsConfig := ctx.GlobalString(utils.StatsFlag.Name)
+		configs := strings.Split(statsConfig, ",")
+		if len(configs) == 1 {
+			cfg.Stats.URL = configs[0]
+		} else if len(configs) == 2 {
+			cfg.Stats.URL = configs[0]
+			cfg.Stats.BlockTopic = configs[1]
+		} else {
+			utils.Fatalf("Failed to parse --stats command")
+		}
 	}
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
 	return stack, cfg
@@ -193,8 +202,8 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Add the PlatON Stats daemon if requested.
-	if cfg.Stats.URL != "" {
-		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Node.DataDir)
+	if len(cfg.Stats.URL) > 0 {
+		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Node.DataDir)
 	}
 	return stack
 }
@@ -208,7 +217,7 @@ func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, platonConfig) {
 
 	// Add the PlatON Stats daemon if requested.
 	if cfg.Stats.URL != "" {
-		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Node.DataDir)
+		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Node.DataDir)
 	}
 	return stack, cfg
 }

@@ -41,7 +41,7 @@ const (
 	// history request.
 	sampleEventChanSize = 50
 
-	kafkaBlockTopic = "platon-block"
+	defaultKafkaBlockTopic = "platon-block"
 )
 
 var (
@@ -127,15 +127,16 @@ type StatsBlockExt struct {
 }
 
 type PlatonStatsService struct {
-	server        *p2p.Server // Peer-to-peer server to retrieve networking infos
-	kafkaUrl      string
-	eth           *eth.Ethereum // Full Ethereum service if monitoring a full node
-	datadir       string
-	blockProducer sarama.SyncProducer
-	msgProducer   sarama.AsyncProducer
-	stopSampleMsg chan struct{}
-	stopBlockMsg  chan struct{}
-	stopOnce      sync.Once
+	server          *p2p.Server // Peer-to-peer server to retrieve networking infos
+	kafkaUrl        string
+	kafkaBlockTopic string
+	eth             *eth.Ethereum // Full Ethereum service if monitoring a full node
+	datadir         string
+	blockProducer   sarama.SyncProducer
+	msgProducer     sarama.AsyncProducer
+	stopSampleMsg   chan struct{}
+	stopBlockMsg    chan struct{}
+	stopOnce        sync.Once
 }
 
 var (
@@ -143,11 +144,12 @@ var (
 	platonStatsService *PlatonStatsService
 )
 
-func New(kafkaUrl string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
+func New(kafkaUrl, kafkaBlockTopic string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
 	platonStatsService = &PlatonStatsService{
-		kafkaUrl: kafkaUrl,
-		eth:      ethServ,
-		datadir:  datadir,
+		kafkaUrl:        kafkaUrl,
+		kafkaBlockTopic: kafkaBlockTopic,
+		eth:             ethServ,
+		datadir:         datadir,
 	}
 	if len(datadir) > 0 {
 		statsLogFile = filepath.Join(datadir, statsLogFile)
@@ -304,8 +306,14 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		log.Info("marshal platon stats block", "blockNumber", block.NumberU64(), "json", string(json))
 	}
 	// send message
+	var blockTopic string
+	if len(s.kafkaBlockTopic) == 0 {
+		blockTopic = defaultKafkaBlockTopic
+	} else {
+		blockTopic = s.kafkaBlockTopic
+	}
 	msg := &sarama.ProducerMessage{
-		Topic:     kafkaBlockTopic,
+		Topic:     blockTopic,
 		Partition: 0,
 		Key:       sarama.StringEncoder(strconv.FormatUint(block.NumberU64(), 10)),
 		Value:     sarama.StringEncoder(string(json)),

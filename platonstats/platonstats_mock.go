@@ -35,7 +35,8 @@ type StatsServer interface {
 type MockPlatonStatsService struct {
 	server *p2p.Server // Peer-to-peer server to retrieve networking infos
 
-	kafkaUrl string
+	kafkaUrl        string
+	kafkaBlockTopic string
 	//eth      *eth.Ethereum // Full Ethereum service if monitoring a full node
 	blockChain    *core.BlockChain
 	chainDb       ethdb.Database
@@ -119,8 +120,14 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 	}
 
 	// send message
+	var blockTopic string
+	if len(s.kafkaBlockTopic) == 0 {
+		blockTopic = defaultKafkaBlockTopic
+	} else {
+		blockTopic = s.kafkaBlockTopic
+	}
 	msg := &sarama.ProducerMessage{
-		Topic:     kafkaBlockTopic,
+		Topic:     blockTopic,
 		Partition: 0,
 		Key:       sarama.StringEncoder(strconv.FormatUint(block.NumberU64(), 10)),
 		Value:     sarama.ByteEncoder(json),
