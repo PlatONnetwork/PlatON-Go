@@ -183,14 +183,6 @@ func CalActiveBlock(endVotingBlock uint64) uint64 {
 	return endVotingBlock + xcom.ElectionDistance() + 1
 }
 
-func IsSpecialBlock(blockNumber uint64) bool {
-	yes, _ := xcom.IsYearEnd(common.ZeroHash, blockNumber)
-	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || yes {
-		return true
-	}
-	return false
-}
-
 // IsBeginOfEpoch returns true if current block is the first block of a Epoch
 func IsBeginOfEpoch(blockNumber uint64) bool {
 	size := CalcBlocksEachEpoch()

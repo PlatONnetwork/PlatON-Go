@@ -1115,7 +1115,7 @@ func TestTransactionPendingMinimumAllowance(t *testing.T) {
 
 	// Create the pool to test the limit enforcement with
 	config := testTxPoolConfig
-	config.GlobalSlots = 0
+	config.GlobalSlots = 1
 
 	pool := newTestTxPool(config, params.TestChainConfig)
 	defer pool.Stop()
