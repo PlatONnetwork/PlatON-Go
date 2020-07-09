@@ -21,6 +21,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -145,11 +147,8 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 	return New(sysConfig, optConfig, ctx.EventMux, ctx)
 }
 
-// CreateBackend returns a new Backend for testing.
-func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
-
+func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 	var (
-		db    = rawdb.NewMemoryDatabase()
 		gspec = core.Genesis{
 			Config: chainConfig,
 			Alloc:  core.GenesisAlloc{},
@@ -161,7 +160,15 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 	gspec.Alloc[cvm.RewardManagerPoolAddr] = core.GenesisAccount{
 		Balance: twoBillion,
 	}
-	gspec.MustCommit(db)
+	block := gspec.MustCommit(db)
+	return gspec, block
+}
+
+// CreateBackend returns a new Backend for testing.
+func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
+
+	var db = rawdb.NewMemoryDatabase()
+	gspec, _ := CreateGenesis(db)
 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
 	cache := core.NewBlockChainCache(chain)

@@ -142,6 +142,14 @@ func BenchmarkEcrecoverSignature(b *testing.B) {
 	}
 }
 
+func BenchmarkEcrecoverSignature_nocgo(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		if _, err := SigToPub(testmsg, testsig); err != nil {
+			b.Fatal("ecrecover error", err)
+		}
+	}
+}
+
 func BenchmarkVerifySignature(b *testing.B) {
 	sig := testsig[:len(testsig)-1] // remove recovery id
 	for i := 0; i < b.N; i++ {

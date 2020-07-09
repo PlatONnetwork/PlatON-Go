@@ -27,10 +27,8 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -795,10 +793,8 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction) ([]*types.Log, error) {
 	snapForSnap, snapForState := w.current.DBSnapshot()
 
-	vmCfg := *w.vmConfig                  // value copy
-	vmCfg.VmTimeoutDuration = w.vmTimeout // set vm execution smart contract timeout duration
 	receipt, _, err := core.ApplyTransaction(w.config, w.chain, w.current.gasPool, w.current.state,
-		w.current.header, tx, &w.current.header.GasUsed, vmCfg)
+		w.current.header, tx, &w.current.header.GasUsed, *w.chain.GetVMConfig())
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "txHash", tx.Hash().String(), "err", err)
 		w.current.RevertToDBSnapshot(snapForSnap, snapForState)
@@ -1034,18 +1030,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		if w.shouldSwitch() && w.commitInnerTransaction(timestamp, blockDeadline) != nil {
 			return fmt.Errorf("commit inner transaction error")
 		}
-	}
-
-	// Short circuit if The Current Block is Special Block
-	if xutil.IsSpecialBlock(header.Number.Uint64()) {
-		if _, ok := w.engine.(consensus.Bft); ok {
-			if err := w.commit(nil, true, tstart); nil != err {
-				log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
-			}
-		} else {
-			w.updateSnapshot()
-		}
-		return nil
 	}
 
 	// Fill the block with all available pending transactions.

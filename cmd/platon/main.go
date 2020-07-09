@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elastic/gosigar"
 	"github.com/panjf2000/ants/v2"
 	"gopkg.in/urfave/cli.v1"
 
@@ -43,6 +42,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+
+	gopsutil "github.com/shirou/gopsutil/mem"
 )
 
 const (
@@ -110,7 +111,6 @@ var (
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
 		//utils.EthStatsURLFlag,
-		utils.MetricsEnabledFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
@@ -138,6 +138,7 @@ var (
 	//}
 
 	metricsFlags = []cli.Flag{
+		utils.MetricsEnabledFlag,
 		utils.MetricsEnableInfluxDBFlag,
 		utils.MetricsInfluxDBEndpointFlag,
 		utils.MetricsInfluxDBDatabaseFlag,
@@ -194,8 +195,6 @@ func init() {
 		copydbCommand,
 		removedbCommand,
 		dumpCommand,
-		// See monitorcmd.go:
-		monitorCommand,
 		// See accountcmd.go:
 		accountCommand,
 		// See consolecmd.go:
@@ -244,8 +243,12 @@ func init() {
 		}
 
 		// Cap the cache allowance and tune the garbage collector
-		var mem gosigar.Mem
-		if err := mem.Get(); err == nil {
+		mem, err := gopsutil.VirtualMemory()
+		if err == nil {
+			if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
+				log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
+				mem.Total = 2 * 1024 * 1024 * 1024
+			}
 			allowance := int(mem.Total / 1024 / 1024 / 3)
 			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
 				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)

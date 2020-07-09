@@ -18,6 +18,7 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -336,6 +337,35 @@ func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
 		return stateObject.removePrefixValue(stateObject.GetState(self.db, key))
 	}
 	return []byte{}
+}
+
+type proofList [][]byte
+
+func (n *proofList) Put(key []byte, value []byte) error {
+	*n = append(*n, value)
+	return nil
+}
+
+func (n *proofList) Delete(key []byte) error {
+	panic("not supported")
+}
+
+// GetProof returns the MerkleProof for a given Account
+func (s *StateDB) GetProof(a common.Address) ([][]byte, error) {
+	var proof proofList
+	err := s.trie.Prove(crypto.Keccak256(a.Bytes()), 0, &proof)
+	return [][]byte(proof), err
+}
+
+// GetProof returns the StorageProof for given key
+func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, error) {
+	var proof proofList
+	trie := s.StorageTrie(a)
+	if trie == nil {
+		return proof, errors.New("storage trie for requested address does not exist")
+	}
+	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
+	return [][]byte(proof), err
 }
 
 // GetCommittedState retrieves a value from the given account's committed storage trie.
@@ -703,9 +733,9 @@ func (self *StateDB) createObject(addr common.Address) (newobj, prev *stateObjec
 //
 // Carrying over the balance ensures that Ether doesn't disappear.
 func (self *StateDB) CreateAccount(addr common.Address) {
-	new, prev := self.createObject(addr)
+	newObj, prev := self.createObject(addr)
 	if prev != nil {
-		new.setBalance(prev.data.Balance)
+		newObj.setBalance(prev.data.Balance)
 	}
 }
 
