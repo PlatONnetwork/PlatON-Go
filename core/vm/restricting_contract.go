@@ -136,7 +136,11 @@ func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, e
 
 	rs := make([]restricting.BalanceResult, len(accountList))
 	for i, account := range accountList {
-		address := common.MustBech32ToAddress(account)
+		address,err := common.Bech32ToAddress(account)
+		if err != nil {
+			log.Error("Call getRestrictingBalance of RestrictingContract Bech32ToAddress Error", "account", account, "err", err)
+			continue
+		}
 		result, err := rc.Plugin.GetRestrictingBalance(address, state)
 		if err != nil {
 			rb := restricting.BalanceResult{
