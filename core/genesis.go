@@ -365,6 +365,8 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		genesisDataCollector.AddAllocItem(addr, account.Balance)
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
+
+	//总的发行量
 	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
 	var initDataStateHash = common.ZeroHash

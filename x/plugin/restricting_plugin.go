@@ -73,9 +73,11 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 	if xutil.IsEndOfEpoch(head.Number.Uint64()) {
 		expect := xutil.CalculateEpoch(head.Number.Uint64())
 		rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "currBlock", head.Number, "expectBlock", head.Number, "expectEpoch", expect)
+		//到EPOCH尾了，看看是否有需要在这个结算周期释放的锁仓计划（除创世块锁仓计划）
 		if err := rp.releaseRestricting(head.Number.Uint64(), expect, state); err != nil {
 			return err
 		}
+		//到年尾了，需要释放创世块的锁仓计划，把钱按计划释放到激励池中
 		if ok, _ := xcom.IsYearEnd(blockHash, head.Number.Uint64()); ok {
 			rp.log.Info(fmt.Sprintf("release genesis restricting plan, blocknumber:%d", head.Number.Uint64()))
 			return rp.releaseGenesisRestrictingPlans(head.Number.Uint64(), blockHash, state)
@@ -195,17 +197,21 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockNumber uint64, 
 			rp.log.Error("failed to rlp decode the genesis allowance plans", "err", err.Error())
 			return common.InternalError.Wrap(err.Error())
 		} else {
+			//剩余的锁仓计划，类似{6，5，4}这样的数组，释放时，只释放第一个计划项，把剩余的计划项，更新到锁仓计划合于中。
+			//锁仓计划合约中，只保存剩余的锁仓释放计划项
 			remains := len(genesisAllowancePlans)
 			if remains > 0 {
 				allowance := genesisAllowancePlans[0]
 				statedb.SubBalance(vm.RestrictingContractAddr, allowance)
 				statedb.AddBalance(vm.RewardManagerPoolAddr, allowance)
 
-				//stats: 增加锁仓释放项目
-				common.CollectRestrictingReleaseItem(blockNumber, vm.RewardManagerPoolAddr, allowance)
+				//stats: 增加锁仓释放计划项目
+				common.CollectRestrictingReleaseItem(blockNumber, vm.RewardManagerPoolAddr, allowance, common.Big0)
 
 				rp.log.Info("Genesis restricting plan release", "remains", remains, "allowance", allowance)
 				genesisAllowancePlans = append(genesisAllowancePlans[:0], genesisAllowancePlans[1:]...)
+
+				//保存剩余的创世块锁仓释放计划项
 				if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {
 					return err
 				}
@@ -533,10 +539,14 @@ func (rp *RestrictingPlugin) releaseRestricting(blockNumber uint64, epoch uint64
 			"restrictInfo", restrictInfo, "releaseAmount", releaseAmount)
 
 		if restrictInfo.NeedRelease.Cmp(common.Big0) > 0 {
+			//欠释放金额（该释放但是因为质押无法按时释放的资金）>0
 			//info.CachePlanAmount.Sub(info.CachePlanAmount, releaseAmount)
 			if restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
+				//锁仓可用金额==0
+				//则原欠释放的，不用欠这么多了
 				restrictInfo.NeedRelease.Sub(restrictInfo.NeedRelease, releaseAmount)
 			} else {
+				//锁仓可用金额>0
 				restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, releaseAmount)
 			}
 		} else {
@@ -546,7 +556,7 @@ func (rp *RestrictingPlugin) releaseRestricting(blockNumber uint64, epoch uint64
 				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, releaseAmount)
 
 				//stats: 增加释放列表
-				common.CollectRestrictingReleaseItem(blockNumber, account, releaseAmount)
+				common.CollectRestrictingReleaseItem(blockNumber, account, releaseAmount, common.Big0)
 
 			} else {
 				needRelease := new(big.Int).Sub(releaseAmount, canRelease)
@@ -555,7 +565,7 @@ func (rp *RestrictingPlugin) releaseRestricting(blockNumber uint64, epoch uint64
 				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, canRelease)
 
 				//stats: 增加释放列表
-				common.CollectRestrictingReleaseItem(blockNumber, account, canRelease)
+				common.CollectRestrictingReleaseItem(blockNumber, account, canRelease, needRelease)
 			}
 		}
 

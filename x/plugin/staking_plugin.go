@@ -282,10 +282,10 @@ func (sk *StakingPlugin) GetCanMutableByIrr(addr common.NodeAddress) (*staking.C
 func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
 	typ uint16, addr common.NodeAddress, can *staking.Candidate) error {
 
-	if typ == FreeVon { // from account free von
+	if typ == FreeVon { // from account free von 来自stakingAddress地址的余额
 
 		origin := state.GetBalance(can.StakingAddress)
-		if origin.Cmp(amount) < 0 {
+		if origin.Cmp(amount) < 0 { //todo?: 是否要检查origin>amount?
 			log.Error("Failed to CreateCandidate on stakingPlugin: the account free von is not Enough",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
 				"stakeAddr", can.StakingAddress, "originVon", origin, "stakingVon", amount)
@@ -295,7 +295,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		state.AddBalance(vm.StakingContractAddr, amount)
 		can.ReleasedHes = amount
 
-	} else if typ == RestrictVon { //  from account RestrictingPlan von
+	} else if typ == RestrictVon { //  from account RestrictingPlan von， 来自staking创建的锁仓计划的金额
 
 		err := rt.PledgeLockFunds(can.StakingAddress, amount, state)
 		if nil != err {

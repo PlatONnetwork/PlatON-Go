@@ -295,6 +295,7 @@ func genesisPluginState(genesisDataCollector *common.GenesisData, g *Genesis, st
 	// Store genesis yearEnd reward balance item
 
 	// Store genesis Issue for LAT
+	//保存第0年的总发行量
 	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
 
 	log.Info("Write genesis version into genesis block", "genesis version", fmt.Sprintf("%d/%s", g.Config.GenesisVersion, params.FormatVersion(g.Config.GenesisVersion)))
@@ -306,11 +307,14 @@ func genesisPluginState(genesisDataCollector *common.GenesisData, g *Genesis, st
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
 
+	//首先从CDF基金账户中，向激励池转入一笔激励奖金；并初始化创世块的锁仓释放计划，这个锁仓释放计划，以后每年末，将向CDF基金账户释放一笔钱。
 	err := plugin.NewRestrictingPlugin(nil).InitGenesisRestrictingPlans(genesisDataCollector, statedb)
 	if err != nil {
 		return fmt.Errorf("Failed to init genesis restricting plans, err:%s", err.Error())
 	}
+	//获取激励池余额
 	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
+	//把激励池最初的余额，保存到激励池的第0年可用余额中（第0年的节点的零出块惩罚、双签惩罚的惩罚金，将进入激励池，或者其他地址转入激励池的钱，都只能在第1年用户奖励，所以要SetYearEndBalance）
 	plugin.SetYearEndBalance(statedb, 0, genesisReward)
 	log.Info("Set SetYearEndBalance", "genesisReward", genesisReward)
 

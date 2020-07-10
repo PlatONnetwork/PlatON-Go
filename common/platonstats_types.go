@@ -197,6 +197,7 @@ type UnstakingRefundItem struct {
 type RestrictingReleaseItem struct {
 	DestAddress   Address  `json:"destAddress,omitempty,omitempty"` //释放地址
 	ReleaseAmount *big.Int `json:"releaseAmount,omitempty"`         //释放金额
+	LackingAmount *big.Int `json:"lackingAmount,omitempty"`         //欠释放金额
 }
 
 var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
@@ -251,10 +252,10 @@ func CollectUnstakingRefundItem(blockNumber uint64, nodeId NodeID, nodeAddress N
 	}
 }
 
-func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, releaseAmount *big.Int) {
+func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, releaseAmount *big.Int, lackingAmount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
-		log.Debug("CollectRestrictingReleaseItem", "blockNumber", blockNumber, "destAddress", destAddress, "releaseAmount", releaseAmount)
-		exeBlockData.RestrictingReleaseItemList = append(exeBlockData.RestrictingReleaseItemList, &RestrictingReleaseItem{DestAddress: destAddress, ReleaseAmount: releaseAmount})
+		log.Debug("CollectRestrictingReleaseItem", "blockNumber", blockNumber, "destAddress", destAddress, "releaseAmount", releaseAmount, "lackingAmount", lackingAmount)
+		exeBlockData.RestrictingReleaseItemList = append(exeBlockData.RestrictingReleaseItemList, &RestrictingReleaseItem{DestAddress: destAddress, ReleaseAmount: releaseAmount, LackingAmount: lackingAmount})
 	}
 }
 

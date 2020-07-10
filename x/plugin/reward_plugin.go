@@ -98,6 +98,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 
 	var rewardData = &common.RewardData{}
 	if head.Number.Uint64() == common.Big1.Uint64() {
+		//第一个块，也就是第一个EPOCH，所以首先要计算第一个EPOCH的出块奖励、质押奖励
 		packageReward, stakingReward, err = rmp.CalcEpochReward(blockHash, head, state)
 		if nil != err {
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
@@ -727,23 +728,29 @@ func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *typ
 	return nil
 }
 
+//计算下一个epoch激励金；
+//特殊点：第一个epoch的激励金，是第一个epoch的第一个块来计算的。
 func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.Header, state xcom.StateDB) (*big.Int, *big.Int, error) {
+	//获取当年剩余的激励池可用金额数
 	remainReward, err := LoadRemainingReward(blockHash, rmp.db)
 	if nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
+
+	//当年年度，开始的块高，以及时间
 	yearStartBlockNumber, yearStartTime, err := LoadYearStartTime(blockHash, rmp.db)
 	if nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
+	//获取下次增发的时间
 	incIssuanceTime, err := xcom.LoadIncIssuanceTime(blockHash, rmp.db)
 	if nil != err {
 		log.Error("load incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
-	if yearStartTime == 0 {
+	if yearStartTime == 0 { //说明是链的第1块，则需要计算下次增发的时间
 		yearStartBlockNumber = head.Number.Uint64()
 		yearStartTime = head.Time.Int64()
 		incIssuanceTime = yearStartTime + int64(xcom.AdditionalCycleTime()*uint64(minutes))
@@ -755,10 +762,13 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 			log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return nil, nil, err
 		}
+		//获取激励池可用资金数量
 		remainReward = GetYearEndBalance(state, 0)
 		log.Info("Call CalcEpochReward, First calculation", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
 			"yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "incIssuanceTime", incIssuanceTime, "remainReward", remainReward)
 	}
+
+	//计算链年龄，也是链的增发年度数。从0开始算
 	yearNumber, err := LoadChainYearNumber(blockHash, rmp.db)
 	if nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -767,6 +777,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// When the first issuance is completed
 	// Each settlement cycle needs to update the year start time,
 	// which is used to calculate the average annual block production rate
+	//计算Epoch有多少个区块
 	epochBlocks := xutil.CalcBlocksEachEpoch()
 	if yearNumber > 0 {
 		incIssuanceNumber, err := xcom.LoadIncIssuanceNumber(blockHash, rmp.db)
@@ -774,9 +785,9 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 			return nil, nil, err
 		}
 		addition := true
-		if yearStartBlockNumber == 1 {
+		if yearStartBlockNumber == 1 { //链的第一块
 			if head.Number.Uint64() <= incIssuanceNumber {
-				addition = false
+				addition = false //
 			}
 		}
 		if addition {
@@ -818,26 +829,35 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// and the remaining rewards will all be issued in the next settlement cycle
 	remainEpoch := 1
 	if head.Time.Int64() >= incIssuanceTime {
+		//如果当前区块时间>=下个增发时间点，则下个增发被推迟一个epoch，激励池中本年度可用资金，将在接下来的epoch中分配完。
+		//todo:那推迟后的增发块高，是否需要更新到db中？
 		epochTotalReward.Add(epochTotalReward, remainReward)
 		remainReward = new(big.Int)
 		log.Info("Call CalcEpochReward, The current time has exceeded the expected additional issue time", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"currBlockTime", head.Time.Int64(), "incIssuanceTime", incIssuanceTime, "epochTotalReward", epochTotalReward)
 	} else {
+
+		//本年度剩余时间（下次增发的时间-当前区块时间）
 		remainTime := incIssuanceTime - head.Time.Int64()
 
+		//本年度剩余区块（剩余时间/出块平均间隔）
 		remainBlocks := math.Ceil(float64(remainTime) / float64(avgPackTime))
-		if remainBlocks > float64(epochBlocks) {
+		if remainBlocks > float64(epochBlocks) { //剩余区块 > epoch区块数，则剩余epoch>1
 			remainEpoch = int(math.Ceil(remainBlocks / float64(epochBlocks)))
 		}
+		//计算剩余epoch的每个epoch的激励金额
 		epochTotalReward = new(big.Int).Div(remainReward, new(big.Int).SetInt64(int64(remainEpoch)))
 		// Subtract the total reward for the next cycle to calculate the remaining rewards to be issued
+		//如果剩余epoch=1，则激励池剩余的本年度可用金额，将全部被用来分配给剩余区块，
+		//remainReward将等于0
 		remainReward = remainReward.Sub(remainReward, epochTotalReward)
 		log.Debug("Call CalcEpochReward, Calculation of rewards for the next settlement cycle", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"currBlockTime", head.Time.Int64(), "incIssuanceTime", incIssuanceTime, "remainTime", remainTime, "remainBlocks", remainBlocks, "epochBlocks", epochBlocks,
 			"remainEpoch", remainEpoch, "remainReward", remainReward, "epochTotalReward", epochTotalReward)
 	}
 	// If the last settlement cycle is left, record the increaseIssuance block height
-	if remainEpoch == 1 {
+	if remainEpoch == 1 { //本年度还有最后一个epoch（当前块是倒数第二个epoch的最后一块）
+		//此时，可以算出下一个增发周期的区块高度了
 		incIssuanceNumber := new(big.Int).Add(head.Number, new(big.Int).SetUint64(epochBlocks)).Uint64()
 		if err := xcom.StorageIncIssuanceNumber(blockHash, rmp.db, incIssuanceNumber); nil != err {
 			return nil, nil, err
@@ -846,12 +866,15 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 			"epochBlocks", epochBlocks, "incIssuanceNumber", incIssuanceNumber)
 	}
 	// Get the total block reward and pledge reward for each settlement cycle
+	// 本年度剩余的每个epoch的出块激励金，以及质押激励金。
 	epochTotalNewBlockReward := percentageCalculation(epochTotalReward, xcom.NewBlockRewardRate())
+	//由于最后一个epoch时，本年度激励池可用余额会等于0，所以，最后一个epoch的激励金必须有出块奖励/质押奖励分完。
 	epochTotalStakingReward := new(big.Int).Sub(epochTotalReward, epochTotalNewBlockReward)
 	if err := StorageRemainingReward(blockHash, rmp.db, remainReward); nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
+	//下个epoch，每个块的出块奖励
 	newBlockReward := new(big.Int).Div(epochTotalNewBlockReward, new(big.Int).SetInt64(int64(epochBlocks)))
 	if err := StorageNewBlockReward(blockHash, rmp.db, newBlockReward); nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
