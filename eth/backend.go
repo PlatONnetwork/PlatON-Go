@@ -326,7 +326,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 		var agency consensus.Agency
-		core.NewExecutor(eth.chainConfig, eth.blockchain, vmConfig)
+		core.NewExecutor(eth.chainConfig, eth.blockchain, vmConfig, eth.txPool)
 		// validatorMode:
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go

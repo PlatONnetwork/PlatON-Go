@@ -20,7 +20,7 @@ import (
 
 const (
 	// Number of contractAddress->bool associations to keep.
-	contractCacheSize = 10000
+	contractCacheSize = 100000
 )
 
 var (
@@ -36,6 +36,7 @@ type Executor struct {
 
 	workerPool    *ants.PoolWithFunc
 	contractCache *lru.Cache
+	txpool        *TxPool
 }
 
 type TaskArgs struct {
@@ -44,7 +45,7 @@ type TaskArgs struct {
 	intrinsicGas uint64
 }
 
-func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmCfg vm.Config) {
+func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmCfg vm.Config, txpool *TxPool) {
 	executorOnce.Do(func() {
 		log.Info("Init parallel executor ...")
 		executor = Executor{}
@@ -62,6 +63,7 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		executor.vmCfg = vmCfg
 		csc, _ := lru.New(contractCacheSize)
 		executor.contractCache = csc
+		executor.txpool = txpool
 	})
 }
 
@@ -77,6 +79,10 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	if len(ctx.txList) > 0 {
 		txDag := NewTxDag(exe.signer)
 		start := time.Now()
+		// load tx fromAddress from txpool by txHash
+		if !ctx.packNewBlock {
+			exe.cacheTxFromAddress(ctx.txList, exe.Signer())
+		}
 		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList, exe); err != nil {
 			return err
 		}
@@ -227,15 +233,32 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 }
 
 func (exe *Executor) isContract(address *common.Address, state *state.StateDB) bool {
-	if address == nil {
+	if address == nil { // create contract
 		return true
 	}
 	if cached, ok := exe.contractCache.Get(*address); ok {
 		return cached.(bool)
 	}
 	isContract := vm.IsPrecompiledContract(*address) || state.GetCodeSize(*address) > 0
-	if isContract {
-		exe.contractCache.Add(*address, true)
-	}
+	//if isContract {
+	//	exe.contractCache.Add(*address, true)
+	//}
+	exe.contractCache.Add(*address, isContract)
 	return isContract
+}
+
+// load tx fromAddress from txpool by txHash
+func (exe *Executor) cacheTxFromAddress(txs []*types.Transaction, signer types.Signer) {
+	hit := 0
+	for _, tx := range txs {
+		txpool_tx := exe.txpool.all.Get(tx.Hash())
+		if txpool_tx != nil {
+			fromAddress := txpool_tx.FromAddr(signer)
+			if fromAddress != (common.Address{}) {
+				tx.CacheFromAddr(signer, fromAddress)
+				hit++
+			}
+		}
+	}
+	log.Debug("Parallel execute cacheTxFromAddress", "hit", hit, "total", len(txs))
 }
