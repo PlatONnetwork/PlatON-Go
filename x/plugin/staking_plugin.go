@@ -637,9 +637,55 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 
 		}
 
-		// Second handle balabala ...
-		if err := sk.handleUnStake(state, blockNumber, blockHash, epoch, canAddr, can); nil != err {
-			return err
+		// The state of the node needs to be restored
+		if stakeItem.Recovery {
+			// If the node is reported double-signed during the lock-up period，
+			// Then you need to enter the double-signed lock-up period after the lock-up period expires and release the pledge after the expiration
+			// Otherwise, the state of the node is restored to the normal staking state
+			if can.IsDuplicateSign() {
+
+				// Because there is no need to release the staking when the zero-out block is locked, "SubAccountStakeRc" is not executed
+				if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
+					log.Error("Failed to HandleUnCandidateItem: Sub Account staking Reference Count is failed",
+						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+					return err
+				}
+
+				// Lock the node again and will release the staking
+				if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
+					log.Error("Failed to SlashCandidates on stakingPlugin: Add UnStakeItemStore failed",
+						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+					return err
+				}
+				can.CleanLowRatioStatus()
+				if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
+					log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store CandidateMutable info is failed",
+						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+					return err
+				}
+				log.Debug("Call HandleUnCandidateItem: Node double sign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+					"status", can.Status, "shares", can.Shares)
+			} else {
+
+				can.SetValided()
+				if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
+					log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store Candidate power is failed",
+						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+					return err
+				}
+				if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
+					log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store CandidateMutable info is failed",
+						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+					return err
+				}
+				log.Debug("Call HandleUnCandidateItem: Node state recovery", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+					"status", can.Status, "shares", can.Shares)
+			}
+		} else {
+			// Second handle balabala ...
+			if err := sk.handleUnStake(state, blockNumber, blockHash, epoch, canAddr, can); nil != err {
+				return err
+			}
 		}
 
 		if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
@@ -2037,16 +2083,22 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 // NotifyPunishedVerifiers
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64, queue ...*staking.SlashNodeItem) error {
 
+	// Nodes that need to be deleted from the candidate list
+	// Keep governance votes that have been voted
 	invalidNodeIdMap := make(map[discover.NodeID]struct{}, 0)
+	// Need to remove eligibility to govern voting
+	invalidRemoveGovNodeIdMap := make(map[discover.NodeID]struct{}, 0)
 
 	for _, slashItem := range queue {
 		needRemove, err := sk.toSlash(state, blockNumber, blockHash, slashItem)
 		if nil != err {
 			return err
 		}
-
 		if needRemove {
 			invalidNodeIdMap[slashItem.NodeId] = struct{}{}
+			if slashItem.SlashType != staking.LowRatio {
+				invalidRemoveGovNodeIdMap[slashItem.NodeId] = struct{}{}
+			}
 		}
 	}
 
@@ -2055,12 +2107,13 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		if err := sk.removeFromVerifiers(blockNumber, blockHash, invalidNodeIdMap); nil != err {
 			return err
 		}
-
-		// notify gov to do somethings
-		if err := gov.NotifyPunishedVerifiers(blockHash, invalidNodeIdMap, state); nil != err {
-			log.Error("Failed to SlashCandidates: call NotifyPunishedVerifiers of gov is failed", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "invalidNodeId Size", len(invalidNodeIdMap), "err", err)
-			return err
+		if len(invalidRemoveGovNodeIdMap) > 0 {
+			// notify gov to do somethings
+			if err := gov.NotifyPunishedVerifiers(blockHash, invalidRemoveGovNodeIdMap, state); nil != err {
+				log.Error("Failed to SlashCandidates: call NotifyPunishedVerifiers of gov is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "invalidNodeId Size", len(invalidRemoveGovNodeIdMap), "err", err)
+				return err
+			}
 		}
 	}
 
@@ -2121,66 +2174,74 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		return needRemove, err
 	}
 
-	slashBalance := slashItem.Amount
-
-	// slash the balance
-	if slashBalance.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
-		val, rval, err := slashBalanceFn(slashBalance, can.Released, false, slashItem.SlashType,
-			slashItem.BenefitAddr, can.StakingAddress, state)
-		if nil != err {
-			log.Error("Failed to SlashCandidates: slash Released", "slashed amount", slashBalance,
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
-			return needRemove, err
+	// If the node is already in a state of low block rate,
+	// it will not punish the behavior of low block rate again
+	// If the penalty is imposed again,
+	// the deposit may be lower than the minimum deposit and may be forced to release the pledge during the lock-in period
+	if can.IsLowRatio() && slashItem.SlashType.IsLowRatio() {
+		log.Debug("Call SlashCandidates: node has already been punished", "nodeId", slashItem.NodeId.String(), "nodeStatus", can.Status,
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "slashType", slashItem.SlashType, "slashAmount", slashItem.Amount)
+	} else {
+		slashBalance := slashItem.Amount
+		// slash the balance
+		if slashBalance.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
+			val, rval, err := slashBalanceFn(slashBalance, can.Released, false, slashItem.SlashType,
+				slashItem.BenefitAddr, can.StakingAddress, state)
+			if nil != err {
+				log.Error("Failed to SlashCandidates: slash Released", "slashed amount", slashBalance,
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
+				return needRemove, err
+			}
+			slashBalance, can.Released = val, rval
 		}
-		slashBalance, can.Released = val, rval
-	}
-	if slashBalance.Cmp(common.Big0) > 0 && can.RestrictingPlan.Cmp(common.Big0) > 0 {
-		val, rval, err := slashBalanceFn(slashBalance, can.RestrictingPlan, true, slashItem.SlashType,
-			slashItem.BenefitAddr, can.StakingAddress, state)
-		if nil != err {
-			log.Error("Failed to SlashCandidates: slash RestrictingPlan", "slashed amount", slashBalance,
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
-			return needRemove, err
+		if slashBalance.Cmp(common.Big0) > 0 && can.RestrictingPlan.Cmp(common.Big0) > 0 {
+			val, rval, err := slashBalanceFn(slashBalance, can.RestrictingPlan, true, slashItem.SlashType,
+				slashItem.BenefitAddr, can.StakingAddress, state)
+			if nil != err {
+				log.Error("Failed to SlashCandidates: slash RestrictingPlan", "slashed amount", slashBalance,
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
+				return needRemove, err
+			}
+			slashBalance, can.RestrictingPlan = val, rval
 		}
-		slashBalance, can.RestrictingPlan = val, rval
-	}
 
-	// check slash remain balance
-	if slashBalance.Cmp(common.Big0) != 0 {
-		log.Error("Failed to SlashCandidates: the ramain is not zero",
-			"slashAmount", slashItem.Amount, "slashed remain", slashBalance,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String())
-		return needRemove, staking.ErrWrongSlashVonCalc
-	}
+		// check slash remain balance
+		if slashBalance.Cmp(common.Big0) != 0 {
+			log.Error("Failed to SlashCandidates: the ramain is not zero",
+				"slashAmount", slashItem.Amount, "slashed remain", slashBalance,
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String())
+			return needRemove, staking.ErrWrongSlashVonCalc
+		}
 
-	sharesHaveBeenClean := func() bool {
-		return (can.IsInvalidLowRatioNotEnough() ||
-			can.IsInvalidLowRatioDel() ||
-			can.IsInvalidDuplicateSign() ||
-			can.IsInvalidWithdrew())
-	}
+		sharesHaveBeenClean := func() bool {
+			return (can.IsInvalidLowRatioNotEnough() ||
+				can.IsInvalidLowRatioDel() ||
+				can.IsInvalidDuplicateSign() ||
+				can.IsInvalidWithdrew())
+		}
 
-	// If the shares is zero, don't need to sub shares
-	if !sharesHaveBeenClean() {
+		// If the shares is zero, don't need to sub shares
+		if !sharesHaveBeenClean() {
 
-		// first slash and no withdrew
-		// sub Shares to effect power
-		if can.Shares.Cmp(slashItem.Amount) >= 0 {
-			can.SubShares(slashItem.Amount)
-		} else {
-			log.Error("Failed to SlashCandidates: the candidate shares is no enough", "slashType", slashItem.SlashType,
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "candidate shares",
-				can.Shares, "slash amount", slashItem.Amount)
-			panic("the candidate shares is no enough")
+			// first slash and no withdrew
+			// sub Shares to effect power
+			if can.Shares.Cmp(slashItem.Amount) >= 0 {
+				can.SubShares(slashItem.Amount)
+			} else {
+				log.Error("Failed to SlashCandidates: the candidate shares is no enough", "slashType", slashItem.SlashType,
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "candidate shares",
+					can.Shares, "slash amount", slashItem.Amount)
+				panic("the candidate shares is no enough")
+			}
 		}
 	}
 
 	// need invalid candidate status
 	// need remove from verifierList
-	needInvalid, needRemove, changeStatus := handleSlashTypeFn(blockNumber, blockHash, slashItem.SlashType, calcCandidateTotalAmount(can))
+	needInvalid, needRemove, needReturnHes, changeStatus := handleSlashTypeFn(blockNumber, blockHash, slashItem.SlashType, calcCandidateTotalAmount(can))
 
 	log.Debug("Call SlashCandidates: the status", "needInvalid", needInvalid,
-		"needRemove", needRemove, "current can.Status", can.Status, "need to superpose status", changeStatus)
+		"needRemove", needRemove, "needReturnHes", needReturnHes, "current can.Status", can.Status, "need to superpose status", changeStatus)
 
 	if needRemove {
 		if err := rm.ReturnDelegateReward(can.BenefitAddress, can.CurrentEpochDelegateReward, state); err != nil {
@@ -2189,8 +2250,10 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		can.CleanCurrentEpochDelegateReward()
 	}
 
-	if needInvalid && can.IsValid() {
-
+	// Only when the pledge is released, the pledge-related information needs to be emptied.
+	// When penalizing the low block rate first, and then report double signing, the pledged deposit in the period of hesitation should be returned
+	if needReturnHes {
+		// Return the pledged deposit during the hesitation period
 		if can.ReleasedHes.Cmp(common.Big0) > 0 {
 			state.AddBalance(can.StakingAddress, can.ReleasedHes)
 			state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
@@ -2207,23 +2270,36 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 			can.RestrictingPlanHes = new(big.Int).SetInt64(0)
 		}
 
-		// need to sub account rc
-		if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
-			log.Error("Failed to SlashCandidates: Sub Account staking Reference Count is failed", "slashType", slashItem.SlashType,
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
-			return needRemove, err
-		}
-
-		// Must be guaranteed to be the first slash to invalid can status and no active withdrewStake
-		if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
-			log.Error("Failed to SlashCandidates on stakingPlugin: Add UnStakeItemStore failed",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-			return needRemove, err
-		}
-
 		//because of deleted candidate info ,clean Shares
 		can.CleanShares()
-		can.Status |= changeStatus
+	}
+
+	if needInvalid && can.IsValid() {
+		can.AppendStatus(changeStatus)
+		// Only when the pledge is released, the pledge-related information needs to be emptied.
+		if needReturnHes {
+			// need to sub account rc
+			// Only need to be executed if the pledge is released
+			if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
+				log.Error("Failed to SlashCandidates: Sub Account staking Reference Count is failed", "slashType", slashItem.SlashType,
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
+				return needRemove, err
+			}
+			// Must be guaranteed to be the first slash to invalid can status and no active withdrewStake
+			if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
+				log.Error("Failed to SlashCandidates on stakingPlugin: Add UnStakeItemStore failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+				return needRemove, err
+			}
+		} else {
+			// Add a freeze message, after the freeze is over, it can return to normal state
+			if err := sk.addRecoveryUnStakeItem(blockNumber, blockHash, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
+				log.Error("Failed to SlashCandidates on stakingPlugin: addRecoveryUnStakeItem failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+				return needRemove, err
+			}
+		}
+
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to SlashCandidates on stakingPlugin: Store CandidateMutable info is failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -2239,7 +2315,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 			return needRemove, err
 		}
 
-		can.Status |= changeStatus
+		can.AppendStatus(changeStatus)
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to SlashCandidates: Store CandidateMutable is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2247,8 +2323,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		}
 
 	} else {
-
-		can.Status |= changeStatus
+		can.AppendStatus(changeStatus)
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to SlashCandidates: Store CandidateMutable is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2296,32 +2371,34 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 	return nil
 }
 
-func handleSlashTypeFn(blockNumber uint64, blockHash common.Hash, slashType staking.CandidateStatus, remain *big.Int) (bool, bool, staking.CandidateStatus) {
+func handleSlashTypeFn(blockNumber uint64, blockHash common.Hash, slashType staking.CandidateStatus, remain *big.Int) (bool, bool, bool, staking.CandidateStatus) {
 
-	var needInvalid, needRemove bool         // need invalid candidate status And need remove from verifierList
-	var changeStatus staking.CandidateStatus // need to add this status
+	var needInvalid, needRemove, needReturnHes bool // need invalid candidate status And need remove from verifierList,Refund of pledged deposits during hesitation period
+	var changeStatus staking.CandidateStatus        // need to add this status
 
 	switch slashType {
 	case staking.LowRatio:
-
 		if ok, _ := CheckStakeThreshold(blockNumber, blockHash, remain); !ok {
 			changeStatus |= staking.NotEnough
-			changeStatus |= staking.Invalided
-			needInvalid = true
-			needRemove = true
+			needReturnHes = true
 		}
+		changeStatus |= staking.Invalided
+		needInvalid = true
+		needRemove = true
 	case staking.LowRatioDel:
 		changeStatus |= staking.Invalided
 		needInvalid = true
 		needRemove = true
+		needReturnHes = true
 	case staking.DuplicateSign:
 		changeStatus |= staking.Invalided
 		needInvalid = true
 		needRemove = true
+		needReturnHes = true
 	}
 	changeStatus |= slashType
 
-	return needInvalid, needRemove, changeStatus
+	return needInvalid, needRemove, needReturnHes, changeStatus
 }
 
 func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
@@ -3370,7 +3447,27 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 		"govenance max end vote epoch", maxEndVoteEpoch, "unstake item target Epoch", targetEpoch,
 		"nodeId", nodeId.String())
 
-	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum); nil != err {
+	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, false); nil != err {
+		return err
+	}
+	return nil
+}
+
+func (sk *StakingPlugin) addRecoveryUnStakeItem(blockNumber uint64, blockHash common.Hash, nodeId discover.NodeID,
+	canAddr common.NodeAddress, stakingBlockNum uint64) error {
+
+	duration, err := gov.GovernZeroProduceFreezeDuration(blockNumber, blockHash)
+	if nil != err {
+		return err
+	}
+
+	targetEpoch := xutil.CalculateEpoch(blockNumber) + duration
+
+	log.Debug("Call addRecoveryUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber,
+		"duration", duration, "unstake item target Epoch", targetEpoch,
+		"nodeId", nodeId.String())
+
+	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, true); nil != err {
 		return err
 	}
 	return nil

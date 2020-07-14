@@ -65,6 +65,7 @@ const (
 	KeyRewardPerMaxChangeRange    = "rewardPerMaxChangeRange"
 	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
 	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
+	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
 )
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
@@ -862,4 +863,18 @@ func GovernIncreaseIssuanceRatio(blockNumber uint64, blockHash common.Hash) (uin
 	}
 
 	return uint16(value), nil
+}
+
+func GovernZeroProduceFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceFreezeDuration, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint64(value), nil
 }
