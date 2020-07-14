@@ -3,19 +3,17 @@ package core
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/hashicorp/golang-lru"
+	"github.com/panjf2000/ants/v2"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
-
-	"github.com/panjf2000/ants/v2"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -204,7 +202,12 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	fromObj.SubBalance(subTotal)
 	fromObj.SetNonce(fromObj.GetNonce() + 1)
 
-	toObj := ctx.GetState().GetOrNewParallelStateObject(*msg.To())
+	var toObj *state.ParallelStateObject
+	if msg.From() == *msg.To() {
+		toObj = fromObj
+	} else {
+		toObj = ctx.GetState().GetOrNewParallelStateObject(*msg.To())
+	}
 	toObj.AddBalance(msg.Value())
 
 	ctx.buildTransferSuccessResult(idx, fromObj, toObj, intrinsicGas, minerEarnings)
