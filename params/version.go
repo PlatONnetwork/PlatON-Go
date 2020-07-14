@@ -24,11 +24,11 @@ const (
 	//These versions are meaning the current code version.
 	VersionMajor = 0          // Major version component of the current release
 	VersionMinor = 13         // Minor version component of the current release
-	VersionPatch = 0          // Patch version component of the current release
+	VersionPatch = 1          // Patch version component of the current release
 	VersionMeta  = "unstable" // Version metadata to append to the version string
 
 	//CAUTION: DO NOT MODIFY THIS ONCE THE CHAIN HAS BEEN INITIALIZED!!!
-	GenesisVersion = uint32(0<<16 | 13<<8 | 0)
+	GenesisVersion = uint32(0<<16 | 13<<8 | 1)
 )
 
 // Version holds the textual version string.
