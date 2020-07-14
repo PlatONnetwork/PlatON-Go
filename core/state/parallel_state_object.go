@@ -23,8 +23,7 @@ func (parallelObject *ParallelStateObject) GetNonce() uint64 {
 }
 
 func (parallelObject *ParallelStateObject) SetNonce(nonce uint64) {
-	//parallelObject.stateObject.setNonce(nonce)
-	parallelObject.stateObject.SetNonce(nonce)
+	parallelObject.stateObject.setNonce(nonce)
 }
 
 func (parallelObject *ParallelStateObject) GetBalance() *big.Int {

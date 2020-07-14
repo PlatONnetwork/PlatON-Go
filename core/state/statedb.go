@@ -1055,10 +1055,10 @@ func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjec
 			s.deleteStateObject(from.stateObject)
 		} else {
 			s.stateObjects[from.stateObject.address] = from.stateObject
-			s.journal.append(balanceChange{
-				account: &from.stateObject.address,
-				prev:    from.prevAmount,
-			})
+			//s.journal.append(balanceChange{
+			//	account: &from.stateObject.address,
+			//	prev:    from.prevAmount,
+			//})
 			s.stateObjectsDirty[from.stateObject.address] = struct{}{}
 		}
 	}
@@ -1070,10 +1070,10 @@ func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjec
 			s.journal.append(createObjectChange{account: &to.stateObject.address})
 		}
 		s.stateObjects[to.stateObject.address] = to.stateObject
-		s.journal.append(balanceChange{
-			account: &to.stateObject.address,
-			prev:    to.prevAmount,
-		})
+		//s.journal.append(balanceChange{
+		//	account: &to.stateObject.address,
+		//	prev:    to.prevAmount,
+		//})
 		s.stateObjectsDirty[to.stateObject.address] = struct{}{}
 	}
 }
