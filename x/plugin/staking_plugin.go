@@ -2177,9 +2177,9 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	// If the node is already in a state of low block rate,
 	// it will not punish the behavior of low block rate again
 	// If the penalty is imposed again,
-	// the deposit may be lower than the minimum deposit and may be forced to release the pledge during the lock-in period
+	// the deposit may be lower than the minimum deposit and may be forced to release the staking during the lock-in period
 	if can.IsLowRatio() && slashItem.SlashType.IsLowRatio() {
-		log.Debug("Call SlashCandidates: node has already been punished", "nodeId", slashItem.NodeId.String(), "nodeStatus", can.Status,
+		log.Info("Call SlashCandidates: node has already been punished", "nodeId", slashItem.NodeId.String(), "nodeStatus", can.Status,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "slashType", slashItem.SlashType, "slashAmount", slashItem.Amount)
 	} else {
 		slashBalance := slashItem.Amount
@@ -2250,7 +2250,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		can.CleanCurrentEpochDelegateReward()
 	}
 
-	// Only when the pledge is released, the pledge-related information needs to be emptied.
+	// Only when the staking is released, the staking-related information needs to be emptied.
 	// When penalizing the low block rate first, and then report double signing, the pledged deposit in the period of hesitation should be returned
 	if needReturnHes {
 		// Return the pledged deposit during the hesitation period
@@ -2276,7 +2276,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	if needInvalid && can.IsValid() {
 		can.AppendStatus(changeStatus)
-		// Only when the pledge is released, the pledge-related information needs to be emptied.
+		// Only when the staking is released, the staking-related information needs to be emptied.
 		if needReturnHes {
 			// need to sub account rc
 			// Only need to be executed if the pledge is released
