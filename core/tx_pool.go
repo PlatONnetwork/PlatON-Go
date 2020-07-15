@@ -1048,8 +1048,13 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	// Discarding knowing transactions
-	newTxs := make([]*types.Transaction, 0)
-	for _, tx := range txs {
+
+	// Filter out known ones without obtaining the pool lock or recovering signatures
+	var (
+		errs   = make([]error, len(txs))
+		newTxs = make([]*types.Transaction, 0)
+	)
+	for i, tx := range txs {
 		hash := tx.Hash()
 
 		if _, ok := pool.knowns.Load(hash); ok {
@@ -1065,13 +1070,17 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 			knowingTxCounter.Inc(1)
 			continue
 		}
+		_, err := types.Sender(pool.signer, tx)
+		if err != nil {
+			errs[i] = ErrInvalidSender
+			continue
+		}
 
 		newTxs = append(newTxs, tx)
 	}
 	if len(newTxs) == 0 {
-		return nil
+		return errs
 	}
-
 	errCh := make(chan interface{}, 1)
 	txExt := &txExt{newTxs, false, errCh}
 	select {
@@ -1080,6 +1089,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	case pool.txExtBuffer <- txExt:
 		return nil
 	default:
+		log.Debug("AddRemotes lost some txs")
 		return nil
 	}
 }
