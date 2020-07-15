@@ -17,6 +17,7 @@
 package cbft
 
 import (
+	"encoding/json"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -30,7 +31,7 @@ type Status struct {
 
 // API defines an exposed API function interface.
 type API interface {
-	Status() *Status
+	Status() []byte
 	Evidences() string
 	GetPrepareQC(number uint64) *types.QuorumCert
 	GetSchnorrNIZKProve() (*bls.SchnorrProof, error)
@@ -50,7 +51,13 @@ func NewPublicConsensusAPI(engine API) *PublicConsensusAPI {
 
 // ConsensusStatus returns the status data of the consensus engine.
 func (s *PublicConsensusAPI) ConsensusStatus() *Status {
-	return s.engine.Status()
+	b := s.engine.Status()
+	var status Status
+	err := json.Unmarshal(b, &status)
+	if err == nil {
+		return &status
+	}
+	return nil
 }
 
 // Evidences returns the relevant data of the verification.
