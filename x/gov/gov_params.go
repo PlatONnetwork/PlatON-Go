@@ -125,7 +125,11 @@ func initParam() []*GovernParam {
 				if nil != err {
 					return err
 				}
-				if err := xcom.CheckUnStakeFreezeDuration(num, int(age)); nil != err {
+				epochNumber, err := GovernZeroProduceFreezeDuration(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckUnStakeFreezeDuration(num, int(age), int(epochNumber)); nil != err {
 					return err
 				}
 

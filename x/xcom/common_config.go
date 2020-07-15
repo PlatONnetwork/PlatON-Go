@@ -418,11 +418,13 @@ func CheckMaxValidators(num int) error {
 	return nil
 }
 
-func CheckUnStakeFreezeDuration(duration, maxEvidenceAge int) error {
+func CheckUnStakeFreezeDuration(duration, maxEvidenceAge, zeroProduceFreezeDuration int) error {
 	if duration <= maxEvidenceAge || duration > CeilUnStakeFreezeDuration {
 		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnStakeFreezeDuration must be (%d, %d]", maxEvidenceAge, CeilUnStakeFreezeDuration))
 	}
-
+	if duration <= zeroProduceFreezeDuration || duration > CeilUnStakeFreezeDuration {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnStakeFreezeDuration must be (%d, %d]", zeroProduceFreezeDuration, CeilUnStakeFreezeDuration))
+	}
 	return nil
 }
 
@@ -549,7 +551,7 @@ func CheckEconomicModel() error {
 		return err
 	}
 
-	if err := CheckUnStakeFreezeDuration(int(ec.Staking.UnStakeFreezeDuration), int(ec.Slashing.MaxEvidenceAge)); nil != err {
+	if err := CheckUnStakeFreezeDuration(int(ec.Staking.UnStakeFreezeDuration), int(ec.Slashing.MaxEvidenceAge), int(ec.Slashing.ZeroProduceFreezeDuration)); nil != err {
 		return err
 	}
 
