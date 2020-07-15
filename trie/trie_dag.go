@@ -2,6 +2,7 @@ package trie
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -74,7 +75,7 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 			collapsed.Val = hash
 		}
 
-		id := xxhash.Sum64(append(prefix, nc.Key...))
+		id := xxhash.Sum64(byteutil.Concat(prefix, nc.Key...))
 		td.nodes[id] = &dagNode{
 			collapsed: collapsed,
 			cached:    cached,
@@ -102,7 +103,7 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 			dagNode.idx = int(prefix[len(prefix)-1])
 		}
 
-		id := xxhash.Sum64(append(prefix, fullNodeSuffix...))
+		id := xxhash.Sum64(byteutil.Concat(prefix, fullNodeSuffix...))
 		td.nodes[id] = dagNode
 		td.dag.addVertex(id)
 		if pid > 0 {
@@ -113,7 +114,7 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 			for i := 0; i < 16; i++ {
 				if cached.Children[i] != nil {
 					cn := cached.Children[i]
-					td.internalAddVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, byte(i)), cn, false)
+					td.internalAddVertexAndEdge(byteutil.Concat(prefix, fullNodeSuffix...), byteutil.Concat(prefix, byte(i)), cn, false)
 				}
 			}
 		}
@@ -138,9 +139,9 @@ func (td *trieDag) delVertexAndEdgeByNode(prefix []byte, n node) {
 	var id uint64
 	switch nc := n.(type) {
 	case *shortNode:
-		id = xxhash.Sum64(append(prefix, nc.Key...))
+		id = xxhash.Sum64(byteutil.Concat(prefix, nc.Key...))
 	case *fullNode:
-		id = xxhash.Sum64(append(prefix, fullNodeSuffix...))
+		id = xxhash.Sum64(byteutil.Concat(prefix, fullNodeSuffix...))
 	}
 	td.delVertexAndEdgeByID(id)
 }

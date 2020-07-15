@@ -293,12 +293,9 @@ func PrintNodeID(nodeID discover.NodeID) string {
 	return hex.EncodeToString(nodeID.Bytes()[:8])
 }
 
-/*func RTrim(src []byte) []byte {
-	var pos int
-	for pos = len(src); pos > 0; pos-- {
-		if src[pos-1] != '\x00' {
-			break
-		}
-	}
-	return src[:pos]
-}*/
+func Concat(s1 []byte, s2 ...byte) []byte {
+	r := make([]byte, len(s1)+len(s2))
+	copy(r, s1)
+	copy(r[len(s1):], s2)
+	return r
+}
