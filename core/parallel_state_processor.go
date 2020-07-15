@@ -67,6 +67,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 	}
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
+	//p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
+	statedb.IntermediateRoot(true)
 	return receipts, allLogs, *usedGas, nil
 }

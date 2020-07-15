@@ -285,7 +285,7 @@ func TestParallel_PackParallel_VerifySerial(t *testing.T) {
 
 func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header) {
 	//initState := stateDb.Copy()
-	NewExecutor(chainConfig, blockchain, blockchain.vmConfig)
+	NewExecutor(chainConfig, blockchain, blockchain.vmConfig, nil)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
 	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, nil)
@@ -331,7 +331,7 @@ func TestParallel_PackSerial_VerifySerial(t *testing.T) {
 
 func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header) {
 	//initState := stateDb.Copy()
-	NewExecutor(chainConfig, blockchain, blockchain.vmConfig)
+	NewExecutor(chainConfig, blockchain, blockchain.vmConfig, nil)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
 	//start := time.Now()

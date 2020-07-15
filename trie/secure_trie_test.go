@@ -230,5 +230,4 @@ func TestJ(t *testing.T) {
 	_, trie, _ := makeTestSecureTrie()
 	fmt.Println(hexutil.Encode(trie.hashKey(hexutil.MustDecode("0x1000000000000000000000000000000000000004"))))
 	fmt.Println(hexutil.Encode(trie.hashKey(hexutil.MustDecode("0x1000000000000000000000000000000000000002"))))
-
 }

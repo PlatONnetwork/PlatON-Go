@@ -20,6 +20,7 @@ package trie
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -211,14 +212,14 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 		// If the whole key matches, keep this short node as is
 		// and only update the value.
 		if matchlen == len(n.Key) {
-			dirty, nn, err := t.insert(n.Val, append(prefix, key[:matchlen]...), append(prefix, key[:matchlen]...), key[matchlen:], value)
+			dirty, nn, err := t.insert(n.Val, byteutil.Concat(prefix, key[:matchlen]...), byteutil.Concat(prefix, key[:matchlen]...), key[matchlen:], value)
 			if !dirty || err != nil {
 				return false, n, err
 			}
 			rn := &shortNode{n.Key, nn, t.newFlag()}
 			if t.dag != nil {
 				//fmt.Printf("257: del vtx -> prefix: %x\n", append(prefix, n.Key...))
-				t.dag.delVertexAndEdge(append(prefix, n.Key...))
+				t.dag.delVertexAndEdge(byteutil.Concat(prefix, n.Key...))
 				t.dag.addVertexAndEdge(fprefix, prefix, rn)
 			}
 			return true, rn, nil
@@ -227,19 +228,19 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 		branch := &fullNode{flags: t.newFlag()}
 		pprefix := common.CopyBytes(prefix)
 		if matchlen > 0 {
-			pprefix = append(pprefix, key[:matchlen]...)
+			pprefix = byteutil.Concat(pprefix, key[:matchlen]...)
 		}
-		pprefix = append(pprefix, fullNodeSuffix...)
+		pprefix = byteutil.Concat(pprefix, fullNodeSuffix...)
 		if t.dag != nil {
 			//fmt.Printf("281: del vtx -> prefix: %x\n", append(prefix, n.Key...))
-			t.dag.delVertexAndEdge(append(prefix, n.Key...))
+			t.dag.delVertexAndEdge(byteutil.Concat(prefix, n.Key...))
 		}
 		var err error
-		_, branch.Children[n.Key[matchlen]], err = t.insert(nil, pprefix, append(prefix, n.Key[:matchlen+1]...), n.Key[matchlen+1:], n.Val)
+		_, branch.Children[n.Key[matchlen]], err = t.insert(nil, pprefix, byteutil.Concat(prefix, n.Key[:matchlen+1]...), n.Key[matchlen+1:], n.Val)
 		if err != nil {
 			return false, nil, err
 		}
-		_, branch.Children[key[matchlen]], err = t.insert(nil, pprefix, append(prefix, key[:matchlen+1]...), key[matchlen+1:], value)
+		_, branch.Children[key[matchlen]], err = t.insert(nil, pprefix, byteutil.Concat(prefix, key[:matchlen+1]...), key[matchlen+1:], value)
 		if err != nil {
 			return false, nil, err
 		}
@@ -252,7 +253,7 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 			return true, branch, nil
 		}
 		if t.dag != nil {
-			t.dag.addVertexAndEdge(append(prefix, key[:matchlen]...), append(prefix, key[:matchlen]...), branch)
+			t.dag.addVertexAndEdge(byteutil.Concat(prefix, key[:matchlen]...), byteutil.Concat(prefix, key[:matchlen]...), branch)
 		}
 		// Otherwise, replace it with a short node leading up to the branch.
 		nn := &shortNode{key[:matchlen], branch, t.newFlag()}
@@ -262,13 +263,13 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 		return true, nn, nil
 
 	case *fullNode:
-		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, fullNodeSuffix...), append(prefix, key[0]), key[1:], value)
+		dirty, nn, err := t.insert(n.Children[key[0]], byteutil.Concat(prefix, fullNodeSuffix...), byteutil.Concat(prefix, key[0]), key[1:], value)
 		if !dirty || err != nil {
 			return false, n, err
 		}
 		if t.dag != nil {
 			//fmt.Printf("302: del vtx -> prefix: %x\n", append(prefix, fullNodeSuffix...))
-			t.dag.delVertexAndEdge(append(prefix, fullNodeSuffix...))
+			t.dag.delVertexAndEdge(byteutil.Concat(prefix, fullNodeSuffix...))
 		}
 		n = n.copy()
 		n.flags = t.newFlag()
@@ -281,7 +282,7 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 	case nil:
 		if t.dag != nil {
 			//fmt.Printf("320: del vtx -> prefix: %x\n", append(prefix, key...))
-			t.dag.delVertexAndEdge(append(prefix, key...))
+			t.dag.delVertexAndEdge(byteutil.Concat(prefix, key...))
 		}
 		nn := &shortNode{key, value, t.newFlag()}
 		if t.dag != nil {
@@ -325,8 +326,10 @@ func (t *Trie) TryDelete(key []byte) error {
 	if err != nil {
 		return err
 	}
-	t.dag.delVertexAndEdgeByNode(nil, t.root)
-	t.dag.addVertexAndEdge(nil, nil, n)
+	if t.dag != nil {
+		t.dag.delVertexAndEdgeByNode(nil, t.root)
+		t.dag.addVertexAndEdge(nil, nil, n)
+	}
 	t.root = n
 	return nil
 }
@@ -344,7 +347,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 		if matchlen == len(key) {
 			if t.dag != nil {
 				//fmt.Printf("382: del vtx -> prefix: %x\n", append(prefix, key...))
-				t.dag.delVertexAndEdge(append(prefix, key...))
+				t.dag.delVertexAndEdge(byteutil.Concat(prefix, key...))
 			}
 			return true, nil, nil // remove n entirely for whole matches
 		}
@@ -352,13 +355,13 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 		// from the subtrie. Child can never be nil here since the
 		// subtrie must contain at least two other values with keys
 		// longer than n.Key.
-		dirty, child, err := t.delete(n.Val, append(prefix, key[:len(n.Key)]...), key[len(n.Key):])
+		dirty, child, err := t.delete(n.Val, byteutil.Concat(prefix, key[:len(n.Key)]...), key[len(n.Key):])
 		if !dirty || err != nil {
 			return false, n, err
 		}
 		if t.dag != nil {
 			//fmt.Printf("397: del vtx -> prefix: %x\n", append(prefix, n.Key...))
-			t.dag.delVertexAndEdge(append(prefix, n.Key...))
+			t.dag.delVertexAndEdge(byteutil.Concat(prefix, n.Key...))
 		}
 		switch child := child.(type) {
 		case *shortNode:
@@ -370,25 +373,25 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			// other nodes.
 			if t.dag != nil {
 				//fmt.Printf("405: del vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
-				t.dag.delVertexAndEdgeByNode(append(prefix, concat(n.Key, child.Key...)...), child.Val)
+				t.dag.delVertexAndEdgeByNode(byteutil.Concat(prefix, byteutil.Concat(n.Key, child.Key...)...), child.Val)
 				//fmt.Printf("407: del vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
-				t.dag.delVertexAndEdgeByNode(append(prefix, n.Key...), child)
+				t.dag.delVertexAndEdgeByNode(byteutil.Concat(prefix, n.Key...), child)
 				//fmt.Printf("409: add vtx -> prefix: %x\n", append(prefix, concat(n.Key, child.Key...)...))
-				t.dag.addVertexAndEdge(append(prefix, concat(n.Key, child.Key...)...), append(prefix, concat(n.Key, child.Key...)...), child.Val)
+				t.dag.addVertexAndEdge(byteutil.Concat(prefix, byteutil.Concat(n.Key, child.Key...)...), byteutil.Concat(prefix, byteutil.Concat(n.Key, child.Key...)...), child.Val)
 			}
-			return true, &shortNode{concat(n.Key, child.Key...), child.Val, t.newFlag()}, nil
+			return true, &shortNode{byteutil.Concat(n.Key, child.Key...), child.Val, t.newFlag()}, nil
 		default:
 			if t.dag != nil {
 				//fmt.Printf("414: dev vtx -> prefix: %x\n", append(prefix, n.Key...))
-				t.dag.delVertexAndEdgeByNode(append(prefix, n.Key...), child)
+				t.dag.delVertexAndEdgeByNode(byteutil.Concat(prefix, n.Key...), child)
 				//fmt.Printf("417: add vtx -> prefix: %x\n", append(prefix, n.Key...))
-				t.dag.addVertexAndEdge(append(prefix, n.Key...), append(prefix, n.Key...), child)
+				t.dag.addVertexAndEdge(byteutil.Concat(prefix, n.Key...), byteutil.Concat(prefix, n.Key...), child)
 			}
 			return true, &shortNode{n.Key, child, t.newFlag()}, nil
 		}
 
 	case *fullNode:
-		dirty, nn, err := t.delete(n.Children[key[0]], append(prefix, key[0]), key[1:])
+		dirty, nn, err := t.delete(n.Children[key[0]], byteutil.Concat(prefix, key[0]), key[1:])
 		if !dirty || err != nil {
 			return false, n, err
 		}
@@ -419,7 +422,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 		if pos >= 0 {
 			if t.dag != nil {
 				//fmt.Printf("452: del vtx -> prefix: %x\n", append(prefix, fullNodeSuffix...))
-				t.dag.delVertexAndEdge(append(prefix, fullNodeSuffix...))
+				t.dag.delVertexAndEdge(byteutil.Concat(prefix, fullNodeSuffix...))
 			}
 			if pos != 16 {
 				// If the remaining entry is a short node, it replaces
@@ -433,12 +436,12 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 					return false, nil, err
 				}
 				if cnode, ok := cnode.(*shortNode); ok {
-					k := append([]byte{byte(pos)}, cnode.Key...)
+					k := byteutil.Concat([]byte{byte(pos)}, cnode.Key...)
 					if t.dag != nil {
 						//fmt.Printf("469: del vtx -> prefix: %x\n", append(prefix, byte(pos)))
-						t.dag.delVertexAndEdgeByNode(append(prefix, byte(pos)), cnode)
+						t.dag.delVertexAndEdgeByNode(byteutil.Concat(prefix, byte(pos)), cnode)
 						//fmt.Printf("473: add vtx -> prefix: %x\n", append(prefix, k...))
-						t.dag.addVertexAndEdge(append(prefix, k...), append(prefix, k...), cnode.Val)
+						t.dag.addVertexAndEdge(byteutil.Concat(prefix, k...), byteutil.Concat(prefix, k...), cnode.Val)
 					}
 					return true, &shortNode{k, cnode.Val, t.newFlag()}, nil
 				}
@@ -447,16 +450,16 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			// containing the child.
 			if t.dag != nil {
 				//fmt.Printf("479: del vtx -> prefix: %x\n", append(prefix, byte(pos)))
-				t.dag.delVertexAndEdgeByNode(append(prefix, byte(pos)), n.Children[pos])
+				t.dag.delVertexAndEdgeByNode(byteutil.Concat(prefix, byte(pos)), n.Children[pos])
 				//fmt.Printf("484: add vtx -> prefix: %x\n", append(prefix, byte(pos)))
-				t.dag.addVertexAndEdge(append(prefix, byte(pos)), append(prefix, byte(pos)), n.Children[pos])
+				t.dag.addVertexAndEdge(byteutil.Concat(prefix, byte(pos)), byteutil.Concat(prefix, byte(pos)), n.Children[pos])
 			}
 			return true, &shortNode{[]byte{byte(pos)}, n.Children[pos], t.newFlag()}, nil
 		}
 		// n still contains at least two values and cannot be reduced.
 		if t.dag != nil {
 			//fmt.Printf("491: add vtx -> prefix: %x\n", append(prefix, key[0]))
-			t.dag.addVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, key[0]), nn)
+			t.dag.addVertexAndEdge(byteutil.Concat(prefix, fullNodeSuffix...), byteutil.Concat(prefix, key[0]), nn)
 		}
 		return true, n, nil
 
@@ -483,13 +486,6 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 	default:
 		panic(fmt.Sprintf("%T: invalid node: %v (%v)", n, n, key))
 	}
-}
-
-func concat(s1 []byte, s2 ...byte) []byte {
-	r := make([]byte, len(s1)+len(s2))
-	copy(r, s1)
-	copy(r[len(s1):], s2)
-	return r
 }
 
 func (t *Trie) resolve(n node, prefix []byte) (node, error) {

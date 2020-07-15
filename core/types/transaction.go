@@ -238,6 +238,10 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
 }
 
+func (tx *Transaction) CacheFromAddr(signer Signer, addr common.Address) {
+	tx.from.Store(sigCache{signer: signer, from: addr})
+}
+
 func (tx *Transaction) FromAddr(signer Signer) common.Address {
 	if sc := tx.from.Load(); sc != nil {
 		sigCache := sc.(sigCache)
