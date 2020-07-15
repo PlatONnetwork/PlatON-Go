@@ -1506,6 +1506,10 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 		return
 	}
 
+	// get Candidate info
+	if _, err := getCandidate(blockHash2, index); snapshotdb.IsDbNotFoundErr(err) {
+		t.Fatal(fmt.Sprintf("expect candidate info is no found, err: %v", err))
+	}
 	/**
 	Start HandleUnCandidateItem
 	*/
@@ -1516,14 +1520,66 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	}
 
 	// get Candidate info
-	if _, err := getCandidate(blockHash2, index); snapshotdb.IsDbNotFoundErr(err) {
-		t.Logf("expect candidate info is no found, err: %v", err)
-		return
-	} else {
-		t.Error("It is not expect~")
+	_, err = getCandidate(blockHash2, index)
+	assert.True(t, snapshotdb.IsDbNotFoundErr(err))
+
+	// Penalty for simulating low block rate, and then return to normal state
+	index++
+	if err := create_staking(state, blockNumber2, blockHash2, index, 0, t); nil != err {
+		t.Fatal(err)
+	}
+	canAddr, _ = xutil.NodeId2Addr(nodeIdArr[index])
+	if err := StakingInstance().addRecoveryUnStakeItem(blockNumber2.Uint64(), blockHash2, nodeIdArr[index], canAddr, blockNumber2.Uint64()); nil != err {
+		t.Error("Failed to AddUnStakeItemStore:", err)
 		return
 	}
+	epoch = xutil.CalculateEpoch(blockNumber2.Uint64())
+	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.ZeroProduceFreezeDuration())
+	assert.Nil(t, err)
 
+	recoveryCan, err := getCandidate(blockHash2, index)
+	assert.Nil(t, err)
+	assert.NotNil(t, recoveryCan)
+	assert.True(t, recoveryCan.IsValid())
+
+	// The simulation first punishes the low block rate, and then the double sign punishment.
+	// After the lock-up period of the low block rate penalty expires, the double-signing pledge freeze
+	index++
+	if err := create_staking(state, blockNumber2, blockHash2, index, 0, t); nil != err {
+		t.Fatal(err)
+	}
+	canAddr, _ = xutil.NodeId2Addr(nodeIdArr[index])
+	recoveryCan2, err := getCandidate(blockHash2, index)
+	assert.Nil(t, err)
+	recoveryCan2.AppendStatus(staking.Invalided)
+	recoveryCan2.AppendStatus(staking.LowRatio)
+	recoveryCan2.AppendStatus(staking.DuplicateSign)
+	assert.True(t, recoveryCan2.IsInvalidLowRatio())
+	assert.Nil(t, StakingInstance().EditCandidate(blockHash2, blockNumber2, canAddr, recoveryCan2))
+
+	// Handle the lock period of low block rate, and increase the double sign freeze operation
+	if err := StakingInstance().addRecoveryUnStakeItem(blockNumber2.Uint64(), blockHash2, nodeIdArr[index], canAddr, blockNumber2.Uint64()); nil != err {
+		t.Error("Failed to AddUnStakeItemStore:", err)
+		return
+	}
+	newBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*xcom.ZeroProduceFreezeDuration() + blockNumber2.Uint64())
+	epoch = xutil.CalculateEpoch(newBlockNumber.Uint64())
+	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, epoch)
+	assert.Nil(t, err)
+
+	recoveryCan2, err = getCandidate(blockHash2, index)
+	assert.Nil(t, err)
+
+	assert.NotNil(t, recoveryCan2)
+	assert.True(t, recoveryCan2.IsInvalidDuplicateSign())
+	assert.False(t, recoveryCan2.IsInvalidLowRatio())
+
+	// Handle double-signature freeze and release pledge, delete nodes
+	newBlockNumber.Add(newBlockNumber, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*xcom.UnStakeFreezeDuration()))
+	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, xcom.UnStakeFreezeDuration()+epoch)
+	assert.Nil(t, err)
+	recoveryCan2, err = getCandidate(blockHash2, index)
+	assert.True(t, snapshotdb.IsDbNotFoundErr(err))
 }
 
 func TestStakingPlugin_Delegate(t *testing.T) {
@@ -2415,7 +2471,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	}
 
 	// Will be Slashing candidate
-	slashQueue := make(staking.CandidateQueue, 2)
+	slashQueue := make(staking.CandidateQueue, 5)
 
 	for i := 0; i < 1000; i++ {
 
@@ -2459,6 +2515,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 			return
 		}
 
+		releasedHes := new(big.Int).SetUint64(10000)
 		canTmp := &staking.Candidate{
 			CandidateBase: &staking.CandidateBase{
 				NodeId:          nodeId,
@@ -2477,18 +2534,18 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 				},
 			},
 			CandidateMutable: &staking.CandidateMutable{
-				Shares: balance,
+				Shares: new(big.Int).Add(balance, releasedHes),
 
 				// Prevent null pointer initialization
-				Released:           common.Big0,
-				ReleasedHes:        common.Big0,
+				Released:           new(big.Int).Set(balance),
+				ReleasedHes:        releasedHes,
 				RestrictingPlan:    common.Big0,
 				RestrictingPlanHes: common.Big0,
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, canTmp.Shares, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2577,6 +2634,9 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash1 := slashQueue[0]
 	slash2 := slashQueue[1]
 
+	slashItemQueue := make(staking.SlashQueue, 0)
+
+	// Be punished for less than the quality deposit
 	slashItem1 := &staking.SlashNodeItem{
 		NodeId:      slash1.NodeId,
 		Amount:      slash1.Released,
@@ -2584,23 +2644,122 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 		BenefitAddr: vm.RewardManagerPoolAddr,
 	}
 
+	// Double sign penalty
 	sla := new(big.Int).Div(slash2.Released, big.NewInt(10))
 	caller := common.MustBech32ToAddress("lax1uj3zd9yz00axz7ls88ynwsp3jprhjd9ldx9qpm")
-
 	slashItem2 := &staking.SlashNodeItem{
 		NodeId:      slash2.NodeId,
 		Amount:      sla,
 		SlashType:   staking.DuplicateSign,
 		BenefitAddr: caller,
 	}
-	slashItemQueue := make(staking.SlashQueue, 0)
 	slashItemQueue = append(slashItemQueue, slashItem1)
 	slashItemQueue = append(slashItemQueue, slashItem2)
 
-	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slashItemQueue...)
+	// Penalty for two low block rates
+	slash3 := slashQueue[2]
+	slashAmount3 := new(big.Int).Div(slash3.Released, big.NewInt(10))
+	slashItem3_1 := &staking.SlashNodeItem{
+		NodeId:      slash3.NodeId,
+		Amount:      slashAmount3,
+		SlashType:   staking.LowRatio,
+		BenefitAddr: vm.RewardManagerPoolAddr,
+	}
+	slashItem3_2 := &staking.SlashNodeItem{
+		NodeId:      slash3.NodeId,
+		Amount:      slashAmount3,
+		SlashType:   staking.LowRatio,
+		BenefitAddr: vm.RewardManagerPoolAddr,
+	}
+	slashItemQueue = append(slashItemQueue, slashItem3_1)
+	slashItemQueue = append(slashItemQueue, slashItem3_2)
 
+	// Penalty for low block rate first, and then trigger double sign penalty
+	slash4 := slashQueue[3]
+	slashAmount4 := new(big.Int).Div(slash4.Released, big.NewInt(10))
+	slashItem4_1 := &staking.SlashNodeItem{
+		NodeId:      slash4.NodeId,
+		Amount:      slashAmount4,
+		SlashType:   staking.LowRatio,
+		BenefitAddr: vm.RewardManagerPoolAddr,
+	}
+	slashItem4_2 := &staking.SlashNodeItem{
+		NodeId:      slash4.NodeId,
+		Amount:      slashAmount4,
+		SlashType:   staking.DuplicateSign,
+		BenefitAddr: caller,
+	}
+	slashItemQueue = append(slashItemQueue, slashItem4_1)
+	slashItemQueue = append(slashItemQueue, slashItem4_2)
+
+	// Double signing penalty first, and then triggering low block rate penalty
+	slash5 := slashQueue[4]
+	slashAmount5 := new(big.Int).Div(slash5.Released, big.NewInt(10))
+	slashItem5_1 := &staking.SlashNodeItem{
+		NodeId:      slash5.NodeId,
+		Amount:      slashAmount5,
+		SlashType:   staking.DuplicateSign,
+		BenefitAddr: caller,
+	}
+	slashItem5_2 := &staking.SlashNodeItem{
+		NodeId:      slash5.NodeId,
+		Amount:      slashAmount5,
+		SlashType:   staking.LowRatio,
+		BenefitAddr: vm.RewardManagerPoolAddr,
+	}
+	slashItemQueue = append(slashItemQueue, slashItem5_1)
+	slashItemQueue = append(slashItemQueue, slashItem5_2)
+
+	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slashItemQueue...)
 	assert.Nil(t, err, fmt.Sprintf("Failed to SlashCandidates Second can (DuplicateSign), err: %v", err))
 
+	canAddr1, _ := xutil.NodeId2Addr(slash1.NodeId)
+	can1, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can1.Released.Cmp(new(big.Int).Sub(slash1.Released, slashItem1.Amount)) == 0)
+	assert.True(t, can1.ReleasedHes.Cmp(slash1.ReleasedHes) == 0)
+	assert.True(t, can1.Shares.Cmp(common.Big0) > 0)
+
+	canAddr2, _ := xutil.NodeId2Addr(slash2.NodeId)
+	can2, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can2.Released.Cmp(new(big.Int).Sub(slash2.Released, slashItem2.Amount)) == 0)
+	assert.True(t, can2.ReleasedHes.Cmp(common.Big0) == 0)
+	assert.True(t, can2.Shares.Cmp(common.Big0) == 0)
+
+	canAddr3, _ := xutil.NodeId2Addr(slash3.NodeId)
+	can3, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can3.Released.Cmp(new(big.Int).Sub(slash3.Released, slashAmount3)) == 0)
+	assert.True(t, can3.ReleasedHes.Cmp(slash3.ReleasedHes) == 0)
+	assert.True(t, can3.Shares.Cmp(common.Big0) > 0)
+	assert.True(t, can3.IsInvalidLowRatio())
+
+	canAddr4, _ := xutil.NodeId2Addr(slash4.NodeId)
+	can4, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can4.Released.Cmp(new(big.Int).Sub(slash4.Released, new(big.Int).Add(slashAmount4, slashAmount4))) == 0)
+	assert.True(t, can4.ReleasedHes.Cmp(common.Big0) == 0)
+	assert.True(t, can4.Shares.Cmp(common.Big0) == 0)
+	assert.True(t, can4.IsInvalidLowRatio() && can4.IsInvalidDuplicateSign())
+
+	canAddr5, _ := xutil.NodeId2Addr(slash5.NodeId)
+	can5, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can5.Released.Cmp(new(big.Int).Sub(slash5.Released, new(big.Int).Add(slashAmount5, slashAmount5))) == 0)
+	assert.True(t, can5.ReleasedHes.Cmp(common.Big0) == 0)
+	assert.True(t, can5.Shares.Cmp(common.Big0) == 0)
+	assert.True(t, can5.IsInvalidLowRatio() && can5.IsInvalidDuplicateSign())
 }
 
 func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {

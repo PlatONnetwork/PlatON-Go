@@ -107,6 +107,7 @@ type slashingConfig struct {
 	SlashBlocksReward          uint32 `json:"slashBlocksReward"`          // the number of blockReward to slashing per round
 	ZeroProduceCumulativeTime  uint16 `json:"zeroProduceCumulativeTime"`  // Count the number of zero-production blocks in this time range and check it. If it reaches a certain number of times, it can be punished (unit is consensus round)
 	ZeroProduceNumberThreshold uint16 `json:"zeroProduceNumberThreshold"` // Threshold for the number of zero production blocks. punishment is reached within the specified time range
+	ZeroProduceFreezeDuration  uint64 `json:"zeroProduceFreezeDuration"`  // Number of settlement cycles frozen after zero block penalty (unit is epochs)
 }
 
 type governanceConfig struct {
@@ -207,6 +208,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
+				ZeroProduceFreezeDuration:  uint64(20),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -257,6 +259,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
+				ZeroProduceFreezeDuration:  uint64(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -307,6 +310,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(3),
 				ZeroProduceNumberThreshold: uint16(2),
+				ZeroProduceFreezeDuration:  uint64(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(160),
@@ -357,6 +361,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(0),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
+				ZeroProduceFreezeDuration:  uint64(20),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -413,11 +418,13 @@ func CheckMaxValidators(num int) error {
 	return nil
 }
 
-func CheckUnStakeFreezeDuration(duration, maxEvidenceAge int) error {
+func CheckUnStakeFreezeDuration(duration, maxEvidenceAge, zeroProduceFreezeDuration int) error {
 	if duration <= maxEvidenceAge || duration > CeilUnStakeFreezeDuration {
 		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnStakeFreezeDuration must be (%d, %d]", maxEvidenceAge, CeilUnStakeFreezeDuration))
 	}
-
+	if duration <= zeroProduceFreezeDuration || duration > CeilUnStakeFreezeDuration {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnStakeFreezeDuration must be (%d, %d]", zeroProduceFreezeDuration, CeilUnStakeFreezeDuration))
+	}
 	return nil
 }
 
@@ -485,6 +492,13 @@ func CheckIncreaseIssuanceRatio(increaseIssuanceRatio uint16) error {
 	return nil
 }
 
+func CheckZeroProduceFreezeDuration(zeroProduceFreezeDuration uint64, unStakeFreezeDuration uint64) error {
+	if zeroProduceFreezeDuration < 1 || zeroProduceFreezeDuration >= unStakeFreezeDuration {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceFreezeDuration must be [%d, %d]", 1, unStakeFreezeDuration-1))
+	}
+	return nil
+}
+
 func CheckEconomicModel() error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
@@ -537,7 +551,7 @@ func CheckEconomicModel() error {
 		return err
 	}
 
-	if err := CheckUnStakeFreezeDuration(int(ec.Staking.UnStakeFreezeDuration), int(ec.Slashing.MaxEvidenceAge)); nil != err {
+	if err := CheckUnStakeFreezeDuration(int(ec.Staking.UnStakeFreezeDuration), int(ec.Slashing.MaxEvidenceAge), int(ec.Slashing.ZeroProduceFreezeDuration)); nil != err {
 		return err
 	}
 
@@ -586,6 +600,10 @@ func CheckEconomicModel() error {
 	}
 
 	if err := CheckIncreaseIssuanceRatio(ec.Reward.IncreaseIssuanceRatio); nil != err {
+		return err
+	}
+
+	if err := CheckZeroProduceFreezeDuration(ec.Slashing.ZeroProduceFreezeDuration, ec.Staking.UnStakeFreezeDuration); nil != err {
 		return err
 	}
 
@@ -703,6 +721,10 @@ func ZeroProduceCumulativeTime() uint16 {
 
 func ZeroProduceNumberThreshold() uint16 {
 	return ec.Slashing.ZeroProduceNumberThreshold
+}
+
+func ZeroProduceFreezeDuration() uint64 {
+	return ec.Slashing.ZeroProduceFreezeDuration
 }
 
 /******
