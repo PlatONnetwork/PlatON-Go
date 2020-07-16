@@ -458,6 +458,12 @@ func (s *Ethereum) APIs() []rpc.API {
 			Service:   s.netRPCService,
 			Public:    true,
 		},
+		{
+			Namespace: "txgen",
+			Version:   "1.0",
+			Service:   NewTxGenAPI(s),
+			Public:    true,
+		},
 	}...)
 }
 

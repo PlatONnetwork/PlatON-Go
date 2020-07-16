@@ -114,9 +114,12 @@ type BlockChain struct {
 	chainFeed     event.Feed
 	chainSideFeed event.Feed
 	chainHeadFeed event.Feed
-	logsFeed      event.Feed
-	scope         event.SubscriptionScope
-	genesisBlock  *types.Block
+
+	BlockTxsFeed event.Feed
+
+	logsFeed     event.Feed
+	scope        event.SubscriptionScope
+	genesisBlock *types.Block
 
 	mu      sync.RWMutex // global mutex for locking chain operations
 	chainmu sync.RWMutex // blockchain insertion lock
@@ -1243,6 +1246,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	if logs != nil {
 		bc.logsFeed.Send(logs)
 	}
+	bc.BlockTxsFeed.Send(block.Transactions())
 
 	return receipts, nil
 }
@@ -1624,6 +1628,11 @@ func (bc *BlockChain) SubscribeChainSideEvent(ch chan<- ChainSideEvent) event.Su
 // SubscribeLogsEvent registers a subscription of []*types.Log.
 func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	return bc.scope.Track(bc.logsFeed.Subscribe(ch))
+}
+
+// SubscribeLogsEvent registers a subscription of []*types.Log.
+func (bc *BlockChain) SubscribeBlockTxsEvent(ch chan<- types.Transactions) event.Subscription {
+	return bc.scope.Track(bc.BlockTxsFeed.Subscribe(ch))
 }
 
 // EnableDBGC enable database garbage collection.
