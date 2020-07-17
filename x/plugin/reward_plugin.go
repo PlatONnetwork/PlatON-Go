@@ -224,16 +224,22 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		currIssuance = tmp.Div(tmp, big.NewInt(10000))
 
 		// Restore the cumulative issue at this year end
-		histIssuance.Add(histIssuance, currIssuance)
+		/*histIssuance.Add(histIssuance, currIssuance)
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
+		*/
+
+		newTotalIssuance := new(big.Int).Add(histIssuance, currIssuance)
+		SetYearEndCumulativeIssue(state, thisYear, newTotalIssuance)
+		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "origTotalIssuance", histIssuance, "increment", currIssuance, "newTotalIssuance", newTotalIssuance)
 
 		//stats: 收集增发数据
 		additionalIssuance.AdditionalNo = thisYear
-		additionalIssuance.AdditionalBase = histIssuance
-		additionalIssuance.AdditionalAmount = currIssuance
-		additionalIssuance.AdditionalRate = increaseIssuanceRatio
+		additionalIssuance.AdditionalBase = histIssuance          //上年发行量
+		additionalIssuance.AdditionalAmount = currIssuance        //今年增发量 = 上年发行量 * 今年增发率
+		additionalIssuance.AdditionalRate = increaseIssuanceRatio //今年增发率
 	}
+	//今年的增发量，需要转入一部分到激励池中
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
 
