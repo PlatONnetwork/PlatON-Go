@@ -166,7 +166,7 @@ func AnalystView(beginNumber uint64, endNumber uint64, engine consensus.Engine) 
 
 func saveExcel(data []*AnalystEntity, resultPath string) error {
 	file := xlsx.NewFile()
-	sheet, err := file.AddSheet("出块统计")
+	sheet, err := file.AddSheet("Block statistics")
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -174,25 +174,25 @@ func saveExcel(data []*AnalystEntity, resultPath string) error {
 	// add title
 	row := sheet.AddRow()
 	cell_1 := row.AddCell()
-	cell_1.Value = "开始块高"
+	cell_1.Value = "Start block"
 	cell_2 := row.AddCell()
-	cell_2.Value = "结束块高"
+	cell_2.Value = "End block"
 	cell_3 := row.AddCell()
-	cell_3.Value = "view出块率"
+	cell_3.Value = "view produce block rate"
 	cell_4 := row.AddCell()
-	cell_4.Value = "view实际出块数量"
+	cell_4.Value = "View actual produce number of blocks"
 	cell_5 := row.AddCell()
-	cell_5.Value = "缺失view"
+	cell_5.Value = "Missing view"
 	cell_6 := row.AddCell()
-	cell_6.Value = "出块耗时（ms）"
+	cell_6.Value = "Produce block time (ms)"
 	cell_7 := row.AddCell()
-	cell_7.Value = "平均出块时间（ms）"
+	cell_7.Value = "Average produce block time (ms)"
 	cell_8 := row.AddCell()
-	cell_8.Value = "交易总数"
+	cell_8.Value = "Total transactions"
 	cell_9 := row.AddCell()
 	cell_9.Value = "TPS"
 	cell_10 := row.AddCell()
-	cell_10.Value = "出块间隔"
+	cell_10.Value = "Block interval"
 
 	//add data
 	for _, d := range data {
