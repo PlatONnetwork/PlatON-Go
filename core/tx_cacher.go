@@ -69,7 +69,15 @@ func (cacher *txSenderCacher) SetTxPool(txPool *TxPool) {
 func (cacher *txSenderCacher) cache() {
 	for task := range cacher.tasks {
 		for i := 0; i < len(task.txs); i += task.inc {
-			types.Sender(task.signer, task.txs[i])
+			if cacher.txPool == nil {
+				types.Sender(task.signer, task.txs[i])
+			} else {
+				if txInPool := cacher.txPool.Get(task.txs[i].Hash()); txInPool != nil {
+					task.txs[i].CacheFromAddr(task.signer, txInPool.FromAddr(task.signer))
+				} else {
+					types.Sender(task.signer, task.txs[i])
+				}
+			}
 		}
 		if task.doneCh != nil {
 			task.doneCh <- struct{}{}
@@ -137,25 +145,7 @@ func (cacher *txSenderCacher) recover(signer types.Signer, txs []*types.Transact
 func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types.Block) {
 	count := len(block.Transactions())
 	txs := make([]*types.Transaction, 0, count)
-	if cacher.txPool != nil {
-		if cacher.txPool.count() <= 200 {
-			for _, tx := range block.Transactions() {
-				txs = append(txs, tx)
-			}
-		} else {
-			for _, tx := range block.Transactions() {
-				if txInPool := cacher.txPool.Get(tx.Hash()); txInPool != nil {
-					tx = txInPool
-				} else {
-					txs = append(txs, tx)
-				}
-			}
-		}
-	} else {
-		for _, tx := range block.Transactions() {
-			txs = append(txs, tx)
-		}
-	}
+	txs = append(txs, block.Transactions()...)
 
 	// If there's nothing to recover, abort
 	if len(txs) == 0 {
