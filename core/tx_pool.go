@@ -491,7 +491,7 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
-	senderCacher.recover(pool.signer, reinject)
+	SenderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
 	log.Debug("Reinjecting stale transactions done", "count", len(reinject), "elapsed", time.Since(t))
 
@@ -599,7 +599,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
-	senderCacher.recover(pool.signer, reinject)
+	SenderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
 	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
 
@@ -1257,6 +1257,11 @@ func (pool *TxPool) Status(hashes []common.Hash) []TxStatus {
 // and nil otherwise.
 func (pool *TxPool) Get(hash common.Hash) *types.Transaction {
 	return pool.all.Get(hash)
+}
+
+// return the transactions number
+func (pool *TxPool) count() int {
+	return pool.all.Count()
 }
 
 // removeTx removes a single transaction from the queue, moving all subsequent

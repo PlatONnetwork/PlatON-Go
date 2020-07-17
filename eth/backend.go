@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -282,6 +283,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
 	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, blockChainCache)
+
+	core.SenderCacher = core.NewTxSenderCacher(runtime.NumCPU(), eth.txPool)
 
 	// mpcPool deal with mpc transactions
 	// modify By J
