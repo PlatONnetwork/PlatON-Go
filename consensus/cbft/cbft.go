@@ -945,15 +945,16 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 }
 
 // Status returns the status data of the consensus engine.
-func (cbft *Cbft) Status() *Status {
-	status := make(chan *Status, 1)
+func (cbft *Cbft) Status() []byte {
+	status := make(chan []byte, 1)
 	cbft.asyncCallCh <- func() {
 		s := &Status{
 			Tree:      cbft.blockTree,
 			State:     cbft.state,
 			Validator: cbft.IsConsensusNode(),
 		}
-		status <- s
+		b, _ := json.Marshal(s)
+		status <- b
 	}
 	return <-status
 }

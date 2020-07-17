@@ -344,7 +344,7 @@ func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) err
 
 // about UnStakeItem ...
 
-func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64) error {
+func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64, recovery bool) error {
 
 	count_key := GetUnStakeCountKey(epoch)
 
@@ -367,6 +367,7 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ca
 	unStakeItem := &UnStakeItem{
 		NodeAddress:     canAddr,
 		StakingBlockNum: stakeBlockNumber,
+		Recovery:        recovery,
 	}
 
 	item, err := rlp.EncodeToBytes(unStakeItem)
