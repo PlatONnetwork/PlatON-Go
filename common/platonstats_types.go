@@ -240,7 +240,7 @@ type ExeBlockData struct {
 func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *AdditionalIssuanceData) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		json, _ := json.Marshal(additionalIssuanceData)
-		log.Debug("CollectAdditionalIssuance", "blockNumber", blockNumber, "additionalIssuanceData", json)
+		log.Debug("CollectAdditionalIssuance", "blockNumber", blockNumber, "additionalIssuanceData", string(json))
 		exeBlockData.AdditionalIssuanceData = additionalIssuanceData
 	}
 }
