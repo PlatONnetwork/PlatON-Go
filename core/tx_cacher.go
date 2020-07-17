@@ -17,11 +17,13 @@
 package core
 
 import (
+	"runtime"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // senderCacher is a concurrent transaction sender recoverer anc cacher.
-var SenderCacher *txSenderCacher
+var SenderCacher = NewTxSenderCacher(runtime.NumCPU())
 
 // txSenderCacherRequest is a request for recovering transaction senders with a
 // specific signature scheme and caching it into the transactions themselves.
@@ -46,16 +48,20 @@ type txSenderCacher struct {
 
 //todoewTxSenderCacher creates a new transaction sender background cacher and starts
 // as many processing goroutines as allowed by the GOMAXPROCS on construction.
-func NewTxSenderCacher(threads int, txPool *TxPool) *txSenderCacher {
+func NewTxSenderCacher(threads int) *txSenderCacher {
 	cacher := &txSenderCacher{
 		tasks:   make(chan *txSenderCacherRequest, threads),
 		threads: threads,
-		txPool:  txPool,
 	}
 	for i := 0; i < threads; i++ {
 		go cacher.cache()
 	}
 	return cacher
+}
+
+// if set txpool ,will find from txpool first,if txpool have the tx,will not cal from any more
+func (cacher *txSenderCacher) SetTxPool(txPool *TxPool) {
+	cacher.txPool = txPool
 }
 
 // cache is an infinite loop, caching transaction senders from various forms of
@@ -96,41 +102,58 @@ func (cacher *txSenderCacher) recover(signer types.Signer, txs []*types.Transact
 // recoverFromBlocks recovers the senders from a batch of blocks and caches them
 // back into the same data structures. There is no validation being done, nor
 // any reaction to invalid signatures. That is up to calling code later.
-func (cacher *txSenderCacher) recoverFromBlocks(signer types.Signer, blocks []*types.Block) {
+/*func (cacher *txSenderCacher) recoverFromBlocks(signer types.Signer, blocks []*types.Block) {
 	count := 0
 	for _, block := range blocks {
 		count += len(block.Transactions())
 	}
 	txs := make([]*types.Transaction, 0, count)
-	for _, block := range blocks {
-		for _, tx := range block.Transactions() {
-			if txInPool := cacher.txPool.Get(tx.Hash()); txInPool != nil {
-				tx = txInPool
-			} else {
+	if cacher.txPool != nil {
+		for _, block := range blocks {
+			for _, tx := range block.Transactions() {
+				if txInPool := cacher.txPool.Get(tx.Hash()); txInPool != nil {
+					tx = txInPool
+				} else {
+					txs = append(txs, tx)
+				}
+			}
+		}
+	} else {
+		for _, block := range blocks {
+			for _, tx := range block.Transactions() {
 				txs = append(txs, tx)
 			}
 		}
 	}
+
 	if len(txs) > 0 {
 		cacher.recover(signer, txs)
 	}
-	return
-}
+}*/
 
+// recoverFromBlock recovers the senders from  block and caches them
+// back into the same data structures. There is no validation being done, nor
+// any reaction to invalid signatures. That is up to calling code later.
 func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types.Block) {
 	count := len(block.Transactions())
 	txs := make([]*types.Transaction, 0, count)
-	if cacher.txPool.count() <= 200 {
-		for _, tx := range block.Transactions() {
-			txs = append(txs, tx)
+	if cacher.txPool != nil {
+		if cacher.txPool.count() <= 200 {
+			for _, tx := range block.Transactions() {
+				txs = append(txs, tx)
+			}
+		} else {
+			for _, tx := range block.Transactions() {
+				if txInPool := cacher.txPool.Get(tx.Hash()); txInPool != nil {
+					tx = txInPool
+				} else {
+					txs = append(txs, tx)
+				}
+			}
 		}
 	} else {
 		for _, tx := range block.Transactions() {
-			if txInPool := cacher.txPool.Get(tx.Hash()); txInPool != nil {
-				tx = txInPool
-			} else {
-				txs = append(txs, tx)
-			}
+			txs = append(txs, tx)
 		}
 	}
 
