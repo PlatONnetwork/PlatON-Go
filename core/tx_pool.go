@@ -215,6 +215,26 @@ func (config *TxPoolConfig) sanitize() TxPoolConfig {
 		log.Warn("Sanitizing invalid txpool price bump", "provided", conf.PriceBump, "updated", DefaultTxPoolConfig.PriceBump)
 		conf.PriceBump = DefaultTxPoolConfig.PriceBump
 	}
+	if conf.AccountSlots < 1 {
+		log.Warn("Sanitizing invalid txpool account slots", "provided", conf.AccountSlots, "updated", DefaultTxPoolConfig.AccountSlots)
+		conf.AccountSlots = DefaultTxPoolConfig.AccountSlots
+	}
+	if conf.GlobalSlots < 1 {
+		log.Warn("Sanitizing invalid txpool global slots", "provided", conf.GlobalSlots, "updated", DefaultTxPoolConfig.GlobalSlots)
+		conf.GlobalSlots = DefaultTxPoolConfig.GlobalSlots
+	}
+	if conf.AccountQueue < 1 {
+		log.Warn("Sanitizing invalid txpool account queue", "provided", conf.AccountQueue, "updated", DefaultTxPoolConfig.AccountQueue)
+		conf.AccountQueue = DefaultTxPoolConfig.AccountQueue
+	}
+	if conf.GlobalQueue < 1 {
+		log.Warn("Sanitizing invalid txpool global queue", "provided", conf.GlobalQueue, "updated", DefaultTxPoolConfig.GlobalQueue)
+		conf.GlobalQueue = DefaultTxPoolConfig.GlobalQueue
+	}
+	if conf.Lifetime < 1 {
+		log.Warn("Sanitizing invalid txpool lifetime", "provided", conf.Lifetime, "updated", DefaultTxPoolConfig.Lifetime)
+		conf.Lifetime = DefaultTxPoolConfig.Lifetime
+	}
 	return conf
 }
 
@@ -364,7 +384,7 @@ func (pool *TxPool) loop() {
 		case <-pool.exitCh:
 			return
 
-		// Handle stats reporting ticks
+			// Handle stats reporting ticks
 		case <-report.C:
 			pool.mu.RLock()
 			pending, queued := pool.stats()
@@ -384,7 +404,7 @@ func (pool *TxPool) loop() {
 				return true
 			})
 
-		// Handle inactive account transaction eviction
+			// Handle inactive account transaction eviction
 		case <-evict.C:
 			pool.mu.Lock()
 			for addr := range pool.queue {
@@ -401,7 +421,7 @@ func (pool *TxPool) loop() {
 			}
 			pool.mu.Unlock()
 
-		// Handle local transaction journal rotation
+			// Handle local transaction journal rotation
 		case <-journal.C:
 			if pool.journal != nil {
 				pool.mu.Lock()
@@ -471,7 +491,7 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
-	senderCacher.recover(pool.signer, reinject)
+	SenderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
 	log.Debug("Reinjecting stale transactions done", "count", len(reinject), "elapsed", time.Since(t))
 
@@ -579,7 +599,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
-	senderCacher.recover(pool.signer, reinject)
+	SenderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
 	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
 
@@ -796,7 +816,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	// Verify inner contract tx
 	if nil != tx.To() {
 		if err := bcr.VerifyTx(tx, *(tx.To())); nil != err {
-			log.Error("Failed to verify tx", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err)
+			log.Error("Failed to verify tx", "txHash", tx.Hash().Hex(), "to", tx.To().Bech32(), "err", err)
 			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
 		}
 	}
@@ -1028,8 +1048,13 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	// Discarding knowing transactions
-	newTxs := make([]*types.Transaction, 0)
-	for _, tx := range txs {
+
+	// Filter out known ones without obtaining the pool lock or recovering signatures
+	var (
+		errs   = make([]error, len(txs))
+		newTxs = make([]*types.Transaction, 0)
+	)
+	for i, tx := range txs {
 		hash := tx.Hash()
 
 		if _, ok := pool.knowns.Load(hash); ok {
@@ -1045,13 +1070,17 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 			knowingTxCounter.Inc(1)
 			continue
 		}
+		_, err := types.Sender(pool.signer, tx)
+		if err != nil {
+			errs[i] = ErrInvalidSender
+			continue
+		}
 
 		newTxs = append(newTxs, tx)
 	}
 	if len(newTxs) == 0 {
-		return nil
+		return errs
 	}
-
 	errCh := make(chan interface{}, 1)
 	txExt := &txExt{newTxs, false, errCh}
 	select {
@@ -1060,6 +1089,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	case pool.txExtBuffer <- txExt:
 		return nil
 	default:
+		log.Debug("AddRemotes lost some txs")
 		return nil
 	}
 }
@@ -1227,6 +1257,11 @@ func (pool *TxPool) Status(hashes []common.Hash) []TxStatus {
 // and nil otherwise.
 func (pool *TxPool) Get(hash common.Hash) *types.Transaction {
 	return pool.all.Get(hash)
+}
+
+// return the transactions number
+func (pool *TxPool) count() int {
+	return pool.all.Count()
 }
 
 // removeTx removes a single transaction from the queue, moving all subsequent

@@ -21,14 +21,17 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"gopkg.in/urfave/cli.v1"
 )
 
 type outputInspect struct {
-	Address    string
+	Address    common.AddressOutput
 	PublicKey  string
 	PrivateKey string
 }
@@ -60,7 +63,7 @@ make sure to use this feature with great caution!`,
 		}
 
 		// Decrypt key with passphrase.
-		passphrase := getPassphrase(ctx)
+		passphrase := getPassphrase(ctx, false)
 		key, err := keystore.DecryptKey(keyjson, passphrase)
 		if err != nil {
 			utils.Fatalf("Error decrypting key: %v", err)
@@ -69,7 +72,7 @@ make sure to use this feature with great caution!`,
 		// Output all relevant information we can retrieve.
 		showPrivate := ctx.Bool("private")
 		out := outputInspect{
-			Address: key.Address.Hex(),
+			Address: common.NewAddressOutput(key.Address),
 			PublicKey: hex.EncodeToString(
 				crypto.FromECDSAPub(&key.PrivateKey.PublicKey)),
 		}
@@ -80,7 +83,7 @@ make sure to use this feature with great caution!`,
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)
 		} else {
-			fmt.Println("Address:       ", out.Address)
+			out.Address.Print()
 			fmt.Println("Public key:    ", out.PublicKey)
 			if showPrivate {
 				fmt.Println("Private key:   ", out.PrivateKey)

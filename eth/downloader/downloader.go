@@ -508,6 +508,14 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		func() error { return d.processHeaders(origin+1, pivoth.Number.Uint64(), bn) },
 	}
 	if d.mode == FastSync {
+		if err := d.snapshotDB.SetEmpty(); err != nil {
+			p.log.Error("set  snapshotDB empty fail")
+			return errors.New("set  snapshotDB empty fail:" + err.Error())
+		}
+		if err := d.snapshotDB.SetCurrent(pivoth.Hash(), *pivoth.Number, *pivoth.Number); err != nil {
+			p.log.Error("set snapshotdb current fail", "err", err)
+			return errors.New("set current fail")
+		}
 		fetchers = append(fetchers, func() error { return d.processFastSyncContent(latest, pivoth.Number.Uint64()) })
 		fetchers = append(fetchers, func() error { return d.fetchPPOSStorage(p, pivoth) })
 	} else if d.mode == FullSync {
@@ -671,14 +679,6 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (e
 		close(d.pposStorageDoneCh)
 	}()
 	d.pposStorageDoneCh = make(chan struct{})
-	if err := d.snapshotDB.SetEmpty(); err != nil {
-		p.log.Error("set  snapshotDB empty fail")
-		return errors.New("set  snapshotDB empty fail:" + err.Error())
-	}
-	if err := d.snapshotDB.SetCurrent(pivot.Hash(), *pivot.Number, *pivot.Number); err != nil {
-		p.log.Error("set snapshotdb current fail", "err", err)
-		return errors.New("set current fail")
-	}
 
 	if err := d.setFastSyncStatus(FastSyncBegin); err != nil {
 		return err
@@ -1621,7 +1621,15 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.ExtraData)
 	}
 	if index, err := d.blockchain.InsertChain(blocks); err != nil {
-		log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
+		if index < len(results) {
+			log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
+		} else {
+			// The InsertChain method in blockchain.go will sometimes return an out-of-bounds index,
+			// when it needs to preprocess blocks to import a sidechain.
+			// The importer will put together a new list of blocks to import, which is a superset
+			// of the blocks delivered from the downloader, and the indexing will be off.
+			log.Debug("Downloaded item processing failed on sidechain import", "index", index, "err", err)
+		}
 		return errInvalidChain
 	}
 	return nil

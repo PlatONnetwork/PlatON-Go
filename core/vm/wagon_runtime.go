@@ -2,19 +2,20 @@ package vm
 
 import (
 	"crypto/sha256"
-	"fmt"
+
+	"golang.org/x/crypto/ripemd160"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"golang.org/x/crypto/ripemd160"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/PlatONnetwork/wagon/wasm"
 
-	"math"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"math/big"
 	"reflect"
 )
@@ -23,6 +24,7 @@ type VMContext struct {
 	evm      *EVM
 	contract *Contract
 	config   Config
+	gasTable params.GasTable
 	db       StateDB
 	Input    []byte
 	CallOut  []byte
@@ -30,15 +32,6 @@ type VMContext struct {
 	readOnly bool // Whether to throw on stateful modifications
 	Revert   bool
 	Log      *WasmLogger
-}
-
-func NewVMContext(evm *EVM, contract *Contract, config Config, db StateDB) *VMContext {
-	return &VMContext{
-		evm:      evm,
-		contract: contract,
-		config:   config,
-		db:       db,
-	}
 }
 
 func addFuncExport(m *wasm.Module, sig wasm.FunctionSig, function wasm.Function, export wasm.ExportEntry) {
@@ -630,7 +623,7 @@ func checkGas(ctx *VMContext, gas uint64) {
 }
 func GasPrice(proc *exec.Process, gasPrice uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	value := ctx.evm.GasPrice.Bytes()
 	_, err := proc.WriteAt(value, int64(gasPrice))
 	if err != nil {
@@ -642,7 +635,7 @@ func GasPrice(proc *exec.Process, gasPrice uint32) uint32 {
 
 func BlockHash(proc *exec.Process, num uint64, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasExtStep)
 	blockHash := ctx.evm.GetHash(num)
 	_, err := proc.WriteAt(blockHash.Bytes(), int64(dst))
 	if nil != err {
@@ -652,31 +645,31 @@ func BlockHash(proc *exec.Process, num uint64, dst uint32) {
 
 func BlockNumber(proc *exec.Process) uint64 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	return ctx.evm.BlockNumber.Uint64()
 }
 
 func GasLimit(proc *exec.Process) uint64 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	return ctx.evm.GasLimit
 }
 
 func Gas(proc *exec.Process) uint64 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	return ctx.contract.Gas
 }
 
 func Timestamp(proc *exec.Process) int64 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	return ctx.evm.Time.Int64()
 }
 
 func Coinbase(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	coinBase := ctx.evm.Coinbase
 	_, err := proc.WriteAt(coinBase.Bytes(), int64(dst))
 	if nil != err {
@@ -686,7 +679,7 @@ func Coinbase(proc *exec.Process, dst uint32) {
 
 func Balance(proc *exec.Process, dst uint32, balance uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, ctx.gasTable.Balance)
 	var addr common.Address
 	_, err := proc.ReadAt(addr[:], int64(dst))
 	if nil != err {
@@ -702,7 +695,7 @@ func Balance(proc *exec.Process, dst uint32, balance uint32) uint32 {
 
 func Origin(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	_, err := proc.WriteAt(ctx.evm.Origin.Bytes(), int64(dst))
 	if nil != err {
 		panic(err)
@@ -711,7 +704,7 @@ func Origin(proc *exec.Process, dst uint32) {
 
 func Caller(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	_, err := proc.WriteAt(ctx.contract.caller.Address().Bytes(), int64(dst))
 	if nil != err {
 		panic(err)
@@ -721,7 +714,7 @@ func Caller(proc *exec.Process, dst uint32) {
 // define: uint8_t callValue();
 func CallValue(proc *exec.Process, dst uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	value := ctx.contract.value.Bytes()
 	_, err := proc.WriteAt(value, int64(dst))
 	if nil != err {
@@ -733,7 +726,7 @@ func CallValue(proc *exec.Process, dst uint32) uint32 {
 // define: void address(char hash[20]);
 func Address(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	_, err := proc.WriteAt(ctx.contract.Address().Bytes(), int64(dst))
 	if nil != err {
 		panic(err)
@@ -743,7 +736,20 @@ func Address(proc *exec.Process, dst uint32) {
 // define: void sha3(char *src, size_t srcLen, char *dest, size_t destLen);
 func Sha3(proc *exec.Process, src uint32, srcLen uint32, dst uint32, dstLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, Sha3DataGas*uint64(srcLen))
+	var (
+		gas      uint64
+		wordGas  uint64
+		overflow bool
+	)
+
+	if wordGas, overflow = imath.SafeMul(toWordSize(uint64(srcLen)), params.Sha3WordGas); overflow {
+		panic(errGasUintOverflow)
+	}
+	if gas, overflow = imath.SafeAdd(wordGas, params.Sha3Gas); overflow {
+		panic(errGasUintOverflow)
+	}
+
+	checkGas(ctx, gas)
 
 	data := make([]byte, srcLen)
 	_, err := proc.ReadAt(data, int64(src))
@@ -752,7 +758,7 @@ func Sha3(proc *exec.Process, src uint32, srcLen uint32, dst uint32, dstLen uint
 	}
 	hash := crypto.Keccak256(data)
 	if int(dstLen) < len(hash) {
-		panic(fmt.Errorf("dst len too short"))
+		panic(ErrWASMSha3DstToShort)
 	}
 	_, err = proc.WriteAt(hash, int64(dst))
 	if nil != err {
@@ -762,7 +768,7 @@ func Sha3(proc *exec.Process, src uint32, srcLen uint32, dst uint32, dstLen uint
 
 func CallerNonce(proc *exec.Process) uint64 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, CallIndirect)
+	checkGas(ctx, GasQuickStep)
 	addr := ctx.contract.Caller()
 	return ctx.evm.StateDB.GetNonce(addr)
 }
@@ -788,7 +794,7 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 	addr := common.BytesToAddress(address)
 
 	transfersValue := bValue.Sign() != 0
-	gas := CallContractGas
+	gas := ctx.gasTable.Calls
 	if transfersValue {
 		gas += params.CallValueTransferGas
 	}
@@ -811,11 +817,17 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 	}
 
 	_, returnGas, err := ctx.evm.Call(ctx.contract, addr, nil, gas, bValue)
+
+	var status int32
+
 	if err != nil {
-		panic(err)
+		status = -1
+	} else {
+		status = 0
 	}
 	ctx.contract.Gas += returnGas
-	return 0
+
+	return status
 }
 
 // storage external function
@@ -823,9 +835,16 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	if ctx.readOnly {
-		panic(errWASMWriteProtection)
+		panic(ErrWASMWriteProtection)
 	}
-	checkGas(ctx, StoreGas*uint64(keyLen+valLen))
+
+	switch {
+	case valLen == 0:
+		checkGas(ctx, params.SstoreClearGas)
+	default:
+		checkGas(ctx, (toWordSize(uint64(keyLen)+(uint64(valLen)))/32)*params.SstoreSetGas)
+	}
+
 	keyBuf := make([]byte, keyLen)
 	_, err := proc.ReadAt(keyBuf, int64(key))
 	if nil != err {
@@ -847,41 +866,43 @@ func GetStateLength(proc *exec.Process, key uint32, keyLen uint32) uint32 {
 		panic(err)
 	}
 	val := ctx.evm.StateDB.GetState(ctx.contract.Address(), keyBuf)
-	checkGas(ctx, StoreLenGas*uint64(len(val)))
+
+	checkGas(ctx, ctx.gasTable.SLoad)
 
 	return uint32(len(val))
 }
 
-func GetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) uint32 {
+func GetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, ctx.gasTable.SLoad)
+
 	keyBuf := make([]byte, keyLen)
 	_, err := proc.ReadAt(keyBuf, int64(key))
 	if nil != err {
 		panic(err)
 	}
 	valBuf := ctx.evm.StateDB.GetState(ctx.contract.Address(), keyBuf)
-	checkGas(ctx, StoreLenGas*uint64(len(valBuf)))
-
-	if uint32(len(valBuf)) > valLen {
-		return math.MaxUint32
+	vlen := len(valBuf)
+	if uint32(vlen) > valLen {
+		return -1
 	}
 
 	_, err = proc.WriteAt(valBuf, int64(val))
 	if nil != err {
 		panic(err)
 	}
-	return 0
+	return int32(vlen)
 }
 
 func GetInputLength(proc *exec.Process) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	return uint32(len(ctx.Input))
 }
 
 func GetInput(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, ExternalDataGas*uint64(len(ctx.Input)))
+	checkGas(ctx, GasQuickStep)
 	_, err := proc.WriteAt(ctx.Input, int64(dst))
 	if err != nil {
 		panic(err)
@@ -890,13 +911,13 @@ func GetInput(proc *exec.Process, dst uint32) {
 
 func GetCallOutputLength(proc *exec.Process) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, IndirectCallGas)
+	checkGas(ctx, GasQuickStep)
 	return uint32(len(ctx.CallOut))
 }
 
 func GetCallOutput(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, ExternalDataGas*uint64(len(ctx.CallOut)))
+	checkGas(ctx, GasQuickStep)
 	_, err := proc.WriteAt(ctx.CallOut, int64(dst))
 	if err != nil {
 		panic(err)
@@ -905,7 +926,18 @@ func GetCallOutput(proc *exec.Process, dst uint32) {
 
 func ReturnContract(proc *exec.Process, dst uint32, len uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, ExternalDataGas*uint64(len))
+	var (
+		gas      uint64
+		overflow bool
+	)
+	if gas, overflow = imath.SafeAdd(params.MemoryGas, uint64(len)); overflow {
+		panic(errGasUintOverflow)
+	}
+	if gas, overflow = imath.SafeAdd(gas, GasQuickStep); overflow {
+		panic(errGasUintOverflow)
+	}
+
+	checkGas(ctx, gas)
 	ctx.Output = make([]byte, len)
 	_, err := proc.ReadAt(ctx.Output, int64(dst))
 	if err != nil {
@@ -920,11 +952,24 @@ func Revert(proc *exec.Process) {
 }
 
 func Panic(proc *exec.Process) {
-	panic("transaction panic")
+	panic(ErrWASMPanicOp)
 }
 
 func Debug(proc *exec.Process, dst uint32, len uint32) {
 	ctx := proc.HostCtx().(*VMContext)
+	var (
+		gas      uint64
+		overflow bool
+	)
+
+	if gas, overflow = imath.SafeAdd(params.MemoryGas, toWordSize(uint64(len))); overflow {
+		panic(errGasUintOverflow)
+	}
+	if gas, overflow = imath.SafeAdd(gas, GasSlowStep); overflow {
+		panic(errGasUintOverflow)
+	}
+	checkGas(ctx, gas)
+
 	buf := make([]byte, len)
 	_, err := proc.ReadAt(buf, int64(dst))
 	if nil != err {
@@ -973,7 +1018,7 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 		bCost = new(big.Int).SetUint64(ctx.contract.Gas)
 	}
 
-	gas := CallContractGas
+	gas := ctx.gasTable.Calls
 	transfersValue := bValue.Sign() != 0
 	if transfersValue && ctx.evm.StateDB.Empty(addr) {
 		gas += params.CallNewAccountGas
@@ -1001,16 +1046,21 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 		}
 	}
 
-	//fmt.Println("Addr:", addr.String(), "Data:", input, "gas:", gas, "bCost:", bCost, "value:", value)
 	ret, returnGas, err := ctx.evm.Call(ctx.contract, addr, input, gas, bValue)
-	if err != nil {
-		panic(err)
-	}
 
+	var status int32
+
+	if err != nil {
+		status = -1
+	} else {
+		status = 0
+	}
+	if err == nil || err == errExecutionReverted {
+		ctx.CallOut = ret
+	}
 	ctx.contract.Gas += returnGas
 
-	ctx.CallOut = ret
-	return 0
+	return status
 }
 
 func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
@@ -1042,12 +1092,12 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 		bCost = new(big.Int).SetUint64(ctx.contract.Gas)
 	}
 
-	gasTemp, err := callGasWasm(ctx.contract.Gas, CallContractGas, bCost)
+	gasTemp, err := callGasWasm(ctx.contract.Gas, ctx.gasTable.Calls, bCost)
 	if nil != err {
 		panic(err)
 	}
 	ctx.evm.callGasTemp = gasTemp
-	gas, overflow := imath.SafeAdd(CallContractGas, ctx.evm.callGasTemp)
+	gas, overflow := imath.SafeAdd(ctx.gasTable.Calls, ctx.evm.callGasTemp)
 	if overflow {
 		panic(errGasUintOverflow)
 	}
@@ -1056,14 +1106,20 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 	gas = ctx.evm.callGasTemp
 
 	ret, returnGas, err := ctx.evm.DelegateCall(ctx.contract, addr, input, gas)
-	if err != nil {
-		panic(err)
-	}
 
+	var status int32
+
+	if err != nil {
+		status = -1
+	} else {
+		status = 0
+	}
+	if err == nil || err == errExecutionReverted {
+		ctx.CallOut = ret
+	}
 	ctx.contract.Gas += returnGas
 
-	ctx.CallOut = ret
-	return 0
+	return status
 }
 
 func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
@@ -1095,13 +1151,13 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 		bCost = new(big.Int).SetUint64(ctx.contract.Gas)
 	}
 
-	gasTemp, err := callGasWasm(ctx.contract.Gas, CallContractGas, bCost)
+	gasTemp, err := callGasWasm(ctx.contract.Gas, ctx.gasTable.Calls, bCost)
 	if nil != err {
 		panic(err)
 	}
 
 	ctx.evm.callGasTemp = gasTemp
-	gas, overflow := imath.SafeAdd(CallContractGas, ctx.evm.callGasTemp)
+	gas, overflow := imath.SafeAdd(ctx.gasTable.Calls, ctx.evm.callGasTemp)
 	if overflow {
 		panic(errGasUintOverflow)
 	}
@@ -1110,21 +1166,27 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	gas = ctx.evm.callGasTemp
 
 	ret, returnGas, err := ctx.evm.StaticCall(ctx.contract, addr, input, gas)
-	if err != nil {
-		panic(err)
-	}
 
+	var status int32
+
+	if err != nil {
+		status = -1
+	} else {
+		status = 0
+	}
+	if err == nil || err == errExecutionReverted {
+		ctx.CallOut = ret
+	}
 	ctx.contract.Gas += returnGas
 
-	ctx.CallOut = ret
-	return 0
+	return status
 }
 
 func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic(errWASMWriteProtection)
+		panic(ErrWASMWriteProtection)
 	}
 
 	address := make([]byte, common.AddressLength)
@@ -1136,9 +1198,9 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 
 	contractAddr := ctx.contract.Address()
 
-	gas := params.SelfdestructGas
+	gas := ctx.gasTable.Suicide
 	if ctx.evm.StateDB.Empty(addr) && ctx.evm.StateDB.GetBalance(contractAddr).Sign() != 0 {
-		gas += params.CreateBySelfdestructGas
+		gas += ctx.gasTable.CreateBySuicide
 	}
 
 	if !ctx.evm.StateDB.HasSuicided(ctx.contract.Address()) {
@@ -1147,7 +1209,7 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 	checkGas(ctx, gas)
 
 	balance := ctx.evm.StateDB.GetBalance(contractAddr)
-	//fmt.Println("sender:", ctx.contract.Caller().String(), "to:", ctx.contract.Address().String(), "receive:", addr.String(), "value:", balance)
+
 	ctx.evm.StateDB.AddBalance(addr, balance)
 
 	ctx.evm.StateDB.Suicide(contractAddr)
@@ -1159,15 +1221,13 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic(errWASMWriteProtection)
+		panic(ErrWASMWriteProtection)
 	}
 
 	// check call depth
 	if ctx.evm.depth > int(params.CallCreateDepth) {
-		panic(ErrDepth)
+		return -1
 	}
-
-	oldContract := ctx.contract.Address()
 
 	input := make([]byte, argsLen)
 	_, err := proc.ReadAt(input, int64(args))
@@ -1176,7 +1236,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	}
 
 	if len(input) == 0 {
-		panic(errWASMMigrate)
+		return -1
 	}
 
 	value := make([]byte, valLen)
@@ -1219,24 +1279,24 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	checkGas(ctx, gas)
 	gas = ctx.evm.callGasTemp
 
-	sender := ctx.contract.CallerAddress
+	sender := ctx.contract.caller.Address()
+	oldContract := ctx.contract.Address()
 
 	// check code of old contract
 	oldCode := ctx.evm.StateDB.GetCode(oldContract)
 	if len(oldCode) == 0 {
-		panic("old target contract is illegal, no contract code exists")
+		panic(ErrWASMOldContractCodeNotExists)
 	}
 
 	// check balance of sender
 	if !ctx.evm.CanTransfer(ctx.evm.StateDB, sender, bValue) {
-		panic(ErrInsufficientBalance)
+		return -1
 	}
 
-	senderNonce := ctx.evm.StateDB.GetNonce(sender)
-
+	nonce := ctx.evm.StateDB.GetNonce(oldContract)
 	// create new contract address
-	newContract := crypto.CreateAddress(sender, senderNonce)
-	ctx.evm.StateDB.SetNonce(sender, senderNonce+1)
+	newContract := crypto.CreateAddress(oldContract, nonce)
+	ctx.evm.StateDB.SetNonce(oldContract, nonce+1)
 
 	// Ensure there's no existing contract already at the designated address
 	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
@@ -1245,7 +1305,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	}
 
 	// Create a new account on the state
-	snapshot := ctx.evm.StateDB.Snapshot()
+	snapshotForSnapshotDB, snapshotForStateDB := ctx.evm.DBSnapshot()
 	ctx.evm.StateDB.CreateAccount(newContract)
 	ctx.evm.StateDB.SetNonce(newContract, 1)
 
@@ -1291,7 +1351,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
 	if maxCodeSizeExceeded || (err != nil && err != ErrCodeStoreOutOfGas) {
-		ctx.evm.StateDB.RevertToSnapshot(snapshot)
+		ctx.evm.RevertToDBSnapshot(snapshotForSnapshotDB, snapshotForStateDB)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
@@ -1301,13 +1361,10 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	if maxCodeSizeExceeded && err == nil {
 		err = errMaxCodeSizeExceeded
 	}
-
+	ctx.contract.Gas += contract.Gas
 	if nil != err {
 		panic(err)
 	}
-
-	ctx.contract.Gas = contract.Gas
-
 	_, err = proc.WriteAt(newContract.Bytes(), int64(newAddr))
 	if nil != err {
 		panic(err)
@@ -1320,7 +1377,7 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
-		panic(errWASMWriteProtection)
+		panic(ErrWASMWriteProtection)
 	}
 
 	topics := make([]common.Hash, 0)
@@ -1339,8 +1396,11 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 		}
 
 		topicCount, err := rlp.CountValues(content)
+		if nil != err {
+			panic(err)
+		}
 		if topicCount > WasmTopicNum {
-			panic("wasm event indexed count too large")
+			panic(ErrWASMEventCountToLarge)
 		}
 
 		decodeTopics := func(b []byte) ([]byte, []byte, error) {
@@ -1358,7 +1418,7 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 			}
 
 			if len(mem) > common.HashLength {
-				panic("wasm event indexed content too long")
+				panic(ErrWASMEventContentToLong)
 			}
 
 			topics = append(topics, common.BytesToHash(mem))
@@ -1413,7 +1473,17 @@ func Ecrecover(proc *exec.Process, hashPtr, sigPtr, sigLen, addrPtr uint32) int3
 
 func Ripemd160(proc *exec.Process, inputPtr, inputLen uint32, outputPtr uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, uint64(inputLen+31)/32*params.Ripemd160PerWordGas+params.Ripemd160BaseGas)
+	var (
+		gas      uint64
+		overflow bool
+	)
+	if gas, overflow = imath.SafeMul(toWordSize(uint64(inputLen)), params.Ripemd160PerWordGas); overflow {
+		panic(errGasUintOverflow)
+	}
+	if gas, overflow = imath.SafeAdd(gas, params.Ripemd160BaseGas); overflow {
+		panic(errGasUintOverflow)
+	}
+	checkGas(ctx, gas)
 
 	input := make([]byte, inputLen)
 	_, err := proc.ReadAt(input, int64(inputPtr))
@@ -1428,7 +1498,18 @@ func Ripemd160(proc *exec.Process, inputPtr, inputLen uint32, outputPtr uint32) 
 
 func Sha256(proc *exec.Process, inputPtr, inputLen uint32, outputPtr uint32) {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, uint64(inputLen)*Sha3DataGas)
+	var (
+		gas      uint64
+		overflow bool
+	)
+
+	if gas, overflow = imath.SafeMul(toWordSize(uint64(inputLen)), params.Sha256PerWordGas); overflow {
+		panic(errGasUintOverflow)
+	}
+	if gas, overflow = imath.SafeAdd(gas, params.Sha256BaseGas); overflow {
+		panic(errGasUintOverflow)
+	}
+	checkGas(ctx, gas)
 
 	input := make([]byte, inputLen)
 	_, err := proc.ReadAt(input, int64(inputPtr))

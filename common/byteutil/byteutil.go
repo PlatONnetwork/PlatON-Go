@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,7 +13,6 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
-
 
 package byteutil
 
@@ -294,12 +293,9 @@ func PrintNodeID(nodeID discover.NodeID) string {
 	return hex.EncodeToString(nodeID.Bytes()[:8])
 }
 
-/*func RTrim(src []byte) []byte {
-	var pos int
-	for pos = len(src); pos > 0; pos-- {
-		if src[pos-1] != '\x00' {
-			break
-		}
-	}
-	return src[:pos]
-}*/
+func Concat(s1 []byte, s2 ...byte) []byte {
+	r := make([]byte, len(s1)+len(s2))
+	copy(r, s1)
+	copy(r[len(s1):], s2)
+	return r
+}

@@ -69,6 +69,7 @@ func Sender(signer Signer, tx *Transaction) (common.Address, error) {
 	if err != nil {
 		return common.Address{}, err
 	}
+	//log.Debug("Sender cache1", "add", addr, "hash", tx.Hash(), "poi", fmt.Sprintf("%p", tx))
 	tx.from.Store(sigCache{signer: signer, from: addr})
 	return addr, nil
 }

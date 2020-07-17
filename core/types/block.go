@@ -177,6 +177,8 @@ type Block struct {
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
 	extraData    []byte
+
+	CalTxFromCH chan struct{}
 }
 
 // [deprecated by eth/63]
@@ -233,6 +235,16 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 // will not affect the block.
 func NewBlockWithHeader(header *Header) *Block {
 	return &Block{header: CopyHeader(header)}
+}
+
+// NewSimplifiedBlock creates a block with the given number and hash data.
+func NewSimplifiedBlock(number uint64, hash common.Hash) *Block {
+	header := &Header{
+		Number: big.NewInt(int64(number)),
+	}
+	block := NewBlockWithHeader(header)
+	block.hash.Store(hash)
+	return block
 }
 
 // CopyHeader creates a deep copy of a block header to prevent side effects from

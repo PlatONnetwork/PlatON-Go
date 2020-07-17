@@ -30,13 +30,14 @@ import (
 	"testing/quick"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/stretchr/testify/assert"
 
 	"gopkg.in/check.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -53,7 +54,7 @@ func randString(n int) string {
 // actually committing the state.
 func TestUpdateLeaks(t *testing.T) {
 	// Create an empty state database
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	//dir, _ := ioutil.TempDir("", "eth-core-bench")
 	//ethdb,err:= ethdb.NewLDBDatabase(dir,128,128)
 	state, _ := New(common.Hash{}, NewDatabase(db))
@@ -72,14 +73,15 @@ func TestUpdateLeaks(t *testing.T) {
 		state.IntermediateRoot(false)
 	}
 	// Ensure that no data was leaked into the database
-	for _, key := range db.Keys() {
-		value, _ := db.Get(key)
-		t.Errorf("State leaked into database: %x -> %x", key, value)
+	it := db.NewIterator()
+	for it.Next() {
+		t.Errorf("State leaked into database: %x -> %x", it.Key(), it.Value())
 	}
+	it.Release()
 }
 
 func TestClearParentReference(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	state, _ := New(common.Hash{}, NewDatabase(db))
 	count := 10000
 
@@ -108,8 +110,8 @@ func TestClearParentReference(t *testing.T) {
 
 func TestNewStateDBAndCopy(t *testing.T) {
 	storages := make(map[common.Address]map[string]string)
-	db := ethdb.NewMemDatabase()
-	dbc := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
+	dbc := rawdb.NewMemoryDatabase()
 
 	s1, _ := New(common.Hash{}, NewDatabase(db))
 	s1c, _ := New(common.Hash{}, NewDatabase(dbc))
@@ -181,13 +183,14 @@ func TestNewStateDBAndCopy(t *testing.T) {
 			assert.Equal(t, []byte(v), value3)
 		}
 	}
-
-	for _, k := range db.Keys() {
-		if _, err := dbc.Get(k); err != nil {
-			v, _ := db.Get(k)
-			t.Fatalf("db get error, key:%s, value:%s", hex.EncodeToString(k), hex.EncodeToString(v))
+	it := db.NewIterator()
+	for it.Next() {
+		if _, err := dbc.Get(it.Key()); err != nil {
+			v, _ := db.Get(it.Key())
+			t.Fatalf("db get error, key:%s, value:%s", hex.EncodeToString(it.Key()), hex.EncodeToString(v))
 		}
 	}
+	it.Release()
 
 	// s3->s2->s1, s1c is copy of s1. insert random kv, db is the same as dbc
 	s2 := s1.NewStateDB()
@@ -252,18 +255,20 @@ func TestNewStateDBAndCopy(t *testing.T) {
 	assert.Nil(t, s3.db.TrieDB().Commit(s1.Root(), false, true))
 	assert.Nil(t, s1cc.db.TrieDB().Commit(s1cc.Root(), false, true))
 
-	for _, k := range db.Keys() {
-		if _, err := dbc.Get(k); err != nil {
-			v, _ := db.Get(k)
-			t.Fatalf("db get error, key:%s, value:%s", hex.EncodeToString(k), hex.EncodeToString(v))
+	it2 := db.NewIterator()
+	for it2.Next() {
+		if _, err := dbc.Get(it2.Key()); err != nil {
+			v, _ := db.Get(it2.Key())
+			t.Fatalf("db get error, key:%s, value:%s", hex.EncodeToString(it2.Key()), hex.EncodeToString(v))
 		}
 	}
+	it2.Release()
 
 }
 
 func TestStateStorageValueCommit(t *testing.T) {
 	storages := make(map[common.Address]map[string]string)
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 
 	s1, _ := New(common.Hash{}, NewDatabase(db))
 
@@ -306,7 +311,7 @@ func TestStateStorageValueCommit(t *testing.T) {
 }
 
 func TestStateStorageValueDelete(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 
 	s1, _ := New(common.Hash{}, NewDatabase(db))
 
@@ -338,7 +343,7 @@ func TestStateStorageValueDelete(t *testing.T) {
 }
 
 func TestStateStorageRevert(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 
 	s1, _ := New(common.Hash{}, NewDatabase(db))
 	s1.Snapshot()
@@ -374,7 +379,7 @@ func TestStateStorageRevert(t *testing.T) {
 }
 
 func TestStateStorageValueUpdate(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 
 	s1, _ := New(common.Hash{}, NewDatabase(db))
 	s1.Snapshot()
@@ -393,8 +398,8 @@ func TestStateStorageValueUpdate(t *testing.T) {
 // only the one right before the commit.
 func TestIntermediateLeaks(t *testing.T) {
 	// Create two state databases, one transitioning to the final state, the other final from the beginning
-	transDb := ethdb.NewMemDatabase()
-	finalDb := ethdb.NewMemDatabase()
+	transDb := rawdb.NewMemoryDatabase()
+	finalDb := rawdb.NewMemoryDatabase()
 	transState, _ := New(common.Hash{}, NewDatabase(transDb))
 	finalState, _ := New(common.Hash{}, NewDatabase(finalDb))
 
@@ -430,16 +435,20 @@ func TestIntermediateLeaks(t *testing.T) {
 	if _, err := finalState.Commit(false); err != nil {
 		t.Fatalf("failed to commit final state: %v", err)
 	}
-	for _, key := range finalDb.Keys() {
+	it := finalDb.NewIterator()
+	for it.Next() {
+		key := it.Key()
 		if _, err := transDb.Get(key); err != nil {
-			val, _ := finalDb.Get(key)
-			t.Errorf("entry missing from the transition database: %x -> %x", key, val)
+			t.Errorf("entry missing from the transition database: %x -> %x", key, it.Value())
 		}
 	}
-	for _, key := range transDb.Keys() {
+	it.Release()
+
+	it = transDb.NewIterator()
+	for it.Next() {
+		key := it.Key()
 		if _, err := finalDb.Get(key); err != nil {
-			val, _ := transDb.Get(key)
-			t.Errorf("extra entry in the transition database: %x -> %x", key, val)
+			t.Errorf("extra entry in the transition database: %x -> %x", key, it.Value())
 		}
 	}
 }
@@ -449,7 +458,7 @@ func TestIntermediateLeaks(t *testing.T) {
 // https://github.com/ethereum/go-ethereum/pull/15549.
 func TestCopy(t *testing.T) {
 	// Create a random state test to copy and modify "independently"
-	orig, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))
+	orig, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
 
 	for i := byte(0); i < 255; i++ {
 		obj := orig.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
@@ -607,7 +616,7 @@ func newTestAction(addr common.Address, r *rand.Rand) testAction {
 	action := actions[r.Intn(len(actions))]
 	var nameargs []string
 	if !action.noAddr {
-		nameargs = append(nameargs, addr.Hex())
+		nameargs = append(nameargs, addr.String())
 	}
 	for _, i := range action.args {
 		action.args[i] = rand.Int63n(100)
@@ -660,7 +669,7 @@ func (test *snapshotTest) String() string {
 func (test *snapshotTest) run() bool {
 	// Run all actions and create snapshots.
 	var (
-		state, _     = New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))
+		state, _     = New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
 		snapshotRevs = make([]int, len(test.snapshots))
 		sindex       = 0
 	)
@@ -693,7 +702,7 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		var err error
 		checkeq := func(op string, a, b interface{}) bool {
 			if err == nil && !reflect.DeepEqual(a, b) {
-				err = fmt.Errorf("got %s(%s) == %v, want %v", op, addr.Hex(), a, b)
+				err = fmt.Errorf("got %s(%s) == %v, want %v", op, addr.String(), a, b)
 				return false
 			}
 			return true
@@ -753,7 +762,7 @@ func (s *StateSuite) TestTouchDelete(c *check.C) {
 // TestCopyOfCopy tests that modified objects are carried over to the copy, and the copy of the copy.
 // See https://github.com/ethereum/go-ethereum/pull/15225#issuecomment-380191512
 func TestCopyOfCopy(t *testing.T) {
-	sdb, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))
+	sdb, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
 	addr := common.HexToAddress("aaaa")
 	sdb.SetBalance(addr, big.NewInt(42))
 
@@ -766,7 +775,7 @@ func TestCopyOfCopy(t *testing.T) {
 }
 
 func TestGetAfterDelete(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 
 	addr := common.BigToAddress(big.NewInt(1))
 

@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -140,10 +140,10 @@ func UpdateVoteValue(proposalID common.Hash, voteValueList []VoteValue, blockHas
 }
 
 // TallyVoteValue statistics vote option for a proposal
-func TallyVoteValue(proposalID common.Hash, blockHash common.Hash) (yeas, nays, abstentions uint16, e error) {
-	yes := uint16(0)
-	no := uint16(0)
-	abst := uint16(0)
+func TallyVoteValue(proposalID common.Hash, blockHash common.Hash) (yeas, nays, abstentions uint64, e error) {
+	yes := uint64(0)
+	no := uint64(0)
+	abst := uint64(0)
 
 	voteList, err := ListVoteValue(proposalID, blockHash)
 	if err == nil {

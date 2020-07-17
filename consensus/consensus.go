@@ -28,6 +28,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+
+	cbftType "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -140,6 +142,8 @@ type Engine interface {
 	Resume()
 
 	DecodeExtra(extra []byte) (common.Hash, uint64, error)
+
+	GetPrepareQC(number uint64) *cbftType.QuorumCert
 }
 
 // PoW is a consensus engine based on proof-of-work.

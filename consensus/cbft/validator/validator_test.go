@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -27,9 +27,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -45,7 +49,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -141,7 +144,7 @@ func TestValidators(t *testing.T) {
 	assert.True(t, validator.Index == 2)
 
 	pubkey, _ := nodes[1].Node.ID.Pubkey()
-	addrN1 := crypto.PubkeyToAddress(*pubkey)
+	addrN1 := crypto.PubkeyToNodeAddress(*pubkey)
 
 	validator, err = vds.FindNodeByID(nodes[1].Node.ID)
 	assert.True(t, err == nil, "get node index and address fail")
@@ -163,7 +166,7 @@ func TestValidators(t *testing.T) {
 	notFound := vds.NodeID(4)
 	assert.Equal(t, notFound, emptyNodeID)
 
-	emptyAddr := common.Address{}
+	emptyAddr := common.NodeAddress{}
 	validator, err = vds.FindNodeByAddress(emptyAddr)
 	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
@@ -224,7 +227,7 @@ func genesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 func TestInnerAgency(t *testing.T) {
 	bls.Init(bls.BLS12_381)
-	testdb := ethdb.NewMemDatabase()
+	testdb := rawdb.NewMemoryDatabase()
 	balanceBytes, _ := hexutil.Decode("0x2000000000000000000000000000000000000000000000000000000000000")
 	balance := big.NewInt(0)
 	genesis, chainConfig := genesisBlockForTesting(testdb, testAddress, balance.SetBytes(balanceBytes))
@@ -340,7 +343,7 @@ func TestInnerAgency(t *testing.T) {
 }
 
 func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {
-	testdb := ethdb.NewMemDatabase()
+	testdb := rawdb.NewMemoryDatabase()
 	balanceBytes, _ := hexutil.Decode("0x2000000000000000000000000000000000000000000000000000000000000")
 	balance := big.NewInt(0)
 	genesis, chainConfig := genesisBlockForTesting(testdb, testAddress, balance.SetBytes(balanceBytes))
@@ -446,7 +449,7 @@ func TestValidatorPool(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, node.Address, node0.Address)
 
-	_, err = validatorPool.GetValidatorByAddr(0, common.Address{})
+	_, err = validatorPool.GetValidatorByAddr(0, common.NodeAddress{})
 	assert.Equal(t, err, errors.New("invalid address"))
 
 	nodeID := validatorPool.GetNodeIDByIndex(0, 4)

@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -34,6 +34,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 )
 
 func NewFaker() *BftMock {
@@ -83,6 +85,10 @@ func (bm *BftMock) InsertChain(block *types.Block) error {
 	bm.Base = block
 
 	return nil
+}
+
+func (bm *BftMock) GetPrepareQC(number uint64) *ctypes.QuorumCert {
+	panic("implement me")
 }
 
 // FastSyncCommitHead is a fake interface, no need to implement.

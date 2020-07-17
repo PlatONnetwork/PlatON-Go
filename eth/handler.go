@@ -28,6 +28,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -43,7 +45,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
 const (
@@ -71,8 +72,9 @@ func errResp(code errCode, format string, v ...interface{}) error {
 type ProtocolManager struct {
 	networkID uint64
 
-	fastSync  uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
-	acceptTxs uint32 // Flag whether we're considered synchronised (enables transaction processing)
+	fastSync        uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
+	acceptTxs       uint32 // Flag whether we're considered synchronised (enables transaction processing)
+	acceptRemoteTxs uint32 // Flag whether we're accept remote txs
 
 	txpool      txPool
 	blockchain  *core.BlockChain
@@ -490,7 +492,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			)
 			ps.KVs = make([]downloader.PPOSStorageKV, 0)
 			for iter.Next() {
-				if bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentHighestBlock)) || bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentBaseNum)) {
+				if bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentHighestBlock)) || bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentBaseNum)) || bytes.HasPrefix(iter.Key(), []byte(snapshotdb.WalKeyPrefix)) {
 					continue
 				}
 				byteSize = byteSize + len(iter.Key()) + len(iter.Value())
@@ -780,6 +782,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	case msg.Code == TxMsg:
 		// Transactions arrived, make sure we have a valid and fresh chain to handle them
 		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
+			break
+		}
+		// if txmaker is started,the chain should not accept RemoteTxs,to reduce produce tx cost
+		if atomic.LoadUint32(&pm.acceptRemoteTxs) == 1 {
 			break
 		}
 		// Transactions can be processed, parse all of them and deliver to the pool

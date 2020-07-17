@@ -29,8 +29,8 @@ func TestUnmarshalJSONNewFilterArgs(t *testing.T) {
 	var (
 		fromBlock rpc.BlockNumber = 0x123435
 		toBlock   rpc.BlockNumber = 0xabcdef
-		address0                  = common.HexToAddress("70c87d191324e6712a591f304b4eedef6ad9bb9d")
-		address1                  = common.HexToAddress("9b2055d370f73ec7d8a03e965129118dc8f5bf83")
+		address0                  = common.MustBech32ToAddress("lax1wry86xgnynn8z2jerucyknhdaa4dnwuan2w6mf")
+		address1                  = common.MustBech32ToAddress("lax1nvs9t5ms7ulv0k9q86t9z2g33hy0t0urv7m8dh")
 		topic0                    = common.HexToHash("3ac225168df54212a25c1c01fd35bebfea408fdac2e31ddd6f80a4bbf9a5f1ca")
 		topic1                    = common.HexToHash("9084a792d2f8b16a62b882fd56f7860c07bf5fa91dd8a2ae7e809e5180fef0b3")
 		topic2                    = common.HexToHash("6ccae1c4af4152f460ff510e573399795dfab5dcf1fa60d1f33ac8fdc1e480ce")
@@ -69,7 +69,7 @@ func TestUnmarshalJSONNewFilterArgs(t *testing.T) {
 
 	// single address
 	var test2 FilterCriteria
-	vector = fmt.Sprintf(`{"address": "%s"}`, address0.Hex())
+	vector = fmt.Sprintf(`{"address": "%s"}`, address0)
 	if err := json.Unmarshal([]byte(vector), &test2); err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestUnmarshalJSONNewFilterArgs(t *testing.T) {
 
 	// multiple address
 	var test3 FilterCriteria
-	vector = fmt.Sprintf(`{"address": ["%s", "%s"]}`, address0.Hex(), address1.Hex())
+	vector = fmt.Sprintf(`{"address": ["%s", "%s"]}`, address0, address1)
 	if err := json.Unmarshal([]byte(vector), &test3); err != nil {
 		t.Fatal(err)
 	}

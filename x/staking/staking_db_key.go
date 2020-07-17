@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -64,14 +64,14 @@ var (
 
 // CanBase ...
 
-func CanBaseKeyByAddr(addr common.Address) []byte {
+func CanBaseKeyByAddr(addr common.NodeAddress) []byte {
 	return append(CanBaseKeyPrefix, addr.Bytes()...)
 }
 func CanBaseKeyBySuffix(addr []byte) []byte {
 	return append(CanBaseKeyPrefix, addr...)
 }
 
-func CanMutableKeyByAddr(addr common.Address) []byte {
+func CanMutableKeyByAddr(addr common.NodeAddress) []byte {
 	return append(CanMutableKeyPrefix, addr.Bytes()...)
 }
 
@@ -80,7 +80,7 @@ func CanMutableKeyBySuffix(addr []byte) []byte {
 }
 
 // the candidate power key
-func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programVersion uint32) []byte {
+func TallyPowerKey(programVersion uint32, shares *big.Int, nodeID discover.NodeID, stakeBlockNum uint64, stakeTxIndex uint32) []byte {
 
 	// Only sort Major and Minor
 	// eg. 1.1.x => 1.1.0
@@ -91,6 +91,8 @@ func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programV
 	zeros := make([]byte, b104Len)
 	prio := append(zeros, priority.Bytes()...)
 
+	id := nodeID.Bytes()
+
 	num := common.Uint64ToBytes(stakeBlockNum)
 	txIndex := common.Uint32ToBytes(stakeTxIndex)
 
@@ -98,7 +100,8 @@ func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programV
 	indexPre := len(CanPowerKeyPrefix)
 	indexVersion := indexPre + len(sortVersion)
 	indexPrio := indexVersion + len(prio)
-	indexNum := indexPrio + len(num)
+	indexNodeID := indexPrio + len(id)
+	indexNum := indexNodeID + len(num)
 	size := indexNum + len(txIndex)
 
 	// construct key
@@ -106,7 +109,8 @@ func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programV
 	copy(key[:len(CanPowerKeyPrefix)], CanPowerKeyPrefix)
 	copy(key[indexPre:indexVersion], sortVersion)
 	copy(key[indexVersion:indexPrio], prio)
-	copy(key[indexPrio:indexNum], num)
+	copy(key[indexPrio:indexNodeID], id)
+	copy(key[indexNodeID:indexNum], num)
 	copy(key[indexNum:], txIndex)
 
 	return key

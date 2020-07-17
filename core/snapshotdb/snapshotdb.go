@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -31,14 +31,15 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 const (
@@ -96,6 +97,10 @@ type DB interface {
 	Close() error
 	Compaction() error
 	SetEmpty() error
+
+	//ues to Revert failed tx
+	RevertToSnapshot(hash common.Hash, revid int)
+	Snapshot(hash common.Hash) int
 }
 
 type BaseDB interface {
@@ -143,12 +148,9 @@ type snapshotDB struct {
 	committed  []*blockData
 	commitLock sync.RWMutex
 
-	journalBlockData   chan *blockData
-	journalWriteExitCh chan struct{}
-
-	journalSync sync.WaitGroup
-
-	storage storage
+	walCh     chan *blockData
+	walExitCh chan struct{}
+	walSync   sync.WaitGroup
 
 	corn *cron.Cron
 
@@ -223,12 +225,6 @@ func openBaseDB(snapshotDBPath string, cache int, handles int) (*leveldb.DB, err
 func open(path string, cache int, handles int, baseOnly bool) (*snapshotDB, error) {
 	logger.Info("open snapshot db Allocated cache and file handles", "cache", cache, "handles", handles, "baseDB", baseOnly)
 
-	s, err := openFile(path, false)
-	if err != nil {
-		logger.Error("open db file fail", "error", err, "path", path)
-		return nil, err
-	}
-
 	baseDB, err := openBaseDB(path, cache, handles)
 	if err != nil {
 		return nil, err
@@ -237,14 +233,13 @@ func open(path string, cache int, handles int, baseOnly bool) (*snapshotDB, erro
 	unCommitBlock := new(unCommitBlocks)
 	unCommitBlock.blocks = make(map[common.Hash]*blockData)
 	db := &snapshotDB{
-		path:               path,
-		storage:            s,
-		unCommit:           unCommitBlock,
-		committed:          make([]*blockData, 0),
-		baseDB:             baseDB,
-		snapshotLockC:      snapshotUnLock,
-		journalBlockData:   make(chan *blockData, 2),
-		journalWriteExitCh: make(chan struct{}),
+		path:          path,
+		unCommit:      unCommitBlock,
+		committed:     make([]*blockData, 0),
+		baseDB:        baseDB,
+		snapshotLockC: snapshotUnLock,
+		walCh:         make(chan *blockData, 2),
+		walExitCh:     make(chan struct{}),
 	}
 	if baseOnly {
 		return db, nil
@@ -291,12 +286,11 @@ func copyDB(from, to *snapshotDB) {
 	to.baseDB = from.baseDB
 	to.unCommit = from.unCommit
 	to.committed = from.committed
-	to.storage = from.storage
 	to.corn = from.corn
 	to.closed = from.closed
 	to.snapshotLockC = from.snapshotLockC
-	to.journalWriteExitCh = from.journalWriteExitCh
-	to.journalBlockData = from.journalBlockData
+	to.walExitCh = from.walExitCh
+	to.walCh = from.walCh
 }
 
 func initDB(path string, sdb *snapshotDB) error {
@@ -315,7 +309,7 @@ func (s *snapshotDB) Start() error {
 	if err := s.cornStart(); err != nil {
 		return err
 	}
-	go s.loopWriteJournal()
+	go s.loopWriteWal()
 	return nil
 }
 
@@ -443,30 +437,8 @@ func (s *snapshotDB) Compaction() error {
 		return err
 	}
 	s.commitLock.Unlock()
-	if err := s.rmExpireForkBlockJournal(); err != nil {
-		return err
-	}
 	//delete block no use  in unCommit
 	s.rmExpireForkBlock()
-	return nil
-}
-
-func (s *snapshotDB) rmExpireForkBlockJournal() error {
-	fds, err := s.storage.List(TypeJournal)
-	if err != nil {
-		return err
-	}
-	if len(fds) < JournalRemain {
-		return nil
-	}
-	currentBase := s.current.GetBase(false).Num.Uint64()
-	for _, fd := range fds {
-		if currentBase >= fd.Num {
-			if err := s.storage.Remove(fd); err != nil {
-				return err
-			}
-		}
-	}
 	return nil
 }
 
@@ -547,6 +519,7 @@ func (s *snapshotDB) writeToBasedb(commitNum int) error {
 				batch.Put(itr.Key(), itr.Value())
 			}
 		}
+		batch.Delete(s.committed[i].BlockKey())
 		itr.Release()
 	}
 	logger.Debug("write to basedb", "from", s.committed[0].Number, "to", s.committed[commitNum-1].Number, "len", len(s.committed), "commitNum", commitNum)
@@ -574,9 +547,30 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	block.ParentHash = parentHash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)
+	block.journal = make([]journalEntry, 0)
+	block.validRevisions = make([]revision, 0)
+
 	s.unCommit.Set(hash, block)
 	logger.Info("NewBlock", "num", block.Number, "hash", hash, "parent", parentHash)
 	return nil
+}
+
+func (s *snapshotDB) RevertToSnapshot(hash common.Hash, revid int) {
+	s.unCommit.Lock()
+	defer s.unCommit.Unlock()
+	block, ok := s.unCommit.blocks[hash]
+	if ok {
+		block.RevertToSnapshot(revid)
+	}
+}
+func (s *snapshotDB) Snapshot(hash common.Hash) int {
+	s.unCommit.Lock()
+	defer s.unCommit.Unlock()
+	block, ok := s.unCommit.blocks[hash]
+	if !ok {
+		return 0
+	}
+	return block.Snapshot()
 }
 
 // Put sets the value for the given key. It overwrites any previous value
@@ -706,6 +700,7 @@ func (s *snapshotDB) Flush(hash common.Hash, blockNumber *big.Int) error {
 	s.unCommit.Lock()
 	block.BlockHash = hash
 	block.readOnly = true
+	block.cleanJournal()
 	s.unCommit.blocks[hash] = block
 	delete(s.unCommit.blocks, common.ZeroHash)
 	s.unCommit.Unlock()
@@ -759,10 +754,11 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	}
 
 	block.readOnly = true
-	s.writeBlockToJournalAsynchronous(block)
+	s.writeBlockToWalAsynchronous(block)
 
 	s.commitLock.Lock()
 	s.current.increaseHighest(hash)
+	block.cleanJournal()
 	s.committed = append(s.committed, block)
 	s.commitLock.Unlock()
 
@@ -876,8 +872,8 @@ func (s *snapshotDB) Close() error {
 	if s.corn != nil {
 		s.corn.Stop()
 	}
-	s.journalSync.Wait()
-	close(s.journalWriteExitCh)
+	s.walSync.Wait()
+	close(s.walExitCh)
 
 	if s.baseDB != nil {
 		if err := s.baseDB.Close(); err != nil {
@@ -885,9 +881,6 @@ func (s *snapshotDB) Close() error {
 		}
 	}
 
-	if err := s.storage.Close(); err != nil {
-		return fmt.Errorf("[snapshotdb]close storage fail:%v", err)
-	}
 	s.current = nil
 	s.unCommit = nil
 	s.committed = nil
