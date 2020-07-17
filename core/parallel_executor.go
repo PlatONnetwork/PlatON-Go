@@ -5,7 +5,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/hashicorp/golang-lru"
@@ -145,12 +144,14 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 		log.Trace("Finalise stateDB cost", "number", ctx.header.Number, "time", time.Since(start))
 	}
 
-	// dag print info
-	logVerbosity := debug.GetLogVerbosity()
-	if logVerbosity == log.LvlTrace {
-		inf := ctx.txListInfo()
-		log.Trace("TxList Info", "blockNumber", ctx.header.Number, "txList", inf)
-	}
+	/*
+		// dag print info
+		logVerbosity := debug.GetLogVerbosity()
+		if logVerbosity == log.LvlTrace {
+			inf := ctx.txListInfo()
+			log.Trace("TxList Info", "blockNumber", ctx.header.Number, "txList", inf)
+		}
+	*/
 	return nil
 }
 
