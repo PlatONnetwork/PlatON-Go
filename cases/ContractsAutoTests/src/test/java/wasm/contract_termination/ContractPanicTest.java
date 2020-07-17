@@ -25,7 +25,7 @@ public class ContractPanicTest extends WASMContractPrepareTest {
         Uint64 value = Uint64.of(3L);
         try {
             prepare();
-            Contract_panic contractPanic = Contract_panic.deploy(web3j, transactionManager, provider).send();
+            Contract_panic contractPanic = Contract_panic.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractPanic.getContractAddress();
             String transactionHash = contractPanic.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractPanic issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

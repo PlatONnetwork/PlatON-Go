@@ -39,7 +39,7 @@ public class InterfaceContractInhertTest extends ContractPrepareTest {
         InterfaceContractInheritMultipleTest interfaceInheritMultiple = null;
         try {
             //合约部署
-            interfaceInheritMultiple = InterfaceContractInheritMultipleTest.deploy(web3j, transactionManager, provider).send();
+            interfaceInheritMultiple = InterfaceContractInheritMultipleTest.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = interfaceInheritMultiple.getContractAddress();
             TransactionReceipt tx = interfaceInheritMultiple.getTransactionReceipt().get();
             collector.logStepPass("interfaceContract issued successfully.contractAddress:" + contractAddress

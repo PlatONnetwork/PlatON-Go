@@ -56,8 +56,7 @@ public class PlatonInnerTest extends ContractPrepareTest {
             author = "hudenian", showName = "evm_assembly_contract_call.PlatonInnerTest-evm合约调用PPOS合约", sourcePrefix = "evm")
     public void platonInner() {
         try {
-            provider = new ContractGasProvider(BigInteger.valueOf(500000000004L), BigInteger.valueOf(99000000L));
-            PlatonInner platonInner = PlatonInner.deploy(web3j, transactionManager, provider).send();
+            PlatonInner platonInner = PlatonInner.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = platonInner.getContractAddress();
             TransactionReceipt tx = platonInner.getTransactionReceipt().get();
@@ -68,7 +67,7 @@ public class PlatonInnerTest extends ContractPrepareTest {
             collector.logStepPass("PlatonInnerTest call "+addr+" and code is:"+code+" createRestrictingPlan successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
             collector.logStepPass("caseName:+caseName>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+"code:"+code);
             if( !queryCodeSet.contains(code) && (null!=tx.getLogs().get(0).getData() && "".equals(tx.getLogs().get(0).getData()))){
-                collector.logStepPass("str is >>>"+DataChangeUtil.decodeSystemContractRlp(tx.getLogs().get(0).getData()));
+                collector.logStepPass("str is >>>"+DataChangeUtil.decodeSystemContractRlp(tx.getLogs().get(0).getData(), chainId));
             }
 
 

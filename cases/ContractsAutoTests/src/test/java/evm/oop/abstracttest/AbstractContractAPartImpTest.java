@@ -29,7 +29,7 @@ public class AbstractContractAPartImpTest extends ContractPrepareTest {
         AbstractContractFather fatherAbstractContract = null;
         try {
             //合约部署
-            fatherAbstractContract = AbstractContractFather.deploy(web3j, transactionManager, provider).send();
+            fatherAbstractContract = AbstractContractFather.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = fatherAbstractContract.getContractAddress();
             TransactionReceipt tx = fatherAbstractContract.getTransactionReceipt().get();
             collector.logStepPass("abstractContract issued successfully.contractAddress:" + contractAddress

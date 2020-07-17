@@ -20,7 +20,7 @@ public class ContractCrossCallStorageStrTest extends WASMContractPrepareTest {
             prepare();
 
             // deploy the target contract which the name is `storge_str`, first
-            ContractStorageString strc = ContractStorageString.deploy(web3j, transactionManager, provider).send();
+            ContractStorageString strc = ContractStorageString.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy storge_str contract:" + strc.getTransactionReceipt().get().getGasUsed());
 
             String strcAddr = strc.getContractAddress();
@@ -29,7 +29,7 @@ public class ContractCrossCallStorageStrTest extends WASMContractPrepareTest {
 
 
             // deploy the cross_call_storage_str  contract second
-            ContractCrossCallStorageString crossCall = ContractCrossCallStorageString.deploy(web3j, transactionManager, provider).send();
+            ContractCrossCallStorageString crossCall = ContractCrossCallStorageString.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy cross_call_storage_str contract:" + crossCall.getTransactionReceipt().get().getGasUsed());
 
             String crossCallAddr = crossCall.getContractAddress();

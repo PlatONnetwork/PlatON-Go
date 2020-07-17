@@ -36,7 +36,7 @@ public class AssemblyReturnsTest extends ContractPrepareTest {
             author = "liweic", showName = "function.AssemblyReturnsTest-AssemblyReturns测试", sourcePrefix = "evm")
     public void Assemblyreturns() {
         try {
-            AssemblyReturns assemblyreturns = AssemblyReturns.deploy(web3j, transactionManager, provider).send();
+            AssemblyReturns assemblyreturns = AssemblyReturns.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = assemblyreturns.getContractAddress();
             TransactionReceipt tx = assemblyreturns.getTransactionReceipt().get();
@@ -63,7 +63,7 @@ public class AssemblyReturnsTest extends ContractPrepareTest {
             collector.assertEqual(true ,result.getValue4());
 
             collector.logStepPass("Assemblyreturns第五个返回值：" + result.getValue5());
-            collector.assertEqual("0x1212121212121212121212121212121212121212" ,result.getValue5().toString());
+            collector.assertEqual("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2" ,result.getValue5().toString());
 
         } catch (Exception e) {
             collector.logStepFail("AssemblyReturnsContract Calling Method fail.", e.toString());

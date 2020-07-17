@@ -38,7 +38,7 @@ public class RequireContractTest extends ContractPrepareTest {
     public void requireTest() {
         try {
 
-            RequireContract requireContract = RequireContract.deploy(web3j, transactionManager, provider).send();
+            RequireContract requireContract = RequireContract.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = requireContract.getContractAddress();
             TransactionReceipt tx = requireContract.getTransactionReceipt().get();

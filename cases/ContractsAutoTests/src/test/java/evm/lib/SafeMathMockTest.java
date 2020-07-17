@@ -16,7 +16,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     public void testMax() {
         try {
             prepare();
-            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider).send();
+            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SafeMathMock issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -35,7 +35,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     public void testMin() {
         try {
             prepare();
-            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider).send();
+            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SafeMathMock issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -53,7 +53,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     public void testAverage() {
         try {
             prepare();
-            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider).send();
+            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SafeMathMock issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -71,7 +71,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     public void testAdd() {
         try {
             prepare();
-            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider).send();
+            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SafeMathMock issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -88,7 +88,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     public void testMul() {
         try {
             prepare();
-            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider).send();
+            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SafeMathMock issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -105,7 +105,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     public void testSub() {
         try {
             prepare();
-            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider).send();
+            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SafeMathMock issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -125,7 +125,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     public void testDiv() {
         try {
             prepare();
-            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider).send();
+            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SafeMathMock issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -144,7 +144,7 @@ public class SafeMathMockTest extends ContractPrepareTest {
     public void testMod() {
         try {
             prepare();
-            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider).send();
+            SafeMathMock using = SafeMathMock.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SafeMathMock issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

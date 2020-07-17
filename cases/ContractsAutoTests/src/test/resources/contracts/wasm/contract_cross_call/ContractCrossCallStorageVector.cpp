@@ -1,3 +1,4 @@
+#define TESTNET
 #include <platon/platon.hpp>
 #include <vector>
 #include <string>
@@ -33,11 +34,16 @@ CONTRACT cross_call_storage_type : public platon::Contract {
             uint64_t value, uint64_t gas) {
 
             platon::bytes params = platon::cross_call_args("add_message", one_message);
-            if (platon_call(Address(target_address), params, value, gas)) {
+
+            auto address_info = make_address(target_address);
+            if(address_info.second){
+                if (platon_call(address_info.first, params, value, gas)) {
                  DEBUG("Call contract success", "address", target_address);
              } else {
                  DEBUG("Call contract fail", "address", target_address);
              }
+            }
+
             return 0;
         }
        CONST uint64_t get_vector_size(){

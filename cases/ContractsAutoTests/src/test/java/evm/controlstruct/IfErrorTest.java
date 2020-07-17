@@ -30,7 +30,7 @@ public class IfErrorTest extends ContractPrepareTest {
     public void ifStruct() {
         try {
 
-            IfError ifError = IfError.deploy(web3j, transactionManager, provider).send();
+            IfError ifError = IfError.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = ifError.getContractAddress();
             TransactionReceipt tx = ifError.getTransactionReceipt().get();

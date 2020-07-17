@@ -27,7 +27,7 @@ public class ContractAssertTest extends WASMContractPrepareTest {
         Uint64 errorValue = Uint64.of(12L);
         try {
             prepare();
-            Contract_termination contractTermination = Contract_termination.deploy(web3j, transactionManager, provider).send();
+            Contract_termination contractTermination = Contract_termination.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractTermination.getContractAddress();
             String transactionHash = contractTermination.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractTermination issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

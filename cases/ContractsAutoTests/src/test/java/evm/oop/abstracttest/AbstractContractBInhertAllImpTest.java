@@ -32,7 +32,7 @@ public class AbstractContractBInhertAllImpTest extends ContractPrepareTest {
         AbstractContractBSubclass abstractContractBSubclass= null;
         try {
             //合约部署
-            abstractContractBSubclass = AbstractContractBSubclass.deploy(web3j, transactionManager, provider).send();
+            abstractContractBSubclass = AbstractContractBSubclass.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = abstractContractBSubclass.getContractAddress();
             TransactionReceipt tx = abstractContractBSubclass.getTransactionReceipt().get();
             collector.logStepPass("abstractContract issued successfully.contractAddress:" + contractAddress

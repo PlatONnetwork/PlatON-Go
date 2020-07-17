@@ -25,7 +25,7 @@ public class SpecialFunctionsBTest extends WASMContractPrepareTest {
         try {
             prepare();
 //            provider = new ContractGasProvider(BigInteger.valueOf(50000000004L), BigInteger.valueOf(90000000L));
-            SpecialFunctionsB specialfunctionsb = SpecialFunctionsB.deploy(web3j, transactionManager, provider).send();
+            SpecialFunctionsB specialfunctionsb = SpecialFunctionsB.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = specialfunctionsb.getContractAddress();
             String transactionHash = specialfunctionsb.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SpecialFunctionsBTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -38,13 +38,14 @@ public class SpecialFunctionsBTest extends WASMContractPrepareTest {
 
             Uint64 gaslimit = specialfunctionsb.getPlatONGasLimit().send();
             collector.logStepPass("getPlatONGasLimit函数返回值:" + gaslimit.value);
-            collector.assertEqual(gaslimit.value, new BigInteger("100000000"));
+            int compareresult = gaslimit.value.compareTo(new BigInteger("4712388"));
+            boolean resulta = compareresult >= 0;
+            collector.assertEqual(resulta, true);
 
             String gasprice = specialfunctionsb.getPlatONGasPrice().send();
             collector.logStepPass("getPlatONGasPrice函数返回值:" + gasprice);
             boolean resultb = "0".toString().equals(gasprice.toString());
-            collector.assertEqual(resultb, false);
-//            collector.assertEqual(gasprice, "26959946667150639794667015087019630673637144422540572481108583630579802570752");
+            collector.assertEqual(resultb, true);
 
         } catch (Exception e) {
             collector.logStepFail("SpecialFunctionsBTest failure,exception msg:" , e.getMessage());

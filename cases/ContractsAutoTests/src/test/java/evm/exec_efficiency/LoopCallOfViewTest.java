@@ -30,12 +30,12 @@ public class LoopCallOfViewTest extends ContractPrepareTest {
     public void test() {
         prepare();
         try {
-            LoopCallOfView loopCall = LoopCallOfView.deploy(web3j, transactionManager, provider).send();
+            LoopCallOfView loopCall = LoopCallOfView.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = loopCall.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
             collector.logStepPass("deploy gas used:" + loopCall.getTransactionReceipt().get().getGasUsed());
 
-            BigInteger sum = LoopCallOfView.load(contractAddress, web3j, transactionManager, provider)
+            BigInteger sum = LoopCallOfView.load(contractAddress, web3j, transactionManager, provider, chainId)
                     .loopCallTest(numberOfCalls).send();
 
             collector.logStepPass("contract load successful. after the sum:" + sum);

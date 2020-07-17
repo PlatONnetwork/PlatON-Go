@@ -18,14 +18,14 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class PlatONToken extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610189806100206000396000f3fe608060405234801561001057600080fd5b50600436106100625760003560e01c8063249bb3731461006757806375efc40d14610085578063c2412676146100a3578063c951fdf6146100ad578063d87698ae146100cb578063eecb9ce9146100e9575b600080fd5b61006f610107565b6040518082815260200191505060405180910390f35b61008d610119565b6040518082815260200191505060405180910390f35b6100ab610128565b005b6100b5610132565b6040518082815260200191505060405180910390f35b6100d361013d565b6040518082815260200191505060405180910390f35b6100f1610143565b6040518082815260200191505060405180910390f35b6000670de0b6b3a76400008101905090565b600064e8d4a510008101905090565b6001600081905550565b600060018101905090565b60005481565b600066038d7ea4c68000810190509056fea265627a7a72315820c5e8f797d5b6612e6f65eb1d70f74f803b0c305356f23e36f10a357f4b1e6cdc64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610189806100206000396000f3fe608060405234801561001057600080fd5b50600436106100625760003560e01c8063249bb3731461006757806375efc40d14610085578063c2412676146100a3578063c951fdf6146100ad578063d87698ae146100cb578063eecb9ce9146100e9575b600080fd5b61006f610107565b6040518082815260200191505060405180910390f35b61008d610119565b6040518082815260200191505060405180910390f35b6100ab610128565b005b6100b5610132565b6040518082815260200191505060405180910390f35b6100d361013d565b6040518082815260200191505060405180910390f35b6100f1610143565b6040518082815260200191505060405180910390f35b6000670de0b6b3a76400008101905090565b600064e8d4a510008101905090565b6001600081905550565b600060018101905090565b60005481565b600066038d7ea4c68000810190509056fea265627a7a723158205561fc564849e1eb852075ff9a9d623bca01178493678aab877edf0f3dd686ad64736f6c634300050d0032";
 
     public static final String FUNC_PFINNEY = "Pfinney";
 
@@ -39,22 +39,12 @@ public class PlatONToken extends Contract {
 
     public static final String FUNC_PLATONTOKEN = "platontoken";
 
-    @Deprecated
-    protected PlatONToken(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected PlatONToken(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected PlatONToken(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected PlatONToken(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected PlatONToken(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected PlatONToken(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<BigInteger> Pfinney() {
@@ -100,39 +90,19 @@ public class PlatONToken extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public static RemoteCall<PlatONToken> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(PlatONToken.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<PlatONToken> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(PlatONToken.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<PlatONToken> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(PlatONToken.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<PlatONToken> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(PlatONToken.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<PlatONToken> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(PlatONToken.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static PlatONToken load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new PlatONToken(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<PlatONToken> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(PlatONToken.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static PlatONToken load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new PlatONToken(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static PlatONToken load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new PlatONToken(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static PlatONToken load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new PlatONToken(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static PlatONToken load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new PlatONToken(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static PlatONToken load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new PlatONToken(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

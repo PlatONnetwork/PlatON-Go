@@ -30,7 +30,7 @@ public class WASMRadixSortTest extends WASMContractPrepareTest {
 
             Integer numberOfCalls = Integer.valueOf(driverService.param.get("numberOfCalls"));
 
-            RadixSort radixsort = RadixSort.deploy(web3j, transactionManager, provider).send();
+            RadixSort radixsort = RadixSort.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = radixsort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
             collector.logStepPass("deploy gas used:" + radixsort.getTransactionReceipt().get().getGasUsed());
@@ -44,7 +44,7 @@ public class WASMRadixSortTest extends WASMContractPrepareTest {
             }
 
             collector.logStepPass("before sort:" + Arrays.toString(arr));
-            TransactionReceipt transactionReceipt = radixsort.load(contractAddress, web3j, transactionManager, provider)
+            TransactionReceipt transactionReceipt = radixsort.load(contractAddress, web3j, transactionManager, provider, chainId)
                     .sort(arr, Int32.of(arr.length)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
@@ -52,7 +52,7 @@ public class WASMRadixSortTest extends WASMContractPrepareTest {
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            Int64[] generationArr = radixsort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
+            Int64[] generationArr = radixsort.load(contractAddress, web3j, transactionManager, provider, chainId).get_array().send();
 
             collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {

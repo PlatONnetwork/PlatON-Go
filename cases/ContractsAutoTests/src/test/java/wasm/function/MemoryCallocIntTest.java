@@ -22,7 +22,7 @@ public class MemoryCallocIntTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            MemoryCallocInt mci = MemoryCallocInt.deploy(web3j, transactionManager, provider).send();
+            MemoryCallocInt mci = MemoryCallocInt.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = mci.getContractAddress();
             String transactionHash = mci.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("MemoryCallocInt issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

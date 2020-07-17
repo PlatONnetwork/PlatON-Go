@@ -14,7 +14,7 @@ import java.math.BigInteger;
 /**
  * @title  09-其它
  * 10-验证0.5.0接口允许定义结构体与枚举(0.4.25版本会报错)
- * @description: 
+ * @description:
  * @author: hudenian
  * @create: 2019/12/27
  */
@@ -31,7 +31,7 @@ public class InterfaceEnableStructAndenumImplTest extends ContractPrepareTest {
     public void callEnum() {
         try {
 
-            InterfaceEnableStructAndenumImpl interfaceEnableStructAndenumImpl = InterfaceEnableStructAndenumImpl.deploy(web3j, transactionManager, provider).send();
+            InterfaceEnableStructAndenumImpl interfaceEnableStructAndenumImpl = InterfaceEnableStructAndenumImpl.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = interfaceEnableStructAndenumImpl.getContractAddress();
             TransactionReceipt tx = interfaceEnableStructAndenumImpl.getTransactionReceipt().get();
@@ -53,7 +53,7 @@ public class InterfaceEnableStructAndenumImplTest extends ContractPrepareTest {
 
     /**
      * @title do...while结果值
-     * @description: 
+     * @description:
      * @author: hudenian
      * @create: 2019/12/27
      */
@@ -69,7 +69,7 @@ public class InterfaceEnableStructAndenumImplTest extends ContractPrepareTest {
 
     /**
      * @title for 循环后的结果值
-     * @description: 
+     * @description:
      * @author: hudenian
      * @create: 2019/12/27
      */

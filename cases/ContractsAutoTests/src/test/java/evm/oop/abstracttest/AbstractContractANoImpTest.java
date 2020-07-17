@@ -58,7 +58,7 @@ public class AbstractContractANoImpTest {
         //1、合约部署
         String contractAddress = "";
         try {
-            AbstractContractGrandpa grandpaAbstractContract = AbstractContractGrandpa.deploy(web3j, transactionManager, provider).send();
+            AbstractContractGrandpa grandpaAbstractContract = AbstractContractGrandpa.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = grandpaAbstractContract.getContractAddress();
             TransactionReceipt tx = grandpaAbstractContract.getTransactionReceipt().get();
 
@@ -72,7 +72,7 @@ public class AbstractContractANoImpTest {
 
         //2、调用合约方法
         try{
-            String name = AbstractContractGrandpa.load(contractAddress, web3j, transactionManager, provider).name().send();
+            String name = AbstractContractGrandpa.load(contractAddress, web3j, transactionManager, provider, chainId).name().send();
             collector.logStepFail("abstractContract Calling Method Fail.","抽象合约是无法执行方法的");
         }catch (Exception e){
             collector.logStepPass("执行【抽象合约调用函数getName()】,结果无法执行抽象合约方法");

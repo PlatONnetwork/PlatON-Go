@@ -39,7 +39,7 @@ public class ErrorParamConstructorDeprecatedElementTest extends ContractPrepareT
     public void update() {
         try {
 
-            ErrorParamConstructor errorParamConstructor = ErrorParamConstructor.deploy(web3j, transactionManager, provider,new BigInteger(initValue)).send();
+            ErrorParamConstructor errorParamConstructor = ErrorParamConstructor.deploy(web3j, transactionManager, provider, chainId, new BigInteger(initValue)).send();
 
             String contractAddress = errorParamConstructor.getContractAddress();
             TransactionReceipt tx = errorParamConstructor.getTransactionReceipt().get();

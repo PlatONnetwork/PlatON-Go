@@ -31,7 +31,7 @@ public class ReferenceDataTypeStructContractTest extends ContractPrepareTest {
         ReferenceDataTypeStructContract referenceDataTypeStructContract = null;
         try {
             //合约部署
-            referenceDataTypeStructContract = ReferenceDataTypeStructContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeStructContract = ReferenceDataTypeStructContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeStructContract.getContractAddress();
             TransactionReceipt tx =  referenceDataTypeStructContract.getTransactionReceipt().get();
             collector.logStepPass("ReferenceDataTypeStructContract issued successfully.contractAddress:" + contractAddress

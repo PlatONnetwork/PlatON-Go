@@ -31,7 +31,7 @@ public class StructDataTypeTest extends ContractPrepareTest {
         StructDataType structDataType = null;
         try {
             //合约部署
-            structDataType = StructDataType.deploy(web3j, transactionManager, provider).send();
+            structDataType = StructDataType.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = structDataType.getContractAddress();
             TransactionReceipt tx =  structDataType.getTransactionReceipt().get();
             collector.logStepPass("StructDataType issued successfully.contractAddress:" + contractAddress

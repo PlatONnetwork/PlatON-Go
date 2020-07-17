@@ -33,7 +33,7 @@ public class InitWithVectorTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            InitWithVector initWithVector = InitWithVector.deploy(web3j, transactionManager, provider,age).send();
+            InitWithVector initWithVector = InitWithVector.deploy(web3j, transactionManager, provider, chainId,age).send();
             String contractAddress = initWithVector.getContractAddress();
             String transactionHash = initWithVector.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithVector issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

@@ -31,7 +31,7 @@ public class AssertHandleTest extends ContractPrepareTest {
     public void testIntChangeException() {
         try {
             prepare();
-            AssertHandle handle = AssertHandle.deploy(web3j, transactionManager, provider).send();
+            AssertHandle handle = AssertHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("AssertHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -60,7 +60,7 @@ public class AssertHandleTest extends ContractPrepareTest {
     public void testParamException() {
         try {
             prepare();
-            AssertHandle handle = AssertHandle.deploy(web3j, transactionManager, provider).send();
+            AssertHandle handle = AssertHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("AssertHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

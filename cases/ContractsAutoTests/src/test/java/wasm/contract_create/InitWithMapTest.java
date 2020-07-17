@@ -24,7 +24,7 @@ public class InitWithMapTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            InitWithMap initWithMap = InitWithMap.deploy(web3j, transactionManager, provider,mapKey,mapValue).send();
+            InitWithMap initWithMap = InitWithMap.deploy(web3j, transactionManager, provider, chainId,mapKey,mapValue).send();
             String contractAddress = initWithMap.getContractAddress();
             String transactionHash = initWithMap.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithMap issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

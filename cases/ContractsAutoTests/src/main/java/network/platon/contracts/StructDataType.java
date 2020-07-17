@@ -21,53 +21,33 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class StructDataType extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50600260008001600060018152602001908152602001600020819055506004600160000160006003815260200190815260200160002081905550600560018001819055506006600360000181610066919061007f565b50600760046000018161007991906100ab565b506100f8565b8154818355818111156100a6578183600052602060002091820191016100a591906100d7565b5b505050565b8154818355818111156100d2578183600052602060002091820191016100d191906100db565b5b505050565b5090565b6100f591905b808211156100f1576001016100e1565b5090565b90565b610345806101076000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c8063c04062261461003b578063f3ffc4511461007c575b600080fd5b6100436100bd565b60405180878152602001868152602001858152602001848152602001838152602001828152602001965050505050505060405180910390f35b610084610294565b60405180878152602001868152602001858152602001848152602001838152602001828152602001965050505050505060405180910390f35b6000806000806000806100ce6102c3565b6040518060200160405290506100e26102d0565b6040518060200160405280600281525090506100fc6102e3565b6040518060200160405290506101106102f0565b6040518060200160405280600960405190808252806020026020018201604052801561015657816020015b610143610303565b81526020019060019003908161013b5790505b5081525090506101646102f0565b600460405180602001604052908160008201805480602002602001604051908101604052809291908181526020016000905b828210156101c55783829060005260206000200160405180600001604052905081526020019060010190610196565b5050505081525050905084600090505083600160008201518160010155905050826003905050600080016000600181526020019081526020016000205460058190555060018001546006819055508360000151600781905550600360000180549050600881905550816000015151600981905550806000015151600a819055506000800160006001815260200190815260200160002054600180015485600001516003600001805490508560000151518560000151519a509a509a509a509a509a505050505050909192939495565b600080600080600080600554600654600754600854600954600a54955095509550955095509550909192939495565b6040518060200160405290565b6040518060200160405280600081525090565b6040518060200160405290565b6040518060200160405280606081525090565b604051806020016040529056fea265627a7a723158207ebc81926c6ffe23407886016b77ec055286e9fad5b0a9148452a584058b848064736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50600260008001600060018152602001908152602001600020819055506004600160000160006003815260200190815260200160002081905550600560018001819055506006600360000181610066919061007f565b50600760046000018161007991906100ab565b506100f8565b8154818355818111156100a6578183600052602060002091820191016100a591906100d7565b5b505050565b8154818355818111156100d2578183600052602060002091820191016100d191906100db565b5b505050565b5090565b6100f591905b808211156100f1576001016100e1565b5090565b90565b610345806101076000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c8063c04062261461003b578063f3ffc4511461007c575b600080fd5b6100436100bd565b60405180878152602001868152602001858152602001848152602001838152602001828152602001965050505050505060405180910390f35b610084610294565b60405180878152602001868152602001858152602001848152602001838152602001828152602001965050505050505060405180910390f35b6000806000806000806100ce6102c3565b6040518060200160405290506100e26102d0565b6040518060200160405280600281525090506100fc6102e3565b6040518060200160405290506101106102f0565b6040518060200160405280600960405190808252806020026020018201604052801561015657816020015b610143610303565b81526020019060019003908161013b5790505b5081525090506101646102f0565b600460405180602001604052908160008201805480602002602001604051908101604052809291908181526020016000905b828210156101c55783829060005260206000200160405180600001604052905081526020019060010190610196565b5050505081525050905084600090505083600160008201518160010155905050826003905050600080016000600181526020019081526020016000205460058190555060018001546006819055508360000151600781905550600360000180549050600881905550816000015151600981905550806000015151600a819055506000800160006001815260200190815260200160002054600180015485600001516003600001805490508560000151518560000151519a509a509a509a509a509a505050505050909192939495565b600080600080600080600554600654600754600854600954600a54955095509550955095509550909192939495565b6040518060200160405290565b6040518060200160405280600081525090565b6040518060200160405290565b6040518060200160405280606081525090565b604051806020016040529056fea265627a7a7231582022e8f19e78bc538f509f40bc317f7603b5880b56b754e9159ba751f70f8b82c464736f6c634300050d0032";
 
     public static final String FUNC_GETRUNVALUE = "getRunValue";
 
     public static final String FUNC_RUN = "run";
 
-    @Deprecated
-    protected StructDataType(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected StructDataType(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected StructDataType(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
+    protected StructDataType(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    protected StructDataType(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
+    public static RemoteCall<StructDataType> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(StructDataType.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    protected StructDataType(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public static RemoteCall<StructDataType> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(StructDataType.class, web3j, credentials, contractGasProvider, BINARY, "");
-    }
-
-    public static RemoteCall<StructDataType> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(StructDataType.class, web3j, transactionManager, contractGasProvider, BINARY, "");
-    }
-
-    @Deprecated
-    public static RemoteCall<StructDataType> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(StructDataType.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static RemoteCall<StructDataType> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(StructDataType.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<StructDataType> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(StructDataType.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
     public RemoteCall<Tuple6<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>> getRunValue() {
@@ -98,21 +78,11 @@ public class StructDataType extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    @Deprecated
-    public static StructDataType load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new StructDataType(contractAddress, web3j, credentials, gasPrice, gasLimit);
+    public static StructDataType load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new StructDataType(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static StructDataType load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new StructDataType(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static StructDataType load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new StructDataType(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static StructDataType load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new StructDataType(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static StructDataType load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new StructDataType(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

@@ -1,3 +1,5 @@
+#define TESTNET
+#undef NDEBUG
 // Author: zjsunzone
 // Desc: 验证所有基础数据类型的入参、返回值等是否合规
 #include <platon/platon.hpp>
@@ -15,10 +17,19 @@ CONTRACT IntegerDataTypeContract_4: public platon::Contract
 			// do something to init.
 		}
 
+		/// init value for address.
+		ACTION void initAddress()
+		{
+			//tAddress.self() = make_address("0xf674172E619af9C09C126a568CF2838d243cE7F7");
+			auto address_info = make_address("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2");
+			if(address_info.second) tAddress.self() = address_info.first;
+		}
+
 		/// set value for address.
 		ACTION void setAddress(const std::string& input)
 		{
-			tAddress.self() = Address(input);
+		    auto address_info = make_address(input);
+            if(address_info.second) tAddress.self() = address_info.first;
 		}
 		
 		CONST std::string getAddress()
@@ -58,7 +69,7 @@ CONTRACT IntegerDataTypeContract_4: public platon::Contract
 // (int8)(int64)(uint8t)(uint32t)(uint64t)(u128t)(u256t)
 //(setInt8)(getInt8)(setInt32)(getInt32)(setInt64)(getInt64)
 // (setUint8)(getUint8)(setUint32)(getUint32)(setUint64)(getUint64)
-PLATON_DISPATCH(IntegerDataTypeContract_4,(init)
+PLATON_DISPATCH(IntegerDataTypeContract_4,(init)(initAddress)
 (setAddress)(getAddress)(setU256)(getU256)(setH256)(getH256))
 
 

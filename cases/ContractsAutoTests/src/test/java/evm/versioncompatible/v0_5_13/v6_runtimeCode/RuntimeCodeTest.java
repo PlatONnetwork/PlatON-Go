@@ -31,7 +31,7 @@ public class RuntimeCodeTest extends ContractPrepareTest {
     public void testRuntimeType() {
         try {
 
-            RuntimeCode runtimeCode = RuntimeCode.deploy(web3j, transactionManager, provider).send();
+            RuntimeCode runtimeCode = RuntimeCode.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = runtimeCode.getContractAddress();
             TransactionReceipt tx = runtimeCode.getTransactionReceipt().get();

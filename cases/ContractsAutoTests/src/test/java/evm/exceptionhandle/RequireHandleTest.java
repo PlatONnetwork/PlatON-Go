@@ -30,7 +30,7 @@ public class RequireHandleTest extends ContractPrepareTest {
     public void testFunctionCallException() {
         try {
             prepare();
-            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider).send();
+            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -52,7 +52,7 @@ public class RequireHandleTest extends ContractPrepareTest {
     public void testNewContractException() {
         try {
             prepare();
-            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider).send();
+            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -74,7 +74,7 @@ public class RequireHandleTest extends ContractPrepareTest {
     public void testOutFunctionCallException() {
         try {
             prepare();
-            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider).send();
+            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -95,7 +95,7 @@ public class RequireHandleTest extends ContractPrepareTest {
     public void testNonPayableReceiveEthException() {
         try {
             prepare();
-            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider).send();
+            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -116,7 +116,7 @@ public class RequireHandleTest extends ContractPrepareTest {
     public void testPublicGetterReceiveEthException() {
         try {
             prepare();
-            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider).send();
+            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -137,7 +137,7 @@ public class RequireHandleTest extends ContractPrepareTest {
     public void testTransferCallException() {
         try {
             prepare();
-            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider).send();
+            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -158,7 +158,7 @@ public class RequireHandleTest extends ContractPrepareTest {
     public void testParamException() {
         try {
             prepare();
-            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider).send();
+            RequireHandle handle = RequireHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

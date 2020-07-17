@@ -1,5 +1,7 @@
 package evm.function.functionVisibilityAndDecarations;
 
+import com.platon.sdk.utlis.Bech32;
+import com.platon.sdk.utlis.NetworkParameters;
 import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -30,7 +32,7 @@ public class PayableTest extends ContractPrepareTest {
             author = "liweic", showName = "function.PayableTest-函数声明方式Payable测试", sourcePrefix = "evm")
     public void payable() {
         try {
-            Payable payable = Payable.deploy(web3j, transactionManager, provider).send();
+            Payable payable = Payable.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = payable.getContractAddress();
             TransactionReceipt tx = payable.getTransactionReceipt().get();
@@ -38,10 +40,14 @@ public class PayableTest extends ContractPrepareTest {
             collector.logStepPass("paybale deploy gasUsed:" + payable.getTransactionReceipt().get().getGasUsed());
 
             //验证payable声明
-            BigInteger payablepremoney = payable.getBalances("0x8a9B36694F1eeeb500c84A19bB34137B05162EC4").send();
+
+            String toAdddress = "0x8a9B36694F1eeeb500c84A19bB34137B05162EC4";
+            toAdddress = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(), toAdddress);
+
+            BigInteger payablepremoney = payable.getBalances(toAdddress).send();
             collector.logStepPass("转账前余额：" + payablepremoney);
-            TransactionReceipt result = payable.transfer("0x8a9B36694F1eeeb500c84A19bB34137B05162EC4",new BigInteger("100")).send();
-            BigInteger payableaftermoney = payable.getBalances("0x8a9B36694F1eeeb500c84A19bB34137B05162EC4").send();
+            TransactionReceipt result = payable.transfer(toAdddress, new BigInteger("100")).send();
+            BigInteger payableaftermoney = payable.getBalances(toAdddress).send();
             collector.logStepPass("转账后余额：" + payableaftermoney);
             int a = Integer.valueOf(payableaftermoney.toString());
             int b = Integer.valueOf(payablepremoney.toString());

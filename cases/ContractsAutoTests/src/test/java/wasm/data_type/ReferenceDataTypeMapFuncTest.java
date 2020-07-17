@@ -52,7 +52,7 @@ public class ReferenceDataTypeMapFuncTest extends WASMContractPrepareTest {
         ReferenceDataTypeMapFuncContract referenceDataTypeMapFuncContract = null;
         try {
             prepare();
-            referenceDataTypeMapFuncContract = ReferenceDataTypeMapFuncContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeMapFuncContract = ReferenceDataTypeMapFuncContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeMapFuncContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeMapFuncContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeMapFuncContract issued successfully.contractAddress:" + contractAddress

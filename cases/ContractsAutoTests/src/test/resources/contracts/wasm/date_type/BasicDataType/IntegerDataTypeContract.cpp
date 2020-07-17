@@ -1,3 +1,4 @@
+#define TESTNET
 // Author: zjsunzone
 // Desc: 验证所有基础数据类型的入参、返回值等是否合规
 #include <platon/platon.hpp>
@@ -211,7 +212,9 @@ CONTRACT IntegerDataTypeContract: public platon::Contract
 		/// set value for address.
 		ACTION void setAddress(const std::string& input)
 		{
-			tAddress.self() = Address(input);
+            auto address_info = make_address(input);
+            if(address_info.second) Address tAddress = address_info.first;
+//			tAddress.self() = Address(input);
 		}
 		
 		CONST std::string getAddress()
