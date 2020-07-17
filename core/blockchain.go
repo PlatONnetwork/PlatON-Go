@@ -114,9 +114,12 @@ type BlockChain struct {
 	chainFeed     event.Feed
 	chainSideFeed event.Feed
 	chainHeadFeed event.Feed
-	logsFeed      event.Feed
-	scope         event.SubscriptionScope
-	genesisBlock  *types.Block
+
+	BlockTxsFeed event.Feed
+
+	logsFeed     event.Feed
+	scope        event.SubscriptionScope
+	genesisBlock *types.Block
 
 	mu      sync.RWMutex // global mutex for locking chain operations
 	chainmu sync.RWMutex // blockchain insertion lock
@@ -1144,9 +1147,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
-	//bc.chainmu.Lock()
-	//defer bc.chainmu.Unlock()
-
 	// A queued approach to delivering events. This is generally
 	// faster than direct delivery and requires much less mutex
 	// acquiring.
@@ -1166,9 +1166,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	}
 	abort, results := bc.engine.VerifyHeaders(bc, headers, seals)
 	defer close(abort)
-
-	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
-	senderCacher.recoverFromBlocks(types.NewEIP155Signer(bc.chainConfig.ChainID), chain)
 
 	// Pause engine
 	bc.engine.Pause()
@@ -1243,6 +1240,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	if logs != nil {
 		bc.logsFeed.Send(logs)
 	}
+	bc.BlockTxsFeed.Send(block.Transactions())
 
 	return receipts, nil
 }
@@ -1624,6 +1622,11 @@ func (bc *BlockChain) SubscribeChainSideEvent(ch chan<- ChainSideEvent) event.Su
 // SubscribeLogsEvent registers a subscription of []*types.Log.
 func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	return bc.scope.Track(bc.logsFeed.Subscribe(ch))
+}
+
+// SubscribeLogsEvent registers a subscription of []*types.Log.
+func (bc *BlockChain) SubscribeBlockTxsEvent(ch chan<- types.Transactions) event.Subscription {
+	return bc.scope.Track(bc.BlockTxsFeed.Subscribe(ch))
 }
 
 // EnableDBGC enable database garbage collection.

@@ -51,12 +51,13 @@ require (
 	github.com/shirou/gopsutil v2.20.5+incompatible
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
+	github.com/tealeg/xlsx v1.0.5
 	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
 	golang.org/x/text v0.3.1-0.20171227012246-e19ae1496984 // indirect
 	golang.org/x/tools v0.0.0-20170215214335-be0fcc31ae23
-	gopkg.in/check.v1 v1.0.0-20161208181325-20d25e280405
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect

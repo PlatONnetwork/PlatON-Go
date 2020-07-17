@@ -1,18 +1,20 @@
 package core
 
 import (
+	"math/big"
+	"runtime"
+	"sync"
+	"time"
+
+	lru "github.com/hashicorp/golang-lru"
+	"github.com/panjf2000/ants/v2"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/hashicorp/golang-lru"
-	"github.com/panjf2000/ants/v2"
-	"math/big"
-	"runtime"
-	"sync"
-	"time"
 )
 
 const (
@@ -77,9 +79,9 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 		txDag := NewTxDag(exe.signer)
 		start := time.Now()
 		// load tx fromAddress from txpool by txHash
-		if !ctx.packNewBlock {
+		/*if !ctx.packNewBlock {
 			exe.cacheTxFromAddress(ctx.txList, exe.Signer())
-		}
+		}*/
 		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList, exe); err != nil {
 			return err
 		}
@@ -251,7 +253,7 @@ func (exe *Executor) isContract(address *common.Address, state *state.StateDB) b
 	return isContract
 }
 
-// load tx fromAddress from txpool by txHash
+/*// load tx fromAddress from txpool by txHash
 func (exe *Executor) cacheTxFromAddress(txs []*types.Transaction, signer types.Signer) {
 	hit := 0
 	for _, tx := range txs {
@@ -265,4 +267,4 @@ func (exe *Executor) cacheTxFromAddress(txs []*types.Transaction, signer types.S
 		}
 	}
 	log.Debug("Parallel execute cacheTxFromAddress", "hit", hit, "total", len(txs))
-}
+}*/
