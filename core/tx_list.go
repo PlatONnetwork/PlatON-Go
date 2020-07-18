@@ -277,6 +277,7 @@ func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Tran
 // provided threshold. Every removed transaction is returned for any post-removal
 // maintenance.
 func (l *txList) Forward(threshold uint64) types.Transactions {
+	l.cacheLength = 0
 	return l.txs.Forward(threshold)
 }
 
@@ -321,6 +322,7 @@ func (l *txList) Filter(costLimit *big.Int, gasLimit uint64) (types.Transactions
 // Cap places a hard limit on the number of items, returning all transactions
 // exceeding that limit.
 func (l *txList) Cap(threshold int) types.Transactions {
+	l.cacheLength = 0
 	return l.txs.Cap(threshold)
 }
 
@@ -349,6 +351,7 @@ func (l *txList) Remove(tx *types.Transaction) (bool, types.Transactions) {
 // prevent getting into and invalid state. This is not something that should ever
 // happen but better to be self correcting than failing!
 func (l *txList) Ready(start uint64) types.Transactions {
+	l.cacheLength = 0
 	return l.txs.Ready(start)
 }
 
@@ -362,6 +365,9 @@ func (l *txList) Len() int {
 
 // Empty returns whether the list of transactions is empty or not.
 func (l *txList) Empty() bool {
+	if l.cacheLength != 0 {
+		return false
+	}
 	return l.Len() == 0
 }
 
@@ -369,6 +375,7 @@ func (l *txList) Empty() bool {
 // sorted internal representation. The result of the sorting is cached in case
 // it's requested again before any modifications are made to the contents.
 func (l *txList) Flatten() types.Transactions {
+	l.cacheLength = 0
 	return l.txs.Flatten()
 }
 
