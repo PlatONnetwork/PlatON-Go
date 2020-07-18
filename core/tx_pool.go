@@ -1052,7 +1052,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	// Filter out known ones without obtaining the pool lock or recovering signatures
 	var (
 		errs   = make([]error, len(txs))
-		newTxs = make([]*types.Transaction, 0)
+		newTxs = make([]*types.Transaction, 0, len(txs))
 	)
 	for i, tx := range txs {
 		hash := tx.Hash()
