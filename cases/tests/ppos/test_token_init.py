@@ -2035,4 +2035,5 @@ def RO_T_001(new_genesis_env, client_noconsensus):
 
 def test2223(client_consensus):
     client = client_consensus
+    print(client.node.node_mark)
     client.economic.env.deploy_all()
