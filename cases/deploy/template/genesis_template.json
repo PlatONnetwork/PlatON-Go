@@ -31,7 +31,8 @@
             "slashBlocksReward": 5,
             "maxEvidenceAge": 1,
             "zeroProduceCumulativeTime": 1,
-            "zeroProduceNumberThreshold": 1
+            "zeroProduceNumberThreshold": 1,
+            "zeroProduceFreezeDuration":1
         },
         "gov": {
             "versionProposalVoteDurationSeconds": 1600,
