@@ -223,8 +223,9 @@ type txList struct {
 	strict bool         // Whether nonces are strictly continuous or not
 	txs    *txSortedMap // Heap indexed sorted hash map of the transactions
 
-	costcap *big.Int // Price of the highest costing transaction (reset only if exceeds balance)
-	gascap  uint64   // Gas limit of the highest spending transaction (reset only if exceeds block limit)
+	cacheLength int      //the length of txs
+	costcap     *big.Int // Price of the highest costing transaction (reset only if exceeds balance)
+	gascap      uint64   // Gas limit of the highest spending transaction (reset only if exceeds block limit)
 }
 
 // newTxList create a new transaction list for maintaining nonce-indexable fast,
@@ -262,6 +263,7 @@ func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Tran
 	}
 	// Otherwise overwrite the old transaction with the current one
 	l.txs.Put(tx)
+	l.cacheLength = 0
 	if cost := tx.Cost(); l.costcap.Cmp(cost) < 0 {
 		l.costcap = cost
 	}
@@ -310,6 +312,9 @@ func (l *txList) Filter(costLimit *big.Int, gasLimit uint64) (types.Transactions
 		}
 		invalids = l.txs.Filter(func(tx *types.Transaction) bool { return tx.Nonce() > lowest })
 	}
+	if len(removed) > 0 || len(invalids) > 0 {
+		l.cacheLength = 0
+	}
 	return removed, invalids
 }
 
@@ -328,6 +333,7 @@ func (l *txList) Remove(tx *types.Transaction) (bool, types.Transactions) {
 	if removed := l.txs.Remove(nonce); !removed {
 		return false, nil
 	}
+	l.cacheLength = 0
 	// In strict mode, filter out non-executable transactions
 	if l.strict {
 		return true, l.txs.Filter(func(tx *types.Transaction) bool { return tx.Nonce() > nonce })
@@ -348,7 +354,10 @@ func (l *txList) Ready(start uint64) types.Transactions {
 
 // Len returns the length of the transaction list.
 func (l *txList) Len() int {
-	return l.txs.Len()
+	if l.cacheLength == 0 {
+		l.cacheLength = l.txs.Len()
+	}
+	return l.cacheLength
 }
 
 // Empty returns whether the list of transactions is empty or not.
