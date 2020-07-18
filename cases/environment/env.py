@@ -579,6 +579,8 @@ class TestEnvironment:
         # self.genesis_config['alloc'][account] = {"balance": str(99999999999999999999999999)}
         accounts = self.account.get_all_accounts()
         for account in accounts:
+            if account.get('id') == 3:
+                continue
             self.genesis_config['alloc'][account['address']] = {"balance": str(account['balance'])}
         with open(self.cfg.genesis_tmp, 'w', encoding='utf-8') as f:
             f.write(json.dumps(self.genesis_config, indent=4))
