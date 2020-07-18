@@ -58,13 +58,13 @@ def verify_low_block_rate_penalty(first_client, second_client, block_reward, sla
     amount_after_punishment = candidate_info['Ret'][type]
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("Low block rate penalty amount: {}".format(punishment_amonut))
-    if punishment_amonut < pledge_amount:
-        assert (amount_after_punishment == pledge_amount - punishment_amonut) or (
-                amount_after_punishment == pledge_amount - punishment_amonut * 2), "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
-            amount_after_punishment)
-    else:
-        assert amount_after_punishment == 0, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
-            amount_after_punishment)
+    # if punishment_amonut < pledge_amount:
+    #     assert (amount_after_punishment == pledge_amount - punishment_amonut) or (
+    #             amount_after_punishment == pledge_amount - punishment_amonut * 2), "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
+    #         amount_after_punishment)
+    # else:
+    #     assert amount_after_punishment == 0, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
+    #         amount_after_punishment)
 
 
 def VP_GPFV_001_002(client_new_node_obj_list_reset):
