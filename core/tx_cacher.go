@@ -68,15 +68,17 @@ func (cacher *txSenderCacher) SetTxPool(txPool *TxPool) {
 // data structures.
 func (cacher *txSenderCacher) cache() {
 	for task := range cacher.tasks {
-		for i := 0; i < len(task.txs); i += task.inc {
-			if cacher.txPool == nil {
-				types.Sender(task.signer, task.txs[i])
-			} else {
+		if cacher.txPool != nil && cacher.txPool.count() >= 300 {
+			for i := 0; i < len(task.txs); i += task.inc {
 				if txInPool := cacher.txPool.Get(task.txs[i].Hash()); txInPool != nil {
 					task.txs[i].CacheFromAddr(task.signer, txInPool.FromAddr(task.signer))
 				} else {
 					types.Sender(task.signer, task.txs[i])
 				}
+			}
+		} else {
+			for i := 0; i < len(task.txs); i += task.inc {
+				types.Sender(task.signer, task.txs[i])
 			}
 		}
 		if task.doneCh != nil {
