@@ -1052,3 +1052,17 @@ def test_VP_GPFV_021(client_new_node_obj_list_reset):
     assert delegate_balance + economic.delegate_limit - delegate_balance1 < client2.node.web3.toWei(1,
                                                                                                     'ether'), "ErrMsg:Ireport balance {}".format(
         delegate_balance1)
+
+
+def test_test_VP_GPFV_003_01(clients_consensus):
+    client = clients_consensus[0]
+    client1 = clients_consensus[1]
+    economic = client.economic
+    node = client.node
+    print('node', node.node_mark)
+    log.info("balance: {}".format(node.eth.getBalance('lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru')))
+    node.stop()
+    economic.wait_settlement_blocknum(client1.node, 3)
+    result = client1.node.ppos.getCandidateInfo(node.node_id)
+    print(result)
+    log.info("balance: {}".format(client1.node.eth.getBalance('lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru')))

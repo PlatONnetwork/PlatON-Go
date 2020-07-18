@@ -61,6 +61,7 @@ def test_DG_TR_001(client_consensus, reset_environment):
     candidate_info = client_consensus.ppos.getCandidateInfo(node.node_id)
     log.info("first candidate info:{}".format(candidate_info))
     assert_reward_per(candidate_info, 0)
+    economic.wait_settlement_blocknum(node, 1)
     result = client_consensus.staking.edit_candidate(economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS, economic.cfg.INCENTIVEPOOL_ADDRESS, reward_per=reward)
     assert_code(result, 0)
     candidate_info = client_consensus.ppos.getCandidateInfo(node.node_id)
@@ -179,7 +180,7 @@ def test_DG_TR_003_01(client_noconsensus, value):
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('value', [0, 499, 500])
+@pytest.mark.parametrize('value', [0, 999, 1000])
 def test_DG_TR_003_02(staking_node_client, value):
     """
     减少非内置节点分红比例<rewardPerMaxChangeRange值
@@ -191,17 +192,18 @@ def test_DG_TR_003_02(staking_node_client, value):
     result = staking_node_client.delegate.delegate(0, staking_node_client.delegate_address)
     assert_code(result, 0)
     log.info("modify node dividend ratio")
-    if value != 0:
-        economic.wait_settlement_blocknum(node, 1)
-    reward = 1000 - value
+    economic.wait_settlement_blocknum(node, 1)
+    result = node.ppos.getCandidateInfo(node.node_id)
+    current_commission_ratio = result['Ret']['RewardPer']
+    new_commission_ratio = current_commission_ratio - value
     result = staking_node_client.staking.edit_candidate(staking_node_client.staking_address,
-                                                        staking_node_client.staking_address, reward_per=reward)
+                                                        staking_node_client.staking_address, reward_per=new_commission_ratio)
     assert_code(result, 0)
     candidate_info = staking_node_client.ppos.getCandidateInfo(node.node_id)
     log.info("querying node information：{}".format(candidate_info))
     log.info("check dividend ratio")
     assert_reward_per(candidate_info, staking_node_client.reward)
-    assert_next_reward_per(candidate_info, reward)
+    assert_next_reward_per(candidate_info, new_commission_ratio)
     log.info("waiting for a settlement cycle")
     economic.wait_settlement_blocknum(node)
     block_reward, staking_reward = economic.get_current_year_reward(node)
@@ -209,7 +211,7 @@ def test_DG_TR_003_02(staking_node_client, value):
     economic.wait_settlement_blocknum(node)
     candidate_info = staking_node_client.ppos.getCandidateInfo(node.node_id)
     log.info("querying node information：{}".format(candidate_info))
-    assert_reward_per(candidate_info, reward)
+    assert_reward_per(candidate_info, new_commission_ratio)
     economic.env.deploy_all()
 
 
@@ -261,7 +263,7 @@ def test_DG_TR_003_04(client_noconsensus, reset_environment):
 def DG_TR_003_05(client_noconsensus):
     """
     调整非内置节点分红比例负
-    :param staking_node_client:
+    :param client_noconsensus:
     :return:
     """
     economic = client_noconsensus.economic
