@@ -36,6 +36,7 @@ type txSenderCacherRequest struct {
 	txs    []*types.Transaction
 	inc    int
 	doneCh chan struct{}
+	starts int
 }
 
 // txSenderCacher is a helper structure to concurrently ecrecover transaction
@@ -68,18 +69,8 @@ func (cacher *txSenderCacher) SetTxPool(txPool *TxPool) {
 // data structures.
 func (cacher *txSenderCacher) cache() {
 	for task := range cacher.tasks {
-		if cacher.txPool != nil && cacher.txPool.count() >= 300 {
-			for i := 0; i < len(task.txs); i += task.inc {
-				if txInPool := cacher.txPool.Get(task.txs[i].Hash()); txInPool != nil {
-					task.txs[i].CacheFromAddr(task.signer, txInPool.FromAddr(task.signer))
-				} else {
-					types.Sender(task.signer, task.txs[i])
-				}
-			}
-		} else {
-			for i := 0; i < len(task.txs); i += task.inc {
-				types.Sender(task.signer, task.txs[i])
-			}
+		for i := task.starts; i < len(task.txs); i += task.inc {
+			types.Sender(task.signer, task.txs[i])
 		}
 		if task.doneCh != nil {
 			task.doneCh <- struct{}{}
@@ -103,8 +94,9 @@ func (cacher *txSenderCacher) recover(signer types.Signer, txs []*types.Transact
 	for i := 0; i < tasks; i++ {
 		cacher.tasks <- &txSenderCacherRequest{
 			signer: signer,
-			txs:    txs[i:],
+			txs:    txs,
 			inc:    tasks,
+			starts: i,
 		}
 	}
 }
@@ -141,17 +133,43 @@ func (cacher *txSenderCacher) recover(signer types.Signer, txs []*types.Transact
 	}
 }*/
 
+func (cacher *txSenderCacher) RecoverTxsFromPool(signer types.Signer, txs []*types.Transaction) chan struct{} {
+	// Ensure we have meaningful task sizes and schedule the recoveries
+	tasks := cacher.threads
+	if len(txs) < tasks*4 {
+		tasks = (len(txs) + 3) / 4
+	}
+
+	CalTxFromCH := make(chan struct{}, tasks)
+	for i := 0; i < tasks; i++ {
+		cacher.tasks <- &txSenderCacherRequest{
+			signer: signer,
+			txs:    txs,
+			inc:    tasks,
+			doneCh: CalTxFromCH,
+			starts: i,
+		}
+	}
+	return CalTxFromCH
+}
+
 // recoverFromBlock recovers the senders from  block and caches them
 // back into the same data structures. There is no validation being done, nor
 // any reaction to invalid signatures. That is up to calling code later.
 func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types.Block) {
 	count := len(block.Transactions())
 	txs := make([]*types.Transaction, 0, count)
-	txs = append(txs, block.Transactions()...)
 
-	// If there's nothing to recover, abort
-	if len(txs) == 0 {
-		return
+	if cacher.txPool != nil && cacher.txPool.count() >= 200 {
+		for i, tx := range block.Transactions() {
+			if txInPool := cacher.txPool.Get(tx.Hash()); txInPool != nil {
+				block.Transactions()[i].CacheFromAddr(signer, txInPool.FromAddr(signer))
+			} else {
+				txs = append(txs, block.Transactions()[i])
+			}
+		}
+	} else {
+		txs = block.Transactions()
 	}
 	// Ensure we have meaningful task sizes and schedule the recoveries
 	tasks := cacher.threads
@@ -162,9 +180,10 @@ func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types
 	for i := 0; i < tasks; i++ {
 		cacher.tasks <- &txSenderCacherRequest{
 			signer: signer,
-			txs:    txs[i:],
+			txs:    txs,
 			inc:    tasks,
 			doneCh: block.CalTxFromCH,
+			starts: i,
 		}
 	}
 }
