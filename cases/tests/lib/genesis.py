@@ -45,6 +45,7 @@ class Slashing:
     maxEvidenceAge: int
     zeroProduceCumulativeTime: int
     zeroProduceNumberThreshold: int
+    zeroProduceFreezeDuration: int
 
 
 @dataclass
