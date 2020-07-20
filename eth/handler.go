@@ -288,7 +288,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	var (
 		genesis = pm.blockchain.Genesis()
 		head    = pm.blockchain.CurrentHeader()
-		hash    = head.Hash()
+		hash    = head.CacheHash()
 	)
 	if err := p.Handshake(pm.networkID, head.Number, hash, genesis.Hash(), pm); err != nil {
 		p.Log().Debug("PlatON handshake failed", "err", err)

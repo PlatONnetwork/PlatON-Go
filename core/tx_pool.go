@@ -517,20 +517,20 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	var oldHash common.Hash
 	var oldNumber uint64
 	if oldHead != nil {
-		oldHash = oldHead.Hash()
+		oldHash = oldHead.CacheHash()
 		oldNumber = oldHead.Number.Uint64()
 	}
 
-	if oldHead != nil && newHead != nil && oldHead.Hash() == newHead.Hash() && oldHead.Number.Uint64() == newHead.Number.Uint64() {
-		log.Debug("txpool needn't reset cause not changed", "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())
+	if oldHead != nil && newHead != nil && oldHead.CacheHash() == newHead.CacheHash() && oldHead.Number.Uint64() == newHead.Number.Uint64() {
+		log.Debug("txpool needn't reset cause not changed", "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.CacheHash(), "newNumber", newHead.Number.Uint64())
 		return
 	}
 
-	log.Debug("reset txpool", "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())
+	log.Debug("reset txpool", "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.CacheHash(), "newNumber", newHead.Number.Uint64())
 	// If we're reorging an old state, reinject all dropped transactions
 	var reinject types.Transactions
 
-	if oldHead != nil && oldHead.Hash() != newHead.ParentHash {
+	if oldHead != nil && oldHead.CacheHash() != newHead.ParentHash {
 		// If the reorg is too deep, avoid doing it (will happen during fast sync)
 		oldNum := oldHead.Number.Uint64()
 		newNum := newHead.Number.Uint64()
@@ -542,15 +542,15 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 			var discarded, included types.Transactions
 
 			var (
-				rem = pool.chain.GetBlock(oldHead.Hash(), oldHead.Number.Uint64())
-				add = pool.chain.GetBlock(newHead.Hash(), newHead.Number.Uint64())
+				rem = pool.chain.GetBlock(oldHead.CacheHash(), oldHead.Number.Uint64())
+				add = pool.chain.GetBlock(newHead.CacheHash(), newHead.Number.Uint64())
 			)
 
 			if rem == nil {
-				log.Debug("cannot find oldHead", "hash", oldHead.Hash(), "number", oldHead.Number.Uint64())
+				log.Debug("cannot find oldHead", "hash", oldHead.CacheHash(), "number", oldHead.Number.Uint64())
 			}
 			if add == nil {
-				log.Debug("cannot find newHead", "hash", newHead.Hash(), "number", newHead.Number.Uint64())
+				log.Debug("cannot find newHead", "hash", newHead.CacheHash(), "number", newHead.Number.Uint64())
 			}
 
 			if rem != nil && add != nil {
@@ -601,7 +601,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	t := time.Now()
 	SenderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
-	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
+	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.CacheHash(), "count", len(reinject), "elapsed", time.Since(t))
 
 	// validate the pool of pending transactions, this will remove
 	// any transactions that have been included in the block or
