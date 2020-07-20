@@ -50,9 +50,10 @@ func (h *nonceHeap) Pop() interface{} {
 // txSortedMap is a nonce->transaction hash map with a heap based index to allow
 // iterating over the contents in a nonce-incrementing way.
 type txSortedMap struct {
-	items map[uint64]*types.Transaction // Hash map storing the transaction data
-	index *nonceHeap                    // Heap of nonces of all the stored transactions (non-strict mode)
-	cache types.Transactions            // Cache of the transactions already sorted
+	items         map[uint64]*types.Transaction // Hash map storing the transaction data
+	cacheItemsLen int
+	index         *nonceHeap         // Heap of nonces of all the stored transactions (non-strict mode)
+	cache         types.Transactions // Cache of the transactions already sorted
 }
 
 // newTxSortedMap creates a new nonce-sorted transaction map.
@@ -74,6 +75,7 @@ func (m *txSortedMap) Put(tx *types.Transaction) {
 	nonce := tx.Nonce()
 	if m.items[nonce] == nil {
 		heap.Push(m.index, nonce)
+		m.cacheItemsLen++
 	}
 	m.items[nonce], m.cache = tx, nil
 }
@@ -89,6 +91,7 @@ func (m *txSortedMap) Forward(threshold uint64) types.Transactions {
 		nonce := heap.Pop(m.index).(uint64)
 		removed = append(removed, m.items[nonce])
 		delete(m.items, nonce)
+		m.cacheItemsLen--
 	}
 	// If we had a cached order, shift the front
 	if m.cache != nil {
@@ -107,6 +110,7 @@ func (m *txSortedMap) Filter(filter func(*types.Transaction) bool) types.Transac
 		if filter(tx) {
 			removed = append(removed, tx)
 			delete(m.items, nonce)
+			m.cacheItemsLen--
 		}
 	}
 	// If transactions were removed, the heap and cache are ruined
@@ -136,6 +140,7 @@ func (m *txSortedMap) Cap(threshold int) types.Transactions {
 	for size := len(m.items); size > threshold; size-- {
 		drops = append(drops, m.items[(*m.index)[size-1]])
 		delete(m.items, (*m.index)[size-1])
+		m.cacheItemsLen--
 	}
 	*m.index = (*m.index)[:threshold]
 	heap.Init(m.index)
@@ -163,6 +168,7 @@ func (m *txSortedMap) Remove(nonce uint64) bool {
 		}
 	}
 	delete(m.items, nonce)
+	m.cacheItemsLen--
 	m.cache = nil
 
 	return true
@@ -185,6 +191,7 @@ func (m *txSortedMap) Ready(start uint64) types.Transactions {
 	for next := (*m.index)[0]; m.index.Len() > 0 && (*m.index)[0] == next; next++ {
 		ready = append(ready, m.items[next])
 		delete(m.items, next)
+		m.cacheItemsLen--
 		heap.Pop(m.index)
 	}
 	m.cache = nil
@@ -194,7 +201,8 @@ func (m *txSortedMap) Ready(start uint64) types.Transactions {
 
 // Len returns the length of the transaction map.
 func (m *txSortedMap) Len() int {
-	return len(m.items)
+	return m.cacheItemsLen
+	//return len(m.items)
 }
 
 // Flatten creates a nonce-sorted slice of transactions based on the loosely
