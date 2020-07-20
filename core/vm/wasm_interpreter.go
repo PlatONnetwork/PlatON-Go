@@ -16,6 +16,7 @@ var (
 	ErrWASMPanicOp                  = errors.New("WASM: transaction err op")
 	ErrWASMOldContractCodeNotExists = errors.New("WASM: old contract code is not exists")
 	ErrWASMUndefinedPanic           = errors.New("WASM: vm undefined err")
+	ErrWASMRlpItemCountTooLarge     = errors.New("WASM: itemCount too large for RLP")
 )
 
 // WASMInterpreter represents an WASM interpreter
