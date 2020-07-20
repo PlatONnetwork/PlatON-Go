@@ -350,21 +350,6 @@ func (pool *TxPool) txExtBufferReadLoop() {
 	for {
 		select {
 		case ext := <-pool.txExtBuffer:
-			if txs, ok := ext.tx.([]*types.Transaction); ok {
-				donch := SenderCacher.RecoverTxsFromPool(pool.signer, txs)
-				tasks := cap(donch)
-				timeout := time.NewTimer(time.Second)
-				for tasks > 0 {
-					select {
-					case <-donch:
-						tasks--
-					case <-timeout.C:
-						log.Error("Parallel cal tx from time out")
-						tasks = 0
-					}
-				}
-				timeout.Stop()
-			}
 			err := pool.addTxExt(ext)
 			ext.txErr <- err
 		case <-pool.exitCh:
@@ -1069,7 +1054,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 		errs   = make([]error, len(txs))
 		newTxs = make([]*types.Transaction, 0, len(txs))
 	)
-	for _, tx := range txs {
+	for i, tx := range txs {
 		hash := tx.Hash()
 
 		if _, ok := pool.knowns.Load(hash); ok {
@@ -1083,6 +1068,11 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 		if pool.all.Get(hash) != nil {
 			//log.Trace("Discarding already known transaction", "hash", hash)
 			knowingTxCounter.Inc(1)
+			continue
+		}
+		_, err := types.Sender(pool.signer, tx)
+		if err != nil {
+			errs[i] = ErrInvalidSender
 			continue
 		}
 		newTxs = append(newTxs, tx)
