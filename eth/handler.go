@@ -873,6 +873,8 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 	var txset = make(map[*peer]types.Transactions)
 
+	rand.Seed(time.Now().UnixNano())
+
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
 		peers := pm.peers.PeersWithoutTx(tx.Hash())
@@ -881,14 +883,13 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 				txset[peer] = append(txset[peer], tx)
 			}
 		} else {
-			rand.Seed(time.Now().UnixNano())
 			indexes := rand.Perm(len(peers))
 			for i := 0; i < numBroadcastTxPeers; i++ {
 				peer := peers[indexes[i]]
 				txset[peer] = append(txset[peer], tx)
 			}
 		}
-		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+		//log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
 
 	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
@@ -917,14 +918,14 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 		case event := <-pm.txsCh:
 			pm.txsCache = append(pm.txsCache, event.Txs...)
 			if len(pm.txsCache) >= defaultTxsCacheSize {
-				log.Trace("broadcast txs", "count", len(pm.txsCache))
+				//log.Trace("broadcast txs", "count", len(pm.txsCache))
 				pm.BroadcastTxs(pm.txsCache)
 				pm.txsCache = make([]*types.Transaction, 0)
 				timer.Reset(defaultBroadcastInterval)
 			}
 		case <-timer.C:
 			if len(pm.txsCache) > 0 {
-				log.Trace("broadcast txs", "count", len(pm.txsCache))
+				//log.Trace("broadcast txs", "count", len(pm.txsCache))
 				pm.BroadcastTxs(pm.txsCache)
 				pm.txsCache = make([]*types.Transaction, 0)
 			}
