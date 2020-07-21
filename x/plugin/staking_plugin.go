@@ -1772,6 +1772,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	//
 	checkHaveSlash := func(status staking.CandidateStatus) bool {
 		return status.IsInvalidLowRatioDel() ||
+			status.IsInvalidLowRatio() ||
 			status.IsInvalidLowRatioNotEnough() ||
 			status.IsInvalidDuplicateSign()
 	}
