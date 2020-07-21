@@ -67,7 +67,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		}
 		receipts = ctx.GetReceipts()
 		allLogs = ctx.GetLogs()
-		log.Trace("Process parallel execute transactions cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
+		log.Trace("Process parallel execute transactions cost time", "blockNumber", block.Number(), "blockHash", block.Hash(), "time", time.Since(start))
 	}
 
 	if bcr != nil {
@@ -77,7 +77,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
-		log.Debug("Process end blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex())
+		log.Debug("Process end blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash())
 	}
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)

@@ -321,14 +321,14 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	if len(pposHash) != 0 && !bytes.Equal(pposHash, make([]byte, len(pposHash))) {
 		// store hash about ppos
 		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
-		log.Debug("Store ppos hash", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64(),
+		log.Debug("Store ppos hash", "blockHash", blockHash, "blockNumber", header.Number.Uint64(),
 			"pposHash", hex.EncodeToString(pposHash))
 	}
 
 	// This must not be deleted
 	root := state.IntermediateRoot(true)
-	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash.Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash, "blockNumber",
+		header.Number.Uint64(), "root", root, "pointer", fmt.Sprintf("%p", state))
 
 	return nil
 }
