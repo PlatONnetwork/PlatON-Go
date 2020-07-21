@@ -1,18 +1,15 @@
 import math
 import time
+from decimal import Decimal
 
-import pytest
 import allure
-from client_sdk_python.utils.transactions import send_obj_transaction
+import pytest
+from client_sdk_python import Web3
 from dacite import from_dict
-from eth_keys.datatypes import PrivateKey
 from platon_account.internal.transactions import bech32_address_bytes
 
-from common.abspath import abspath
 from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
-from client_sdk_python import Web3
-from decimal import Decimal
 from tests.conftest import get_clients_noconsensus
 from tests.lib import (EconomicConfig,
                        Genesis,
@@ -41,6 +38,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
     node = new_genesis_env.get_rand_node()
     community_amount = default_pledge_amount + 259096239000000000000000000 + 62215742000000000000000000
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    print(genesis)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
     surplus_amount = str(EconomicConfig.TOKEN_TOTAL - community_amount - 200000000000000000000000000)
     genesis.alloc = {
@@ -51,7 +49,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
             "balance": surplus_amount
         }
     }
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.1.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -672,7 +670,7 @@ def test_AL_BI_002(new_genesis_env, staking_cfg):
     # view incentive account again
     incentive_pool_balance1 = client2.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive_pool_balance1: {}".format(incentive_pool_balance1))
-    assert incentive_pool_balance1 == incentive_pool_balance + penalty_amount * 2, "ErrMsg: incentive_pool_balance: {}".format(
+    assert incentive_pool_balance1 == incentive_pool_balance + penalty_amount, "ErrMsg: incentive_pool_balance: {}".format(
         incentive_pool_balance1)
 
 
@@ -1640,7 +1638,7 @@ def test_PT_AC_004(client_consensus):
     print(balance)
 
 
-def test_PT_AC_005(client_consensus):
+def PT_AC_005(client_consensus):
     """
     非关联性转账交易nonce重复
     """
@@ -1676,7 +1674,7 @@ def test_PT_AC_005(client_consensus):
     print(balance)
 
 
-def test_PT_AC_006(client_consensus):
+def PT_AC_006(client_consensus):
     """
     非关联性转账交易nonce不连续
     """
@@ -1755,7 +1753,7 @@ def test_PT_AC_008(client_consensus):
     print(balance)
 
 
-def test_PT_AC_009(client_consensus):
+def PT_AC_009(client_consensus):
     """
     gas和余额不足（一）
     """
@@ -1779,7 +1777,7 @@ def test_PT_AC_009(client_consensus):
     send_batch_transactions(client, transaction_list)
 
 
-def test_PT_AC_010(client_consensus):
+def PT_AC_010(client_consensus):
     """
     gas和余额不足（二）
     """
@@ -1791,13 +1789,13 @@ def test_PT_AC_010(client_consensus):
     addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
     addres3, private_key3 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
     transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2,
-                        'amount': 5, 'nonce': None}
+                        'amount': 5, 'nonce': None, 'data': ''}
     transaction_list.append(transaction_dict)
     transaction_dict = {'from': addres3, 'from_private': private_key2, 'to': addres1, 'to_private': private_key3,
-                        'amount': 10, 'nonce': None}
+                        'amount': 10, 'nonce': None, 'data': ''}
     transaction_list.append(transaction_dict)
     transaction_dict = {'from': addres2, 'from_private': private_key3, 'to': addres3, 'to_private': private_key1,
-                        'amount': 5, 'nonce': None}
+                        'amount': 5, 'nonce': None, 'data': ''}
     transaction_list.append(transaction_dict)
     print(transaction_list)
     send_batch_transactions(client, transaction_list)
