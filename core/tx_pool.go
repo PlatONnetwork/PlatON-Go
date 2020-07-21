@@ -1441,8 +1441,9 @@ func (pool *TxPool) truncatePending() {
 	spammers := prque.New(nil)
 	for addr, list := range pool.pending {
 		// Only evict transactions from high rollers
-		if !pool.locals.contains(addr) && uint64(list.Len()) > pool.config.AccountSlots {
-			spammers.Push(addr, int64(list.Len()))
+		txLength := list.Len()
+		if !pool.locals.contains(addr) && uint64(txLength) > pool.config.AccountSlots {
+			spammers.Push(addr, int64(txLength))
 		}
 	}
 	// Gradually drop transactions from offenders
