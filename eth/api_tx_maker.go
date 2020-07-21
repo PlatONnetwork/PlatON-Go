@@ -16,7 +16,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -83,7 +82,7 @@ type TxMakeManger struct {
 	BlockProduceTime time.Time
 }
 
-func NewTxMakeManger(pendingState *state.ManagedState, accountPath string, start, end int) (*TxMakeManger, error) {
+func NewTxMakeManger(GetNonce func(addr common.Address) uint64, accountPath string, start, end int) (*TxMakeManger, error) {
 	file, err := os.Open(accountPath)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read genesis file:%v", err)
@@ -108,7 +107,7 @@ func NewTxMakeManger(pendingState *state.ManagedState, accountPath string, start
 		if err != nil {
 			return nil, fmt.Errorf("NewTxMakeManger Bech32ToAddress fail:%v", err)
 		}
-		nonce := pendingState.GetNonce(address)
+		nonce := GetNonce(address)
 		t.accounts[address] = &PriAccount{privateKey, nonce, address, nonce, time.Now()}
 		t.toPool = append(t.toPool, address)
 	}
@@ -122,8 +121,7 @@ type PriKeyJson struct {
 }
 
 func (txg *TxGenAPI) makeTransaction(txPer, txTime int, accountPath string, start, end int, txch chan types.Transactions) error {
-
-	txm, err := NewTxMakeManger(txg.eth.txPool.State(), accountPath, start, end)
+	txm, err := NewTxMakeManger(txg.eth.txPool.Nonce, accountPath, start, end)
 	if err != nil {
 		return err
 	}
