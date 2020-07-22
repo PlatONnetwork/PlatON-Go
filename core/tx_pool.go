@@ -508,8 +508,8 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 
 	// Update all accounts to the latest known pending nonce
 	for addr, list := range pool.pending {
-		txs := list.Flatten() // Heavy but will be cached and is needed by the miner anyway
-		pool.pendingNonces.set(addr, txs[len(txs)-1].Nonce()+1)
+		txs := list.LastElement() // Heavy but will be cached and is needed by the miner anyway
+		pool.pendingNonces.set(addr, txs.Nonce()+1)
 	}
 	// Check the queue and move transactions over to the pending if possible
 	// or remove those that have become invalid
@@ -852,13 +852,8 @@ func (pool *TxPool) journalTx(from common.Address, tx *types.Transaction) {
 // and returns whether it was inserted or an older was better.
 //
 // Note, this method assumes the pool lock is held!
-func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.Transaction) bool {
+func (pool *TxPool) promoteTx(addr common.Address, list *txList, hash common.Hash, tx *types.Transaction) bool {
 	// Try to insert the transaction into the pending queue
-	if pool.pending[addr] == nil {
-		pool.pending[addr] = newTxList(true)
-	}
-	list := pool.pending[addr]
-
 	inserted, old := list.Add(tx, pool.config.PriceBump)
 	if !inserted {
 		// An older transaction was better, discard this
@@ -885,7 +880,6 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 	}
 	// Set the potentially new pending nonce and notify any subsystems of the new tx
 	pool.beats[addr] = time.Now()
-	pool.pendingNonces.set(addr, tx.Nonce()+1)
 
 	return true
 }
@@ -1236,12 +1230,6 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	pool.truncateQueue()
 
 	// Update all accounts to the latest known pending nonce
-	if reset != nil {
-		for addr, list := range pool.pending {
-			highestPending := list.LastElement()
-			pool.pendingNonces.set(addr, highestPending.Nonce()+1)
-		}
-	}
 	pool.mu.Unlock()
 
 	// Notify subsystems for newly added transactions
@@ -1349,7 +1337,10 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.currentState = statedb
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
-
+	for addr, list := range pool.pending {
+		highestPending := list.LastElement()
+		pool.pendingNonces.set(addr, highestPending.Nonce()+1)
+	}
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
 	SenderCacher.recover(pool.signer, reinject)
@@ -1390,12 +1381,21 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 
 		// Gather all executable transactions and promote them
 		readies := list.Ready(pool.pendingNonces.get(addr))
-		for _, tx := range readies {
-			hash := tx.Hash()
-			if pool.promoteTx(addr, hash, tx) {
-				promoted = append(promoted, tx)
+		if len(readies) > 0 {
+			pendinglist, ok := pool.pending[addr]
+			if !ok {
+				pendinglist = newTxList(true)
+				pool.pending[addr] = pendinglist
 			}
+			for _, tx := range readies {
+				hash := tx.Hash()
+				if pool.promoteTx(addr, pendinglist, hash, tx) {
+					promoted = append(promoted, tx)
+				}
+			}
+			pool.pendingNonces.set(addr, readies[len(readies)-1].Nonce()+1)
 		}
+
 		//log.Trace("Promoted queued transactions", "count", len(promoted))
 		queuedGauge.Dec(int64(len(readies)))
 
