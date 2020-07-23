@@ -273,7 +273,7 @@ def test_AS_020_021(clients_new_node, client_consensus):
     economic = client.economic
     address, pri_key = economic.account.generate_account(node.web3, 10 ** 18 * 10000000)
 
-    value = economic.create_staking_limit * 2
+    value = economic.create_staking_limit
     result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     economic.wait_consensus(other_node, number=4)
