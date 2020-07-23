@@ -1468,6 +1468,7 @@ func (pool *TxPool) truncatePending() {
 						// Drop the transaction from the global pools too
 						hash := tx.Hash()
 						pool.all.Remove(hash)
+						pool.knowns.Delete(hash)
 
 						// Update the account nonce to the dropped transaction
 						pool.pendingNonces.setIfLower(offenders[i], tx.Nonce())
@@ -1495,6 +1496,7 @@ func (pool *TxPool) truncatePending() {
 					// Drop the transaction from the global pools too
 					hash := tx.Hash()
 					pool.all.Remove(hash)
+					pool.knowns.Delete(hash)
 
 					// Update the account nonce to the dropped transaction
 					pool.pendingNonces.setIfLower(addr, tx.Nonce())
@@ -1542,6 +1544,7 @@ func (pool *TxPool) truncateQueue() {
 		if size := uint64(list.Len()); size <= drop {
 			for _, tx := range list.Flatten() {
 				pool.removeTx(tx.Hash(), true)
+				pool.knowns.Delete(tx.Hash())
 			}
 			drop -= size
 			queuedRateLimitMeter.Mark(int64(size))
@@ -1551,6 +1554,7 @@ func (pool *TxPool) truncateQueue() {
 		txs := list.Flatten()
 		for i := len(txs) - 1; i >= 0 && drop > 0; i-- {
 			pool.removeTx(txs[i].Hash(), true)
+			pool.knowns.Delete(txs[i].Hash())
 			drop--
 			queuedRateLimitMeter.Mark(1)
 		}
