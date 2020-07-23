@@ -82,6 +82,9 @@ class TestVoteVP:
         log.info('Node {} vote proposal result : {}'.format(clients_verifier[-1].node.node_id, result))
         assert_code(result, 0)
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        log.info('{}'.format(pip.pip.getTallyResult(proposalinfo.get('ProposalID'))))
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        
         pip = clients_verifier[-1].pip
         upload_platon(pip.node, pip.cfg.PLATON_NEW_BIN)
         pip.node.restart()
@@ -91,7 +94,11 @@ class TestVoteVP:
         log.info('Node {} vote proposal result : {}'.format(clients_verifier[-1].node.node_id, result))
         assert_code(result, 302026)
         log.info('{}'.format(pip.pip.getTallyResult(proposalinfo.get('ProposalID'))))
-        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+
+        if pip.node.eth.blockNumber < pip.get_status_of_proposal(proposalinfo.get('ProposalID')):
+            assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        assert pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 4 or 5
+
         result = pip.vote(pip.node.node_id, proposalinfo.get('ProposalID'), pip.cfg.vote_option_yeas,
                           pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Node {} vote proposal result : {}'.format(clients_verifier[-1].node.node_id, result))

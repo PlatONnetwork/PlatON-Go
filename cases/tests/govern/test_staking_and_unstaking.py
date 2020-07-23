@@ -121,11 +121,16 @@ class TestPreactiveProposalStaking:
         client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
         pips = [client.pip for client in client_verifiers]
         result = pips[0].submitVersion(pips[0].node.node_id, str(time.time()),
-                                       pips[0].cfg.version5, 2, pips[0].node.staking_address,
+                                       pips[0].cfg.version5, 3, pips[0].node.staking_address,
                                        transaction_cfg=pips[0].cfg.transaction_cfg)
         log.info('submit version proposal, result : {}'.format(result))
         proposalinfo = pips[0].get_effect_proposal_info_of_vote()
         log.info('Version proposalinfo: {}'.format(proposalinfo))
+
+        # pip_id= proposalinfo['ProposalID']
+        # TallyResult = pips[0].pip.getTallyResult(pip_id)
+        # log.info(f'TallyResult == {TallyResult}')
+
         for pip in pips:
             result = version_proposal_vote(pip)
             assert_code(result, 0)
@@ -592,6 +597,7 @@ class TestSlashing:
         pip = clients_consensus[0].pip
         pip_test = clients_consensus[1].pip
         address = pip.node.staking_address
+        balance_init = pip.node.eth.getBalance(address)
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 1,
                                    address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
@@ -613,10 +619,9 @@ class TestSlashing:
         log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size - 1,
                                                                      balance_before))
         balance_after = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size)
-
         log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares
+        assert balance_after == balance_before
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -679,7 +684,7 @@ class TestSlashing:
 
         log.info('Block bumber {} staking address balance {}'.format(5 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares0
+        assert balance_after == balance_before == shares0
 
     @pytest.mark.P1
     @allure.title('Node be slashed, verify unstake function')
@@ -735,7 +740,7 @@ class TestSlashing:
 
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares0
+        assert balance_after == balance_before
 
     @pytest.mark.P1
     @allure.title('Node be slashed, verify unstake function')
@@ -782,7 +787,7 @@ class TestSlashing:
 
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares0
+        assert balance_after == balance_before
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -838,7 +843,7 @@ class TestSlashing:
         balance_after = pip_test.node.eth.getBalance(address, 8 * pip_test.economic.settlement_size + 1)
         log.info('Block bumber {} staking address balance {}'.format(8 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares0
+        assert balance_after == balance_before == shares0
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -986,7 +991,7 @@ class TestSlashing:
                                                                                balance_after_lockup))
         assert balance_after == balance_before
         if tag:
-            assert balance_after_lockup - balance_before_lockup == shares
+            assert balance_after_lockup == balance_before_lockup == shares
         else:
             assert balance_after_lockup == balance_before_lockup
 
