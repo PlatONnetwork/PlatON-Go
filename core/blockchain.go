@@ -69,6 +69,8 @@ type CacheConfig struct {
 	DBGCTimeout  time.Duration
 	DBGCMpt      bool
 	DBGCBlock    int
+	DBDisabledCache  bool
+	DBCacheEpoch    uint64
 }
 
 // mining related configuration

@@ -22,8 +22,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -141,21 +143,70 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				log.Error("Failed to BeginBlock, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return errors.New("Failed to get CurrentActiveVersion")
 			}
-			// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
-			validatorMap := make(map[discover.NodeID]bool)
-			for _, validator := range preRoundVal.Arr {
-				nodeId := validator.NodeId
-				count := result[nodeId]
-				if count > 0 {
-					validatorMap[nodeId] = true
-				} else {
-					validatorMap[nodeId] = false
+			if currentVersion >= params.FORKVERSION_0_11_0 {
+				// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
+				validatorMap := make(map[discover.NodeID]bool)
+				for _, validator := range preRoundVal.Arr {
+					nodeId := validator.NodeId
+					count := result[nodeId]
+					if count > 0 {
+						validatorMap[nodeId] = true
+					} else {
+						validatorMap[nodeId] = false
+					}
 				}
-			}
 
-			if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap, preRoundVal.Arr); nil != err {
-				log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-				return err
+				if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap, preRoundVal.Arr); nil != err {
+					log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+					return err
+				}
+			} else {
+				blockReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
+				if nil != err {
+					log.Error("Failed to BeginBlock, query GovernSlashBlocksReward is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+					return err
+				}
+
+				for _, validator := range preRoundVal.Arr {
+					nodeId := validator.NodeId
+					count := result[nodeId]
+					if count > 0 {
+						continue
+					}
+					slashType := staking.LowRatioDel
+					slashAmount := common.Big0
+
+					canMutable, err := stk.GetCanMutableByIrr(validator.NodeAddress)
+					if nil != err {
+						log.Error("Failed to BeginBlock, call candidate mutable info is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+						if err == snapshotdb.ErrNotFound {
+							continue
+						}
+						return err
+					}
+					totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
+					if blockReward > 0 {
+						slashAmount, err = calcSlashBlockRewards(sp.db, blockHash, uint64(blockReward))
+						if nil != err {
+							log.Error("Failed to BeginBlock, call calcSlashBlockRewards fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+						}
+						if slashAmount.Cmp(totalBalance) > 0 {
+							slashAmount = totalBalance
+						}
+					}
+					log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+						"packBlockCount", count, "slashType", slashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blockReward)
+
+					slashItem := &staking.SlashNodeItem{
+						NodeId:      nodeId,
+						Amount:      slashAmount,
+						SlashType:   slashType,
+						BenefitAddr: vm.RewardManagerPoolAddr,
+					}
+
+					slashQueue = append(slashQueue, slashItem)
+
+				}
 			}
 
 			// Real to slash the node
@@ -163,6 +214,15 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			// it means that there is no block,
 			// then the penalty is directly
 			if len(slashQueue) != 0 {
+				var slashNodeQueue staking.SlashNodeQueue
+				for _, slashItem := range slashQueue  {
+					snData := &staking.SlashNodeData{
+						NodeId          : slashItem.NodeId,
+						Amount : slashItem.Amount,
+					}
+					slashNodeQueue = append(slashNodeQueue, snData)
+				}
+				sp.setSlashData(header.Number.Uint64() ,slashNodeQueue)
 				if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), slashQueue...); nil != err {
 					log.Error("Failed to BeginBlock, call SlashCandidates is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 					return err
@@ -304,7 +364,9 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
 				slashQueue = append(slashQueue, slashItem)
 			}
+
 		}
+
 	}
 	// The remaining zero-out blocks in the map belong to the first zero-out block,
 	// so they are directly added to the list.
@@ -734,4 +796,18 @@ func calcSlashBlockRewards(db snapshotdb.DB, hash common.Hash, blockRewardAmount
 		return nil, err
 	}
 	return new(big.Int).Mul(newBlockReward, new(big.Int).SetUint64(blockRewardAmount)), nil
+}
+
+func (sp *SlashingPlugin)setSlashData(num uint64,snQueue staking.SlashNodeQueue) {
+	log.Debug("setSlashData","num", num,"len(snQueue)",len(snQueue))
+	if snQueue == nil || len(snQueue) == 0{
+		return
+	}
+	log.Debug("setSlashData,su", snQueue)
+	data, err := rlp.EncodeToBytes(snQueue)
+	if nil != err {
+		log.Error("wow,Failed to EncodeToBytes on slashingPlugin Confirmed When Election block", "err", err)
+	}
+	numStr := strconv.FormatUint(num, 10)
+	STAKING_DB.HistoryDB.Put([]byte(SlashName+numStr), data)
 }
