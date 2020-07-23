@@ -1596,7 +1596,7 @@ func (pool *TxPool) demoteUnexecutables() {
 			gapped := list.Cap(0)
 			for _, tx := range gapped {
 				hash := tx.Hash()
-				log.Error("Demoting invalidated transaction", "hash", hash)
+				log.Error("Demoting invalidated transaction", "hash", hash, "should_nonce", nonce, "real_nonce", tx.Nonce())
 				pool.enqueueTx(hash, tx)
 			}
 			pendingGauge.Dec(int64(len(gapped)))
