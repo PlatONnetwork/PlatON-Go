@@ -1,18 +1,15 @@
 import math
 import time
+from decimal import Decimal
 
-import pytest
 import allure
-from client_sdk_python.utils.transactions import send_obj_transaction
+import pytest
+from client_sdk_python import Web3
 from dacite import from_dict
-from eth_keys.datatypes import PrivateKey
 from platon_account.internal.transactions import bech32_address_bytes
 
-from common.abspath import abspath
 from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
-from client_sdk_python import Web3
-from decimal import Decimal
 from tests.conftest import get_clients_noconsensus
 from tests.lib import (EconomicConfig,
                        Genesis,
@@ -41,6 +38,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
     node = new_genesis_env.get_rand_node()
     community_amount = default_pledge_amount + 259096239000000000000000000 + 62215742000000000000000000
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    print(genesis)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
     surplus_amount = str(EconomicConfig.TOKEN_TOTAL - community_amount - 200000000000000000000000000)
     genesis.alloc = {
@@ -51,25 +49,23 @@ def test_IT_IA_002_to_007(new_genesis_env):
             "balance": surplus_amount
         }
     }
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.1.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
     # Verify the amount of each built-in account
-    foundation_louckup = node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS)
-    log.info('Initial lock up contract address： {} amount：{}'.format(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS,
-                                                                     foundation_louckup))
-    incentive_pool = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    foundation_louckup = node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS, 0)
+    log.info('Initial lock up contract address： {} amount：{}'.format(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS,foundation_louckup))
+    incentive_pool = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, 0)
     log.info('Incentive pool address：{} amount：{}'.format(EconomicConfig.INCENTIVEPOOL_ADDRESS, incentive_pool))
-    staking = node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
+    staking = node.eth.getBalance(EconomicConfig.STAKING_ADDRESS, 0)
     log.info('Address of pledge contract：{} amount：{}'.format(EconomicConfig.STAKING_ADDRESS, staking))
-    foundation = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS))
+    foundation = node.eth.getBalance(EconomicConfig.FOUNDATION_ADDRESS, 0)
     log.info('PlatON Foundation address：{} amount：{}'.format(EconomicConfig.FOUNDATION_ADDRESS, foundation))
-    remain = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.REMAIN_ACCOUNT_ADDRESS))
+    remain = node.eth.getBalance(EconomicConfig.REMAIN_ACCOUNT_ADDRESS, 0)
     log.info('Remaining total account address：{} amount：{}'.format(EconomicConfig.REMAIN_ACCOUNT_ADDRESS, remain))
-    develop = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
-    log.info('Community developer foundation address：{} amount：{}'.format(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
-                                                                          develop))
+    develop = node.eth.getBalance(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS, 0)
+    log.info('Community developer foundation address：{} amount：{}'.format(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,develop))
     reality_total = foundation_louckup + incentive_pool + staking + foundation + remain + develop
     log.info("Total issuance of Chuangshi block：{}".format(reality_total))
     log.info("--------------Dividing line---------------")
@@ -674,7 +670,7 @@ def test_AL_BI_002(new_genesis_env, staking_cfg):
     # view incentive account again
     incentive_pool_balance1 = client2.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive_pool_balance1: {}".format(incentive_pool_balance1))
-    assert incentive_pool_balance1 == incentive_pool_balance + penalty_amount * 2, "ErrMsg: incentive_pool_balance: {}".format(
+    assert incentive_pool_balance1 == incentive_pool_balance + penalty_amount, "ErrMsg: incentive_pool_balance: {}".format(
         incentive_pool_balance1)
 
 
@@ -1642,7 +1638,7 @@ def test_PT_AC_004(client_consensus):
     print(balance)
 
 
-def test_PT_AC_005(client_consensus):
+def PT_AC_005(client_consensus):
     """
     非关联性转账交易nonce重复
     """
@@ -1678,7 +1674,7 @@ def test_PT_AC_005(client_consensus):
     print(balance)
 
 
-def test_PT_AC_006(client_consensus):
+def PT_AC_006(client_consensus):
     """
     非关联性转账交易nonce不连续
     """
@@ -1757,7 +1753,7 @@ def test_PT_AC_008(client_consensus):
     print(balance)
 
 
-def test_PT_AC_009(client_consensus):
+def PT_AC_009(client_consensus):
     """
     gas和余额不足（一）
     """
@@ -1781,7 +1777,7 @@ def test_PT_AC_009(client_consensus):
     send_batch_transactions(client, transaction_list)
 
 
-def test_PT_AC_010(client_consensus):
+def PT_AC_010(client_consensus):
     """
     gas和余额不足（二）
     """
@@ -1793,13 +1789,13 @@ def test_PT_AC_010(client_consensus):
     addres2, private_key2 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
     addres3, private_key3 = economic.account.generate_account(node.web3, node.web3.toWei(10, 'ether'))
     transaction_dict = {'from': addres1, 'from_private': private_key1, 'to': addres2, 'to_private': private_key2,
-                        'amount': 5, 'nonce': None}
+                        'amount': 5, 'nonce': None, 'data': ''}
     transaction_list.append(transaction_dict)
     transaction_dict = {'from': addres3, 'from_private': private_key2, 'to': addres1, 'to_private': private_key3,
-                        'amount': 10, 'nonce': None}
+                        'amount': 10, 'nonce': None, 'data': ''}
     transaction_list.append(transaction_dict)
     transaction_dict = {'from': addres2, 'from_private': private_key3, 'to': addres3, 'to_private': private_key1,
-                        'amount': 5, 'nonce': None}
+                        'amount': 5, 'nonce': None, 'data': ''}
     transaction_list.append(transaction_dict)
     print(transaction_list)
     send_batch_transactions(client, transaction_list)
@@ -2035,15 +2031,7 @@ def RO_T_001(new_genesis_env, client_noconsensus):
     economic.wait_settlement_blocknum(node, 1)
 
 
-def test_111(client_consensus):
-    print(1)
-
-
 def test2223(client_consensus):
     client = client_consensus
-    economic = client.economic
-    node = client.node
-    # staking_addres, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-    # result = client.staking.create_staking(0, staking_addres, staking_addres)
-    # print(result)
-    print(client.ppos.getCandidateInfo(node.node_id))
+    print(client.node.node_mark)
+    client.economic.env.deploy_all()
