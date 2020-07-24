@@ -173,7 +173,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 		account := crypto.PubkeyToAddress(pri.PublicKey)
 		nonce := currentState.GetNonce(account)
 		singine := types.NewEIP155Signer(new(big.Int).SetInt64(txg.eth.chainConfig.ChainID.Int64()))
-		gasPrice := new(big.Int).SetInt64(50000000000)
+		gasPrice := txg.eth.txPool.GasPrice()
 
 		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
 			for _, config := range input {
