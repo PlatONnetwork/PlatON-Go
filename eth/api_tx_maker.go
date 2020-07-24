@@ -175,7 +175,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 		singine := types.NewEIP155Signer(new(big.Int).SetInt64(txg.eth.chainConfig.ChainID.Int64()))
 		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
 			for _, config := range input {
-				tx := types.NewContractCreation(nonce, nil, 99999999, big.NewInt(9999999), common.Hex2Bytes(config.ContractsCode))
+				tx := types.NewContractCreation(nonce, nil, config.DeployGasLimit, big.NewInt(9999999), common.Hex2Bytes(config.ContractsCode))
 				newTx, err := types.SignTx(tx, singine, pri)
 				if err != nil {
 					return err
@@ -286,6 +286,7 @@ type TxGenInputContractConfig struct {
 	//CreateContracts
 	DeployContractTxHash string `json:"deploy_contract_tx_hash"`
 	ContractsCode        string `json:"contracts_code"`
+	DeployGasLimit       uint64 `json:"deploy_gas_limit"`
 
 	ContractsAddress string `json:"contracts_address"`
 
