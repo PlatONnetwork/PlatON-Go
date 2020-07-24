@@ -11,6 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/mroth/weightedrand"
 
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -155,6 +159,106 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm int, txPer, txTime int, accou
 	return nil
 }
 
+func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
+	return handelTxGenConfig(configPath, func(txgenInput *TxGenInput) error {
+		pri, err := crypto.HexToECDSA(prikey)
+		if err != nil {
+			return err
+		}
+		currentState, err := txg.eth.blockchain.State()
+		if err != nil {
+			return err
+		}
+		defer currentState.ClearReference()
+		account := crypto.PubkeyToAddress(pri.PublicKey)
+		nonce := currentState.GetNonce(account)
+		singine := types.NewEIP155Signer(new(big.Int).SetInt64(txg.eth.chainConfig.ChainID.Int64()))
+		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
+			for _, config := range input {
+				tx := types.NewContractCreation(nonce, nil, 99999999, big.NewInt(9999999), common.Hex2Bytes(config.ContractsCode))
+				newTx, err := types.SignTx(tx, singine, pri)
+				if err != nil {
+					return err
+				}
+				if err := txg.eth.TxPool().AddRemote(newTx); err != nil {
+					return err
+				}
+				config.DeployContractTxHash = newTx.Hash().String()
+				nonce++
+			}
+		}
+		return nil
+	})
+}
+
+func GetReceipts(chainDb ethdb.Database, hash common.Hash) (types.Receipts, error) {
+	if number := rawdb.ReadHeaderNumber(chainDb, hash); number != nil {
+		return rawdb.ReadReceipts(chainDb, hash, *number), nil
+	}
+	return nil, nil
+}
+
+func (txg *TxGenAPI) UpdateConfig(configPath string) error {
+	return handelTxGenConfig(configPath, func(txgenInput *TxGenInput) error {
+		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
+			for _, config := range input {
+				hash := common.HexToHash(config.DeployContractTxHash)
+				tx, blockHash, _, index := rawdb.ReadTransaction(txg.eth.ChainDb(), hash)
+				if tx == nil {
+					return fmt.Errorf("the tx not find yet,tx:%s", hash.String())
+
+				}
+				receipts, err := GetReceipts(txg.eth.ChainDb(), blockHash)
+				if err != nil {
+					return fmt.Errorf("get receitp fail,tx:%s,err:%v", hash.String(), err)
+				}
+				if len(receipts) <= int(index) {
+					return fmt.Errorf("the tx receipts not find yet,tx:%s", hash.String())
+				}
+				receipt := receipts[index]
+				config.ContractsAddress = receipt.ContractAddress.String()
+			}
+
+		}
+		return nil
+	})
+}
+
+func handelTxGenConfig(configPath string, handle func(*TxGenInput) error) error {
+	file, err := os.OpenFile(configPath, os.O_RDWR, 0666)
+	if err != nil {
+		return fmt.Errorf("Failed to read genesis file:%v", err)
+	}
+	defer file.Close()
+	var txgenInput TxGenInput
+	if err := json.NewDecoder(file).Decode(&txgenInput); err != nil {
+		return fmt.Errorf("invalid genesis file chain id:%v", err)
+	}
+
+	if err := handle(&txgenInput); err != nil {
+		return err
+	}
+
+	output, err := json.MarshalIndent(txgenInput, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	if err := file.Truncate(0); err != nil {
+		return err
+	}
+	if _, err := file.Seek(0, 0); err != nil {
+		return err
+	}
+	if _, err := file.Write(output); err != nil {
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (txg *TxGenAPI) Stop() error {
 	if !txg.start {
 		return errors.New("the tx maker has been closed")
@@ -168,35 +272,48 @@ func (txg *TxGenAPI) Stop() error {
 }
 
 type TxGenInput struct {
-	Wasm []TxGenInputAccountConfig `json:"wasm"`
-	Evm  []TxGenInputAccountConfig `json:"evm"`
-	Tx   []TxGenInputAccountConfig `json:"tx"`
+	Wasm []*TxGenInputContractConfig `json:"wasm"`
+	Evm  []*TxGenInputContractConfig `json:"evm"`
+	Tx   []*TxGenInputAccountConfig  `json:"tx"`
 }
 
 type TxGenInputAccountConfig struct {
-	Pri      string `json:"private_key"`
-	Add      string `json:"address"`
-	Data     string `json:"data"`
-	Weights  uint   `json:"weights"`
-	GasLimit uint64 `json:"gas_limit"`
+	Pri string `json:"private_key"`
+	Add string `json:"address"`
 }
 
-type txGenPriAccount struct {
+type TxGenInputContractConfig struct {
+	//CreateContracts
+	DeployContractTxHash string `json:"deploy_contract_tx_hash"`
+	ContractsCode        string `json:"contracts_code"`
+
+	ContractsAddress string `json:"contracts_address"`
+
+	//CallContracts
+	CallWeights  uint   `json:"call_weights"`
+	CallGasLimit uint64 `json:"call_gas_limit"`
+	CallInput    string `json:"call_input"`
+}
+
+type txGenSendAccount struct {
 	Priv    *ecdsa.PrivateKey
 	Nonce   uint64
 	Address common.Address
 
 	ReceiptsNonce uint64
 	SendTime      time.Time
+}
 
-	Data     []byte
-	Weights  uint
-	GasLimit uint64
+type txGenTxReceiver struct {
+	ContractsAddress common.Address
+	Data             []byte
+	Weights          uint
+	GasLimit         uint64
 }
 
 type TxMakeManger struct {
 	//from
-	accounts map[common.Address]*txGenPriAccount
+	accounts map[common.Address]*txGenSendAccount
 
 	//to
 	txReceiver   []common.Address
@@ -223,17 +340,17 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 	case s.sendState < s.sendTx:
 		return nil, add, 30000, new(big.Int).SetInt64(1)
 	case s.sendState < s.sendEvm:
-		account := s.evmReceiver.Pick().(*txGenPriAccount)
-		return account.Data, account.Address, account.GasLimit, nil
+		account := s.evmReceiver.Pick().(*txGenTxReceiver)
+		return account.Data, account.ContractsAddress, account.GasLimit, nil
 	case s.sendState < s.sendWasm:
-		account := s.wsamReveiver.Pick().(*txGenPriAccount)
-		return account.Data, account.Address, account.GasLimit, nil
+		account := s.wsamReveiver.Pick().(*txGenTxReceiver)
+		return account.Data, account.ContractsAddress, account.GasLimit, nil
 	}
 	log.Crit("generateTxParams fail,the sendState should not grate than the sendWasm", "state", s.sendState, "wasm", s.sendWasm)
 	return nil, common.Address{}, 0, nil
 }
 
-func (s *TxMakeManger) sendDone(account *txGenPriAccount) {
+func (s *TxMakeManger) sendDone(account *txGenSendAccount) {
 	s.sendState++
 	if s.sendState >= s.sendWasm {
 		s.sendState = 0
@@ -255,7 +372,7 @@ func NewTxMakeManger(tx, evm, wasm int, GetNonce func(addr common.Address) uint6
 	}
 
 	t := new(TxMakeManger)
-	t.accounts = make(map[common.Address]*txGenPriAccount)
+	t.accounts = make(map[common.Address]*txGenSendAccount)
 	t.txReceiver = make([]common.Address, 0)
 
 	for i := start; i <= end; i++ {
@@ -268,7 +385,7 @@ func NewTxMakeManger(tx, evm, wasm int, GetNonce func(addr common.Address) uint6
 			return nil, fmt.Errorf("NewTxMakeManger Bech32ToAddress fail:%v", err)
 		}
 		nonce := GetNonce(address)
-		t.accounts[address] = &txGenPriAccount{privateKey, nonce, address, nonce, time.Now(), nil, 0, 0}
+		t.accounts[address] = &txGenSendAccount{privateKey, nonce, address, nonce, time.Now()}
 		t.txReceiver = append(t.txReceiver, address)
 	}
 	t.sleepAccounts = make(map[common.Address]struct{})
@@ -289,36 +406,24 @@ func NewTxMakeManger(tx, evm, wasm int, GetNonce func(addr common.Address) uint6
 		return nil, errors.New("new tx gen fail ,wasm config not set")
 	}
 
-	evmChoice := make([]weightedrand.Choice, 0, len(txgenInput.Evm))
-	for _, code := range txgenInput.Evm {
-		priAccount := new(txGenPriAccount)
-		priAccount.Address = common.MustBech32ToAddress(code.Add)
-
-		if getCodeSize(priAccount.Address) <= 0 {
-			return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", priAccount.Address.String())
+	receiverChooser := make([]weightedrand.Choice, 0, len(txgenInput.Evm))
+	for i, ContractConfigs := range [][]*TxGenInputContractConfig{txgenInput.Evm, txgenInput.Wasm} {
+		for _, config := range ContractConfigs {
+			txReceiver := new(txGenTxReceiver)
+			txReceiver.ContractsAddress = common.MustBech32ToAddress(config.ContractsAddress)
+			if getCodeSize(txReceiver.ContractsAddress) <= 0 {
+				return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", txReceiver.ContractsAddress.String())
+			}
+			txReceiver.Data = common.Hex2Bytes(config.CallInput)
+			txReceiver.Weights = config.CallWeights
+			txReceiver.GasLimit = config.CallGasLimit
+			receiverChooser = append(receiverChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
 		}
-
-		priAccount.Data = common.Hex2Bytes(code.Data)
-		priAccount.Weights = code.Weights
-		priAccount.GasLimit = code.GasLimit
-		evmChoice = append(evmChoice, weightedrand.NewChoice(priAccount, priAccount.Weights))
-	}
-	t.evmReceiver = weightedrand.NewChooser(evmChoice...)
-
-	weightWsam := make([]weightedrand.Choice, 0, len(txgenInput.Wasm))
-	for _, code := range txgenInput.Wasm {
-		priAccount := new(txGenPriAccount)
-		priAccount.Address = common.MustBech32ToAddress(code.Add)
-
-		if getCodeSize(priAccount.Address) == 0 {
-			return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", priAccount.Address.String())
+		if i == 0 {
+			t.evmReceiver = weightedrand.NewChooser(receiverChooser...)
+		} else {
+			t.wsamReveiver = weightedrand.NewChooser(receiverChooser...)
 		}
-		priAccount.Data = common.Hex2Bytes(code.Data)
-		priAccount.Weights = code.Weights
-		priAccount.GasLimit = code.GasLimit
-		weightWsam = append(weightWsam, weightedrand.NewChoice(priAccount, priAccount.Weights))
 	}
-	t.wsamReveiver = weightedrand.NewChooser(weightWsam...)
-
 	return t, nil
 }
