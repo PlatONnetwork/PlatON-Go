@@ -173,9 +173,11 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 		account := crypto.PubkeyToAddress(pri.PublicKey)
 		nonce := currentState.GetNonce(account)
 		singine := types.NewEIP155Signer(new(big.Int).SetInt64(txg.eth.chainConfig.ChainID.Int64()))
+		gasPrice := new(big.Int).SetInt64(50000000000)
+
 		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
 			for _, config := range input {
-				tx := types.NewContractCreation(nonce, nil, config.DeployGasLimit, big.NewInt(9999999), common.Hex2Bytes(config.ContractsCode))
+				tx := types.NewContractCreation(nonce, nil, config.DeployGasLimit, gasPrice, common.Hex2Bytes(config.ContractsCode))
 				newTx, err := types.SignTx(tx, singine, pri)
 				if err != nil {
 					return err
