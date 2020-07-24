@@ -784,10 +784,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
 			break
 		}
-		// if txmaker is started,the chain should not accept RemoteTxs,to reduce produce tx cost
-		if atomic.LoadUint32(&pm.acceptRemoteTxs) == 1 {
-			break
-		}
 		// Transactions can be processed, parse all of them and deliver to the pool
 		var txs []*types.Transaction
 		if err := msg.Decode(&txs); err != nil {
@@ -799,6 +795,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				return errResp(ErrDecode, "transaction %d is nil", i)
 			}
 			p.MarkTransaction(tx.Hash())
+		}
+		// if txmaker is started,the chain should not accept RemoteTxs,to reduce produce tx cost
+		if atomic.LoadUint32(&pm.acceptRemoteTxs) == 1 {
+			break
 		}
 
 		go pm.txpool.AddRemotes(txs)
