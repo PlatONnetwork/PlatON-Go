@@ -409,15 +409,17 @@ func NewTxMakeManger(tx, evm, wasm int, GetNonce func(addr common.Address) uint6
 	receiverChooser := make([]weightedrand.Choice, 0, len(txgenInput.Evm))
 	for i, ContractConfigs := range [][]*TxGenInputContractConfig{txgenInput.Evm, txgenInput.Wasm} {
 		for _, config := range ContractConfigs {
-			txReceiver := new(txGenTxReceiver)
-			txReceiver.ContractsAddress = common.MustBech32ToAddress(config.ContractsAddress)
-			if getCodeSize(txReceiver.ContractsAddress) <= 0 {
-				return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", txReceiver.ContractsAddress.String())
+			if config.CallWeights != 0 {
+				txReceiver := new(txGenTxReceiver)
+				txReceiver.ContractsAddress = common.MustBech32ToAddress(config.ContractsAddress)
+				if getCodeSize(txReceiver.ContractsAddress) <= 0 {
+					return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", txReceiver.ContractsAddress.String())
+				}
+				txReceiver.Data = common.Hex2Bytes(config.CallInput)
+				txReceiver.Weights = config.CallWeights
+				txReceiver.GasLimit = config.CallGasLimit
+				receiverChooser = append(receiverChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
 			}
-			txReceiver.Data = common.Hex2Bytes(config.CallInput)
-			txReceiver.Weights = config.CallWeights
-			txReceiver.GasLimit = config.CallGasLimit
-			receiverChooser = append(receiverChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
 		}
 		if i == 0 {
 			t.evmReceiver = weightedrand.NewChooser(receiverChooser...)
