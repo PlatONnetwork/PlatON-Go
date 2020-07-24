@@ -270,7 +270,7 @@ class TestgetAccuVerifiersCount:
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 1]
         log.info('Stop the node {}'.format(pip.node.node_id))
         pip.node.stop()
-        pip_test.economic.wait_consensus_blocknum(pip_test.node, 2)
+        pip_test.economic.wait_consensus(pip_test.node, 2)
         assert pip_test.get_accuverifiers_count(proposalinfo_param.get('ProposalID')) == [4, 1, 1, 1]
         assert pip_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 1]
 
@@ -328,7 +328,7 @@ class TestgetAccuVerifiersCount:
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 1]
         log.info('Stop the node {}'.format(clients_consensus[0].node.node_id))
         clients_consensus[0].node.stop()
-        pip.economic.wait_consensus_blocknum(pip.node, 2)
+        pip.economic.wait_consensus(pip.node, 2)
         log.info(pip.node.debug.getWaitSlashingNodeList())
         log.info(pip.pip.listGovernParam())
         log.info(clients_consensus[1].ppos.getCandidateInfo(pip.node.node_id, pip.node.staking_address))
@@ -369,7 +369,7 @@ class TestgetAccuVerifiersCount:
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 2, 1, 1]
         log.info('Stop the node {}'.format(clients_consensus[0].node.node_id))
         clients_consensus[0].node.stop()
-        pip.economic.wait_consensus_blocknum(pip.node, 2)
+        pip.economic.wait_consensus(pip.node, 2)
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 2, 1, 1]
 
         report_information = mock_duplicate_sign(1, clients_consensus[1].node.nodekey,

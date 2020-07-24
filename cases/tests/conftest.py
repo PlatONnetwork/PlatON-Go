@@ -177,7 +177,7 @@ def client_candidate(global_running_env, staking_cfg):
                 result = client.staking.create_staking(0, address, address)
                 log.info('Node {} staking result :{}'.format(client.node.node_id, result))
                 assert_code(result, 0)
-        client_consensus.economic.wait_settlement_blocknum(client_consensus.node)
+        client_consensus.economic.wait_settlement(client_consensus.node)
     node_id_list = client_consensus.staking.get_candidate_list_not_verifier()
     log.info('Get candidate list no verifier {}'.format(node_id_list))
     if len(node_id_list) == 0:

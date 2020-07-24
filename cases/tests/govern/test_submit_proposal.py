@@ -420,16 +420,16 @@ class TestNoVerifierSubmitProposal:
         log.info('Node exiting submit text proposal : {}'.format(result))
         assert_code(result, 302020)
 
-        client_verifier.economic.wait_settlement_blocknum(client_verifier.node,
-                                                          number=client_verifier.economic.unstaking_freeze_ratio)
+        client_verifier.economic.wait_settlement(client_verifier.node,
+                                                 number=client_verifier.economic.unstaking_freeze_ratio)
         result = client_verifier.pip.submitVersion(client_verifier.node.node_id, str(time.time()),
                                                    client_verifier.pip.cfg.version5, 1, address,
                                                    transaction_cfg=client_verifier.pip.cfg.transaction_cfg)
         log.info('Node exited submit version proposal : {}'.format(result))
         assert_code(result, 302022)
 
-        client_verifier.economic.wait_settlement_blocknum(client_verifier.node,
-                                                          number=client_verifier.economic.unstaking_freeze_ratio)
+        client_verifier.economic.wait_settlement(client_verifier.node,
+                                                 number=client_verifier.economic.unstaking_freeze_ratio)
         result = client_verifier.pip.submitText(client_verifier.node.node_id, str(time.time()), address,
                                                 transaction_cfg=client_verifier.pip.cfg.transaction_cfg)
         log.info('Node exited submit text proposal : {}'.format(result))
@@ -502,7 +502,7 @@ class TestSubmitCancel:
         log.info('node exiting，cancel proposal result: {}'.format(result))
         assert_code(result, 302020)
 
-        client.economic.wait_settlement_blocknum(client.node, number=client.economic.unstaking_freeze_ratio)
+        client.economic.wait_settlement(client.node, number=client.economic.unstaking_freeze_ratio)
         result = client.pip.submitCancel(client.node.node_id, str(time.time()), 1,
                                              proposalinfo.get('ProposalID'), address,
                                              transaction_cfg=client.pip.cfg.transaction_cfg)
@@ -1626,8 +1626,8 @@ class TestSubmitPPAbnormal:
         log.info('node exiting，param proposal result: {}'.format(result))
         assert_code(result, 302020)
 
-        client.economic.wait_settlement_blocknum(client.node,
-                                                     number=client.economic.unstaking_freeze_ratio)
+        client.economic.wait_settlement(client.node,
+                                        number=client.economic.unstaking_freeze_ratio)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
                                      '86', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('exited node，cancel proposal result: {}'.format(result))

@@ -33,7 +33,7 @@ def test_POP_001_003(client_consensus, client_new_node):
     assert_code(result, 0)
     verifier_list = get_pledge_list(client_new_node.ppos.getVerifierList)
     log.info(verifier_list)
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     verifier_list = get_pledge_list(client_new_node.ppos.getVerifierList)
     assert client_new_node.node.node_id in verifier_list
 
@@ -151,7 +151,7 @@ def test_POP_007(client_consensus, client_new_node):
     assert_code(result, 0)
     address2, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                     10 ** 18 * 10000000)
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
 
     result = client_new_node.delegate.delegate(0, address2, amount=old_amount)
     assert_code(result, 301105)
@@ -231,7 +231,7 @@ def test_POP_009(client_consensus, client_new_node, new_genesis_env):
     address2, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                     10 ** 18 * 10000000)
     log.info("The next cycle")
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     result = client_new_node.delegate.delegate(0, address2,
                                                amount=new_amount - client_consensus.node.web3.toWei(1, "ether"))
     assert_code(result, 301105)
@@ -349,7 +349,7 @@ def test_POP_012(client_consensus, client_new_node):
     log.info("The wallet balance:{}".format(amount1_after))
     amount_dill = amount1_after - amount_before
     assert delegate_amount - amount_dill < client_new_node.node.web3.toWei(1, "ether")
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
 
     amount1_last = client_new_node.node.eth.getBalance(address_delegate)
     log.info("The wallet balance:{}".format(amount1_last))
@@ -480,7 +480,7 @@ def test_POP_015(client_consensus, clients_noconsensus, new_genesis_env):
     result = client2.staking.create_staking(0, address1, address1, amount=staking_amount * 3)
     assert_code(result, 0)
 
-    client2.economic.wait_settlement_blocknum(client2.node)
+    client2.economic.wait_settlement(client2.node)
     getVerifierList = get_pledge_list(client2.node.ppos.getVerifierList)
     log.info(getVerifierList)
     assert len(getVerifierList) == 6
@@ -519,7 +519,7 @@ def test_POP_016(client_consensus, clients_noconsensus, new_genesis_env):
     result = client2.staking.create_staking(0, address1, address1, amount=staking_amount * 3)
     assert_code(result, 0)
 
-    client2.economic.wait_settlement_blocknum(client2.node)
+    client2.economic.wait_settlement(client2.node)
     getVerifierList = get_pledge_list(client2.node.ppos.getVerifierList)
     log.info(getVerifierList)
     assert len(getVerifierList) == 5
@@ -554,7 +554,7 @@ def test_POP_017(client_consensus, clients_noconsensus, new_genesis_env):
     result = client2.staking.create_staking(0, address1, address1, amount=staking_amount * 3)
     assert_code(result, 0)
 
-    client2.economic.wait_settlement_blocknum(client2.node)
+    client2.economic.wait_settlement(client2.node)
     getVerifierList = get_pledge_list(client2.node.ppos.getVerifierList)
     log.info(getVerifierList)
     assert len(getVerifierList) == 5
@@ -591,7 +591,7 @@ def test_POP_018(client_consensus, clients_noconsensus, new_genesis_env):
     result = client2.staking.create_staking(0, address1, address1, amount=staking_amount * 3)
     assert_code(result, 0)
 
-    client2.economic.wait_settlement_blocknum(client2.node)
+    client2.economic.wait_settlement(client2.node)
     getVerifierList = get_pledge_list(client2.node.ppos.getVerifierList)
     log.info(getVerifierList)
     assert len(getVerifierList) == 6
@@ -624,10 +624,10 @@ def test_POP_019(client_consensus, client_new_node, new_genesis_env):
     assert_code(result, 0)
     amount1 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount1))
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node, number=2)
+    client_new_node.economic.wait_settlement(client_new_node.node, number=2)
     amount2 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount2))
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     amount3 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount3))
     staking_amount = client_new_node.economic.create_staking_limit
@@ -661,10 +661,10 @@ def test_POP_020(client_consensus, client_new_node, new_genesis_env):
     assert_code(result, 0)
     amount1 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount1))
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node, number=1)
+    client_new_node.economic.wait_settlement(client_new_node.node, number=1)
     amount2 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount2))
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     amount3 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount3))
     staking_amount = client_new_node.economic.create_staking_limit
@@ -699,10 +699,10 @@ def test_POP_021(client_consensus, client_new_node, new_genesis_env):
     assert_code(result, 0)
     amount1 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount1))
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node, number=1)
+    client_new_node.economic.wait_settlement(client_new_node.node, number=1)
     amount2 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount2))
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     amount3 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount3))
     staking_amount = client_new_node.economic.create_staking_limit
@@ -736,10 +736,10 @@ def test_POP_022(client_consensus, client_new_node, new_genesis_env):
     assert_code(result, 0)
     amount1 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount1))
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node, number=2)
+    client_new_node.economic.wait_settlement(client_new_node.node, number=2)
     amount2 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount2))
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     amount3 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount3))
     staking_amount = client_new_node.economic.create_staking_limit
@@ -765,7 +765,7 @@ def test_POP_023(client_consensus, client_new_node, new_genesis_env):
     result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
     log.info("Next settlement period")
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     result = client_new_node.staking.withdrew_staking(address)
     assert_code(result, 0)
     log.info("Withdraw pledge before parameter takes effect")
@@ -776,7 +776,7 @@ def test_POP_023(client_consensus, client_new_node, new_genesis_env):
 
     amount1 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount1))
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     amount2 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount2))
     staking_amount = client_new_node.economic.create_staking_limit

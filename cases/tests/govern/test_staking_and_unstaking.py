@@ -26,7 +26,7 @@ def create_lockup_plan(client):
                                            transaction_cfg=client.pip.cfg.transaction_cfg)
     log.info('Create staking result : {}'.format(result))
     assert_code(result, 0)
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
 
 
 @pytest.fixture()
@@ -409,7 +409,7 @@ class TestUnstaking:
                                                                transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Create staking result : {}'.format(result))
         assert_code(result, 0)
-        pip_test.economic.wait_settlement_blocknum(pip_test.node)
+        pip_test.economic.wait_settlement(pip_test.node)
         result = pip_test.submitVersion(pip_test.node.node_id, str(time.time()), pip_test.cfg.version5,
                                         4, pip_test.node.staking_address, transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
@@ -478,7 +478,7 @@ class TestUnstaking:
                                                    transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Create staking result : {}'.format(result))
             assert_code(result, 0)
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
                                  '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -1008,8 +1008,8 @@ def test_fixbug(new_genesis_env, clients_consensus):
     log.info('Stop node {}'.format(pip_stop.node.node_id))
     log.info('stop node nodeid {}'.format(pip_stop.node.node_id))
     pip_stop.node.stop()
-    pip.economic.wait_settlement_blocknum(pip.node)
-    pip.economic.wait_consensus_blocknum(pip.node, 1)
+    pip.economic.wait_settlement(pip.node)
+    pip.economic.wait_consensus(pip.node, 1)
     verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
     log.info('Verifier list : {}'.format(verifier_list))
     validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)

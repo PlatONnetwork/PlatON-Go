@@ -58,8 +58,14 @@ def client_consensus_obj_list_reset(global_test_env, staking_cfg):
 def verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount, type):
     log.info("Start stopping the current node ：{} process".format(first_client.node.url))
     first_client.node.stop()
+    start_num = second_client.economic.get_switchpoint_by_consensus(second_client.node, 3)
     log.info("Start waiting for the end of the three consensus rounds")
-    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+    second_client.economic.wait_consensus(second_client.node, 3)
+    freeze_duration = second_client.pip.pip.getGovernParamValue('slashing', 'zeroProduceFreezeDuration')
+    settlement_size = second_client.economic.settlement_size
+    num = start_num + (int(freeze_duration['Ret']) * settlement_size)
+    end_num = second_client.economic.get_settlement_switchpoint(num)
+    log.info(f"slashing info start_num: {start_num}, freeze_duration: {freeze_duration}, end_num: {end_num}")
     log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
     verifier_list = second_client.ppos.getVerifierList()
     log.info("Current billing cycle certifier list: {}".format(verifier_list))
@@ -74,6 +80,7 @@ def verify_low_block_rate_penalty(first_client, second_client, block_reward, sla
     else:
         assert amount_after_punishment == 0, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
             amount_after_punishment)
+    return start_num, end_num
 
 
 def VP_GPFV_001_002(client_new_node_obj_list_reset):
@@ -95,13 +102,13 @@ def VP_GPFV_001_002(client_new_node_obj_list_reset):
     assert_code(result, 0)
     log.info("Apply for pledge node completion")
     log.info("Waiting for the current billing cycle to end")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, first_client.ppos.getValidatorList)
         log.info("View current node in consensus list status：{}".format(result))
         if result:
             log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
-            economic.wait_consensus_blocknum(node, 3)
+            economic.wait_consensus(node, 3)
             log.info("Waiting for the end of 3 consensus rounds")
             block_num = economic.get_block_count_number(node, 5)
             log.info("Get the number of outbound blocks in the 5 consensus rounds of the current pledge node：{}".format(
@@ -116,7 +123,7 @@ def VP_GPFV_001_002(client_new_node_obj_list_reset):
             assert len(validator_list['Ret']) == 4, "ErrMsg: Number of verification {}".format(len(validator_list))
         else:
             log.info("Waiting for the current consensus round of settlement")
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.p0
@@ -140,15 +147,15 @@ def test_internal_node_zero_out_block_Y(client_consensus_obj_list_reset):
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
     assert result is False, "error: Node not kicked out ValidatorList"
     node_released1 = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Released']
-    economic.wait_consensus_blocknum(second_client.node)
+    economic.wait_consensus(second_client.node)
     node_released2 = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Released']
     assert node_released1 == node_released2
-    economic.wait_consensus_blocknum(second_client.node)
+    economic.wait_consensus(second_client.node)
     node_released3 = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Released']
     assert node_released2 == node_released3
     first_client.node.start()
-    second_client.economic.wait_settlement_blocknum(second_client.node)
-    first_client.economic.wait_consensus_blocknum(first_client.node)
+    second_client.economic.wait_settlement(second_client.node)
+    first_client.economic.wait_consensus(first_client.node)
     node_status = first_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
     assert node_status == 0
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
@@ -186,8 +193,8 @@ def test_internal_node_zero_out_block_N(new_genesis_env, clients_consensus):
     assert result is False, "error: Node not kicked out ValidatorList"
     log.info("candidate info".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
     first_client.node.start()
-    second_client.economic.wait_settlement_blocknum(second_client.node)
-    first_client.economic.wait_consensus_blocknum(first_client.node)
+    second_client.economic.wait_settlement(second_client.node)
+    first_client.economic.wait_consensus(first_client.node)
     node_status = first_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
     assert node_status == 7
     assert result is False, "error: Node not kicked out CandidateList"
@@ -195,7 +202,7 @@ def test_internal_node_zero_out_block_N(new_genesis_env, clients_consensus):
     assert result is False, "error: Node not kicked out VerifierList"
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
     assert result is False, "error: Node not kicked out ValidatorList"
-    second_client.economic.wait_settlement_blocknum(second_client.node, 1)
+    second_client.economic.wait_settlement(second_client.node, 1)
     result = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)
     assert_code(result, 301204)
 
@@ -226,8 +233,8 @@ def test_internal_node_more_zero_out_block_Y(new_genesis_env, clients_consensus)
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
     assert result is False, "error: Node not kicked out ValidatorList"
     log.info("candidate info".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
-    second_client.economic.wait_settlement_blocknum(second_client.node)
-    second_client.economic.wait_consensus_blocknum(second_client.node)
+    second_client.economic.wait_settlement(second_client.node)
+    second_client.economic.wait_consensus(second_client.node)
     node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
     assert node_status == 0
     # view Consensus Amount of pledge
@@ -246,7 +253,7 @@ def test_internal_node_more_zero_out_block_Y(new_genesis_env, clients_consensus)
     assert result, "error: Node  kicked out VerifierList"
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
     assert result, "error: Node  kicked out ValidatorList"
-    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+    second_client.economic.wait_consensus(second_client.node, 3)
     log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
     verifier_list = second_client.ppos.getVerifierList()
     log.info("Current billing cycle certifier list: {}".format(verifier_list))
@@ -264,8 +271,8 @@ def test_internal_node_more_zero_out_block_Y(new_genesis_env, clients_consensus)
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
     assert result is False, "error: Node not kicked out ValidatorList"
     log.info("candidate info".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
-    second_client.economic.wait_settlement_blocknum(second_client.node)
-    second_client.economic.wait_consensus_blocknum(second_client.node)
+    second_client.economic.wait_settlement(second_client.node)
+    second_client.economic.wait_consensus(second_client.node)
     node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
     assert node_status == 7
     assert result is False, "error: Node not kicked out CandidateList"
@@ -273,7 +280,7 @@ def test_internal_node_more_zero_out_block_Y(new_genesis_env, clients_consensus)
     assert result is False, "error: Node not kicked out VerifierList"
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
     assert result is False, "error: Node not kicked out ValidatorList"
-    second_client.economic.wait_settlement_blocknum(second_client.node, 1)
+    second_client.economic.wait_settlement(second_client.node, 1)
     result = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)
     assert_code(result, 301204)
 
@@ -302,7 +309,7 @@ def test_VP_GPFV_003(client_new_node_obj_list_reset):
     result = first_client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     log.info("Pledge completed, waiting for the end of the current billing cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     log.info("Get the current pledge node amount and the low block rate penalty block number and the block reward")
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
     log.info(
@@ -346,14 +353,14 @@ def test_VP_GPFV_004(client_new_node_obj_list_reset):
     result = first_client.staking.create_staking(1, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'RestrictingPlan')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
     verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1,
                                   'RestrictingPlan')
     log.info("Check amount completed")
-    economic.wait_settlement_blocknum(second_client.node, 1)
+    economic.wait_settlement(second_client.node, 1)
 
 
 
@@ -394,7 +401,7 @@ def test_VP_GPFV_005(client_new_node_obj_list_reset):
     result = first_client.delegate.delegate(1, entrust_address, amount=von_amount(economic.delegate_limit, 100))
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'RestrictingPlan')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
@@ -430,7 +437,7 @@ def test_VP_GPFV_006(client_new_node_obj_list_reset):
     result = first_client.delegate.delegate(0, address2, amount=von_amount(economic.delegate_limit, 100))
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
@@ -457,7 +464,7 @@ def test_VP_GPFV_007(client_new_node_obj_list_reset):
     result = first_client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
@@ -484,7 +491,7 @@ def test_VP_GPFV_008(client_new_node_obj_list_reset):
     result = first_client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
@@ -515,12 +522,12 @@ def test_VP_GPFV_009(client_new_node_obj_list_reset):
     result = first_client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
     # stop node
     node.stop()
     # Waiting for a settlement round
-    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+    second_client.economic.wait_consensus(second_client.node, 3)
     log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
     # create staking again
     result = second_client.staking.create_staking(0, address, address, node_id=node.node_id,
@@ -549,11 +556,11 @@ def test_VP_GPFV_010(client_new_node_obj_list_reset):
     result = client1.staking.create_staking(0, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
+    client2.economic.wait_consensus(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # Additional pledge
     result = client2.staking.increase_staking(0, address, node_id=node.node_id)
@@ -581,7 +588,7 @@ def test_VP_GPFV_011(client_new_node_obj_list_reset):
     result = client1.staking.create_staking(0, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
     for i in range(4):
@@ -615,7 +622,7 @@ def test_VP_GPFV_011(client_new_node_obj_list_reset):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P2
@@ -639,7 +646,7 @@ def test_VP_GPFV_012(client_new_node_obj_list_reset):
     result = first_client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, first_client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -659,11 +666,11 @@ def test_VP_GPFV_012(client_new_node_obj_list_reset):
             result = second_client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
             assert_code(result, 0)
             # Waiting for a consensus round
-            second_client.economic.wait_consensus_blocknum(second_client.node)
+            second_client.economic.wait_consensus(second_client.node)
             # stop node
             first_client.node.stop()
             # Waiting for 2 consensus round
-            second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+            second_client.economic.wait_consensus(second_client.node, 3)
             # view block_reward
             block_reward, staking_reward = second_client.economic.get_current_year_reward(second_client.node)
             log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
@@ -677,7 +684,7 @@ def test_VP_GPFV_012(client_new_node_obj_list_reset):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P2
@@ -702,18 +709,18 @@ def test_VP_GPFV_013(new_genesis_env, clients_consensus):
     economic = client1.economic
     node = client1.node
     # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
     log.info("Current block height: {}".format(client1.node.eth.blockNumber))
     # stop node
     client1.node.stop()
     # Waiting for a 3 consensus round
-    client2.economic.wait_consensus_blocknum(client2.node)
+    client2.economic.wait_consensus(client2.node)
     print(client2.node.debug.getWaitSlashingNodeList())
-    client2.economic.wait_consensus_blocknum(client2.node)
+    client2.economic.wait_consensus(client2.node)
     print(client2.node.debug.getWaitSlashingNodeList())
-    client2.economic.wait_consensus_blocknum(client2.node)
+    client2.economic.wait_consensus(client2.node)
     print(client2.node.debug.getWaitSlashingNodeList())
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
@@ -764,14 +771,14 @@ def test_VP_GPFV_014(new_genesis_env, clients_noconsensus):
     result = client1.staking.increase_staking(1, address, amount=increase_amount)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
     log.info("Current block height: {}".format(client1.node.eth.blockNumber))
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
+    client2.economic.wait_consensus(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     result = client2.node.debug.getWaitSlashingNodeList()
     log.info("Wait Slashing Node List:{}".format(result))
@@ -894,7 +901,7 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     result = client1.staking.increase_staking(1, address, amount=increase_amount)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # view Consensus Amount of pledge
     candidate_info = client1.ppos.getCandidateInfo(node.node_id)
     log.info("Pledge node information: {}".format(candidate_info))
@@ -906,7 +913,7 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 4)
+    client2.economic.wait_consensus(client2.node, 4)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -957,14 +964,14 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     result = client1.staking.increase_staking(0, address, amount=increase_amount)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
     log.info("Current block height: {}".format(client1.node.eth.blockNumber))
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
+    client2.economic.wait_consensus(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -1088,7 +1095,7 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     result = client1.staking.increase_staking(0, address, amount=increase_amount)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # view Consensus Amount of pledge
     candidate_info = client1.ppos.getCandidateInfo(node.node_id)
     log.info("Pledge node information: {}".format(candidate_info))
@@ -1100,7 +1107,7 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
+    client2.economic.wait_consensus(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -1144,14 +1151,14 @@ def test_VP_GPFV_020(new_genesis_env, clients_noconsensus):
     result = client1.staking.create_staking(0, address1, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
     log.info("Current block height: {}".format(client1.node.eth.blockNumber))
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 4)
+    client2.economic.wait_consensus(client2.node, 4)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -1164,7 +1171,7 @@ def test_VP_GPFV_020(new_genesis_env, clients_noconsensus):
     balance1 = client2.node.eth.getBalance(address)
     log.info("pledge account balance: {}".format(balance1))
     # Wait for the 2 settlement round to end
-    economic.wait_settlement_blocknum(client2.node, 2)
+    economic.wait_settlement(client2.node, 2)
     # Query pledge account balance
     balance2 = client2.node.eth.getBalance(address)
     log.info("pledge account balance: {}".format(balance2))
@@ -1196,11 +1203,11 @@ def test_VP_GPFV_021(client_new_node_obj_list_reset):
     result = client1.delegate.delegate(0, delegate_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
+    client2.economic.wait_consensus(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -1234,7 +1241,7 @@ def test_test_VP_GPFV_003_01(clients_consensus):
     print('node', node.node_mark)
     log.info("balance: {}".format(node.eth.getBalance('lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru')))
     node.stop()
-    economic.wait_settlement_blocknum(client1.node, 3)
+    economic.wait_settlement(client1.node, 3)
     result = client1.node.ppos.getCandidateInfo(node.node_id)
     print(result)
     log.info("balance: {}".format(client1.node.eth.getBalance('lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru')))

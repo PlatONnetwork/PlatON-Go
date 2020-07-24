@@ -114,7 +114,7 @@ def test_ROE_005_018(client_new_node):
     client_new_node.staking.withdrew_staking(address)
 
     # The next two cycle
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node, number=2)
+    client_new_node.economic.wait_settlement(client_new_node.node, number=2)
     amount1 = client_new_node.node.eth.getBalance(address1)
     log.info("The wallet balance:{}".format(amount1))
 
@@ -248,7 +248,7 @@ def test_ROE_011(client_new_node):
     log.info("The wallet balance:{}".format(amount2))
     assert delegate_amount - (amount2 - amount1) < client_new_node.node.web3.toWei(1, "ether")
     # The next cycle
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     locked_delegate = delegate_amount - (undelegate_amount - delegate_amount)
     msg = client_new_node.ppos.getRestrictingInfo(address)
     log.info(msg)
@@ -334,7 +334,7 @@ def test_ROE_014(client_new_node):
     account_dill = amount2 - amount1
     assert delegate_amount - account_dill < client_new_node.node.web3.toWei(1, "ether")
 
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     amount3 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount3))
     assert amount3 - amount2 == delegate_amount
@@ -388,7 +388,7 @@ def test_ROE_017(client_new_node):
     log.info("The wallet balance:{}".format(amount2))
     assert delegate_amount - (amount2 - amount1) < client_new_node.node.web3.toWei(1, "ether")
 
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
 
     msg = client_new_node.ppos.getRestrictingInfo(address)
     log.info(msg)
@@ -418,7 +418,7 @@ def test_ROE_019_021(client_new_node):
     amount1 = client_new_node.node.eth.getBalance(address1)
     log.info("The wallet balance:{}".format(amount1))
 
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     result = client_new_node.delegate.withdrew_delegate(staking_blocknum, address1, amount=value)
     assert_code(result, 0)
     amount2 = client_new_node.node.eth.getBalance(address1)
@@ -445,7 +445,7 @@ def test_ROE_020(client_new_node):
     amount1 = client_new_node.node.eth.getBalance(address1)
     log.info("The wallet balance:{}".format(amount1))
 
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     result = client_new_node.delegate.withdrew_delegate(staking_blocknum, address1)
     assert_code(result, 0)
     amount2 = client_new_node.node.eth.getBalance(address1)
@@ -485,7 +485,7 @@ def test_ROE_024(client_new_node):
     result = client_new_node.delegate.delegate(0, address, amount=delegate_amount)
     log.info(result)
     # The next cycle
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
 
@@ -504,7 +504,7 @@ def test_ROE_024(client_new_node):
     assert delegate_amount - (amount2 - amount1) < client_new_node.node.web3.toWei(1, "ether")
 
     # The next cycle
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     locked_delegate = delegate_amount - (undelegate_amount - delegate_amount)
     msg = client_new_node.ppos.getRestrictingInfo(address)
     log.info(msg)
@@ -538,7 +538,7 @@ def test_ROE_028(client_new_node):
     amount1 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount1))
     # The next cycle
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     result = client_new_node.delegate.withdrew_delegate(staking_blocknum, address, amount=delegate_amount)
     assert_code(result, 0)
 
@@ -578,7 +578,7 @@ def test_ROE_030(client_new_node):
     result = client_new_node.delegate.delegate(0, address, amount=delegate_amount)
     log.info(result)
     # The next cycle
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
 
     msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
@@ -597,7 +597,7 @@ def test_ROE_030(client_new_node):
     log.info("The wallet balance:{}".format(amount2))
     assert delegate_amount - (amount2 - amount1) < client_new_node.node.web3.toWei(1, "ether")
 
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
 
     msg = client_new_node.ppos.getRestrictingInfo(address)
     log.info(msg)
@@ -644,7 +644,7 @@ def test_ROE_042(client_new_node):
     msg = client_new_node.ppos.getDelegateInfo(staking_blocknum, address, client_new_node.node.node_id)
     log.info(msg)
     # The next cycle
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
 
     delegate_amount_2 = client_new_node.node.web3.toWei(300, "ether")
     result = client_new_node.delegate.delegate(1, address, amount=delegate_amount_2)
@@ -672,7 +672,7 @@ def test_ROE_042(client_new_node):
     account_sum = account_dill + delegate_amount_2
     assert amount2 - amount1 > account_sum - client_new_node.node.web3.toWei(1, "ether")
 
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
 
     msg = client_new_node.ppos.getRestrictingInfo(address)
     log.info(msg)
@@ -732,7 +732,7 @@ def test_ROE_056_057(client_new_node, client_consensus):
     msg = client_consensus.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
     log.info("The next two periods")
-    client_consensus.economic.wait_settlement_blocknum(node, number=2)
+    client_consensus.economic.wait_settlement(node, number=2)
 
     log.info("Restart the node")
     client_new_node.node.start()
@@ -820,7 +820,7 @@ def test_ROE_060(client_new_node):
     address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                    10 ** 18 * 10000000)
     # The next cycle
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
 
     result = client_new_node.staking.create_staking(0, address_staking, address_staking)
     assert_code(result, 0)
@@ -828,7 +828,7 @@ def test_ROE_060(client_new_node):
     result = client_new_node.staking.withdrew_staking(address_staking)
     assert_code(result, 0)
     # The next two cycle
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node, number=2)
+    client_new_node.economic.wait_settlement(client_new_node.node, number=2)
     # Pledge again after quitting pledge
     result = client_new_node.staking.create_staking(0, address_staking, address_staking)
     assert_code(result, 0)

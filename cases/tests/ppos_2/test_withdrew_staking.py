@@ -62,7 +62,7 @@ def test_RV_002(staking_client):
     economic = client.economic
     staking_address_balance = node.eth.getBalance(staking_address)
     log.info(staking_address_balance)
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     log.info("Query the certifier for the second billing cycle")
     node_list = get_pledge_list(client.ppos.getVerifierList)
     log.info(node_list)
@@ -73,14 +73,14 @@ def test_RV_002(staking_client):
     staking_address_balance_1 = node.eth.getBalance(staking_address)
     log.info(staking_address_balance_1)
     log.info("Enter the third billing cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     staking_address_balance_2 = node.eth.getBalance(staking_address)
     log.info(staking_address_balance_2)
     node_list = get_pledge_list(client.ppos.getVerifierList)
     log.info(node_list)
     assert node.node_id not in node_list
     log.info("Enter the 4th billing cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info(msg)
     staking_address_balance_3 = node.eth.getBalance(staking_address)
@@ -100,7 +100,7 @@ def test_RV_003(staking_client):
     node = client.node
     economic = client.economic
     log.info("Enter the next cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     msg = client.staking.increase_staking(0, staking_address)
     assert_code(msg, 0)
     msg = node.ppos.getCandidateInfo(node.node_id)
@@ -125,7 +125,7 @@ def test_RV_003(staking_client):
     balance1 = node.eth.getBalance(client.staking_address)
     log.info(balance1)
     log.info("Enter the 3rd cycle")
-    economic.wait_settlement_blocknum(node, 2)
+    economic.wait_settlement(node, 2)
 
     balance2 = node.eth.getBalance(staking_address)
     log.info(balance2)
@@ -173,7 +173,7 @@ def test_RV_004(staking_client):
     msg = client.ppos.getCandidateInfo(node.node_id)
     assert_code(msg, 301204)
     log.info("Enter the next cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     locked_info = client.ppos.getRestrictingInfo(staking_address)
     log.info(locked_info)
     after_account = node.eth.getBalance(staking_address)
@@ -201,7 +201,7 @@ def test_RV_005(staking_client):
 
     msg = client.staking.increase_staking(1, staking_address)
     assert_code(msg, 0)
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
 
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info("Query pledge {}".format(msg))
@@ -215,13 +215,13 @@ def test_RV_005(staking_client):
     balance_withdrew = node.eth.getBalance(staking_address)
     log.info("The second cycle initiated the revocation of the balance{}".format(balance_withdrew))
     log.info("Enter the 3rd cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
 
     balance_settlement = node.eth.getBalance(staking_address)
     log.info("The balance after launching the revocation in the third cycle{}".format(balance_settlement))
 
     log.info("Enter the 4th cycle")
-    economic.wait_settlement_blocknum(node, 1)
+    economic.wait_settlement(node, 1)
 
     balance_settlement_2 = node.eth.getBalance(staking_address)
     log.info("The balance after the withdrawal of the fourth cycle {}".format(balance_settlement_2))
@@ -255,7 +255,7 @@ def test_RV_006(staking_client):
     msg = client.staking.increase_staking(1, staking_address)
     assert_code(msg, 0)
     log.info("Enter the second cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
 
     msg = client.staking.increase_staking(1, staking_address)
     assert_code(msg, 0)
@@ -291,12 +291,12 @@ def test_RV_006(staking_client):
                "RestrictingPlanHes"] == 0, "Expected lockout amount has been refunded during the hesitation period"
 
     log.info("Enter the 3rd cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     balance3 = node.eth.getBalance(staking_address)
     log.info("The balance after launching the revocation in the third cycle{}".format(balance3))
 
     log.info("Enter the 4th cycle")
-    economic.wait_settlement_blocknum(node, 1)
+    economic.wait_settlement(node, 1)
     balance4 = node.eth.getBalance(staking_address)
     log.info("The balance after the revocation of the second cycle {}".format(balance4))
 
@@ -364,21 +364,21 @@ def test_RV_009(staking_client):
     log.info("Initiate the balance before the pledge {}".format(value_before))
 
     log.info("Enter the second billing cycle, increase the amount")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     client.staking.increase_staking(0, staking_address)
     value2 = node.eth.getBalance(staking_address)
     log.info("Pledged + increased balance {}".format(value2))
     log.info("Enter the third billing cycle, the node initiates a return")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     value3 = node.eth.getBalance(staking_address)
     log.info("Balance of the 3rd cycle {}".format(value3))
     client.staking.withdrew_staking(staking_address)
     log.info("Enter the 4th billing cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     value4 = node.eth.getBalance(staking_address)
     log.info("The balance of the 4th billing cycle (including the reward for the 3rd cycle){}".format(value4))
     log.info("Enter the 5th billing cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     value5 = node.eth.getBalance(staking_address)
     log.info("Return to the pledge + overweight balance after the unlock period:{}".format(value5))
     log.info(value5 - value_before)
@@ -398,9 +398,9 @@ def test_RV_011(staking_client):
     economic = client.economic
     staking_address = client.staking_address
     log.info("Enter the next cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     log.info("Enter the next consensus round")
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
 
     validator_list = get_pledge_list(node.ppos.getValidatorList)
     log.info("Consensus certifier list:{}".format(validator_list))
@@ -431,7 +431,7 @@ def test_RV_012(global_test_env, clients_noconsensus):
     assert_code(result, 0)
 
     log.info("Next settlement period")
-    clients_noconsensus[1].economic.wait_settlement_blocknum(clients_noconsensus[1].node)
+    clients_noconsensus[1].economic.wait_settlement(clients_noconsensus[1].node)
     msg = clients_noconsensus[1].ppos.getVerifierList()
     log.info(msg)
     verifierlist = get_pledge_list(clients_noconsensus[1].ppos.getVerifierList)
@@ -452,7 +452,7 @@ def test_RV_013(staking_client):
     node = client.node
     economic = client.economic
     log.info("Enter the next cycle")
-    economic.wait_settlement_blocknum(node, 1)
+    economic.wait_settlement(node, 1)
     verifier_list = get_pledge_list(node.ppos.getVerifierList)
     log.info(log.info("Current billing cycle certifier {}".format(verifier_list)))
     assert node.node_id in verifier_list
@@ -471,7 +471,7 @@ def test_RV_014_015(staking_client):
     staking_address = client.staking_address
     node = client.node
     economic = client.economic
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     log.info("Enter the next cycle")
     block_reward, staking_reward = economic.get_current_year_reward(node)
     msg = client.staking.withdrew_staking(staking_address)
@@ -479,7 +479,7 @@ def test_RV_014_015(staking_client):
     balance_1 = node.eth.getBalance(staking_address)
     log.info(balance_1)
     log.info("Enter the next cycle")
-    economic.wait_settlement_blocknum(node, 2)
+    economic.wait_settlement(node, 2)
     balance_2 = node.eth.getBalance(staking_address)
     log.info(balance_2)
     verifier_list = get_pledge_list(node.ppos.getVerifierList)
@@ -548,7 +548,7 @@ def test_RV_019(staking_client):
     assert_code(msg, 0)
 
     log.info("Enter the second billing cycle")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
 
     block_reward, staking_reward = economic.get_current_year_reward(node)
     msg = client.staking.withdrew_staking(staking_address)
@@ -556,7 +556,7 @@ def test_RV_019(staking_client):
     balance_before = node.eth.getBalance(ben_address)
     log.info("Exit the new wallet balance after pledge:{}".format(balance_before))
     log.info("Enter the third billing cycle")
-    economic.wait_settlement_blocknum(node, 2)
+    economic.wait_settlement(node, 2)
 
     balance_after = node.eth.getBalance(ben_address)
     log.info("Balance after the new wallet unlock period {}".format(balance_after))
@@ -581,7 +581,7 @@ def test__RV_020(staking_client):
     staking_address = client.staking_address
     node = client.node
     economic = client.economic
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     msg = client.staking.withdrew_staking(staking_address)
     log.info(msg)
     msg = node.ppos.getCandidateInfo(node.node_id)
@@ -603,12 +603,12 @@ def test_RV_021(staking_client):
     staking_address = client.staking_address
     node = client.node
     economic = client.economic
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     msg = client.staking.withdrew_staking(staking_address)
     log.info(msg)
     msg = node.ppos.getCandidateInfo(node.node_id)
     log.info(msg)
-    economic.wait_settlement_blocknum(node, 2)
+    economic.wait_settlement(node, 2)
     log.info("Modify node information")
     client.staking.cfg.node_name = node_name
     msg = client.staking.edit_candidate(staking_address, staking_address)
@@ -644,11 +644,11 @@ def test_RV_023(staking_client, global_test_env):
     economic = client.economic
     balance = node.eth.getBalance(staking_address)
     log.info(balance)
-    economic.wait_consensus_blocknum(other_node, number=4)
+    economic.wait_consensus(other_node, number=4)
     log.info("Stop the new verifier node")
     node.stop()
     for i in range(4):
-        economic.wait_consensus_blocknum(other_node, number=i)
+        economic.wait_consensus(other_node, number=i)
         candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
         log.info(candidate_info)
         if candidate_info["Ret"]["Released"] < client.staking_amount:
@@ -664,7 +664,7 @@ def test_RV_023(staking_client, global_test_env):
     candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
     log.info(candidate_info)
     log.info("The amount will be refunded after waiting for 2 cycles of punishment")
-    economic.wait_settlement_blocknum(node, number=2)
+    economic.wait_settlement(node, number=2)
 
     balance_after = other_node.eth.getBalance(staking_address)
     log.info("The balance after the penalty is refunded to the account:{}".format(balance_after))
@@ -696,7 +696,7 @@ def test_RV_024(staking_client):
     staking_address = client.staking_address
     economic = client.economic
     log.info("Entering the lockout period")
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     log.info("Node exit pledge")
     client.staking.withdrew_staking(staking_address)
     log.info("Node to increase holding")

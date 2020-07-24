@@ -359,7 +359,7 @@ class TestUpgradeVP:
         log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
         programversion = client_noconsensus.staking.get_version()
         assert_code(programversion, pip.cfg.version0)
-        pip_test.economic.wait_settlement_blocknum(pip_test.node)
+        pip_test.economic.wait_settlement(pip_test.node)
         log.info(f'blocknem ====== {pip_test.node.eth.blockNumber}')
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
@@ -386,7 +386,7 @@ class TestUpgradeVP:
         assert pip_test.node.node_id not in validator_list
 
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         assert pip_test.node.node_id not in validator_list
@@ -412,7 +412,7 @@ class TestUpgradeVP:
         log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
         programversion = client_noconsensus.staking.get_version()
         assert_code(programversion, pip.cfg.version0)
-        pip_test.economic.wait_settlement_blocknum(pip_test.node)
+        pip_test.economic.wait_settlement(pip_test.node)
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id in verifier_list
@@ -438,7 +438,7 @@ class TestUpgradeVP:
         assert pip_test.node.node_id in validator_list
 
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         assert pip_test.node.node_id in validator_list
@@ -512,7 +512,7 @@ class TestUpgradeVP:
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
-        pip.economic.wait_consensus_blocknum(pip.node)
+        pip.economic.wait_consensus(pip.node)
         validator = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info(validator)
         assert pip.node.node_id not in validator
