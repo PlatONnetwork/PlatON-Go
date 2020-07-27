@@ -399,6 +399,24 @@ func (s *PlatonStatsService) accountCheckingLoop() {
 			key := string(msg.Key)
 			value := string(msg.Value)
 			log.Debug("received account-checking message", "offset", msg.Offset, "key", key, "value", value)
+
+			if len(key) > 0 {
+				checkingNumber, err := strconv.ParseUint(key, 10, 64)
+				if err != nil {
+					log.Error("Failed to parse block number", "key", key, "err", err)
+					panic(err)
+				}
+
+				for {
+					currentNumber := s.eth.BlockChain().CurrentBlock().NumberU64()
+					if checkingNumber < currentNumber {
+						time.Sleep(1 * time.Second)
+					} else {
+						break
+					}
+				}
+			}
+
 			err := s.accountChecking(key, msg.Value)
 			if err != nil {
 				log.Error("Failed to check account balance", "err", err)
