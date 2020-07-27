@@ -1466,7 +1466,7 @@ func (pool *TxPool) truncatePending() {
 				for i := 0; i < len(offenders)-1; i++ {
 					list := pool.pending[offenders[i]]
 
-					caps := list.Cap(list.Len() - 1)
+					caps := list.Cap(list.Len() - 2)
 					for _, tx := range caps {
 						// Drop the transaction from the global pools too
 						hash := tx.Hash()
@@ -1494,7 +1494,7 @@ func (pool *TxPool) truncatePending() {
 			for _, addr := range offenders {
 				list := pool.pending[addr]
 
-				caps := list.Cap(list.Len() - 1)
+				caps := list.Cap(list.Len() - 2)
 				for _, tx := range caps {
 					// Drop the transaction from the global pools too
 					hash := tx.Hash()
