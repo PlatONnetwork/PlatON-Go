@@ -979,9 +979,21 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 		return errs
 	}
 
+	request := false
 	// Process all the new transaction and merge any errors into the original slice
 	pool.mu.Lock()
 	newErrs, dirtyAddrs := pool.addTxsLocked(news, local)
+	if !sync {
+		dirtyAddrs.merge(pool.cacheAccountNeedPromoted)
+		if dirtyAddrs.txLength > 200 {
+			request = true
+			pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
+		} else {
+			pool.cacheAccountNeedPromoted = dirtyAddrs
+		}
+	} else {
+		request = true
+	}
 	pool.mu.Unlock()
 
 	var nilSlot = 0
@@ -992,14 +1004,11 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 		errs[nilSlot] = err
 	}
 
-	if sync {
+	if request {
+		// Reorg the pool internals if needed and return
 		done := pool.requestPromoteExecutables(dirtyAddrs)
-		<-done
-	} else {
-		pool.cacheAccountNeedPromoted.merge(dirtyAddrs)
-		if pool.cacheAccountNeedPromoted.txLength > 200 {
-			pool.requestPromoteExecutables(pool.cacheAccountNeedPromoted)
-			pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
+		if sync {
+			<-done
 		}
 	}
 
