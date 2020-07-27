@@ -307,6 +307,7 @@ type TxPool struct {
 	reorgDoneCh     chan chan struct{}
 	reorgShutdownCh chan struct{} // requests shutdown of scheduleReorgLoop
 
+	cacheAccountNeedPromoted *accountSet
 }
 
 type txpoolResetRequest struct {
@@ -341,6 +342,9 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		reorgShutdownCh: make(chan struct{}),
 		gasPrice:        new(big.Int).SetUint64(config.PriceLimit),
 	}
+
+	pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
+
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
 		log.Info("Setting new local account", "address", addr)
@@ -470,7 +474,7 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 }
 
 func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block) {
-	log.Debug("Reset rollback block", "hash", newHeader.Hash(), "number", newHeader.Number.Uint64(), "rollback", len(rollback))
+	log.Warn("Reset rollback block", "hash", newHeader.Hash(), "number", newHeader.Number.Uint64(), "rollback", len(rollback))
 	if len(rollback) == 0 {
 		return
 	}
@@ -500,24 +504,25 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 	pool.addTxsLocked(reinject, false)
 	log.Debug("Reinjecting stale transactions done", "count", len(reinject), "elapsed", time.Since(t))
 
+	// Check the queue and move transactions over to the pending if possible
+	// or remove those that have become invalid
+	pool.promoteExecutables(nil)
+
 	// validate the pool of pending transactions, this will remove
 	// any transactions that have been included in the block or
 	// have been invalidated because of another transaction (e.g.
 	// higher gas price)
 	pool.demoteUnexecutables()
 
+	// Ensure pool.queue and pool.pending sizes stay within the configured limits.
+	pool.truncatePending()
+	pool.truncateQueue()
+
 	// Update all accounts to the latest known pending nonce
 	for addr, list := range pool.pending {
 		txs := list.LastElement() // Heavy but will be cached and is needed by the miner anyway
 		pool.pendingNonces.set(addr, txs.Nonce()+1)
 	}
-	// Check the queue and move transactions over to the pending if possible
-	// or remove those that have become invalid
-	pool.promoteExecutables(nil)
-
-	// Ensure pool.queue and pool.pending sizes stay within the configured limits.
-	pool.truncatePending()
-	pool.truncateQueue()
 }
 
 // Stop terminates the transaction pool.
@@ -986,11 +991,18 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 		}
 		errs[nilSlot] = err
 	}
-	// Reorg the pool internals if needed and return
-	done := pool.requestPromoteExecutables(dirtyAddrs)
+
 	if sync {
+		done := pool.requestPromoteExecutables(dirtyAddrs)
 		<-done
+	} else {
+		pool.cacheAccountNeedPromoted.merge(dirtyAddrs)
+		if pool.cacheAccountNeedPromoted.txLength > 200 {
+			pool.requestPromoteExecutables(pool.cacheAccountNeedPromoted)
+			pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
+		}
 	}
+
 	return errs
 }
 
@@ -1634,6 +1646,8 @@ type accountSet struct {
 	accounts map[common.Address]struct{}
 	signer   types.Signer
 	cache    *[]common.Address
+
+	txLength int
 }
 
 // newAccountSet creates a new address set with an associated signer for sender
@@ -1678,6 +1692,7 @@ func (as *accountSet) add(addr common.Address) {
 func (as *accountSet) addTx(tx *types.Transaction) {
 	if addr, err := types.Sender(as.signer, tx); err == nil {
 		as.add(addr)
+		as.txLength++
 	}
 }
 
@@ -1700,6 +1715,7 @@ func (as *accountSet) merge(other *accountSet) {
 		as.accounts[addr] = struct{}{}
 	}
 	as.cache = nil
+	as.txLength = as.txLength + other.txLength
 }
 
 // txLookup is used internally by TxPool to track transactions while allowing lookup without
