@@ -63,7 +63,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             // balance of
             Uint128 balance = contract.BalanceOf(to).send();
             collector.logStepPass("Call balanceOf, res: " + balance);
-            collector.assertEqual(balance, value);
+            collector.assertEqual(balance.value, value.value);
 
             // approve
             TransactionReceipt approveTR = contract.Approve(to, value).send();
@@ -73,7 +73,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             // allowance
             Uint128 allowance = contract.Allowance(credentials.getAddress(chainId), to).send();
             collector.logStepPass("Call allowance, res: " + allowance);
-            collector.assertEqual(allowance, value);
+            collector.assertEqual(allowance.value, value.value);
 
             // IncreaseApproval
             Xuint128 increaseValue = new Xuint128("23300000");
@@ -93,7 +93,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
 
             Uint128 afterDecreaseAllowance = contract.Allowance(credentials.getAddress(chainId), to).send();
             collector.logStepPass("Call Allowance after DecreaseApproval, res: " + afterDecreaseAllowance);
-            collector.assertEqual(afterDecreaseAllowance, value);
+            collector.assertEqual(afterDecreaseAllowance.value, value.value);
 
             // TransferFrom
             // spender: a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7
@@ -110,7 +110,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " gasUsed: " + transferFromTr.getGasUsed());
             Uint128 to2Balance = contract.BalanceOf(to2).send();
             collector.logStepPass("Call balanceOf 2, res: " + to2Balance);
-            collector.assertEqual(to2Balance, valule2);
+            collector.assertEqual(to2Balance.value, valule2.value);
             collector.logStepPass("Check TransferFrom() and Approve() success.");
 
             // TransferToken
