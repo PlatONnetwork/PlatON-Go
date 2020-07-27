@@ -42,8 +42,8 @@ func (txg *TxGenAPI) GetTps(ctx context.Context, beginBn, endBn uint64, interval
 		return nil, fmt.Errorf("The current block number is too low to require statistics, beginBn: %d, endBn: %d, interval: %d, currentNumber: %d \n", beginBn, endBn, interval, currentNumber)
 	}
 
-	if endBn <= currentNumber.Number.Uint64() {
-		return nil, fmt.Errorf("the endBn is grearter than current block,current block:%d, beginBn: %d, endBn: %d, interval: %d, currentNumber: %d \n", currentNumber.Number.Uint64(), beginBn, endBn, interval, currentNumber)
+	if endBn > currentNumber.Number.Uint64() {
+		return nil, fmt.Errorf("the endBn is grearter than current block, beginBn: %d, endBn: %d, interval: %d, currentNumber: %d \n", beginBn, endBn, interval, currentNumber.Number)
 	}
 
 	analystData := make([]*AnalystEntity, 0)
