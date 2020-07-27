@@ -38,7 +38,7 @@ public class RevertContractTest extends ContractPrepareTest {
     public void revertTest() {
         try {
 
-            RevertContract revertContract = RevertContract.deploy(web3j, transactionManager, provider).send();
+            RevertContract revertContract = RevertContract.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = revertContract.getContractAddress();
             TransactionReceipt tx = revertContract.getTransactionReceipt().get();

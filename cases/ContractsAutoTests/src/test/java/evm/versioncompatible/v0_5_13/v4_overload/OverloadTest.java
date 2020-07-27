@@ -31,7 +31,7 @@ public class OverloadTest extends ContractPrepareTest {
     public void testStringMapping() {
         try {
 
-            Overload overload = Overload.deploy(web3j, transactionManager, provider).send();
+            Overload overload = Overload.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = overload.getContractAddress();
             TransactionReceipt tx = overload.getTransactionReceipt().get();

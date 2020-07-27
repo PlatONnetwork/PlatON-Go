@@ -42,7 +42,7 @@ public class StringmappingSupportTest extends ContractPrepareTest {
 
         try {
 
-            StringmappingSupport stringmappingSupport = StringmappingSupport.deploy(web3j, transactionManager, provider).send();
+            StringmappingSupport stringmappingSupport = StringmappingSupport.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = stringmappingSupport.getContractAddress();
             TransactionReceipt tx = stringmappingSupport.getTransactionReceipt().get();
@@ -75,7 +75,7 @@ public class StringmappingSupportTest extends ContractPrepareTest {
 
         try {
 
-            StringmappingSupport stringmappingSupport = StringmappingSupport.deploy(web3j, transactionManager, provider).send();
+            StringmappingSupport stringmappingSupport = StringmappingSupport.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = stringmappingSupport.getContractAddress();
             TransactionReceipt tx = stringmappingSupport.getTransactionReceipt().get();

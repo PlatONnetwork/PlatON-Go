@@ -25,7 +25,7 @@ public class LibraryStaticUsingTest extends ContractPrepareTest {
     public void testEmitEvent() {
         try {
             prepare();
-            LibraryStaticUsing using = LibraryStaticUsing.deploy(web3j, transactionManager, provider).send();
+            LibraryStaticUsing using = LibraryStaticUsing.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("LibraryStaticUsing issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

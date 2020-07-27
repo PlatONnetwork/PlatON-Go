@@ -28,7 +28,7 @@ public class TwoInheritTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            TwoInherit twoInherit = TwoInherit.deploy(web3j, transactionManager, provider).send();
+            TwoInherit twoInherit = TwoInherit.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = twoInherit.getContractAddress();
             String transactionHash = twoInherit.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("twoInherit issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

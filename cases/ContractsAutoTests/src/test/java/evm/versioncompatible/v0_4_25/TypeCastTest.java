@@ -28,7 +28,7 @@ public class TypeCastTest extends ContractPrepareTest {
     public void testTypeCast() {
         try {
             prepare();
-            TypeCast typeCast = TypeCast.deploy(web3j, transactionManager, provider).send();
+            TypeCast typeCast = TypeCast.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = typeCast.getContractAddress();
             String transactionHash = typeCast.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("TypeCast issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

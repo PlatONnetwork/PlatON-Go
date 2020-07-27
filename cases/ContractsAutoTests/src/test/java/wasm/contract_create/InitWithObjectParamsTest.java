@@ -1,6 +1,5 @@
 package wasm.contract_create;
 
-import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitWithObjectParams;
@@ -28,7 +27,7 @@ public class InitWithObjectParamsTest extends WASMContractPrepareTest {
             InitWithObjectParams.My_message myMessage = new InitWithObjectParams.My_message();
             myMessage.body = body;
             myMessage.end = end;
-            InitWithObjectParams initWithObjectParams = InitWithObjectParams.deploy(web3j, transactionManager, provider,myMessage).send();
+            InitWithObjectParams initWithObjectParams = InitWithObjectParams.deploy(web3j, transactionManager, provider, chainId,myMessage).send();
             String contractAddress = initWithObjectParams.getContractAddress();
             String transactionHash = initWithObjectParams.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithObjectParams issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

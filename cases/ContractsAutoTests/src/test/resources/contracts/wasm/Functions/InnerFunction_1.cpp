@@ -1,3 +1,4 @@
+#define TESTNET
 #include <platon/platon.hpp>
 #include <string>
 using namespace platon;
@@ -32,14 +33,19 @@ CONTRACT InnerFunction_1:public platon::Contract{
 
 		/// 获取指定地址的余额(bug)
 		CONST std::string balanceOf(const std::string& addr) {
-			Energon e = platon_balance(Address(addr));
-			return std::to_string(e.Get());		
+		    auto address_info = make_address(addr);
+		    if(address_info.second){
+		        Energon e = platon_balance(address_info.first);
+                return std::to_string(e.Get());
+		    }else{
+		        return "";
+		    }
+
 		}
 		
 };
 
-// (transfer)(value)(sha3)(rreturn)(panic)(revert)(destroy)(origin)(compile)
-// (balanceOf)(gas_price)(block_number)(gas_limit)(timestamp)
+
 PLATON_DISPATCH(InnerFunction_1, (init)(gas)(nonce)(block_hash)(coinbase)(balanceOf))
 
 

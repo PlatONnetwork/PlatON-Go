@@ -47,7 +47,7 @@ public class ContractCrossCallPrecompileContractsTest extends WASMContractPrepar
             String expectAddrStr = "0000000000000000000000008a9b36694f1eeeb500c84a19bb34137b05162ec5";
 
 
-            ContractCallPrecompile precompile =  ContractCallPrecompile.deploy(web3j, transactionManager, provider).send();
+            ContractCallPrecompile precompile =  ContractCallPrecompile.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy cross_call_precompile contract:" + precompile.getTransactionReceipt().get().getGasUsed());
             collector.logStepPass("cross_call_precompile deployed sucessfully, contractAddress:" + precompile.getContractAddress() + ", txHash:" + precompile.getTransactionReceipt().get().getTransactionHash());
 

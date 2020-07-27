@@ -13,7 +13,7 @@ import java.math.BigInteger;
 
 /**
  * @title 函数可见性必须显式声明合约验证
- * @description: 
+ * @description:
  * @author: hudenian
  * @create: 2019/12/25
  */
@@ -38,7 +38,7 @@ public class FunctionDeclaractionTest extends ContractPrepareTest {
     public void update_public() {
         try {
 
-            FunctionDeclaraction functionDeclaraction = FunctionDeclaraction.deploy(web3j, transactionManager, provider).send();
+            FunctionDeclaraction functionDeclaraction = FunctionDeclaraction.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = functionDeclaraction.getContractAddress();
             TransactionReceipt tx = functionDeclaraction.getTransactionReceipt().get();
@@ -71,7 +71,7 @@ public class FunctionDeclaractionTest extends ContractPrepareTest {
     public void update_external() {
         try {
 
-            FunctionDeclaraction functionDeclaraction = FunctionDeclaraction.deploy(web3j, transactionManager, provider).send();
+            FunctionDeclaraction functionDeclaraction = FunctionDeclaraction.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = functionDeclaraction.getContractAddress();
             TransactionReceipt tx = functionDeclaraction.getTransactionReceipt().get();

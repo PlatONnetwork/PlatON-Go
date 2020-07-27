@@ -23,7 +23,7 @@ public class MemoryFunction_3Test extends WASMContractPrepareTest {
 
         try {
             prepare();
-            MemoryFunction_3 memory3 = MemoryFunction_3.deploy(web3j, transactionManager, provider).send();
+            MemoryFunction_3 memory3 = MemoryFunction_3.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = memory3.getContractAddress();
             String transactionHash = memory3.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("MemoryFunction_3 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

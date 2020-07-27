@@ -29,8 +29,6 @@ import java.math.BigInteger;
  */
 public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
-    static final BigInteger GAS_LIMIT = BigInteger.valueOf(990000);
-    static final BigInteger GAS_PRICE = BigInteger.valueOf(1000000000L);
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testAddressCheck",
@@ -38,14 +36,14 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
     public void testAddressCheck() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.LAT, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.LAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("1000000000000000000"), "checkout to contract account transfer");
@@ -67,14 +65,14 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
     public void testVon() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(30.00), Convert.Unit.VON, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(30.00), Convert.Unit.VON, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("30"), "checkout to contract account transfer");
@@ -96,14 +94,14 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
     public void testKVon() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.KVON, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.KVON, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("1000"), "checkout to contract account transfer");
@@ -125,22 +123,22 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
     public void testMVon() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.MVON, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.001), Convert.Unit.MVON, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
-                collector.assertEqual(balance.getBalance(), new BigInteger("1000000"), "checkout to contract account transfer");
+                collector.assertEqual(balance.getBalance(), new BigInteger("1000"), "checkout to contract account transfer");
             } else {
                 collector.logStepFail("transfer contract account is failure.contractAddress:", contractAddress);
             }
             Tuple3<String, BigInteger, BigInteger> result = contractAndAddress.addressCheck().send();
-            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("999980"), new BigInteger("20"));
+            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("980"), new BigInteger("20"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout MVON transfer function");
         } catch (Exception e) {
             collector.logStepFail("ContractAndAddressFunctionTest testAddressCheck failure,exception msg:", e.getMessage());
@@ -154,7 +152,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
     public void testGVon() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -162,15 +160,15 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.GVON, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000001), Convert.Unit.GVON, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
-                collector.assertEqual(balance.getBalance(), new BigInteger("1000000000"), "checkout to contract account transfer");
+                collector.assertEqual(balance.getBalance(), new BigInteger("100"), "checkout to contract account transfer");
             } else {
                 collector.logStepFail("transfer contract account is failure.contractAddress:", contractAddress);
             }
             Tuple3<String, BigInteger, BigInteger> result = contractAndAddress.addressCheck().send();
-            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("999999980"), new BigInteger("20"));
+            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("80"), new BigInteger("20"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout GVON transfer function");
         } catch (Exception e) {
             collector.logStepFail("ContractAndAddressFunctionTest testGVon failure,exception msg:", e.getMessage());
@@ -180,11 +178,11 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testSzabo",
-            author = "albedo", showName = "ContractAndAddressTest-SZABO转账测试", sourcePrefix = "evm")
-    public void testSzabo() {
+            author = "albedo", showName = "ContractAndAddressTest-MICROLAT转账测试", sourcePrefix = "evm")
+    public void testMicroLat() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -192,15 +190,15 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.SZABO, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000000001), Convert.Unit.MICROLAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
-                collector.assertEqual(balance.getBalance(), new BigInteger("1000000000000"), "checkout to contract account transfer");
+                collector.assertEqual(balance.getBalance(), new BigInteger("100"), "checkout to contract account transfer");
             } else {
                 collector.logStepFail("transfer contract account is failure.contractAddress:", contractAddress);
             }
             Tuple3<String, BigInteger, BigInteger> result = contractAndAddress.addressCheck().send();
-            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("999999999980"), new BigInteger("20"));
+            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("80"), new BigInteger("20"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout SZABO transfer function");
         } catch (Exception e) {
             collector.logStepFail("ContractAndAddressFunctionTest testSzabo failure,exception msg:", e.getMessage());
@@ -210,11 +208,11 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testFinney",
-            author = "albedo", showName = "ContractAndAddressTest-FINNEY转账测试", sourcePrefix = "evm")
-    public void testFinney() {
+            author = "albedo", showName = "ContractAndAddressTest-MILLILAT转账测试", sourcePrefix = "evm")
+    public void testMilliLat() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -222,15 +220,15 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.FINNEY, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.000000000000021), Convert.Unit.MILLILAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
-                collector.assertEqual(balance.getBalance(), new BigInteger("1000000000000000"), "checkout to contract account transfer");
+                collector.assertEqual(balance.getBalance(), new BigInteger("21"), "checkout to contract account transfer");
             } else {
                 collector.logStepFail("transfer contract account is failure.contractAddress:", contractAddress);
             }
             Tuple3<String, BigInteger, BigInteger> result = contractAndAddress.addressCheck().send();
-            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("999999999999980"), new BigInteger("20"));
+            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("1"), new BigInteger("20"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout FINNEY transfer function");
         } catch (Exception e) {
             collector.logStepFail("ContractAndAddressFunctionTest testFinney failure,exception msg:", e.getMessage());
@@ -244,7 +242,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
     public void testLat() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -252,15 +250,15 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.LAT, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.00000000000000005), Convert.Unit.LAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
-                collector.assertEqual(balance.getBalance(), new BigInteger("1000000000000000000"), "checkout to contract account transfer");
+                collector.assertEqual(balance.getBalance(), new BigInteger("50"), "checkout to contract account transfer");
             } else {
                 collector.logStepFail("transfer contract account is failure.contractAddress:", contractAddress);
             }
             Tuple3<String, BigInteger, BigInteger> result = contractAndAddress.addressCheck().send();
-            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("999999999999999980"), new BigInteger("20"));
+            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("30"), new BigInteger("20"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout LAT transfer function");
         } catch (Exception e) {
             collector.logStepFail("ContractAndAddressFunctionTest testLat failure,exception msg:", e.getMessage());
@@ -274,22 +272,22 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
     public void testKLat() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.KLAT, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000000000000000001), Convert.Unit.KLAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
-                collector.assertEqual(balance.getBalance(), new BigInteger("1000000000000000000000"), "checkout to contract account transfer");
+                collector.assertEqual(balance.getBalance(), new BigInteger("100"), "checkout to contract account transfer");
             } else {
                 collector.logStepFail("transfer contract account is failure.contractAddress:", contractAddress);
             }
             Tuple3<String, BigInteger, BigInteger> result = contractAndAddress.addressCheck().send();
-            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("999999999999999999980"), new BigInteger("20"));
+            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("80"), new BigInteger("20"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout KLAT transfer function");
         } catch (Exception e) {
             collector.logStepFail("ContractAndAddressFunctionTest testKLat failure,exception msg:", e.getMessage());
@@ -303,7 +301,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
     public void testMLat() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -311,15 +309,15 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.MLAT, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.00000000000000000000001), Convert.Unit.MLAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
-                collector.assertEqual(balance.getBalance(), new BigInteger("1000000000000000000000000"), "checkout to contract account transfer");
+                collector.assertEqual(balance.getBalance(), new BigInteger("10"), "checkout to contract account transfer");
             } else {
                 collector.logStepFail("transfer contract account is failure.contractAddress:", contractAddress);
             }
             Tuple3<String, BigInteger, BigInteger> result = contractAndAddress.addressCheck().send();
-            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("999999999999999999999980"), new BigInteger("20"));
+            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("0"), new BigInteger("10"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout MLAT transfer function");
         } catch (Exception e) {
             collector.logStepFail("ContractAndAddressFunctionTest testMLat failure,exception msg:", e.getMessage());
@@ -333,22 +331,22 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
     public void testGLat() {
         try {
             prepare();
-            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddressFunction contractAndAddress = ContractAndAddressFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractAndAddress.getContractAddress();
             String transactionHash = contractAndAddress.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractAndAddress issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000001), Convert.Unit.GLAT, GAS_PRICE, GAS_LIMIT).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000000000000000000000001), Convert.Unit.GLAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
-                collector.assertEqual(balance.getBalance(), new BigInteger("100000000000000000000"), "checkout to contract account transfer");
+                collector.assertEqual(balance.getBalance(), new BigInteger("100"), "checkout to contract account transfer");
             } else {
                 collector.logStepFail("transfer contract account is failure.contractAddress:", contractAddress);
             }
             Tuple3<String, BigInteger, BigInteger> result = contractAndAddress.addressCheck().send();
-            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("99999999999999999980"), new BigInteger("20"));
+            Tuple3<String, BigInteger, BigInteger> expert = new Tuple3<>(receipt.getFrom(), new BigInteger("80"), new BigInteger("20"));
             collector.assertEqual(JSONObject.toJSONString(result), JSONObject.toJSONString(expert), "checkout GLAT transfer function");
         } catch (Exception e) {
             collector.logStepFail("ContractAndAddressFunctionTest testGLat failure,exception msg:", e.getMessage());

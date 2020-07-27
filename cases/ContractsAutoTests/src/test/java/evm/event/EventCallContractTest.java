@@ -25,7 +25,7 @@ public class EventCallContractTest extends ContractPrepareTest {
     public void testEmitEvent() {
         try {
             prepare();
-            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider).send();
+            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -33,7 +33,7 @@ public class EventCallContractTest extends ContractPrepareTest {
             TransactionReceipt receipt = eventCallContract.emitEvent().send();
             List<EventCallContract.IncrementEventResponse> emitEventData = eventCallContract.getIncrementEvents(receipt);
             String data = emitEventData.get(0).log.getData();
-            collector.assertEqual(DataChangeUtil.subHexData(data), DataChangeUtil.subHexData(receipt.getFrom()), "checkout declare event keyword");
+            collector.assertEqual(emitEventData.get(0).who, receipt.getFrom(), "checkout declare event keyword");
         } catch (Exception e) {
             collector.logStepFail("EventCallContractTest testEmitEvent failure,exception msg:", e.getMessage());
             e.printStackTrace();
@@ -46,15 +46,15 @@ public class EventCallContractTest extends ContractPrepareTest {
     public void testIndexedEvent() {
         try {
             prepare();
-            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider).send();
+            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             TransactionReceipt receipt = eventCallContract.indexedEvent().send();
             List<EventCallContract.DepositEventResponse> emitEventData = eventCallContract.getDepositEvents(receipt);
             String data = emitEventData.get(0).log.getData();
-            collector.assertEqual(DataChangeUtil.subHexData(emitEventData.get(0).log.getTopics().get(1)), DataChangeUtil.subHexData(receipt.getFrom()), "checkout new contract param");
-            collector.assertEqual(DataChangeUtil.subHexData(data), DataChangeUtil.subHexData("c"), "checkout indexed keyword");
+            collector.assertEqual(emitEventData.get(0)._from, receipt.getFrom(), "checkout new contract param");
+            collector.assertEqual(emitEventData.get(0)._value.toString(), "12", "checkout indexed keyword");
         } catch (Exception e) {
             collector.logStepFail("EventCallContractTest testIndexedEvent failure,exception msg:", e.getMessage());
             e.printStackTrace();
@@ -67,7 +67,7 @@ public class EventCallContractTest extends ContractPrepareTest {
     public void testAnonymousEvent() {
         try {
             prepare();
-            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider).send();
+            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -85,7 +85,7 @@ public class EventCallContractTest extends ContractPrepareTest {
     public void testEmitEvents() {
         try {
             prepare();
-            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider).send();
+            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -115,7 +115,7 @@ public class EventCallContractTest extends ContractPrepareTest {
     public void testMultiAnonymousEvents() {
         try {
             prepare();
-            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider).send();
+            EventCallContract eventCallContract = EventCallContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventCallContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

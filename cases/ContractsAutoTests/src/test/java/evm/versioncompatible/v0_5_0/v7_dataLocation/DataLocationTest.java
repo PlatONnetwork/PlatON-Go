@@ -18,7 +18,7 @@ import java.math.BigInteger;
  *   映射(mapping)类型的变量必须显式声明存储区域( storage， memeory， calldata)，
  *   包括函数参数和返回值变量都必须显式声明
  * 2-external 的函数的引用参数和映射参数需显式声明为 calldata
- * @description: 
+ * @description:
  * @author: hudenian
  * @create: 2019/12/26
  */
@@ -42,7 +42,7 @@ public class DataLocationTest extends ContractPrepareTest {
     public void update() {
         try {
 
-            DataLocation dataLocation = DataLocation.deploy(web3j, transactionManager, provider).send();
+            DataLocation dataLocation = DataLocation.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = dataLocation.getContractAddress();
             TransactionReceipt tx = dataLocation.getTransactionReceipt().get();

@@ -1,9 +1,11 @@
 package evm.beforetest;
 
+import com.platon.sdk.utlis.Bech32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
 import network.platon.utils.CompileUtil;
+import network.platon.utils.DataChangeUtil;
 import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
 import org.junit.Before;
@@ -96,7 +98,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
-        final Semaphore semaphore = new Semaphore(50);
+        final Semaphore semaphore = new Semaphore(20);
         // 请求总数与文件数定义一致size
         CountDownLatch countDownLatch = new CountDownLatch(size);
         CompileUtil compileUtil = new CompileUtil();
@@ -108,11 +110,13 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     semaphore.acquire();
                     compileUtil.evmCompile(file, buildPath);
                     collector.logStepPass("compile success:" + file);
-                    semaphore.release();
                 } catch (Exception e) {
                     collector.logStepFail("compile fail:" + file, e.toString());
+                } finally {
+                    semaphore.release();
+                    countDownLatch.countDown();
                 }
-                countDownLatch.countDown();
+
             });
         }
 
@@ -154,8 +158,8 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     }
                     libraryAddressNoPre = receipt.getContractAddress();
                     collector.logStepPass("contract address >>>> " + libraryAddressNoPre);
-                    if (libraryAddressNoPre.startsWith("0x")) {
-                        libraryAddressNoPreMap.put(libraryArr[i].split("\\.")[0], libraryAddressNoPre.substring(2));//key值去掉.bin后缀
+                    if (libraryAddressNoPre.startsWith("lax") || libraryAddressNoPre.startsWith("lat")) {
+                        libraryAddressNoPreMap.put(libraryArr[i].split("\\.")[0], DataChangeUtil.bytesToHex(Bech32.addressDecode(libraryAddressNoPre)));
                         break;
                     }
                 }
@@ -234,10 +238,10 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     semaphore.acquire();
                     generatorUtil.generator(fileName);
                     collector.logStepPass("generator success:" + fileName);
-                    semaphore.release();
                 } catch (Exception e) {
                     collector.logStepFail("generator fail:" + fileName, e.toString());
                 } finally {
+                    semaphore.release();
                     countDownLatch.countDown();
                 }
             });

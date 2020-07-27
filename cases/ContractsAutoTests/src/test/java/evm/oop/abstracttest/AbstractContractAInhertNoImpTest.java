@@ -28,7 +28,7 @@ public class AbstractContractAInhertNoImpTest extends ContractPrepareTest {
         AbstractContractSon sonAbstractContract = null;
         try {
             //合约部署
-            sonAbstractContract = AbstractContractSon.deploy(web3j, transactionManager, provider).send();
+            sonAbstractContract = AbstractContractSon.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = sonAbstractContract.getContractAddress();
             TransactionReceipt tx = sonAbstractContract.getTransactionReceipt().get();
             collector.logStepPass("abstractContract issued successfully.contractAddress:" + contractAddress

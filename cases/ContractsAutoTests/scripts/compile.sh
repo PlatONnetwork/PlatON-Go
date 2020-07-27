@@ -3,11 +3,11 @@ VERSION=$1
 CONTRACT=$2
 TARGET=$3
 SOLC=solc-${VERSION}
-echo "hello"
-echo "Choose solc version: ${VERSION}"
+# echo "hello"
+# echo "Choose solc version: ${VERSION}"
 echo "Source solidity contract path: ${CONTRACT}"
 echo "Compiled abi/bytecode file target path: ${CONTRACT}"
-echo "Enter solc binary dir ....."
+# echo "Enter solc binary dir ....."
 cd ../solc
 chmod a+x solc-${VERSION}
 #if [ ! -f "$SOLC" ]; then
@@ -16,5 +16,5 @@ chmod a+x solc-${VERSION}
 # mv solc-static-linux solc-${VERSION}
 # chmod a+x solc-${VERSION}
 #fi
-echo "Run solc command to compile contract ...."
+# echo "Run solc command to compile contract ...."
 ./solc-${VERSION} -o ${TARGET} --bin --abi --overwrite ${CONTRACT}

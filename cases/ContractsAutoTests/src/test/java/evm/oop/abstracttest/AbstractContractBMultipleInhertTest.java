@@ -32,7 +32,7 @@ public class AbstractContractBMultipleInhertTest extends ContractPrepareTest {
         AbstractContractCSubclass abstractContractCSubclass= null;
         try {
             //合约部署
-            abstractContractCSubclass = AbstractContractCSubclass.deploy(web3j, transactionManager, provider).send();
+            abstractContractCSubclass = AbstractContractCSubclass.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = abstractContractCSubclass.getContractAddress();
             TransactionReceipt tx = abstractContractCSubclass.getTransactionReceipt().get();
             collector.logStepPass("abstractContract issued successfully.contractAddress:" + contractAddress

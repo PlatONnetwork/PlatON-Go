@@ -37,7 +37,7 @@ public class UserLibUseMappingTest extends ContractPrepareTest {
     public void testLibMappingParam() {
         try {
 
-            UserMapping userMapping = UserMapping.deploy(web3j, transactionManager, provider).send();
+            UserMapping userMapping = UserMapping.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = userMapping.getContractAddress();
             TransactionReceipt tx = userMapping.getTransactionReceipt().get();

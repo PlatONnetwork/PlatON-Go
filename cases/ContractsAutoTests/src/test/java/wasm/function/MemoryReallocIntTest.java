@@ -22,7 +22,7 @@ public class MemoryReallocIntTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            MemoryReallocInt mri = MemoryReallocInt.deploy(web3j, transactionManager, provider).send();
+            MemoryReallocInt mri = MemoryReallocInt.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = mri.getContractAddress();
             String transactionHash = mri.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("MemoryReallocInt issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

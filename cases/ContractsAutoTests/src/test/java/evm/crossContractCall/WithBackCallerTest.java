@@ -39,7 +39,7 @@ public class WithBackCallerTest extends ContractPrepareTest {
     public void crossContractCaller() {
         try {
             //调用者合约地址
-            WithBackCaller withBackCaller = WithBackCaller.deploy(web3j, transactionManager, provider).send();
+            WithBackCaller withBackCaller = WithBackCaller.deploy(web3j, transactionManager, provider, chainId).send();
             String callerContractAddress = withBackCaller.getContractAddress();
             TransactionReceipt tx = withBackCaller.getTransactionReceipt().get();
             collector.logStepPass("WithBackCaller deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
@@ -47,7 +47,7 @@ public class WithBackCallerTest extends ContractPrepareTest {
 
 
             //被调用者合约地址
-            WithBackCallee withBackCallee = WithBackCallee.deploy(web3j, transactionManager, provider).send();
+            WithBackCallee withBackCallee = WithBackCallee.deploy(web3j, transactionManager, provider, chainId).send();
             String calleeContractAddress = withBackCallee.getContractAddress();
             TransactionReceipt tx1 = withBackCallee.getTransactionReceipt().get();
             collector.logStepPass("WithBackCallee deploy successfully.contractAddress:" + calleeContractAddress + ", hash:" + tx1.getTransactionHash());
@@ -64,11 +64,33 @@ public class WithBackCallerTest extends ContractPrepareTest {
 
             //字符串类型跨合约调用
             tx2 = withBackCaller.callgetNameTest(calleeContractAddress,helloValue).send();
-            collector.logStepPass("WithBackCaller callDoublelTest successfully hash:" + tx2.getTransactionHash());
+            collector.logStepPass("WithBackCaller callDoublelTest successfully hash:" + tx2.getTransactionHash()+"gas消耗值为："+tx2.getGasUsed());
             //获取字符串类型跨合约调用
             String callerStringResult = withBackCaller.getStringResult().send().toString();
             collector.logStepPass("获取字符串类型跨合约调用的结果值为:" + callerStringResult);
             collector.assertEqual(callerStringResult,"hello"+helloValue);
+
+
+            //调用被调用合约，指定足够的gas
+            tx2 = withBackCaller.callgetNameTestWithGas(calleeContractAddress,helloValue,new BigInteger("90000")).send();
+            collector.logStepPass("withBackCaller callgetNameTestWithGas successfully hash:" + tx2.getTransactionHash()+"gas消耗值为："+tx2.getGasUsed());
+            //获取字符串类型跨合约调用
+            callerStringResult = withBackCaller.getStringResult().send().toString();
+            collector.logStepPass("调用被调用合约，指定足够的gas查询到的返回值为:" + callerStringResult);
+            collector.assertEqual(callerStringResult,"hellogashudenian");
+
+            //调用被调用合约，指定gas不足
+            try {
+                tx2 = withBackCaller.callgetNameTestWithGas(calleeContractAddress, helloValue, new BigInteger("100")).send();
+
+                collector.logStepPass("withBackCaller callgetNameTestWithGas with less gas hash:" + tx2.getTransactionHash() + "gas消耗值为：" + tx2.getGasUsed());
+                //获取字符串类型跨合约调用
+                callerStringResult = withBackCaller.getStringResult().send().toString();
+                collector.logStepPass("调用被调用合约，指定gas不足时查询到的返回值为:" + callerStringResult);
+            }catch(Exception e1){
+                collector.logStepPass("指定gas不足时，调用合约失败！");
+            }
+
 
         } catch (Exception e) {
             collector.logStepFail("WithBackCallerTest process fail.", e.toString());

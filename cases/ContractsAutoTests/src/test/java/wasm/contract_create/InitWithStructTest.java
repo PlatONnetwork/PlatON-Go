@@ -24,7 +24,7 @@ public class InitWithStructTest extends WASMContractPrepareTest {
         Uint64 age = Uint64.of(12L);
         try {
             prepare();
-            InitWithStruct initWithStruct = InitWithStruct.deploy(web3j, transactionManager, provider).send();
+            InitWithStruct initWithStruct = InitWithStruct.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = initWithStruct.getContractAddress();
             String transactionHash = initWithStruct.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithStructTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

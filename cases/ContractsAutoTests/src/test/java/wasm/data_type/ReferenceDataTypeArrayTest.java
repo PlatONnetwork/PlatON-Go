@@ -42,7 +42,7 @@ public class ReferenceDataTypeArrayTest extends WASMContractPrepareTest {
         ReferenceDataTypeArrayContract referenceDataTypeArrayContract = null;
         try {
             prepare();
-            referenceDataTypeArrayContract = ReferenceDataTypeArrayContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeArrayContract = ReferenceDataTypeArrayContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeArrayContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeArrayContract.getTransactionReceipt().get();
             collector.logStepPass("ReferenceDataTypeArrayContract issued successfully.contractAddress:" + contractAddress

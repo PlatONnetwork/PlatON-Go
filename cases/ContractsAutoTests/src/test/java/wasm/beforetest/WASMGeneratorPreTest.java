@@ -65,7 +65,10 @@ public class WASMGeneratorPreTest {
      **/
     public void compileWasm() throws InterruptedException {
         String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm").toUri().getPath());
+
         String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "build").toUri().getPath());
+
+        collector.logStepPass("resourcePath：" + resourcePath + ", buildPath：" + buildPath);
 
         File buildPathFile = new File(buildPath);
         if (!buildPathFile.exists() || !buildPathFile.isDirectory()) {
@@ -81,6 +84,7 @@ public class WASMGeneratorPreTest {
         // 获取所有wasm源文件
         List<String> files = new OneselfFileUtil().getWasmResourcesFile(resourcePath, 0);
         int size = files.size();
+        collector.logStepPass("wasm contract size:" + size);
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
@@ -90,18 +94,20 @@ public class WASMGeneratorPreTest {
         CompileUtil compileUtil = new CompileUtil();
 
         for (String file : files) {
-            //collector.logStepPass("staring compile:" + file);
+            collector.logStepPass("staring compile:" + file);
             String fileName = file.substring(file.lastIndexOf("/") + 1, file.lastIndexOf(".cpp")) + ".wasm";
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
                     compileUtil.wasmCompile(file, buildPath + fileName);
                     collector.logStepPass("compile success:" + file);
-                    semaphore.release();
                 } catch (Exception e) {
                     collector.logStepFail("compile fail:" + file, e.toString());
+                } finally {
+                    semaphore.release();
+                    countDownLatch.countDown();
                 }
-                countDownLatch.countDown();
+
             });
         }
 
@@ -130,7 +136,6 @@ public class WASMGeneratorPreTest {
         collector.logStepPass("staring generator, Total " + size + " contract, please wait...");
 
         for (String fileName : binFileName) {
-            //collector.logStepPass("staring compile:" + fileName);
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();

@@ -41,7 +41,7 @@ public class ConstructorPublicDeclaractionTest extends ContractPrepareTest {
     public void constructPublicTest() {
         try {
 
-            ConstructorPublicDeclaraction constructorPublicDeclaraction = ConstructorPublicDeclaraction.deploy(web3j, transactionManager, provider,new BigInteger(initValue)).send();
+            ConstructorPublicDeclaraction constructorPublicDeclaraction = ConstructorPublicDeclaraction.deploy(web3j, transactionManager, provider, chainId,  new BigInteger(initValue)).send();
 
             String contractAddress = constructorPublicDeclaraction.getContractAddress();
             TransactionReceipt tx = constructorPublicDeclaraction.getTransactionReceipt().get();

@@ -29,7 +29,7 @@ public class ContractEmitEvent3Test extends WASMContractPrepareTest {
         String city = "shanghai";
         try {
             prepare();
-            ContractEmitEvent3 contractEmitEvent3 = ContractEmitEvent3.deploy(web3j, transactionManager, provider).send();
+            ContractEmitEvent3 contractEmitEvent3 = ContractEmitEvent3.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractEmitEvent3.getContractAddress();
             String transactionHash = contractEmitEvent3.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("contractEmitEvent3 issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

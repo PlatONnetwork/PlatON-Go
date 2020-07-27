@@ -24,7 +24,7 @@ public class ReferenceDataTypeVectorTest extends WASMContractPrepareTest {
         ReferenceDataTypeVectorContract referenceDataTypeVectorContract = null;
         try {
             prepare();
-            referenceDataTypeVectorContract = ReferenceDataTypeVectorContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeVectorContract = ReferenceDataTypeVectorContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeVectorContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeVectorContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeVectorContract issued successfully.contractAddress:" + contractAddress

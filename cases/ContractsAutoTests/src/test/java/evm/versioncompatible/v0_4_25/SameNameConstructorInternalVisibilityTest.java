@@ -28,7 +28,7 @@ import java.math.BigInteger;
  */
 public class SameNameConstructorInternalVisibilityTest extends ContractPrepareTest {
     SameNameConstructorInternalVisibility visibility;
-    
+
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testDiscardVariable",
@@ -36,7 +36,7 @@ public class SameNameConstructorInternalVisibilityTest extends ContractPrepareTe
     public void testDiscardVariable() {
         try {
             prepare();
-            visibility=SameNameConstructorInternalVisibility.deploy(web3j,transactionManager,provider).send();
+            visibility=SameNameConstructorInternalVisibility.deploy(web3j,transactionManager,provider,chainId).send();
             Tuple3<BigInteger,BigInteger,BigInteger> result = visibility.discardVariable().send();
             Tuple3<BigInteger,BigInteger,BigInteger> expect=new Tuple3(new BigInteger("1"),new BigInteger("0"),new BigInteger("1"));
             collector.assertEqual(result, expect, "checkout visibility assignment result");

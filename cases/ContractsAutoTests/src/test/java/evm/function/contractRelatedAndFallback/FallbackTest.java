@@ -30,7 +30,7 @@ public class FallbackTest extends ContractPrepareTest {
             author = "liweic", showName = "function.FallbackTest-this和回退函数测试", sourcePrefix = "evm")
     public void fallback() {
         try {
-            FallBack fallback = FallBack.deploy(web3j, transactionManager, provider).send();
+            FallBack fallback = FallBack.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = fallback.getContractAddress();
             TransactionReceipt tx = fallback.getTransactionReceipt().get();

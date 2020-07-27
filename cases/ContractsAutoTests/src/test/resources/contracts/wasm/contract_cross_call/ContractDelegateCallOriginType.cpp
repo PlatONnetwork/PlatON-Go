@@ -1,3 +1,4 @@
+#define TESTNET
 #include <platon/platon.hpp>
 #include <vector>
 #include <string>
@@ -43,10 +44,14 @@ CONTRACT delegate_call_origin_type : public platon::Contract {
         ACTION uint64_t delegate_call_add_message(const std::string &target_address,
         const my_message &one_message, uint64_t gas) {
             platon::bytes params = platon::cross_call_args("add_message", one_message);
-            if (platon_delegate_call(Address(target_address), params, gas)) {
+
+            auto address_info = make_address(target_address);
+            if(address_info.second){
+                if (platon_delegate_call(address_info.first, params, gas)) {
                     DEBUG("Delegate call contract success", "address", target_address);
             } else {
                 DEBUG("Delegate call contract fail", "address", target_address);
+            }
             }
             return 0;
         }

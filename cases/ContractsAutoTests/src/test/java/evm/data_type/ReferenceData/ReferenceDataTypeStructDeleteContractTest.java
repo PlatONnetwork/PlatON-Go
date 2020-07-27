@@ -30,7 +30,7 @@ public class ReferenceDataTypeStructDeleteContractTest extends ContractPrepareTe
         ReferenceDataTypeStructDeleteContract referenceDataTypeStructDelete = null;
         try {
             //合约部署
-            referenceDataTypeStructDelete = ReferenceDataTypeStructDeleteContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeStructDelete = ReferenceDataTypeStructDeleteContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeStructDelete.getContractAddress();
             TransactionReceipt tx =  referenceDataTypeStructDelete.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeStructDelete issued successfully.contractAddress:" + contractAddress

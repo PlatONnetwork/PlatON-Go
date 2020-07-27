@@ -30,7 +30,7 @@ public class TypeConversionBytesToUintContractTest extends ContractPrepareTest {
         TypeConversionBytesToUintContract typeConversionBytesToUintContract = null;
         try {
             //合约部署
-            typeConversionBytesToUintContract = TypeConversionBytesToUintContract.deploy(web3j, transactionManager, provider).send();
+            typeConversionBytesToUintContract = TypeConversionBytesToUintContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = typeConversionBytesToUintContract.getContractAddress();
             TransactionReceipt tx =  typeConversionBytesToUintContract.getTransactionReceipt().get();
             collector.logStepPass("typeConversion issued successfully.contractAddress:" + contractAddress
