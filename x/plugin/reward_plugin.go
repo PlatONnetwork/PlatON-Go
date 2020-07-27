@@ -332,6 +332,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 			}
 			currentEpochDelegateReward := new(big.Int).Set(verifier.CurrentEpochDelegateReward)
 
+			//查看是否有新的委托分红比例生效。
 			verifier.PrepareNextEpoch()
 			canAddr, err := xutil.NodeId2Addr(verifier.NodeId)
 			if nil != err {
