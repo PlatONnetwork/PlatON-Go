@@ -410,7 +410,7 @@ func (s *PlatonStatsService) accountCheckingLoop() {
 				for {
 					currentNumber := s.eth.BlockChain().CurrentBlock().NumberU64()
 					log.Debug("current block number of block chain", "blockNumber", currentNumber)
-					if checkingNumber > currentNumber {
+					if currentNumber >= checkingNumber {
 						break
 					} else {
 						time.Sleep(1 * time.Second)
