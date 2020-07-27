@@ -760,6 +760,9 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 			//log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
 			underpricedTxMeter.Mark(1)
 			pool.removeTx(tx.Hash(), false)
+
+			//Prevent some transactions that can be packaged from being deleted,Then  cannot enter the trading pool within 8s
+			pool.knowns.Delete(tx.Hash())
 		}
 	}
 	// Try to replace an existing transaction in the pending pool
@@ -1337,10 +1340,10 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.currentState = statedb
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
-	for addr, list := range pool.pending {
+	/*for addr, list := range pool.pending {
 		highestPending := list.LastElement()
 		pool.pendingNonces.set(addr, highestPending.Nonce()+1)
-	}
+	}*/
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
 	SenderCacher.recover(pool.signer, reinject)

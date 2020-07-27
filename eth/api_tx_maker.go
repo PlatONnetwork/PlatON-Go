@@ -401,6 +401,9 @@ func NewTxMakeManger(tx, evm, wasm int, GetNonce func(addr common.Address) uint6
 	if t.sendWasm == 0 {
 		return nil, errors.New("new tx gen fail ,tx+evm+wasm size should not be zero")
 	}
+	if evm+wasm == 0 {
+		return t, nil
+	}
 
 	if evm > 0 && len(txgenInput.Evm) == 0 {
 		return nil, errors.New("new tx gen fail ,evm config not set")
