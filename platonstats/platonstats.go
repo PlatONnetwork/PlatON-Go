@@ -409,10 +409,10 @@ func (s *PlatonStatsService) accountCheckingLoop() {
 
 				for {
 					currentNumber := s.eth.BlockChain().CurrentBlock().NumberU64()
-					if checkingNumber < currentNumber {
-						time.Sleep(1 * time.Second)
-					} else {
+					if checkingNumber > currentNumber {
 						break
+					} else {
+						time.Sleep(1 * time.Second)
 					}
 				}
 			}
@@ -437,6 +437,7 @@ var (
 	ErrValue           = errors.New("account checking: cannot unmarshal value to message struct")
 	ErrKeyValue        = errors.New("account checking: key is not matched to value")
 	ErrChain           = errors.New("account checking: failed to get account chain balance")
+	ErrAccountNotFound = errors.New("account checking: failed to find account in current stateDB")
 	ErrAccountChecking = errors.New("account checking: Account chain and tracking balances are not equal")
 )
 
@@ -461,9 +462,16 @@ func (s *PlatonStatsService) accountChecking(key string, value []byte) error {
 		for _, item := range message.AccountList {
 			chainBalance, err := getBalance(s.eth.APIBackend, item.Addr, rpc.BlockNumber(keyNumber))
 			if err != nil {
-				log.Error("Failed to get account chain balance", "address", item.Addr.Bech32(), "err", err)
+				log.Error("Failed to get account chain balance", "blockNumber", keyNumber, "address", item.Addr.Bech32(), "err", err)
 				return ErrChain
 			}
+			//the current stateDB's block number is higher than checking request.
+			//so, the account must exists in current stateDB.
+			if chainBalance == nil {
+				log.Error("Failed to find account in current stateDB", "blockNumber", keyNumber, "address", item.Addr.Bech32())
+				return ErrAccountNotFound
+			}
+			log.Debug("getBalance from chain", "blockNumber", keyNumber, "chainBalance", chainBalance)
 			if item.Balance.Cmp(chainBalance.ToInt()) != 0 {
 				bech32 := item.Addr.Bech32()
 				writeCheckingErr(bech32, message.BlockNumber, chainBalance.ToInt(), item.Balance)
