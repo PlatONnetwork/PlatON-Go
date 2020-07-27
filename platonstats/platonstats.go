@@ -403,6 +403,8 @@ func (s *PlatonStatsService) accountCheckingLoop() {
 			if err != nil {
 				log.Error("Failed to check account balance", "err", err)
 				panic(err)
+			} else {
+				log.Debug("Success to check account balance", "key", key)
 			}
 			s.kafkaClient.partitionOffsetManager.MarkOffset(msg.Offset, "")
 		case err := <-s.kafkaClient.partitionConsumer.Errors():
