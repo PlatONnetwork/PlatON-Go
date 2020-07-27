@@ -472,7 +472,8 @@ func (s *PlatonStatsService) accountChecking(key string, value []byte) error {
 				log.Error("Failed to find account in current block chain", "blockNumber", keyNumber, "address", item.Addr.Bech32())
 				return ErrAccountNotFound
 			}
-			log.Debug("getBalance from chain", "blockNumber", keyNumber, "chainBalance", chainBalance)
+
+			log.Trace("account checking", "blockNumber", keyNumber, "chainBalance", chainBalance, "trackingBalance", item.Balance.Int64())
 			if item.Balance.Cmp(chainBalance.ToInt()) != 0 {
 				bech32 := item.Addr.Bech32()
 				writeCheckingErr(bech32, message.BlockNumber, chainBalance.ToInt(), item.Balance)
