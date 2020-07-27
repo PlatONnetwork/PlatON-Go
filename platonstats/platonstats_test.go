@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -66,6 +68,14 @@ func buildExeBlockData() *common.ExeBlockData {
 	//value2, _ := new(big.Int).SetString("3000000000000000000000", 10)
 	//value3, _ := new(big.Int).SetString("3000000000000000000000", 10)
 
+	additionalIssuance := new(common.AdditionalIssuanceData)
+	additionalIssuance.AdditionalNo = 1
+	additionalIssuance.AdditionalBase = big.NewInt(1000000)
+	additionalIssuance.AdditionalAmount = big.NewInt(100000)
+	additionalIssuance.AdditionalRate = 10
+	additionalIssuance.AddIssuanceItem(vm.RewardManagerPoolAddr, big.NewInt(10000))
+	common.CollectAdditionalIssuance(blockNumber, additionalIssuance)
+
 	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, value1)
 	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, value1)
 	common.CollectEmbedTransferTx(blockNumber, common.Hash{0x01}, address, address, value1)
@@ -96,7 +106,35 @@ func T2est_encode_Data(t *testing.T) {
 
 }
 
+func Test_Unmarshal_accountCheckingMessage(t *testing.T) {
+	message := AccountCheckingMessage{
+		BlockNumber: uint64(12132131),
+		AccountList: []*AccountItem{
+			&AccountItem{Addr: address, Balance: big.NewInt(1)},
+			&AccountItem{Addr: address, Balance: big.NewInt(2)},
+		}}
+	jsonBytes, err := json.Marshal(message)
+	if err != nil {
+		t.Fatal("Failed to marshal accountCheckingMessage to json format", err)
+	} else {
+		t.Log("accountCheckingMessage json format:" + string(jsonBytes))
+	}
+
+	/*jsonStr := "{\n    \"blockNumber\":12132131,\n    \"accountList\":[\n        {\n            \"addr\":\"lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj\",\n            \"balance\":1\n        },\n        {\n            \"addr\":\"lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj\",\n            \"balance\":2\n        }]\n}"
+	jsonBytes = []byte(jsonStr)*/
+	var data AccountCheckingMessage
+	if len(jsonBytes) > 0 {
+		if err := json.Unmarshal(jsonBytes, &data); err != nil {
+			t.Fatal("Failed to unmarshal json to accountCheckingMessage", err)
+		} else {
+			t.Log("accountCheckingMessage.accountList", data.AccountList[1].Balance.Int64())
+		}
+	}
+}
 func Test_encode_Data(t *testing.T) {
+
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
 	//NewMockPlatonStatsService()
 	exeData := buildExeBlockData()
 
@@ -177,7 +215,7 @@ func T2est_StatsService(t *testing.T) {
 
 func T2est_Log(t *testing.T) {
 	blockNumber := uint64(121)
-	writeBlockNumber(blockNumber)
+	writeStatsLog(blockNumber)
 
 	if blockNo, err := readBlockNumber(); err != nil {
 		t.Fatal("Failed to read stats service log", "error", err)

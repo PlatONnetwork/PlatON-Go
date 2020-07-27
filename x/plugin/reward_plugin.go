@@ -123,16 +123,19 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		rewardData.BlockRewardAmount = packageReward
 	}
 
+	//分配出块奖励
 	if err := rmp.AllocatePackageBlock(blockHash, head, packageReward, state); err != nil {
 		return err
 	}
 
 	if xutil.IsEndOfEpoch(blockNumber) {
+		//结算周期末，分配质押奖励。
+		//质押节点能直接收到质押奖励，委托用户的质押奖励，会从激励池转入委托奖励合约。
 		verifierList, err := rmp.AllocateStakingReward(blockNumber, blockHash, stakingReward, state)
 		if err != nil {
 			return err
 		}
-
+		// 保存质押节点，给委托用户的奖励信息。
 		if err := rmp.HandleDelegatePerReward(blockHash, blockNumber, verifierList, state); err != nil {
 			return err
 		}
@@ -281,6 +284,8 @@ func (rmp *RewardMgrPlugin) AllocateStakingReward(blockNumber uint64, blockHash 
 		log.Error("Failed to AllocateStakingReward: call GetVerifierList is failed", "blockNumber", blockNumber, "hash", blockHash, "err", err)
 		return nil, err
 	}
+
+	//把这个周期每个质押节点的质押奖励，进行分配
 	if err := rmp.rewardStakingByValidatorList(state, verifierList, sreward); err != nil {
 		log.Error("reward staking by validator list fail", "err", err, "bn", blockNumber, "bh", blockHash)
 		return nil, err
@@ -304,6 +309,7 @@ func (rmp *RewardMgrPlugin) ReturnDelegateReward(address common.Address, amount 
 	return nil
 }
 
+//  保存质押节点，给委托用户的奖励的信息。
 func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, blockNumber uint64, list []*staking.Candidate, state xcom.StateDB) error {
 	currentEpoch := xutil.CalculateEpoch(blockNumber)
 	for _, verifier := range list {
@@ -316,8 +322,9 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 				log.Error("HandleDelegatePerReward ReturnDelegateReward fail", "err", err, "blockNumber", blockNumber)
 			}
 		} else {
-
+			//质押节点给委托用户的奖励信息。
 			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, verifier.DelegateTotal)
+			//把奖励信息保存起来。
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
 				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 					"nodeId", verifier.NodeId.TerminalString(), "err", err, "CurrentEpochDelegateReward", verifier.CurrentEpochDelegateReward, "delegateTotal", verifier.DelegateTotal)
@@ -452,8 +459,13 @@ func (rmp *RewardMgrPlugin) CalDelegateRewardAndNodeReward(totalReward *big.Int,
 	return tmp, new(big.Int).Sub(totalReward, tmp)
 }
 
+// 把这个周期每个质押节点的质押奖励，进行分配。
+// 1. 质押节点，直接从激励池拿到质押奖励。
+// 2. 委托用户，质押奖励从激励池发放到委托激励合约。
+// 3. 为每个质押节点，记录应该分配给委托用户的所有奖励。
 func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, list []*staking.Candidate, reward *big.Int) error {
 	validatorNum := int64(len(list))
+	//每个结算周期的质押奖励时一定的，给所有质押节点来分。这里求每个质押节点能分到的质押奖励。
 	everyValidatorReward := new(big.Int).Div(reward, big.NewInt(validatorNum))
 
 	log.Debug("calculate validator staking reward", "validator length", validatorNum, "everyOneReward", everyValidatorReward)
@@ -462,20 +474,27 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 	for _, value := range list {
 		delegateReward, stakingReward := new(big.Int), new(big.Int).Set(everyValidatorReward)
 		if value.ShouldGiveDelegateReward() {
+			// 计算质押奖励，在质押节点，和委托用户之间的分配。
 			delegateReward, stakingReward = rmp.CalDelegateRewardAndNodeReward(everyValidatorReward, value.RewardPer)
 			totalValidatorDelegateReward.Add(totalValidatorDelegateReward, delegateReward)
 			log.Debug("allocate delegate reward of staking one-by-one", "nodeId", value.NodeId.TerminalString(), "staking reward", stakingReward, "per", value.RewardPer, "delegateReward", delegateReward)
 			//the  CurrentEpochDelegateReward will use by cal delegate reward Per
+			//把当前要分配给委托用户的质押奖励，累计到需要分配给委托用户的总奖励中
 			value.CurrentEpochDelegateReward.Add(value.CurrentEpochDelegateReward, delegateReward)
 		}
 		if value.BenefitAddress != vm.RewardManagerPoolAddr {
 			log.Debug("allocate staking reward one-by-one", "nodeId", value.NodeId.String(),
 				"benefitAddress", value.BenefitAddress.String(), "staking reward", stakingReward)
+
+			//给节质押点发放质押奖励
 			state.AddBalance(value.BenefitAddress, stakingReward)
+			//记录总发放的质押奖励，后面需要从激励池中扣除
 			totalValidatorReward.Add(totalValidatorReward, stakingReward)
 		}
 	}
+	// 把这个结算周期，分配给所有用户的质押奖励，都转入委托奖励合约中。
 	state.AddBalance(vm.DelegateRewardPoolAddr, totalValidatorDelegateReward)
+	//从激励池中扣除已经发放给所有质押节点的质押奖励。
 	state.SubBalance(vm.RewardManagerPoolAddr, new(big.Int).Add(totalValidatorDelegateReward, totalValidatorReward))
 	return nil
 }
@@ -494,12 +513,18 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 }
 
 // AllocatePackageBlock used for reward new block. it returns coinbase and error
+// 每出一个块，马上分配出块奖励
+// 1. 出块节点，直接从激励池拿到质押奖励。
+// 2. 委托用户，出块奖励从激励池发放到委托激励合约。
+// 3. 为每个质押节点，记录应该分配给委托用户的所有奖励。
 func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *types.Header, reward *big.Int, state xcom.StateDB) error {
 	nodeID, add, err := rmp.getBlockMinderAddress(blockHash, head)
 	if err != nil {
 		log.Error("AllocatePackageBlock getBlockMinderAddress fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 		return err
 	}
+
+	log.Debug("Alloc block reward", "blockNumber", head.Number.Uint64(), "blockHash", blockHash, "nodeID", nodeID.String(), "nodeAddr", add.String(), "coinBase", head.Coinbase.Bech32())
 
 	currVerifier, err := rmp.stakingPlugin.IsCurrVerifier(blockHash, head.Number.Uint64(), nodeID, false)
 	if err != nil {
@@ -515,9 +540,11 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 		if cm.ShouldGiveDelegateReward() {
 			delegateReward := new(big.Int).SetUint64(0)
 			delegateReward, reward = rmp.CalDelegateRewardAndNodeReward(reward, cm.RewardPer)
-
+			//2. 委托用户，出块奖励从激励池发放到委托激励合约。
 			state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
 			state.AddBalance(vm.DelegateRewardPoolAddr, delegateReward)
+
+			//为每个质押节点，记录应该分配给委托用户的所有奖励。
 			cm.CurrentEpochDelegateReward.Add(cm.CurrentEpochDelegateReward, delegateReward)
 			log.Debug("allocate package reward, delegate reward", "blockNumber", head.Number, "blockHash", blockHash, "delegateReward", delegateReward, "epochDelegateReward", cm.CurrentEpochDelegateReward)
 
@@ -526,15 +553,18 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 				return err
 			}
 		}
+	} else {
+		log.Warn("nodeID is not in verify list now", "blockNumber", head.Number, "blockHash", blockHash, "nodeID", nodeID.String())
 	}
 
 	if head.Coinbase != vm.RewardManagerPoolAddr {
-
-		log.Debug("allocate package reward,block reward", "blockNumber", head.Number, "blockHash", blockHash,
+		log.Debug("allocate package reward,block reward", "blockNumber", head.Number, "blockHash", blockHash, "nodeID", nodeID.String(),
 			"coinBase", head.Coinbase.String(), "reward", reward)
-
+		// 1. 出块节点，直接从激励池拿到质押奖励。
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
 		state.AddBalance(head.Coinbase, reward)
+	} else {
+		log.Warn("Coinbase equals RewardManagerPool address", "blockNumber", head.Number, "blockHash", blockHash, "nodeID", nodeID.String())
 	}
 	return nil
 }

@@ -262,16 +262,12 @@ func (s *MockPlatonStatsService) blockMsgLoop() {
 	}
 
 	for {
-
 		nextBlock := s.BlockChain().GetBlockByNumber(nextBlockNumber)
 		if nextBlock != nil {
 			if err := s.reportBlockMsg(nextBlock); err == nil {
-				if err := writeBlockNumber(nextBlockNumber); err == nil {
-					log.Debug("Success to write stats service log", "blockNumber", nextBlock.NumberU64())
-					nextBlockNumber = nextBlockNumber + 1
-				} else {
-					log.Error("Failed to write stats service log", "blockNumber", nextBlock.NumberU64())
-				}
+				writeStatsLog(nextBlockNumber)
+				log.Debug("Success to write stats service log", "blockNumber", nextBlock.NumberU64())
+				nextBlockNumber = nextBlockNumber + 1
 			} else {
 				log.Error("Failed to report block message", "blockNumber", nextBlock.NumberU64())
 			}

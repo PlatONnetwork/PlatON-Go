@@ -314,7 +314,7 @@ var (
 	*/
 	StatsFlag = cli.StringFlag{
 		Name:  "stats",
-		Usage: "Reporting URL of a PlatON stats service, --stats kafka_host:kafka_port,kafka_block_topic",
+		Usage: "Reporting URL of a PlatON stats service, --stats kafka_host:kafka_port,kafka_block_topic,kafka_account_checking_topic",
 	}
 
 	NoCompactionFlag = cli.BoolFlag{
@@ -1325,13 +1325,13 @@ func RegisterEthStatsService(stack *node.Node, url string) {
 	}
 }
 
-func RegisterStatsService(stack *node.Node, kafkaUrl, kafkaBlockTopic string, datadir string) {
+func RegisterStatsService(stack *node.Node, kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic string, datadir string) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		// Retrieve both eth and les services
 		var ethServ *eth.Ethereum
 		ctx.Service(&ethServ)
 
-		return platonstats.New(kafkaUrl, kafkaBlockTopic, ethServ, datadir)
+		return platonstats.New(kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic, ethServ, datadir)
 	}); err != nil {
 		Fatalf("Failed to register the PlatON stats service: %v", err)
 	}

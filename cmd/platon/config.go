@@ -79,8 +79,9 @@ type ethstatsConfig struct {
 	URL string `toml:",omitempty"`
 }
 type statsConfig struct {
-	URL        string `toml:",omitempty"`
-	BlockTopic string `toml:",omitempty"`
+	URL                  string `toml:",omitempty"`
+	BlockTopic           string `toml:",omitempty"`
+	AccountCheckingTopic string `toml:",omitempty"`
 }
 
 type platonConfig struct {
@@ -185,6 +186,10 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 		} else if len(configs) == 2 {
 			cfg.Stats.URL = configs[0]
 			cfg.Stats.BlockTopic = configs[1]
+		} else if len(configs) == 3 {
+			cfg.Stats.URL = configs[0]
+			cfg.Stats.BlockTopic = configs[1]
+			cfg.Stats.AccountCheckingTopic = configs[2]
 		} else {
 			utils.Fatalf("Failed to parse --stats command")
 		}
@@ -203,7 +208,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 
 	// Add the PlatON Stats daemon if requested.
 	if len(cfg.Stats.URL) > 0 {
-		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Node.DataDir)
+		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Stats.AccountCheckingTopic, cfg.Node.DataDir)
 	}
 	return stack
 }
@@ -217,7 +222,7 @@ func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, platonConfig) {
 
 	// Add the PlatON Stats daemon if requested.
 	if cfg.Stats.URL != "" {
-		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Node.DataDir)
+		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Stats.AccountCheckingTopic, cfg.Node.DataDir)
 	}
 	return stack, cfg
 }

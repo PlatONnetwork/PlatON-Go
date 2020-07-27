@@ -4,10 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
+	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 
@@ -34,6 +38,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/Shopify/sarama"
+	"github.com/bsm/sarama-cluster"
 )
 
 const (
@@ -42,10 +47,17 @@ const (
 	sampleEventChanSize = 50
 
 	defaultKafkaBlockTopic = "platon-block"
+
+	defaultKafkaAccountCheckingConsumerGroup = "platon-account-checking-group"
+	defaultKafkaAccountCheckingTopic         = "platon-account-checking"
 )
 
 var (
 	statsLogFile = "./platonstats.log"
+	statsLogFlag = os.O_RDWR | os.O_CREATE | os.O_TRUNC
+
+	checkingErrFile = "./checkingerr.log"
+	checkingErrFlag = os.O_RDWR | os.O_CREATE | os.O_APPEND
 )
 
 type platonStats interface {
@@ -127,16 +139,18 @@ type StatsBlockExt struct {
 }
 
 type PlatonStatsService struct {
-	server          *p2p.Server // Peer-to-peer server to retrieve networking infos
-	kafkaUrl        string
-	kafkaBlockTopic string
-	eth             *eth.Ethereum // Full Ethereum service if monitoring a full node
-	datadir         string
-	blockProducer   sarama.SyncProducer
-	msgProducer     sarama.AsyncProducer
-	stopSampleMsg   chan struct{}
-	stopBlockMsg    chan struct{}
-	stopOnce        sync.Once
+	server                    *p2p.Server //Peer-to-peer server to retrieve networking infos
+	kafkaUrl                  string
+	kafkaBlockTopic           string        //统计数据消息topic
+	kafkaAccountCheckingTopic string        //对账请求消息topic
+	eth                       *eth.Ethereum // Full Ethereum service if monitoring a full node
+	datadir                   string
+	blockProducer             sarama.SyncProducer
+	msgProducer               sarama.AsyncProducer
+	checkingConsumer          *cluster.Consumer
+	stopSampleMsg             chan struct{}
+	stopBlockMsg              chan struct{}
+	stopOnce                  sync.Once
 }
 
 var (
@@ -144,15 +158,17 @@ var (
 	platonStatsService *PlatonStatsService
 )
 
-func New(kafkaUrl, kafkaBlockTopic string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
+func New(kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
 	platonStatsService = &PlatonStatsService{
-		kafkaUrl:        kafkaUrl,
-		kafkaBlockTopic: kafkaBlockTopic,
-		eth:             ethServ,
-		datadir:         datadir,
+		kafkaUrl:                  kafkaUrl,
+		kafkaBlockTopic:           kafkaBlockTopic,
+		kafkaAccountCheckingTopic: kafkaAccountCheckingTopic,
+		eth:                       ethServ,
+		datadir:                   datadir,
 	}
 	if len(datadir) > 0 {
 		statsLogFile = filepath.Join(datadir, statsLogFile)
+		checkingErrFile = filepath.Join(datadir, checkingErrFile)
 	}
 	return platonStatsService, nil
 }
@@ -201,6 +217,8 @@ func (s *PlatonStatsService) Start(server *p2p.Server) error {
 
 	go s.blockMsgLoop()
 	//go s.sampleMsgLoop()
+
+	go s.accountCheckingLoop()
 	log.Info("PlatON stats daemon started")
 	return nil
 }
@@ -210,6 +228,17 @@ func blockProducerConfig() *sarama.Config {
 	config.Producer.Return.Successes = true
 	config.Producer.Compression = sarama.CompressionGZIP
 	config.Producer.MaxMessageBytes = 500000000
+	return config
+}
+func checkingConsumerConfig() *cluster.Config {
+	config := cluster.NewConfig()
+	config.Consumer.Return.Errors = true
+	config.Version = sarama.V2_5_0_0
+	//手工提交offset
+	config.Consumer.Offsets.AutoCommit.Enable = false
+
+	//初始从最新的offset开始
+	config.Consumer.Offsets.Initial = sarama.OffsetNewest
 	return config
 }
 
@@ -228,7 +257,7 @@ func msgProducerConfig() *sarama.Config {
 func (s *PlatonStatsService) Stop() error {
 	s.stopOnce.Do(func() {
 		close(s.stopSampleMsg)
-		close(s.stopBlockMsg)
+		//close(s.stopBlockMsg)
 		if s.msgProducer != nil {
 			s.msgProducer.AsyncClose()
 		}
@@ -241,6 +270,7 @@ func (s *PlatonStatsService) Stop() error {
 	return nil
 }
 
+//todo: 服务如何退出？整个Node如何停止？
 func (s *PlatonStatsService) blockMsgLoop() {
 	var nextBlockNumber uint64
 	nextBlockNumber = 0
@@ -253,9 +283,11 @@ func (s *PlatonStatsService) blockMsgLoop() {
 		nextBlock := s.BlockChain().GetBlockByNumber(nextBlockNumber)
 		if nextBlock != nil {
 			if err := s.reportBlockMsg(nextBlock); err == nil {
-				if err := writeBlockNumber(nextBlockNumber); err == nil {
-					nextBlockNumber = nextBlockNumber + 1
-				}
+				writeStatsLog(nextBlockNumber)
+				nextBlockNumber = nextBlockNumber + 1
+			} else {
+				//
+				panic(err)
 			}
 		} else {
 			time.Sleep(time.Microsecond * 50)
@@ -298,12 +330,12 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		GenesisData:  genesisData,
 	}
 
-	json, err := json.Marshal(statsBlockExt)
+	jsonBytes, err := json.Marshal(statsBlockExt)
 	if err != nil {
 		log.Error("marshal platon stats block message to json string error", "blockNumber", block.NumberU64(), "err", err)
 		return err
 	} else {
-		log.Info("marshal platon stats block", "blockNumber", block.NumberU64(), "json", string(json))
+		log.Info("marshal platon stats block", "blockNumber", block.NumberU64(), "json", string(jsonBytes))
 	}
 	// send message
 	var blockTopic string
@@ -316,7 +348,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		Topic:     blockTopic,
 		Partition: 0,
 		Key:       sarama.StringEncoder(strconv.FormatUint(block.NumberU64(), 10)),
-		Value:     sarama.StringEncoder(string(json)),
+		Value:     sarama.StringEncoder(string(jsonBytes)),
 		Timestamp: time.Now(),
 	}
 
@@ -385,8 +417,10 @@ func readBlockNumber() (uint64, error) {
 	}
 }
 
-func writeBlockNumber(blockNumber uint64) error {
-	return ioutil.WriteFile(statsLogFile, []byte(strconv.FormatUint(blockNumber, 10)), 666)
+func writeStatsLog(blockNumber uint64) {
+	if err := common.WriteFile(statsLogFile, []byte(strconv.FormatUint(blockNumber, 10)), statsLogFlag, 666); err != nil {
+		log.Error("Failed to log stats block number", "blockNumber", blockNumber)
+	}
 }
 
 func (s *PlatonStatsService) sampleMsgLoop() {
@@ -405,6 +439,140 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 			return
 		}
 	}
+}
+
+func (s *PlatonStatsService) accountCheckingLoop() {
+	urls := []string{s.kafkaUrl}
+	blockTopic := s.kafkaAccountCheckingTopic
+	if len(blockTopic) == 0 {
+		blockTopic = defaultKafkaAccountCheckingTopic
+	}
+
+	consumer, err := cluster.NewConsumer(urls, defaultKafkaAccountCheckingConsumerGroup, []string{blockTopic}, checkingConsumerConfig())
+	if err != nil {
+		log.Error("Failed to init msg Kafka account-checking consumer....", "err", err)
+		panic(err)
+	}
+
+	defer func() {
+		if err := consumer.Close(); err != nil {
+			log.Error("Failed to close consumer", "err", err)
+		}
+	}()
+
+	/*checkingConsumer, err := consumer.ConsumePartition(s.kafkaAccountCheckingTopic, 0, sarama.OffsetOldest)
+	if err != nil {
+		log.Error("Failed to create Kafka partition_consumer....", "err", err)
+		panic(err)
+	}
+	defer func() {
+		if err := checkingConsumer.Close(); err != nil {
+			log.Error("Failed to close checkingConsumer", "err", err)
+		}
+	}()*/
+
+	log.Info("Success to init msg Kafka account-checking consumer....")
+	s.checkingConsumer = consumer
+
+	for {
+		select {
+		case msg := <-s.checkingConsumer.Messages():
+			key := string(msg.Key)
+			value := string(msg.Value)
+			log.Debug("received account-checking message", "offset", msg.Offset, "key", key, "value", value)
+			err := s.accountChecking(key, msg.Value)
+			if err != nil {
+				log.Error("Failed to check account balance", "err", err)
+				panic(err)
+			}
+			//手工提交offset()
+			if err := s.checkingConsumer.CommitOffsets(); err != nil {
+				log.Error("Failed to commit checking consumer offset", "err", err)
+				panic(err)
+			}
+		case err := <-s.checkingConsumer.Errors():
+			log.Error("Failed to pull account-checking message from Kafka", "err", err)
+			panic(err)
+		}
+	}
+}
+
+var (
+	ErrKey             = errors.New("account checking: cannot convert key to block number")
+	ErrValue           = errors.New("account checking: cannot unmarshal value to message struct")
+	ErrKeyValue        = errors.New("account checking: key is not matched to value")
+	ErrChain           = errors.New("account checking: failed to get account chain balance")
+	ErrAccountChecking = errors.New("account checking: Account chain and tracking balances are not equal")
+)
+
+func (s *PlatonStatsService) accountChecking(key string, value []byte) error {
+	keyNumber, err := strconv.ParseInt(key, 10, 64)
+	if err != nil {
+		log.Error("Failed to convert key to block number", "key", key, "err", err)
+		return ErrKey
+	}
+
+	var message AccountCheckingMessage
+	if len(value) > 0 {
+		err := json.Unmarshal(value, &message)
+		if err != nil {
+			log.Error("Failed to unmarshal value to accountCheckingMessage", "value", string(value), err, "err")
+			return ErrValue
+		}
+	}
+
+	accountCheckingError := false
+	if message.BlockNumber == uint64(keyNumber) {
+		for _, item := range message.AccountList {
+			chainBalance, err := getBalance(s.eth.APIBackend, item.Addr, rpc.BlockNumber(keyNumber))
+			if err != nil {
+				log.Error("Failed to get account chain balance", "address", item.Addr.Bech32(), err, "err")
+				return ErrChain
+			}
+			if item.Balance.Cmp(chainBalance.ToInt()) != 0 {
+				bech32 := item.Addr.Bech32()
+				writeCheckingErr(bech32, message.BlockNumber, chainBalance.ToInt(), item.Balance)
+				accountCheckingError = true
+			}
+		}
+	} else {
+		log.Error("Block number of Kafka message is invalid", "key", keyNumber, "blockNumber", message.BlockNumber)
+		return ErrKeyValue
+	}
+
+	if accountCheckingError {
+		return ErrAccountChecking
+	} else {
+		return nil
+	}
+}
+
+func getBalance(backend *eth.EthAPIBackend, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+	state, _, err := backend.StateAndHeaderByNumber(nil, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	state.ClearParentReference()
+	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
+}
+
+func writeCheckingErr(bech32 string, blockNumber uint64, chainBalance, trackingBalance *big.Int) {
+	log.Error("Account chain and tracking balances are not equal", "address", bech32, "chainBalance", chainBalance, "trackingBalance", trackingBalance)
+	content := fmt.Sprintf("%d    %s    %d    %d\n", blockNumber, bech32, chainBalance.Int64(), trackingBalance.Int64())
+	err := common.WriteFile(statsLogFile, []byte(content), checkingErrFlag, 666)
+	if err != nil {
+		log.Error("Failed to log account-checking-error", "content", content)
+	}
+}
+
+type AccountCheckingMessage struct {
+	BlockNumber uint64
+	AccountList []*AccountItem
+}
+
+type AccountItem struct {
+	Addr    common.Address
+	Balance *big.Int
 }
 
 /*func convertTxs(transactions types.Transactions) []*Tx {
