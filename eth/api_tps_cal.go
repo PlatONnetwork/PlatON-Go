@@ -97,15 +97,15 @@ func (txg *TxGenAPI) GetTps(ctx context.Context, beginBn, endBn uint64, interval
 */
 func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *EthAPIBackend) (uint64, uint64, []uint64, uint64, uint64, ViewCountMap, []uint64, uint64, error) {
 	ctx := context.Background()
-	beginHeader, _ := backend.HeaderByNumber(ctx, rpc.BlockNumber(beginNumber))
-	endHeader, _ := backend.HeaderByNumber(ctx, rpc.BlockNumber(endNumber))
+	beginBlock, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(beginNumber))
+	endBlock, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(endNumber))
 
-	_, beginQC, err := ctypes.DecodeExtra(beginHeader.Extra)
+	_, beginQC, err := ctypes.DecodeExtra(beginBlock.ExtraData())
 	if err != nil {
 		return 0, 0, nil, 0, 0, nil, nil, 0, fmt.Errorf("decodeExtra beginHeader Extra fail:%v", err)
 	}
 
-	_, endQC, err := ctypes.DecodeExtra(endHeader.Extra)
+	_, endQC, err := ctypes.DecodeExtra(endBlock.ExtraData())
 	if err != nil {
 		return 0, 0, nil, 0, 0, nil, nil, 0, fmt.Errorf("decodeExtra endHeader Extra fail:%v", err)
 	}
@@ -116,6 +116,9 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 
 	viewCountMap := make(ViewCountMap, 0)
 	missViewList := make([]uint64, 0)
+
+	beginHeader := beginBlock.Header()
+	endHeader := endBlock.Header()
 
 	preTimestamp := beginHeader.Time.Uint64()
 	topArray := make([]uint64, 0, 250)
@@ -130,7 +133,7 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 		preTimestamp = header.Time.Uint64()
 		txCount = txCount + uint64(len(block.Transactions()))
 
-		_, qc, err := ctypes.DecodeExtra(header.Extra)
+		_, qc, err := ctypes.DecodeExtra(block.ExtraData())
 		if err != nil {
 			return 0, 0, nil, 0, 0, nil, nil, 0, fmt.Errorf("decode header Extra fail:%v", err)
 		}
