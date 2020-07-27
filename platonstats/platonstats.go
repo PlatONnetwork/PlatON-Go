@@ -38,18 +38,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/Shopify/sarama"
-	"github.com/bsm/sarama-cluster"
-)
-
-const (
-	// historyUpdateRange is the number of blocks a node should report upon login or
-	// history request.
-	sampleEventChanSize = 50
-
-	defaultKafkaBlockTopic = "platon-block"
-
-	defaultKafkaAccountCheckingConsumerGroup = "platon-account-checking-group"
-	defaultKafkaAccountCheckingTopic         = "platon-account-checking"
 )
 
 var (
@@ -145,12 +133,13 @@ type PlatonStatsService struct {
 	kafkaAccountCheckingTopic string        //对账请求消息topic
 	eth                       *eth.Ethereum // Full Ethereum service if monitoring a full node
 	datadir                   string
-	blockProducer             sarama.SyncProducer
+	kafkaClient               *KafkaClient
+	/*blockProducer             sarama.SyncProducer
 	msgProducer               sarama.AsyncProducer
-	checkingConsumer          *cluster.Consumer
-	stopSampleMsg             chan struct{}
-	stopBlockMsg              chan struct{}
-	stopOnce                  sync.Once
+	checkingConsumer          *cluster.Consumer*/
+	stopSampleMsg chan struct{}
+	stopBlockMsg  chan struct{}
+	stopOnce      sync.Once
 }
 
 var (
@@ -197,9 +186,10 @@ func (s *PlatonStatsService) APIs() []rpc.API { return nil }
 func (s *PlatonStatsService) Start(server *p2p.Server) error {
 	log.Info("PlatON stats server starting....")
 	s.server = server
-	urls := []string{s.kafkaUrl}
+	//urls := []string{s.kafkaUrl}
 
-	if msgProducer, err := sarama.NewAsyncProducer(urls, msgProducerConfig()); err != nil {
+	s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic)
+	/*if msgProducer, err := sarama.NewAsyncProducer(urls, msgProducerConfig()); err != nil {
 		log.Error("Failed to init msg Kafka async producer....", "err", err)
 		return err
 	} else {
@@ -214,7 +204,7 @@ func (s *PlatonStatsService) Start(server *p2p.Server) error {
 		log.Info("Success to init msg Kafka sync producer....")
 		s.blockProducer = blockProducer
 	}
-
+	*/
 	go s.blockMsgLoop()
 	//go s.sampleMsgLoop()
 
@@ -222,47 +212,14 @@ func (s *PlatonStatsService) Start(server *p2p.Server) error {
 	log.Info("PlatON stats daemon started")
 	return nil
 }
-func blockProducerConfig() *sarama.Config {
-	config := sarama.NewConfig()
-	config.Producer.RequiredAcks = sarama.WaitForAll // 发送完数据需要leader和follow都确认
-	config.Producer.Return.Successes = true
-	config.Producer.Compression = sarama.CompressionGZIP
-	config.Producer.MaxMessageBytes = 500000000
-	return config
-}
-func checkingConsumerConfig() *cluster.Config {
-	config := cluster.NewConfig()
-	config.Consumer.Return.Errors = true
-	config.Version = sarama.V2_5_0_0
-	//手工提交offset
-	config.Consumer.Offsets.AutoCommit.Enable = false
-
-	//初始从最新的offset开始
-	config.Consumer.Offsets.Initial = sarama.OffsetNewest
-	return config
-}
-
-func msgProducerConfig() *sarama.Config {
-	config := sarama.NewConfig()
-	config.Producer.RequiredAcks = sarama.WaitForAll          // 发送完数据需要leader和follow都确认
-	config.Producer.Partitioner = sarama.NewRandomPartitioner // 新选出一个partition
-	config.Producer.Return.Successes = true
-	config.Producer.Compression = sarama.CompressionGZIP
-	config.Producer.MaxMessageBytes = 500000000
-	//config.Producer.Retry
-	return config
-}
 
 // Stop implements node.Service, terminating the monitoring and reporting daemon.
 func (s *PlatonStatsService) Stop() error {
 	s.stopOnce.Do(func() {
 		close(s.stopSampleMsg)
 		//close(s.stopBlockMsg)
-		if s.msgProducer != nil {
-			s.msgProducer.AsyncClose()
-		}
-		if s.blockProducer != nil {
-			s.blockProducer.Close()
+		if s.kafkaClient != nil {
+			s.kafkaClient.Close()
 		}
 	})
 
@@ -337,22 +294,16 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	} else {
 		log.Info("marshal platon stats block", "blockNumber", block.NumberU64(), "json", string(jsonBytes))
 	}
-	// send message
-	var blockTopic string
-	if len(s.kafkaBlockTopic) == 0 {
-		blockTopic = defaultKafkaBlockTopic
-	} else {
-		blockTopic = s.kafkaBlockTopic
-	}
+
 	msg := &sarama.ProducerMessage{
-		Topic:     blockTopic,
+		Topic:     s.kafkaClient.blockTopic,
 		Partition: 0,
 		Key:       sarama.StringEncoder(strconv.FormatUint(block.NumberU64(), 10)),
 		Value:     sarama.StringEncoder(string(jsonBytes)),
 		Timestamp: time.Now(),
 	}
 
-	partition, offset, err := s.blockProducer.SendMessage(msg)
+	partition, offset, err := s.kafkaClient.syncProducer.SendMessage(msg)
 
 	if err != nil {
 		log.Error("send block message error", "blockNumber", block.NumberU64(), "error", err)
@@ -442,41 +393,9 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 }
 
 func (s *PlatonStatsService) accountCheckingLoop() {
-	urls := []string{s.kafkaUrl}
-	blockTopic := s.kafkaAccountCheckingTopic
-	if len(blockTopic) == 0 {
-		blockTopic = defaultKafkaAccountCheckingTopic
-	}
-
-	consumer, err := cluster.NewConsumer(urls, defaultKafkaAccountCheckingConsumerGroup, []string{blockTopic}, checkingConsumerConfig())
-	if err != nil {
-		log.Error("Failed to init msg Kafka account-checking consumer....", "err", err)
-		panic(err)
-	}
-
-	defer func() {
-		if err := consumer.Close(); err != nil {
-			log.Error("Failed to close consumer", "err", err)
-		}
-	}()
-
-	/*checkingConsumer, err := consumer.ConsumePartition(s.kafkaAccountCheckingTopic, 0, sarama.OffsetOldest)
-	if err != nil {
-		log.Error("Failed to create Kafka partition_consumer....", "err", err)
-		panic(err)
-	}
-	defer func() {
-		if err := checkingConsumer.Close(); err != nil {
-			log.Error("Failed to close checkingConsumer", "err", err)
-		}
-	}()*/
-
-	log.Info("Success to init msg Kafka account-checking consumer....")
-	s.checkingConsumer = consumer
-
 	for {
 		select {
-		case msg := <-s.checkingConsumer.Messages():
+		case msg := <-s.kafkaClient.partitionConsumer.Messages():
 			key := string(msg.Key)
 			value := string(msg.Value)
 			log.Debug("received account-checking message", "offset", msg.Offset, "key", key, "value", value)
@@ -485,12 +404,8 @@ func (s *PlatonStatsService) accountCheckingLoop() {
 				log.Error("Failed to check account balance", "err", err)
 				panic(err)
 			}
-			//手工提交offset()
-			if err := s.checkingConsumer.CommitOffsets(); err != nil {
-				log.Error("Failed to commit checking consumer offset", "err", err)
-				panic(err)
-			}
-		case err := <-s.checkingConsumer.Errors():
+			s.kafkaClient.partitionOffsetManager.MarkOffset(msg.Offset, "")
+		case err := <-s.kafkaClient.partitionConsumer.Errors():
 			log.Error("Failed to pull account-checking message from Kafka", "err", err)
 			panic(err)
 		}

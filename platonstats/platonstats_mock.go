@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -35,13 +34,15 @@ type StatsServer interface {
 type MockPlatonStatsService struct {
 	server *p2p.Server // Peer-to-peer server to retrieve networking infos
 
-	kafkaUrl        string
-	kafkaBlockTopic string
+	kafkaUrl                  string
+	kafkaBlockTopic           string
+	kafkaAccountCheckingTopic string
+
 	//eth      *eth.Ethereum // Full Ethereum service if monitoring a full node
-	blockChain    *core.BlockChain
-	chainDb       ethdb.Database
-	blockProducer sarama.SyncProducer
-	msgProducer   sarama.AsyncProducer
+	blockChain *core.BlockChain
+	chainDb    ethdb.Database
+
+	kafkaClient *KafkaClient
 
 	stopSampleMsg chan struct{}
 	stopBlockMsg  chan struct{}
@@ -134,7 +135,7 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 		Timestamp: time.Now(),
 	}
 
-	partition, offset, err := s.blockProducer.SendMessage(msg)
+	partition, offset, err := s.kafkaClient.syncProducer.SendMessage(msg)
 
 	if err != nil {
 		log.Error("send block message error.", "blockNumber=", block.NumberU64(), "error", err)
@@ -214,19 +215,8 @@ func (s *MockPlatonStatsService) APIs() []rpc.API { return nil }
 // Start implements node.Service, starting up the monitoring and reporting daemon.
 func (s *MockPlatonStatsService) Start(server *p2p.Server) error {
 	s.server = server
-	urls := strings.Split(s.kafkaUrl, ",")
 
-	if msgProducer, err := sarama.NewAsyncProducer(urls, msgProducerConfig()); err != nil {
-		return err
-	} else {
-		s.msgProducer = msgProducer
-	}
-
-	if blockProducer, err := sarama.NewSyncProducer(urls, blockProducerConfig()); err != nil {
-		return err
-	} else {
-		s.blockProducer = blockProducer
-	}
+	s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic)
 
 	go s.blockMsgLoop()
 	go s.sampleMsgLoop()
@@ -240,12 +230,8 @@ func (s *MockPlatonStatsService) Stop() error {
 	s.stopOnce.Do(func() {
 		close(s.stopSampleMsg)
 		close(s.stopBlockMsg)
-
-		if s.msgProducer != nil {
-			s.msgProducer.AsyncClose()
-		}
-		if s.blockProducer != nil {
-			s.blockProducer.Close()
+		if s.kafkaClient != nil {
+			s.kafkaClient.Close()
 		}
 	})
 
