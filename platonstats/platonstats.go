@@ -433,7 +433,7 @@ func (s *PlatonStatsService) accountChecking(key string, value []byte) error {
 	if len(value) > 0 {
 		err := json.Unmarshal(value, &message)
 		if err != nil {
-			log.Error("Failed to unmarshal value to accountCheckingMessage", "value", string(value), err, "err")
+			log.Error("Failed to unmarshal value to accountCheckingMessage", "value", string(value), "err", err)
 			return ErrValue
 		}
 	}
@@ -443,7 +443,7 @@ func (s *PlatonStatsService) accountChecking(key string, value []byte) error {
 		for _, item := range message.AccountList {
 			chainBalance, err := getBalance(s.eth.APIBackend, item.Addr, rpc.BlockNumber(keyNumber))
 			if err != nil {
-				log.Error("Failed to get account chain balance", "address", item.Addr.Bech32(), err, "err")
+				log.Error("Failed to get account chain balance", "address", item.Addr.Bech32(), "err", err)
 				return ErrChain
 			}
 			if item.Balance.Cmp(chainBalance.ToInt()) != 0 {
