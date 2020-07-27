@@ -1,7 +1,9 @@
 package wasm.contract_docs;
 
+import com.platon.rlp.datatypes.Uint128;
 import com.platon.rlp.datatypes.Uint8;
 import com.platon.rlp.datatypes.WasmAddress;
+import datatypes.Xuint128;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.Bank;
@@ -47,7 +49,7 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
             collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
 
             // tokenSupply
-            BigInteger tokenSupply = contract.totalSupply().send();
+            Uint128 tokenSupply = contract.totalSupply().send();
             collector.logStepPass("Call totalSupply, res: " + tokenSupply);
 
             // exitFee
@@ -89,44 +91,44 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
             collector.logStepPass("Send withdraw ,logs size: " + withdrawTr.getLogs().size());
 
             // sell
-            TransactionReceipt sellTr = contract.sell(new BigInteger("1000")).send();
+            TransactionReceipt sellTr = contract.sell(new Xuint128("1000")).send();
             collector.logStepPass("Send sell, txHash: " + sellTr.getTransactionHash() +
                     " gasUsed: " + sellTr.getGasUsed());
             collector.logStepPass("Send sell ,logs size: " + sellTr.getLogs().size());
 
             // transfer
-            TransactionReceipt transferTr = contract.transfer(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2"), new BigInteger("300000000000000000")).send();
+            TransactionReceipt transferTr = contract.transfer(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2"), new Xuint128("300000000000000000")).send();
             collector.logStepPass("Send transfer, txHash: " + transferTr.getTransactionHash() +
                     " gasUsed: " + transferTr.getGasUsed());
             collector.logStepPass("Send transfer ,logs size: " + transferTr.getLogs().size());
 
             // balanceOf
-            BigInteger balanceOf = contract.balanceOf(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2")).send();
+            Uint128 balanceOf = contract.balanceOf(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2")).send();
             collector.logStepPass("Call balanceOf, res: " + balanceOf + " expect: " + "300000000000000000"); //
 
             // myDividends
-            BigInteger myDividends = contract.myDividends(false).send();
+            Uint128 myDividends = contract.myDividends(false).send();
             collector.logStepPass("Call myDividends, res: " + myDividends);
 
             // dividendsOf
 //            BigInteger dividendsOf = contract.dividendsOf(new WasmAddress(credentials.getAddress(chainId))).send();
-            BigInteger dividendsOf = contract.dividendsOf(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2")).send();
+            Uint128 dividendsOf = contract.dividendsOf(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2")).send();
             collector.logStepPass("Call dividendsOf, res: " + dividendsOf);
 
             // totalEthereumBalance
-            BigInteger totalEthereumBalance = contract.totalEthereumBalance().send();
+            Uint128 totalEthereumBalance = contract.totalEthereumBalance().send();
             collector.logStepPass("Call totalEthereumBalance, res: " + totalEthereumBalance);
 
             // myTokens
-            BigInteger myTokens = contract.myTokens().send();
+            Uint128 myTokens = contract.myTokens().send();
             collector.logStepPass("Call myTokens, res: " + myTokens);
 
             // sellPrice
-            BigInteger sellPrice = contract.sellPrice().send();
+            Uint128 sellPrice = contract.sellPrice().send();
             collector.logStepPass("Call sellPrice, res: " + sellPrice);
 
             // buyPrice
-            BigInteger buyPrice = contract.sellPrice().send();
+            Uint128 buyPrice = contract.sellPrice().send();
             collector.logStepPass("Call buyPrice, res: " + buyPrice);
 
         } catch (Exception e) {

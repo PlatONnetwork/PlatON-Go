@@ -1,7 +1,9 @@
 package wasm.contract_docs;
 
+import com.platon.rlp.datatypes.Uint128;
 import com.platon.rlp.datatypes.Uint8;
 import com.platon.rlp.datatypes.WasmAddress;
+import datatypes.Xuint128;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.Bank;
@@ -41,7 +43,7 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
             WasmAddress wasmAddress1 = new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2");
             WasmAddress wasmAddress2 = new WasmAddress("lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6");
             HomeBridge contract = HomeBridge.deploy(web3j, transactionManager, provider, chainId,
-                    BigInteger.ONE, new WasmAddress[]{wasmAddress1, wasmAddress2}, BigInteger.ONE).send();
+                    Xuint128.ONE, new WasmAddress[]{wasmAddress1, wasmAddress2}, Xuint128.ONE).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("contract_HomeBridge issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -54,7 +56,7 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
             collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
 
             //
-            TransactionReceipt setTr = contract.setGasLimitWithdrawRelay(new BigInteger("100000")).send();
+            TransactionReceipt setTr = contract.setGasLimitWithdrawRelay(new Xuint128("100000")).send();
             collector.logStepPass("Send setGasLimitWithdrawRelay, txHash: " + setTr.getTransactionHash()
                     + " gasUsed: " + setTr.getGasUsed());
             collector.logStepPass("Send setGasLimitWithdrawRelay ,logs size: " + setTr.getLogs().size());
@@ -88,7 +90,7 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
         try {
             // deploy contract.
             ForeignBridge contract = ForeignBridge.deploy(web3j, transactionManager, provider, chainId,
-                    BigInteger.ONE, new WasmAddress[]{new WasmAddress(credentials.getAddress(chainId))}, BigInteger.ONE).send();
+                    Xuint128.ONE, new WasmAddress[]{new WasmAddress(credentials.getAddress(chainId))}, Xuint128.ONE).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("contract_ForeignBridge issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -101,7 +103,7 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
             collector.logStepPass("Send setTokenAddress ,logs size: " + tokenTr.getLogs().size());
 
             // deposit
-            TransactionReceipt depositTr = contract.deposit(new WasmAddress(credentials.getAddress(chainId)), BigInteger.valueOf(1000000), new byte[]{}).send();
+            TransactionReceipt depositTr = contract.deposit(new WasmAddress(credentials.getAddress(chainId)), Uint128.of(1000000), new byte[]{}).send();
             collector.logStepPass("Send deposit, txHash: " + depositTr.getTransactionHash()
                     + " gasUsed: " + depositTr.getGasUsed());
             collector.logStepPass("Send deposit ,logs size: " + depositTr.getLogs().size());
@@ -115,7 +117,7 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
             collector.assertTrue(submitSignatureTr.getLogs().size() != 0);
 
             // signature
-            byte[] signature = contract.signature(new byte[]{}, BigInteger.TEN).send();
+            byte[] signature = contract.signature(new byte[]{}, Xuint128.TEN).send();
             collector.logStepPass("Call signature, response: " + Numeric.toHexString(signature));
 
 

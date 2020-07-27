@@ -1,6 +1,8 @@
 package wasm.complex_contract;
 
+import com.platon.rlp.datatypes.Uint128;
 import com.platon.rlp.datatypes.WasmAddress;
+import datatypes.Xuint128;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ForeignBridge;
@@ -53,13 +55,13 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
 
             // transfer in contract
             String to = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
-            BigInteger value = new BigInteger("100000");
+            Xuint128 value = new Xuint128("100000");
             TransactionReceipt transferTr = contract.Transfer(to, value).send();
             collector.logStepPass("Send Transfer, hash:  " + transferTr.getTransactionHash()
                     + " gasUsed: " + transferTr.getGasUsed());
 
             // balance of
-            BigInteger balance = contract.BalanceOf(to).send();
+            Uint128 balance = contract.BalanceOf(to).send();
             collector.logStepPass("Call balanceOf, res: " + balance);
             collector.assertEqual(balance, value);
 
@@ -69,27 +71,27 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " gasUsed: " + approveTR.getGasUsed());
 
             // allowance
-            BigInteger allowance = contract.Allowance(credentials.getAddress(chainId), to).send();
+            Uint128 allowance = contract.Allowance(credentials.getAddress(chainId), to).send();
             collector.logStepPass("Call allowance, res: " + allowance);
             collector.assertEqual(allowance, value);
 
             // IncreaseApproval
-            BigInteger increaseValue = new BigInteger("23300000");
+            Xuint128 increaseValue = new Xuint128("23300000");
             TransactionReceipt increaseTr = contract.IncreaseApproval(to, increaseValue).send();
             collector.logStepPass("Send IncreaseApproval, hash:  " + increaseTr.getTransactionHash()
                     + " gasUsed: " + increaseTr.getGasUsed());
 
-            BigInteger afterIncreaseAllowance = contract.Allowance(credentials.getAddress(chainId), to).send();
+            Uint128 afterIncreaseAllowance = contract.Allowance(credentials.getAddress(chainId), to).send();
             collector.logStepPass("Call Allowance after increaseApproval, res: " + afterIncreaseAllowance);
             collector.assertEqual(afterIncreaseAllowance, value.add(increaseValue));
 
             // DecreaseApproval
-            BigInteger decreaseValue = new BigInteger("23300000");
+            Xuint128 decreaseValue = new Xuint128("23300000");
             TransactionReceipt decreaseTr = contract.DecreaseApproval(to, decreaseValue).send();
             collector.logStepPass("Send DecreaseApproval, hash:  " + decreaseTr.getTransactionHash()
                     + " gasUsed: " + decreaseTr.getGasUsed());
 
-            BigInteger afterDecreaseAllowance = contract.Allowance(credentials.getAddress(chainId), to).send();
+            Uint128 afterDecreaseAllowance = contract.Allowance(credentials.getAddress(chainId), to).send();
             collector.logStepPass("Call Allowance after DecreaseApproval, res: " + afterDecreaseAllowance);
             collector.assertEqual(afterDecreaseAllowance, value);
 
@@ -101,18 +103,18 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             t.sendFunds(spendCredentials.getAddress(chainId), new BigDecimal(10), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
             TransactionManager spenderTM = transactionManager = new RawTransactionManager(web3j, spendCredentials, chainId);
             String to2 = "lax1rcdwxsrnwlmcjarslme34qy88d8awh9pnjpmz9";
-            BigInteger valule2 = new BigInteger("10000");
+            Xuint128 valule2 = new Xuint128("10000");
             VIDToken v = VIDToken.load(contractAddress, web3j, spenderTM, provider, chainId);
             TransactionReceipt transferFromTr = v.TransferFrom(credentials.getAddress(chainId), to2, valule2).send();
             collector.logStepPass("Send TransferFrom, hash:  " + transferFromTr.getTransactionHash()
                     + " gasUsed: " + transferFromTr.getGasUsed());
-            BigInteger to2Balance = contract.BalanceOf(to2).send();
+            Uint128 to2Balance = contract.BalanceOf(to2).send();
             collector.logStepPass("Call balanceOf 2, res: " + to2Balance);
             collector.assertEqual(to2Balance, valule2);
             collector.logStepPass("Check TransferFrom() and Approve() success.");
 
             // TransferToken
-            BigInteger transferTokenValue = new BigInteger("10000");
+            Xuint128 transferTokenValue = new Xuint128("10000");
             TransactionReceipt transferTokenTR = contract.TransferToken(to, transferTokenValue).send();
             collector.logStepPass("Send TransferToken, hash:  " + transferTokenTR.getTransactionHash()
                     + " gasUsed: " + transferTokenTR.getGasUsed() + " logs:" + transferTokenTR.getLogs().size());
@@ -123,7 +125,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " arg3: " + transferTokenResponse.arg3);
 
             // Burn
-            BigInteger burnValue = new BigInteger("122");
+            Xuint128 burnValue = new Xuint128("122");
             TransactionReceipt burnTr = contract.Burn(burnValue).send();
             collector.logStepPass("Send Burn, hash:  " + burnTr.getTransactionHash()
                     + " gasUsed: " + burnTr.getGasUsed() + " logs:" + burnTr.getLogs().size());
@@ -166,7 +168,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " arg3: " + walletResponse.arg3);
 
             // listFiles
-            TransactionReceipt listFileTR = contract.ListFiles(BigInteger.ZERO, BigInteger.TEN).send();
+            TransactionReceipt listFileTR = contract.ListFiles(Xuint128.ZERO, Xuint128.TEN).send();
             collector.logStepPass("Send ListFiles, hash:  " + listFileTR.getTransactionHash()
                     + " gasUsed: " + listFileTR.getGasUsed() + " logs:" + listFileTR.getLogs().size());
 
@@ -182,7 +184,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             collector.logStepPass("Call VerifyFile, res: " + verifyFileRes);
 
             // set price
-            TransactionReceipt setPriceTr = contract.SetPrice(new BigInteger("30000000000")).send();
+            TransactionReceipt setPriceTr = contract.SetPrice(new Xuint128("30000000000")).send();
             collector.logStepPass("Send SetPrice, hash:  " + setPriceTr.getTransactionHash()
                     + " gasUsed: " + setPriceTr.getGasUsed() + " logs:" + setPriceTr.getLogs().size());
 

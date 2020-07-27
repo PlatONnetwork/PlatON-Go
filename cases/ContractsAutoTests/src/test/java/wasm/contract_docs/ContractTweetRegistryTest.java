@@ -1,6 +1,8 @@
 package wasm.contract_docs;
 
+import com.platon.rlp.datatypes.Uint128;
 import com.platon.rlp.datatypes.WasmAddress;
+import datatypes.Xuint128;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.TweetRegistry;
@@ -47,7 +49,7 @@ public class ContractTweetRegistryTest extends WASMContractPrepareTest {
             collector.logStepPass("Send registry, hash: " + registrTr.getTransactionHash() + " gasUsed: " + registrTr.getGasUsed());
 
             // getNumberOfAccounts
-            BigInteger numberOfAccounts = contract.getNumberOfAccounts().send();
+            Uint128 numberOfAccounts = contract.getNumberOfAccounts().send();
             collector.logStepPass("Call getNumberOfAccounts, result: " + numberOfAccounts);
 
             // getAddressOfName
@@ -61,7 +63,7 @@ public class ContractTweetRegistryTest extends WASMContractPrepareTest {
             collector.assertEqual(nameOfAddress, "bob");
 
             // getAddressOfId
-            WasmAddress addressOfId = contract.getAddressOfId(BigInteger.ZERO).send();
+            WasmAddress addressOfId = contract.getAddressOfId(Xuint128.ZERO).send();
             collector.logStepPass("Call getAddressOfId, result: " + addressOfId.getAddress());
             collector.assertEqual(addressOfId.getAddress(), addr);
 
