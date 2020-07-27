@@ -148,7 +148,7 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 	diffTimestamp := endHeader.Time.Uint64() - beginHeader.Time.Uint64()
 	diffNumber := endHeader.Number.Uint64() - beginHeader.Number.Uint64() + 1
 
-	tps := (txCount * 1000) / (beginHeader.Time.Uint64() - endHeader.Time.Uint64())
+	tps := (txCount * 1000) / (endHeader.Time.Uint64() - beginHeader.Time.Uint64())
 
 	// missing view
 	for i := DefaultViewNumber; i <= endQC.ViewNumber; i++ {
