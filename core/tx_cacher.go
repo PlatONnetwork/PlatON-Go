@@ -18,6 +18,7 @@ package core
 
 import (
 	"runtime"
+	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -37,7 +38,7 @@ type txSenderCacherRequest struct {
 	signer types.Signer
 	txs    []*types.Transaction
 	inc    int
-	doneCh chan int
+	done   *sync.WaitGroup
 	starts int
 }
 
@@ -76,8 +77,8 @@ func (cacher *txSenderCacher) cache() {
 			types.Sender(task.signer, task.txs[i])
 			txCal++
 		}
-		if task.doneCh != nil {
-			task.doneCh <- txCal
+		if task.done != nil {
+			task.done.Done()
 		}
 	}
 }
@@ -144,17 +145,17 @@ func (cacher *txSenderCacher) recover(signer types.Signer, txs []*types.Transact
 		tasks = (len(txs) + 3) / 4
 	}
 
-	CalTxFromCH := make(chan struct{}, tasks)
+	CalTx := make(chan struct{}, tasks)
 	for i := 0; i < tasks; i++ {
 		cacher.tasks <- &txSenderCacherRequest{
 			signer: signer,
 			txs:    txs,
 			inc:    tasks,
-			doneCh: CalTxFromCH,
+			done: CalTx,
 			starts: i,
 		}
 	}
-	return CalTxFromCH
+	return CalTx
 }*/
 
 // recoverFromBlock recovers the senders from  block and caches them
@@ -188,13 +189,13 @@ func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types
 	}
 	log.Trace("Start recover tx FromBlock", "number", block.Number(), "txs", len(txs), "tasks", tasks)
 
-	block.CalTxFromCH = make(chan int, tasks)
 	for i := 0; i < tasks; i++ {
+		block.CalTx.Add(1)
 		cacher.tasks <- &txSenderCacherRequest{
 			signer: signer,
 			txs:    txs,
 			inc:    tasks,
-			doneCh: block.CalTxFromCH,
+			done:   &block.CalTx,
 			starts: i,
 		}
 	}

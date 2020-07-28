@@ -51,22 +51,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		ctx.SetTxList(block.Transactions())
 
 		//wait tx from cal done
-		if block.CalTxFromCH != nil {
-			tasks := cap(block.CalTxFromCH)
-			timeout := time.NewTimer(time.Millisecond * 700)
-			txHaveCal := 0
-			for tasks > 0 {
-				select {
-				case txs := <-block.CalTxFromCH:
-					txHaveCal = txHaveCal + txs
-					tasks--
-				case <-timeout.C:
-					log.Error("Parallel cal tx from time out", "num", block.Number(), "left_task", tasks, "total_task", cap(block.CalTxFromCH), "txcal", txHaveCal)
-					tasks = 0
-				}
-			}
-			timeout.Stop()
-		}
+		block.CalTx.Wait()
 
 		if err := GetExecutor().ExecuteTransactions(ctx); err != nil {
 			return nil, nil, 0, err

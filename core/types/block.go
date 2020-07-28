@@ -200,7 +200,7 @@ type Block struct {
 	ReceivedFrom interface{}
 	extraData    []byte
 
-	CalTxFromCH chan int
+	CalTx sync.WaitGroup
 }
 
 // [deprecated by eth/63]

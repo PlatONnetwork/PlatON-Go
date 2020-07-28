@@ -201,6 +201,7 @@ type TxPoolConfig struct {
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
 
+	TxCacheSize uint64 //After receiving the specified number of transactions from the remote, move the transactions in the queen to pending
 }
 
 // DefaultTxPoolConfig contains the default configurations for the transaction
@@ -218,7 +219,8 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	GlobalQueue:   1024,
 	GlobalTxCount: 3000,
 
-	Lifetime: 3 * time.Hour,
+	Lifetime:    3 * time.Hour,
+	TxCacheSize: 0,
 }
 
 // sanitize checks the provided user configurations and changes anything that's
@@ -985,7 +987,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 	newErrs, dirtyAddrs := pool.addTxsLocked(news, local)
 	if !sync {
 		dirtyAddrs.merge(pool.cacheAccountNeedPromoted)
-		if dirtyAddrs.txLength > 200 {
+		if dirtyAddrs.txLength > pool.config.TxCacheSize {
 			pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
 		} else {
 			pool.cacheAccountNeedPromoted = dirtyAddrs
@@ -1252,6 +1254,13 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	pool.truncatePending()
 	pool.truncateQueue()
 
+	if reset != nil {
+		for addr, list := range pool.pending {
+			highestPending := list.LastElement()
+			pool.pendingNonces.set(addr, highestPending.Nonce()+1)
+		}
+	}
+
 	// Update all accounts to the latest known pending nonce
 	pool.mu.Unlock()
 
@@ -1360,10 +1369,6 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.currentState = statedb
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
-	/*for addr, list := range pool.pending {
-		highestPending := list.LastElement()
-		pool.pendingNonces.set(addr, highestPending.Nonce()+1)
-	}*/
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
 	SenderCacher.recover(pool.signer, reinject)
@@ -1486,7 +1491,7 @@ func (pool *TxPool) truncatePending() {
 				for i := 0; i < len(offenders)-1; i++ {
 					list := pool.pending[offenders[i]]
 
-					caps := list.Cap(list.Len() - 2)
+					caps := list.Cap(list.Len() - 1)
 					for _, tx := range caps {
 						// Drop the transaction from the global pools too
 						hash := tx.Hash()
@@ -1514,7 +1519,7 @@ func (pool *TxPool) truncatePending() {
 			for _, addr := range offenders {
 				list := pool.pending[addr]
 
-				caps := list.Cap(list.Len() - 2)
+				caps := list.Cap(list.Len() - 1)
 				for _, tx := range caps {
 					// Drop the transaction from the global pools too
 					hash := tx.Hash()
@@ -1655,7 +1660,7 @@ type accountSet struct {
 	signer   types.Signer
 	cache    *[]common.Address
 
-	txLength int
+	txLength uint64
 }
 
 // newAccountSet creates a new address set with an associated signer for sender
