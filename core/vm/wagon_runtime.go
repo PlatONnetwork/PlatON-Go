@@ -898,7 +898,7 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 	if transfersValue {
 		gas += params.CallValueTransferGas
 	}
-	gasTemp, err := callGasWasm(ctx.contract.Gas, params.TxGas, new(big.Int).SetUint64(ctx.contract.Gas))
+	gasTemp, err := callGas(ctx.gasTable, ctx.contract.Gas, params.TxGas, new(big.Int).SetUint64(ctx.contract.Gas))
 	if nil != err {
 		panic(err)
 	}
@@ -1128,7 +1128,7 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 		gas += params.CallValueTransferGas
 	}
 
-	gasTemp, err := callGasWasm(ctx.contract.Gas, gas, bCost)
+	gasTemp, err := callGas(ctx.gasTable, ctx.contract.Gas, gas, bCost)
 	if nil != err {
 		panic(err)
 	}
@@ -1192,7 +1192,7 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 		bCost = new(big.Int).SetUint64(ctx.contract.Gas)
 	}
 
-	gasTemp, err := callGasWasm(ctx.contract.Gas, ctx.gasTable.Calls, bCost)
+	gasTemp, err := callGas(ctx.gasTable, ctx.contract.Gas, ctx.gasTable.Calls, bCost)
 	if nil != err {
 		panic(err)
 	}
@@ -1251,7 +1251,7 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 		bCost = new(big.Int).SetUint64(ctx.contract.Gas)
 	}
 
-	gasTemp, err := callGasWasm(ctx.contract.Gas, ctx.gasTable.Calls, bCost)
+	gasTemp, err := callGas(ctx.gasTable, ctx.contract.Gas, ctx.gasTable.Calls, bCost)
 	if nil != err {
 		panic(err)
 	}
@@ -1366,7 +1366,7 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	if bValue.Sign() != 0 {
 		gas += params.CallNewAccountGas
 	}
-	gasTemp, err := callGasWasm(ctx.contract.Gas, gas, bCost)
+	gasTemp, err := callGas(ctx.gasTable, ctx.contract.Gas, gas, bCost)
 	if nil != err {
 		panic(err)
 	}
