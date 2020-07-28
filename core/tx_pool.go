@@ -979,20 +979,18 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 		return errs
 	}
 
-	request := false
+	request := true
 	// Process all the new transaction and merge any errors into the original slice
 	pool.mu.Lock()
 	newErrs, dirtyAddrs := pool.addTxsLocked(news, local)
 	if !sync {
 		dirtyAddrs.merge(pool.cacheAccountNeedPromoted)
 		if dirtyAddrs.txLength > 200 {
-			request = true
 			pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
 		} else {
 			pool.cacheAccountNeedPromoted = dirtyAddrs
+			request = false
 		}
-	} else {
-		request = true
 	}
 	pool.mu.Unlock()
 
@@ -1239,6 +1237,7 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 		for addr := range pool.queue {
 			promoteAddrs = append(promoteAddrs, addr)
 		}
+		pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
 	}
 	// Check for pending transactions for every account that sent new ones
 	promoted := pool.promoteExecutables(promoteAddrs)

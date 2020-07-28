@@ -11,8 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/mroth/weightedrand"
@@ -38,7 +36,15 @@ type TxGenAPI struct {
 	txfeed      event.Subscription
 }
 
-func (txg *TxGenAPI) Start(tx, evm, wasm int, txPer, txTime int, accountPath string, start, end int) error {
+//begin make tx ,Broadcast transactions directly through p2p, without entering the transaction pool
+// normalTx, evmTx, wasmTx，The proportion of normal transactions and contract transactions sent out
+// such as 1:1:1,this should send 1 normal transactions,1 evm transaction, 1 wasm transaction
+// txPer,How many transactions are sent at once
+// sendingAmount,Send amount of normal transaction
+// txTime,How many ms to send a batch of transactions
+// accountPath,Account configuration address
+// start, end ,Start and end account
+func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, txPer, txTime uint, sendingAmount uint64, accountPath string, start, end uint) error {
 	if txg.start {
 		return errors.New("the tx maker is working")
 	}
@@ -51,19 +57,19 @@ func (txg *TxGenAPI) Start(tx, evm, wasm int, txPer, txTime int, accountPath str
 	txg.txfeed = txg.eth.blockchain.SubscribeBlockTxsEvent(txch)
 	txg.txGenExitCh = make(chan struct{})
 
-	if err := txg.makeTransaction(tx, evm, wasm, txPer, txTime, accountPath, start, end, txch); err != nil {
+	if err := txg.makeTransaction(normalTx, evmTx, wasmTx, txPer, txTime, sendingAmount, accountPath, start, end, txch); err != nil {
 		return err
 	}
 	txg.start = true
 	return nil
 }
 
-func (txg *TxGenAPI) makeTransaction(tx, evm, wasm int, txPer, txTime int, accountPath string, start, end int, txch chan types.Transactions) error {
+func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, txPer, txTime uint, sendingAmount uint64, accountPath string, start, end uint, txch chan types.Transactions) error {
 	state, err := txg.eth.blockchain.State()
 	if err != nil {
 		return err
 	}
-	txm, err := NewTxMakeManger(tx, evm, wasm, txg.eth.txPool.Nonce, state.GetCodeSize, accountPath, start, end)
+	txm, err := NewTxMakeManger(tx, evm, wasm, sendingAmount, txg.eth.txPool.Nonce, state.GetCodeSize, accountPath, start, end)
 	if err != nil {
 		state.ClearReference()
 		return err
@@ -137,7 +143,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm int, txPer, txTime int, accou
 					}
 					txs = append(txs, newTx)
 					txm.sendDone(account)
-					if len(txs) >= txPer {
+					if len(txs) >= int(txPer) {
 						break
 					}
 				}
@@ -193,13 +199,6 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 	})
 }
 
-func GetReceipts(chainDb ethdb.Database, hash common.Hash) (types.Receipts, error) {
-	if number := rawdb.ReadHeaderNumber(chainDb, hash); number != nil {
-		return rawdb.ReadReceipts(chainDb, hash, *number), nil
-	}
-	return nil, nil
-}
-
 func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 	return handelTxGenConfig(configPath, func(txgenInput *TxGenInput) error {
 		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
@@ -210,10 +209,7 @@ func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 					return fmt.Errorf("the tx not find yet,tx:%s", hash.String())
 
 				}
-				receipts, err := GetReceipts(txg.eth.ChainDb(), blockHash)
-				if err != nil {
-					return fmt.Errorf("get receitp fail,tx:%s,err:%v", hash.String(), err)
-				}
+				receipts := txg.eth.blockchain.GetReceiptsByHash(blockHash)
 				if len(receipts) <= int(index) {
 					return fmt.Errorf("the tx receipts not find yet,tx:%s", hash.String())
 				}
@@ -318,6 +314,8 @@ type TxMakeManger struct {
 	//from
 	accounts map[common.Address]*txGenSendAccount
 
+	amount *big.Int
+
 	//to
 	txReceiver   []common.Address
 	evmReceiver  weightedrand.Chooser
@@ -327,11 +325,11 @@ type TxMakeManger struct {
 
 	blockProduceTime time.Time
 
-	sendTx   int
-	sendEvm  int
-	sendWasm int
+	sendTx   uint
+	sendEvm  uint
+	sendWasm uint
 
-	sendState int
+	sendState uint
 }
 
 func (s *TxMakeManger) pickTxReceive() common.Address {
@@ -341,7 +339,7 @@ func (s *TxMakeManger) pickTxReceive() common.Address {
 func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Address, uint64, *big.Int) {
 	switch {
 	case s.sendState < s.sendTx:
-		return nil, add, 30000, new(big.Int).SetInt64(1)
+		return nil, add, 30000, s.amount
 	case s.sendState < s.sendEvm:
 		account := s.evmReceiver.Pick().(*txGenTxReceiver)
 		return account.Data, account.ContractsAddress, account.GasLimit, nil
@@ -362,7 +360,7 @@ func (s *TxMakeManger) sendDone(account *txGenSendAccount) {
 	account.SendTime = time.Now()
 }
 
-func NewTxMakeManger(tx, evm, wasm int, GetNonce func(addr common.Address) uint64, getCodeSize func(addr common.Address) int, accountPath string, start, end int) (*TxMakeManger, error) {
+func NewTxMakeManger(tx, evm, wasm uint, sendingAmount uint64, GetNonce func(addr common.Address) uint64, getCodeSize func(addr common.Address) int, accountPath string, start, end uint) (*TxMakeManger, error) {
 	file, err := os.Open(accountPath)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read genesis file:%v", err)
@@ -375,6 +373,7 @@ func NewTxMakeManger(tx, evm, wasm int, GetNonce func(addr common.Address) uint6
 	}
 
 	t := new(TxMakeManger)
+	t.amount = new(big.Int).SetUint64(sendingAmount)
 	t.accounts = make(map[common.Address]*txGenSendAccount)
 	t.txReceiver = make([]common.Address, 0)
 
