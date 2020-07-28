@@ -73,7 +73,7 @@ func saramaConfig() *sarama.Config {
 	return config
 }
 
-func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
+func NewKafkaClientGroup(urls, blockTopic, checkingTopic string) *KafkaClient {
 	brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
@@ -112,7 +112,7 @@ func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
 	return kafkaClient
 }
 
-func NewKafkaClie3nt(urls, blockTopic, checkingTopic string) *KafkaClient {
+func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
 	brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
@@ -136,7 +136,7 @@ func NewKafkaClie3nt(urls, blockTopic, checkingTopic string) *KafkaClient {
 		kafkaClient.syncProducer = blockProducer
 	}
 
-	if consumer, err := sarama.NewConsumer(brokers, nil); err != nil {
+	if consumer, err := sarama.NewConsumer(brokers, consumerConfig()); err != nil {
 		log.Error("Failed to create Kafka consumer")
 		panic(err)
 	} else {

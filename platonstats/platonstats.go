@@ -458,7 +458,7 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 	return nil
 }
 
-func (s *PlatonStatsService) accountCheckingLoop() {
+func (s *PlatonStatsService) accountCheckingLoopForKafkaGroup() {
 
 	/**
 	 * Setup a new Sarama consumer group
@@ -502,7 +502,7 @@ func (s *PlatonStatsService) accountCheckingLoop() {
 	}
 }
 
-/*func (s *PlatonStatsService) accountCheckingLoop() {
+func (s *PlatonStatsService) accountCheckingLoop() {
 	for {
 		select {
 		case msg := <-s.kafkaClient.partitionConsumer.Messages():
@@ -535,13 +535,14 @@ func (s *PlatonStatsService) accountCheckingLoop() {
 			} else {
 				log.Debug("Success to check account balance", "key", key)
 			}
-			//s.kafkaClient.partitionOffsetManager.MarkOffset(msg.Offset, "")
+			s.kafkaClient.partitionOffsetManager.MarkOffset(msg.Offset, "")
+
 		case err := <-s.kafkaClient.partitionConsumer.Errors():
 			log.Error("Failed to pull account-checking message from Kafka", "err", err)
 			panic(err)
 		}
 	}
-}*/
+}
 
 var (
 	ErrKey             = errors.New("account checking: cannot convert key to block number")
