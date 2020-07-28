@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"golang.org/x/crypto/ripemd160"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -257,6 +259,7 @@ var testCase = []*Case{
 	},
 	{
 		ctx: &VMContext{
+			gasTable: params.GasTableConstantinople,
 			evm: &EVM{
 				Context: Context{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
@@ -291,7 +294,8 @@ var testCase = []*Case{
 	// CALL
 	{
 		ctx: &VMContext{
-			config: Config{WasmType: Wagon},
+			gasTable: params.GasTableConstantinople,
+			config:   Config{WasmType: Wagon},
 			evm: &EVM{
 				Context: Context{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
@@ -331,7 +335,8 @@ var testCase = []*Case{
 	// DELEGATECALL
 	{
 		ctx: &VMContext{
-			config: Config{WasmType: Wagon},
+			gasTable: params.GasTableConstantinople,
+			config:   Config{WasmType: Wagon},
 			evm: &EVM{
 				Context: Context{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
@@ -373,6 +378,7 @@ var testCase = []*Case{
 	// STATICCALL
 	/*{
 		ctx: &VMContext{
+			gasTable: params.GasTableConstantinople,
 			config: Config{WasmType: Wagon},
 			evm: &EVM{
 				Context: Context{
@@ -456,7 +462,8 @@ var testCase = []*Case{
 	// MIGRATE
 	{
 		ctx: &VMContext{
-			config: Config{WasmType: Wagon},
+			gasTable: params.GasTableConstantinople,
+			config:   Config{WasmType: Wagon},
 			evm: &EVM{
 				Context: Context{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
