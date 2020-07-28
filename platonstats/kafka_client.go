@@ -141,7 +141,7 @@ func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
 		panic(err)
 	} else {
 		kafkaClient.consumer = consumer
-		if partitionConsumer, err := consumer.ConsumePartition(checkingTopic, 0, sarama.OffsetNewest); err != nil {
+		if partitionConsumer, err := consumer.ConsumePartition(checkingTopic, 0, sarama.OffsetOldest); err != nil {
 			log.Error("Failed to create Kafka partition consumer")
 			panic(err)
 		} else {
