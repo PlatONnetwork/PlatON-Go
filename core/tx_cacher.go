@@ -133,7 +133,7 @@ func (cacher *txSenderCacher) recover(signer types.Signer, txs []*types.Transact
 	}
 }*/
 
-func (cacher *txSenderCacher) RecoverTxsFromPool(signer types.Signer, txs []*types.Transaction) chan struct{} {
+/*func (cacher *txSenderCacher) RecoverTxsFromPool(signer types.Signer, txs []*types.Transaction) chan struct{} {
 	// Ensure we have meaningful task sizes and schedule the recoveries
 	tasks := cacher.threads
 	if len(txs) < tasks*4 {
@@ -151,13 +151,16 @@ func (cacher *txSenderCacher) RecoverTxsFromPool(signer types.Signer, txs []*typ
 		}
 	}
 	return CalTxFromCH
-}
+}*/
 
 // recoverFromBlock recovers the senders from  block and caches them
 // back into the same data structures. There is no validation being done, nor
 // any reaction to invalid signatures. That is up to calling code later.
 func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types.Block) {
 	count := len(block.Transactions())
+	if count == 0 {
+		return
+	}
 	txs := make([]*types.Transaction, 0, count)
 
 	if cacher.txPool != nil && cacher.txPool.count() >= 200 {
@@ -170,6 +173,9 @@ func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types
 		}
 	} else {
 		txs = block.Transactions()
+	}
+	if len(txs) == 0 {
+		return
 	}
 	// Ensure we have meaningful task sizes and schedule the recoveries
 	tasks := cacher.threads

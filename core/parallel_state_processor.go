@@ -42,26 +42,30 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 			return nil, nil, 0, err
 		}
 	}
-	if block.CalTxFromCH != nil {
-		tasks := cap(block.CalTxFromCH)
-		timeout := time.NewTimer(time.Second)
-		for tasks > 0 {
-			select {
-			case <-block.CalTxFromCH:
-				tasks--
-			case <-timeout.C:
-				log.Error("Parallel cal tx from time out")
-				tasks = 0
-			}
-		}
-		timeout.Stop()
-	}
+
 	// Iterate over and process the individual transactions
 	if len(block.Transactions()) > 0 {
 		start := time.Now()
 		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false, GetExecutor().Signer())
 		ctx.SetBlockGasUsedHolder(usedGas)
 		ctx.SetTxList(block.Transactions())
+
+		//wait tx from cal done
+		if block.CalTxFromCH != nil {
+			tasks := cap(block.CalTxFromCH)
+			timeout := time.NewTimer(time.Millisecond * 600)
+			for tasks > 0 {
+				select {
+				case <-block.CalTxFromCH:
+					tasks--
+				case <-timeout.C:
+					log.Error("Parallel cal tx from time out", "num", block.Number(), "left_task", tasks, "total_task", cap(block.CalTxFromCH))
+					tasks = 0
+				}
+			}
+			timeout.Stop()
+		}
+
 		if err := GetExecutor().ExecuteTransactions(ctx); err != nil {
 			return nil, nil, 0, err
 		}
