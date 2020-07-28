@@ -40,6 +40,19 @@ func producerConfig() *sarama.Config {
 	return config
 }
 
+func consumerConfig() *sarama.Config {
+	config := sarama.NewConfig()
+	config.Version = sarama.V2_5_0_0
+	config.Consumer.Return.Errors = true
+
+	//手工提交offset
+	config.Consumer.Offsets.AutoCommit.Enable = true
+	config.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
+	//初始从最新的offset开始
+	//config.Consumer.Offsets.Initial = sarama.OffsetNewest
+	return config
+}
+
 func saramaConfig() *sarama.Config {
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_5_0_0
@@ -55,11 +68,49 @@ func saramaConfig() *sarama.Config {
 	config.Consumer.Offsets.AutoCommit.Enable = true
 	config.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
 	//初始从最新的offset开始
-	config.Consumer.Offsets.Initial = sarama.OffsetNewest
+	//config.Consumer.Offsets.Initial = sarama.OffsetNewest
 	return config
 }
 
 func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
+	brokers := strings.Split(urls, ",")
+
+	if len(blockTopic) == 0 {
+		blockTopic = defaultKafkaAccountCheckingTopic
+	}
+
+	if len(checkingTopic) == 0 {
+		checkingTopic = defaultKafkaAccountCheckingTopic
+	}
+
+	kafkaClient := &KafkaClient{
+		brokers:              brokers,
+		blockTopic:           blockTopic,
+		accountCheckingTopic: checkingTopic,
+	}
+
+	if blockProducer, err := sarama.NewSyncProducer(brokers, producerConfig()); err != nil {
+		log.Error("Failed to create Kafka producer")
+		panic(err)
+	} else {
+		kafkaClient.syncProducer = blockProducer
+	}
+
+	if consumer, err := sarama.NewConsumer(brokers, nil); err != nil {
+		log.Error("Failed to create Kafka consumer")
+		panic(err)
+	} else {
+		kafkaClient.consumer = consumer
+		if partitionConsumer, err := consumer.ConsumePartition(checkingTopic, 0, sarama.OffsetNewest); err != nil {
+			log.Error("Failed to create Kafka partition consumer")
+			panic(err)
+		} else {
+			kafkaClient.partitionConsumer = partitionConsumer
+		}
+	}
+	return kafkaClient
+}
+func NewKafkaClien2t(urls, blockTopic, checkingTopic string) *KafkaClient {
 	brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
