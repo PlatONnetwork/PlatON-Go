@@ -502,9 +502,9 @@ func getBalance(backend *eth.EthAPIBackend, address common.Address, blockNr rpc.
 }
 
 func writeCheckingErr(bech32 string, blockNumber uint64, chainBalance, trackingBalance *big.Int) {
-	log.Error("Account chain and tracking balances are not equal", "address", bech32, "chainBalance", chainBalance, "trackingBalance", trackingBalance)
-	content := fmt.Sprintf("%d    %s    %d    %d\n", blockNumber, bech32, chainBalance.Int64(), trackingBalance.Int64())
-	err := common.WriteFile(statsLogFile, []byte(content), checkingErrFlag, 666)
+	log.Error("Account chain and tracking balances are not equal", "blockNumber", blockNumber, "address", bech32, "chainBalance", chainBalance, "trackingBalance", trackingBalance)
+	content := fmt.Sprintf("blockNumber=%d    account=%s    chainBalance=%d    trackingBalance=%d\n", blockNumber, bech32, chainBalance.Uint64(), trackingBalance.Uint64())
+	err := common.WriteFile(checkingErrFile, []byte(content), checkingErrFlag, 666)
 	if err != nil {
 		log.Error("Failed to log account-checking-error", "content", content)
 	}
