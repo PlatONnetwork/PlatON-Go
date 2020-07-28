@@ -1,6 +1,7 @@
 package platonstats
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -393,7 +394,115 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 	}
 }
 
+// Consumer represents a Sarama consumer group consumer
+type Consumer struct {
+	ready chan bool
+}
+
+// Setup is run at the beginning of a new session, before ConsumeClaim
+func (consumer *Consumer) Setup(sarama.ConsumerGroupSession) error {
+	// Mark the consumer as ready
+	close(consumer.ready)
+	return nil
+}
+
+// Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
+func (consumer *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+// ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
+func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	// NOTE:
+	// Do not move the code below to a goroutine.
+	// The `ConsumeClaim` itself is called within a goroutine, see:
+	// https://github.com/Shopify/sarama/blob/master/consumer_group.go#L27-L29
+	s := session.Context().Value("s").(*PlatonStatsService)
+
+	for msg := range claim.Messages() {
+		//log.Printf("Message claimed: value = %s, timestamp = %v, topic = %s", string(message.Value), message.Timestamp, message.Topic)
+
+		key := string(msg.Key)
+		value := string(msg.Value)
+		log.Debug("received account-checking message", "offset", msg.Offset, "key", key, "value", value)
+
+		if len(key) > 0 {
+			checkingNumber, err := strconv.ParseUint(key, 10, 64)
+			if err != nil {
+				log.Error("Failed to parse block number", "key", key, "err", err)
+				panic(err)
+			}
+
+			for {
+				currentNumber := s.eth.BlockChain().CurrentBlock().NumberU64()
+				log.Debug("current block number of block chain", "blockNumber", currentNumber)
+				if currentNumber >= checkingNumber {
+					break
+				} else {
+					time.Sleep(1 * time.Second)
+				}
+			}
+		}
+
+		err := s.accountChecking(key, msg.Value)
+		if err != nil {
+			log.Error("Failed to check account balance", "err", err)
+			panic(err)
+		} else {
+			log.Debug("Success to check account balance", "key", key)
+		}
+
+		session.MarkMessage(msg, "")
+	}
+
+	return nil
+}
+
 func (s *PlatonStatsService) accountCheckingLoop() {
+
+	/**
+	 * Setup a new Sarama consumer group
+	 */
+	consumer := Consumer{
+		ready: make(chan bool),
+	}
+
+	ctx := context.WithValue(context.Background(), "s", s)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			if err := s.kafkaClient.consumerGroup.Consume(ctx, []string{s.kafkaAccountCheckingTopic}, &consumer); err != nil {
+				log.Error("Failed to consume message", "err", err)
+				panic(err)
+			}
+			// check if context was cancelled, signaling that the consumer should stop
+			if ctx.Err() != nil {
+				return
+			}
+			consumer.ready = make(chan bool)
+		}
+	}()
+	<-consumer.ready // Await till the consumer has been set up
+
+	/*sigterm := make(chan os.Signal, 1)
+	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
+	select {
+	case <-ctx.Done():
+		log.Println("terminating: context cancelled")
+	case <-sigterm:
+		log.Println("terminating: via signal")
+	}*/
+	//cancel()
+	wg.Wait()
+	if err := s.kafkaClient.consumer.Close(); err != nil {
+		log.Error("Error closing kafka client", "err", err)
+		panic(err)
+	}
+}
+
+/*func (s *PlatonStatsService) accountCheckingLoop() {
 	for {
 		select {
 		case msg := <-s.kafkaClient.partitionConsumer.Messages():
@@ -432,7 +541,7 @@ func (s *PlatonStatsService) accountCheckingLoop() {
 			panic(err)
 		}
 	}
-}
+}*/
 
 var (
 	ErrKey             = errors.New("account checking: cannot convert key to block number")

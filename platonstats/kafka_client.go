@@ -25,6 +25,7 @@ type KafkaClient struct {
 	asyncProducer          sarama.AsyncProducer
 	syncProducer           sarama.SyncProducer
 	consumer               sarama.Consumer
+	consumerGroup          sarama.ConsumerGroup
 	partitionConsumer      sarama.PartitionConsumer
 	offsetManager          sarama.OffsetManager
 	partitionOffsetManager sarama.PartitionOffsetManager
@@ -73,6 +74,45 @@ func saramaConfig() *sarama.Config {
 }
 
 func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
+	brokers := strings.Split(urls, ",")
+
+	if len(blockTopic) == 0 {
+		blockTopic = defaultKafkaAccountCheckingTopic
+	}
+
+	if len(checkingTopic) == 0 {
+		checkingTopic = defaultKafkaAccountCheckingTopic
+	}
+
+	kafkaClient := &KafkaClient{
+		brokers:              brokers,
+		blockTopic:           blockTopic,
+		accountCheckingTopic: checkingTopic,
+	}
+
+	if blockProducer, err := sarama.NewSyncProducer(brokers, producerConfig()); err != nil {
+		log.Error("Failed to create Kafka producer")
+		panic(err)
+	} else {
+		kafkaClient.syncProducer = blockProducer
+	}
+
+	if consumerGroup, err := sarama.NewConsumerGroup(brokers, defaultKafkaAccountCheckingConsumerGroup, consumerConfig()); err != nil {
+		log.Error("Failed to create Kafka consumer")
+		panic(err)
+	} else {
+		kafkaClient.consumerGroup = consumerGroup
+		/*if partitionConsumer, err := consumer.ConsumePartition(checkingTopic, 0, sarama.OffsetNewest); err != nil {
+			log.Error("Failed to create Kafka partition consumer")
+			panic(err)
+		} else {
+			kafkaClient.partitionConsumer = partitionConsumer
+		}*/
+	}
+	return kafkaClient
+}
+
+func NewKafkaClie3nt(urls, blockTopic, checkingTopic string) *KafkaClient {
 	brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
