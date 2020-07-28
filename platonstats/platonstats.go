@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -359,7 +360,7 @@ func readBlockNumber() (uint64, error) {
 	if bytes, err := ioutil.ReadFile(statsLogFile); err != nil || len(bytes) == 0 {
 		return 0, errors.New("Failed to read PlatON stats service log")
 	} else {
-		if blockNumber, err := strconv.ParseUint(string(bytes), 10, 64); err != nil {
+		if blockNumber, err := strconv.ParseUint(strings.Trim(string(bytes), "\n"), 10, 64); err != nil {
 			log.Warn("Failed to read PlatON stats service log", "error", err)
 			return 0, errors.New("Failed to read PlatON stats service log")
 		} else {
