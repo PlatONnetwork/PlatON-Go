@@ -53,7 +53,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		//wait tx from cal done
 		if block.CalTxFromCH != nil {
 			tasks := cap(block.CalTxFromCH)
-			timeout := time.NewTimer(time.Millisecond * 600)
+			timeout := time.NewTimer(time.Millisecond * 700)
 			txHaveCal := 0
 			for tasks > 0 {
 				select {

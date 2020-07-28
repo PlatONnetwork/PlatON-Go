@@ -186,7 +186,7 @@ func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types
 	if len(txs) < tasks*4 {
 		tasks = (len(txs) + 3) / 4
 	}
-	log.Warn("Start recover tx FromBlock", "number", block.Number(), "txs", len(txs), "tasks", tasks)
+	log.Trace("Start recover tx FromBlock", "number", block.Number(), "txs", len(txs), "tasks", tasks)
 
 	block.CalTxFromCH = make(chan int, tasks)
 	for i := 0; i < tasks; i++ {
