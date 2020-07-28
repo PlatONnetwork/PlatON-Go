@@ -54,12 +54,14 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		if block.CalTxFromCH != nil {
 			tasks := cap(block.CalTxFromCH)
 			timeout := time.NewTimer(time.Millisecond * 600)
+			txHaveCal := 0
 			for tasks > 0 {
 				select {
-				case <-block.CalTxFromCH:
+				case txs := <-block.CalTxFromCH:
+					txHaveCal = txHaveCal + txs
 					tasks--
 				case <-timeout.C:
-					log.Error("Parallel cal tx from time out", "num", block.Number(), "left_task", tasks, "total_task", cap(block.CalTxFromCH))
+					log.Error("Parallel cal tx from time out", "num", block.Number(), "left_task", tasks, "total_task", cap(block.CalTxFromCH), "txcal", txHaveCal)
 					tasks = 0
 				}
 			}

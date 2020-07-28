@@ -200,7 +200,7 @@ type Block struct {
 	ReceivedFrom interface{}
 	extraData    []byte
 
-	CalTxFromCH chan struct{}
+	CalTxFromCH chan int
 }
 
 // [deprecated by eth/63]

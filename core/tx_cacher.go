@@ -19,6 +19,8 @@ package core
 import (
 	"runtime"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -35,7 +37,7 @@ type txSenderCacherRequest struct {
 	signer types.Signer
 	txs    []*types.Transaction
 	inc    int
-	doneCh chan struct{}
+	doneCh chan int
 	starts int
 }
 
@@ -69,11 +71,13 @@ func (cacher *txSenderCacher) SetTxPool(txPool *TxPool) {
 // data structures.
 func (cacher *txSenderCacher) cache() {
 	for task := range cacher.tasks {
+		txCal := 0
 		for i := task.starts; i < len(task.txs); i += task.inc {
 			types.Sender(task.signer, task.txs[i])
+			txCal++
 		}
 		if task.doneCh != nil {
-			task.doneCh <- struct{}{}
+			task.doneCh <- txCal
 		}
 	}
 }
@@ -182,7 +186,9 @@ func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types
 	if len(txs) < tasks*4 {
 		tasks = (len(txs) + 3) / 4
 	}
-	block.CalTxFromCH = make(chan struct{}, tasks)
+	log.Warn("Start recover tx FromBlock", "number", block.Number(), "txs", len(txs), "tasks")
+
+	block.CalTxFromCH = make(chan int, tasks)
 	for i := 0; i < tasks; i++ {
 		cacher.tasks <- &txSenderCacherRequest{
 			signer: signer,
