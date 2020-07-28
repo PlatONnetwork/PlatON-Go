@@ -535,7 +535,7 @@ func (s *PlatonStatsService) accountCheckingLoop() {
 			} else {
 				log.Debug("Success to check account balance", "key", key)
 			}
-			s.kafkaClient.partitionOffsetManager.MarkOffset(msg.Offset, "")
+			//s.kafkaClient.partitionOffsetManager.MarkOffset(msg.Offset, "")
 
 		case err := <-s.kafkaClient.partitionConsumer.Errors():
 			log.Error("Failed to pull account-checking message from Kafka", "err", err)
