@@ -271,7 +271,9 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, epoch uint64,
 		pool.prevValidators, _ = agency.GetValidator(blockNumber)
 		pool.currentValidators, _ = agency.GetValidator(NextRound(blockNumber))
 		pool.lastNumber = agency.GetLastNumber(NextRound(blockNumber))
-		pool.epoch += 1
+		if blockNumber != 0 {
+			pool.epoch += 1
+		}
 	} else {
 		pool.currentValidators, _ = agency.GetValidator(blockNumber)
 		pool.prevValidators = pool.currentValidators
