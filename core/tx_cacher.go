@@ -18,7 +18,6 @@ package core
 
 import (
 	"runtime"
-	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -38,7 +37,7 @@ type txSenderCacherRequest struct {
 	signer types.Signer
 	txs    []*types.Transaction
 	inc    int
-	done   *sync.WaitGroup
+	doneCh chan int
 	starts int
 }
 
@@ -77,8 +76,8 @@ func (cacher *txSenderCacher) cache() {
 			types.Sender(task.signer, task.txs[i])
 			txCal++
 		}
-		if task.done != nil {
-			task.done.Done()
+		if task.doneCh != nil {
+			task.doneCh <- txCal
 		}
 	}
 }
@@ -188,14 +187,13 @@ func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types
 		tasks = (len(txs) + 3) / 4
 	}
 	log.Trace("Start recover tx FromBlock", "number", block.Number(), "txs", len(txs), "tasks", tasks)
-
+	block.CalTxFromCH = make(chan int, tasks)
 	for i := 0; i < tasks; i++ {
-		block.CalTx.Add(1)
 		cacher.tasks <- &txSenderCacherRequest{
 			signer: signer,
 			txs:    txs,
 			inc:    tasks,
-			done:   &block.CalTx,
+			doneCh: block.CalTxFromCH,
 			starts: i,
 		}
 	}
