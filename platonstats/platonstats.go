@@ -426,7 +426,7 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 
 		key := string(msg.Key)
 		value := string(msg.Value)
-		log.Debug("received account-checking message", "offset", msg.Offset, "key", key, "value", value)
+		log.Debug("received account-checking message by group consumer", "offset", msg.Offset, "key", key, "value", value)
 
 		if len(key) > 0 {
 			checkingNumber, err := strconv.ParseUint(key, 10, 64)
