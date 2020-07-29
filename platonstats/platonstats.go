@@ -458,7 +458,7 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 	return nil
 }
 
-func (s *PlatonStatsService) accountCheckingLoopForKafkaGroup() {
+func (s *PlatonStatsService) accountCheckingLoop() {
 
 	/**
 	 * Setup a new Sarama consumer group
@@ -502,7 +502,7 @@ func (s *PlatonStatsService) accountCheckingLoopForKafkaGroup() {
 	}
 }
 
-func (s *PlatonStatsService) accountCheckingLoop() {
+func (s *PlatonStatsService) accountCheckingLoopSingle() {
 	for {
 		select {
 		case msg := <-s.kafkaClient.partitionConsumer.Messages():

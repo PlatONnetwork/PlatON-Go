@@ -112,7 +112,7 @@ func NewKafkaClientGroup(urls, blockTopic, checkingTopic string) *KafkaClient {
 	return kafkaClient
 }
 
-func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
+func NewKafkaClientSingle(urls, blockTopic, checkingTopic string) *KafkaClient {
 	brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
@@ -141,7 +141,7 @@ func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
 		panic(err)
 	} else {
 		kafkaClient.consumer = consumer
-		if partitionConsumer, err := consumer.ConsumePartition(checkingTopic, 0, sarama.OffsetOldest); err != nil {
+		if partitionConsumer, err := consumer.ConsumePartition(checkingTopic, 0, sarama.OffsetNewest); err != nil {
 			log.Error("Failed to create Kafka partition consumer")
 			panic(err)
 		} else {
@@ -150,7 +150,7 @@ func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
 	}
 	return kafkaClient
 }
-func NewKafkaClien2t(urls, blockTopic, checkingTopic string) *KafkaClient {
+func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
 	brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
@@ -185,7 +185,7 @@ func NewKafkaClien2t(urls, blockTopic, checkingTopic string) *KafkaClient {
 		panic(err)
 	}
 
-	partitionConsumer, err := consumer.ConsumePartition(checkingTopic, 0, sarama.OffsetOldest)
+	partitionConsumer, err := consumer.ConsumePartition(checkingTopic, 0, sarama.OffsetNewest)
 	if err != nil {
 		log.Error("Failed to create Kafka partition_consumer....", "err", err)
 		panic(err)
@@ -233,6 +233,11 @@ func (kc *KafkaClient) Close() {
 	if kc.consumer != nil {
 		if err := kc.consumer.Close(); err != nil {
 			log.Error("Failed to close consumer", "err", err)
+		}
+	}
+	if kc.consumerGroup != nil {
+		if err := kc.consumerGroup.Close(); err != nil {
+			log.Error("Failed to close consumer group", "err", err)
 		}
 	}
 	if kc.partitionConsumer != nil {
