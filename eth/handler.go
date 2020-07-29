@@ -33,7 +33,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -843,28 +842,6 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 			peer.AsyncSendNewBlockHash(block)
 		}
 		log.Trace("Announced block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
-	}
-}
-
-func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
-	// Consensus node peer
-	peers := pm.peers.PeersWithConsensus(pm.engine)
-	if peers == nil || len(peers) <= 0 {
-		log.Error("consensus peers is empty")
-	}
-
-	if block, ok := a.(*types.Block); ok {
-		for _, peer := range peers {
-			log.Warn("~ Send a broadcast message[PrepareBlockMsg]------------",
-				"peerId", peer.id, "Hash", block.Hash(), "Number", block.Number())
-			peer.AsyncSendPrepareBlock(block)
-		}
-	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {
-		for _, peer := range peers {
-			log.Warn("~ Send a broadcast message[BlockSignatureMsg]------------",
-				"peerId", peer.id, "SignHash", signature.SignHash, "Hash", signature.Hash, "Number", signature.Number, "SignHash", signature.SignHash)
-			peer.AsyncSendSignature(signature)
-		}
 	}
 }
 
