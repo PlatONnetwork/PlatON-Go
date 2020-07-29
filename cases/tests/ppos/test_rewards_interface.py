@@ -1646,7 +1646,7 @@ class TestNet:
     @pytest.mark.P2
     def test_DD_NE_002(self, global_test_env):
         test_node = self.deploy_me(global_test_env, 'testnet')
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 103
+        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 104
         assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 2000
 
     @pytest.mark.P2

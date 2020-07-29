@@ -8,7 +8,7 @@ from common.key import mock_duplicate_sign
 from common.log import log
 from tests.conftest import get_clients_noconsensus, clients_consensus, get_consensus_clients
 from tests.lib import Genesis, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value
+    get_governable_parameter_value, get_getDelegateReward_gas_fee
 
 
 def get_out_block_penalty_parameters(client, node, amount_type):
@@ -42,7 +42,7 @@ def client_new_node_obj_list_reset(global_test_env, staking_cfg):
     """
     global_test_env.deploy_all()
     yield get_clients_noconsensus(global_test_env, staking_cfg)
-    global_test_env.deploy_all()
+    # global_test_env.deploy_all()
 
 
 @pytest.fixture()
@@ -133,6 +133,7 @@ def test_internal_node_zero_out_block_Y(client_consensus_obj_list_reset):
     time.sleep(5)
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
     verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
+    first_client.node.start()
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
     assert result is False, "error: Node not kicked out CandidateList"
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
@@ -141,14 +142,17 @@ def test_internal_node_zero_out_block_Y(client_consensus_obj_list_reset):
     assert result is False, "error: Node not kicked out ValidatorList"
     node_released1 = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Released']
     economic.wait_consensus_blocknum(second_client.node)
+    print(first_client.node.ppos.getValidatorList())
     node_released2 = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Released']
     assert node_released1 == node_released2
     economic.wait_consensus_blocknum(second_client.node)
+    print(first_client.node.ppos.getValidatorList())
     node_released3 = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Released']
     assert node_released2 == node_released3
-    first_client.node.start()
     second_client.economic.wait_settlement_blocknum(second_client.node)
+    print(first_client.node.ppos.getValidatorList())
     first_client.economic.wait_consensus_blocknum(first_client.node)
+    print(first_client.node.ppos.getValidatorList())
     node_status = first_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
     assert node_status == 0
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
@@ -202,10 +206,10 @@ def test_internal_node_zero_out_block_N(new_genesis_env, clients_consensus):
 
 def test_internal_node_more_zero_out_block_Y(new_genesis_env, clients_consensus):
     """
-    3、内置节点（无替换节点）零出块处罚一次，小于质押金额且恢复节点后被剔除候选人列表，验证人列表，共识验证人列表
+    2、内置节点（无替换节点）零出块处罚多次，大于质押金额且恢复节点后重新加入候选人列表，验证人列表，共识验证人列表
     """
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 5
+    genesis.economicModel.slashing.slashBlocksReward = 1
     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -248,8 +252,6 @@ def test_internal_node_more_zero_out_block_Y(new_genesis_env, clients_consensus)
     assert result, "error: Node  kicked out ValidatorList"
     second_client.economic.wait_consensus_blocknum(second_client.node, 3)
     log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
-    verifier_list = second_client.ppos.getVerifierList()
-    log.info("Current billing cycle certifier list: {}".format(verifier_list))
     candidate_info = second_client.ppos.getCandidateInfo(first_client.node.node_id)
     log.info("stopped pledge node information： {}".format(candidate_info))
     amount_after_punishment = candidate_info['Ret']['Released']
@@ -267,7 +269,84 @@ def test_internal_node_more_zero_out_block_Y(new_genesis_env, clients_consensus)
     second_client.economic.wait_settlement_blocknum(second_client.node)
     second_client.economic.wait_consensus_blocknum(second_client.node)
     node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
+    assert node_status == 0
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result, "error: Node not kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result, "error: Node not kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result, "error: Node not kicked out ValidatorList"
+
+
+def test_internal_node_more_zero_out_block_N(client_consensus_obj_list_reset):
+    """
+    4、内置节点（无替换节点）零出块处罚多次，小于质押金额且恢复节点后被剔除候选人列表，验证人列表，共识验证人列表
+    """
+    first_client = client_consensus_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_consensus_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
+    time.sleep(5)
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result is False, "error: Node not kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result is False, "error: Node not kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result is False, "error: Node not kicked out ValidatorList"
+    log.info("candidate info".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
+    second_client.economic.wait_settlement_blocknum(second_client.node)
+    node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
+    assert node_status == 0
+    print(second_client.node.ppos.getCandidateInfo(first_client.node.node_id))
+    second_client.economic.wait_consensus_blocknum(second_client.node)
+    print(second_client.node.ppos.getCandidateInfo(first_client.node.node_id))
+    node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
+    assert node_status == 0
+    # view Consensus Amount of pledge
+    candidate_info = second_client.ppos.getCandidateInfo(first_client.node.node_id)
+    log.info("Pledge node information: {}".format(candidate_info))
+    pledge_amount2 = candidate_info['Ret']['Released']
+    # view block_reward
+    log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
+    block_reward, staking_reward = second_client.economic.get_current_year_reward(second_client.node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    # Get governable parameters
+    slash_blocks = get_governable_parameter_value(second_client, 'slashBlocksReward')
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result, "error: Node  kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result, "error: Node  kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result, "error: Node  kicked out ValidatorList"
+    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+    log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
+    verifier_list = second_client.ppos.getVerifierList()
+    log.info("Current billing cycle certifier list: {}".format(verifier_list))
+    candidate_info = second_client.ppos.getCandidateInfo(first_client.node.node_id)
+    log.info("stopped pledge node information： {}".format(candidate_info))
+    amount_after_punishment = candidate_info['Ret']['Released']
+    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    log.info("Low block rate penalty amount: {}".format(punishment_amonut))
+    assert amount_after_punishment == pledge_amount2 - punishment_amonut, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
+        amount_after_punishment)
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result is False, "error: Node not kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result is False, "error: Node not kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result is False, "error: Node not kicked out ValidatorList"
+    log.info("candidate info".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
+    node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
     assert node_status == 7
+    second_client.economic.wait_settlement_blocknum(second_client.node)
+    second_client.economic.wait_consensus_blocknum(second_client.node)
+    node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
+    assert node_status == 7
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
     assert result is False, "error: Node not kicked out CandidateList"
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
     assert result is False, "error: Node not kicked out VerifierList"
@@ -277,6 +356,179 @@ def test_internal_node_more_zero_out_block_Y(new_genesis_env, clients_consensus)
     result = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)
     assert_code(result, 301204)
 
+
+def test_zero_out_block_Y(client_new_node_obj_list_reset):
+    """
+    5、非内置节点（有替换节点）零出块处罚一次、大于质押金额且恢复节点后重新加入候选人列表，验证人列表，共识验证人列表
+    """
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_new_node_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
+    log.info("Start creating a pledge account address")
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    log.info("Start applying for a pledge node")
+    result = first_client.staking.create_staking(0, address, address, amount=von_amount(economic.create_staking_limit, 1.5))
+    assert_code(result, 0)
+    log.info("Pledge completed, waiting for the end of the current billing cycle")
+    economic.wait_settlement_blocknum(node)
+    log.info("Get the current pledge node amount and the low block rate penalty block number and the block reward")
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
+    log.info("deposit amount: {} block reward: {} block rate penalty block: {}".format(pledge_amount1, block_reward, slash_blocks))
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    log.info("Start verification penalty amount")
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
+    log.info("Check amount completed")
+    result = second_client.ppos.getCandidateInfo(first_client.node.node_id)
+    log.info("Candidate Info：{}".format(result))
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result is False, "error: Node not kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result is False, "error: Node not kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result is False, "error: Node not kicked out ValidatorList"
+    first_client.node.start()
+    second_client.economic.wait_settlement_blocknum(second_client.node)
+    log.info("Current settlement cycle block height： {}".format(second_client.node.eth.blockNumber))
+    node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
+    assert node_status == 0
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result, "error: Node  kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result, "error: Node  kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result is False, "error: Node  kicked out ValidatorList"
+    first_client.economic.wait_consensus_blocknum(first_client.node)
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result is False, "error: Node  kicked out ValidatorList"
+
+
+def test_more_zero_out_block_N(new_genesis_env, clients_noconsensus):
+    """
+    6.非内置节点（有替换节点）零出块处罚多次，大于质押金额且恢复节点后重新加入候选人列表，验证人列表，共识验证人列表
+    """
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.slashing.slashBlocksReward = 1
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+
+    first_client = clients_noconsensus[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = clients_noconsensus[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
+    log.info("Start creating a pledge account address")
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    log.info("Start applying for a pledge node")
+    result = first_client.staking.create_staking(0, address, address, amount=von_amount(economic.create_staking_limit, 1.5))
+    assert_code(result, 0)
+    log.info("Pledge completed, waiting for the end of the current billing cycle")
+    economic.wait_settlement_blocknum(node)
+    log.info("Get the current pledge node amount and the low block rate penalty block number and the block reward")
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
+    log.info("deposit amount: {} block reward: {} block rate penalty block: {}".format(pledge_amount1, block_reward, slash_blocks))
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    log.info("Start verification penalty amount")
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
+    log.info("Check amount completed")
+    result = second_client.ppos.getCandidateInfo(first_client.node.node_id)
+    log.info("Candidate Info：{}".format(result))
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result is False, "error: Node not kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result is False, "error: Node not kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result is False, "error: Node not kicked out ValidatorList"
+    second_client.economic.wait_settlement_blocknum(second_client.node)
+    log.info("Current settlement cycle block height： {}".format(second_client.node.eth.blockNumber))
+    node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
+    assert node_status == 0
+    # view Consensus Amount of pledge
+    candidate_info = second_client.ppos.getCandidateInfo(first_client.node.node_id)
+    log.info("Pledge node information: {}".format(candidate_info))
+    pledge_amount2 = candidate_info['Ret']['Released']
+    # view block_reward
+    log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
+    block_reward, staking_reward = second_client.economic.get_current_year_reward(second_client.node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    # Get governable parameters
+    slash_blocks = get_governable_parameter_value(second_client, 'slashBlocksReward')
+    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+    log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
+    candidate_info = second_client.ppos.getCandidateInfo(first_client.node.node_id)
+    log.info("stopped pledge node information： {}".format(candidate_info))
+    amount_after_punishment = candidate_info['Ret']['Released']
+    assert candidate_info['Ret']['Status'] == 3
+    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    log.info("Low block rate penalty amount: {}".format(punishment_amonut))
+    assert amount_after_punishment == pledge_amount2 - punishment_amonut, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
+        amount_after_punishment)
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result is False, "error: Node not kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result is False, "error: Node not kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result is False, "error: Node not kicked out ValidatorList"
+    log.info("candidate info".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
+    second_client.economic.wait_settlement_blocknum(second_client.node)
+    node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
+    assert node_status == 0
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result, "error: Node not kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result, "error: Node not kicked out VerifierList"
+
+
+def test_zero_out_block_N(new_genesis_env, clients_noconsensus):
+    """
+    7、非内置节点（有替换节点）零出块处罚一次，小于质押金额且恢复节点后被剔除候选人列表，验证人列表，共识验证人列表
+    """
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.slashing.slashBlocksReward = 10
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+
+    first_client = clients_noconsensus[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = clients_noconsensus[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
+    log.info("Start creating a pledge account address")
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    log.info("Start applying for a pledge node")
+    result = first_client.staking.create_staking(0, address, address, amount=von_amount(economic.create_staking_limit, 1.5))
+    assert_code(result, 0)
+    log.info("Pledge completed, waiting for the end of the current billing cycle")
+    economic.wait_settlement_blocknum(node)
+    log.info("Get the current pledge node amount and the low block rate penalty block number and the block reward")
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
+    log.info("deposit amount: {} block reward: {} block rate penalty block: {}".format(pledge_amount1, block_reward, slash_blocks))
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    log.info("Start verification penalty amount")
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
+    log.info("Check amount completed")
+    result = second_client.ppos.getCandidateInfo(first_client.node.node_id)
+    log.info("Candidate Info：{}".format(result))
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getCandidateList)
+    assert result is False, "error: Node not kicked out CandidateList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getVerifierList)
+    assert result is False, "error: Node not kicked out VerifierList"
+    result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
+    assert result is False, "error: Node not kicked out ValidatorList"
+    first_client.node.start()
+    second_client.economic.wait_settlement_blocknum(second_client.node)
+    log.info("Current settlement cycle block height： {}".format(second_client.node.eth.blockNumber))
+    node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
+    assert node_status == 7
+    first_client.economic.wait_settlement_blocknum(first_client.node, 1)
+    result = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)
+    assert_code(result, 301204)
 
 
 
@@ -320,6 +572,7 @@ def test_VP_GPFV_003(client_new_node_obj_list_reset):
     assert result is False, "error: Node not kicked out VerifierList"
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
     assert result is False, "error: Node not kicked out ValidatorList"
+
 
 
 @pytest.mark.P0

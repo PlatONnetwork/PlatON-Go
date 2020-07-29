@@ -255,7 +255,7 @@ def test_DI_015_016(client_new_node, client_consensus):
     log.info("Close one node")
     node.stop()
     for i in range(4):
-        economic.wait_consensus_blocknum(other_node, number=i)
+        economic.wait_consensus_blocknum(other_node)
         candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
         log.info(candidate_info)
         if candidate_info["Ret"]["Released"] < value:
