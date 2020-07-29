@@ -131,8 +131,9 @@ type StatsBlockExt struct {
 type PlatonStatsService struct {
 	server                    *p2p.Server //Peer-to-peer server to retrieve networking infos
 	kafkaUrl                  string
-	kafkaBlockTopic           string        //统计数据消息topic
-	kafkaAccountCheckingTopic string        //对账请求消息topic
+	kafkaBlockTopic           string        //统计数据消息Topic
+	kafkaAccountCheckingTopic string        //对账请求消息Topic
+	kafkaAccountCheckingGroup string        //对账请求消息Group
 	eth                       *eth.Ethereum // Full Ethereum service if monitoring a full node
 	datadir                   string
 	kafkaClient               *KafkaClient
@@ -149,11 +150,12 @@ var (
 	platonStatsService *PlatonStatsService
 )
 
-func New(kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
+func New(kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic, kafkaAccountCheckingGroup string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
 	platonStatsService = &PlatonStatsService{
 		kafkaUrl:                  kafkaUrl,
 		kafkaBlockTopic:           kafkaBlockTopic,
 		kafkaAccountCheckingTopic: kafkaAccountCheckingTopic,
+		kafkaAccountCheckingGroup: kafkaAccountCheckingGroup,
 		eth:                       ethServ,
 		datadir:                   datadir,
 	}
@@ -190,7 +192,7 @@ func (s *PlatonStatsService) Start(server *p2p.Server) error {
 	s.server = server
 	//urls := []string{s.kafkaUrl}
 
-	s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic)
+	s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic, s.kafkaAccountCheckingGroup)
 	/*if msgProducer, err := sarama.NewAsyncProducer(urls, msgProducerConfig()); err != nil {
 		log.Error("Failed to init msg Kafka async producer....", "err", err)
 		return err

@@ -37,10 +37,10 @@ func Test_kafkaClient_producer1(t *testing.T) {
 	log.Info("Success to init msg Kafka client ....")
 
 	msg := &sarama.ProducerMessage{
-		Topic:     "test-sender2",
+		Topic:     "test-sender6",
 		Partition: 0,
-		Key:       sarama.StringEncoder("key-1"),
-		Value:     sarama.StringEncoder("value-1"),
+		Key:       sarama.StringEncoder("key-6"),
+		Value:     sarama.StringEncoder("value-6"),
 		Timestamp: time.Now(),
 	}
 
@@ -56,16 +56,16 @@ func Test_kafkaClient_producer1(t *testing.T) {
 func Test_kafkaClient_producer2(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-	produceTopic := "test-sender4"
-	kafkaClient := NewKafkaClient("192.168.112.32:9092", produceTopic, "")
+	produceTopic := "test-sender7"
+	kafkaClient := NewKafkaClient("192.168.112.32:9092", produceTopic, "", "test-consumer")
 
 	log.Info("Success to init msg Kafka client ....")
 
 	msg := &sarama.ProducerMessage{
 		Topic:     produceTopic,
 		Partition: 0,
-		Key:       sarama.StringEncoder("key-1"),
-		Value:     sarama.StringEncoder("value-1"),
+		Key:       sarama.StringEncoder("key-7"),
+		Value:     sarama.StringEncoder("value-7"),
 		Timestamp: time.Now(),
 	}
 
@@ -81,7 +81,7 @@ func Test_kafkaClient_producer2(t *testing.T) {
 func Test_kafkaClient_consumer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-	kafkaClient := NewKafkaClient("192.168.112.32:9092", "", "")
+	kafkaClient := NewKafkaClient("192.168.112.32:9092", "", "test-sender", "test-consumer")
 
 	log.Info("Success to init msg Kafka account-checking consumer....")
 
@@ -101,11 +101,43 @@ func Test_kafkaClient_consumer(t *testing.T) {
 	}
 }
 
-func T2st_kafkaMsg_work(t *testing.T) {
+func Test_consumer_2(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	brokers := []string{"192.168.112.32:9092"}
-	topic := "platon-account-checking"
+	topic := "test-sender"
+	consumer, e := sarama.NewConsumer(brokers, nil)
+	if e != nil {
+		panic("client create error")
+	}
+	defer consumer.Close()
+
+	pc, e := consumer.ConsumePartition(topic, 0, sarama.OffsetOldest)
+	if e != nil {
+		panic(e)
+	}
+	defer pc.Close()
+
+	log.Info("Success to init msg Kafka account-checking consumer....")
+	for {
+		select {
+		case msg := <-pc.Messages():
+			key := string(msg.Key)
+			value := string(msg.Value)
+			log.Debug("received account-checking message", "offset", msg.Offset, "key", key, "value", value)
+
+		case err := <-pc.Errors():
+			log.Error("Failed to pull account-checking message from Kafka", "err", err)
+			panic(err)
+		}
+	}
+}
+
+func Test_kafkaMsg_not_work(t *testing.T) {
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
+	brokers := []string{"192.168.112.32:9092"}
+	topic := "test-sender"
 	if len(topic) == 0 {
 		topic = defaultKafkaAccountCheckingTopic
 	}

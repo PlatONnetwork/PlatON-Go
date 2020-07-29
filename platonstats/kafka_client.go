@@ -18,17 +18,18 @@ const (
 )
 
 type KafkaClient struct {
-	brokers                []string
-	blockTopic             string
-	accountCheckingTopic   string
-	saramaClient           sarama.Client
-	asyncProducer          sarama.AsyncProducer
-	syncProducer           sarama.SyncProducer
-	consumer               sarama.Consumer
-	consumerGroup          sarama.ConsumerGroup
-	partitionConsumer      sarama.PartitionConsumer
-	offsetManager          sarama.OffsetManager
-	partitionOffsetManager sarama.PartitionOffsetManager
+	brokers                      []string
+	blockTopic                   string
+	accountCheckingTopic         string
+	AccountCheckingConsumerGroup string
+	saramaClient                 sarama.Client
+	asyncProducer                sarama.AsyncProducer
+	syncProducer                 sarama.SyncProducer
+	consumer                     sarama.Consumer
+	consumerGroup                sarama.ConsumerGroup
+	partitionConsumer            sarama.PartitionConsumer
+	offsetManager                sarama.OffsetManager
+	partitionOffsetManager       sarama.PartitionOffsetManager
 }
 
 func producerConfig() *sarama.Config {
@@ -73,7 +74,7 @@ func saramaConfig() *sarama.Config {
 	return config
 }
 
-func NewKafkaClientGroup(urls, blockTopic, checkingTopic string) *KafkaClient {
+func NewKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGroup string) *KafkaClient {
 	brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
@@ -84,10 +85,15 @@ func NewKafkaClientGroup(urls, blockTopic, checkingTopic string) *KafkaClient {
 		checkingTopic = defaultKafkaAccountCheckingTopic
 	}
 
+	if len(checkingConsumerGroup) == 0 {
+		checkingConsumerGroup = defaultKafkaAccountCheckingConsumerGroup
+	}
+
 	kafkaClient := &KafkaClient{
-		brokers:              brokers,
-		blockTopic:           blockTopic,
-		accountCheckingTopic: checkingTopic,
+		brokers:                      brokers,
+		blockTopic:                   blockTopic,
+		accountCheckingTopic:         checkingTopic,
+		AccountCheckingConsumerGroup: checkingConsumerGroup,
 	}
 
 	if blockProducer, err := sarama.NewSyncProducer(brokers, producerConfig()); err != nil {
@@ -97,22 +103,16 @@ func NewKafkaClientGroup(urls, blockTopic, checkingTopic string) *KafkaClient {
 		kafkaClient.syncProducer = blockProducer
 	}
 
-	if consumerGroup, err := sarama.NewConsumerGroup(brokers, defaultKafkaAccountCheckingConsumerGroup, consumerConfig()); err != nil {
+	if consumerGroup, err := sarama.NewConsumerGroup(brokers, checkingConsumerGroup, consumerConfig()); err != nil {
 		log.Error("Failed to create Kafka consumer")
 		panic(err)
 	} else {
 		kafkaClient.consumerGroup = consumerGroup
-		/*if partitionConsumer, err := consumer.ConsumePartition(checkingTopic, 0, sarama.OffsetNewest); err != nil {
-			log.Error("Failed to create Kafka partition consumer")
-			panic(err)
-		} else {
-			kafkaClient.partitionConsumer = partitionConsumer
-		}*/
 	}
 	return kafkaClient
 }
 
-func NewKafkaClientSingle(urls, blockTopic, checkingTopic string) *KafkaClient {
+func NewKafkaClientSingle(urls, blockTopic, checkingTopic, checkingConsumerGroup string) *KafkaClient {
 	brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
@@ -123,10 +123,15 @@ func NewKafkaClientSingle(urls, blockTopic, checkingTopic string) *KafkaClient {
 		checkingTopic = defaultKafkaAccountCheckingTopic
 	}
 
+	if len(checkingConsumerGroup) == 0 {
+		checkingConsumerGroup = defaultKafkaAccountCheckingConsumerGroup
+	}
+
 	kafkaClient := &KafkaClient{
-		brokers:              brokers,
-		blockTopic:           blockTopic,
-		accountCheckingTopic: checkingTopic,
+		brokers:                      brokers,
+		blockTopic:                   blockTopic,
+		accountCheckingTopic:         checkingTopic,
+		AccountCheckingConsumerGroup: checkingConsumerGroup,
 	}
 
 	if blockProducer, err := sarama.NewSyncProducer(brokers, producerConfig()); err != nil {
@@ -150,7 +155,7 @@ func NewKafkaClientSingle(urls, blockTopic, checkingTopic string) *KafkaClient {
 	}
 	return kafkaClient
 }
-func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
+func NewKafkaClient2(urls, blockTopic, checkingTopic, checkingConsumerGroup string) *KafkaClient {
 	brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
@@ -159,6 +164,10 @@ func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
 
 	if len(checkingTopic) == 0 {
 		checkingTopic = defaultKafkaAccountCheckingTopic
+	}
+
+	if len(checkingConsumerGroup) == 0 {
+		checkingConsumerGroup = defaultKafkaAccountCheckingConsumerGroup
 	}
 
 	client, err := sarama.NewClient(brokers, saramaConfig())
@@ -191,7 +200,7 @@ func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
 		panic(err)
 	}
 
-	offsetManager, err := sarama.NewOffsetManagerFromClient(defaultKafkaAccountCheckingConsumerGroup, client)
+	offsetManager, err := sarama.NewOffsetManagerFromClient(checkingConsumerGroup, client)
 	if err != nil {
 		panic("offsetManager create error")
 	}
@@ -202,15 +211,16 @@ func NewKafkaClient(urls, blockTopic, checkingTopic string) *KafkaClient {
 	}
 
 	return &KafkaClient{
-		brokers:                brokers,
-		blockTopic:             blockTopic,
-		accountCheckingTopic:   checkingTopic,
-		asyncProducer:          asyncProducer,
-		syncProducer:           syncProducer,
-		consumer:               consumer,
-		partitionConsumer:      partitionConsumer,
-		offsetManager:          offsetManager,
-		partitionOffsetManager: partitionOffsetManager,
+		brokers:                      brokers,
+		blockTopic:                   blockTopic,
+		accountCheckingTopic:         checkingTopic,
+		AccountCheckingConsumerGroup: checkingConsumerGroup,
+		asyncProducer:                asyncProducer,
+		syncProducer:                 syncProducer,
+		consumer:                     consumer,
+		partitionConsumer:            partitionConsumer,
+		offsetManager:                offsetManager,
+		partitionOffsetManager:       partitionOffsetManager,
 	}
 }
 
