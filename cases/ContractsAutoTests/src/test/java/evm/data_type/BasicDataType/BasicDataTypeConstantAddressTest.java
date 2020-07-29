@@ -37,7 +37,7 @@ public class BasicDataTypeConstantAddressTest extends ContractPrepareTest {
         BasicDataTypeConstantContract basicDataTypeConstantContract = null;
         try {
             //合约部署
-            basicDataTypeConstantContract = BasicDataTypeConstantContract.deploy(web3j, transactionManager, provider).send();
+            basicDataTypeConstantContract = BasicDataTypeConstantContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = basicDataTypeConstantContract.getContractAddress();
             TransactionReceipt tx =  basicDataTypeConstantContract.getTransactionReceipt().get();
             collector.logStepPass("BasicDataTypeConstantContract issued successfully.contractAddress:" + contractAddress
@@ -52,7 +52,7 @@ public class BasicDataTypeConstantAddressTest extends ContractPrepareTest {
         //1、验证：address类型，转账给指定地址
         try {
             int expectValue = Integer.parseInt(amountSumValue);
-            String myContractAddress = "0x8a9B36694F1eeeb500c84A19bB34137B05162EC9";
+            String myContractAddress = "lax132dnv620rmht2qxgfgvmkdqn0vz3vtkfw87hjs";
 
             //1)、查询地址余额
             BigInteger contractBalance = basicDataTypeConstantContract.getBalance(myContractAddress).send();

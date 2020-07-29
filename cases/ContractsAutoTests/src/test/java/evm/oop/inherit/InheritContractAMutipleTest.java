@@ -33,7 +33,7 @@ public class InheritContractAMutipleTest extends ContractPrepareTest {
         InheritContractBMutipleClass inheritContractMutipleTest2 = null;
         try {
             //合约部署(InheritContractMutipleTest1)
-            inheritContractMutipleTest1 = InheritContractAMutipleClass.deploy(web3j, transactionManager, provider).send();
+            inheritContractMutipleTest1 = InheritContractAMutipleClass.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = inheritContractMutipleTest1.getContractAddress();
             TransactionReceipt tx =  inheritContractMutipleTest1.getTransactionReceipt().get();
             collector.logStepPass("InheritContractMutipleTest1 issued successfully.contractAddress:" + contractAddress
@@ -42,7 +42,7 @@ public class InheritContractAMutipleTest extends ContractPrepareTest {
 
 
             //合约部署(InheritContractMutipleTest1)
-            inheritContractMutipleTest2 = InheritContractBMutipleClass.deploy(web3j, transactionManager, provider).send();
+            inheritContractMutipleTest2 = InheritContractBMutipleClass.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress2 = inheritContractMutipleTest2.getContractAddress();
             TransactionReceipt tx2 =  inheritContractMutipleTest2.getTransactionReceipt().get();
             collector.logStepPass("InheritContractMutipleTest2 issued successfully.contractAddress:" + contractAddress2

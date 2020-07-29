@@ -34,6 +34,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 )
 
 func NewFaker() *BftMock {
@@ -83,6 +85,10 @@ func (bm *BftMock) InsertChain(block *types.Block) error {
 	bm.Base = block
 
 	return nil
+}
+
+func (bm *BftMock) GetPrepareQC(number uint64) *ctypes.QuorumCert {
+	panic("implement me")
 }
 
 // FastSyncCommitHead is a fake interface, no need to implement.

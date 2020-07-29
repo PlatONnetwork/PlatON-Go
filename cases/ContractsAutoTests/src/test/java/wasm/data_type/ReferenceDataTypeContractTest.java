@@ -2,6 +2,8 @@ package wasm.data_type;
 
 import com.platon.rlp.datatypes.Uint64;
 import com.platon.rlp.datatypes.Uint8;
+import com.platon.rlp.datatypes.WasmAddress;
+import jnr.ffi.Address;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeContract;
@@ -29,27 +31,41 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:"
                     + contractAddress + ", hash:" + transactionHash
                     + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
+            Uint8 num0 = contract.getNum().send();
+            collector.logStepPass("num1: " + num0.value);
+
+
             // test: map
             String expectKey1 = "name";
-            String expectValue11 = "0xc4482dd68fbaa5f4da143145198672bd17245ff2";
+//            WasmAddress expectValue11 = new WasmAddress("lax1uqug1zq7rcxddndleq4ux2ft3tv6dqljphydrl");
+            String expectValue11 = "lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl";
+//            String expectValue11 = "lax1uqug1zq7rcxddndleq4ux2ft3tv6dqljphydrl";
+//            String expectValue11 = "lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2";
             TransactionReceipt mapTr = contract.setAddressMap(expectKey1, expectValue11).send();
             collector.logStepPass("To invoke setAddressMap success, txHash1: " + mapTr.getTransactionHash());
 
+            Uint8 num1 = contract.getNum().send();
+            collector.logStepPass("num1: " + num1.value);
+
             String expectKey2 = "name2";
-            String expectValue2 = "0xc4482dd68fbaa5f4da143145198672bd17245ff1";
+//            String expectValue2 = "lax1uqug2zq7rcxddndleq4ux2ft3tv6dqljphydrl";
+            String expectValue2 = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
             TransactionReceipt mapTr2 = contract.setAddressMap(expectKey2, expectValue2).send();
             collector.logStepPass("To invoke setAddressMap success, txHash2: " + mapTr2.getTransactionHash());
 
             String actValue1 = contract.getAddrFromMap(expectKey1).send();
             String actValue2 = contract.getAddrFromMap(expectKey2).send();
             collector.logStepPass("To invoke getAddrFromMap success, value1: " + actValue1 + " value2:" + actValue2);
+
+            Uint8 num2 = contract.getNum().send();
+            collector.logStepPass("num1: " + num2.value);
 
             Uint8 mapSize = contract.sizeOfAddrMap().send();
             collector.logStepPass("To invoke sizeOfAddrMap success, mapSize: " + mapSize.getValue().toString());
@@ -59,12 +75,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("ReferenceDataTypeContract and could not call contract function");
-            }else{
-                collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -75,7 +87,7 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:"
@@ -105,12 +117,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("ReferenceDataTypeContract and could not call contract function");
-            }else{
-                collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -121,7 +129,7 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider).send();
+            ReferenceDataTypeContract contract = ReferenceDataTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ReferenceDataTypeContract deploy successfully.contractAddress:"
@@ -151,12 +159,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("ReferenceDataTypeContract and could not call contract function");
-            }else{
-                collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("ReferenceDataTypeContract failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 }

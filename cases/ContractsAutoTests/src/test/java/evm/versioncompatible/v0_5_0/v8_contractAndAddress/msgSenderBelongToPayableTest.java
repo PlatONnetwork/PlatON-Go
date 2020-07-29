@@ -12,7 +12,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 /**
  * @title  08-合约和地址
  *         验证msg.sender属于address payable类型
- * @description: 
+ * @description:
  * @author: hudenian
  * @create: 2019/12/26
  */
@@ -30,7 +30,7 @@ public class msgSenderBelongToPayableTest extends ContractPrepareTest {
     public void dataLocationTest() {
         try {
 
-            MsgSenderBelongToPayable msgSenderBelongToPayable = MsgSenderBelongToPayable.deploy(web3j, transactionManager, provider).send();
+            MsgSenderBelongToPayable msgSenderBelongToPayable = MsgSenderBelongToPayable.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = msgSenderBelongToPayable.getContractAddress();
             TransactionReceipt tx = msgSenderBelongToPayable.getTransactionReceipt().get();

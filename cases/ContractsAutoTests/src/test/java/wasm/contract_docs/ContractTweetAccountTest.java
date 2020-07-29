@@ -35,7 +35,7 @@ public class ContractTweetAccountTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            TweetAccount contract = TweetAccount.deploy(web3j, transactionManager, provider).send();
+            TweetAccount contract = TweetAccount.deploy(web3j, transactionManager, provider,chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("TweetAccount deploy successfully. contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -44,7 +44,7 @@ public class ContractTweetAccountTest extends WASMContractPrepareTest {
             //  get owner
             WasmAddress owner = contract.getOwnerAddress().send();
             collector.logStepPass("Call getOwnerAddress, owner: " + owner.getAddress());
-            collector.assertEqual(owner.getAddress(), credentials.getAddress());
+            collector.assertEqual(owner.getAddress(), credentials.getAddress(chainId));
 
             // isAdmin
             Boolean isAdmin = contract.isAdmin().send();
@@ -88,27 +88,27 @@ public class ContractTweetAccountTest extends WASMContractPrepareTest {
             collector.logStepPass("Call caddrBalance, res: " + caddrBalance);
 
             // adminRetri
-            WasmAddress receiver = new WasmAddress("0x03f0E0a226f081A5dAeCFdA222caFc959eD7B801");
+            WasmAddress receiver = new WasmAddress("lax1q0cwpg3x7zq6tkhvlk3z9jhujk0d0wqp3wg4ue");
             BigInteger receiveBalanceBefore = web3j.platonGetBalance(receiver.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Call balance, before res: " + receiveBalanceBefore);
-            TransactionReceipt adminTr = contract.adminRetrieveDonations(new WasmAddress(credentials.getAddress())).send();
+
+//            WasmAddress adminAddr = new WasmAddress(credentials.getAddress(chainId));
+            WasmAddress adminAddr = new WasmAddress("lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6");
+
+            TransactionReceipt adminTr = contract.adminRetrieveDonations(adminAddr).send();
             collector.logStepPass("Send adminRetrieveDonations, hash: " + adminTr.getTransactionHash() + " gasUsed: " + adminTr.getGasUsed().toString());
             BigInteger receiveBalanceAfter = web3j.platonGetBalance(receiver.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Call balance, after res: " + receiveBalanceAfter);
 
             // adminDelete...
-            BigInteger ownerBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
+            BigInteger ownerBalance = web3j.platonGetBalance(credentials.getAddress(chainId), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Owner balance, before res: " + ownerBalance);
             TransactionReceipt adminDeleteTr = contract.adminDeleteAccount().send();
             collector.logStepPass("Send adminDeleteAccount, hash: " + adminDeleteTr.getTransactionHash() + " gasUsed: " + adminDeleteTr.getGasUsed());
-            ownerBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
+            ownerBalance = web3j.platonGetBalance(credentials.getAddress(chainId), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Owner balance, after res: " + ownerBalance);
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("TweetAccount and could not call contract function");
-            }else{
-                collector.logStepFail("TweetAccount failure,exception msg:" , e.getMessage());
-            }
+            collector.logStepFail("TweetAccount failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }

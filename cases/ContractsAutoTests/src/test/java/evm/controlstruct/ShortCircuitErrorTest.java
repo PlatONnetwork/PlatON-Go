@@ -28,7 +28,7 @@ public class ShortCircuitErrorTest extends ContractPrepareTest {
     public void shortCircuitStruct() {
         try {
 
-            ShortCircuitError shortCircuitError = ShortCircuitError.deploy(web3j, transactionManager, provider).send();
+            ShortCircuitError shortCircuitError = ShortCircuitError.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = shortCircuitError.getContractAddress();
             TransactionReceipt tx = shortCircuitError.getTransactionReceipt().get();

@@ -25,7 +25,7 @@ public class RevertHandleTest extends ContractPrepareTest {
     public void testRevertCheck() {
         try {
             prepare();
-            RevertHandle handle = RevertHandle.deploy(web3j, transactionManager, provider).send();
+            RevertHandle handle = RevertHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RevertHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -49,7 +49,7 @@ public class RevertHandleTest extends ContractPrepareTest {
     public void testParamException() {
         try {
             prepare();
-            RevertHandle handle = RevertHandle.deploy(web3j, transactionManager, provider).send();
+            RevertHandle handle = RevertHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RevertHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

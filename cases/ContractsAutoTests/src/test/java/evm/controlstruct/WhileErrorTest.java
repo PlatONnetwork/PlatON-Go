@@ -30,7 +30,7 @@ public class WhileErrorTest extends ContractPrepareTest {
     public void whileStruct() {
         try {
 
-            WhileError whileError = WhileError.deploy(web3j, transactionManager, provider).send();
+            WhileError whileError = WhileError.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = whileError.getContractAddress();
             TransactionReceipt tx = whileError.getTransactionReceipt().get();

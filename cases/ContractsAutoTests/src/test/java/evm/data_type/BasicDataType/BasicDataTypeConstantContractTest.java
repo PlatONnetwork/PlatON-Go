@@ -32,7 +32,7 @@ public class BasicDataTypeConstantContractTest extends ContractPrepareTest {
         BasicDataTypeConstantContract basicDataTypeConstantContract = null;
         try {
             //合约部署
-            basicDataTypeConstantContract = BasicDataTypeConstantContract.deploy(web3j, transactionManager, provider).send();
+            basicDataTypeConstantContract = BasicDataTypeConstantContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = basicDataTypeConstantContract.getContractAddress();
             TransactionReceipt tx =  basicDataTypeConstantContract.getTransactionReceipt().get();
             collector.logStepPass("BasicDataTypeConstantContract issued successfully.contractAddress:" + contractAddress

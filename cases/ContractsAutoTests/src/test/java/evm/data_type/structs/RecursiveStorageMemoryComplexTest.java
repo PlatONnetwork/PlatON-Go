@@ -30,7 +30,7 @@ public class RecursiveStorageMemoryComplexTest extends ContractPrepareTest {
         RecursiveStorageMemoryComplex recursiveStorageMemoryComplex = null;
         try {
             //合约部署
-            recursiveStorageMemoryComplex = RecursiveStorageMemoryComplex.deploy(web3j, transactionManager, provider).send();
+            recursiveStorageMemoryComplex = RecursiveStorageMemoryComplex.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = recursiveStorageMemoryComplex.getContractAddress();
             TransactionReceipt tx =  recursiveStorageMemoryComplex.getTransactionReceipt().get();
             collector.logStepPass("RecursiveStorageMemoryComplex issued successfully.contractAddress:" + contractAddress

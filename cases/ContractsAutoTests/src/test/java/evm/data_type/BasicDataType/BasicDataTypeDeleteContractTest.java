@@ -31,7 +31,7 @@ public class BasicDataTypeDeleteContractTest extends ContractPrepareTest {
         BasicDataTypeDeleteContract basicDataTypeDeleteContract = null;
         try {
             //合约部署
-            basicDataTypeDeleteContract = BasicDataTypeDeleteContract.deploy(web3j, transactionManager, provider).send();
+            basicDataTypeDeleteContract = BasicDataTypeDeleteContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = basicDataTypeDeleteContract.getContractAddress();
             TransactionReceipt tx =  basicDataTypeDeleteContract.getTransactionReceipt().get();
             collector.logStepPass("BasicDataTypeDelete issued successfully.contractAddress:" + contractAddress
@@ -62,7 +62,7 @@ public class BasicDataTypeDeleteContractTest extends ContractPrepareTest {
             BigInteger intActual = tuple6.getValue6();
             collector.assertEqual(boolActual,false, "checkout delete bool execute success.");
             collector.assertEqual(uintActual,new BigInteger("0"), "checkout delete uint execute success.");
-            collector.assertEqual(addrStr,"0x0000000000000000000000000000000000000000", "checkout delete address execute success.");
+            collector.assertEqual(addrStr,"lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j", "checkout delete address execute success.");
             //collector.assertEqual(bytesActual,new byte[]("0x0"), "checkout delete bytes execute success.");
             collector.assertEqual(str,"", "checkout delete string execute success.");
             collector.assertEqual(intActual,new BigInteger("0"), "checkout delete int execute success.");

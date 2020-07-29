@@ -157,6 +157,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 				return err
 			}
+
 			// Real to slash the node
 			// If there is no record of the node,
 			// it means that there is no block,
@@ -390,15 +391,15 @@ func (sp *SlashingPlugin) checkSlashing(blockNumber uint64, blockHash common.Has
 					slashAmount = totalBalance
 				}
 			}
-			log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
-				"zeroProduceCount", zeroProduceCount, "slashType", staking.LowRatioDel, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blocksReward)
 
 			slashItem := &staking.SlashNodeItem{
 				NodeId:      nodeId,
 				Amount:      slashAmount,
-				SlashType:   staking.LowRatioDel,
+				SlashType:   staking.LowRatio,
 				BenefitAddr: vm.RewardManagerPoolAddr,
 			}
+			log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+				"zeroProduceCount", zeroProduceCount, "slashType", slashItem.SlashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blocksReward)
 			return slashItem, nil
 		}
 	}

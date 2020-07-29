@@ -14,7 +14,7 @@ import java.math.BigInteger;
 
 /**
  * 16进制数值如果长度与 bytesX不相等，也不能直接转换成 bytesX类型
- * @description: 
+ * @description:
  * @author: hudenian
  * @create: 2019/12/26
  */
@@ -31,7 +31,7 @@ public class HexLiteralsChangeByteTest extends ContractPrepareTest {
     public void update() {
         try {
 
-            HexLiteralsChangeByte hexLiteralsChangeByte = HexLiteralsChangeByte.deploy(web3j, transactionManager, provider).send();
+            HexLiteralsChangeByte hexLiteralsChangeByte = HexLiteralsChangeByte.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = hexLiteralsChangeByte.getContractAddress();
             TransactionReceipt tx = hexLiteralsChangeByte.getTransactionReceipt().get();

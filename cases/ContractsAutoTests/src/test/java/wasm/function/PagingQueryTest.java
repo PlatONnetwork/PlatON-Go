@@ -21,11 +21,11 @@ public class PagingQueryTest extends WASMContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
             author = "liweic", showName = "wasm.PagingQuery验证vector分页查询",sourcePrefix = "wasm")
-    public void Pagingquery() {
+    public void test() {
 
         try {
             prepare();
-            PagingQuery pagingquery = PagingQuery.deploy(web3j, transactionManager, provider).send();
+            PagingQuery pagingquery = PagingQuery.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = pagingquery.getContractAddress();
             String transactionHash = pagingquery.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("PagingQuery issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

@@ -29,7 +29,7 @@ public class SelfdestructFunctionsTest extends ContractPrepareTest {
             author = "liweic", showName = "function.SelfdestructFunctionsTest-合约相关函数测试", sourcePrefix = "evm")
     public void Selfdestructfunction() {
         try {
-            SelfdestructFunctions selfdestructFunctions = SelfdestructFunctions.deploy(web3j, transactionManager, provider).send();
+            SelfdestructFunctions selfdestructFunctions = SelfdestructFunctions.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = selfdestructFunctions.getContractAddress();
             TransactionReceipt tx = selfdestructFunctions.getTransactionReceipt().get();

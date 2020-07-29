@@ -1,3 +1,4 @@
+#define TESTNET
 // Author: zjsunzone
 #include <platon/platon.hpp>
 #include <string>
@@ -132,6 +133,10 @@ CONTRACT LATToken: public platon::Contract, public StandardToken
 			return name.self();		
 		}
 
+        CONST Address getSender(){
+            return platon_caller();
+        }
+
 		CONST uint8_t getDecimals(){
 			return decimals.self();		
 		}
@@ -159,7 +164,7 @@ CONTRACT LATToken: public platon::Contract, public StandardToken
 };
 
 PLATON_DISPATCH(LATToken,(init)(balanceOf)(transfer)(transferFrom)(approve)(allowance)
-(getName)(getDecimals)(getSymbol)(getTotalSupply)(approveAndCall))
+(getName)(getDecimals)(getSymbol)(getTotalSupply)(approveAndCall)(getSender))
 
 
 

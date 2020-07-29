@@ -32,7 +32,7 @@ public class FunctionParamTest extends ContractPrepareTest {
     public void Functionparam() {
         try {
 
-            FunctionParam functionparam = FunctionParam.deploy(web3j, transactionManager, provider).send();
+            FunctionParam functionparam = FunctionParam.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = functionparam.getContractAddress();
             TransactionReceipt tx = functionparam.getTransactionReceipt().get();

@@ -46,7 +46,7 @@ public class ReferenceDataTypeTupleTest extends WASMContractPrepareTest {
         ReferenceDataTypeTupleContract referenceDataTypeTupleContract = null;
         try {
             prepare();
-            referenceDataTypeTupleContract = ReferenceDataTypeTupleContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeTupleContract = ReferenceDataTypeTupleContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeTupleContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeTupleContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeTupleContract issued successfully.contractAddress:" + contractAddress

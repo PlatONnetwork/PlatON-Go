@@ -31,7 +31,7 @@ public class GetterTest extends ContractPrepareTest {
             author = "liweic", showName = "function.GetterTest-getter函数测试", sourcePrefix = "evm")
     public void getter() {
         try {
-            Getter getter = Getter.deploy(web3j, transactionManager, provider).send();
+            Getter getter = Getter.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = getter.getContractAddress();
             TransactionReceipt tx = getter.getTransactionReceipt().get();

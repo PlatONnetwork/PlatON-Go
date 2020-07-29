@@ -32,7 +32,7 @@ public class ReferenceDataTypeArrayOperatorTest extends ContractPrepareTest {
         ReferenceDataTypeArrayOperatorContract referenceDataTypeArrayOperator = null;
         try {
             //合约部署
-            referenceDataTypeArrayOperator = ReferenceDataTypeArrayOperatorContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeArrayOperator = ReferenceDataTypeArrayOperatorContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeArrayOperator.getContractAddress();
             TransactionReceipt tx =  referenceDataTypeArrayOperator.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeArrayOperator issued successfully.contractAddress:" + contractAddress

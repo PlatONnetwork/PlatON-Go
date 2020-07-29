@@ -177,6 +177,8 @@ type Block struct {
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
 	extraData    []byte
+
+	CalTxFromCH chan struct{}
 }
 
 // [deprecated by eth/63]

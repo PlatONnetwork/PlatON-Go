@@ -23,7 +23,7 @@ public class CallValueFunctionTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            CallValueFunction callvalue = CallValueFunction.deploy(web3j, transactionManager, provider).send();
+            CallValueFunction callvalue = CallValueFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = callvalue.getContractAddress();
             String transactionHash = callvalue.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CallerFunctionTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

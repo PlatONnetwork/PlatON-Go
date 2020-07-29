@@ -1,5 +1,7 @@
 package evm.function.specialVariablesAndFunctions;
 
+import com.platon.sdk.utlis.Bech32;
+import com.platon.sdk.utlis.NetworkParameters;
 import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -43,7 +45,7 @@ public class MathAndCryptographicFunctionsTest extends ContractPrepareTest {
             author = "liweic", showName = "function.MathAndCryptographicFunctionsTest-数学和加密函数测试", sourcePrefix = "evm")
     public void MathAndCryptographicfunction() {
         try {
-            MathAndCryptographicFunctions mathAndCryptographicFunctions = MathAndCryptographicFunctions.deploy(web3j, transactionManager, provider).send();
+            MathAndCryptographicFunctions mathAndCryptographicFunctions = MathAndCryptographicFunctions.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = mathAndCryptographicFunctions.getContractAddress();
             TransactionReceipt tx = mathAndCryptographicFunctions.getTransactionReceipt().get();
@@ -92,7 +94,8 @@ public class MathAndCryptographicFunctionsTest extends ContractPrepareTest {
 
             String resultF = mathAndCryptographicFunctions.callEcrecover(a, v, b, c).send();
             collector.logStepPass("ecrecover函数返回值：" + resultF);
-            collector.assertEqual(ecrecover ,resultF.toLowerCase());
+            String bech32Address = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(), ecrecover);
+            collector.assertEqual(bech32Address ,resultF.toLowerCase());
 
         } catch (Exception e) {
             collector.logStepFail("MathAndCryptographicfunctionsContract Calling Method fail.", e.toString());

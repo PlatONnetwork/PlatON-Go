@@ -26,7 +26,7 @@ public class InitWithArrayParamsTest extends WASMContractPrepareTest {
         String[] array = new String[]{"array1","array2","array3","array4","array5","array6","array7","array8","array9","array10"};
         try {
             prepare();
-            InitWithArrayParams initWithArrayParams = InitWithArrayParams.deploy(web3j, transactionManager, provider,array).send();
+            InitWithArrayParams initWithArrayParams = InitWithArrayParams.deploy(web3j, transactionManager, provider, chainId, array).send();
             String contractAddress = initWithArrayParams.getContractAddress();
             String transactionHash = initWithArrayParams.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithArrayParamsTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

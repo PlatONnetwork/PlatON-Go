@@ -29,7 +29,7 @@ public class ThreeContractCallTest extends ContractPrepareTest {
     public void threeContractCaller() {
         try {
             //第一个合约
-            CallerOne callerOne = CallerOne.deploy(web3j, transactionManager, provider).send();
+            CallerOne callerOne = CallerOne.deploy(web3j, transactionManager, provider, chainId).send();
             String callerContractAddress = callerOne.getContractAddress();
             TransactionReceipt tx = callerOne.getTransactionReceipt().get();
             collector.logStepPass("CallerOne deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
@@ -37,14 +37,14 @@ public class ThreeContractCallTest extends ContractPrepareTest {
 
 
             //第二个合约
-            CallerTwo callerTwo = CallerTwo.deploy(web3j, transactionManager, provider).send();
+            CallerTwo callerTwo = CallerTwo.deploy(web3j, transactionManager, provider, chainId).send();
             String callerTwoContractAddress = callerTwo.getContractAddress();
             tx = callerTwo.getTransactionReceipt().get();
             collector.logStepPass("CallerTwo deploy successfully.contractAddress:" + callerTwoContractAddress + ", hash:" + tx.getTransactionHash());
             collector.logStepPass("deploy gas used:" + callerTwo.getTransactionReceipt().get().getGasUsed());
 
             //第三个合约
-            CallerThree callerThree = CallerThree.deploy(web3j, transactionManager, provider).send();
+            CallerThree callerThree = CallerThree.deploy(web3j, transactionManager, provider, chainId).send();
             String callerThreeContractAddress = callerThree.getContractAddress();
             tx = callerThree.getTransactionReceipt().get();
             collector.logStepPass("DelegatecallCallee deploy successfully.contractAddress:" + callerThreeContractAddress + ", hash:" + tx.getTransactionHash());

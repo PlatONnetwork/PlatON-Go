@@ -47,7 +47,7 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             author = "liweic", showName = "function.BlockTransactionPropertiesFunctionsTest-区块和交易函数测试", sourcePrefix = "evm")
     public void BlockTransactionPropertiesfunction() {
         try {
-            BlockTransactionPropertiesFunctions blockTransactionPropertiesFunctions = BlockTransactionPropertiesFunctions.deploy(web3j, transactionManager, provider).send();
+            BlockTransactionPropertiesFunctions blockTransactionPropertiesFunctions = BlockTransactionPropertiesFunctions.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = blockTransactionPropertiesFunctions.getContractAddress();
             TransactionReceipt tx = blockTransactionPropertiesFunctions.getTransactionReceipt().get();
@@ -147,7 +147,7 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
             //验证tx.gasprice(交易的 gas 价格)
             BigInteger resultL = blockTransactionPropertiesFunctions.getGasprice().send();
             collector.logStepPass("tx.gasprice函数返回值：" + resultL);
-            collector.assertEqual(gasprice ,resultL.toString());
+            collector.assertEqual("0" ,resultL.toString());
 
             //验证tx.origin(交易发起者(完全的调用链))
             String resultM = blockTransactionPropertiesFunctions.getOrigin().send();

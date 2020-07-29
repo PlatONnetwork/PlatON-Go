@@ -15,6 +15,7 @@ import java.util.List;
 
 /**
  * 添加evm合约调用系统合约场景
+ *
  * @author hudenian
  * @dev 2020/02/19
  */
@@ -31,8 +32,7 @@ public class PrecompiledTest extends ContractPrepareTest {
             author = "hudenian", showName = "evm_assembly_contract_call.AssemblyAddTest-evm合约调用系统合约", sourcePrefix = "evm")
     public void precompiledTest() {
         try {
-            provider = new ContractGasProvider(BigInteger.valueOf(500000000004L), BigInteger.valueOf(90000000L));
-            Precompiled precompiled = Precompiled.deploy(web3j, transactionManager, provider).send();
+            Precompiled precompiled = Precompiled.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = precompiled.getContractAddress();
             TransactionReceipt tx = precompiled.getTransactionReceipt().get();
@@ -43,7 +43,7 @@ public class PrecompiledTest extends ContractPrepareTest {
 
 
             //验证ecrecover函数
-            String ecrecover = "0x8a9b36694f1eeeb500c84a19bb34137b05162ec5";
+            String ecrecover = "lax132dnv620rmht2qxgfgvmkdqn0vz3vtk9lecarh";
 
             String hash = "e281eaa11e6e37e6f53aade5d6c5b7201ef1c66162ec42ccc3215a0c4349350d";
             byte[] a = DataChangeUtil.hexToByteArray(hash);
@@ -59,7 +59,7 @@ public class PrecompiledTest extends ContractPrepareTest {
             //Address 0x01: ecrecover(hash, v, r, s)
             String resultF = precompiled.callEcrecover(a, v, b, c).send();
             collector.logStepPass("ecrecover函数返回值：" + resultF);
-            collector.assertEqual(ecrecover ,resultF.toLowerCase());
+            collector.assertEqual(ecrecover, resultF.toLowerCase());
 
             //Address 0x02: sha256(data)
             byte[] resultD = precompiled.callSha256(bytes).send();
@@ -76,17 +76,17 @@ public class PrecompiledTest extends ContractPrepareTest {
             tx = precompiled.callDatacopy(bytes).send();
             collector.logStepPass("PrecompiledTest callDatacopy successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
             byte[] callDatacopyValueByte = precompiled.getCallDatacopyValue().send();
-            collector.logStepPass("PrecompiledTest 0x04 result is:"+new String(callDatacopyValueByte));
+            collector.logStepPass("PrecompiledTest 0x04 result is:" + new String(callDatacopyValueByte));
 
             //0x05 callBigModExp() test pass
             byte[] base = DataChangeUtil.hexToByteArray("0000000000000000000000000000000462e4ded88953a39ce849a8a7fa163fa9");
             byte[] exponent = DataChangeUtil.hexToByteArray("1f4a3123ff1223a1b0d040057af8a9fe70baa9258e0b959273ffc5718c6d4cc7");
             byte[] modulus = DataChangeUtil.hexToByteArray("00000000000000000000000000077d29a9c710b7e616683f194f18c43b43b869");
 
-            tx = precompiled.callBigModExp(base,exponent,modulus).send();
+            tx = precompiled.callBigModExp(base, exponent, modulus).send();
             collector.logStepPass("PrecompiledTest callBigModExp successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
             byte[] callBigModExpValueByte = precompiled.getCallBigModExpValue().send();
-            collector.logStepPass("PrecompiledTest 0x05 result is:"+DataChangeUtil.bytesToHex(callBigModExpValueByte));
+            collector.logStepPass("PrecompiledTest 0x05 result is:" + DataChangeUtil.bytesToHex(callBigModExpValueByte));
 
 
             //Address 0x06: bn256Add(ax, ay, bx, by)(test pass)
@@ -94,19 +94,19 @@ public class PrecompiledTest extends ContractPrepareTest {
             tx = precompiled.callBn256Add(new BigInteger("1"), new BigInteger("2"), new BigInteger("1"), new BigInteger("2")).send();
             collector.logStepPass("PrecompiledTest callBn256Add successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
             List list = precompiled.getCallBn256AddValues().send();
-            for(int i=0;i<list.size();i++){
-                collector.logStepPass("PrecompiledTest 0x06 result  "+i+" is:"+list.get(i).toString());
+            for (int i = 0; i < list.size(); i++) {
+                collector.logStepPass("PrecompiledTest 0x06 result  " + i + " is:" + list.get(i).toString());
             }
 
             //Address 0x07: bn256ScalarMul(x, y, scalar)
             byte[] pointXByte = DataChangeUtil.hexToByteArray("2bd3e6d0f3b142924f5ca7b49ce5b9d54c4703d7ae5648e61d02268b1a0a9fb7");
             byte[] pointYByte = DataChangeUtil.hexToByteArray("21611ce0a6af85915e2f1d70300909ce2e49dfad4a4619c8390cae66cefdb204");
             byte[] scalarByte = DataChangeUtil.hexToByteArray("00000000000000000000000000000000000000000000000011138ce750fa15c2");
-            tx = precompiled.callBn256ScalarMul(pointXByte,pointYByte,scalarByte).send();
+            tx = precompiled.callBn256ScalarMul(pointXByte, pointYByte, scalarByte).send();
             collector.logStepPass("PrecompiledTest callBigModExp successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
             List callBn256ScalarMulList = precompiled.getCallBn256ScalarMulValues().send();
-            for (int i = 0; i <callBn256ScalarMulList.size() ; i++) {
-                collector.logStepPass("PrecompiledTest call 0x07 result  "+i+" is:" +DataChangeUtil.bytesToHex((byte[]) callBn256ScalarMulList.get(i)));
+            for (int i = 0; i < callBn256ScalarMulList.size(); i++) {
+                collector.logStepPass("PrecompiledTest call 0x07 result  " + i + " is:" + DataChangeUtil.bytesToHex((byte[]) callBn256ScalarMulList.get(i)));
 
             }
 
@@ -115,7 +115,7 @@ public class PrecompiledTest extends ContractPrepareTest {
             tx = precompiled.callBn256Pairing(DataChangeUtil.hexToByteArray(hexStr)).send();
             collector.logStepPass("PrecompiledTest callBn256Pairing successfully.contractAddress:" + contractAddress + ", hash:" + tx.getTransactionHash());
             byte[] callBn256PairingValue = precompiled.getCallBn256PairingValue().send();
-            collector.logStepPass("PrecompiledTest 0x08 result is:"+DataChangeUtil.bytesToHex(callBn256PairingValue));
+            collector.logStepPass("PrecompiledTest 0x08 result is:" + DataChangeUtil.bytesToHex(callBn256PairingValue));
 
 
         } catch (Exception e) {

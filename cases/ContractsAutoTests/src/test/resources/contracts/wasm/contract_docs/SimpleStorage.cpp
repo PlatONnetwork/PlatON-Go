@@ -1,3 +1,4 @@
+#define TESTNET
 // Author: zjsunzone
 // 简单的存储合约
 #include <platon/platon.hpp>

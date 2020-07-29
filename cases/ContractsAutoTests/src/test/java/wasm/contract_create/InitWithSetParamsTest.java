@@ -27,7 +27,7 @@ public class InitWithSetParamsTest extends WASMContractPrepareTest {
         set.add("setTwo");
         try {
             prepare();
-            InitWithSetParams initWithSetParams = InitWithSetParams.deploy(web3j, transactionManager, provider,set).send();
+            InitWithSetParams initWithSetParams = InitWithSetParams.deploy(web3j, transactionManager, provider, chainId,set).send();
             String contractAddress = initWithSetParams.getContractAddress();
             String transactionHash = initWithSetParams.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitWithSetParamsTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

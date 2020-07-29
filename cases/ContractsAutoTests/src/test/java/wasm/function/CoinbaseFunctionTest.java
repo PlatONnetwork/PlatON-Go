@@ -22,7 +22,7 @@ public class CoinbaseFunctionTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            CoinbaseFunction coinbase = CoinbaseFunction.deploy(web3j, transactionManager, provider).send();
+            CoinbaseFunction coinbase = CoinbaseFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = coinbase.getContractAddress();
             String transactionHash = coinbase.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CoinbaseFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

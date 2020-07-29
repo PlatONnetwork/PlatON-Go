@@ -32,7 +32,7 @@ public class InheritContractPassParamTest extends ContractPrepareTest {
         InheritContractBSub inheritContractSub2 = null;
         try {
             //合约部署(inheritContractASub)
-            inheritContractSub1 = InheritContractASub.deploy(web3j, transactionManager, provider).send();
+            inheritContractSub1 = InheritContractASub.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = inheritContractSub1.getContractAddress();
             TransactionReceipt tx =  inheritContractSub1.getTransactionReceipt().get();
             collector.logStepPass("InheritContractASub issued successfully.contractAddress:" + contractAddress
@@ -41,7 +41,7 @@ public class InheritContractPassParamTest extends ContractPrepareTest {
 
 
             //合约部署(inheritContractBSub)
-            inheritContractSub2 = InheritContractBSub.deploy(web3j, transactionManager, provider).send();
+            inheritContractSub2 = InheritContractBSub.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress2 = inheritContractSub2.getContractAddress();
             TransactionReceipt tx2 =  inheritContractSub2.getTransactionReceipt().get();
             collector.logStepPass("InheritContractBSub issued successfully.contractAddress:" + contractAddress2

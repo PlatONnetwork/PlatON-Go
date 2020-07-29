@@ -25,7 +25,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
     public void testOneDimensionalArray() {
         try {
             prepare();
-            EventTypeContract eventTypeContract = EventTypeContract.deploy(web3j, transactionManager, provider).send();
+            EventTypeContract eventTypeContract = EventTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = eventTypeContract.getContractAddress();
             String transactionHash = eventTypeContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -50,7 +50,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
     public void testTwoDimensionalArray() {
         try {
             prepare();
-            EventTypeContract eventCallContract = EventTypeContract.deploy(web3j, transactionManager, provider).send();
+            EventTypeContract eventCallContract = EventTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -73,7 +73,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
     public void testStr() {
         try {
             prepare();
-            EventTypeContract eventCallContract = EventTypeContract.deploy(web3j, transactionManager, provider).send();
+            EventTypeContract eventCallContract = EventTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -93,7 +93,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
     public void testEnum() {
         try {
             prepare();
-            EventTypeContract eventCallContract = EventTypeContract.deploy(web3j, transactionManager, provider).send();
+            EventTypeContract eventCallContract = EventTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = eventCallContract.getContractAddress();
             String transactionHash = eventCallContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("EventTypeContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

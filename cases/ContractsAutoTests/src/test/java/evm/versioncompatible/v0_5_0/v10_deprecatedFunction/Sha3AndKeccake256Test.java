@@ -11,7 +11,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 /**
  * @title  0.5.0版本函数 keccak256() 代替 0.4.25版本函数 sha3()
- * @description: 
+ * @description:
  * @author: hudenian
  * @create: 2019/12/27
  */
@@ -34,7 +34,7 @@ public class Sha3AndKeccake256Test extends ContractPrepareTest {
     public void keccake256() {
         try {
 
-            Sha3AndKeccake256 sha3AndKeccake256 = Sha3AndKeccake256.deploy(web3j, transactionManager, provider).send();
+            Sha3AndKeccake256 sha3AndKeccake256 = Sha3AndKeccake256.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = sha3AndKeccake256.getContractAddress();
             TransactionReceipt tx = sha3AndKeccake256.getTransactionReceipt().get();
@@ -65,7 +65,7 @@ public class Sha3AndKeccake256Test extends ContractPrepareTest {
 
     /**
      * @title do...while结果值
-     * @description: 
+     * @description:
      * @author: hudenian
      * @create: 2019/12/27
      */
@@ -81,7 +81,7 @@ public class Sha3AndKeccake256Test extends ContractPrepareTest {
 
     /**
      * @title for 循环后的结果值
-     * @description: 
+     * @description:
      * @author: hudenian
      * @create: 2019/12/27
      */

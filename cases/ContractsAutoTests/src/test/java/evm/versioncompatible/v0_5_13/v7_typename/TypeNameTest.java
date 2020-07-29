@@ -30,7 +30,7 @@ public class TypeNameTest extends ContractPrepareTest {
     public void testRuntimeType() {
         try {
 
-            TypeName typeName = TypeName.deploy(web3j, transactionManager, provider).send();
+            TypeName typeName = TypeName.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = typeName.getContractAddress();
             TransactionReceipt tx = typeName.getTransactionReceipt().get();

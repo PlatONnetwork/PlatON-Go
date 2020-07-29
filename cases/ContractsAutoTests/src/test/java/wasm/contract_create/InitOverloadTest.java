@@ -24,7 +24,7 @@ public class InitOverloadTest extends WASMContractPrepareTest {
         String name = "hudenian";
         try {
             prepare();
-            InitOverload initOverload = InitOverload.deploy(web3j, transactionManager, provider).send();
+            InitOverload initOverload = InitOverload.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = initOverload.getContractAddress();
             String transactionHash = initOverload.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitOverload issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

@@ -1,5 +1,7 @@
 package evm.function.specialVariablesAndFunctions;
 
+import com.platon.sdk.utlis.Bech32;
+import com.platon.sdk.utlis.NetworkParameters;
 import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -31,7 +33,7 @@ public class AddressFunctionsTest extends ContractPrepareTest {
             author = "liweic", showName = "function.AddressFunctionsTest-地址相关函数测试", sourcePrefix = "evm")
     public void Addressfunctions() {
         try {
-            AddressFunctions addressfunctions = AddressFunctions.deploy(web3j, transactionManager, provider).send();
+            AddressFunctions addressfunctions = AddressFunctions.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = addressfunctions.getContractAddress();
             TransactionReceipt tx = addressfunctions.getTransactionReceipt().get();
@@ -39,7 +41,9 @@ public class AddressFunctionsTest extends ContractPrepareTest {
             collector.logStepPass("Addressfunctions deploy gasUsed:" + addressfunctions.getTransactionReceipt().get().getGasUsed());
 
             //验证balance(地址账户)函数
-            BigInteger money = addressfunctions.getBalance("0x03f0e0a226f081a5daecfda222cafc959ed7b800").send();
+            String balanceaddr = "0x03f0e0a226f081a5daecfda222cafc959ed7b800";
+            balanceaddr = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(),balanceaddr);
+            BigInteger money = addressfunctions.getBalance(balanceaddr).send();
             collector.logStepPass("地址账户getBalance函数返回值：" + money);
             int num = money.toString().length();
             boolean n = num > 0;
@@ -52,11 +56,13 @@ public class AddressFunctionsTest extends ContractPrepareTest {
             collector.assertEqual(1,num2);
 
             //验证transfer函数
-            BigInteger addresspremoney = addressfunctions.getBalance("0x8a9B36694F1eeeb500c84A19bB34137B05162EC1").send();
+            String transferaddr = "0x8a9B36694F1eeeb500c84A19bB34137B05162EC1";
+            transferaddr = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(),transferaddr);
+            BigInteger addresspremoney = addressfunctions.getBalance(transferaddr).send();
             collector.logStepPass("转账前余额：" + addresspremoney);
-            TransactionReceipt result = addressfunctions.transfer("0x8a9B36694F1eeeb500c84A19bB34137B05162EC1",new BigInteger(amount)).send();
+            TransactionReceipt result = addressfunctions.transfer(transferaddr ,new BigInteger(amount)).send();
             collector.logStepPass("transfer转账结果交易Hash：" + result.getTransactionHash());
-            BigInteger addressaftermoney = addressfunctions.getBalance("0x8a9B36694F1eeeb500c84A19bB34137B05162EC1").send();
+            BigInteger addressaftermoney = addressfunctions.getBalance(transferaddr).send();
             collector.logStepPass("转账后余额：" + addressaftermoney);
             int a = Integer.valueOf(addressaftermoney.toString());
             int b = Integer.valueOf(addresspremoney.toString());
@@ -65,11 +71,13 @@ public class AddressFunctionsTest extends ContractPrepareTest {
 
 
             //验证send函数
-            BigInteger sendbefore = addressfunctions.getBalance("0x8a9B36694F1eeeb500c84A19bB34137B05162EC7").send();
+            String sendsddr = "0x8a9B36694F1eeeb500c84A19bB34137B05162EC7";
+            sendsddr = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(),sendsddr);
+            BigInteger sendbefore = addressfunctions.getBalance(sendsddr).send();
             collector.logStepPass("转账前余额：" + sendbefore);
-            TransactionReceipt result2 = addressfunctions.send("0x8a9B36694F1eeeb500c84A19bB34137B05162EC7",new BigInteger("10000")).send();
+            TransactionReceipt result2 = addressfunctions.send(sendsddr ,new BigInteger("10000")).send();
             collector.logStepPass("send转账结果交易Hash：" + result2.getTransactionHash());
-            BigInteger addressaftersend = addressfunctions.getBalance("0x8a9B36694F1eeeb500c84A19bB34137B05162EC7").send();
+            BigInteger addressaftersend = addressfunctions.getBalance(sendsddr).send();
             collector.logStepPass("转账后余额：" + addressaftersend);
             int c = Integer.valueOf(addressaftersend.toString());
             int d = Integer.valueOf(sendbefore.toString());

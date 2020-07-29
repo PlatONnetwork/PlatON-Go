@@ -21,7 +21,7 @@ public class OriginFunctionTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            OriginFunction origin = OriginFunction.deploy(web3j, transactionManager, provider).send();
+            OriginFunction origin = OriginFunction.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = origin.getContractAddress();
             String transactionHash = origin.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("OriginFunction issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

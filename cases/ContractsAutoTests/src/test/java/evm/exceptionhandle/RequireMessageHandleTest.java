@@ -23,7 +23,7 @@ public class RequireMessageHandleTest extends ContractPrepareTest {
     public void testParamException() {
         try {
             prepare();
-            RequireMessageHandle handle = RequireMessageHandle.deploy(web3j, transactionManager, provider).send();
+            RequireMessageHandle handle = RequireMessageHandle.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = handle.getContractAddress();
             String transactionHash = handle.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("RequireMessageHandle issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

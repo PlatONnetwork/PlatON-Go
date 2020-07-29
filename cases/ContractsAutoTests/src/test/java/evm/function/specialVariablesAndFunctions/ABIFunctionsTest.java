@@ -35,7 +35,7 @@ public class ABIFunctionsTest extends ContractPrepareTest {
             author = "liweic", showName = "function.ABIFunctionsTest-ABI函数测试", sourcePrefix = "evm")
     public void ABIfunction() {
         try {
-            ABIFunctions abiFunctions = ABIFunctions.deploy(web3j, transactionManager, provider).send();
+            ABIFunctions abiFunctions = ABIFunctions.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = abiFunctions.getContractAddress();
             TransactionReceipt tx = abiFunctions.getTransactionReceipt().get();

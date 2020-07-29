@@ -30,7 +30,7 @@ public class InternalCallTest extends ContractPrepareTest {
             author = "liweic", showName = "function.InternalCallTest-函数内部调用测试", sourcePrefix = "evm")
     public void intercall() {
         try {
-            IntenalCall intercall = IntenalCall.deploy(web3j, transactionManager, provider).send();
+            IntenalCall intercall = IntenalCall.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = intercall.getContractAddress();
             TransactionReceipt tx = intercall.getTransactionReceipt().get();

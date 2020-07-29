@@ -36,7 +36,7 @@ public class GetLibraryAddressTest extends ContractPrepareTest {
 
         try {
 
-            GetLibraryAddress getLibraryAddress = GetLibraryAddress.deploy(web3j, transactionManager, provider).send();
+            GetLibraryAddress getLibraryAddress = GetLibraryAddress.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = getLibraryAddress.getContractAddress();
             TransactionReceipt tx = getLibraryAddress.getTransactionReceipt().get();

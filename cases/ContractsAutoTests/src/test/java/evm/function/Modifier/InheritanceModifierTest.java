@@ -33,7 +33,7 @@ public class InheritanceModifierTest extends ContractPrepareTest {
             author = "liweic", showName = "function.InheritanceModifierTest-单修饰器函数测试", sourcePrefix = "evm")
     public void inheritancemodifier() {
         try {
-            InheritanceModifier inheritanceModifier = InheritanceModifier.deploy(web3j, transactionManager, provider).send();
+            InheritanceModifier inheritanceModifier = InheritanceModifier.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = inheritanceModifier.getContractAddress();
             TransactionReceipt tx = inheritanceModifier.getTransactionReceipt().get();

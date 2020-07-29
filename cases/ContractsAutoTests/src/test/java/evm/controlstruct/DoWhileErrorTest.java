@@ -30,7 +30,7 @@ public class DoWhileErrorTest extends ContractPrepareTest {
     public void doWhileStruct() {
         try {
 
-            DoWhileError doWhileError = DoWhileError.deploy(web3j, transactionManager, provider).send();
+            DoWhileError doWhileError = DoWhileError.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = doWhileError.getContractAddress();
             TransactionReceipt tx = doWhileError.getTransactionReceipt().get();

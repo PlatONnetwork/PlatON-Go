@@ -38,7 +38,7 @@ public class AssertContractTest extends ContractPrepareTest {
     public void assertTest() {
         try {
 
-            AssertContract assertContract = AssertContract.deploy(web3j, transactionManager, provider).send();
+            AssertContract assertContract = AssertContract.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = assertContract.getContractAddress();
             TransactionReceipt tx = assertContract.getTransactionReceipt().get();

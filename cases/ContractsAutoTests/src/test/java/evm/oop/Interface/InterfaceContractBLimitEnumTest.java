@@ -30,7 +30,7 @@ public class InterfaceContractBLimitEnumTest extends ContractPrepareTest {
         InterfaceContractEnumTest interfaceContractEnumTest= null;
         try {
             //合约部署
-            interfaceContractEnumTest = InterfaceContractEnumTest.deploy(web3j, transactionManager, provider).send();
+            interfaceContractEnumTest = InterfaceContractEnumTest.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = interfaceContractEnumTest.getContractAddress();
             TransactionReceipt tx = interfaceContractEnumTest.getTransactionReceipt().get();
 

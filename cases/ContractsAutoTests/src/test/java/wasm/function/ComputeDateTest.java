@@ -30,7 +30,7 @@ public class ComputeDateTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            ComputeDate computedate = ComputeDate.deploy(web3j, transactionManager, provider).send();
+            ComputeDate computedate = ComputeDate.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = computedate.getContractAddress();
             String transactionHash = computedate.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ComputeDate issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

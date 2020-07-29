@@ -49,14 +49,14 @@ public class BasicDataIntegerTypeTest extends WASMContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qudong", showName = "wasm.basicDataTypeTest整型基本类型验证测试",sourcePrefix = "wasm")
+            author = "qudong", showName = "wasm.basicDataIntegerTypeTest整型基本类型验证测试",sourcePrefix = "wasm")
     public void testBasicDataIntegerTypeTest() {
 
          //部署合约
         BasicDataIntegerTypeContract basicDataIntegerTypeContract = null;
         try {
             prepare();
-            basicDataIntegerTypeContract = BasicDataIntegerTypeContract.deploy(web3j, transactionManager, provider).send();
+            basicDataIntegerTypeContract = BasicDataIntegerTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = basicDataIntegerTypeContract.getContractAddress();
             TransactionReceipt tx = basicDataIntegerTypeContract.getTransactionReceipt().get();
             collector.logStepPass("basicDataIntegerTypeContract issued successfully.contractAddress:" + contractAddress
