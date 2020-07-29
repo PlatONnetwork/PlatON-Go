@@ -34,9 +34,10 @@ type StatsServer interface {
 type MockPlatonStatsService struct {
 	server *p2p.Server // Peer-to-peer server to retrieve networking infos
 
-	kafkaUrl                  string
-	kafkaBlockTopic           string
-	kafkaAccountCheckingTopic string
+	kafkaUrl                          string
+	kafkaBlockTopic                   string
+	kafkaAccountCheckingTopic         string
+	kafkaAccountCheckingConsumerGroup string
 
 	//eth      *eth.Ethereum // Full Ethereum service if monitoring a full node
 	blockChain *core.BlockChain
@@ -216,7 +217,7 @@ func (s *MockPlatonStatsService) APIs() []rpc.API { return nil }
 func (s *MockPlatonStatsService) Start(server *p2p.Server) error {
 	s.server = server
 
-	s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic)
+	s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic, s.kafkaAccountCheckingConsumerGroup)
 
 	go s.blockMsgLoop()
 	go s.sampleMsgLoop()
