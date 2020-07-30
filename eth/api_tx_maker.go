@@ -140,6 +140,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, txPer, txTime uint, sen
 					if err != nil {
 						log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
 					}
+					newTx.CacheFromAddr(singine, account.Address)
 					txs = append(txs, newTx)
 					txm.sendDone(account)
 					if len(txs) >= int(txPer) {
