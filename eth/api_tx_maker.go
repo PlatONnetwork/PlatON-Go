@@ -119,7 +119,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, txPer, txTime uint, sen
 				txs := make([]*types.Transaction, 0, txPer)
 				toAdd := txm.pickTxReceive()
 				for _, account := range txm.accounts {
-					if account.Nonce >= account.ReceiptsNonce+10 {
+					if account.Nonce >= account.ReceiptsNonce+5 {
 						if time.Since(account.SendTime) >= time.Second*20 {
 							log.Debug("wait account 20s", "account", account.Address, "nonce", account.Nonce, "receiptnonce", account.ReceiptsNonce, "wait time", time.Since(account.SendTime))
 							account.Nonce = account.ReceiptsNonce + 1
