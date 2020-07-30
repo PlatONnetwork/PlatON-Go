@@ -17,8 +17,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/event"
 
-	"github.com/PlatONnetwork/PlatON-Go/core"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -93,7 +91,8 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, txPer, txTime uint, sen
 					}
 				}
 			case txs := <-txsCh:
-				txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
+				txg.eth.txPool.AddRemotes(txs)
+			//	txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
 			case <-txg.txGenExitCh:
 				log.Debug("MakeTransaction get receipt nonce  exit")
 				return

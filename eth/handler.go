@@ -779,14 +779,18 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
 	case msg.Code == TxMsg:
-		// Transactions arrived, make sure we have a valid and fresh chain to handle them
-		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
-			break
-		}
 		// Transactions can be processed, parse all of them and deliver to the pool
 		var txs []*types.Transaction
 		if err := msg.Decode(&txs); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Transactions arrived, make sure we have a valid and fresh chain to handle them
+		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
+			break
+		}
+		// if txmaker is started,the chain should not accept RemoteTxs,to reduce produce tx cost
+		if atomic.LoadUint32(&pm.acceptRemoteTxs) == 1 {
+			break
 		}
 		for i, tx := range txs {
 			// Validate and mark the remote transaction
@@ -794,10 +798,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				return errResp(ErrDecode, "transaction %d is nil", i)
 			}
 			p.MarkTransaction(tx.Hash())
-		}
-		// if txmaker is started,the chain should not accept RemoteTxs,to reduce produce tx cost
-		if atomic.LoadUint32(&pm.acceptRemoteTxs) == 1 {
-			break
 		}
 
 		go pm.txpool.AddRemotes(txs)
