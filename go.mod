@@ -35,6 +35,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.0.8-0.20170210172801-5411d3eea597
 	github.com/mattn/go-isatty v0.0.0-20170209175615-281032e84ae0 // indirect
+	github.com/mroth/weightedrand v0.3.0
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/panjf2000/ants/v2 v2.4.1

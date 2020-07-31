@@ -2,15 +2,11 @@ package eth
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
-	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 
@@ -22,29 +18,34 @@ const DefaultViewNumber = uint64(0)
 type ViewCountMap map[uint64]uint64
 
 type AnalystEntity struct {
-	beginNumber        uint64
-	endNumber          uint64
-	viewBlockRate      uint64
-	viewCountMap       ViewCountMap
-	missViewList       []uint64
-	totalProduceTime   uint64
-	averageProduceTime uint64
-	topArray           []uint64
-	txCount            uint64
-	tps                uint64
+	BeginNumber        uint64
+	EndNumber          uint64
+	ViewBlockRate      uint64
+	ViewCountMap       ViewCountMap
+	MissViewList       []uint64
+	TotalProduceTime   uint64
+	AverageProduceTime uint64
+	TopArray           []uint64
+	TxCount            uint64
+	Tps                uint64
 }
 
-func (txg *TxGenAPI) GetTps(ctx context.Context, beginBn, endBn uint64, interval uint64, resultPath string) error {
+func (txg *TxGenAPI) GetTps(ctx context.Context, beginBn, endBn uint64, interval uint64, resultPath string) ([]*AnalystEntity, error) {
 	if beginBn >= endBn || endBn < interval || endBn%interval != 0 || beginBn%interval != 1 {
-		return errors.New(fmt.Sprintf("Invalid parameter, beginBn: %d, endBn: %d, interval: %d \n", beginBn, endBn, interval))
+		return nil, fmt.Errorf("Invalid parameter, beginBn: %d, endBn: %d, interval: %d \n", beginBn, endBn, interval)
 	}
 
 	// cal current block hight
 	currentNumber, _ := txg.eth.APIBackend.HeaderByNumber(ctx, rpc.LatestBlockNumber) // latest header should always be available
 
 	if currentNumber.Number.Uint64() < beginBn+interval-1 {
-		return errors.New(fmt.Sprintf("The current block number is too low to require statistics, beginBn: %d, endBn: %d, interval: %d, currentNumber: %d \n", beginBn, endBn, interval, currentNumber))
+		return nil, fmt.Errorf("The current block number is too low to require statistics, beginBn: %d, endBn: %d, interval: %d, currentNumber: %d \n", beginBn, endBn, interval, currentNumber)
 	}
+
+	if endBn > currentNumber.Number.Uint64() {
+		return nil, fmt.Errorf("the endBn is grearter than current block, beginBn: %d, endBn: %d, interval: %d, currentNumber: %d \n", beginBn, endBn, interval, currentNumber.Number)
+	}
+
 	analystData := make([]*AnalystEntity, 0)
 	// current round
 	round := (endBn - beginBn + 1) / interval
@@ -52,116 +53,114 @@ func (txg *TxGenAPI) GetTps(ctx context.Context, beginBn, endBn uint64, interval
 		beginNumber := beginBn
 		endNumber := beginNumber + interval - 1
 
-		for {
-			currentNumber, _ = txg.eth.APIBackend.HeaderByNumber(ctx, rpc.LatestBlockNumber) // latest header should always be available
-			if endNumber <= currentNumber.Number.Uint64() {
-				break
-			} else {
-				//log2.Printf("Remote number is low, please wait...remote: %d, beginNumber: %d, endNumber: %d \n", currentNumber, beginNumber, endNumber)
-				time.Sleep(5000 * time.Millisecond)
-			}
-		}
-
-		// cal block time
-		totalProduceTime, averageProduceTime, topArray, txCount, tps := AnalystProduceTime(beginNumber, endNumber, txg.eth.APIBackend)
-		// cal view
-		_, viewCountMap, missViewList, viewBlockRate, err := AnalystView(beginNumber, endNumber, txg.eth.Engine())
+		// cal block time and view
+		totalProduceTime, averageProduceTime, topArray, txCount, tps, viewCountMap, missViewList, viewBlockRate, err := AnalystProduceTimeAndView(beginNumber, endNumber, txg.eth.APIBackend)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		beginBn = beginNumber + interval
 
 		// export excel
 		entity := &AnalystEntity{
-			beginNumber:        beginNumber,
-			endNumber:          endNumber,
-			viewBlockRate:      viewBlockRate,
-			viewCountMap:       viewCountMap,
-			missViewList:       missViewList,
-			totalProduceTime:   totalProduceTime,
-			averageProduceTime: averageProduceTime,
-			topArray:           topArray,
-			txCount:            txCount,
-			tps:                tps,
+			BeginNumber:        beginNumber,
+			EndNumber:          endNumber,
+			ViewBlockRate:      viewBlockRate,
+			ViewCountMap:       viewCountMap,
+			MissViewList:       missViewList,
+			TotalProduceTime:   totalProduceTime,
+			AverageProduceTime: averageProduceTime,
+			TopArray:           topArray,
+			TxCount:            txCount,
+			Tps:                tps,
 		}
 		analystData = append(analystData, entity)
 	}
-	return saveExcel(analystData, resultPath)
+	if resultPath != "" {
+		if err := saveExcel(analystData, resultPath); err != nil {
+			return nil, err
+		}
+	}
+	return analystData, nil
 }
 
 /*
 	output parameter
 		diffTimestamp 				current epoch  produce block use time(ms)
 		diffTimestamp / diffNumber	Average block time（ms）
-		topArray					The top 10 time-consuming blocks
-		txCount						Total transactions
-		tps							tps
+		TopArray					The top 10 time-consuming blocks
+		TxCount						Total transactions
+		Tps							Tps
+		ViewCountMap	each view produce blocks
+		MissViewList	missing view
+		ViewBlockRate   view produce block rate
 */
-func AnalystProduceTime(beginNumber uint64, endNumber uint64, backend *EthAPIBackend) (uint64, uint64, []uint64, uint64, uint64) {
-	beginHeader, _ := backend.HeaderByNumber(context.Background(), rpc.BlockNumber(beginNumber))
-	endHeader, _ := backend.HeaderByNumber(context.Background(), rpc.BlockNumber(endNumber))
+func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *EthAPIBackend) (uint64, uint64, []uint64, uint64, uint64, ViewCountMap, []uint64, uint64, error) {
+	ctx := context.Background()
+	beginBlock, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(beginNumber))
+	endBlock, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(endNumber))
 
-	preTimestamp := beginHeader.Time.Uint64()
-	topArray := make([]uint64, 0, 250)
-	for i := beginNumber + 1; i <= endNumber; i++ {
-		header, _ := backend.HeaderByNumber(context.Background(), rpc.BlockNumber(int64(i)))
-		diff := header.Time.Uint64() - preTimestamp
-		topArray = append(topArray, diff)
-		preTimestamp = header.Time.Uint64()
+	_, beginQC, err := ctypes.DecodeExtra(beginBlock.ExtraData())
+	if err != nil {
+		return 0, 0, nil, 0, 0, nil, nil, 0, fmt.Errorf("decodeExtra beginHeader Extra fail:%v", err)
 	}
 
-	diffTimestamp := endHeader.Time.Uint64() - beginHeader.Time.Uint64()
-	diffNumber := endHeader.Number.Uint64() - beginHeader.Number.Uint64() + 1
-
-	// To transactions
-	txCount := uint64(0)
-	bh, _ := backend.HeaderByNumber(context.Background(), rpc.BlockNumber(int64(beginNumber)))
-	eh, _ := backend.HeaderByNumber(context.Background(), rpc.BlockNumber(int64(endNumber)))
-	for i := beginNumber; i <= endNumber; i++ {
-		h, _ := backend.BlockByNumber(context.Background(), rpc.BlockNumber(int64(i)))
-		c := hexutil.Uint(len(h.Transactions()))
-		txCount = txCount + uint64(c)
+	_, endQC, err := ctypes.DecodeExtra(endBlock.ExtraData())
+	if err != nil {
+		return 0, 0, nil, 0, 0, nil, nil, 0, fmt.Errorf("decodeExtra endHeader Extra fail:%v", err)
 	}
-	tps := (txCount * 1000) / (eh.Time.Uint64() - bh.Time.Uint64())
-	return diffTimestamp, diffTimestamp / diffNumber, topArray, txCount, tps
-}
 
-/*
-	output parameter
-		epoch
-		viewCountMap	each view produce blocks
-		missViewList	missing view
-		viewBlockRate   view produce block rate
-*/
-func AnalystView(beginNumber uint64, endNumber uint64, engine consensus.Engine) (uint64, ViewCountMap, []uint64, uint64, error) {
-	beginQC := engine.GetPrepareQC(beginNumber)
-	endQC := engine.GetPrepareQC(endNumber)
 	if beginQC.Epoch != endQC.Epoch {
-		return 0, nil, nil, 0, fmt.Errorf("Epoch is inconsistent")
+		return 0, 0, nil, 0, 0, nil, nil, 0, fmt.Errorf("Epoch is inconsistent")
 	}
-	epoch := beginQC.Epoch
 
 	viewCountMap := make(ViewCountMap, 0)
 	missViewList := make([]uint64, 0)
-	// each view produce blocks
-	for i := beginNumber; i <= endNumber; i++ {
-		qc := engine.GetPrepareQC(i) // Get PrepareQC by blockNumber
+
+	beginHeader := beginBlock.Header()
+	endHeader := endBlock.Header()
+
+	preTimestamp := beginHeader.Time.Uint64()
+	topArray := make([]uint64, 0, 250)
+
+	// To transactions
+	txCount := uint64(0)
+	for i := beginNumber + 1; i <= endNumber; i++ {
+		block, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(int64(i)))
+		header := block.Header()
+		diff := header.Time.Uint64() - preTimestamp
+		topArray = append(topArray, diff)
+		preTimestamp = header.Time.Uint64()
+		txCount = txCount + uint64(len(block.Transactions()))
+
+		_, qc, err := ctypes.DecodeExtra(block.ExtraData())
+		if err != nil {
+			return 0, 0, nil, 0, 0, nil, nil, 0, fmt.Errorf("decode header Extra fail:%v", err)
+		}
 		if count, ok := viewCountMap[qc.ViewNumber]; ok {
 			viewCountMap[qc.ViewNumber] = count + 1
 		} else {
 			viewCountMap[qc.ViewNumber] = 1
 		}
+
 	}
+
+	diffTimestamp := endHeader.Time.Uint64() - beginHeader.Time.Uint64()
+	diffNumber := endHeader.Number.Uint64() - beginHeader.Number.Uint64() + 1
+
+	tps := (txCount * 1000) / (endHeader.Time.Uint64() - beginHeader.Time.Uint64())
+
 	// missing view
 	for i := DefaultViewNumber; i <= endQC.ViewNumber; i++ {
 		if _, ok := viewCountMap[i]; !ok {
 			missViewList = append(missViewList, i)
 		}
 	}
+
 	// view produce block rate
 	viewBlockRate := (endNumber - beginNumber + 1) * 100 / ((endQC.ViewNumber - DefaultViewNumber + 1) * 10)
-	return epoch, viewCountMap, missViewList, viewBlockRate, nil
+
+	return diffTimestamp, diffTimestamp / diffNumber, topArray, txCount, tps, viewCountMap, missViewList, viewBlockRate, nil
 }
 
 func saveExcel(data []*AnalystEntity, resultPath string) error {
@@ -198,25 +197,25 @@ func saveExcel(data []*AnalystEntity, resultPath string) error {
 	for _, d := range data {
 		row := sheet.AddRow()
 		beginNumber := row.AddCell()
-		beginNumber.Value = strconv.Itoa(int(d.beginNumber))
+		beginNumber.Value = strconv.Itoa(int(d.BeginNumber))
 		endNumber := row.AddCell()
-		endNumber.Value = strconv.Itoa(int(d.endNumber))
+		endNumber.Value = strconv.Itoa(int(d.EndNumber))
 		viewBlockRate := row.AddCell()
-		viewBlockRate.Value = strconv.Itoa(int(d.viewBlockRate))
+		viewBlockRate.Value = strconv.Itoa(int(d.ViewBlockRate))
 		viewCountMap := row.AddCell()
-		viewCountMap.Value = fmt.Sprintf("%v", d.viewCountMap)
+		viewCountMap.Value = fmt.Sprintf("%v", d.ViewCountMap)
 		missViewList := row.AddCell()
-		missViewList.Value = fmt.Sprintf("%v", d.missViewList)
+		missViewList.Value = fmt.Sprintf("%v", d.MissViewList)
 		totalProduceTime := row.AddCell()
-		totalProduceTime.Value = strconv.Itoa(int(d.totalProduceTime))
+		totalProduceTime.Value = strconv.Itoa(int(d.TotalProduceTime))
 		averageProduceTime := row.AddCell()
-		averageProduceTime.Value = strconv.Itoa(int(d.averageProduceTime))
+		averageProduceTime.Value = strconv.Itoa(int(d.AverageProduceTime))
 		txCount := row.AddCell()
-		txCount.Value = strconv.Itoa(int(d.txCount))
+		txCount.Value = strconv.Itoa(int(d.TxCount))
 		tps := row.AddCell()
-		tps.Value = strconv.Itoa(int(d.tps))
+		tps.Value = strconv.Itoa(int(d.Tps))
 		topArray := row.AddCell()
-		topArray.Value = fmt.Sprintf("%v", d.topArray)
+		topArray.Value = fmt.Sprintf("%v", d.TopArray)
 	}
 	err = file.Save(resultPath)
 	if err != nil {
