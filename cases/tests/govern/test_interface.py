@@ -342,8 +342,8 @@ class TestgetAccuVerifiersCount:
         result = clients_consensus[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
-        assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 3, 0, 0]
-        assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 1]
+        assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 2, 0, 0]
+        assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 0, 1]
 
         report_information = mock_duplicate_sign(2, clients_consensus[2].node.nodekey,
                                                  clients_consensus[2].node.blsprikey, 41)

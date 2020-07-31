@@ -79,7 +79,7 @@ def version_declare(pip):
     return result
 
 
-def wait_proposal_Active(pip, pip_id):
+def wait_proposal_active(pip, pip_id):
     res = pip.pip.getProposal(pip_id)
     end_block = res['Ret']['EndVotingBlock']
     end_block = pip.economic.get_consensus_switchpoint(end_block)
@@ -91,8 +91,6 @@ def wait_proposal_Active(pip, pip_id):
 def make_0mb_slash(slash_client, check_client):
     """
     构造零出块处罚场景
-    @param:
-    @return:
     """
     slash_node = slash_client.node
     pledge_amount, block_reward, slash_blocks = get_out_block_penalty_parameters(slash_client, slash_node, 'Released')
@@ -100,15 +98,16 @@ def make_0mb_slash(slash_client, check_client):
     log.info("make zero produce block")
     start_num, end_num = verify_low_block_rate_penalty(slash_client, check_client, block_reward, slash_blocks, pledge_amount, 'Released')
     log.info('check Verifier Lists')
-    assert check_node_in_list(slash_node.node_id, check_client.ppos.getCandidateList) == False, "error: Node not kicked out CandidateList"
-    assert check_node_in_list(slash_node.node_id, check_client.ppos.getVerifierList) == False, "error: Node not kicked out VerifierList"
-    assert check_node_in_list(slash_node.node_id, check_client.ppos.getValidatorList) == False, "error: Node not kicked out ValidatorList"
+    assert check_node_in_list(slash_node.node_id, check_client.ppos.getCandidateList) is False
+    assert check_node_in_list(slash_node.node_id, check_client.ppos.getVerifierList) is False
+    assert check_node_in_list(slash_node.node_id, check_client.ppos.getValidatorList) is False
     slash_client.node.start()
     return start_num, end_num
 
 
 class TestSlashing:
 
+    @pytest.mark.P1
     def test_0mb_freeze_after_version_vote(self, verifiers):
         """
         @describe: 版本升级提案投票后，节点零出块冻结，投票有效，提案可正常生效
@@ -135,6 +134,7 @@ class TestSlashing:
         assert vote_info[0] == 4  # all verifiers
         assert vote_info[1] == 1  # all yeas vote
 
+    @pytest.mark.P1
     def test_0mb_freeze_after_param_vote(self, verifiers, new_genesis_env):
         """
         @describe: 参数提案投票后，节点零出块冻结，投票有效，提案可正常生效
@@ -165,6 +165,7 @@ class TestSlashing:
         assert vote_info[0] == 4  # all verifiers
         assert vote_info[1] == 1  # all yeas vote
 
+    @pytest.mark.P1
     def test_0mb_freeze_after_text_vote(self, verifiers):
         """
         @describe: 文本提案投票后，节点零出块冻结，投票有效，提案可正常生效
@@ -190,6 +191,7 @@ class TestSlashing:
         assert vote_info[0] == 4  # all verifiers
         assert vote_info[1] == 1  # all yeas vote
 
+    @pytest.mark.P1
     def test_0mb_freeze_after_cancel_vote(self, verifiers):
         """
         @describe: 取消提案投票后，节点零出块冻结，投票有效，提案可正常生效
@@ -216,6 +218,7 @@ class TestSlashing:
         assert vote_info[0] == 4  # all verifiers
         assert vote_info[1] == 1  # all yeas vote
 
+    @pytest.mark.P1
     def test_submit_proposal_at_0mb_freezing(self, verifiers):
         """
         @describe: 节点零出块冻结期内，进行提案，提案失败
@@ -237,6 +240,7 @@ class TestSlashing:
         pip_id = version_proposal(pips[1], pip[1].cfg.version5, 5)
         assert cancel_proposal(pip, pip_id, 2) == 302022
 
+    @pytest.mark.P1
     def test_version_vote_at_0mb_freezing(self, verifiers):
         """
         @describe: 节点零出块冻结期内，进行版本升级提案投票，投票失败
@@ -264,6 +268,7 @@ class TestSlashing:
         # assert all_verifiers == 1
         # assert all_yeas == 1
 
+    @pytest.mark.P1
     def test_param_vote_at_0mb_freezing(self, verifiers):
         """
         @describe: 节点零出块冻结期内，进行参数提案投票，投票失败
@@ -285,6 +290,7 @@ class TestSlashing:
         make_0mb_slash(verifiers[1], verifiers[0])
         assert vote(pip, pip_id) == 302022
 
+    @pytest.mark.P1
     def test_txt_vote_at_0mb_freezing(self, verifiers):
         """
         @describe: 节点零出块冻结期内，进行文本提案投票，投票失败
@@ -306,6 +312,7 @@ class TestSlashing:
         make_0mb_slash(verifiers[1], verifiers[0])
         assert vote(pip, pip_id) == 302022
 
+    @pytest.mark.P1
     def test_cancel_vote_at_0mb_freezing(self, verifiers):
         """
         @describe: 节点零出块冻结期内，进行取消提案投票，投票失败
@@ -328,6 +335,7 @@ class TestSlashing:
         make_0mb_slash(verifiers[1], verifiers[0])
         assert vote(pip, pip_id) == 302022
 
+    @pytest.mark.P1
     def test_submit_declare_at_0mb_freezing(self, verifiers, new_genesis_env):
         """
         @describe: 节点零出块冻结期内，进行版本声明
@@ -351,7 +359,7 @@ class TestSlashing:
         vote(pips[3], pip_id)
         # setp3: 在投票期内，构造节点零出块，并等待提案通过
         start_block, end_block = make_0mb_slash(verifiers[0], verifiers[1])
-        wait_proposal_Active(pip, pip_id)
+        wait_proposal_active(pip, pip_id)
         # step4：更新零出块节点二进制，进行版本声明
         upload_platon(pip.node, pip.cfg.PLATON_NEW_BIN)
         assert version_declare(pip) == 302023
@@ -359,6 +367,33 @@ class TestSlashing:
         wait_block_number(pip.node, end_block)
         assert version_declare(pip) == 0
 
+    @pytest.mark.P1
+    def test_proposal_multiple_voting(self, verifiers):
+        """
+        @describe: 同一提案，节点处罚前已经投票，处罚完成后再次投票
+        @step:
+        - 1. 提交版本提案并进行投票
+        - 2. 停止节点，等待节点被零出块处罚
+        - 3. 处罚完成后，再次进行投票
+        @expect:
+        - 1. 节点重复投票失败，提案未统计重复投票信息
+        """
+        # step1：
+        pips = get_pips(verifiers)
+        pip = pips[0]
+        pip_id = version_proposal(pip, pip.cfg.version5, 10)
+        upload_platon(pip.node, pip.cfg.PLATON_NEW_BIN)
+        vote(pip, pip_id)
+        # step2：停止节点，等待节点被零出块处罚
+        start_block, end_block = make_0mb_slash(verifiers[0], verifiers[1])
+        wait_block_number(pip.node, end_block)
+        # step3：检查提案和投票信息是否正确
+        assert vote(pip, pip_id) == 302027
+        vote_info = pip.get_accuverifiers_count(pip_id)
+        assert vote_info[0] == 4  # all verifiers
+        assert vote_info[1] == 1  # all yeas vote
+
+    @pytest.mark.P1
     @pytest.mark.parametrize('value', ['1', '3'])
     def test_modify_param_of_0mb_freeze_duration(self, verifiers, new_genesis_env, value):
         """
@@ -381,12 +416,17 @@ class TestSlashing:
         pip = pips[0]
         pip_id = param_proposal(pip, 'slashing', 'zeroProduceFreezeDuration', value)
         votes(pip_id, pips, [1, 1, 1, 1])
-        wait_proposal_Active(pip, pip_id)
+        wait_proposal_active(pip, pip_id)
         # step2: 检查参数生效值和效果
         res = pip.pip.getGovernParamValue('slashing', 'zeroProduceFreezeDuration')
         assert res['Ret'] == value
-        # TODO:校验实际效果
+        start_block, end_block = make_0mb_slash(verifiers[0], verifiers[1])
+        wait_block_number(pip.node, end_block)
+        assert check_node_in_list(pip.node.node_id, pip.node.ppos.getCandidateList) is True
+        node_info = pip.node.ppos.getCandidateInfo(pip.node.node_id)
+        assert node_info['Ret']['Status'] == 0
 
+    @pytest.mark.P1
     @pytest.mark.parametrize('value, code', [('2', 302034), ('0', 3), ('4', 3), ('', 3), ('T', 3)])
     def test_modify_param_fail_of_0mb_freeze_duration(self, verifiers, new_genesis_env, value, code):
         """
@@ -408,7 +448,37 @@ class TestSlashing:
         pip = pips[0]
         assert param_proposal(pip, 'slashing', 'zeroProduceFreezeDuration', value) == code
 
-    # TODO：
-    # 1、整体流程，冻结解冻
-    # 2、投票后解质押，锁定时长用例更新
-    # 3、投票后，解质押和处罚并行
+    @pytest.mark.P1
+    def test_all_process_of_pip_after_slashed(self, verifiers):
+        """
+        @describe: 在处罚结束之后，执行pip所有流程
+        @step:
+        - 1. 节点在零出块处罚结束后发起提案
+        - 2. 节点在零出块处罚结束后进行投票
+        - 3. 节点在零出块处罚结束后进行版本声明
+        @expect:
+        - 1. pip流程未受到处罚影响
+        """
+        # step1: 构造零出块处罚，并在处罚结束后发起提案
+        pips = get_pips(verifiers)
+        pip = pips[0]
+        _, end_block = make_0mb_slash(verifiers[0], verifiers[1])
+        wait_block_number(pip.node, end_block)
+        assert check_node_in_list(pip.node.node_id, pip.node.ppos.getCandidateList) is True
+        pip.economic.wait_settlement(pip.node)
+        assert check_node_in_list(pip.node.node_id, pip.node.ppos.getValidatorList) is True
+        assert check_node_in_list(pip.node.node_id, pip.node.ppos.getVerifierList) is True
+        # step2: 构造零出块处罚，并在处罚结束后进行投票
+        pip_id = version_proposal(pip, pip.cfg.version5, 10)
+        _, end_block = make_0mb_slash(verifiers[1], verifiers[0])
+        wait_block_number(pip.node, end_block)
+        upload_platon(pips[1].node, pip.cfg.PLATON_NEW_BIN)
+        upload_platon(pips[2].node, pip.cfg.PLATON_NEW_BIN)
+        upload_platon(pips[3].node, pip.cfg.PLATON_NEW_BIN)
+        assert vote(pips[1], pip_id, pips[1].cfg.vote_option_yeas) == 0
+        assert vote(pips[2], pip_id, pips[2].cfg.vote_option_yeas) == 0
+        assert vote(pips[3], pip_id, pips[3].cfg.vote_option_yeas) == 0
+        # step3: 在提案生效后进行版本声明
+        wait_proposal_active(pip, pip_id)
+        upload_platon(pip.node, pip.cfg.PLATON_NEW_BIN)
+        assert version_declare(pip) == 0
