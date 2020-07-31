@@ -109,7 +109,7 @@ def test_CS_CL_003(clients_new_node, clients_consensus):
     log.info("validatorlist:{}".format(validatorlist))
 
     log.info("The next consensus cycle")
-    client_consensus1.economic.wait_consensus(client_consensus1.node, number=1)
+    client_consensus1.economic.wait_consensus(client_consensus1.node, 1)
     blocknumber = client_consensus1.node.eth.blockNumber
     log.info("To report the double sign")
     report_information1 = mock_duplicate_sign(1, client_consensus1.node.nodekey,
@@ -365,7 +365,7 @@ def test_CS_CL_012_032(clients_new_node):
     assert_code(result, 0)
 
     log.info("The next  periods")
-    client.economic.wait_settlement(client.node, number=1)
+    client.economic.wait_settlement(client.node, 1)
     verifierlist = get_pledge_list(client.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
 

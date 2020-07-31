@@ -1753,14 +1753,14 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
 #         assert_code(result, 0)
 #         result = client.node.ppos.getCandidateInfo(client.node.node_id)
 #         log.info("Candidate Info:{}".format(result))
-    # economic.wait_settlement_blocknum(node)
+    # economic.wait_settlement(node)
     # log.info("Current block height: {}".format(node.eth.blockNumber))
     # result = node.ppos.getValidatorList()
     # log.info("current Validator List：{}".format(result))
     # clients_noconsensus[1].node.stop()
     # clients_noconsensus[2].node.stop()
     #
-    # economic.wait_consensus_blocknum(node)
+    # economic.wait_consensus(node)
     # log.info("Current block height: {}".format(node.eth.blockNumber))
     # log.info("Validator List:{}".format(node.ppos.getValidatorList()))
     # wait_slashing_list = node.debug.getWaitSlashingNodeList()
@@ -1768,7 +1768,7 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == 0
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == 0
     #
-    # economic.wait_consensus_blocknum(node)
+    # economic.wait_consensus(node)
     # log.info("Current block height: {}".format(node.eth.blockNumber))
     # log.info("Validator List:{}".format(node.ppos.getValidatorList()))
     # wait_slashing_list = node.debug.getWaitSlashingNodeList()
@@ -1776,7 +1776,7 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == 0
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == 0
     #
-    # economic.wait_consensus_blocknum(node)
+    # economic.wait_consensus(node)
     # log.info("Current block height: {}".format(node.eth.blockNumber))
     # log.info("Validator List:{}".format(node.ppos.getValidatorList()))
     # wait_slashing_list = node.debug.getWaitSlashingNodeList()
@@ -1784,7 +1784,7 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == to_int(1)
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == to_int(1)
     #
-    # economic.wait_consensus_blocknum(node)
+    # economic.wait_consensus(node)
     # log.info("Current block height: {}".format(node.eth.blockNumber))
     # log.info("Validator List:{}".format(node.ppos.getValidatorList()))
     # wait_slashing_list = node.debug.getWaitSlashingNodeList()
@@ -1792,7 +1792,7 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == to_int(11)
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == to_int(11)
     #
-    # economic.wait_consensus_blocknum(node)
+    # economic.wait_consensus(node)
     # log.info("Current block height: {}".format(node.eth.blockNumber))
     # log.info("Validator List:{}".format(node.ppos.getValidatorList()))
     # wait_slashing_list = node.debug.getWaitSlashingNodeList()
@@ -1800,7 +1800,7 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[1].node.node_id) == to_int(111)
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == to_int(111)
     #
-    # economic.wait_consensus_blocknum(node)
+    # economic.wait_consensus(node)
     # log.info("Current block height: {}".format(node.eth.blockNumber))
     # log.info("Validator List:{}".format(node.ppos.getValidatorList()))
     # wait_slashing_list = node.debug.getWaitSlashingNodeList()
@@ -1809,9 +1809,9 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
     # assert get_slash_count(wait_slashing_list, clients_noconsensus[2].node.node_id) == 0
     # assert_slashing(node.ppos.getCandidateInfo(clients_noconsensus[1].node.node_id), economic.create_staking_limit)
     # assert_slashing(node.ppos.getCandidateInfo(clients_noconsensus[2].node.node_id), economic.create_staking_limit)
-    # economic.wait_consensus_blocknum(node)
+    # economic.wait_consensus(node)
     # log.info("Current block height: {}".format(node.eth.blockNumber))
-    # economic.wait_consensus_blocknum(node)
+    # economic.wait_consensus(node)
     # log.info("Current block height: {}".format(node.eth.blockNumber))
 
 #
@@ -1842,19 +1842,19 @@ def test_ZB_NP_69(new_genesis_env, clients_consensus):
 #         assert_code(result, 0)
 #         result = client.node.ppos.getCandidateInfo(client.node.node_id)
 #         log.info("Candidate Info:{}".format(result))
-#     economic.wait_settlement_blocknum(node)
+#     economic.wait_settlement(node)
 #     log.info("Current block height: {}".format(node.eth.blockNumber))
 #     # initial_validator, slashing_node_list = gen_validator_list(economic.env.consensus_node_id_list(), client_noconsensus.node.node_id)
 #     # log.info("verifier nodeid list: {}".format(initial_validator))
 #     clients_consensus[2].node.stop()
 #     clients_noconsensus[1].node.stop()
 #
-# # economic.wait_consensus_blocknum(node, 1)
+# # economic.wait_consensus(node, 1)
 #     # log.info("Current block height: {}".format(node.eth.blockNumber))
 #     # client_noconsensus.node.start(False)
 #
 #     for i in range(8):
-#         economic.wait_consensus_blocknum(node)
+#         economic.wait_consensus(node)
 #         log.info("Current block height: {}".format(node.eth.blockNumber))
 #         current_validator = node.ppos.getValidatorList()
 #         log.info("current validator: {}".format(current_validator))

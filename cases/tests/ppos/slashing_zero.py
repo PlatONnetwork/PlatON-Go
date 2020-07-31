@@ -99,10 +99,10 @@ def new_validator_client(update_zero_produce_env, client_noconsensus):
 #     for i in range(1000):
 #         if i/2 == 0 and not new_validator_client.node.running:
 #             new_validator_client.node.start(False)
-#             economic.wait_consensus_blocknum(node)
+#             economic.wait_consensus(node)
 #             new_validator_client.node.stop()
 #         else:
-#             economic.wait_consensus_blocknum(node)
+#             economic.wait_consensus(node)
 #         print(i, get_slash_count(node.debug.getWaitSlashingNodeList(), new_validator_client.node.node_id))
 #         if slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id)):
 #             print("slashing")

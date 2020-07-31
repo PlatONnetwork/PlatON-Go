@@ -10,7 +10,8 @@ from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value, get_the_dynamic_parameter_gas_fee, get_getDelegateReward_gas_fee
+    get_governable_parameter_value, get_the_dynamic_parameter_gas_fee, get_getDelegateReward_gas_fee, \
+    get_block_count_number
 
 
 def create_staking_node(client):
@@ -2466,7 +2467,7 @@ def test_EI_BC_070(client_new_node, reset_environment):
     assert result['Ret'][0]['reward'] == 0, "ErrMsg:Receive dividends {}".format(result['Ret'][0]['reward'])
     # block_reward, staking_reward = economic.get_current_year_reward(node)
 
-    # economic.wait_settlement_blocknum(node)
+    # economic.wait_settlement(node)
     # log.info("Current settlement block height：{}".format(node.eth.blockNumber))
 
     economic.wait_settlement(node, 2)
@@ -2838,7 +2839,8 @@ def test_EI_BC_076(client_new_node, reset_environment):
     assert_code(result, 0)
     delegate_epoch, cumulative_income = get_dividend_information(client, node.node_id, address)
     assert delegate_epoch == 4, "ErrMsg: Last time delegate epoch {}".format(delegate_epoch)
-    assert cumulative_income == von_amount(current_commission_award, 2), "ErrMsg: Last time cumulative income {}".format(
+    assert cumulative_income == von_amount(current_commission_award,
+                                           2), "ErrMsg: Last time cumulative income {}".format(
         cumulative_income)
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
@@ -2847,10 +2849,12 @@ def test_EI_BC_076(client_new_node, reset_environment):
         delegate_total)
     assert delegate_total_hes == delegate_amount, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
-    assert delegate_reward_total == von_amount(commission_award_total, 2), "Total delegated rewards currently issued by the candidate: {}".format(
+    assert delegate_reward_total == von_amount(commission_award_total,
+                                               2), "Total delegated rewards currently issued by the candidate: {}".format(
         delegate_reward_total)
     result = client.ppos.getDelegateReward(address)
-    assert result['Ret'][0]['reward'] == von_amount(commission_award_total, 2), "ErrMsg: Dividends currently available {}".format(
+    assert result['Ret'][0]['reward'] == von_amount(commission_award_total,
+                                                    2), "ErrMsg: Dividends currently available {}".format(
         result['Ret'][0]['reward'])
     block_reward, staking_reward = economic.get_current_year_reward(node)
     economic.wait_settlement(node)
@@ -2863,7 +2867,8 @@ def test_EI_BC_076(client_new_node, reset_environment):
     assert_code(result, 0)
     delegate_epoch, cumulative_income = get_dividend_information(client, node.node_id, address)
     assert delegate_epoch == 5, "ErrMsg: Last time delegate epoch {}".format(delegate_epoch)
-    assert cumulative_income == von_amount(current_commission_award, 2) + second_current_commission_award, "ErrMsg: Last time cumulative income {}".format(
+    assert cumulative_income == von_amount(current_commission_award,
+                                           2) + second_current_commission_award, "ErrMsg: Last time cumulative income {}".format(
         cumulative_income)
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
@@ -2873,11 +2878,13 @@ def test_EI_BC_076(client_new_node, reset_environment):
         delegate_total)
     assert delegate_total_hes == delegate_amount, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
-    assert delegate_reward_total == von_amount(commission_award_total, 2) + second_commission_award_total, "Total delegated rewards currently issued by the candidate: {}".format(
+    assert delegate_reward_total == von_amount(commission_award_total,
+                                               2) + second_commission_award_total, "Total delegated rewards currently issued by the candidate: {}".format(
         delegate_reward_total)
     result = client.ppos.getDelegateReward(address)
     assert result['Ret'][0][
-               'reward'] == von_amount(current_commission_award, 2) + second_current_commission_award, "ErrMsg: Dividends currently available {}".format(
+               'reward'] == von_amount(current_commission_award,
+                                       2) + second_current_commission_award, "ErrMsg: Dividends currently available {}".format(
         result['Ret'][0]['reward'])
 
 
@@ -2912,7 +2919,9 @@ def test_EI_BC_077(client_new_node, reset_environment):
     economic.wait_settlement(node)
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
     commission_award_total = economic.calculate_delegate_reward(node, block_reward, staking_reward, reward=1000)
-    current_commission_award = economic.delegate_cumulative_income(node, block_reward, staking_reward, von_amount(delegate_amount, 2),delegate_amount, reward=1000)
+    current_commission_award = economic.delegate_cumulative_income(node, block_reward, staking_reward,
+                                                                   von_amount(delegate_amount, 2), delegate_amount,
+                                                                   reward=1000)
     result = client.delegate.delegate(0, first_address, amount=delegate_amount)
     assert_code(result, 0)
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
@@ -2921,7 +2930,8 @@ def test_EI_BC_077(client_new_node, reset_environment):
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
     delegate_epoch, cumulative_income = get_dividend_information(client, node.node_id, first_address)
     assert delegate_epoch == 4, "ErrMsg: Last time delegate epoch {}".format(delegate_epoch)
-    assert cumulative_income == von_amount(current_commission_award, 2), "ErrMsg: Last time cumulative income {}".format(
+    assert cumulative_income == von_amount(current_commission_award,
+                                           2), "ErrMsg: Last time cumulative income {}".format(
         cumulative_income)
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
@@ -2932,10 +2942,12 @@ def test_EI_BC_077(client_new_node, reset_environment):
     assert delegate_total_hes == von_amount(delegate_amount,
                                             2), "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
-    assert delegate_reward_total == von_amount(commission_award_total, 2), "Total delegated rewards currently issued by the candidate: {}".format(
+    assert delegate_reward_total == von_amount(commission_award_total,
+                                               2), "Total delegated rewards currently issued by the candidate: {}".format(
         delegate_reward_total)
     result = client.ppos.getDelegateReward(first_address)
-    assert result['Ret'][0]['reward'] == von_amount(current_commission_award, 2), "ErrMsg: Dividends currently available {}".format(
+    assert result['Ret'][0]['reward'] == von_amount(current_commission_award,
+                                                    2), "ErrMsg: Dividends currently available {}".format(
         result['Ret'][0]['reward'])
     block_reward, staking_reward = economic.get_current_year_reward(node)
     economic.wait_settlement(node)
@@ -2950,7 +2962,8 @@ def test_EI_BC_077(client_new_node, reset_environment):
     assert_code(result, 0)
     delegate_epoch, cumulative_income = get_dividend_information(client, node.node_id, first_address)
     assert delegate_epoch == 5, "ErrMsg: Last time delegate epoch {}".format(delegate_epoch)
-    assert cumulative_income == von_amount(current_commission_award, 2) + second_current_commission_award, "ErrMsg: Last time cumulative income {}".format(
+    assert cumulative_income == von_amount(current_commission_award,
+                                           2) + second_current_commission_award, "ErrMsg: Last time cumulative income {}".format(
         cumulative_income)
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
@@ -2961,11 +2974,13 @@ def test_EI_BC_077(client_new_node, reset_environment):
     assert delegate_total_hes == von_amount(delegate_amount,
                                             2), "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
-    assert delegate_reward_total == von_amount(commission_award_total, 2) + second_commission_award_total, "Total delegated rewards currently issued by the candidate: {}".format(
+    assert delegate_reward_total == von_amount(commission_award_total,
+                                               2) + second_commission_award_total, "Total delegated rewards currently issued by the candidate: {}".format(
         delegate_reward_total)
     result = client.ppos.getDelegateReward(first_address)
     assert result['Ret'][0][
-               'reward'] == von_amount(current_commission_award, 2) + second_current_commission_award, "ErrMsg: Dividends currently available {}".format(
+               'reward'] == von_amount(current_commission_award,
+                                       2) + second_current_commission_award, "ErrMsg: Dividends currently available {}".format(
         result['Ret'][0]['reward'])
 
 
@@ -3134,7 +3149,8 @@ def test_EI_BC_079(client_new_node, reset_environment):
     last_delegate_epoch, delegate_total, delegate_total_hes, delegate_reward_total = get_delegate_relevant_amount_and_epoch(
         client, node.node_id)
     assert last_delegate_epoch == 4, "ErrMsg: Last time delegate epoch {}".format(last_delegate_epoch)
-    assert delegate_total == von_amount(delegate_amount, 3) - von_amount(economic.delegate_limit, 2), "The total number of effective commissioned nodes: {}".format(
+    assert delegate_total == von_amount(delegate_amount, 3) - von_amount(economic.delegate_limit,
+                                                                         2), "The total number of effective commissioned nodes: {}".format(
         delegate_total)
     assert delegate_total_hes == delegate_amount, "The total number of inactive nodes commissioned: {}".format(
         delegate_total_hes)
@@ -3144,8 +3160,11 @@ def test_EI_BC_079(client_new_node, reset_environment):
     assert result['Ret'][0]['reward'] == 0, "ErrMsg: Dividends currently available {}".format(
         result['Ret'][0]['reward'])
     result = client.ppos.getDelegateReward(second_address)
-    assert result['Ret'][0]['reward'] == second_current_commission_award, "ErrMsg: Dividends currently available {}".format(
+    assert result['Ret'][0][
+               'reward'] == second_current_commission_award, "ErrMsg: Dividends currently available {}".format(
         result['Ret'][0]['reward'])
+
+
 #
 # @pytest.mark.P2
 # def test_EI_BC_080(client_new_node, reset_environment):
@@ -3160,11 +3179,11 @@ def test_EI_BC_079(client_new_node, reset_environment):
 #     result = client.delegate.delegate(0, address, amount=delegate_amount)
 #     assert_code(result, 0)
 #     log.info("Commissioned successfully, commissioned amount：{}".format(economic.delegate_limit))
-#     economic.wait_settlement_blocknum(node)
+#     economic.wait_settlement(node)
 #     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
 #     block_reward, staking_reward = economic.get_current_year_reward(node)
 #     log.info("block_reward: {}  staking_reward: {}".format(block_reward, staking_reward))
-#     economic.wait_settlement_blocknum(node)
+#     economic.wait_settlement(node)
 #     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
 #     commission_award_total = economic.calculate_delegate_reward(node, block_reward, staking_reward, reward=1000)
 #     current_commission_award = economic.delegate_cumulative_income(node, block_reward, staking_reward, delegate_amount,
@@ -3188,7 +3207,7 @@ def test_EI_BC_079(client_new_node, reset_environment):
 #     assert result['Ret'][0]['reward'] == current_commission_award, "ErrMsg: Dividends currently available {}".format(
 #         result['Ret'][0]['reward'])
 #     block_reward, staking_reward = economic.get_current_year_reward(node)
-#     economic.wait_settlement_blocknum(node)
+#     economic.wait_settlement(node)
 #     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
 #     second_commission_award_total = economic.calculate_delegate_reward(node, block_reward, staking_reward)
 #     second_current_commission_award = economic.delegate_cumulative_income(node, block_reward, staking_reward,
@@ -3355,8 +3374,9 @@ def test_EI_BC_083(clients_new_node, reset_environment):
     first_current_commission_award = first_economic.delegate_cumulative_income(first_node, block_reward, staking_reward,
                                                                                delegate_amount, delegate_amount)
     second_award_total = first_economic.calculate_delegate_reward(second_node, block_reward, staking_reward)
-    second_current_commission_award = second_economic.delegate_cumulative_income(second_node, block_reward, staking_reward,
-                                                                               delegate_amount, delegate_amount)
+    second_current_commission_award = second_economic.delegate_cumulative_income(second_node, block_reward,
+                                                                                 staking_reward,
+                                                                                 delegate_amount, delegate_amount)
     result = first_client.delegate.withdraw_delegate_reward(address)
     assert_code(result, 0)
     delegate_epoch, cumulative_income = get_dividend_information(first_client, first_node.node_id, address)
@@ -3369,7 +3389,8 @@ def test_EI_BC_083(clients_new_node, reset_environment):
     log.info("delegate1 account balance:{}".format(second_balance))
     gas = get_getDelegateReward_gas_fee(first_client, 2, 2)
     log.info("gas:{}".format(gas))
-    assert first_balance + first_current_commission_award + second_current_commission_award - gas == second_balance, "ErrMsg:delegate account balance {}".format(second_balance)
+    assert first_balance + first_current_commission_award + second_current_commission_award - gas == second_balance, "ErrMsg:delegate account balance {}".format(
+        second_balance)
     result = first_client.delegate.withdraw_delegate_reward(address)
     assert_code(result, 0)
     third_balance = first_client.node.eth.getBalance(address)
@@ -3544,4 +3565,51 @@ def test_EI_BC_086(client_new_node, reset_environment):
     assert_code(result, 305001)
 
 
+def test_sss(client_new_node):
+    """
+
+    """
+    client = client_new_node
+    economic = client.economic
+    node = client.node
+    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 3)
+    benifit_address, _ = economic.account.generate_account(node.web3, 0)
+    delegate_address, _ = economic.account.generate_account(node.web3, von_amount(economic.delegate_limit, 2))
+    result = client.staking.create_staking(0, benifit_address, address, amount=economic.create_staking_limit * 2,
+                                           reward_per=1000)
+    assert_code(result, 0)
+    result = client.delegate.delegate(0, delegate_address)
+    assert_code(result, 0)
+    economic.wait_settlement(node)
+    economic.wait_consensus(node)
+    result = client.staking.withdrew_staking(address)
+    assert_code(result, 0)
+    block_reward, staking_reward = economic.get_current_year_reward(node)
+    print(block_reward, staking_reward)
+    economic.wait_settlement(node)
+    settlement_block = economic.get_switchpoint_by_settlement(node) - economic.settlement_size
+    blocknum = economic.get_block_count_number(node, settlement_block, 10)
+    block_reward_total = math.ceil(Decimal(str(block_reward)) * blocknum)
+    delegate_block_reward = 0
+    for i in range(blocknum):
+        delegate_block = int(Decimal(str(block_reward)) * Decimal(str(10 / 100)))
+        delegate_block_reward = delegate_block_reward + delegate_block
+    node_block_reward = block_reward_total - delegate_block_reward
+    print('node_block_reward', node_block_reward)
+    reward_total = block_reward_total + staking_reward
+    # delegate_block_reward = int(Decimal(str(block_reward_total)) * Decimal(str(10 / 100)))
+    delegate_staking_reward = int(Decimal(str(staking_reward)) * Decimal(str(10 / 100)))
+    delegate_reward_total = delegate_block_reward + delegate_staking_reward
+    # node_block_reward = int(Decimal(str(block_reward_total)) * Decimal(str(90 / 100)))
+    node_staking_reward = math.ceil(Decimal(str(staking_reward)) * Decimal(str(90 / 100)))
+    print('node_staking_reward ', node_staking_reward)
+    node_reward_total = node_staking_reward + node_block_reward
+    log.info("reward_total {}".format(reward_total))
+    log.info("delegate_reward {}".format(delegate_reward_total))
+    log.info("node_reward {}".format(node_reward_total))
+    print(delegate_reward_total + node_reward_total)
+    result = node.ppos.getDelegateReward(delegate_address)
+    print("getDelegateReward", result)
+    balance = node.eth.getBalance(benifit_address, settlement_block)
+    print("benifit_balance", balance)
 

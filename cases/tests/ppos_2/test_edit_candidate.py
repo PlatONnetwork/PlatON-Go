@@ -248,7 +248,7 @@ def test_MPI_012_013(client_new_node):
     log.info(result)
     assert_code(result, 301103)
     log.info("Next two settlement period")
-    client_new_node.economic.wait_settlement(client_new_node.node, number=2)
+    client_new_node.economic.wait_settlement(client_new_node.node, 2)
     msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     log.info(msg)
     assert msg["Code"] == 301204
@@ -297,10 +297,10 @@ def test_MPI_015_016(clients_new_node, client_consensus):
     address, pri_key = economic.account.generate_account(node.web3,
                                                          10 ** 18 * 10000000)
 
-    value = economic.create_staking_limit * 2
+    value = economic.create_staking_limit
     result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
-    economic.wait_consensus(other_node, number=4)
+    economic.wait_consensus(other_node, 4)
     validator_list = get_pledge_list(other_node.ppos.getValidatorList)
     assert node.node_id in validator_list
     candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
@@ -308,7 +308,7 @@ def test_MPI_015_016(clients_new_node, client_consensus):
     log.info("Close one node")
     node.stop()
     for i in range(4):
-        economic.wait_consensus(other_node, number=i)
+        economic.wait_consensus(other_node, i)
         candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
         log.info(candidate_info)
         if candidate_info["Ret"]["Released"] < value:
@@ -321,7 +321,7 @@ def test_MPI_015_016(clients_new_node, client_consensus):
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    economic.wait_settlement(node, number=2)
+    economic.wait_settlement(node, 2)
     result = client.staking.edit_candidate(address, address)
     assert_code(result, 301102)
 

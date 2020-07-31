@@ -189,24 +189,24 @@ class TestEditCandidate:
         value = client.staking.get_rewardper(client.node)
         newvalue = get_new_value(value)
         print(value, newvalue)
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                        reward_per=newvalue)
         # assert_code(result, 0)
         # self.assert_rewardsper(client, value, newvalue)
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                        reward_per=0)
         # print(result)
         # assert_code(result, 0)
         # self.assert_rewardsper(client, 1, 0)
         #
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                        reward_per=10000)
         # assert_code(result, 301009)
         #
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                        reward_per=10001)
         # log.info('Edit candidate information reward percent is 10001, result : {}'.format(result))
@@ -223,7 +223,7 @@ class TestEditCandidate:
         # log.info('Edit candidate information reward percent is string, result : {}'.format(result))
         # assert_code(result, 0)
 
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                    reward_per=10000000000000000000000000000000000000000000000)
         # assert_code(result, 301007)

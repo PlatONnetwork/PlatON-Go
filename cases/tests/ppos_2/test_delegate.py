@@ -66,7 +66,7 @@ def test_DI_002_003_004(clients_new_node):
     result = client2.delegate.delegate(0, address2)
     assert_code(result, 0)
 
-    client2.economic.wait_consensus_blocknum(client2.node)
+    client2.economic.wait_consensus(client2.node)
     nodeid_list = get_pledge_list(client2.ppos.getValidatorList)
     log.info("Consensus validator list:{}".format(nodeid_list))
     assert client2.node.node_id in nodeid_list
@@ -203,14 +203,14 @@ def test_DI_011_012_013_014(client_new_node, status):
         # The delegate is also a valid candidate at a lockup period
         address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                         10 ** 18 * 10000000)
-        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        client_new_node.economic.wait_settlement(client_new_node.node)
         result = client_new_node.delegate.delegate(0, address1)
         assert_code(result, 0)
 
     if status == 2:
         address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                         10 ** 18 * 10000000)
-        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        client_new_node.economic.wait_settlement(client_new_node.node)
         result = client_new_node.staking.withdrew_staking(address)
         assert_code(result, 0)
         result = client_new_node.delegate.delegate(0, address1)
@@ -219,10 +219,10 @@ def test_DI_011_012_013_014(client_new_node, status):
     if status == 3:
         address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                         10 ** 18 * 10000000)
-        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        client_new_node.economic.wait_settlement(client_new_node.node)
         result = client_new_node.staking.withdrew_staking(address)
         assert_code(result, 0)
-        client_new_node.economic.wait_settlement_blocknum(client_new_node.node, number=2)
+        client_new_node.economic.wait_settlement(client_new_node.node, 2)
         result = client_new_node.delegate.delegate(0, address1)
         log.info(result)
         assert_code(result, 301102)
@@ -240,14 +240,12 @@ def test_DI_015_016(client_new_node, client_consensus):
     node = client.node
     other_node = client_consensus.node
     economic = client.economic
-    address, _ = economic.account.generate_account(client_new_node.node.web3,
-                                                         10 ** 18 * 10000000)
-    address_delegate, _ = economic.account.generate_account(client_new_node.node.web3,
-                                                         10 ** 18 * 10000000)
-    value = economic.create_staking_limit * 2
+    address, _ = economic.account.generate_account(client_new_node.node.web3, 10 ** 18 * 2000000)
+    address_delegate, _ = economic.account.generate_account(client_new_node.node.web3, 10 ** 18 * 10000000)
+    value = economic.create_staking_limit
     result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
-    economic.wait_consensus_blocknum(other_node, number=4)
+    economic.wait_consensus(other_node, 4)
     validator_list = get_pledge_list(other_node.ppos.getValidatorList)
     assert node.node_id in validator_list
     candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
@@ -255,7 +253,7 @@ def test_DI_015_016(client_new_node, client_consensus):
     log.info("Close one node")
     node.stop()
     for i in range(4):
-        economic.wait_consensus_blocknum(other_node)
+        economic.wait_consensus(other_node)
         candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
         log.info(candidate_info)
         if candidate_info["Ret"]["Released"] < value:
@@ -267,7 +265,7 @@ def test_DI_015_016(client_new_node, client_consensus):
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node.economic.wait_settlement_blocknum(node,number=2)
+    client_new_node.economic.wait_settlement(node, 2)
     result = client.delegate.delegate(0, address_delegate)
     assert_code(result, 301102)
 
@@ -347,7 +345,7 @@ def test_DI_021(client_new_node, client_consensus):
     client_new_node.node.stop()
     node = client_consensus.node
     log.info("The next two periods")
-    client_new_node.economic.wait_settlement_blocknum(node, number=2)
+    client_new_node.economic.wait_settlement(node, 2)
     log.info("Restart the node")
     client_new_node.node.start()
     msg = client_consensus.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node.node.node_id)
@@ -387,7 +385,7 @@ def test_DI_022_023_024(client_new_node, status):
         assert msg["Ret"]["ReleasedHes"] == client_new_node.economic.delegate_limit * 2
 
     if status == 1:
-        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        client_new_node.economic.wait_settlement(client_new_node.node)
         result = client_new_node.delegate.delegate(0, address1)
         log.info(result)
         msg = client_new_node.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node.node.node_id)
@@ -396,7 +394,7 @@ def test_DI_022_023_024(client_new_node, status):
         assert msg["Ret"]["Released"] == client_new_node.economic.delegate_limit
 
     if status == 2:
-        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        client_new_node.economic.wait_settlement(client_new_node.node)
         result = client_new_node.delegate.delegate(0, address1)
         log.info(result)
         result = client_new_node.delegate.delegate(0, address1)
@@ -513,7 +511,7 @@ def test_DI_029_030(client_new_node):
     result = client_new_node.ppos.getRelatedListByDelAddr(address_delegate)
     log.info(result)
     log.info("The next cycle")
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     result = client_new_node.ppos.getRelatedListByDelAddr(address_delegate)
     assert result["Code"] == 0
     assert client_new_node.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
@@ -572,7 +570,7 @@ def test_DI_032_033(client_new_node):
     assert client_new_node.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
     assert result["Ret"]["NodeId"] == client_new_node.node.node_id
     log.info("The next cycle")
-    client_new_node.economic.wait_consensus_blocknum(client_new_node.node)
+    client_new_node.economic.wait_consensus(client_new_node.node)
     result = client_new_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
                                                   client_new_node.node.node_id)
     log.info(result)
@@ -621,17 +619,17 @@ def test_DI_035_036(clients_new_node, client_consensus):
     node = client.node
     other_node = client_consensus.node
     economic = client.economic
-    address, _ = economic.account.generate_account(node.web3,10 ** 18 * 10000000)
+    address, _ = economic.account.generate_account(node.web3, 10 ** 18 * 10000000)
 
-    address_delegate, _ = economic.account.generate_account(node.web3,10 ** 18 * 10000000)
+    address_delegate, _ = economic.account.generate_account(node.web3, 10 ** 18 * 10000000)
 
     value = economic.create_staking_limit * 2
     result = client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     result = client.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
-    ##The validation node becomes the out-block validation node
-    economic.wait_consensus_blocknum(other_node, number=4)
+    # The validation node becomes the out-block validation node
+    economic.wait_consensus(other_node, 4)
     validator_list = get_pledge_list(other_node.ppos.getValidatorList)
     assert node.node_id in validator_list
     candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
@@ -641,24 +639,24 @@ def test_DI_035_036(clients_new_node, client_consensus):
     log.info("Close one node")
     node.stop()
     for i in range(4):
-        economic.wait_consensus_blocknum(other_node, number=i)
+        economic.wait_consensus(other_node)
         candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
         log.info(candidate_info)
         if candidate_info["Ret"]["Released"] < value:
             break
 
     result = other_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                       node.node_id)
+                                             node.node_id)
     log.info(result)
     assert other_node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
     assert result["Ret"]["NodeId"] == node.node_id
     log.info("Restart the node")
     node.start()
     log.info("Next settlement period")
-    economic.wait_settlement_blocknum(other_node,number=2)
+    economic.wait_settlement(other_node, 2)
 
     result = other_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                       node.node_id)
+                                             node.node_id)
     log.info(result)
     assert other_node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
     assert result["Ret"]["NodeId"] == node.node_id
@@ -685,7 +683,7 @@ def test_DI_038(client_new_node):
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
 
     log.info("The next cycle")
-    client_new_node.economic.wait_consensus_blocknum(client_new_node.node)
+    client_new_node.economic.wait_consensus(client_new_node.node)
 
     # Exit the pledge
     result = client_new_node.staking.withdrew_staking(address)

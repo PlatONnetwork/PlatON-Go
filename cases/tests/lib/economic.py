@@ -74,11 +74,12 @@ class Economic:
     def account(self):
         return self.env.account
 
-    def get_block_count_number(self, node: Node, roundnum=1):
+    def get_block_count_number(self, node: Node, current_block=None, roundnum=1):
         """
         Get the number of blocks out of the verification node
         """
-        current_block = node.eth.blockNumber
+        if current_block is None:
+            current_block = node.eth.blockNumber
         block_namber = self.consensus_size * roundnum
         count = 0
         for i in range(block_namber):
@@ -90,7 +91,6 @@ class Economic:
                     count = count + 1
             else:
                 break
-        print(current_block)
         return count
 
     def get_number_blocks_in_interval(self, node: Node, roundnum=1):
