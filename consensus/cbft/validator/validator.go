@@ -111,6 +111,57 @@ func (d *StaticAgency) OnCommit(block *types.Block) error {
 	return nil
 }
 
+type MockAgency struct {
+	consensus.Agency
+	validators *cbfttypes.Validators
+	interval   uint64
+}
+
+func NewMockAgency(nodes []params.CbftNode, interval uint64) consensus.Agency {
+	return &MockAgency{
+		validators: newValidators(nodes, 0),
+		interval:   interval,
+	}
+}
+
+func (d *MockAgency) Flush(header *types.Header) error {
+	return nil
+}
+
+func (d *MockAgency) Sign(interface{}) error {
+	return nil
+}
+
+func (d *MockAgency) VerifySign(interface{}) error {
+	return nil
+}
+
+func (d *MockAgency) VerifyHeader(header *types.Header, statedb *state.StateDB) error {
+	return nil
+}
+
+func (d *MockAgency) GetLastNumber(blockNumber uint64) uint64 {
+	if blockNumber%d.interval == 1 {
+		return blockNumber + d.interval - 1
+	}
+	return 0
+}
+
+func (d *MockAgency) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
+	if blockNumber > d.interval && blockNumber%d.interval == 1 {
+		d.validators.ValidBlockNumber = d.validators.ValidBlockNumber + d.interval + 1
+	}
+	return d.validators, nil
+}
+
+func (d *MockAgency) IsCandidateNode(nodeID discover.NodeID) bool {
+	return false
+}
+
+func (d *MockAgency) OnCommit(block *types.Block) error {
+	return nil
+}
+
 type InnerAgency struct {
 	consensus.Agency
 
@@ -271,7 +322,9 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, epoch uint64,
 		pool.prevValidators, _ = agency.GetValidator(blockNumber)
 		pool.currentValidators, _ = agency.GetValidator(NextRound(blockNumber))
 		pool.lastNumber = agency.GetLastNumber(NextRound(blockNumber))
-		pool.epoch += 1
+		if blockNumber != 0 {
+			pool.epoch += 1
+		}
 	} else {
 		pool.currentValidators, _ = agency.GetValidator(blockNumber)
 		pool.prevValidators = pool.currentValidators
@@ -333,7 +386,8 @@ func (vp *ValidatorPool) EnableVerifyEpoch(epoch uint64) error {
 }
 
 func (vp *ValidatorPool) MockSwitchPoint(number uint64) {
-	vp.switchPoint = number
+	vp.switchPoint = 0
+	vp.lastNumber = number
 }
 
 // Update switch validators.

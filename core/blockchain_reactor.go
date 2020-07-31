@@ -21,6 +21,9 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -32,8 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"math/big"
-	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -245,7 +246,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 			header.Nonce = types.EncodeNonce(value)
 		}
 	} else {
-		blockHash = header.Hash()
+		blockHash = header.CacheHash()
 		// Verify vrf proof
 		sign := header.Extra[32:97]
 		sealHash := header.SealHash().Bytes()
@@ -259,7 +260,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	}
 
 	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(),
-		"hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()))
+		"hash", blockHash, "parentHash", header.ParentHash)
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
 		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber",
 			header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash",
@@ -277,8 +278,8 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 
 	// This must not be deleted
 	root := state.IntermediateRoot(true)
-	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash(), "blockNumber",
+		header.Number.Uint64(), "root", root, "pointer", fmt.Sprintf("%p", state))
 
 	return nil
 }
@@ -296,7 +297,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	blockHash := common.ZeroHash
 
 	if !xutil.IsWorker(header.Extra) {
-		blockHash = header.Hash()
+		blockHash = header.CacheHash()
 	}
 
 	// Store the previous vrf random number
@@ -320,14 +321,14 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	if len(pposHash) != 0 && !bytes.Equal(pposHash, make([]byte, len(pposHash))) {
 		// store hash about ppos
 		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
-		log.Debug("Store ppos hash", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64(),
+		log.Debug("Store ppos hash", "blockHash", blockHash, "blockNumber", header.Number.Uint64(),
 			"pposHash", hex.EncodeToString(pposHash))
 	}
 
 	// This must not be deleted
 	root := state.IntermediateRoot(true)
-	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash.Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash, "blockNumber",
+		header.Number.Uint64(), "root", root, "pointer", fmt.Sprintf("%p", state))
 
 	return nil
 }
@@ -399,9 +400,9 @@ func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 }
 
 func (bcr *BlockChainReactor) Flush(header *types.Header) error {
-	log.Debug("Call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()))
+	log.Debug("Call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", header.Hash())
 	if err := snapshotdb.Instance().Flush(header.Hash(), header.Number); nil != err {
-		log.Error("Failed to call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()), "err", err)
+		log.Error("Failed to call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", header.Hash(), "err", err)
 		return err
 	}
 	return nil

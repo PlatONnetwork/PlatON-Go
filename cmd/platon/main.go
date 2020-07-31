@@ -78,6 +78,7 @@ var (
 		utils.TxPoolGlobalQueueFlag,
 		utils.TxPoolGlobalTxCountFlag,
 		utils.TxPoolLifetimeFlag,
+		utils.TxPoolCacheSizeFlag,
 		utils.SyncModeFlag,
 		utils.LightServFlag,
 		utils.LightPeersFlag,

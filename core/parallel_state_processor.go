@@ -42,32 +42,38 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 			return nil, nil, 0, err
 		}
 	}
-	if block.CalTxFromCH != nil {
-		tasks := cap(block.CalTxFromCH)
-		timeout := time.NewTimer(time.Second)
-		for tasks > 0 {
-			select {
-			case <-block.CalTxFromCH:
-				tasks--
-			case <-timeout.C:
-				log.Error("Parallel cal tx from time out")
-				tasks = 0
-			}
-		}
-		timeout.Stop()
-	}
+
 	// Iterate over and process the individual transactions
 	if len(block.Transactions()) > 0 {
 		start := time.Now()
 		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false, GetExecutor().Signer())
 		ctx.SetBlockGasUsedHolder(usedGas)
 		ctx.SetTxList(block.Transactions())
+
+		//wait tx from cal done
+		if block.CalTxFromCH != nil {
+			tasks := cap(block.CalTxFromCH)
+			timeout := time.NewTimer(time.Millisecond * 800)
+			txHaveCal := 0
+			for tasks > 0 {
+				select {
+				case txs := <-block.CalTxFromCH:
+					txHaveCal = txHaveCal + txs
+					tasks--
+				case <-timeout.C:
+					log.Warn("Parallel cal tx from time out", "num", block.Number(), "left_task", tasks, "total_task", cap(block.CalTxFromCH), "txcal", txHaveCal)
+					tasks = 0
+				}
+			}
+			timeout.Stop()
+		}
+
 		if err := GetExecutor().ExecuteTransactions(ctx); err != nil {
 			return nil, nil, 0, err
 		}
 		receipts = ctx.GetReceipts()
 		allLogs = ctx.GetLogs()
-		log.Trace("Process parallel execute transactions cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
+		log.Trace("Process parallel execute transactions cost time", "blockNumber", block.Number(), "blockHash", block.Hash(), "time", time.Since(start))
 	}
 
 	if bcr != nil {
@@ -77,7 +83,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
-		log.Debug("Process end blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex())
+		log.Debug("Process end blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash())
 	}
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)

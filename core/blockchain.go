@@ -1104,7 +1104,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	}
 	bc.futureBlocks.Remove(block.Hash())
-
+	bc.blockCache.Add(block.Hash(), block)
 	// Cleanup storage
 	if !bc.cacheConfig.DBDisabledGC.IsSet() && bc.cleaner.NeedCleanup() {
 		bc.cleaner.Cleanup()
@@ -1224,11 +1224,11 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	start := time.Now()
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {
-		log.Error("Failed to ProcessDirectly", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err)
+		log.Error("Failed to ProcessDirectly", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
 		bc.reportBlock(block, receipts, err)
 		return nil, err
 	}
-	log.Debug("Execute block time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
+	log.Debug("Execute block time", "blockNumber", block.Number(), "blockHash", block.Hash(), "time", time.Since(start))
 
 	// Validate the state using the default validator
 	err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)

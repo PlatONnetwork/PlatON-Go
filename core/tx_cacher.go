@@ -19,6 +19,8 @@ package core
 import (
 	"runtime"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -35,7 +37,7 @@ type txSenderCacherRequest struct {
 	signer types.Signer
 	txs    []*types.Transaction
 	inc    int
-	doneCh chan struct{}
+	doneCh chan int
 	starts int
 }
 
@@ -69,11 +71,13 @@ func (cacher *txSenderCacher) SetTxPool(txPool *TxPool) {
 // data structures.
 func (cacher *txSenderCacher) cache() {
 	for task := range cacher.tasks {
+		txCal := 0
 		for i := task.starts; i < len(task.txs); i += task.inc {
 			types.Sender(task.signer, task.txs[i])
+			txCal++
 		}
 		if task.doneCh != nil {
-			task.doneCh <- struct{}{}
+			task.doneCh <- txCal
 		}
 	}
 }
@@ -133,31 +137,34 @@ func (cacher *txSenderCacher) recover(signer types.Signer, txs []*types.Transact
 	}
 }*/
 
-func (cacher *txSenderCacher) RecoverTxsFromPool(signer types.Signer, txs []*types.Transaction) chan struct{} {
+/*func (cacher *txSenderCacher) RecoverTxsFromPool(signer types.Signer, txs []*types.Transaction) chan struct{} {
 	// Ensure we have meaningful task sizes and schedule the recoveries
 	tasks := cacher.threads
 	if len(txs) < tasks*4 {
 		tasks = (len(txs) + 3) / 4
 	}
 
-	CalTxFromCH := make(chan struct{}, tasks)
+	CalTx := make(chan struct{}, tasks)
 	for i := 0; i < tasks; i++ {
 		cacher.tasks <- &txSenderCacherRequest{
 			signer: signer,
 			txs:    txs,
 			inc:    tasks,
-			doneCh: CalTxFromCH,
+			done: CalTx,
 			starts: i,
 		}
 	}
-	return CalTxFromCH
-}
+	return CalTx
+}*/
 
 // recoverFromBlock recovers the senders from  block and caches them
 // back into the same data structures. There is no validation being done, nor
 // any reaction to invalid signatures. That is up to calling code later.
 func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types.Block) {
 	count := len(block.Transactions())
+	if count == 0 {
+		return
+	}
 	txs := make([]*types.Transaction, 0, count)
 
 	if cacher.txPool != nil && cacher.txPool.count() >= 200 {
@@ -171,12 +178,16 @@ func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types
 	} else {
 		txs = block.Transactions()
 	}
+	if len(txs) == 0 {
+		return
+	}
 	// Ensure we have meaningful task sizes and schedule the recoveries
 	tasks := cacher.threads
 	if len(txs) < tasks*4 {
 		tasks = (len(txs) + 3) / 4
 	}
-	block.CalTxFromCH = make(chan struct{}, tasks)
+	log.Trace("Start recover tx FromBlock", "number", block.Number(), "txs", len(txs), "tasks", tasks)
+	block.CalTxFromCH = make(chan int, tasks)
 	for i := 0; i < tasks; i++ {
 		cacher.tasks <- &txSenderCacherRequest{
 			signer: signer,
