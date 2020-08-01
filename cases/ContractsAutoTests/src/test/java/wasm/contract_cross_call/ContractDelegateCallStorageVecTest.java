@@ -20,7 +20,7 @@ public class ContractDelegateCallStorageVecTest extends WASMContractPrepareTest 
             prepare();
 
             // deploy the target contract which the name is `storage_vec`, first
-            ContractStorageVector target = ContractStorageVector.deploy(web3j, transactionManager, provider).send();
+            ContractStorageVector target = ContractStorageVector.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy storage_vec contract:" + target.getTransactionReceipt().get().getGasUsed());
 
 
@@ -30,7 +30,7 @@ public class ContractDelegateCallStorageVecTest extends WASMContractPrepareTest 
 
 
             // deploy the delegate_call  contract second
-            ContractDelegateCallStorageVector delegateCall = ContractDelegateCallStorageVector.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallStorageVector delegateCall = ContractDelegateCallStorageVector.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy delegate_call_storage_vec contract:" + delegateCall.getTransactionReceipt().get().getGasUsed());
 
             String delegateCallAddr = delegateCall.getContractAddress();

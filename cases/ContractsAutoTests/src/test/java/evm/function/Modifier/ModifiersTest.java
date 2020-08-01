@@ -33,7 +33,7 @@ public class ModifiersTest extends ContractPrepareTest {
             author = "liweic", showName = "function.ModifiersTest-多修饰器函数测试", sourcePrefix = "evm")
     public void modifiers() {
         try {
-            Modifiers modifiers = Modifiers.deploy(web3j, transactionManager, provider).send();
+            Modifiers modifiers = Modifiers.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = modifiers.getContractAddress();
             TransactionReceipt tx = modifiers.getTransactionReceipt().get();

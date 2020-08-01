@@ -9,7 +9,7 @@ import org.junit.Test;
 
 
 /**
- * @title  08-合约和地址
+ * @title 08-合约和地址
  * 1-contract合约类型不再包括 address类型的成员函数，
  * 必须显式转换成 address地址类型才能使用
  * @description:
@@ -30,14 +30,14 @@ public class ContractAdressTest extends ContractPrepareTest {
     public void addressAndPaybleChange() {
         try {
 
-            ContractAndAddress contractAndAddress = ContractAndAddress.deploy(web3j, transactionManager, provider).send();
+            ContractAndAddress contractAndAddress = ContractAndAddress.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = contractAndAddress.getNonalContractAddress().send();
             String dddressToPayable = contractAndAddress.getAddressToPayable().send();
 
             collector.logStepPass("ContractAdressTest force change address to payable");
 
-            collector.assertEqual(contractAddress,dddressToPayable);
+            collector.assertEqual(contractAddress, dddressToPayable);
 
 
             String payableAddress = contractAndAddress.getNonalPayableAddress().send();
@@ -45,7 +45,7 @@ public class ContractAdressTest extends ContractPrepareTest {
 
             collector.logStepPass("ContractAdressTest change payable to address");
 
-            collector.assertEqual(payableAddress,payableToAddress);
+            collector.assertEqual(payableAddress, payableToAddress);
 
         } catch (Exception e) {
             collector.logStepFail("ContractAdressTest process fail.", e.toString());

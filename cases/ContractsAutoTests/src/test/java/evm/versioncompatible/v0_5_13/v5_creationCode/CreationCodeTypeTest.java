@@ -32,7 +32,7 @@ public class CreationCodeTypeTest extends ContractPrepareTest {
     public void testType() {
         try {
 
-            CreationCode creationCode = CreationCode.deploy(web3j, transactionManager, provider).send();
+            CreationCode creationCode = CreationCode.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = creationCode.getContractAddress();
             TransactionReceipt tx = creationCode.getTransactionReceipt().get();

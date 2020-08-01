@@ -15,7 +15,7 @@ import java.math.BigInteger;
 /**
  * @title 10进制数值不能直接转换成 bytesX类型
  * 必须先转换到与 bytesX相同长度的 uintY，再转换到 bytesX类型
- * @description: 
+ * @description:
  * @author: hudenian
  * @create: 2019/12/26
  */
@@ -36,7 +36,7 @@ public class DecimalLiteralsChangeByteDeprecatedTypeTest extends ContractPrepare
     public void changeByteDeprecatedType() {
         try {
 
-            DecimalLiteralsChangeByte decimalLiteralsChangeByte = DecimalLiteralsChangeByte.deploy(web3j, transactionManager, provider).send();
+            DecimalLiteralsChangeByte decimalLiteralsChangeByte = DecimalLiteralsChangeByte.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = decimalLiteralsChangeByte.getContractAddress();
             TransactionReceipt tx = decimalLiteralsChangeByte.getTransactionReceipt().get();
@@ -47,15 +47,15 @@ public class DecimalLiteralsChangeByteDeprecatedTypeTest extends ContractPrepare
             TransactionReceipt transactionReceipt = decimalLiteralsChangeByte.testChange(new BigInteger(initValue)).send();
 
             collector.logStepPass("FunctionDeclaraction update_public successful.transactionHash:" + transactionReceipt.getTransactionHash());
-            collector.logStepPass( "currentBlockNumber:" + transactionReceipt.getBlockNumber());
+            collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
             byte[] afterValueByte = decimalLiteralsChangeByte.getB4().send();
 
             String afterValue = DataChangeUtil.bytesToHex(afterValueByte).toLowerCase();
 
-            collector.logStepPass(initValue+"转成bytes4后的值为："+afterValue);
+            collector.logStepPass(initValue + "转成bytes4后的值为：" + afterValue);
 
-            collector.assertEqual("0000000a",afterValue);
+            collector.assertEqual("0000000a", afterValue);
         } catch (Exception e) {
             collector.logStepFail("changeByteDeprecatedType process fail.", e.toString());
             e.printStackTrace();

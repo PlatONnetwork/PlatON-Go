@@ -32,7 +32,7 @@ public class ContractEmitEvent1ComplexParamTest extends WASMContractPrepareTest 
 
         try {
             prepare();
-            ContractEmitEvent1ComplexParam contractEmitEvent1 = ContractEmitEvent1ComplexParam.deploy(web3j, transactionManager, provider).send();
+            ContractEmitEvent1ComplexParam contractEmitEvent1 = ContractEmitEvent1ComplexParam.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractEmitEvent1.getContractAddress();
             String transactionHash = contractEmitEvent1.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractEmitEvent1ComplexParamTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -47,9 +47,9 @@ public class ContractEmitEvent1ComplexParamTest extends WASMContractPrepareTest 
             String data = eventList.get(0).log.getData();
 
             //获取包含list集合的合约
-            collector.assertEqual(eventList.get(0).arg2,value);
-            collector.assertEqual(eventList.get(0).arg1.get(0),stringList.get(0));
-            collector.assertEqual(eventList.get(0).arg1.get(1),stringList.get(1));
+            collector.assertEqual(eventList.get(0).arg1,value);
+            collector.assertEqual(eventList.get(0).arg2.get(0),stringList.get(0));
+            collector.assertEqual(eventList.get(0).arg2.get(1),stringList.get(1));
 
             collector.logStepPass("topics is:"+eventList.get(0).log.getTopics().get(0).toString());
 

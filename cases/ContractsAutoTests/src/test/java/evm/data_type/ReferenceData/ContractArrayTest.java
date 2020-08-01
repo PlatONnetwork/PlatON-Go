@@ -31,7 +31,7 @@ public class ContractArrayTest extends ContractPrepareTest {
             author = "liweic", showName = "data_type.ContractArrayTest-合约数组测试",sourcePrefix = "evm")
     public void Contractarray() {
         try {
-            ContractArray contractarray = ContractArray.deploy(web3j, transactionManager, provider).send();
+            ContractArray contractarray = ContractArray.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = contractarray.getContractAddress();
             TransactionReceipt tx = contractarray.getTransactionReceipt().get();

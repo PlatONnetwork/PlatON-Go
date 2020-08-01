@@ -28,7 +28,7 @@ public class PublicCoverExternalTest extends ContractPrepareTest {
     public void testPublicCoverExternal() {
         try {
 
-            PersonPublic personPublic = PersonPublic.deploy(web3j, transactionManager, provider).send();
+            PersonPublic personPublic = PersonPublic.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = personPublic.getContractAddress();
             TransactionReceipt tx = personPublic.getTransactionReceipt().get();

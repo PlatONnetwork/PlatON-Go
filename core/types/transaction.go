@@ -163,9 +163,15 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 func (tx *Transaction) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
 func (tx *Transaction) Gas() uint64        { return tx.data.GasLimit }
 func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }
-func (tx *Transaction) Value() *big.Int    { return new(big.Int).Set(tx.data.Amount) }
-func (tx *Transaction) Nonce() uint64      { return tx.data.AccountNonce }
-func (tx *Transaction) CheckNonce() bool   { return true }
+func (tx *Transaction) GasPriceCmp(other *Transaction) int {
+	return tx.data.Price.Cmp(other.data.Price)
+}
+func (tx *Transaction) GasPriceIntCmp(other *big.Int) int {
+	return tx.data.Price.Cmp(other)
+}
+func (tx *Transaction) Value() *big.Int  { return new(big.Int).Set(tx.data.Amount) }
+func (tx *Transaction) Nonce() uint64    { return tx.data.AccountNonce }
+func (tx *Transaction) CheckNonce() bool { return true }
 
 // To returns the recipient address of the transaction.
 // It returns nil if the transaction is a contract creation.
@@ -245,6 +251,10 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
 }
 
+func (tx *Transaction) CacheFromAddr(signer Signer, addr common.Address) {
+	tx.from.Store(sigCache{signer: signer, from: addr})
+}
+
 func (tx *Transaction) FromAddr(signer Signer) common.Address {
 	if sc := tx.from.Load(); sc != nil {
 		sigCache := sc.(sigCache)
@@ -263,6 +273,7 @@ func (tx *Transaction) FromAddr(signer Signer) common.Address {
 	if err != nil {
 		return common.Address{}
 	}
+	//log.Debug("Sender cache2", "add", addr, "hash", tx.Hash(), "poi", fmt.Sprintf("%p", tx))
 	tx.from.Store(sigCache{signer: signer, from: addr})
 	return addr
 }

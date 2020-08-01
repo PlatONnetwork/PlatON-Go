@@ -32,7 +32,7 @@ public class Caller0425Test extends ContractPrepareTest {
     public void caller0425CallTest() {
         try {
             //调用者合约地址
-            Caller0425 caller0425 = Caller0425.deploy(web3j, transactionManager, provider).send();
+            Caller0425 caller0425 = Caller0425.deploy(web3j, transactionManager, provider, chainId).send();
             String callerContractAddress = caller0425.getContractAddress();
             TransactionReceipt tx = caller0425.getTransactionReceipt().get();
             collector.logStepPass("Caller0425 deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
@@ -40,7 +40,7 @@ public class Caller0425Test extends ContractPrepareTest {
 
 
             //被调用者合约地址
-            Callee0425 callee0425 = Callee0425.deploy(web3j, transactionManager, provider).send();
+            Callee0425 callee0425 = Callee0425.deploy(web3j, transactionManager, provider, chainId).send();
             String calleeContractAddress = callee0425.getContractAddress();
             TransactionReceipt tx1 = callee0425.getTransactionReceipt().get();
             collector.logStepPass("Callee0425 deploy successfully.contractAddress:" + calleeContractAddress + ", hash:" + tx1.getTransactionHash());
@@ -80,14 +80,14 @@ public class Caller0425Test extends ContractPrepareTest {
     public void caller0425CallCodeTest() {
         try {
             //调用者合约地址
-            Caller0425 caller0425 = Caller0425.deploy(web3j, transactionManager, provider).send();
+            Caller0425 caller0425 = Caller0425.deploy(web3j, transactionManager, provider, chainId).send();
             String callerContractAddress = caller0425.getContractAddress();
             TransactionReceipt tx = caller0425.getTransactionReceipt().get();
             collector.logStepPass("Caller0425 deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
 
 
             //被调用者合约地址
-            Callee0425 callee0425 = Callee0425.deploy(web3j, transactionManager, provider).send();
+            Callee0425 callee0425 = Callee0425.deploy(web3j, transactionManager, provider, chainId).send();
             String calleeContractAddress = callee0425.getContractAddress();
             TransactionReceipt tx1 = callee0425.getTransactionReceipt().get();
             collector.logStepPass("Callee0425 deploy successfully.contractAddress:" + calleeContractAddress + ", hash:" + tx1.getTransactionHash());
@@ -126,14 +126,14 @@ public class Caller0425Test extends ContractPrepareTest {
     public void caller0425DelegateCallTest() {
         try {
             //调用者合约地址
-            Caller0425 caller0425 = Caller0425.deploy(web3j, transactionManager, provider).send();
+            Caller0425 caller0425 = Caller0425.deploy(web3j, transactionManager, provider, chainId).send();
             String callerContractAddress = caller0425.getContractAddress();
             TransactionReceipt tx = caller0425.getTransactionReceipt().get();
             collector.logStepPass("Caller0425 deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
 
 
             //被调用者合约地址
-            Callee0425 callee0425 = Callee0425.deploy(web3j, transactionManager, provider).send();
+            Callee0425 callee0425 = Callee0425.deploy(web3j, transactionManager, provider, chainId).send();
             String calleeContractAddress = callee0425.getContractAddress();
             TransactionReceipt tx1 = callee0425.getTransactionReceipt().get();
             collector.logStepPass("Callee0425 deploy successfully.contractAddress:" + calleeContractAddress + ", hash:" + tx1.getTransactionHash());

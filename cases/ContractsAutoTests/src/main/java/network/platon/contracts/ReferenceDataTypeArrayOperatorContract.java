@@ -22,14 +22,14 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class ReferenceDataTypeArrayOperatorContract extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b506106e5806100206000396000f3fe608060405234801561001057600080fd5b506004361061007d5760003560e01c806399a1c3691161005b57806399a1c369146101cf5780639a6e3cb71461023e578063b99033341461028c578063fd081ef8146102fb5761007d565b80631ff0db4014610082578063676cb904146100f157806386d1171014610160575b600080fd5b61008a61036a565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b6100f961039c565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b6101686103e8565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b6101d7610434565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b610246610466565b6040518086151515158152602001851515151581526020018415151515815260200183151515158152602001821515151581526020019550505050505060405180910390f35b610294610657565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b610303610689565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b6000806000608160f81b90506000608060f81b90506000818316905060008160f81c9050818195509550505050509091565b6000806000608160f81b905060006001827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916901b905060008160f81c90508181945094505050509091565b6000806000608160f81b905060006001827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916901c905060008160f81c90508181945094505050509091565b6000806000608160f81b90506000608060f81b90506000818318905060008160f81c9050818195509550505050509091565b6000806000806000807f6100000000000000000000000000000000000000000000000000000000000000905060007f620000000000000000000000000000000000000000000000000000000000000090506000606160f81b90506000827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916847effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19161090506000837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916857effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19161190506000837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916867effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19161490506000847effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916867effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916141590506000857effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916887effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19161015905084848484849c509c509c509c509c5050505050505050509091929394565b6000806000608160f81b90506000608060f81b90506000818317905060008160f81c9050818195509550505050509091565b6000806000608160f81b905060008119905060008160f81c9050818194509450505050909156fea265627a7a72315820d8a63cf47c0af5a86bcbf505c7923c8974821fd5edd80dcc4963f4799f98e65d64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b506106e5806100206000396000f3fe608060405234801561001057600080fd5b506004361061007d5760003560e01c806399a1c3691161005b57806399a1c369146101cf5780639a6e3cb71461023e578063b99033341461028c578063fd081ef8146102fb5761007d565b80631ff0db4014610082578063676cb904146100f157806386d1171014610160575b600080fd5b61008a61036a565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b6100f961039c565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b6101686103e8565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b6101d7610434565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b610246610466565b6040518086151515158152602001851515151581526020018415151515815260200183151515158152602001821515151581526020019550505050505060405180910390f35b610294610657565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b610303610689565b60405180837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff191681526020018260ff1660ff1681526020019250505060405180910390f35b6000806000608160f81b90506000608060f81b90506000818316905060008160f81c9050818195509550505050509091565b6000806000608160f81b905060006001827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916901b905060008160f81c90508181945094505050509091565b6000806000608160f81b905060006001827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916901c905060008160f81c90508181945094505050509091565b6000806000608160f81b90506000608060f81b90506000818318905060008160f81c9050818195509550505050509091565b6000806000806000807f6100000000000000000000000000000000000000000000000000000000000000905060007f620000000000000000000000000000000000000000000000000000000000000090506000606160f81b90506000827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916847effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19161090506000837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916857effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19161190506000837effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916867effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19161490506000847effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916867effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916141590506000857effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916887effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19161015905084848484849c509c509c509c509c5050505050505050509091929394565b6000806000608160f81b90506000608060f81b90506000818317905060008160f81c9050818195509550505050509091565b6000806000608160f81b905060008119905060008160f81c9050818194509450505050909156fea265627a7a72315820ade2332958ec91205f96fe5339ca9fa16b2acc5aafa9d51650772fc7da9ea93064736f6c634300050d0032";
 
     public static final String FUNC_ARRAYBITANDOPERATORS = "arrayBitAndOperators";
 
@@ -45,22 +45,12 @@ public class ReferenceDataTypeArrayOperatorContract extends Contract {
 
     public static final String FUNC_ARRAYCOMPARE = "arrayCompare";
 
-    @Deprecated
-    protected ReferenceDataTypeArrayOperatorContract(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected ReferenceDataTypeArrayOperatorContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected ReferenceDataTypeArrayOperatorContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected ReferenceDataTypeArrayOperatorContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected ReferenceDataTypeArrayOperatorContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected ReferenceDataTypeArrayOperatorContract(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<Tuple2<byte[], BigInteger>> arrayBitAndOperators() {
@@ -178,39 +168,19 @@ public class ReferenceDataTypeArrayOperatorContract extends Contract {
                 });
     }
 
-    public static RemoteCall<ReferenceDataTypeArrayOperatorContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(ReferenceDataTypeArrayOperatorContract.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<ReferenceDataTypeArrayOperatorContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(ReferenceDataTypeArrayOperatorContract.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<ReferenceDataTypeArrayOperatorContract> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(ReferenceDataTypeArrayOperatorContract.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<ReferenceDataTypeArrayOperatorContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(ReferenceDataTypeArrayOperatorContract.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<ReferenceDataTypeArrayOperatorContract> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(ReferenceDataTypeArrayOperatorContract.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static ReferenceDataTypeArrayOperatorContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new ReferenceDataTypeArrayOperatorContract(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<ReferenceDataTypeArrayOperatorContract> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(ReferenceDataTypeArrayOperatorContract.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static ReferenceDataTypeArrayOperatorContract load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new ReferenceDataTypeArrayOperatorContract(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static ReferenceDataTypeArrayOperatorContract load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new ReferenceDataTypeArrayOperatorContract(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static ReferenceDataTypeArrayOperatorContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new ReferenceDataTypeArrayOperatorContract(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static ReferenceDataTypeArrayOperatorContract load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new ReferenceDataTypeArrayOperatorContract(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static ReferenceDataTypeArrayOperatorContract load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new ReferenceDataTypeArrayOperatorContract(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

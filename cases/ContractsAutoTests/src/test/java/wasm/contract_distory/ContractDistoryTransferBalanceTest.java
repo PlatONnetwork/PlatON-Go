@@ -25,11 +25,11 @@ public class ContractDistoryTransferBalanceTest extends WASMContractPrepareTest 
             author = "hudenian", showName = "wasm.contract_distory销毁合约的余额转移至调用者账户中",sourcePrefix = "wasm")
     public void testDistoryContract() {
 
-        String transferMoney = "1000000000000000000";
+        String transferMoney = "10000000000000000000";
 
         try {
             prepare();
-            ContractDistory contractDistory = ContractDistory.deploy(web3j, transactionManager, provider).send();
+            ContractDistory contractDistory = ContractDistory.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractDistory.getContractAddress();
             String transactionHash = contractDistory.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractDistory issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -37,10 +37,12 @@ public class ContractDistoryTransferBalanceTest extends WASMContractPrepareTest 
 
             //合约销毁前往合约转账
             Transfer transfer = new Transfer(web3j, transactionManager);
-            transfer.sendFunds(contractAddress, new BigDecimal(transferMoney), Convert.Unit.VON).send();
+            TransactionReceipt transactionReceiptTransfer = transfer.sendFunds(contractAddress, new BigDecimal(transferMoney), Convert.Unit.VON).send();
+
+            collector.logStepPass("transfer.status：" + transactionReceiptTransfer.getStatus() + ", hash：" + transactionReceiptTransfer.getTransactionHash() + ", gas used：" + transactionReceiptTransfer.getGasUsed());
 
             //查询当前调用者余额
-            BigInteger originBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
+            BigInteger originBalance = web3j.platonGetBalance(credentials.getAddress(chainId), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("当前用户销毁合约之前账户余额为>>>"+originBalance);
 
 
@@ -54,7 +56,7 @@ public class ContractDistoryTransferBalanceTest extends WASMContractPrepareTest 
             collector.assertEqual(afterDistoryBalance.toString(),"0");
 
             //查询当前调用者余额
-            BigInteger afterBalance = web3j.platonGetBalance(credentials.getAddress(), DefaultBlockParameterName.LATEST).send().getBalance();
+            BigInteger afterBalance = web3j.platonGetBalance(credentials.getAddress(chainId), DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("当前用户销毁合约之后账户余额为>>>"+afterBalance);
 
             //校验当前用户的余额增加值是否等于被销毁合约中的余额

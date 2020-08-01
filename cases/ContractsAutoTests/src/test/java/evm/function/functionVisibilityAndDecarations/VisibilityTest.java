@@ -30,7 +30,7 @@ public class VisibilityTest extends ContractPrepareTest {
             author = "liweic", showName = "function.VisibilityTest-函数可见性测试", sourcePrefix = "evm")
     public void Visibility() {
         try {
-            Visibility visibility = Visibility.deploy(web3j, transactionManager, provider).send();
+            Visibility visibility = Visibility.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = visibility.getContractAddress();
             TransactionReceipt tx = visibility.getTransactionReceipt().get();

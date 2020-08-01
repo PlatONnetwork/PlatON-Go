@@ -281,8 +281,9 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := NewContract(caller, to, value, gas)
-
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+
+	// Even if the account has no code, we need to continue because it might be a precompile
 	start := time.Now()
 
 	// Capture the tracer start/end events in debug mode

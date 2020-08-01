@@ -1,5 +1,7 @@
 package evm.regreetest;
 
+import com.platon.sdk.utlis.Bech32;
+import com.platon.sdk.utlis.NetworkParameters;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
@@ -14,6 +16,7 @@ import org.web3j.protocol.core.methods.response.PlatonGetTransactionCount;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.RawTransactionManager;
+import org.web3j.tx.TransactionManager;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
 
@@ -51,8 +54,8 @@ public class PlatONTransferTest {
         chainId = Integer.valueOf(driverService.param.get("chainId"));
         //transferFrom = driverService.param.get("transferFrom");
         transferFrom = driverService.param.get("address");
-        transferTo = driverService.param.get("transferTo");
-        amount = driverService.param.get("amount");
+        transferTo = "lax10eycqggu2yawpadtmn7d2zdw0vnmscklynzq8x"; //driverService.param.get("transferTo");
+        amount = "1"; //driverService.param.get("amount");
     }
 
     @Test
@@ -67,8 +70,10 @@ public class PlatONTransferTest {
             credentials = Credentials.create(driverService.param.get("privateKey"));
             collector.logStepPass("currentBlockNumber:" + web3j.platonBlockNumber().send().getBlockNumber());
             //获取nonce，交易笔数
+            transferFrom = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(),transferFrom);
             nonce = getNonce(transferFrom);
             collector.logStepPass("nonce:" + nonce);
+            //transferTo = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(),transferTo);
             BigInteger initialBalance = web3j.platonGetBalance(transferTo, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("initialBalance:" + initialBalance);
 
@@ -84,9 +89,18 @@ public class PlatONTransferTest {
             PlatonSendTransaction ethSendTransaction = web3j.platonSendRawTransaction(hexValue).send();
             //String hash = ethSendTransaction.getTransactionHash();
              */
-            RawTransactionManager transactionManager = new RawTransactionManager(web3j, credentials, chainId);
-            Transfer transfer = new Transfer(web3j, transactionManager);
+            //RawTransactionManager transactionManager = new RawTransactionManager(web3j, credentials, chainId);
+            //Transfer transfer = new Transfer(web3j, transactionManager);
+            //TransactionReceipt transactionReceipt = transfer.sendFunds(transferTo, new BigDecimal(amount), Convert.Unit.VON).send();
+
+            //TransactionReceipt transactionReceipt = Transfer.sendFunds(web3j, credentials, chainId, transferTo, new BigDecimal("1"), Convert.Unit.VON).send();
+
+
+            TransactionManager transactionManager = new RawTransactionManager(web3j, credentials, chainId);
+            Transfer transfer = new Transfer(web3j,transactionManager);
+
             TransactionReceipt transactionReceipt = transfer.sendFunds(transferTo, new BigDecimal(amount), Convert.Unit.VON).send();
+
 
             BigInteger endBalance = web3j.platonGetBalance(transferTo, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("endBalance:" + endBalance);

@@ -283,6 +283,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
 	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, blockChainCache)
 
+	core.SenderCacher.SetTxPool(eth.txPool)
+
 	// mpcPool deal with mpc transactions
 	// modify By J
 	//if config.MPCPool.Journal != "" {
@@ -326,7 +328,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 		var agency consensus.Agency
-		core.NewExecutor(eth.chainConfig, eth.blockchain, vmConfig)
+		core.NewExecutor(eth.chainConfig, eth.blockchain, vmConfig, eth.txPool)
 		// validatorMode:
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go
@@ -456,6 +458,12 @@ func (s *Ethereum) APIs() []rpc.API {
 			Namespace: "net",
 			Version:   "1.0",
 			Service:   s.netRPCService,
+			Public:    true,
+		},
+		{
+			Namespace: "txgen",
+			Version:   "1.0",
+			Service:   NewTxGenAPI(s),
 			Public:    true,
 		},
 	}...)

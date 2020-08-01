@@ -21,6 +21,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -66,7 +68,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x218b22137a2bbb4a17e81516955a8126f42f69cf7fc102e490dbfbf8e8dc5882")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0xeaa5dfe0d429bd9208ebc97f79bef889c9b72f5f6d8fd4066e74f8b6766f987b")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -83,7 +85,7 @@ func NewBlockWithSign(parent common.Hash, number uint64, node *TestCBFT) *types.
 		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x218b22137a2bbb4a17e81516955a8126f42f69cf7fc102e490dbfbf8e8dc5882")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0xeaa5dfe0d429bd9208ebc97f79bef889c9b72f5f6d8fd4066e74f8b6766f987b")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -145,11 +147,8 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 	return New(sysConfig, optConfig, ctx.EventMux, ctx)
 }
 
-// CreateBackend returns a new Backend for testing.
-func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
-
+func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 	var (
-		db    = rawdb.NewMemoryDatabase()
 		gspec = core.Genesis{
 			Config: chainConfig,
 			Alloc:  core.GenesisAlloc{},
@@ -161,7 +160,15 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 	gspec.Alloc[cvm.RewardManagerPoolAddr] = core.GenesisAccount{
 		Balance: twoBillion,
 	}
-	gspec.MustCommit(db)
+	block := gspec.MustCommit(db)
+	return gspec, block
+}
+
+// CreateBackend returns a new Backend for testing.
+func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
+
+	var db = rawdb.NewMemoryDatabase()
+	gspec, _ := CreateGenesis(db)
 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
 	cache := core.NewBlockChainCache(chain)

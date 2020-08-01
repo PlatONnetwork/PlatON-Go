@@ -29,7 +29,7 @@ public class SelectorTest extends ContractPrepareTest {
             author = "liweic", showName = "function.SelectorTest-Selector测试", sourcePrefix = "evm")
     public void selector() {
         try {
-            Selector selector = Selector.deploy(web3j, transactionManager, provider).send();
+            Selector selector = Selector.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = selector.getContractAddress();
             TransactionReceipt tx = selector.getTransactionReceipt().get();

@@ -1,7 +1,7 @@
 name: golangci-lint
 on:
   pull_request:
-    branches: [ feature/change-addr-to-bech32 ]
+    branches: '*'
 jobs:
   golangci:
     name: lint

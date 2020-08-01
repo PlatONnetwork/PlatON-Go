@@ -19,33 +19,23 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class DoWhileCheck extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610101806100206000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063db60eb9e146044575b600080fd5b348015604f57600080fd5b5060566073565b604051808381526020018281526020019250505060405180910390f35b6000806000806000809250600091505b828060010193505081806001019250506014821115609f5760b7565b600a83111560ab576083565b601e83101560b7576083565b601583141560c457600c90505b600e905082819450945050505090915600a165627a7a72305820676d66fb44b4bb90bd28feed353b146d3a6d83b0872d420d29a43a56a9924f110029";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610101806100206000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063db60eb9e146044575b600080fd5b348015604f57600080fd5b5060566073565b604051808381526020018281526020019250505060405180910390f35b6000806000806000809250600091505b828060010193505081806001019250506014821115609f5760b7565b600a83111560ab576083565b601e83101560b7576083565b601583141560c457600c90505b600e905082819450945050505090915600a165627a7a723058202aa7a8d7bfb2634eb04dfb20b3eb207121a4d9ee2edde6438cc8cc8b28f6a75a0029";
 
     public static final String FUNC_DOWHILECHECK = "doWhileCheck";
 
-    @Deprecated
-    protected DoWhileCheck(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected DoWhileCheck(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected DoWhileCheck(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected DoWhileCheck(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected DoWhileCheck(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected DoWhileCheck(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<Tuple2<BigInteger, BigInteger>> doWhileCheck() {
@@ -64,39 +54,19 @@ public class DoWhileCheck extends Contract {
                 });
     }
 
-    public static RemoteCall<DoWhileCheck> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(DoWhileCheck.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<DoWhileCheck> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(DoWhileCheck.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<DoWhileCheck> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(DoWhileCheck.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<DoWhileCheck> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(DoWhileCheck.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<DoWhileCheck> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(DoWhileCheck.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static DoWhileCheck load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new DoWhileCheck(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<DoWhileCheck> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(DoWhileCheck.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static DoWhileCheck load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new DoWhileCheck(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static DoWhileCheck load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new DoWhileCheck(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static DoWhileCheck load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new DoWhileCheck(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static DoWhileCheck load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new DoWhileCheck(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static DoWhileCheck load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new DoWhileCheck(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

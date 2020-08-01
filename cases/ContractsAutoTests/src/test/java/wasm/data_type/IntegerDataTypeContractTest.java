@@ -4,12 +4,15 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.platon.rlp.datatypes.*;
+import com.platon.sdk.utlis.Bech32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.IntegerDataTypeContract_1;
 import network.platon.contracts.wasm.IntegerDataTypeContract_2;
 import network.platon.contracts.wasm.IntegerDataTypeContract_3;
+//import network.platon.contracts.wasm.IntegerDataTypeContract_4;
 import network.platon.contracts.wasm.IntegerDataTypeContract_4;
+import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.abi.datatypes.Address;
@@ -37,7 +40,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            IntegerDataTypeContract_1 contract = IntegerDataTypeContract_1.deploy(web3j, transactionManager, provider).send();
+            IntegerDataTypeContract_1 contract = IntegerDataTypeContract_1.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:"
@@ -98,7 +101,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            IntegerDataTypeContract_2 contract = IntegerDataTypeContract_2.deploy(web3j, transactionManager, provider).send();
+            IntegerDataTypeContract_2 contract = IntegerDataTypeContract_2.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:"
@@ -159,7 +162,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            IntegerDataTypeContract_3 contract = IntegerDataTypeContract_3.deploy(web3j, transactionManager, provider).send();
+            IntegerDataTypeContract_3 contract = IntegerDataTypeContract_3.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("IntegerDataTypeContract_3 issued successfully.contractAddress:"
@@ -187,12 +190,8 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             collector.assertEqual(getChar.getValue(), expectByte.byteValue());
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract_3 and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract_3 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("IntegerDataTypeContract_3 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -203,16 +202,24 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            IntegerDataTypeContract_4 contract = IntegerDataTypeContract_4.deploy(web3j, transactionManager, provider).send();
+            IntegerDataTypeContract_4 contract = IntegerDataTypeContract_4.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("IntegerDataTypeContract_4 issued successfully.contractAddress:"
                     + contractAddress + ", hash:" + transactionHash
                     + " gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());
 
-            // test: store address
-            Address expectAddr = new Address("0x5b05e7a3e2a688c5e5cc491545a84a1efc66c1b1");
-            TransactionReceipt addrTr = contract.setAddress(expectAddr.getValue()).send();
+            // init address
+            TransactionReceipt initTr = contract.initAddress().send();
+            collector.logStepPass("To invoke initAddress success, txHash: " + initTr.getTransactionHash());
+            String afterInitAddress = contract.getAddress().send();
+            collector.logStepPass("To invoke getAddress success, getAddress: " + afterInitAddress);
+            collector.assertEqual(afterInitAddress.toLowerCase(), "lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2".toLowerCase());
+
+//            // test: store address
+//            Address expectAddr = new Address("0x5b05e7a3e2a688c5e5cc491545a84a1efc66c1b1");
+            String expectAddr = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
+            TransactionReceipt addrTr = contract.setAddress(expectAddr).send();
             collector.logStepPass("To invoke setAddress success, txHash: " + addrTr.getTransactionHash());
             String getAddress = contract.getAddress().send();
             collector.logStepPass("To invoke getAddress success, getAddress: " + getAddress);
@@ -235,12 +242,8 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             //collector.assertEqual(getH256, expectH256);
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract_4 and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("IntegerDataTypeContract_4 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -251,7 +254,7 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
         // 主要测试各类型的边界值
         try {
             // deploy contract.
-            IntegerDataTypeContract_2 contract = IntegerDataTypeContract_2.deploy(web3j, transactionManager, provider).send();
+            IntegerDataTypeContract_2 contract = IntegerDataTypeContract_2.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("IntegerDataTypeContract_01 issued successfully.contractAddress:"
@@ -413,12 +416,8 @@ public class IntegerDataTypeContractTest extends WASMContractPrepareTest {
             }
 
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("IntegerDataTypeContract_02 and could not call contract function");
-            }else{
-                collector.logStepFail("IntegerDataTypeContract_02 failure,exception msg:" , e.getMessage());
-                e.printStackTrace();
-            }
+            collector.logStepFail("IntegerDataTypeContract_02 failure,exception msg:" , e.getMessage());
+            e.printStackTrace();
         }
     }
 }

@@ -33,7 +33,7 @@ public class SumAssemblyTest extends ContractPrepareTest {
             author = "liweic", showName = "function.SumAssemblyTest-汇编操作指令测试", sourcePrefix = "evm")
     public void Sumassembly() {
         try {
-            SumAssembly sumassembly = SumAssembly.deploy(web3j, transactionManager, provider).send();
+            SumAssembly sumassembly = SumAssembly.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = sumassembly.getContractAddress();
             TransactionReceipt tx = sumassembly.getTransactionReceipt().get();

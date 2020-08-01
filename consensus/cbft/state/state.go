@@ -132,6 +132,31 @@ func (v *viewBlocks) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vv)
 }
 
+func (vb *viewBlocks) UnmarshalJSON(input []byte) error {
+	type viewBlocks struct {
+		Hash   common.Hash `json:"hash"`
+		Number uint64      `json:"number"`
+		Index  uint32      `json:"blockIndex"`
+	}
+
+	var vv map[uint32]viewBlocks
+	err := json.Unmarshal(input, &vv)
+	if err != nil {
+		return err
+	}
+
+	vb.Blocks = make(map[uint32]viewBlock)
+	for k, v := range vv {
+		vb.Blocks[k] = prepareViewBlock{
+			pb: &protocols.PrepareBlock{
+				BlockIndex: v.Index,
+				Block:      types.NewSimplifiedBlock(v.Number, v.Hash),
+			},
+		}
+	}
+	return nil
+}
+
 func newViewBlocks() *viewBlocks {
 	return &viewBlocks{
 		Blocks: make(map[uint32]viewBlock),
@@ -360,6 +385,39 @@ func (v *view) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(vv)
+}
+
+func (v *view) UnmarshalJSON(input []byte) error {
+	type view struct {
+		Epoch              uint64               `json:"epoch"`
+		ViewNumber         uint64               `json:"viewNumber"`
+		Executing          executing            `json:"executing"`
+		ViewChanges        *viewChanges         `json:"viewchange"`
+		LastViewChangeQC   *ctypes.ViewChangeQC `json:"lastViewchange"`
+		HadSendPrepareVote *PrepareVoteQueue    `json:"hadSendPrepareVote"`
+		PendingVote        *PrepareVoteQueue    `json:"pendingPrepareVote"`
+		ViewBlocks         *viewBlocks          `json:"viewBlocks"`
+		ViewQCs            *viewQCs             `json:"viewQcs"`
+		ViewVotes          *viewVotes           `json:"viewVotes"`
+	}
+
+	var vv view
+	err := json.Unmarshal(input, &vv)
+	if err != nil {
+		return err
+	}
+
+	v.epoch = vv.Epoch
+	v.viewNumber = vv.ViewNumber
+	v.executing = vv.Executing
+	v.viewChanges = vv.ViewChanges
+	v.lastViewChangeQC = vv.LastViewChangeQC
+	v.hadSendPrepareVote = vv.HadSendPrepareVote
+	v.pendingVote = vv.PendingVote
+	v.viewBlocks = vv.ViewBlocks
+	v.viewQCs = vv.ViewQCs
+	v.viewVotes = vv.ViewVotes
+	return nil
 }
 
 //func (v *view) HadSendPrepareVote(vote *protocols.PrepareVote) bool {
@@ -723,4 +781,29 @@ func (vs *ViewState) MarshalJSON() ([]byte, error) {
 		HighestCommitBlock: hashNumber{Hash: vs.HighestCommitBlock().Hash(), Number: vs.HighestCommitBlock().NumberU64()},
 	}
 	return json.Marshal(s)
+}
+
+func (vs *ViewState) UnmarshalJSON(input []byte) error {
+	type hashNumber struct {
+		Hash   common.Hash `json:"hash"`
+		Number uint64      `json:"number"`
+	}
+	type state struct {
+		View               *view      `json:"view"`
+		HighestQCBlock     hashNumber `json:"highestQCBlock"`
+		HighestLockBlock   hashNumber `json:"highestLockBlock"`
+		HighestCommitBlock hashNumber `json:"highestCommitBlock"`
+	}
+
+	var s state
+	err := json.Unmarshal(input, &s)
+	if err != nil {
+		return err
+	}
+
+	vs.view = s.View
+	vs.SetHighestQCBlock(types.NewSimplifiedBlock(s.HighestQCBlock.Number, s.HighestQCBlock.Hash))
+	vs.SetHighestLockBlock(types.NewSimplifiedBlock(s.HighestLockBlock.Number, s.HighestLockBlock.Hash))
+	vs.SetHighestCommitBlock(types.NewSimplifiedBlock(s.HighestCommitBlock.Number, s.HighestCommitBlock.Hash))
+	return nil
 }

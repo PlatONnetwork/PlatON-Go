@@ -26,7 +26,7 @@ public class ConstructorDefaultVisibilityTest extends ContractPrepareTest {
         try {
             prepare();
             BigInteger constructorValue = new BigInteger("10000000000000");
-            ConstructorDefaultVisibility visibility = ConstructorDefaultVisibility.deploy(web3j, transactionManager, provider, constructorValue).send();
+            ConstructorDefaultVisibility visibility = ConstructorDefaultVisibility.deploy(web3j, transactionManager, provider, chainId, constructorValue).send();
 
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();

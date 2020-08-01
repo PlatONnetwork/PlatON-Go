@@ -25,7 +25,7 @@ public class Sha3FunctionTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            Sha3Function shafunction = Sha3Function.deploy(web3j, transactionManager, provider).send();
+            Sha3Function shafunction = Sha3Function.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = shafunction.getContractAddress();
             String transactionHash = shafunction.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CallerFunctionTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

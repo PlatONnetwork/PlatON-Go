@@ -41,7 +41,7 @@ public class ReferenceDataTypeComplexContractTest extends WASMContractPrepareTes
         ReferenceDataTypeComplexContract referenceDataTypeComplexContract = null;
         try {
             prepare();
-            referenceDataTypeComplexContract = ReferenceDataTypeComplexContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeComplexContract = ReferenceDataTypeComplexContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeComplexContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeComplexContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeComplexContract issued successfully.contractAddress:" + contractAddress

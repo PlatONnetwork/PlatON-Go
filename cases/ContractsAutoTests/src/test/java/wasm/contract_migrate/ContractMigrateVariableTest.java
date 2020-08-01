@@ -44,8 +44,7 @@ public class ContractMigrateVariableTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            provider = new ContractGasProvider(BigInteger.valueOf(50000000004L), BigInteger.valueOf(90000000L));
-            ContractMigrate_old contractMigrateOld = ContractMigrate_old.deploy(web3j, transactionManager, provider, oldval).send();
+            ContractMigrate_old contractMigrateOld = ContractMigrate_old.deploy(web3j, transactionManager, provider, chainId, oldval).send();
             String contractAddress = contractMigrateOld.getContractAddress();
             String transactionHash = contractMigrateOld.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractMigrateVariableTest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -64,7 +63,7 @@ public class ContractMigrateVariableTest extends WASMContractPrepareTest {
             String newContractAddress = contractMigrateOld.getTransferEvents(transactionReceipt).get(0).arg1;
             collector.logStepPass("new Contract Address is:"+newContractAddress);
 
-            ContractMigrate_new new_contractMigrate = ContractMigrate_new.load(newContractAddress,web3j,credentials,provider);
+            ContractMigrate_new new_contractMigrate = ContractMigrate_new.load(newContractAddress,web3j,credentials,provider, chainId);
             Uint8 newContractval = new_contractMigrate.getUint8New().send();
             collector.logStepPass("new Contract origin variable value is:" + newContractval);
             collector.assertEqual(newContractval.value.intValue(), Integer.valueOf(newval).intValue(), "checkout old variable of new contract value");

@@ -3,7 +3,7 @@ package evm.data_type.MappingData;
 import evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.MappingContractTest;
+import network.platon.contracts.MappingDataTypeContract;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -27,10 +27,10 @@ public class MappingDataTypeContractTest extends ContractPrepareTest {
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "MappingDataTypeContract.映射（Mapping）定义赋值取值",sourcePrefix = "evm")
     public void testMappingContract() {
 
-        MappingContractTest mappingContractTest = null;
+        MappingDataTypeContract mappingContractTest = null;
         try {
             //合约部署
-            mappingContractTest = MappingContractTest.deploy(web3j, transactionManager, provider).send();
+            mappingContractTest = MappingDataTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = mappingContractTest.getContractAddress();
             TransactionReceipt tx =  mappingContractTest.getTransactionReceipt().get();
             collector.logStepPass("MappingContractTest issued successfully.contractAddress:" + contractAddress

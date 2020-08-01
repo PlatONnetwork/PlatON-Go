@@ -38,7 +38,7 @@ public class NewSecPledgeApplyManagerTest extends ContractPrepareTest {
     public void createPledgeApplyCommonTest() {
         try {
 
-            NewSecPledgeApplyManager newSecPledgeApplyManager = NewSecPledgeApplyManager.deploy(web3j, transactionManager, provider).send();
+            NewSecPledgeApplyManager newSecPledgeApplyManager = NewSecPledgeApplyManager.deploy(web3j, transactionManager, provider, chainId).send();
             String callerContractAddress = newSecPledgeApplyManager.getContractAddress();
             TransactionReceipt tx = newSecPledgeApplyManager.getTransactionReceipt().get();
             collector.logStepPass("NewSecPledgeApplyManager deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());

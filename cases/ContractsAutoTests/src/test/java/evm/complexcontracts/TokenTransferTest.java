@@ -14,6 +14,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.RawTransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
+
 import java.math.BigInteger;
 
 
@@ -38,7 +39,7 @@ public class TokenTransferTest {
     // 发行代币的总额
     private String ownerAmount;
     // 接收代币的地址
-    private final static String transferTo = "0x8d2b8b62d2ff5e7d17f91cf821cafee8e1fe4584";
+    private final static String transferTo = "lax1354ckckjla0869lernuzrjh7arslu3vypxek6h";
     // 代币名称
     private String tokenName;
     // 发行代币的地址
@@ -70,11 +71,11 @@ public class TokenTransferTest {
         }
 
 
-        ContractGasProvider provider = new ContractGasProvider(new BigInteger("50000000000"), new BigInteger("3000000"));
+        ContractGasProvider provider = new ContractGasProvider(new BigInteger("5000000000000"), new BigInteger("3000000"));
         RawTransactionManager transactionManager = new RawTransactionManager(web3j, credentials, chainId);
 
         try {
-            HumanStandardToken token = HumanStandardToken.deploy(web3j, transactionManager, provider,
+            HumanStandardToken token = HumanStandardToken.deploy(web3j, transactionManager, provider, chainId,
                     new BigInteger(ownerAmount), tokenName, BigInteger.valueOf(18), "USDT").send();
 
             String contractAddress = token.getContractAddress();
@@ -87,7 +88,7 @@ public class TokenTransferTest {
 
             collector.logStepPass("5次循环调用...");
             for (int i = 1; i < 6; i++) {
-                TransactionReceipt transactionReceipt = HumanStandardToken.load(contractAddress, web3j, transactionManager, provider)
+                TransactionReceipt transactionReceipt = HumanStandardToken.load(contractAddress, web3j, transactionManager, provider, chainId)
                         .transfer(transferTo, new BigInteger(transferAmount)).send();
                 BigInteger toBalance = token.balanceOf(transferTo).send();
                 BigInteger fromBalance = token.balanceOf(transferFrom).send();

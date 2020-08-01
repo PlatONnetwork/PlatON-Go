@@ -35,7 +35,7 @@ public class InterfaceContractALimitTest extends ContractPrepareTest {
         InterfaceContractParentTest interfaceContractParentTest= null;
         try {
             //合约部署
-            interfaceContractParentTest = InterfaceContractParentTest.deploy(web3j, transactionManager, provider).send();
+            interfaceContractParentTest = InterfaceContractParentTest.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = interfaceContractParentTest.getContractAddress();
             TransactionReceipt tx = interfaceContractParentTest.getTransactionReceipt().get();
 

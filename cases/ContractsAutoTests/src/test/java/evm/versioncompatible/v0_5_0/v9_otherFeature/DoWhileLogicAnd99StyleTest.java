@@ -39,7 +39,7 @@ public class DoWhileLogicAnd99StyleTest extends ContractPrepareTest {
             author = "hudenian", showName = "DoWhileLogicAnd99StyleTest-c99语法风格", sourcePrefix = "evm")
     public void doWhileAndFor() {
         try {
-            DoWhileLogicAnd99Style doWhileLogicAnd99Style = DoWhileLogicAnd99Style.deploy(web3j, transactionManager, provider).send();
+            DoWhileLogicAnd99Style doWhileLogicAnd99Style = DoWhileLogicAnd99Style.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = doWhileLogicAnd99Style.getContractAddress();
             TransactionReceipt tx = doWhileLogicAnd99Style.getTransactionReceipt().get();

@@ -1,17 +1,16 @@
 package trie
 
 import (
-	"fmt"
 	"runtime"
 	"sync"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+
 	"github.com/cespare/xxhash"
 	"github.com/panjf2000/ants/v2"
-	"github.com/petermattis/goid"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 var fullNodeSuffix = []byte("fullnode")
@@ -74,7 +73,7 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 			collapsed.Val = hash
 		}
 
-		id := xxhash.Sum64(append(prefix, nc.Key...))
+		id := xxhash.Sum64(byteutil.Concat(prefix, nc.Key...))
 		td.nodes[id] = &dagNode{
 			collapsed: collapsed,
 			cached:    cached,
@@ -102,7 +101,7 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 			dagNode.idx = int(prefix[len(prefix)-1])
 		}
 
-		id := xxhash.Sum64(append(prefix, fullNodeSuffix...))
+		id := xxhash.Sum64(byteutil.Concat(prefix, fullNodeSuffix...))
 		td.nodes[id] = dagNode
 		td.dag.addVertex(id)
 		if pid > 0 {
@@ -113,7 +112,7 @@ func (td *trieDag) internalAddVertexAndEdge(pprefix, prefix []byte, n node, recu
 			for i := 0; i < 16; i++ {
 				if cached.Children[i] != nil {
 					cn := cached.Children[i]
-					td.internalAddVertexAndEdge(append(prefix, fullNodeSuffix...), append(prefix, byte(i)), cn, false)
+					td.internalAddVertexAndEdge(byteutil.Concat(prefix, fullNodeSuffix...), byteutil.Concat(prefix, byte(i)), cn, false)
 				}
 			}
 		}
@@ -138,9 +137,9 @@ func (td *trieDag) delVertexAndEdgeByNode(prefix []byte, n node) {
 	var id uint64
 	switch nc := n.(type) {
 	case *shortNode:
-		id = xxhash.Sum64(append(prefix, nc.Key...))
+		id = xxhash.Sum64(byteutil.Concat(prefix, nc.Key...))
 	case *fullNode:
-		id = xxhash.Sum64(append(prefix, fullNodeSuffix...))
+		id = xxhash.Sum64(byteutil.Concat(prefix, fullNodeSuffix...))
 	}
 	td.delVertexAndEdgeByID(id)
 }
@@ -159,7 +158,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 
 	td.dag.generate()
 
-	log.Trace("Prepare do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
+	//log.Trace("Prepare do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
 
 	var wg sync.WaitGroup
 	var errDone common.AtomicBool
@@ -182,7 +181,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 	}
 
 	process := func() {
-		log.Trace("Do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
+		//log.Trace("Do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
 		hasher := newHasher(onleaf)
 
 		id := td.dag.waitPop()

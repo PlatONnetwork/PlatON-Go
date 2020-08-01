@@ -30,7 +30,7 @@ public class InterTest extends ContractPrepareTest {
             author = "liweic", showName = "function.InterTest-函数可见性继承合约调用内部方法测试", sourcePrefix = "evm")
     public void inter() {
         try {
-            Inter intercall = Inter.deploy(web3j, transactionManager, provider).send();
+            Inter intercall = Inter.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = intercall.getContractAddress();
             TransactionReceipt tx = intercall.getTransactionReceipt().get();

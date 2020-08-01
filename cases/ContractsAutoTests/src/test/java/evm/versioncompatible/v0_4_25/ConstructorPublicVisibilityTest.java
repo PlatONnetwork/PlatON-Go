@@ -37,7 +37,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
         try {
             prepare();
             BigInteger constructorValue = new BigInteger("10000000000000");
-            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider,constructorValue).send();
+            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider, chainId,constructorValue).send();
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -57,7 +57,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
         try {
             prepare();
             BigInteger constructorValue = new BigInteger("10000000000");
-            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider,constructorValue).send();
+            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider, chainId,constructorValue).send();
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             BigInteger result = visibility.namedReturn(new BigInteger("12"),new BigInteger("23")).send();
@@ -77,7 +77,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
         try {
             prepare();
             BigInteger constructorValue = new BigInteger("10000000000000");
-            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider,constructorValue).send();
+            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider, chainId,constructorValue).send();
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             Tuple2<BigInteger,BigInteger> result = visibility.grammarCheck().send();
@@ -98,7 +98,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
         try {
             prepare();
             BigInteger constructorValue = new BigInteger("10000000000000");
-            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider,constructorValue).send();
+            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider, chainId,constructorValue).send();
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             BigInteger result = visibility.abstractFunction().send();
@@ -118,7 +118,7 @@ public class ConstructorPublicVisibilityTest extends ContractPrepareTest {
         try {
             prepare();
             BigInteger constructorValue = new BigInteger("10000000000000");
-            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider,constructorValue).send();
+            ConstructorPublicVisibility visibility = ConstructorPublicVisibility.deploy(web3j, transactionManager, provider, chainId,constructorValue).send();
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             BigInteger result = visibility.show().send();

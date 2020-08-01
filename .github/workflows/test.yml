@@ -2,7 +2,7 @@ name: Go
 
 on:
   pull_request:
-    branches: [ feature/change-addr-to-bech32 ]
+    branches: '*'
 env:
   GO111MODULE: on
 jobs:

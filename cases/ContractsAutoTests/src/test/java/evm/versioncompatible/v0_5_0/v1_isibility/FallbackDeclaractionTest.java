@@ -32,7 +32,7 @@ public class FallbackDeclaractionTest extends ContractPrepareTest {
     public void update() {
         try {
 
-            FallbackDeclaraction fallbackDeclaraction = FallbackDeclaraction.deploy(web3j, transactionManager, provider).send();
+            FallbackDeclaraction fallbackDeclaraction = FallbackDeclaraction.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = fallbackDeclaraction.getContractAddress();
             TransactionReceipt tx = fallbackDeclaraction.getTransactionReceipt().get();

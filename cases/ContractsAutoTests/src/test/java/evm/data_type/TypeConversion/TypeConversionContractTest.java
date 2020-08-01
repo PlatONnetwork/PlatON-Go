@@ -32,7 +32,7 @@ public class TypeConversionContractTest extends ContractPrepareTest {
         TypeConversionContract typeConversionContractTest = null;
         try {
             //合约部署
-            typeConversionContractTest = TypeConversionContract.deploy(web3j, transactionManager, provider).send();
+            typeConversionContractTest = TypeConversionContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = typeConversionContractTest.getContractAddress();
             TransactionReceipt tx =  typeConversionContractTest.getTransactionReceipt().get();
             collector.logStepPass("typeConversion issued successfully.contractAddress:" + contractAddress

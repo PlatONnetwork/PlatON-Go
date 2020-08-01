@@ -27,7 +27,7 @@ public class ContractTimeoutTerminationTest extends WASMContractPrepareTest {
         Uint64 errorValue = Uint64.of(112L);
         try {
             prepare();
-            Contract_timeout_termination contractTimeoutTermination = Contract_timeout_termination.deploy(web3j, transactionManager, provider).send();
+            Contract_timeout_termination contractTimeoutTermination = Contract_timeout_termination.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractTimeoutTermination.getContractAddress();
             String transactionHash = contractTimeoutTermination.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractTermination issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

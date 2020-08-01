@@ -19,17 +19,14 @@ package state
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -245,7 +242,7 @@ func (self *stateObject) getCommittedStateCache(key []byte) []byte {
 func (self *stateObject) GetCommittedState(db Database, key []byte) []byte {
 	// If we have the original value cached, return that
 	if value := self.getCommittedStateCache(key); len(value) != 0 {
-		log.Trace("GetCommittedState cache", "key", hex.EncodeToString(key), "value", len(value))
+		//log.Trace("GetCommittedState cache", "key", hex.EncodeToString(key), "value", len(value))
 		return value
 	}
 
@@ -264,7 +261,7 @@ func (self *stateObject) GetCommittedState(db Database, key []byte) []byte {
 		value = content
 	}
 
-	log.Trace("GetCommittedState trie", "key", hex.EncodeToString(key), "value", len(value))
+	//log.Trace("GetCommittedState trie", "key", hex.EncodeToString(key), "value", len(value))
 	self.originStorage[string(key)] = value
 	return value
 }

@@ -282,6 +282,18 @@ func (can *CandidateMutable) String() string {
 		can.RewardPerChangeEpoch)
 }
 
+func (can *CandidateMutable) SetValided() {
+	can.Status = Valided
+}
+
+func (can *CandidateMutable) SetStatus(status CandidateStatus) {
+	can.Status = status
+}
+
+func (can *CandidateMutable) AppendStatus(status CandidateStatus) {
+	can.Status |= status
+}
+
 func (can *CandidateMutable) CleanLowRatioStatus() {
 	can.Status &^= LowRatio
 }
@@ -1176,6 +1188,8 @@ type UnStakeItem struct {
 	// this is the nodeAddress
 	NodeAddress     common.NodeAddress
 	StakingBlockNum uint64
+	// Return to normal staking state
+	Recovery bool
 }
 
 //type UnDelegateItem struct {

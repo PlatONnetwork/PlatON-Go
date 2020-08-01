@@ -37,7 +37,7 @@ public class OrderDaoTest extends ContractPrepareTest {
     public void orderDaoTest() {
         try {
             //调用者合约地址
-            OrderDao orderDao = OrderDao.deploy(web3j, transactionManager, provider).send();
+            OrderDao orderDao = OrderDao.deploy(web3j, transactionManager, provider, chainId).send();
             String callerContractAddress = orderDao.getContractAddress();
             TransactionReceipt tx = orderDao.getTransactionReceipt().get();
             collector.logStepPass("OrderDao deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());

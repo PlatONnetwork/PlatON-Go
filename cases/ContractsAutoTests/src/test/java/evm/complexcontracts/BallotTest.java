@@ -57,7 +57,7 @@ public class BallotTest {
         RawTransactionManager transactionManager = new RawTransactionManager(web3j, credentials, chainId);
 
         try {
-            Ballot ballot = Ballot.deploy(web3j, transactionManager, provider, BigInteger.valueOf(100)).send();
+            Ballot ballot = Ballot.deploy(web3j, transactionManager, provider, chainId, BigInteger.valueOf(100)).send();
 
         } catch (Exception e) {
             collector.logStepFail("ballot deploy fail.", e.toString());

@@ -28,7 +28,7 @@ public class ContractFibonacciTest extends WASMContractPrepareTest {
 
         try {
             // deploy contract.
-            Fibonacci contract = Fibonacci.deploy(web3j, transactionManager, provider).send();
+            Fibonacci contract = Fibonacci.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contract.getContractAddress();
             String transactionHash = contract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("Fibonacci deploy successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -38,22 +38,15 @@ public class ContractFibonacciTest extends WASMContractPrepareTest {
             collector.logStepPass("Fibonacci notify successfully, hash: " + tr.getTransactionHash());
             Fibonacci.NotifyEventResponse eventResponse = contract.getNotifyEvents(tr).get(0);
 
-            collector.logStepPass("To invoke fibonacci_notify success, args0: " + eventResponse.arg1.value
+            collector.logStepPass("To invoke fibonacci_notify success, args0: " + eventResponse.arg1
                     + " args2: " + eventResponse.arg2
                     + " args3: " + eventResponse.arg3);
 
             Uint64 result = contract.fibonacci_call(Uint64.of(number)).send();
             collector.logStepPass("To invoke fibonacci success, result: " + result.toString());
 
-
-
-
         } catch (Exception e) {
-            if(e instanceof ArrayIndexOutOfBoundsException){
-                collector.logStepPass("Fibonacci and could not call contract function");
-            }else{
-                collector.logStepFail("Fibonacci failure,exception msg:" , e.getMessage());
-            }
+            collector.logStepFail("Fibonacci failure,exception msg:" , e.getMessage());
             e.printStackTrace();
         }
     }
