@@ -27,9 +27,9 @@ public class ContractReceiverByRet extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_VALUE = "get_value";
-
     public static final String FUNC_INFO = "info";
+
+    public static final String FUNC_GET_VALUE = "get_value";
 
     protected ContractReceiverByRet(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
@@ -37,11 +37,6 @@ public class ContractReceiverByRet extends WasmContract {
 
     protected ContractReceiverByRet(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
-    }
-
-    public RemoteCall<Uint8> get_value(Uint8 key) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_VALUE, Arrays.asList(key), Uint8.class);
-        return executeRemoteCall(function, Uint8.class);
     }
 
     public static RemoteCall<ContractReceiverByRet> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
@@ -72,6 +67,11 @@ public class ContractReceiverByRet extends WasmContract {
     public RemoteCall<TransactionReceipt> info(BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_INFO, Arrays.asList(), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<Uint8> get_value(Uint8 key) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_VALUE, Arrays.asList(key), Uint8.class);
+        return executeRemoteCall(function, Uint8.class);
     }
 
     public static ContractReceiverByRet load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

@@ -79,6 +79,9 @@ public class Bank extends WasmContract {
 
     public static final String FUNC_CALCULATETOKENSRECEIVED = "calculateTokensReceived";
 
+    public static final WasmEvent TESTDATA_EVENT = new WasmEvent("TestData", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(Uint128.class) , new WasmEventParameter(Uint128.class) , new WasmEventParameter(Uint128.class)));
+    ;
+
     public static final WasmEvent ONTOKENPURCHASE_EVENT = new WasmEvent("onTokenPurchase", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(Uint128.class) , new WasmEventParameter(Uint128.class) , new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(Uint128.class) , new WasmEventParameter(Uint128.class)));
     ;
 
@@ -94,15 +97,59 @@ public class Bank extends WasmContract {
     public static final WasmEvent TRANSFER_EVENT = new WasmEvent("Transfer", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(WasmAddress.class) , new WasmEventParameter(Uint128.class)));
     ;
 
-    public static final WasmEvent TESTDATA_EVENT = new WasmEvent("TestData", Arrays.asList(new WasmEventParameter(WasmAddress.class, true)), Arrays.asList(new WasmEventParameter(Uint128.class) , new WasmEventParameter(Uint128.class) , new WasmEventParameter(Uint128.class)));
-    ;
-
     protected Bank(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
     protected Bank(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
+    }
+
+    public RemoteCall<TransactionReceipt> DivsAddon() {
+        final WasmFunction function = new WasmFunction(FUNC_DIVSADDON, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> DivsAddon(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_DIVSADDON, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public List<TestDataEventResponse> getTestDataEvents(TransactionReceipt transactionReceipt) {
+        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TESTDATA_EVENT, transactionReceipt);
+        ArrayList<TestDataEventResponse> responses = new ArrayList<TestDataEventResponse>(valueList.size());
+        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
+            TestDataEventResponse typedResponse = new TestDataEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+            typedResponse.arg1 = (Uint128) eventValues.getNonIndexedValues().get(0);
+            typedResponse.arg2 = (Uint128) eventValues.getNonIndexedValues().get(1);
+            typedResponse.arg3 = (Uint128) eventValues.getNonIndexedValues().get(2);
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Observable<TestDataEventResponse> testDataEventObservable(PlatonFilter filter) {
+        return web3j.platonLogObservable(filter).map(new Func1<Log, TestDataEventResponse>() {
+            @Override
+            public TestDataEventResponse call(Log log) {
+                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TESTDATA_EVENT, log);
+                TestDataEventResponse typedResponse = new TestDataEventResponse();
+                typedResponse.log = log;
+                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
+                typedResponse.arg1 = (Uint128) eventValues.getNonIndexedValues().get(0);
+                typedResponse.arg2 = (Uint128) eventValues.getNonIndexedValues().get(1);
+                typedResponse.arg3 = (Uint128) eventValues.getNonIndexedValues().get(2);
+                return typedResponse;
+            }
+        });
+    }
+
+    public Observable<TestDataEventResponse> testDataEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(WasmEventEncoder.encode(TESTDATA_EVENT));
+        return testDataEventObservable(filter);
     }
 
     public List<OnTokenPurchaseEventResponse> getOnTokenPurchaseEvents(TransactionReceipt transactionReceipt) {
@@ -144,16 +191,6 @@ public class Bank extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(ONTOKENPURCHASE_EVENT));
         return onTokenPurchaseEventObservable(filter);
-    }
-
-    public RemoteCall<TransactionReceipt> DivsAddon() {
-        final WasmFunction function = new WasmFunction(FUNC_DIVSADDON, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> DivsAddon(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_DIVSADDON, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<OnTokenSellEventResponse> getOnTokenSellEvents(TransactionReceipt transactionReceipt) {
@@ -296,43 +333,6 @@ public class Bank extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(TRANSFER_EVENT));
         return transferEventObservable(filter);
-    }
-
-    public List<TestDataEventResponse> getTestDataEvents(TransactionReceipt transactionReceipt) {
-        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(TESTDATA_EVENT, transactionReceipt);
-        ArrayList<TestDataEventResponse> responses = new ArrayList<TestDataEventResponse>(valueList.size());
-        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
-            TestDataEventResponse typedResponse = new TestDataEventResponse();
-            typedResponse.log = eventValues.getLog();
-            typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-            typedResponse.arg1 = (Uint128) eventValues.getNonIndexedValues().get(0);
-            typedResponse.arg2 = (Uint128) eventValues.getNonIndexedValues().get(1);
-            typedResponse.arg3 = (Uint128) eventValues.getNonIndexedValues().get(2);
-            responses.add(typedResponse);
-        }
-        return responses;
-    }
-
-    public Observable<TestDataEventResponse> testDataEventObservable(PlatonFilter filter) {
-        return web3j.platonLogObservable(filter).map(new Func1<Log, TestDataEventResponse>() {
-            @Override
-            public TestDataEventResponse call(Log log) {
-                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(TESTDATA_EVENT, log);
-                TestDataEventResponse typedResponse = new TestDataEventResponse();
-                typedResponse.log = log;
-                typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
-                typedResponse.arg1 = (Uint128) eventValues.getNonIndexedValues().get(0);
-                typedResponse.arg2 = (Uint128) eventValues.getNonIndexedValues().get(1);
-                typedResponse.arg3 = (Uint128) eventValues.getNonIndexedValues().get(2);
-                return typedResponse;
-            }
-        });
-    }
-
-    public Observable<TestDataEventResponse> testDataEventObservable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
-        PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(WasmEventEncoder.encode(TESTDATA_EVENT));
-        return testDataEventObservable(filter);
     }
 
     public static RemoteCall<Bank> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
@@ -488,6 +488,18 @@ public class Bank extends WasmContract {
         return new Bank(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
+    public static class TestDataEventResponse {
+        public Log log;
+
+        public String topic;
+
+        public Uint128 arg1;
+
+        public Uint128 arg2;
+
+        public Uint128 arg3;
+    }
+
     public static class OnTokenPurchaseEventResponse {
         public Log log;
 
@@ -544,17 +556,5 @@ public class Bank extends WasmContract {
         public WasmAddress arg1;
 
         public Uint128 arg2;
-    }
-
-    public static class TestDataEventResponse {
-        public Log log;
-
-        public String topic;
-
-        public Uint128 arg1;
-
-        public Uint128 arg2;
-
-        public Uint128 arg3;
     }
 }

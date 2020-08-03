@@ -35,9 +35,9 @@ public class IntegerDataTypeContract_4 extends WasmContract {
 
     public static final String FUNC_SETADDRESS = "setAddress";
 
-    public static final String FUNC_GETU256 = "getU256";
-
     public static final String FUNC_SETU256 = "setU256";
+
+    public static final String FUNC_GETU256 = "getU256";
 
     public static final String FUNC_SETH256 = "setH256";
 
@@ -96,11 +96,6 @@ public class IntegerDataTypeContract_4 extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<String> getU256() {
-        final WasmFunction function = new WasmFunction(FUNC_GETU256, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
-    }
-
     public RemoteCall<TransactionReceipt> setU256(Uint64 input) {
         final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
         return executeRemoteCallTransaction(function);
@@ -109,6 +104,11 @@ public class IntegerDataTypeContract_4 extends WasmContract {
     public RemoteCall<TransactionReceipt> setU256(Uint64 input, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SETU256, Arrays.asList(input), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<String> getU256() {
+        final WasmFunction function = new WasmFunction(FUNC_GETU256, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> setH256(String input) {

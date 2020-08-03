@@ -47,6 +47,16 @@ public class IntegerDataTypeContract_3 extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
+    public RemoteCall<TransactionReceipt> setString(String input) {
+        final WasmFunction function = new WasmFunction(FUNC_SETSTRING, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> setString(String input, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_SETSTRING, Arrays.asList(input), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
     public static RemoteCall<IntegerDataTypeContract_3> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_3.class, web3j, credentials, contractGasProvider, encodedConstructor, chainId);
@@ -65,16 +75,6 @@ public class IntegerDataTypeContract_3 extends WasmContract {
     public static RemoteCall<IntegerDataTypeContract_3> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, BigInteger initialVonValue, Long chainId) {
         String encodedConstructor = WasmFunctionEncoder.encodeConstructor(BINARY, Arrays.asList());
         return deployRemoteCall(IntegerDataTypeContract_3.class, web3j, transactionManager, contractGasProvider, encodedConstructor, initialVonValue, chainId);
-    }
-
-    public RemoteCall<TransactionReceipt> setString(String input) {
-        final WasmFunction function = new WasmFunction(FUNC_SETSTRING, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> setString(String input, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_SETSTRING, Arrays.asList(input), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<String> getString() {

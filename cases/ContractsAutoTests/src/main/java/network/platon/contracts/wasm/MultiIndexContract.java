@@ -29,11 +29,9 @@ public class MultiIndexContract extends WasmContract {
 
     public static final String FUNC_MULTIINDEXMODIFY = "MultiIndexModify";
 
-    public static final String FUNC_GETMULTIINDEXINDEX = "getMultiIndexIndex";
-
-    public static final String FUNC_MULTIINDEXERASE = "MultiIndexErase";
-
     public static final String FUNC_GETMULTIINDEXFIND = "getMultiIndexFind";
+
+    public static final String FUNC_GETMULTIINDEXINDEX = "getMultiIndexIndex";
 
     public static final String FUNC_ADDINITMULTIINDEX = "addInitMultiIndex";
 
@@ -42,6 +40,8 @@ public class MultiIndexContract extends WasmContract {
     public static final String FUNC_GETMULTIINDEXCEND = "getMultiIndexCend";
 
     public static final String FUNC_GETMULTIINDEXCOUNT = "getMultiIndexCount";
+
+    public static final String FUNC_MULTIINDEXERASE = "MultiIndexErase";
 
     protected MultiIndexContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
@@ -61,24 +61,14 @@ public class MultiIndexContract extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
-    public RemoteCall<Boolean> getMultiIndexIndex(Uint8 my_age) {
-        final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXINDEX, Arrays.asList(my_age), Boolean.class);
-        return executeRemoteCall(function, Boolean.class);
-    }
-
-    public RemoteCall<TransactionReceipt> MultiIndexErase(String my_name) {
-        final WasmFunction function = new WasmFunction(FUNC_MULTIINDEXERASE, Arrays.asList(my_name), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> MultiIndexErase(String my_name, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_MULTIINDEXERASE, Arrays.asList(my_name), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public RemoteCall<String> getMultiIndexFind(String my_name) {
         final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXFIND, Arrays.asList(my_name), String.class);
         return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<Boolean> getMultiIndexIndex(Uint8 my_age) {
+        final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXINDEX, Arrays.asList(my_age), Boolean.class);
+        return executeRemoteCall(function, Boolean.class);
     }
 
     public static RemoteCall<MultiIndexContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
@@ -124,6 +114,16 @@ public class MultiIndexContract extends WasmContract {
     public RemoteCall<Uint8> getMultiIndexCount(Uint8 my_age) {
         final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXCOUNT, Arrays.asList(my_age), Uint8.class);
         return executeRemoteCall(function, Uint8.class);
+    }
+
+    public RemoteCall<TransactionReceipt> MultiIndexErase(String my_name) {
+        final WasmFunction function = new WasmFunction(FUNC_MULTIINDEXERASE, Arrays.asList(my_name), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> MultiIndexErase(String my_name, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_MULTIINDEXERASE, Arrays.asList(my_name), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static MultiIndexContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

@@ -26,7 +26,7 @@ public class NullPtrAndForContract extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_FOREACH_MAP = "get_foreach_map";
+    public static final String FUNC_GET_FOREACH_ARRAY = "get_foreach_array";
 
     public static final String FUNC_GET_NULLPTR = "get_nullptr";
 
@@ -34,7 +34,7 @@ public class NullPtrAndForContract extends WasmContract {
 
     public static final String FUNC_SET_NULLPTR_OVERLOAD = "set_nullptr_overload";
 
-    public static final String FUNC_GET_FOREACH_ARRAY = "get_foreach_array";
+    public static final String FUNC_GET_FOREACH_MAP = "get_foreach_map";
 
     protected NullPtrAndForContract(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
@@ -44,9 +44,9 @@ public class NullPtrAndForContract extends WasmContract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<String> get_foreach_map() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_MAP, Arrays.asList(), String.class);
-        return executeRemoteCall(function, String.class);
+    public RemoteCall<Uint32> get_foreach_array() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_ARRAY, Arrays.asList(), Uint32.class);
+        return executeRemoteCall(function, Uint32.class);
     }
 
     public static RemoteCall<NullPtrAndForContract> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
@@ -84,9 +84,9 @@ public class NullPtrAndForContract extends WasmContract {
         return executeRemoteCall(function, String.class);
     }
 
-    public RemoteCall<Uint32> get_foreach_array() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_ARRAY, Arrays.asList(), Uint32.class);
-        return executeRemoteCall(function, Uint32.class);
+    public RemoteCall<String> get_foreach_map() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_FOREACH_MAP, Arrays.asList(), String.class);
+        return executeRemoteCall(function, String.class);
     }
 
     public static NullPtrAndForContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

@@ -28,9 +28,9 @@ public class Ballet extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GIVERIGHTTOVOTE = "giveRightToVote";
-
     public static final String FUNC_DELEGATE = "delegate";
+
+    public static final String FUNC_GIVERIGHTTOVOTE = "giveRightToVote";
 
     public static final String FUNC_VOTE = "vote";
 
@@ -42,6 +42,16 @@ public class Ballet extends WasmContract {
 
     protected Ballet(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
+    }
+
+    public RemoteCall<TransactionReceipt> delegate(WasmAddress to) {
+        final WasmFunction function = new WasmFunction(FUNC_DELEGATE, Arrays.asList(to), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> delegate(WasmAddress to, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_DELEGATE, Arrays.asList(to), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<Ballet> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId, Uint8 _numProposals) {
@@ -71,16 +81,6 @@ public class Ballet extends WasmContract {
 
     public RemoteCall<TransactionReceipt> giveRightToVote(WasmAddress toVoter, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_GIVERIGHTTOVOTE, Arrays.asList(toVoter), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> delegate(WasmAddress to) {
-        final WasmFunction function = new WasmFunction(FUNC_DELEGATE, Arrays.asList(to), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> delegate(WasmAddress to, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_DELEGATE, Arrays.asList(to), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

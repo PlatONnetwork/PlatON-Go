@@ -27,13 +27,13 @@ public class ThreeInherit extends WasmContract {
 
     public static String BINARY = BINARY_0;
 
-    public static final String FUNC_GET_GREATE_SUB_MY_MESSAGE_DESC = "get_greate_sub_my_message_desc";
-
     public static final String FUNC_ADD_GREATE_SUB_MY_MESSAGE = "add_greate_sub_my_message";
 
     public static final String FUNC_GET_GREATE_SUB_MY_MESSAGE_SIZE = "get_greate_sub_my_message_size";
 
     public static final String FUNC_GET_GREATE_SUB_MY_MESSAGE_HEAD = "get_greate_sub_my_message_head";
+
+    public static final String FUNC_GET_GREATE_SUB_MY_MESSAGE_DESC = "get_greate_sub_my_message_desc";
 
     protected ThreeInherit(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
@@ -41,11 +41,6 @@ public class ThreeInherit extends WasmContract {
 
     protected ThreeInherit(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
-    }
-
-    public RemoteCall<String> get_greate_sub_my_message_desc(Uint8 index) {
-        final WasmFunction function = new WasmFunction(FUNC_GET_GREATE_SUB_MY_MESSAGE_DESC, Arrays.asList(index), String.class);
-        return executeRemoteCall(function, String.class);
     }
 
     public static RemoteCall<ThreeInherit> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
@@ -85,6 +80,11 @@ public class ThreeInherit extends WasmContract {
 
     public RemoteCall<String> get_greate_sub_my_message_head(Uint8 index) {
         final WasmFunction function = new WasmFunction(FUNC_GET_GREATE_SUB_MY_MESSAGE_HEAD, Arrays.asList(index), String.class);
+        return executeRemoteCall(function, String.class);
+    }
+
+    public RemoteCall<String> get_greate_sub_my_message_desc(Uint8 index) {
+        final WasmFunction function = new WasmFunction(FUNC_GET_GREATE_SUB_MY_MESSAGE_DESC, Arrays.asList(index), String.class);
         return executeRemoteCall(function, String.class);
     }
 
