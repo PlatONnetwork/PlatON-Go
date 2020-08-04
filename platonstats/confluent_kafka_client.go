@@ -1,6 +1,8 @@
 package platonstats
 
 import (
+	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
@@ -86,7 +88,7 @@ func NewConfluentKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGr
 	}
 
 	client.consumer = c
-
+	fmt.Printf("Success to connect to Kafka")
 	return client
 }
 
