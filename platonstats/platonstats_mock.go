@@ -217,7 +217,7 @@ func (s *MockPlatonStatsService) APIs() []rpc.API { return nil }
 func (s *MockPlatonStatsService) Start(server *p2p.Server) error {
 	s.server = server
 
-	s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic, s.kafkaAccountCheckingConsumerGroup)
+	s.kafkaClient = NewConfluentKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic, s.kafkaAccountCheckingConsumerGroup)
 
 	go s.blockMsgLoop()
 	go s.sampleMsgLoop()
