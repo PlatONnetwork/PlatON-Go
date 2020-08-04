@@ -1,8 +1,10 @@
 package platonstats
 
 import (
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
@@ -18,10 +20,13 @@ func Test_kafkaClient_consumer(t *testing.T) {
 			key := string(msg.Key)
 			value := string(msg.Value)
 			log.Debug("received account-checking message by group consumer", "key", key, "value", value)
+			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
 		} else {
 			// The client will automatically try to recover from all errors.
 			log.Error("Consumer error", "msg", msg, "err", err)
+			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
 		}
+		time.Sleep(1 * time.Second)
 	}
 
 }
