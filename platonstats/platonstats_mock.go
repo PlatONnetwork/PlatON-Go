@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/confluentinc/confluent-kafka-go/kafka"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -24,7 +26,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/Shopify/sarama"
 )
 
 type StatsServer interface {
@@ -43,7 +44,7 @@ type MockPlatonStatsService struct {
 	blockChain *core.BlockChain
 	chainDb    ethdb.Database
 
-	kafkaClient *KafkaClient
+	kafkaClient *ConfluentKafkaClient
 
 	stopSampleMsg chan struct{}
 	stopBlockMsg  chan struct{}
@@ -128,20 +129,19 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 	} else {
 		blockTopic = s.kafkaBlockTopic
 	}
-	msg := &sarama.ProducerMessage{
-		Topic:     blockTopic,
-		Partition: 0,
-		Key:       sarama.StringEncoder(strconv.FormatUint(block.NumberU64(), 10)),
-		Value:     sarama.ByteEncoder(json),
-		Timestamp: time.Now(),
+	msg := &kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &blockTopic, Partition: 0},
+		Key:            []byte(strconv.FormatUint(block.NumberU64(), 10)),
+		Value:          []byte(json),
+		Timestamp:      time.Now(),
 	}
 
-	partition, offset, err := s.kafkaClient.syncProducer.SendMessage(msg)
-
+	err = s.kafkaClient.producer.Produce(msg, nil)
 	if err != nil {
-		log.Error("send block message error.", "blockNumber=", block.NumberU64(), "error", err)
+		log.Error("Failed to enqueue the block message", "blockNumber", block.NumberU64(), "err", err)
+		return err
 	} else {
-		log.Info("send block message success.", "blockNumber=", block.NumberU64(), "partition", partition, "offset", offset)
+		log.Info("Success to enqueue the block message", "blockNumber", block.NumberU64())
 	}
 
 	//statsdb.Instance().DeleteExeBlockData(block.Number())
