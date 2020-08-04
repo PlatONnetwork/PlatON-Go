@@ -14,6 +14,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cespare/cp v0.1.0
 	github.com/cespare/xxhash v1.1.0
+	github.com/confluentinc/confluent-kafka-go v1.4.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v17.12.0-ce-rc1.0.20180625184442-8e610b2b55bf+incompatible

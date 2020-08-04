@@ -25,7 +25,7 @@ func consumerSaramaConfig() *sarama.Config {
 func Test_kafkaClient_producer1(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-	blockProducer, err := sarama.NewSyncProducer([]string{"192.168.112.32:9092"}, producerConfig())
+	blockProducer, err := sarama.NewSyncProducer([]string{"192.168.9.201:9092"}, producerConfig())
 	if err != nil {
 		log.Error("Failed to init msg Kafka sync producer....", "err", err)
 	}
@@ -79,24 +79,20 @@ func Test_kafkaClient_producer2(t *testing.T) {
 func Test_kafkaClient_consumer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-	kafkaClient := NewKafkaClient("192.168.112.32:9092", "", "test-sender", "test-consumer")
-
-	log.Info("Success to init msg Kafka account-checking consumer....")
+	kafkaClient := NewConfluentKafkaClient("192.168.9.201:9092", "", "platon-account-checking", "platon-account-checking-group")
 
 	for {
-		select {
-		case msg := <-kafkaClient.partitionConsumer.Messages():
+		msg, err := kafkaClient.consumer.ReadMessage(-1)
+		if err == nil {
 			key := string(msg.Key)
 			value := string(msg.Value)
-			log.Debug("received account-checking message", "offset", msg.Offset, "key", key, "value", value)
-
-			//手工提交offset()
-			kafkaClient.partitionOffsetManager.MarkOffset(msg.Offset, "")
-		case err := <-kafkaClient.partitionConsumer.Errors():
-			log.Error("Failed to pull account-checking message from Kafka", "err", err)
-			panic(err)
+			log.Debug("received account-checking message by group consumer", "key", key, "value", value)
+		} else {
+			// The client will automatically try to recover from all errors.
+			log.Error("Consumer error", "msg", msg, "err", err)
 		}
 	}
+
 }
 
 func Test_consumer_2(t *testing.T) {

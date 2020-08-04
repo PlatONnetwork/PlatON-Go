@@ -8,15 +8,6 @@ import (
 	"github.com/Shopify/sarama"
 )
 
-const (
-	// historyUpdateRange is the number of blocks a node should report upon login or
-	// history request.
-	sampleEventChanSize                      = 50
-	defaultKafkaBlockTopic                   = "platon-block"
-	defaultKafkaAccountCheckingConsumerGroup = "platon-account-checking-group"
-	defaultKafkaAccountCheckingTopic         = "platon-account-checking"
-)
-
 type KafkaClient struct {
 	brokers                      []string
 	blockTopic                   string

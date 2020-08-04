@@ -1,7 +1,6 @@
 package platonstats
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -39,7 +40,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/Shopify/sarama"
 )
 
 var (
@@ -136,7 +136,7 @@ type PlatonStatsService struct {
 	kafkaAccountCheckingGroup string        //对账请求消息Group
 	eth                       *eth.Ethereum // Full Ethereum service if monitoring a full node
 	datadir                   string
-	kafkaClient               *KafkaClient
+	kafkaClient               *ConfluentKafkaClient
 	/*blockProducer             sarama.SyncProducer
 	msgProducer               sarama.AsyncProducer
 	checkingConsumer          *cluster.Consumer*/
@@ -192,7 +192,9 @@ func (s *PlatonStatsService) Start(server *p2p.Server) error {
 	s.server = server
 	//urls := []string{s.kafkaUrl}
 
-	s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic, s.kafkaAccountCheckingGroup)
+	//s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic, s.kafkaAccountCheckingGroup)
+	s.kafkaClient = NewConfluentKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic, s.kafkaAccountCheckingGroup)
+
 	/*if msgProducer, err := sarama.NewAsyncProducer(urls, msgProducerConfig()); err != nil {
 		log.Error("Failed to init msg Kafka async producer....", "err", err)
 		return err
@@ -299,21 +301,18 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		log.Info("marshal platon stats block", "blockNumber", block.NumberU64(), "json", string(jsonBytes))
 	}
 
-	msg := &sarama.ProducerMessage{
-		Topic:     s.kafkaClient.blockTopic,
-		Partition: 0,
-		Key:       sarama.StringEncoder(strconv.FormatUint(block.NumberU64(), 10)),
-		Value:     sarama.StringEncoder(string(jsonBytes)),
-		Timestamp: time.Now(),
+	msg := &kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &s.kafkaClient.blockTopic, Partition: 0},
+		Key:            []byte(strconv.FormatUint(block.NumberU64(), 10)),
+		Value:          []byte(jsonBytes),
+		Timestamp:      time.Now(),
 	}
-
-	partition, offset, err := s.kafkaClient.syncProducer.SendMessage(msg)
-
+	err = s.kafkaClient.producer.Produce(msg, nil)
 	if err != nil {
-		log.Error("send block message error", "blockNumber", block.NumberU64(), "error", err)
+		log.Error("Failed to enqueue the block message", "blockNumber", block.NumberU64(), "err", err)
 		return err
 	} else {
-		log.Info("send block message success", "blockNumber", block.NumberU64(), "partition", partition, "offset", offset)
+		log.Info("Success to enqueue the block message", "blockNumber", block.NumberU64())
 	}
 
 	//不从statsdb中删除统计需要的过程数据。
@@ -396,121 +395,13 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 	}
 }
 
-// Consumer represents a Sarama consumer group consumer
-type Consumer struct {
-	ready chan bool
-}
-
-// Setup is run at the beginning of a new session, before ConsumeClaim
-func (consumer *Consumer) Setup(sarama.ConsumerGroupSession) error {
-	// Mark the consumer as ready
-	close(consumer.ready)
-	return nil
-}
-
-// Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
-func (consumer *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
-	return nil
-}
-
-// ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
-func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	// NOTE:
-	// Do not move the code below to a goroutine.
-	// The `ConsumeClaim` itself is called within a goroutine, see:
-	// https://github.com/Shopify/sarama/blob/master/consumer_group.go#L27-L29
-	s := session.Context().Value("s").(*PlatonStatsService)
-
-	for msg := range claim.Messages() {
-		//log.Printf("Message claimed: value = %s, timestamp = %v, topic = %s", string(message.Value), message.Timestamp, message.Topic)
-
-		key := string(msg.Key)
-		value := string(msg.Value)
-		log.Debug("received account-checking message by group consumer", "offset", msg.Offset, "key", key, "value", value)
-
-		if len(key) > 0 {
-			checkingNumber, err := strconv.ParseUint(key, 10, 64)
-			if err != nil {
-				log.Error("Failed to parse block number", "key", key, "err", err)
-				panic(err)
-			}
-
-			for {
-				currentNumber := s.eth.BlockChain().CurrentBlock().NumberU64()
-				log.Debug("current block number of block chain", "blockNumber", currentNumber)
-				if currentNumber >= checkingNumber {
-					break
-				} else {
-					time.Sleep(1 * time.Second)
-				}
-			}
-		}
-
-		err := s.accountChecking(key, msg.Value)
-		if err != nil {
-			log.Error("Failed to check account balance", "err", err)
-			panic(err)
-		} else {
-			log.Debug("Success to check account balance", "key", key)
-		}
-
-		session.MarkMessage(msg, "")
-	}
-
-	return nil
-}
-
 func (s *PlatonStatsService) accountCheckingLoop() {
-
-	/**
-	 * Setup a new Sarama consumer group
-	 */
-	consumer := Consumer{
-		ready: make(chan bool),
-	}
-
-	ctx := context.WithValue(context.Background(), "s", s)
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for {
-			if err := s.kafkaClient.consumerGroup.Consume(ctx, []string{s.kafkaAccountCheckingTopic}, &consumer); err != nil {
-				log.Error("Failed to consume message", "err", err)
-				panic(err)
-			}
-			// check if context was cancelled, signaling that the consumer should stop
-			if ctx.Err() != nil {
-				return
-			}
-			consumer.ready = make(chan bool)
-		}
-	}()
-	<-consumer.ready // Await till the consumer has been set up
-
-	/*sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
-	select {
-	case <-ctx.Done():
-		log.Println("terminating: context cancelled")
-	case <-sigterm:
-		log.Println("terminating: via signal")
-	}*/
-	//cancel()
-	wg.Wait()
-	if err := s.kafkaClient.consumer.Close(); err != nil {
-		log.Error("Error closing kafka client", "err", err)
-		panic(err)
-	}
-}
-
-func (s *PlatonStatsService) accountCheckingLoopSingle() {
 	for {
-		select {
-		case msg := <-s.kafkaClient.partitionConsumer.Messages():
+		msg, err := s.kafkaClient.consumer.ReadMessage(-1)
+		if err == nil {
 			key := string(msg.Key)
 			value := string(msg.Value)
-			log.Debug("received account-checking message", "offset", msg.Offset, "key", key, "value", value)
+			log.Debug("received account-checking message by group consumer", "key", key, "value", value)
 
 			if len(key) > 0 {
 				checkingNumber, err := strconv.ParseUint(key, 10, 64)
@@ -537,11 +428,10 @@ func (s *PlatonStatsService) accountCheckingLoopSingle() {
 			} else {
 				log.Debug("Success to check account balance", "key", key)
 			}
-			//s.kafkaClient.partitionOffsetManager.MarkOffset(msg.Offset, "")
 
-		case err := <-s.kafkaClient.partitionConsumer.Errors():
-			log.Error("Failed to pull account-checking message from Kafka", "err", err)
-			panic(err)
+		} else {
+			// The client will automatically try to recover from all errors.
+			log.Error("Consumer error", "msg", msg, "err", err)
 		}
 	}
 }
