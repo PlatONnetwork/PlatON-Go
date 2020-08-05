@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/pkg/errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
@@ -500,7 +501,7 @@ func (cbft *Cbft) findQCBlock() {
 			cbft.insertQCBlock(block, qc)
 			cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
 			// metrics
-			blockQCCollectedTimer.UpdateSince(time.Unix(block.Time().Int64(), 0))
+			blockQCCollectedGauage.Update(block.Time().Int64())
 			cbft.trySendPrepareVote()
 		}
 	}
