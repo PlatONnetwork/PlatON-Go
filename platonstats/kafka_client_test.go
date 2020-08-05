@@ -16,6 +16,8 @@ func Test_kafkaClient_producer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	argstring := os.Args[len(os.Args)-1]
+	fmt.Println("args:", argstring)
+
 	args := strings.Fields(argstring) //按空格split
 
 	brokers := args[0]
@@ -42,6 +44,8 @@ func Test_kafkaClient_consumer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	argstring := os.Args[len(os.Args)-1]
+	fmt.Println("args:", argstring)
+
 	args := strings.Fields(argstring) //按空格split
 
 	brokers := args[0]
