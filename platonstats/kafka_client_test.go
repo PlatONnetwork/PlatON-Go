@@ -36,7 +36,7 @@ func Test_kafkaClient_producer(t *testing.T) {
 func Test_kafkaClient_consumer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-	kafkaClient := NewConfluentKafkaClient("192.168.9.201:9092", "block-topic", "platon-account-checking", "platon-account-checking-group")
+	kafkaClient := NewConfluentKafkaClient("192.168.9.201:9092", "block-topic", "testTopic1", "platon-account-checking-group")
 
 	for {
 		msg, err := kafkaClient.consumer.ReadMessage(-1)
