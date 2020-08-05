@@ -3,7 +3,6 @@ package platonstats
 import (
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -15,13 +14,9 @@ import (
 func Test_kafkaClient_producer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-	argstring := os.Args[len(os.Args)-1]
-	fmt.Println("args:", argstring)
-
-	args := strings.Fields(argstring) //按空格split
-
-	brokers := args[0]
-	topic := args[1]
+	fmt.Println("os.Args:", os.Args)
+	brokers := os.Args[0]
+	topic := os.Args[1]
 
 	kafkaClient := NewConfluentKafkaClient(brokers, topic, "platon-account-checking", "platon-account-checking-group")
 
@@ -42,15 +37,10 @@ func Test_kafkaClient_producer(t *testing.T) {
 
 func Test_kafkaClient_consumer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
-	argstring := os.Args[len(os.Args)-1]
-	fmt.Println("args:", argstring)
-
-	args := strings.Fields(argstring) //按空格split
-
-	brokers := args[0]
-	topic := args[1]
-	group := args[2]
+	fmt.Println("os.Args:", os.Args)
+	brokers := os.Args[0]
+	topic := os.Args[1]
+	group := os.Args[2]
 	kafkaClient := NewConfluentKafkaClient(brokers, "block-topic", topic, group)
 	for {
 		msg, err := kafkaClient.consumer.ReadMessage(-1)
