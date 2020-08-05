@@ -13,10 +13,11 @@ import (
 
 func Test_kafkaClient_producer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
 	fmt.Println("os.Args:", os.Args)
-	brokers := os.Args[0]
-	topic := os.Args[1]
+	brokers := os.Args[len(os.Args)-2]
+	topic := os.Args[len(os.Args)-1]
+
+	log.Debug("args:", "brokers", brokers, "topic", topic)
 
 	kafkaClient := NewConfluentKafkaClient(brokers, topic, "platon-account-checking", "platon-account-checking-group")
 
@@ -38,9 +39,11 @@ func Test_kafkaClient_producer(t *testing.T) {
 func Test_kafkaClient_consumer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	fmt.Println("os.Args:", os.Args)
-	brokers := os.Args[0]
-	topic := os.Args[1]
-	group := os.Args[2]
+	brokers := os.Args[len(os.Args)-3]
+	topic := os.Args[len(os.Args)-2]
+	group := os.Args[len(os.Args)-1]
+	log.Debug("args:", "brokers", brokers, "topic", topic, "group", group)
+
 	kafkaClient := NewConfluentKafkaClient(brokers, "block-topic", topic, group)
 	for {
 		msg, err := kafkaClient.consumer.ReadMessage(-1)
