@@ -33,7 +33,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -288,7 +287,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	var (
 		genesis = pm.blockchain.Genesis()
 		head    = pm.blockchain.CurrentHeader()
-		hash    = head.Hash()
+		hash    = head.CacheHash()
 	)
 	if err := p.Handshake(pm.networkID, head.Number, hash, genesis.Hash(), pm); err != nil {
 		p.Log().Debug("PlatON handshake failed", "err", err)
@@ -780,6 +779,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
 	case msg.Code == TxMsg:
+		// Transactions can be processed, parse all of them and deliver to the pool
+		var txs []*types.Transaction
+		if err := msg.Decode(&txs); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
 		// Transactions arrived, make sure we have a valid and fresh chain to handle them
 		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
 			break
@@ -787,11 +791,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// if txmaker is started,the chain should not accept RemoteTxs,to reduce produce tx cost
 		if atomic.LoadUint32(&pm.acceptRemoteTxs) == 1 {
 			break
-		}
-		// Transactions can be processed, parse all of them and deliver to the pool
-		var txs []*types.Transaction
-		if err := msg.Decode(&txs); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		for i, tx := range txs {
 			// Validate and mark the remote transaction
@@ -846,32 +845,12 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	}
 }
 
-func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
-	// Consensus node peer
-	peers := pm.peers.PeersWithConsensus(pm.engine)
-	if peers == nil || len(peers) <= 0 {
-		log.Error("consensus peers is empty")
-	}
-
-	if block, ok := a.(*types.Block); ok {
-		for _, peer := range peers {
-			log.Warn("~ Send a broadcast message[PrepareBlockMsg]------------",
-				"peerId", peer.id, "Hash", block.Hash(), "Number", block.Number())
-			peer.AsyncSendPrepareBlock(block)
-		}
-	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {
-		for _, peer := range peers {
-			log.Warn("~ Send a broadcast message[BlockSignatureMsg]------------",
-				"peerId", peer.id, "SignHash", signature.SignHash, "Hash", signature.Hash, "Number", signature.Number, "SignHash", signature.SignHash)
-			peer.AsyncSendSignature(signature)
-		}
-	}
-}
-
 // BroadcastTxs will propagate a batch of transactions to all peers which are not known to
 // already have the given transaction.
 func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 	var txset = make(map[*peer]types.Transactions)
+
+	rand.Seed(time.Now().UnixNano())
 
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
@@ -881,14 +860,13 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 				txset[peer] = append(txset[peer], tx)
 			}
 		} else {
-			rand.Seed(time.Now().UnixNano())
 			indexes := rand.Perm(len(peers))
 			for i := 0; i < numBroadcastTxPeers; i++ {
 				peer := peers[indexes[i]]
 				txset[peer] = append(txset[peer], tx)
 			}
 		}
-		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+		//log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
 
 	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
@@ -917,14 +895,14 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 		case event := <-pm.txsCh:
 			pm.txsCache = append(pm.txsCache, event.Txs...)
 			if len(pm.txsCache) >= defaultTxsCacheSize {
-				log.Trace("broadcast txs", "count", len(pm.txsCache))
+				//log.Trace("broadcast txs", "count", len(pm.txsCache))
 				pm.BroadcastTxs(pm.txsCache)
 				pm.txsCache = make([]*types.Transaction, 0)
 				timer.Reset(defaultBroadcastInterval)
 			}
 		case <-timer.C:
 			if len(pm.txsCache) > 0 {
-				log.Trace("broadcast txs", "count", len(pm.txsCache))
+				//log.Trace("broadcast txs", "count", len(pm.txsCache))
 				pm.BroadcastTxs(pm.txsCache)
 				pm.txsCache = make([]*types.Transaction, 0)
 			}

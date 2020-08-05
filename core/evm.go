@@ -45,7 +45,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Con
 	blockHash := common.ZeroHash
 	// store the sign in  header.Extra[32:97]
 	if !xutil.IsWorker(header.Extra) {
-		blockHash = header.Hash()
+		blockHash = header.CacheHash()
 	}
 
 	return vm.Context{

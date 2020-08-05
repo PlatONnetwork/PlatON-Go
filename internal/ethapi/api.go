@@ -26,6 +26,10 @@ import (
 
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/util"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -41,9 +45,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // PublicEthereumAPI provides an API to access Ethereum related information.
@@ -1037,6 +1038,14 @@ func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, addr
 	nonce := state.GetNonce(address)
 	state.ClearParentReference()
 	return (*hexutil.Uint64)(&nonce), state.Error()
+}
+
+// GetTransactionCount returns the number of transactions the given address has sent for the given block number
+func (s *PublicTransactionPoolAPI) GetPoolNonce(ctx context.Context, address common.Address) (*hexutil.Uint64, error) {
+
+	nonce, err := s.b.GetPoolNonce(ctx, address)
+
+	return (*hexutil.Uint64)(&nonce), err
 }
 
 // GetTransactionByHash returns the transaction for the given hash

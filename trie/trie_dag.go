@@ -1,18 +1,16 @@
 package trie
 
 import (
-	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"runtime"
 	"sync"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+
 	"github.com/cespare/xxhash"
 	"github.com/panjf2000/ants/v2"
-	"github.com/petermattis/goid"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 var fullNodeSuffix = []byte("fullnode")
@@ -160,7 +158,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 
 	td.dag.generate()
 
-	log.Trace("Prepare do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
+	//log.Trace("Prepare do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
 
 	var wg sync.WaitGroup
 	var errDone common.AtomicBool
@@ -183,7 +181,7 @@ func (td *trieDag) hash(db *Database, force bool, onleaf LeafCallback) (node, no
 	}
 
 	process := func() {
-		log.Trace("Do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
+		//log.Trace("Do hash", "me", fmt.Sprintf("%p", td), "routineID", goid.Get(), "dag", fmt.Sprintf("%p", td.dag), "nodes", len(td.nodes), "topLevel", td.dag.topLevel.Len(), "consumed", td.dag.totalConsumed, "vtxs", td.dag.totalVertexs, "cv", td.dag.cv)
 		hasher := newHasher(onleaf)
 
 		id := td.dag.waitPop()

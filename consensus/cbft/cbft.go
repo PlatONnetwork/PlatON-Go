@@ -71,6 +71,14 @@ const (
 	checkBlockSyncInterval = 100 * time.Millisecond
 )
 
+var (
+	ErrorUnKnowBlock  = errors.New("unknown block")
+	ErrorEngineBusy   = errors.New("cbft engine busy")
+	ErrorNotRunning   = errors.New("cbft is not running")
+	ErrorNotValidator = errors.New("current node not a validator")
+	ErrorTimeout      = errors.New("timeout")
+)
+
 type HandleError interface {
 	error
 	AuthFailed() bool
@@ -295,7 +303,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 // there is a loop that will distribute the incoming message.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	if !cbft.running() {
-		cbft.log.Trace("Cbft not running, stop process message", "fecthing", utils.True(&cbft.fetching), "syncing", utils.True(&cbft.syncing))
+		//cbft.log.Trace("Cbft not running, stop process message", "fecthing", utils.True(&cbft.fetching), "syncing", utils.True(&cbft.syncing))
 		return nil
 	}
 
@@ -324,7 +332,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	// Repeat filtering on consensus messages.
 	// First check.
 	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
-		cbft.log.Trace("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
+		//cbft.log.Trace("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
 		cbft.forgetMessage(msg.PeerID)
 		return nil
 	}
@@ -494,7 +502,7 @@ func (cbft *Cbft) receiveLoop() {
 				cbft.network.RemovePeer(msg.PeerID)
 			}
 		} else {
-			cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
+			//cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
 		}
 		cbft.forgetMessage(msg.PeerID)
 	}
@@ -631,10 +639,10 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
 	if header.Number == nil {
 		cbft.log.Error("Verify header fail, unknown block")
-		return errors.New("unknown block")
+		return ErrorUnKnowBlock
 	}
 
-	cbft.log.Trace("Verify header", "number", header.Number, "hash", header.Hash, "seal", seal)
+	//cbft.log.Trace("Verify header", "number", header.Number, "hash", header.Hash, "seal", seal)
 	if len(header.Extra) < consensus.ExtraSeal+int(params.MaximumExtraDataSize) {
 		cbft.log.Error("Verify header fail, missing signature", "number", header.Number, "hash", header.Hash)
 		return fmt.Errorf("verify header fail, missing signature, number:%d, hash:%s", header.Number.Uint64(), header.Hash().String())
@@ -649,7 +657,7 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 
 // VerifyHeaders is used to verify the validity of block headers in batch.
 func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-	cbft.log.Trace("Verify headers", "total", len(headers))
+	//cbft.log.Trace("Verify headers", "total", len(headers))
 
 	abort := make(chan struct{})
 	results := make(chan error, len(headers))
@@ -671,9 +679,9 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 // VerifySeal implements consensus.Engine, checking whether the signature contained
 // in the header satisfies the consensus protocol requirements.
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	cbft.log.Trace("Verify seal", "hash", header.Hash(), "number", header.Number)
+	//cbft.log.Trace("Verify seal", "hash", header.Hash(), "number", header.Number)
 	if header.Number.Uint64() == 0 {
-		return errors.New("unknown block")
+		return ErrorUnKnowBlock
 	}
 	return nil
 }
@@ -711,7 +719,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 	cbft.log.Info("Seal block", "number", block.Number(), "parentHash", block.ParentHash())
 	header := block.Header()
 	if block.NumberU64() == 0 {
-		return errors.New("unknown block")
+		return ErrorUnKnowBlock
 	}
 
 	sign, err := cbft.signFn(header.SealHash().Bytes())
@@ -807,7 +815,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	minedCounter.Inc(1)
 	preBlock := cbft.blockTree.FindBlockByHash(block.ParentHash())
 	if preBlock != nil {
-		blockMinedTimer.UpdateSince(time.Unix(preBlock.Time().Int64(), 0))
+		blockMinedGauage.Update(preBlock.Time().Int64())
 	}
 	go func() {
 		select {
@@ -1088,7 +1096,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	if cbft.isLoading() || !cbft.isStart() || !cbft.running() {
-		cbft.log.Trace("Should seal fail, cbft not running", "curTime", common.Beautiful(curTime))
+		//cbft.log.Trace("Should seal fail, cbft not running", "curTime", common.Beautiful(curTime))
 		return false, nil
 	}
 
@@ -1101,12 +1109,12 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 		if err == nil {
 			masterCounter.Inc(1)
 		}
-		cbft.log.Trace("Should seal", "curTime", common.Beautiful(curTime), "err", err)
+		//cbft.log.Trace("Should seal", "curTime", common.Beautiful(curTime), "err", err)
 		return err == nil, err
 	case <-time.After(50 * time.Millisecond):
-		result <- errors.New("timeout")
-		cbft.log.Trace("Should seal timeout", "curTime", common.Beautiful(curTime), "asyncCallCh", len(cbft.asyncCallCh))
-		return false, errors.New("CBFT engine busy")
+		result <- ErrorTimeout
+		//cbft.log.Trace("Should seal timeout", "curTime", common.Beautiful(curTime), "asyncCallCh", len(cbft.asyncCallCh))
+		return false, ErrorEngineBusy
 	}
 }
 
@@ -1121,7 +1129,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 
 	if !cbft.running() {
-		result <- errors.New("cbft is not running")
+		result <- ErrorNotRunning
 		return
 	}
 
@@ -1131,7 +1139,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.NodeID) {
-		result <- errors.New("current node not a validator")
+		result <- ErrorNotValidator
 		return
 	}
 

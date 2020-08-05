@@ -92,7 +92,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 					cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return
 				}
-				blockExecutedTimer.UpdateSince(start)
+				blockExecutedGauage.Update(time.Since(start).Milliseconds())
 				parentBlock = block
 			}
 
