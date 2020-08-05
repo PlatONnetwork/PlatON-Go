@@ -11,6 +11,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
+//使用方法：
+//go test -v -run Test_kafkaClient_producer platonstats/kafka_client_test.go platonstats/confluent_kafka_client.go -args 192.168.9.201:9092 lvxy_test_topic
 func Test_kafkaClient_producer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	fmt.Println("os.Args:", os.Args)
@@ -36,6 +38,8 @@ func Test_kafkaClient_producer(t *testing.T) {
 	kafkaClient.producer.Flush(15 * 1000)
 }
 
+//使用方法：
+//go test -v -run Test_kafkaClient_consumer platonstats/kafka_client_test.go platonstats/confluent_kafka_client.go -args 192.168.9.201:9092 lvxy_test_topic lvxy_consumer_group1
 func Test_kafkaClient_consumer(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	fmt.Println("os.Args:", os.Args)
