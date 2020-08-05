@@ -239,11 +239,26 @@ func (b *BlockTree) FindForkedBlocksAndQCs(hash common.Hash, number uint64) ([]*
 	return nil, nil
 }
 
+// FindBlocksAndQCs find the specified Block and its QC by blockNumber.
+func (b *BlockTree) FindBlocksAndQCs(number uint64) ([]*types.Block, []*QuorumCert) {
+	if extMap, ok := b.blocks[number]; ok {
+		blocks := make([]*types.Block, 0, len(extMap))
+		qcs := make([]*QuorumCert, 0, len(extMap))
+		for _, v := range extMap {
+			blocks = append(blocks, v.Block)
+			qcs = append(qcs, v.QC)
+		}
+		return blocks, qcs
+
+	}
+	return nil, nil
+}
+
 func (b *BlockTree) findForkedBlockExts(hash common.Hash, number uint64) []*blockExt {
 	if extMap, ok := b.blocks[number]; ok {
-		if len(extMap) == 1 {
-			return nil
-		}
+		//if len(extMap) == 1 {
+		//	return nil
+		//}
 		bes := make([]*blockExt, 0, len(extMap)-1)
 		for h, ext := range extMap {
 			if hash != h {
