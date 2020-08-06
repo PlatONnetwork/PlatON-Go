@@ -125,7 +125,11 @@ func initParam() []*GovernParam {
 				if nil != err {
 					return err
 				}
-				if err := xcom.CheckUnStakeFreezeDuration(num, int(age)); nil != err {
+				epochNumber, err := GovernZeroProduceFreezeDuration(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckUnStakeFreezeDuration(num, int(age), int(epochNumber)); nil != err {
 					return err
 				}
 
@@ -333,6 +337,29 @@ func initParam() []*GovernParam {
 				}
 
 				if err := xcom.CheckIncreaseIssuanceRatio(uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceFreezeDuration,
+				fmt.Sprintf("Zero production frozen time, range: [1, UnStakeFreezeDuration)")},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceFreezeDuration())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed KeyZeroProduceFreezeDuration is failed")
+				}
+
+				epochNumber, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+
+				if err := xcom.CheckZeroProduceFreezeDuration(uint64(number), epochNumber); nil != err {
 					return err
 				}
 				return nil

@@ -17,33 +17,23 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class RequireMessageHandle extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610105806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063afcd320e14602d575b600080fd5b605660048036036020811015604157600080fd5b81019080803590602001909291905050506058565b005b600a811060cd576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260188152602001807fe695b4e59e8be5a4a7e5b08fe6af94e8be83e5bc82e5b8b8000000000000000081525060200191505060405180910390fd5b5056fea265627a7a723158208944df83d8eca513af8fbaf2cacfb7b8a231beb7a33176280a3dfb2d445129e764736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610105806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063afcd320e14602d575b600080fd5b605660048036036020811015604157600080fd5b81019080803590602001909291905050506058565b005b600a811060cd576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260188152602001807fe695b4e59e8be5a4a7e5b08fe6af94e8be83e5bc82e5b8b8000000000000000081525060200191505060405180910390fd5b5056fea265627a7a72315820c3c6602ec4f5e2c1f7af0c0df3ba94b33a6eb3f9c28836c9df6df27f9c64278264736f6c634300050d0032";
 
     public static final String FUNC_PARAMEXCEPTION = "paramException";
 
-    @Deprecated
-    protected RequireMessageHandle(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected RequireMessageHandle(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected RequireMessageHandle(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected RequireMessageHandle(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected RequireMessageHandle(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected RequireMessageHandle(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<TransactionReceipt> paramException(BigInteger param) {
@@ -54,39 +44,19 @@ public class RequireMessageHandle extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public static RemoteCall<RequireMessageHandle> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(RequireMessageHandle.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<RequireMessageHandle> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(RequireMessageHandle.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<RequireMessageHandle> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(RequireMessageHandle.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<RequireMessageHandle> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(RequireMessageHandle.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<RequireMessageHandle> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(RequireMessageHandle.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static RequireMessageHandle load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new RequireMessageHandle(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<RequireMessageHandle> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(RequireMessageHandle.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static RequireMessageHandle load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new RequireMessageHandle(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static RequireMessageHandle load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new RequireMessageHandle(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static RequireMessageHandle load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new RequireMessageHandle(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static RequireMessageHandle load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new RequireMessageHandle(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static RequireMessageHandle load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new RequireMessageHandle(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

@@ -30,7 +30,7 @@ public class ForErrorTest extends ContractPrepareTest {
     public void forStruct() {
         try {
 
-            ForError forError = ForError.deploy(web3j, transactionManager, provider).send();
+            ForError forError = ForError.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = forError.getContractAddress();
             TransactionReceipt tx = forError.getTransactionReceipt().get();

@@ -31,12 +31,12 @@ public class SpaceComplexityTest extends ContractPrepareTest {
     public void test() {
         prepare();
         try {
-            SpaceComplexity spaceComplexity = SpaceComplexity.deploy(web3j, transactionManager, provider).send();
+            SpaceComplexity spaceComplexity = SpaceComplexity.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = spaceComplexity.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
             collector.logStepPass("deploy gas used:" + spaceComplexity.getTransactionReceipt().get().getGasUsed());
 
-            TransactionReceipt transactionReceipt = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider)
+            TransactionReceipt transactionReceipt = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider, chainId)
                     .testStorage(numberOfCalls).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
@@ -44,7 +44,7 @@ public class SpaceComplexityTest extends ContractPrepareTest {
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            String name = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider).name().send();
+            String name = SpaceComplexity.load(contractAddress, web3j, transactionManager, provider, chainId).name().send();
 
             if (numberOfCalls.mod(BigInteger.valueOf(2)) == BigInteger.ZERO) {
                 collector.assertEqual(name, "QCXIAO");

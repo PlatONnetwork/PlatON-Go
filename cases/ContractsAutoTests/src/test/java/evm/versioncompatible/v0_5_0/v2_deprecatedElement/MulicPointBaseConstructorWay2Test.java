@@ -14,7 +14,7 @@ import java.math.BigInteger;
 /**
  * @title * 0.5.0不允许在同一继承层次结构中多次指定基类构造函数参数
  * 0.4.x可以同时使用2种方式，但如果2种方式都存在，优先选择修饰符方式
- * @description: 
+ * @description:
  * @author: hudenian
  * @create: 2019/12/26
  */
@@ -39,7 +39,7 @@ public class MulicPointBaseConstructorWay2Test extends ContractPrepareTest {
     public void update() {
         try {
 
-            MulicPointBaseConstructorWay2 mulicPointBaseConstructorWay2 = MulicPointBaseConstructorWay2.deploy(web3j, transactionManager, provider,new BigInteger(initValue)).send();
+            MulicPointBaseConstructorWay2 mulicPointBaseConstructorWay2 = MulicPointBaseConstructorWay2.deploy(web3j, transactionManager, provider, chainId, new BigInteger(initValue)).send();
 
             String contractAddress = mulicPointBaseConstructorWay2.getContractAddress();
             TransactionReceipt tx = mulicPointBaseConstructorWay2.getTransactionReceipt().get();

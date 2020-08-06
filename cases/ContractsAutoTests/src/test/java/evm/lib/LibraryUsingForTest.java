@@ -25,7 +25,7 @@ public class LibraryUsingForTest extends ContractPrepareTest {
     public void testRegister() {
         try {
             prepare();
-            LibraryUsingFor using = LibraryUsingFor.deploy(web3j, transactionManager, provider).send();
+            LibraryUsingFor using = LibraryUsingFor.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("LibraryUsingFor issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

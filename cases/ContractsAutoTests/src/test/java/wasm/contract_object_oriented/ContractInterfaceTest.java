@@ -23,7 +23,7 @@ public class ContractInterfaceTest extends WASMContractPrepareTest {
         String name = "xuwen";
         try {
             prepare();
-            ContractInterface contractInterface = ContractInterface.deploy(web3j, transactionManager, provider).send();
+            ContractInterface contractInterface = ContractInterface.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractInterface.getContractAddress();
             String transactionHash = contractInterface.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("ContractInterface issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

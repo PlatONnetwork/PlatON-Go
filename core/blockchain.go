@@ -114,9 +114,12 @@ type BlockChain struct {
 	chainFeed     event.Feed
 	chainSideFeed event.Feed
 	chainHeadFeed event.Feed
-	logsFeed      event.Feed
-	scope         event.SubscriptionScope
-	genesisBlock  *types.Block
+
+	BlockFeed event.Feed
+
+	logsFeed     event.Feed
+	scope        event.SubscriptionScope
+	genesisBlock *types.Block
 
 	mu      sync.RWMutex // global mutex for locking chain operations
 	chainmu sync.RWMutex // blockchain insertion lock
@@ -231,6 +234,11 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 
 func (bc *BlockChain) getProcInterrupt() bool {
 	return atomic.LoadInt32(&bc.procInterrupt) == 1
+}
+
+// GetVMConfig returns the block chain VM config.
+func (bc *BlockChain) GetVMConfig() *vm.Config {
+	return &bc.vmConfig
 }
 
 // loadLastState loads the last known chain state from the database. This method
@@ -1096,7 +1104,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	}
 	bc.futureBlocks.Remove(block.Hash())
-
+	bc.blockCache.Add(block.Hash(), block)
 	// Cleanup storage
 	if !bc.cacheConfig.DBDisabledGC.IsSet() && bc.cleaner.NeedCleanup() {
 		bc.cleaner.Cleanup()
@@ -1139,9 +1147,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
-	//bc.chainmu.Lock()
-	//defer bc.chainmu.Unlock()
-
 	// A queued approach to delivering events. This is generally
 	// faster than direct delivery and requires much less mutex
 	// acquiring.
@@ -1161,9 +1166,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	}
 	abort, results := bc.engine.VerifyHeaders(bc, headers, seals)
 	defer close(abort)
-
-	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
-	senderCacher.recoverFromBlocks(types.NewEIP155Signer(bc.chainConfig.ChainID), chain)
 
 	// Pause engine
 	bc.engine.Pause()
@@ -1222,11 +1224,11 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	start := time.Now()
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {
-		log.Error("Failed to ProcessDirectly", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err)
+		log.Error("Failed to ProcessDirectly", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
 		bc.reportBlock(block, receipts, err)
 		return nil, err
 	}
-	log.Debug("Execute block time", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "time", time.Since(start))
+	log.Debug("Execute block time", "blockNumber", block.Number(), "blockHash", block.Hash(), "time", time.Since(start))
 
 	// Validate the state using the default validator
 	err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
@@ -1238,6 +1240,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	if logs != nil {
 		bc.logsFeed.Send(logs)
 	}
+	bc.BlockFeed.Send(block)
 
 	return receipts, nil
 }
@@ -1469,8 +1472,10 @@ func (bc *BlockChain) reportBlock(block *types.Block, receipts types.Receipts, e
 	bc.addBadBlock(block)
 
 	var receiptString string
-	for _, receipt := range receipts {
-		receiptString += fmt.Sprintf("\t%v\n", receipt)
+	for i, receipt := range receipts {
+		receiptString += fmt.Sprintf("\t %d: cumulative: %v gas: %v contract: %v status: %v tx: %v logs: %v bloom: %x state: %x\n",
+			i, receipt.CumulativeGasUsed, receipt.GasUsed, receipt.ContractAddress.Bech32(),
+			receipt.Status, receipt.TxHash.Hex(), receipt.Logs, receipt.Bloom, receipt.PostState)
 	}
 	log.Error(fmt.Sprintf(`
 ########## BAD BLOCK #########
@@ -1617,6 +1622,11 @@ func (bc *BlockChain) SubscribeChainSideEvent(ch chan<- ChainSideEvent) event.Su
 // SubscribeLogsEvent registers a subscription of []*types.Log.
 func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	return bc.scope.Track(bc.logsFeed.Subscribe(ch))
+}
+
+// SubscribeLogsEvent registers a subscription of *types.Block.
+func (bc *BlockChain) SubscribeBlocksEvent(ch chan<- *types.Block) event.Subscription {
+	return bc.scope.Track(bc.BlockFeed.Subscribe(ch))
 }
 
 // EnableDBGC enable database garbage collection.

@@ -18,14 +18,14 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class CallerOne extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610625806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c146100465780637b8ed01814610064578063f88bef8c14610082575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b6040518082815260200191505060405180910390f35b61008a61009b565b005b60005481565b60008054905090565b60006040516100a9906101d2565b604051809103906000f0801580156100c5573d6000803e3d6000fd5b5090508073ffffffffffffffffffffffffffffffffffffffff1660405180807f696e63282900000000000000000000000000000000000000000000000000000081525060050190506040518091039020604051602001808281526020019150506040516020818303038152906040526040518082805190602001908083835b602083106101675780518252602082019150602081019050602083039250610144565b6001836020036101000a038019825116818451168082178552505050505050905001915050600060405180830381855af49150503d80600081146101c7576040519150601f19603f3d011682016040523d82523d6000602084013e6101cc565b606091505b50505050565b610411806101e08339019056fe608060405234801561001057600080fd5b506103f1806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c14610046578063371303c0146100645780635a3617561461006e575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b005b610076610236565b6040518082815260200191505060405180910390f35b60005481565b60006040516100a09061023f565b604051809103906000f0801580156100bc573d6000803e3d6000fd5b5090508073ffffffffffffffffffffffffffffffffffffffff1660405180807f696e63282900000000000000000000000000000000000000000000000000000081525060050190506040518091039020604051602001808281526020019150506040516020818303038152906040526040518082805190602001908083835b6020831061015e578051825260208201915060208101905060208303925061013b565b6001836020036101000a038019825116818451168082178552505050505050905001915050600060405180830381855af49150503d80600081146101be576040519150601f19603f3d011682016040523d82523d6000602084013e6101c3565b606091505b5050507fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e733600054604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a150565b60008054905090565b6101708061024d8339019056fe608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c1461004657806317f936fb14610064578063371303c014610082575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b6040518082815260200191505060405180910390f35b61008a61009b565b005b60005481565b60008054905090565b60008081548092919060010191905055507fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e733600054604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a156fea265627a7a7231582085dfbfe4e7eb9c3dbf444c52efe44a145bf5e2a80d92f78463f6b85a64145d3b64736f6c634300050d0032a265627a7a723158202c54d86a9ea2615241d99ecf2fdea43ddfabbba55d9efe219987f22750f29f9d64736f6c634300050d0032a265627a7a72315820571c01ee82f1a43213d969d00a52855711954b20ed1cca8f700c765e65752db264736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610625806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c146100465780637b8ed01814610064578063f88bef8c14610082575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b6040518082815260200191505060405180910390f35b61008a61009b565b005b60005481565b60008054905090565b60006040516100a9906101d2565b604051809103906000f0801580156100c5573d6000803e3d6000fd5b5090508073ffffffffffffffffffffffffffffffffffffffff1660405180807f696e63282900000000000000000000000000000000000000000000000000000081525060050190506040518091039020604051602001808281526020019150506040516020818303038152906040526040518082805190602001908083835b602083106101675780518252602082019150602081019050602083039250610144565b6001836020036101000a038019825116818451168082178552505050505050905001915050600060405180830381855af49150503d80600081146101c7576040519150601f19603f3d011682016040523d82523d6000602084013e6101cc565b606091505b50505050565b610411806101e08339019056fe608060405234801561001057600080fd5b506103f1806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c14610046578063371303c0146100645780635a3617561461006e575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b005b610076610236565b6040518082815260200191505060405180910390f35b60005481565b60006040516100a09061023f565b604051809103906000f0801580156100bc573d6000803e3d6000fd5b5090508073ffffffffffffffffffffffffffffffffffffffff1660405180807f696e63282900000000000000000000000000000000000000000000000000000081525060050190506040518091039020604051602001808281526020019150506040516020818303038152906040526040518082805190602001908083835b6020831061015e578051825260208201915060208101905060208303925061013b565b6001836020036101000a038019825116818451168082178552505050505050905001915050600060405180830381855af49150503d80600081146101be576040519150601f19603f3d011682016040523d82523d6000602084013e6101c3565b606091505b5050507fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e733600054604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a150565b60008054905090565b6101708061024d8339019056fe608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c1461004657806317f936fb14610064578063371303c014610082575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b6040518082815260200191505060405180910390f35b61008a61009b565b005b60005481565b60008054905090565b60008081548092919060010191905055507fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e733600054604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a156fea265627a7a72315820c20637ffa861d41809ee052c77bb6b0c2499cd55ce040d34329c3fa0c731f70464736f6c634300050d0032a265627a7a723158205bfb6fbf4bc8ee0c5fc57ef0c45568b9b165122f7d5e036f53c06aae31fbadaa64736f6c634300050d0032a265627a7a723158203e26bf46f3c67f6718c488e47cefa5f15f9b6640b32b48b9af86a7d4a58362f664736f6c634300050d0032";
 
     public static final String FUNC_GETCALLERX = "getCallerX";
 
@@ -33,22 +33,12 @@ public class CallerOne extends Contract {
 
     public static final String FUNC_X = "x";
 
-    @Deprecated
-    protected CallerOne(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected CallerOne(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected CallerOne(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected CallerOne(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected CallerOne(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected CallerOne(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<BigInteger> getCallerX() {
@@ -73,39 +63,19 @@ public class CallerOne extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public static RemoteCall<CallerOne> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(CallerOne.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<CallerOne> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(CallerOne.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<CallerOne> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(CallerOne.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<CallerOne> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(CallerOne.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<CallerOne> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(CallerOne.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static CallerOne load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new CallerOne(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<CallerOne> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(CallerOne.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static CallerOne load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new CallerOne(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static CallerOne load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new CallerOne(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static CallerOne load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new CallerOne(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static CallerOne load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new CallerOne(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static CallerOne load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new CallerOne(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

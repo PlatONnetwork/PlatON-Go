@@ -39,7 +39,7 @@ public class ConstructorInternalDeclaractionTest extends ContractPrepareTest {
             author = "hudenian", showName = "ConstructorInternalDeclaractionTest-可见性测试", sourcePrefix = "evm")
     public void update() {
         try {
-            ConstructorInternalDeclaractionSub constructorInternalDeclaractionSub = ConstructorInternalDeclaractionSub.deploy(web3j, transactionManager, provider,new BigInteger(initValue)).send();
+            ConstructorInternalDeclaractionSub constructorInternalDeclaractionSub = ConstructorInternalDeclaractionSub.deploy(web3j, transactionManager, provider, chainId, new BigInteger(initValue)).send();
 
             String contractAddress = constructorInternalDeclaractionSub.getContractAddress();
             TransactionReceipt tx = constructorInternalDeclaractionSub.getTransactionReceipt().get();

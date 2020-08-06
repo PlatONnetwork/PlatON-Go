@@ -136,11 +136,11 @@ func (b *EthAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*typ
 	return logs, nil
 }
 
-func (b *EthAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
+func (b *EthAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header) (*vm.EVM, func() error, error) {
 	vmError := func() error { return nil }
 
 	context := core.NewEVMContext(msg, header, b.eth.BlockChain())
-	return vm.NewEVM(context, snapshotdb.Instance(), state, b.eth.chainConfig, vmCfg), vmError, nil
+	return vm.NewEVM(context, snapshotdb.Instance(), state, b.eth.chainConfig, *b.eth.blockchain.GetVMConfig()), vmError, nil
 }
 
 func (b *EthAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
@@ -184,7 +184,7 @@ func (b *EthAPIBackend) GetPoolTransaction(hash common.Hash) *types.Transaction 
 }
 
 func (b *EthAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
-	return b.eth.txPool.State().GetNonce(addr), nil
+	return b.eth.txPool.Nonce(addr), nil
 }
 
 func (b *EthAPIBackend) Stats() (pending int, queued int) {

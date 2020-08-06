@@ -18,35 +18,25 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class FunctionParam extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060d08061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806326121ff014603757806392d0d153146053575b600080fd5b603d606f565b6040518082815260200191505060405180910390f35b6059607e565b6040518082815260200191505060405180910390f35b60006079607e6087565b905090565b60006007905090565b600060948263ffffffff16565b905091905056fea265627a7a723158208f27ad83a5f5d6c1a5076959edab7425e2f7b374ab6e037735ccef8c5489295e64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060d08061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806326121ff014603757806392d0d153146053575b600080fd5b603d606f565b6040518082815260200191505060405180910390f35b6059607e565b6040518082815260200191505060405180910390f35b60006079607e6087565b905090565b60006007905090565b600060948263ffffffff16565b905091905056fea265627a7a72315820204c8311cde05df75a9f150b18bc8423dea77fcad29e5292196469907c3ab38c64736f6c634300050d0032";
 
     public static final String FUNC_F = "f";
 
     public static final String FUNC_T = "t";
 
-    @Deprecated
-    protected FunctionParam(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected FunctionParam(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected FunctionParam(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected FunctionParam(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected FunctionParam(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected FunctionParam(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<TransactionReceipt> f() {
@@ -64,39 +54,19 @@ public class FunctionParam extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public static RemoteCall<FunctionParam> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(FunctionParam.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<FunctionParam> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(FunctionParam.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<FunctionParam> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(FunctionParam.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<FunctionParam> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(FunctionParam.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<FunctionParam> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(FunctionParam.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static FunctionParam load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new FunctionParam(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<FunctionParam> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(FunctionParam.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static FunctionParam load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new FunctionParam(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static FunctionParam load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new FunctionParam(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static FunctionParam load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new FunctionParam(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static FunctionParam load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new FunctionParam(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static FunctionParam load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new FunctionParam(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

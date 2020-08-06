@@ -92,7 +92,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 					cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return
 				}
-				blockExecutedTimer.UpdateSince(start)
+				blockExecutedGauage.Update(time.Since(start).Milliseconds())
 				parentBlock = block
 			}
 
@@ -115,43 +115,58 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 			// Remove local forks that already exist.
 			filteredForkedBlocks := make([]*types.Block, 0)
 			filteredForkedQCs := make([]*ctypes.QuorumCert, 0)
-			localForkedBlocks, _ := cbft.blockTree.FindForkedBlocksAndQCs(parentBlock.Hash(), parentBlock.NumberU64())
+			//localForkedBlocks, _ := cbft.blockTree.FindForkedBlocksAndQCs(parentBlock.Hash(), parentBlock.NumberU64())
+			localForkedBlocks, _ := cbft.blockTree.FindBlocksAndQCs(parentBlock.NumberU64())
+
+			if localForkedBlocks != nil && len(localForkedBlocks) > 0 {
+				cbft.log.Debug("LocalForkedBlocks", "number", localForkedBlocks[0].NumberU64(), "hash", localForkedBlocks[0].Hash().TerminalString())
+			}
+
 			for i, forkedBlock := range blockList.ForkedBlocks {
 				for _, localForkedBlock := range localForkedBlocks {
-					if forkedBlock.Hash() != localForkedBlock.Hash() && forkedBlock.NumberU64() != localForkedBlock.NumberU64() {
+					if forkedBlock.NumberU64() == localForkedBlock.NumberU64() && forkedBlock.Hash() != localForkedBlock.Hash() {
 						filteredForkedBlocks = append(filteredForkedBlocks, forkedBlock)
 						filteredForkedQCs = append(filteredForkedQCs, blockList.ForkedQC[i])
 						break
 					}
 				}
 			}
+			if filteredForkedBlocks != nil && len(filteredForkedBlocks) > 0 {
+				cbft.log.Debug("FilteredForkedBlocks", "number", filteredForkedBlocks[0].NumberU64(), "hash", filteredForkedBlocks[0].Hash().TerminalString())
+			}
 
 			// Execution forked block.
-			var forkedParentBlock *types.Block
+			//var forkedParentBlock *types.Block
 			for _, forkedBlock := range filteredForkedBlocks {
 				if forkedBlock.NumberU64() != parentBlock.NumberU64() {
 					cbft.log.Error("Invalid forked block", "lastParentNumber", parentBlock.NumberU64(), "forkedBlockNumber", forkedBlock.NumberU64())
 					break
 				}
-				for _, block := range blockList.Blocks {
-					if block.Hash() == forkedBlock.ParentHash() && block.NumberU64() == forkedBlock.NumberU64()-1 {
-						forkedParentBlock = block
-						break
-					}
-				}
-				if forkedParentBlock != nil {
-					break
-				}
+				//for _, block := range blockList.Blocks {
+				//	if block.Hash() == forkedBlock.ParentHash() && block.NumberU64() == forkedBlock.NumberU64()-1 {
+				//		forkedParentBlock = block
+				//		break
+				//	}
+				//}
+				//if forkedParentBlock != nil {
+				//	break
+				//}
 			}
 
 			// Verify forked block and execute.
 			for _, forkedBlock := range filteredForkedBlocks {
-				if forkedParentBlock == nil || forkedBlock.ParentHash() != forkedParentBlock.Hash() {
+				parentBlock := cbft.blockTree.FindBlockByHash(forkedBlock.ParentHash())
+				if parentBlock == nil {
 					cbft.log.Debug("Response forked block's is error",
-						"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64(),
-						"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
+						"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64())
 					return
 				}
+				//if forkedParentBlock == nil || forkedBlock.ParentHash() != forkedParentBlock.Hash() {
+				//	cbft.log.Debug("Response forked block's is error",
+				//		"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64(),
+				//		"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
+				//	return
+				//}
 
 				if err := cbft.blockCacheWriter.Execute(forkedBlock, parentBlock); err != nil {
 					cbft.log.Error("Execute forked block failed", "hash", forkedBlock.Hash(), "number", forkedBlock.NumberU64(), "error", err)
@@ -409,7 +424,16 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 			cbft.log.Debug("Local qcBn is equal the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum, "remoteHash", msg.BlockHash, "localHash", localQCHash)
 			if forkedHash, forkedNum, forked := cbft.blockTree.IsForked(localQCHash, localQCNum); forked {
 				cbft.log.Debug("Local highest QC forked", "forkedQCHash", forkedHash, "forkedQCNumber", forkedNum, "localQCHash", localQCHash, "localQCNumber", localQCNum)
-				cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: forkedNum, BlockHash: forkedHash, LBlockNumber: localLockNum, LBlockHash: localLockHash, LogicType: msg.LogicType})
+				_, qc := cbft.blockTree.FindBlockAndQC(forkedHash, forkedNum)
+				_, lockQC := cbft.blockTree.FindBlockAndQC(localLockHash, localLockNum)
+				cbft.network.Send(id, &protocols.LatestStatus{
+					BlockNumber:  forkedNum,
+					BlockHash:    forkedHash,
+					QuorumCert:   qc,
+					LBlockNumber: localLockNum,
+					LBlockHash:   localLockHash,
+					LQuorumCert:  lockQC,
+					LogicType:    msg.LogicType})
 			}
 			return nil
 		}

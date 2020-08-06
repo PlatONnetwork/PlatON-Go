@@ -24,7 +24,7 @@ public class ReferenceDataTypeLinklistTest extends WASMContractPrepareTest {
         ReferenceDataTypeLinkedlistContract referenceDataTypeLinkedlistContract = null;
         try {
             prepare();
-            referenceDataTypeLinkedlistContract = ReferenceDataTypeLinkedlistContract.deploy(web3j, transactionManager, provider).send();
+            referenceDataTypeLinkedlistContract = ReferenceDataTypeLinkedlistContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeLinkedlistContract.getContractAddress();
             TransactionReceipt tx = referenceDataTypeLinkedlistContract.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeLinkedlistContract issued successfully.contractAddress:" + contractAddress

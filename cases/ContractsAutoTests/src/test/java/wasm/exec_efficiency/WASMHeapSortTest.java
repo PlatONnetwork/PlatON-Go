@@ -30,7 +30,7 @@ public class WASMHeapSortTest extends WASMContractPrepareTest {
 
             Integer numberOfCalls = Integer.valueOf(driverService.param.get("numberOfCalls"));
 
-            HeapSort heapsort = HeapSort.deploy(web3j, transactionManager, provider).send();
+            HeapSort heapsort = HeapSort.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = heapsort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
             collector.logStepPass("deploy gas used:" + heapsort.getTransactionReceipt().get().getGasUsed());
@@ -44,7 +44,7 @@ public class WASMHeapSortTest extends WASMContractPrepareTest {
             }
 
             collector.logStepPass("before sort:" + Arrays.toString(arr));
-            TransactionReceipt transactionReceipt = heapsort.load(contractAddress, web3j, transactionManager, provider)
+            TransactionReceipt transactionReceipt = heapsort.load(contractAddress, web3j, transactionManager, provider, chainId)
                     .sort(arr, Int32.of(arr.length)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
@@ -52,7 +52,7 @@ public class WASMHeapSortTest extends WASMContractPrepareTest {
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            Int64[] generationArr = heapsort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
+            Int64[] generationArr = heapsort.load(contractAddress, web3j, transactionManager, provider, chainId).get_array().send();
 
             collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {

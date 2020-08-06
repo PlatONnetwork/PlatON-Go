@@ -149,7 +149,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 
 	event := new(event.TypeMux)
 	backend := newTestWorkerBackend(t, chainConfig, engine, blocks, event)
-	core.NewExecutor(chainConfig, backend.chain, vm.Config{})
+	core.NewExecutor(chainConfig, backend.chain, vm.Config{}, nil)
 
 	bftResultSub := event.Subscribe(cbfttypes.CbftResult{})
 	core.NewBlockChainReactor(event, chainConfig.ChainID)

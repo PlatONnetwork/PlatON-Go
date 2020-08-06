@@ -30,7 +30,7 @@ public class AutoTypeTest extends WASMContractPrepareTest {
         AutoTypeContract autoTypeContract = null;
         try {
             prepare();
-            autoTypeContract = AutoTypeContract.deploy(web3j, transactionManager, provider).send();
+            autoTypeContract = AutoTypeContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = autoTypeContract.getContractAddress();
             TransactionReceipt tx = autoTypeContract.getTransactionReceipt().get();
             collector.logStepPass("autoTypeContract issued successfully.contractAddress:" + contractAddress
@@ -47,10 +47,16 @@ public class AutoTypeTest extends WASMContractPrepareTest {
             Int32  actualIntValue = autoTypeContract.get_anto_int().send();
             collector.logStepPass("autoTypeContract 【验证自动匹配int类型】 执行get_anto_int() successfully actualIntValue:" + actualIntValue);
             collector.assertEqual(actualIntValue,Int32.of(5), "checkout  execute success.");
+            //2、验证:自动匹配int类型负数值
+            Int32  actualIntValue2 = autoTypeContract.get_anto_int32().send();
+            collector.logStepPass("autoTypeContract 【验证自动匹配int类型负数值】 执行get_anto_int32() successfully actualIntValue2:" + actualIntValue2);
+            collector.assertEqual(actualIntValue,Int32.of(5), "checkout  execute success.");
+
+
             //2、验证:自动匹配double类型
-            Double  actualDoubleValue = autoTypeContract.get_anto_double().send();
+          /*  Double  actualDoubleValue = autoTypeContract.get_anto_double().send();
             collector.logStepPass("autoTypeContract 【验证自动匹配double类型】 get_anto_double() successfully actualDoubleValue:" + actualDoubleValue);
-            collector.assertEqual(actualDoubleValue,Double.parseDouble("1.0"), "checkout  execute success.");
+            collector.assertEqual(actualDoubleValue,Double.parseDouble("1.0"), "checkout  execute success.");*/
             //3、验证:自动匹配多个值类型
             Int32  actualmultipleValue = autoTypeContract.get_anto_multiple().send();
             collector.logStepPass("autoTypeContract 【验证自动匹配多个值类型】 get_anto_multiple() successfully actualmultipleValue:" + actualmultipleValue);
@@ -59,10 +65,11 @@ public class AutoTypeTest extends WASMContractPrepareTest {
             Uint8  actualUint8Value = autoTypeContract.get_anto_uint8_t().send();
             collector.logStepPass("autoTypeContract 【验证自动匹配uint8类型】 get_anto_uint8_t() successfully actualUint8Value:" + actualUint8Value);
             collector.assertEqual(actualUint8Value,Uint8.of(10), "checkout  execute success.");
+
             //5、验证:自动匹配表达式
-            Double  actualValue = autoTypeContract.get_anto_express().send();
+        /*    Double  actualValue = autoTypeContract.get_anto_express().send();
             collector.logStepPass("autoTypeContract 【验证自动匹配表达式】 执行get_anto_express() successfully actualValue:" + actualValue);
-            collector.assertEqual(actualValue,Double.parseDouble("15.32"), "checkout  execute success.");
+            collector.assertEqual(actualValue,Double.parseDouble("15.32"), "checkout  execute success.");*/
             //6、验证:迭代器中应用auto
             Uint8  iteratorCount = autoTypeContract.get_anto_iterator().send();
             collector.logStepPass("autoTypeContract 【验证迭代器中应用auto】 执行get_anto_iterator() successfully iteratorCount:" + iteratorCount);

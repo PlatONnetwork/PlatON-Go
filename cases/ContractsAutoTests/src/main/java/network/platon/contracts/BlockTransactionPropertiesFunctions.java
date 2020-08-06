@@ -22,14 +22,14 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class BlockTransactionPropertiesFunctions extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5061058a806100206000396000f3fe6080604052600436106100dd5760003560e01c8063a16963b31161007f578063d12d910211610059578063d12d910214610340578063df1f29ee146103a9578063e9413d3814610400578063edb4b8651461044f576100dd565b8063a16963b3146102bf578063ab70fd69146102ea578063bbe4fd5014610315576100dd565b80633bc5de30116100bb5780633bc5de301461018257806342cbb15c146102125780635e01eb5a1461023d578063796b89b914610294576100dd565b806312e05dd1146100e2578063209652551461010d5780632df8e9491461012b575b600080fd5b3480156100ee57600080fd5b506100f761047a565b6040518082815260200191505060405180910390f35b610115610482565b6040518082815260200191505060405180910390f35b34801561013757600080fd5b5061014061048a565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561018e57600080fd5b50610197610492565b6040518080602001828103825283818151815260200191508051906020019080838360005b838110156101d75780820151818401526020810190506101bc565b50505050905090810190601f1680156102045780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b34801561021e57600080fd5b506102276104df565b6040518082815260200191505060405180910390f35b34801561024957600080fd5b506102526104e7565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b3480156102a057600080fd5b506102a96104ef565b6040518082815260200191505060405180910390f35b3480156102cb57600080fd5b506102d46104f7565b6040518082815260200191505060405180910390f35b3480156102f657600080fd5b506102ff6104ff565b6040518082815260200191505060405180910390f35b34801561032157600080fd5b5061032a610507565b6040518082815260200191505060405180910390f35b34801561034c57600080fd5b5061035561050f565b60405180827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200191505060405180910390f35b3480156103b557600080fd5b506103be61053a565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561040c57600080fd5b506104396004803603602081101561042357600080fd5b8101908080359060200190929190505050610542565b6040518082815260200191505060405180910390f35b34801561045b57600080fd5b5061046461054d565b6040518082815260200191505060405180910390f35b600044905090565b600034905090565b600041905090565b60606000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600081840152601f19601f82011690508083019250505050505050905090565b600043905090565b600033905090565b600042905090565b600045905090565b60003a905090565b600042905090565b600080357fffffffff0000000000000000000000000000000000000000000000000000000016905090565b600032905090565b600081409050919050565b60005a90509056fea265627a7a72305820eca27a97c49a3c3df395b0f4523c8626f80e91e382df0b08712b304d9069931f64736f6c63430005090032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5061058a806100206000396000f3fe6080604052600436106100dd5760003560e01c8063a16963b31161007f578063d12d910211610059578063d12d910214610340578063df1f29ee146103a9578063e9413d3814610400578063edb4b8651461044f576100dd565b8063a16963b3146102bf578063ab70fd69146102ea578063bbe4fd5014610315576100dd565b80633bc5de30116100bb5780633bc5de301461018257806342cbb15c146102125780635e01eb5a1461023d578063796b89b914610294576100dd565b806312e05dd1146100e2578063209652551461010d5780632df8e9491461012b575b600080fd5b3480156100ee57600080fd5b506100f761047a565b6040518082815260200191505060405180910390f35b610115610482565b6040518082815260200191505060405180910390f35b34801561013757600080fd5b5061014061048a565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561018e57600080fd5b50610197610492565b6040518080602001828103825283818151815260200191508051906020019080838360005b838110156101d75780820151818401526020810190506101bc565b50505050905090810190601f1680156102045780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b34801561021e57600080fd5b506102276104df565b6040518082815260200191505060405180910390f35b34801561024957600080fd5b506102526104e7565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b3480156102a057600080fd5b506102a96104ef565b6040518082815260200191505060405180910390f35b3480156102cb57600080fd5b506102d46104f7565b6040518082815260200191505060405180910390f35b3480156102f657600080fd5b506102ff6104ff565b6040518082815260200191505060405180910390f35b34801561032157600080fd5b5061032a610507565b6040518082815260200191505060405180910390f35b34801561034c57600080fd5b5061035561050f565b60405180827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200191505060405180910390f35b3480156103b557600080fd5b506103be61053a565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561040c57600080fd5b506104396004803603602081101561042357600080fd5b8101908080359060200190929190505050610542565b6040518082815260200191505060405180910390f35b34801561045b57600080fd5b5061046461054d565b6040518082815260200191505060405180910390f35b600044905090565b600034905090565b600041905090565b60606000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600081840152601f19601f82011690508083019250505050505050905090565b600043905090565b600033905090565b600042905090565b600045905090565b60003a905090565b600042905090565b600080357fffffffff0000000000000000000000000000000000000000000000000000000016905090565b600032905090565b600081409050919050565b60005a90509056fea265627a7a72305820176147ee7465d40bf08511f59fe62908bb1d7c7e2d735041ad6ab61add911da164736f6c63430005090032";
 
     public static final String FUNC_GETBLOCKDIFFICULTY = "getBlockDifficulty";
 
@@ -59,22 +59,12 @@ public class BlockTransactionPropertiesFunctions extends Contract {
 
     public static final String FUNC_GETGASLEFT = "getGasleft";
 
-    @Deprecated
-    protected BlockTransactionPropertiesFunctions(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected BlockTransactionPropertiesFunctions(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected BlockTransactionPropertiesFunctions(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected BlockTransactionPropertiesFunctions(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected BlockTransactionPropertiesFunctions(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected BlockTransactionPropertiesFunctions(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<BigInteger> getBlockDifficulty() {
@@ -84,12 +74,12 @@ public class BlockTransactionPropertiesFunctions extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> getValue(BigInteger weiValue) {
+    public RemoteCall<TransactionReceipt> getValue(BigInteger vonValue) {
         final Function function = new Function(
                 FUNC_GETVALUE, 
                 Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function, weiValue);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<String> getBlockCoinbase() {
@@ -176,39 +166,19 @@ public class BlockTransactionPropertiesFunctions extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public static RemoteCall<BlockTransactionPropertiesFunctions> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(BlockTransactionPropertiesFunctions.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<BlockTransactionPropertiesFunctions> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(BlockTransactionPropertiesFunctions.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<BlockTransactionPropertiesFunctions> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(BlockTransactionPropertiesFunctions.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<BlockTransactionPropertiesFunctions> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(BlockTransactionPropertiesFunctions.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<BlockTransactionPropertiesFunctions> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(BlockTransactionPropertiesFunctions.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static BlockTransactionPropertiesFunctions load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new BlockTransactionPropertiesFunctions(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<BlockTransactionPropertiesFunctions> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(BlockTransactionPropertiesFunctions.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static BlockTransactionPropertiesFunctions load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new BlockTransactionPropertiesFunctions(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static BlockTransactionPropertiesFunctions load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new BlockTransactionPropertiesFunctions(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static BlockTransactionPropertiesFunctions load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new BlockTransactionPropertiesFunctions(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static BlockTransactionPropertiesFunctions load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new BlockTransactionPropertiesFunctions(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static BlockTransactionPropertiesFunctions load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new BlockTransactionPropertiesFunctions(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

@@ -45,7 +45,7 @@ public class ControlTest extends ContractPrepareTest {
     public void controlStructCheck() {
         try {
 
-            Control control = Control.deploy(web3j, transactionManager, provider).send();
+            Control control = Control.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = control.getContractAddress();
             TransactionReceipt tx = control.getTransactionReceipt().get();

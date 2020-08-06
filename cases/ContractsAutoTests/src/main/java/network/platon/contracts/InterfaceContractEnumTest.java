@@ -18,14 +18,14 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class InterfaceContractEnumTest extends Contract {
-    private static final String BINARY = "60806040526001600060016101000a81548160ff0219169083600281111561002357fe5b021790555034801561003457600080fd5b5061011d806100446000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c806367cb61b6146041578063694ebe4f14606a578063843f7258146072575b600080fd5b6047608e565b60405180826002811115605657fe5b60ff16815260200191505060405180910390f35b607060a4565b005b607860c8565b6040518082815260200191505060405180910390f35b60008060009054906101000a900460ff16905090565b60026000806101000a81548160ff0219169083600281111560c157fe5b0217905550565b60008060019054906101000a900460ff16600281111560e357fe5b90509056fea265627a7a7231582099d07d7d76f3f1fdb398a1421c9ceca13ea6d19f9eb4f9aea9341e2768e8f00a64736f6c634300050d0032";
+    private static final String BINARY = "60806040526001600060016101000a81548160ff0219169083600281111561002357fe5b021790555034801561003457600080fd5b5061011d806100446000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c806367cb61b6146041578063694ebe4f14606a578063843f7258146072575b600080fd5b6047608e565b60405180826002811115605657fe5b60ff16815260200191505060405180910390f35b607060a4565b005b607860c8565b6040518082815260200191505060405180910390f35b60008060009054906101000a900460ff16905090565b60026000806101000a81548160ff0219169083600281111560c157fe5b0217905550565b60008060019054906101000a900460ff16600281111560e357fe5b90509056fea265627a7a72315820887f9c90b8f9690b45272148e51d9c464275108700feef4567cafe3516ff928464736f6c634300050d0032";
 
     public static final String FUNC_GETCHOICE = "getChoice";
 
@@ -33,22 +33,12 @@ public class InterfaceContractEnumTest extends Contract {
 
     public static final String FUNC_SETLARGE = "setLarge";
 
-    @Deprecated
-    protected InterfaceContractEnumTest(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected InterfaceContractEnumTest(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected InterfaceContractEnumTest(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected InterfaceContractEnumTest(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected InterfaceContractEnumTest(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected InterfaceContractEnumTest(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<BigInteger> getChoice() {
@@ -74,39 +64,19 @@ public class InterfaceContractEnumTest extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public static RemoteCall<InterfaceContractEnumTest> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(InterfaceContractEnumTest.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<InterfaceContractEnumTest> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(InterfaceContractEnumTest.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<InterfaceContractEnumTest> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(InterfaceContractEnumTest.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<InterfaceContractEnumTest> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(InterfaceContractEnumTest.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<InterfaceContractEnumTest> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(InterfaceContractEnumTest.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static InterfaceContractEnumTest load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new InterfaceContractEnumTest(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<InterfaceContractEnumTest> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(InterfaceContractEnumTest.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static InterfaceContractEnumTest load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new InterfaceContractEnumTest(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static InterfaceContractEnumTest load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new InterfaceContractEnumTest(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static InterfaceContractEnumTest load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new InterfaceContractEnumTest(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static InterfaceContractEnumTest load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new InterfaceContractEnumTest(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static InterfaceContractEnumTest load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new InterfaceContractEnumTest(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

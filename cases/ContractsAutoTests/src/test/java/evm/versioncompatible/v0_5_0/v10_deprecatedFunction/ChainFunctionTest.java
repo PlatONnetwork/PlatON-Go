@@ -34,7 +34,7 @@ public class ChainFunctionTest extends ContractPrepareTest {
     public void throwExceptionTest() {
         try {
 
-            ChainFunction chainFunction = ChainFunction.deploy(web3j, transactionManager, provider,new BigInteger("1")).send();
+            ChainFunction chainFunction = ChainFunction.deploy(web3j, transactionManager, provider,new BigInteger("1"), chainId).send();
 
             String contractAddress = chainFunction.getContractAddress();
             TransactionReceipt tx = chainFunction.getTransactionReceipt().get();

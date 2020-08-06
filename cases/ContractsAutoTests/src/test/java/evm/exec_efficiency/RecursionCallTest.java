@@ -35,19 +35,19 @@ public class RecursionCallTest extends ContractPrepareTest {
     public void test() {
         prepare();
         try {
-            RecursionCall recursionCall = RecursionCall.deploy(web3j, transactionManager, provider).send();
+            RecursionCall recursionCall = RecursionCall.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = recursionCall.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
             collector.logStepPass("deploy gas used:" + recursionCall.getTransactionReceipt().get().getGasUsed());
 
-            TransactionReceipt transactionReceipt = RecursionCall.load(contractAddress, web3j, transactionManager, provider)
+            TransactionReceipt transactionReceipt = RecursionCall.load(contractAddress, web3j, transactionManager, provider, chainId)
                     .recursionCallTest(numberOfCalls, new BigInteger("0")).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
             collector.logStepPass("gasUsed:" + gasUsed);
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
-            collector.logStepPass("get result value:" + RecursionCall.load(contractAddress, web3j, transactionManager, provider).get_total().send());
+            collector.logStepPass("get result value:" + RecursionCall.load(contractAddress, web3j, transactionManager, provider, chainId).get_total().send());
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("The contract fail.", e.toString());

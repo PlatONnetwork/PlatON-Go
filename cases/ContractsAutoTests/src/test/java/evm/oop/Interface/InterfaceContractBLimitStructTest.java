@@ -30,7 +30,7 @@ public class InterfaceContractBLimitStructTest extends ContractPrepareTest {
         InterfaceContractStructTest interfaceContractStructTest= null;
         try {
             //合约部署
-            interfaceContractStructTest = InterfaceContractStructTest.deploy(web3j, transactionManager, provider).send();
+            interfaceContractStructTest = InterfaceContractStructTest.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = interfaceContractStructTest.getContractAddress();
             TransactionReceipt tx = interfaceContractStructTest.getTransactionReceipt().get();
 

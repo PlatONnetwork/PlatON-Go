@@ -30,7 +30,7 @@ public class DelegatecallCallerTest extends ContractPrepareTest {
     public void crossContractCaller() {
         try {
             //调用者合约地址
-            DelegatecallCaller delegatecallCaller = DelegatecallCaller.deploy(web3j, transactionManager, provider).send();
+            DelegatecallCaller delegatecallCaller = DelegatecallCaller.deploy(web3j, transactionManager, provider, chainId).send();
             String callerContractAddress = delegatecallCaller.getContractAddress();
             TransactionReceipt tx = delegatecallCaller.getTransactionReceipt().get();
             collector.logStepPass("DelegatecallCaller deploy successfully.contractAddress:" + callerContractAddress + ", hash:" + tx.getTransactionHash());
@@ -38,7 +38,7 @@ public class DelegatecallCallerTest extends ContractPrepareTest {
 
 
             //被调用者合约地址
-            DelegatecallCallee delegatecallCallee = DelegatecallCallee.deploy(web3j, transactionManager, provider).send();
+            DelegatecallCallee delegatecallCallee = DelegatecallCallee.deploy(web3j, transactionManager, provider, chainId).send();
             String calleeContractAddress = delegatecallCallee.getContractAddress();
             TransactionReceipt tx1 = delegatecallCallee.getTransactionReceipt().get();
             collector.logStepPass("DelegatecallCallee deploy successfully.contractAddress:" + calleeContractAddress + ", hash:" + tx1.getTransactionHash());

@@ -33,8 +33,7 @@ public class ContractMigrateTypesTest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            provider = new ContractGasProvider(BigInteger.valueOf(50000000004L), BigInteger.valueOf(90000000L));
-            ContractMigrate_types contractMigrateTypes = ContractMigrate_types.deploy(web3j, transactionManager, provider).send();
+            ContractMigrate_types contractMigrateTypes = ContractMigrate_types.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = contractMigrateTypes.getContractAddress();
             String transactionHash = contractMigrateTypes.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("contractMigrateTypes issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -62,7 +61,7 @@ public class ContractMigrateTypesTest extends WASMContractPrepareTest {
             String newContractAddress = contractMigrateTypes.getTransferEvents(transactionReceipt).get(0).arg1;
             collector.logStepPass("new Contract Address is:"+newContractAddress);
 
-            ContractMigrate_types new_contractMigrate = ContractMigrate_types.load(newContractAddress,web3j,credentials,provider);
+            ContractMigrate_types new_contractMigrate = ContractMigrate_types.load(newContractAddress,web3j,credentials,provider, chainId);
             ContractMigrate_types.Message newMsg = new_contractMigrate.getMessage().send();
             collector.logStepPass("new Contract message variable is:" + newMsg.head);
             collector.assertEqual(newMsg.head, structvalue, "check migrate struct value");

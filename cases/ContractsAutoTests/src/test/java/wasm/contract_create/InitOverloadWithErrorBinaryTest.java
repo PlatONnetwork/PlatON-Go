@@ -25,7 +25,7 @@ public class InitOverloadWithErrorBinaryTest extends WASMContractPrepareTest {
             //截掉binary前面5位数字
             InitOverload.BINARY = InitOverload.BINARY.substring(5);
 
-            InitOverload initOverload = InitOverload.deploy(web3j, transactionManager, provider).send();
+            InitOverload initOverload = InitOverload.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = initOverload.getContractAddress();
             String transactionHash = initOverload.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("InitOverload issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

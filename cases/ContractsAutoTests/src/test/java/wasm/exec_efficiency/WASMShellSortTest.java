@@ -30,7 +30,7 @@ public class WASMShellSortTest extends WASMContractPrepareTest {
 
             Integer numberOfCalls = Integer.valueOf(driverService.param.get("numberOfCalls"));
 
-            ShellSort shellsort = ShellSort.deploy(web3j, transactionManager, provider).send();
+            ShellSort shellsort = ShellSort.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = shellsort.getContractAddress();
             collector.logStepPass("contract deploy successful. contractAddress:" + contractAddress);
             collector.logStepPass("deploy gas used:" + shellsort.getTransactionReceipt().get().getGasUsed());
@@ -44,7 +44,7 @@ public class WASMShellSortTest extends WASMContractPrepareTest {
             }
 
             collector.logStepPass("before sort:" + Arrays.toString(arr));
-            TransactionReceipt transactionReceipt = ShellSort.load(contractAddress, web3j, transactionManager, provider)
+            TransactionReceipt transactionReceipt = ShellSort.load(contractAddress, web3j, transactionManager, provider, chainId)
                     .sort(arr, Int32.of(arr.length)).send();
 
             BigInteger gasUsed = transactionReceipt.getGasUsed();
@@ -52,7 +52,7 @@ public class WASMShellSortTest extends WASMContractPrepareTest {
             collector.logStepPass("contract load successful. transactionHash:" + transactionReceipt.getTransactionHash());
             collector.logStepPass("currentBlockNumber:" + transactionReceipt.getBlockNumber());
 
-            Int64[] generationArr = ShellSort.load(contractAddress, web3j, transactionManager, provider).get_array().send();
+            Int64[] generationArr = ShellSort.load(contractAddress, web3j, transactionManager, provider, chainId).get_array().send();
 
             collector.logStepPass("after sort:" + Arrays.toString(generationArr));
         } catch (Exception e) {

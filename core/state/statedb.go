@@ -733,9 +733,9 @@ func (self *StateDB) createObject(addr common.Address) (newobj, prev *stateObjec
 //
 // Carrying over the balance ensures that Ether doesn't disappear.
 func (self *StateDB) CreateAccount(addr common.Address) {
-	new, prev := self.createObject(addr)
+	newObj, prev := self.createObject(addr)
 	if prev != nil {
-		new.setBalance(prev.data.Balance)
+		newObj.setBalance(prev.data.Balance)
 	}
 }
 
@@ -911,8 +911,8 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 		} else {
 			stateObject.updateRoot(s.db)
 			s.updateStateObject(stateObject)
-			log.Trace("Finalise single", "address", stateObject.address.String(), "balance", stateObject.Balance().Uint64(), "nonce", stateObject.Nonce(),
-				"codeHash", common.Bytes2Hex(stateObject.CodeHash()), "storageRoot", stateObject.data.Root.String(), "storageKeyPrefix", common.Bytes2Hex(stateObject.data.StorageKeyPrefix))
+			/*	log.Trace("Finalise single", "address", stateObject.address.String(), "balance", stateObject.Balance().Uint64(), "nonce", stateObject.Nonce(),
+				"codeHash", common.Bytes2Hex(stateObject.CodeHash()), "storageRoot", stateObject.data.Root.String(), "storageKeyPrefix", common.Bytes2Hex(stateObject.data.StorageKeyPrefix))*/
 		}
 		s.stateObjectsDirty[addr] = struct{}{}
 	}

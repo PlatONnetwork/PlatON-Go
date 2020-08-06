@@ -18,14 +18,14 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class DisallowTypeChange extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5061019c806100206000396000f3fe608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630b7f16651461005c578063420343a414610093578063a56dfe4a1461009d575b600080fd5b34801561006857600080fd5b506100716100d4565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b61009b6100ed565b005b3480156100a957600080fd5b506100b261015b565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b60008060009054906101000a900463ffffffff16905090565b60007faaaa00000000000000000000000000000000000000000000000000000000000090506000819050807c010000000000000000000000000000000000000000000000000000000090046000806101000a81548163ffffffff021916908363ffffffff1602179055505050565b6000809054906101000a900463ffffffff168156fea165627a7a72305820a03785befa5b2fc3e405b561cdfeb9af3c0b55a044314e7fada1bbc74e71ddcb0029";
+    private static final String BINARY = "608060405234801561001057600080fd5b5061019c806100206000396000f3fe608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630b7f16651461005c578063420343a414610093578063a56dfe4a1461009d575b600080fd5b34801561006857600080fd5b506100716100d4565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b61009b6100ed565b005b3480156100a957600080fd5b506100b261015b565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b60008060009054906101000a900463ffffffff16905090565b60007faaaa00000000000000000000000000000000000000000000000000000000000090506000819050807c010000000000000000000000000000000000000000000000000000000090046000806101000a81548163ffffffff021916908363ffffffff1602179055505050565b6000809054906101000a900463ffffffff168156fea165627a7a7230582002d641157f5ad85479288e41869cf83d719059473ef30164dec3b543a7dac4a80029";
 
     public static final String FUNC_GETY = "getY";
 
@@ -33,22 +33,12 @@ public class DisallowTypeChange extends Contract {
 
     public static final String FUNC_Y = "y";
 
-    @Deprecated
-    protected DisallowTypeChange(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected DisallowTypeChange(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected DisallowTypeChange(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected DisallowTypeChange(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected DisallowTypeChange(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected DisallowTypeChange(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<BigInteger> getY() {
@@ -58,12 +48,12 @@ public class DisallowTypeChange extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> testChange(BigInteger weiValue) {
+    public RemoteCall<TransactionReceipt> testChange(BigInteger vonValue) {
         final Function function = new Function(
                 FUNC_TESTCHANGE, 
                 Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function, weiValue);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<BigInteger> y() {
@@ -73,39 +63,19 @@ public class DisallowTypeChange extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public static RemoteCall<DisallowTypeChange> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(DisallowTypeChange.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<DisallowTypeChange> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(DisallowTypeChange.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<DisallowTypeChange> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(DisallowTypeChange.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<DisallowTypeChange> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(DisallowTypeChange.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<DisallowTypeChange> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(DisallowTypeChange.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static DisallowTypeChange load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new DisallowTypeChange(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<DisallowTypeChange> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(DisallowTypeChange.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static DisallowTypeChange load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new DisallowTypeChange(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static DisallowTypeChange load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new DisallowTypeChange(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static DisallowTypeChange load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new DisallowTypeChange(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static DisallowTypeChange load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new DisallowTypeChange(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static DisallowTypeChange load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new DisallowTypeChange(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

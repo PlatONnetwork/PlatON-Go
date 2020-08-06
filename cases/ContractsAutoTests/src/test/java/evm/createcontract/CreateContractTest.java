@@ -22,7 +22,7 @@ public class CreateContractTest extends ContractPrepareTest {
     public void testNewContract() {
         try {
             prepare();
-            CreateContract createContract = CreateContract.deploy(web3j, transactionManager, provider).send();
+            CreateContract createContract = CreateContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = createContract.getContractAddress();
             String transactionHash = createContract.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CreateContract issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

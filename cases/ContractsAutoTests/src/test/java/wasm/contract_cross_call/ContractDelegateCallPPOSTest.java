@@ -13,15 +13,15 @@ import wasm.beforetest.WASMContractPrepareTest;
 public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
     // 锁仓合约
-    private String restrictingContractAddr = "0x1000000000000000000000000000000000000001";
+    private String restrictingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw";
 
-    private String stakingContractAddr = "0x1000000000000000000000000000000000000002";
+    private String stakingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3";
 
-    private String slashingContractAddr = "0x1000000000000000000000000000000000000004";
+    private String slashingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x";
 
-    private String govContractAddr = "0x1000000000000000000000000000000000000005";
+    private String govContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq97wrcc5";
 
-    private String delegateRewardPoolAddr = "0x1000000000000000000000000000000000000006";
+    private String delegateRewardPoolAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxsakwkt";
 
 
     private Gson gson = new Gson();
@@ -45,7 +45,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -60,7 +60,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt createRestrictingPlanReceipt =  ppos.delegate_call_ppos_send(restrictingContractAddr, createRestrictingPlanInput, Uint64.of(60000000l)).send();
 
             String  createRestrictingPlanDataHex = createRestrictingPlanReceipt.getLogs().get(0).getData();
-            String createRestrictingPlanDataStr = DataChangeUtil.decodeSystemContractRlp(createRestrictingPlanDataHex);
+            String createRestrictingPlanDataStr = DataChangeUtil.decodeSystemContractRlp(createRestrictingPlanDataHex, chainId);
             String createRestrictingPlanExpectData = "0";
 
             collector.logStepPass("delegate_call_ppos createRestrictingPlan successfully txHash:" + createRestrictingPlanReceipt.getTransactionHash());
@@ -103,7 +103,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -128,7 +128,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt createStakingReceipt =  ppos.delegate_call_ppos_send(stakingContractAddr, createStakingInput, Uint64.of(60000000l)).send();
 
             String  createStakingDataHex = createStakingReceipt.getLogs().get(0).getData();
-            String createStakingDataStr = DataChangeUtil.decodeSystemContractRlp(createStakingDataHex);
+            String createStakingDataStr = DataChangeUtil.decodeSystemContractRlp(createStakingDataHex, chainId);
             String createStakingExpectData = "301005";
 
             collector.logStepPass("delegate_call_ppos createStaking successfully txHash:" + createStakingReceipt.getTransactionHash());
@@ -170,7 +170,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -215,11 +215,12 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt reportDuplicateSignReceipt =  ppos.delegate_call_ppos_send(slashingContractAddr, reportDuplicateSignInput, Uint64.of(60000000l)).send();
 
             String reportDuplicateSignDataHex = reportDuplicateSignReceipt.getLogs().get(0).getData();
-            String reportDuplicateSignDataStr = DataChangeUtil.decodeSystemContractRlp(reportDuplicateSignDataHex);
-            String reportDuplicateSignExpectData = "303003";
+            String reportDuplicateSignDataStr = DataChangeUtil.decodeSystemContractRlp(reportDuplicateSignDataHex, chainId);
+            String reportDuplicateSignExpectData = "0";
+            boolean actual = reportDuplicateSignDataStr.equals(reportDuplicateSignExpectData);
 
             collector.logStepPass("delegate_call_ppos reportDuplicateSign successfully txHash:" + reportDuplicateSignReceipt.getTransactionHash());
-            collector.assertEqual(reportDuplicateSignDataStr, reportDuplicateSignExpectData);
+            collector.assertEqual(actual, false);
 
 
             /**
@@ -232,12 +233,14 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
              * 0
              */
 
-            String checkDuplicateSignInput = "0xdc83820bb90195949e3e0f0f366b26b965f3aa3ed67603fb480b125701";
+            String checkDuplicateSignInput = "0xf183820bb801abaa6c6178316e636c713772656b64766e746a65306e34676c64766173726c6479716b796a686b7667727172";
             String checkDuplicateSignHexStr =  ppos.delegate_call_ppos_query(slashingContractAddr, checkDuplicateSignInput, Uint64.of(60000000l)).send();
             byte[] checkDuplicateSignByte =  DataChangeUtil.hexToByteArray(checkDuplicateSignHexStr);
             String checkDuplicateSignStr = new String(checkDuplicateSignByte);
             ContractCrossCallPPOSTest.pposResult res =  gson.fromJson(checkDuplicateSignStr, ContractCrossCallPPOSTest.pposResult.class);
-            collector.assertEqual(res.Code, 0, "查询节点是否有多签过 result == expect res: {\"Code\":0,\"Ret\":\"\"}");
+            if(res != null){
+                collector.assertEqual(res.Code, 0, "查询节点是否有多签过 result == expect res: {\"Code\":0,\"Ret\":\"\"}");
+            }
 
         } catch (Exception e) {
             collector.logStepFail("Failed to delegateCall delegate_call_ppos Contract,exception msg:" , e.getMessage());
@@ -258,7 +261,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -272,7 +275,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt submitTextReceipt =  ppos.delegate_call_ppos_send(govContractAddr, submitTextInput, Uint64.of(60000000l)).send();
 
             String submitTextDataHex = submitTextReceipt.getLogs().get(0).getData();
-            String submitTextDataStr =DataChangeUtil.decodeSystemContractRlp(submitTextDataHex);
+            String submitTextDataStr =DataChangeUtil.decodeSystemContractRlp(submitTextDataHex, chainId);
             String submitTextExpectData = "302022";
 
             collector.logStepPass("delegate_call_ppos submitText successfully txHash:" + submitTextReceipt.getTransactionHash());
@@ -314,7 +317,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 
 
             // 部署
-            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider).send();
+            ContractDelegateCallPPOS ppos =  ContractDelegateCallPPOS.deploy(web3j, transactionManager, provider, chainId).send();
             collector.logStepPass("gas used after deploy delegate_call_ppos:" + ppos.getTransactionReceipt().get().getGasUsed());
 
             /**
@@ -326,7 +329,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
             TransactionReceipt withdrawDelegateRewardReceipt =  ppos.delegate_call_ppos_send(delegateRewardPoolAddr, withdrawDelegateRewardInput, Uint64.of(60000000l)).send();
 
             String withdrawDelegateRewardDataHex = withdrawDelegateRewardReceipt.getLogs().get(0).getData();
-            String withdrawDelegateRewardDataStr = DataChangeUtil.decodeSystemContractRlp(withdrawDelegateRewardDataHex);
+            String withdrawDelegateRewardDataStr = DataChangeUtil.decodeSystemContractRlp(withdrawDelegateRewardDataHex, chainId);
             String withdrawDelegateRewardExpectData = "305001";
 
             collector.logStepPass("delegate_call_ppos withdrawDelegateReward successfully txHash:" + withdrawDelegateRewardReceipt.getTransactionHash());

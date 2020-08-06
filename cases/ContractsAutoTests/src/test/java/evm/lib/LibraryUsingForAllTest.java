@@ -23,7 +23,7 @@ public class LibraryUsingForAllTest extends ContractPrepareTest {
     public void testReplace() {
         try {
             prepare();
-            LibraryUsingForAll using = LibraryUsingForAll.deploy(web3j, transactionManager, provider).send();
+            LibraryUsingForAll using = LibraryUsingForAll.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = using.getContractAddress();
             String transactionHash = using.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("LibraryUsingForAll issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

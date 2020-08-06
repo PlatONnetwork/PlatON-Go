@@ -13,7 +13,7 @@ import java.math.BigInteger;
 
 /**
  * @title  suicide()已弃用, 请使用 selfdestruct()
- * @description: 
+ * @description:
  * @author: hudenian
  * @create: 2019/12/27
  */
@@ -30,7 +30,7 @@ public class SuicideAndSelfdestructTest extends ContractPrepareTest {
     public void selfKill() {
         try {
 
-            SuicideAndSelfdestruct suicideAndSelfdestruct = SuicideAndSelfdestruct.deploy(web3j, transactionManager, provider).send();
+            SuicideAndSelfdestruct suicideAndSelfdestruct = SuicideAndSelfdestruct.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = suicideAndSelfdestruct.getContractAddress();
             TransactionReceipt tx = suicideAndSelfdestruct.getTransactionReceipt().get();
@@ -70,7 +70,7 @@ public class SuicideAndSelfdestructTest extends ContractPrepareTest {
 
     /**
      * @title do...while结果值
-     * @description: 
+     * @description:
      * @author: hudenian
      * @create: 2019/12/27
      */
@@ -86,7 +86,7 @@ public class SuicideAndSelfdestructTest extends ContractPrepareTest {
 
     /**
      * @title for 循环后的结果值
-     * @description: 
+     * @description:
      * @author: hudenian
      * @create: 2019/12/27
      */

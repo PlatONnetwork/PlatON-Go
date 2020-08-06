@@ -1,3 +1,4 @@
+#define TESTNET
 #include <platon/platon.hpp>
 #include <string>
 using namespace platon;
@@ -19,7 +20,12 @@ CONTRACT AntoTypeContract : public platon::Contract{
 
     //自动匹配int类型
     CONST auto get_anto_int(){
-        auto a = 5;//x是int
+        auto a = 5;//值为整数
+        return a;
+    }
+    //自动匹配
+    CONST auto get_anto_int32(){
+        auto a = -10;//值为负数
         return a;
     }
     //自动匹配int*类型--指针类型编译器不支持
@@ -33,11 +39,11 @@ CONTRACT AntoTypeContract : public platon::Contract{
         auto c = &a;//c是int*类型
         return c;
     }*/
-    //自动匹配double类型
-    CONST auto get_anto_double(){
+    //自动匹配double类型(暂不支持浮点)
+ /*   CONST auto get_anto_double(){
         auto d = 1.0;//d是double类型
         return d;
-    }
+    }*/
     //自动匹配多个值类型
     CONST auto get_anto_multiple(){
         auto e = 10,f = 20,g = 30;//auto定义多个值时必须类型一致
@@ -56,14 +62,14 @@ CONTRACT AntoTypeContract : public platon::Contract{
         return v2;
     }*/
 
-    //自动匹配表达式
-   CONST auto get_anto_express(){
+    //自动匹配表达式(暂不支持浮点)
+   /*CONST auto get_anto_express(){
 
      auto a = 5;
      auto b = 10.32;
      auto c = a + b;//c是double
      return c;
-   }
+   }*/
 
       ACTION void set_anto_care_one(){
          //1、如果初始化表达式是引用，则去除引用语义
@@ -102,9 +108,11 @@ CONTRACT AntoTypeContract : public platon::Contract{
 };
 
 PLATON_DISPATCH(AntoTypeContract,(init)
-(get_anto_int)//(get_anto_int2)(get_anto_int3)
-(get_anto_double)(get_anto_multiple)
+(get_anto_int)(get_anto_int32)
+//(get_anto_int2)(get_anto_int3)
+//(get_anto_double)
+(get_anto_multiple)
 (get_anto_uint8_t)//(get_anto_array)
-(get_anto_express)
+//(get_anto_express)
 (set_anto_care_one)(get_anto_iterator)
 )

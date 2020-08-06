@@ -31,7 +31,7 @@ public class SameNameConstructorPublicVisibilityTest extends ContractPrepareTest
         try {
             prepare();
             BigInteger constructorValue = new BigInteger("10000000000");
-            SameNameConstructorPublicVisibility visibility = SameNameConstructorPublicVisibility.deploy(web3j, transactionManager, provider, constructorValue).send();
+            SameNameConstructorPublicVisibility visibility = SameNameConstructorPublicVisibility.deploy(web3j, transactionManager, provider, chainId, constructorValue).send();
             String contractAddress = visibility.getContractAddress();
             String transactionHash = visibility.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SameNameConstructorPublicVisibility issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

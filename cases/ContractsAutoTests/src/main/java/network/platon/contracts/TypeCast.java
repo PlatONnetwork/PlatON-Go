@@ -20,33 +20,23 @@ import org.web3j.tx.gas.GasProvider;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class TypeCast extends Contract {
-    private static final String BINARY = "6060604052341561000f57600080fd5b6101dc8061001e6000396000f300606060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806312e9b56d14610046575b600080fd5b341561005157600080fd5b610059610101565b604051808461ffff1661ffff168152602001837bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001935050505060405180910390f35b600080600080600080600060127e01000000000000000000000000000000000000000000000000000000000000029350837e01000000000000000000000000000000000000000000000000000000000000900492506104d27c01000000000000000000000000000000000000000000000000000000000291506112347c0100000000000000000000000000000000000000000000000000000000029050828282965096509650505050509091925600a165627a7a72305820c2a81a092ac2fe801245afade433bbc86507e487e48cc7b4474b07b3ba51e7fe0029";
+    private static final String BINARY = "6060604052341561000f57600080fd5b6101dc8061001e6000396000f300606060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806312e9b56d14610046575b600080fd5b341561005157600080fd5b610059610101565b604051808461ffff1661ffff168152602001837bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001935050505060405180910390f35b600080600080600080600060127e01000000000000000000000000000000000000000000000000000000000000029350837e01000000000000000000000000000000000000000000000000000000000000900492506104d27c01000000000000000000000000000000000000000000000000000000000291506112347c0100000000000000000000000000000000000000000000000000000000029050828282965096509650505050509091925600a165627a7a723058209ef006e8f5d9a7399342f86d4385a2e152cbf5b423e27afa53f6cee9350bf3630029";
 
     public static final String FUNC_TYPECAST = "typeCast";
 
-    @Deprecated
-    protected TypeCast(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected TypeCast(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected TypeCast(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    @Deprecated
-    protected TypeCast(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected TypeCast(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
+    protected TypeCast(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public RemoteCall<Tuple3<BigInteger, byte[], byte[]>> typeCast() {
@@ -66,39 +56,19 @@ public class TypeCast extends Contract {
                 });
     }
 
-    public static RemoteCall<TypeCast> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(TypeCast.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<TypeCast> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(TypeCast.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<TypeCast> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(TypeCast.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<TypeCast> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(TypeCast.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<TypeCast> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(TypeCast.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static TypeCast load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new TypeCast(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<TypeCast> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(TypeCast.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static TypeCast load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new TypeCast(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static TypeCast load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new TypeCast(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static TypeCast load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new TypeCast(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static TypeCast load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new TypeCast(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static TypeCast load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new TypeCast(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 }

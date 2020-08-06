@@ -50,7 +50,7 @@ public class QuickSortTest extends ContractPrepareTest {
                 }
             }
 
-            QuickSort contract = QuickSort.deploy(web3j, transactionManager, provider).send();
+            QuickSort contract = QuickSort.deploy(web3j, transactionManager, provider, chainId).send();
             contractAddress = contract.getContractAddress();
             collector.logStepPass("QuickSort contract deploy successful. contractAddress:" + contractAddress + " hash:" + contract.getTransactionReceipt().get().getTransactionHash());
             collector.logStepPass("QuickSort contract deploy successful. gasUsed:" + contract.getTransactionReceipt().get().getGasUsed().toString());

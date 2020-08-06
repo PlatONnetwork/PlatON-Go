@@ -237,6 +237,11 @@ var (
 		Usage: "Maximum amount of time non-executable transaction are queued",
 		Value: eth.DefaultConfig.TxPool.Lifetime,
 	}
+	TxPoolCacheSizeFlag = cli.Uint64Flag{
+		Name:  "txpool.cacheSize",
+		Usage: "After receiving the specified number of transactions from the remote, move the transactions in the queen to pending",
+		Value: eth.DefaultConfig.TxPool.TxCacheSize,
+	}
 	// Performance tuning settings
 	CacheFlag = cli.IntFlag{
 		Name:  "cache",
@@ -813,17 +818,12 @@ func setIPC(ctx *cli.Context, cfg *node.Config) {
 // makeDatabaseHandles raises out the number of allowed file handles per process
 // for Geth and returns half of the allowance to assign to the database.
 func makeDatabaseHandles() int {
-	limit, err := fdlimit.Current()
+	limit, err := fdlimit.Maximum()
 	if err != nil {
 		Fatalf("Failed to retrieve file descriptor allowance: %v", err)
 	}
-	if limit < 2048 {
-		if err := fdlimit.Raise(2048); err != nil {
-			Fatalf("Failed to raise file descriptor allowance: %v", err)
-		}
-	}
-	if limit > 2048 { // cap database file descriptors even if more is available
-		limit = 2048
+	if err := fdlimit.Raise(uint64(limit)); err != nil {
+		Fatalf("Failed to raise file descriptor allowance: %v", err)
 	}
 	return limit / 2 // Leave half for networking and other stuff
 }
@@ -1022,6 +1022,9 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 	if ctx.GlobalIsSet(TxPoolLifetimeFlag.Name) {
 		cfg.Lifetime = ctx.GlobalDuration(TxPoolLifetimeFlag.Name)
+	}
+	if ctx.GlobalIsSet(TxPoolCacheSizeFlag.Name) {
+		cfg.TxCacheSize = ctx.GlobalUint64(TxPoolCacheSizeFlag.Name)
 	}
 }
 

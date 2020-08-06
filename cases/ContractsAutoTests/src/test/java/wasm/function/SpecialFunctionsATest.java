@@ -26,7 +26,7 @@ public class SpecialFunctionsATest extends WASMContractPrepareTest {
 
         try {
             prepare();
-            SpecialFunctionsA specialfunctionsa = SpecialFunctionsA.deploy(web3j, transactionManager, provider).send();
+            SpecialFunctionsA specialfunctionsa = SpecialFunctionsA.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = specialfunctionsa.getContractAddress();
             String transactionHash = specialfunctionsa.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("SpecialFunctionsATest issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

@@ -32,7 +32,7 @@ public class CallExternalTest extends ContractPrepareTest {
             author = "liweic", showName = "function.CallExternalTest-函数外部调用测试", sourcePrefix = "evm")
     public void callexternal() {
         try {
-            CallExternal callexternal = CallExternal.deploy(web3j, transactionManager, provider).send();
+            CallExternal callexternal = CallExternal.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = callexternal.getContractAddress();
             TransactionReceipt tx = callexternal.getTransactionReceipt().get();

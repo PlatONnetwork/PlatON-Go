@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"golang.org/x/crypto/ripemd160"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -257,6 +259,7 @@ var testCase = []*Case{
 	},
 	{
 		ctx: &VMContext{
+			gasTable: params.GasTableConstantinople,
 			evm: &EVM{
 				Context: Context{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
@@ -291,7 +294,8 @@ var testCase = []*Case{
 	// CALL
 	{
 		ctx: &VMContext{
-			config: Config{WasmType: Wagon},
+			gasTable: params.GasTableConstantinople,
+			config:   Config{WasmType: Wagon},
 			evm: &EVM{
 				Context: Context{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
@@ -331,7 +335,8 @@ var testCase = []*Case{
 	// DELEGATECALL
 	{
 		ctx: &VMContext{
-			config: Config{WasmType: Wagon},
+			gasTable: params.GasTableConstantinople,
+			config:   Config{WasmType: Wagon},
 			evm: &EVM{
 				Context: Context{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
@@ -373,6 +378,7 @@ var testCase = []*Case{
 	// STATICCALL
 	/*{
 		ctx: &VMContext{
+			gasTable: params.GasTableConstantinople,
 			config: Config{WasmType: Wagon},
 			evm: &EVM{
 				Context: Context{
@@ -456,7 +462,8 @@ var testCase = []*Case{
 	// MIGRATE
 	{
 		ctx: &VMContext{
-			config: Config{WasmType: Wagon},
+			gasTable: params.GasTableConstantinople,
+			config:   Config{WasmType: Wagon},
 			evm: &EVM{
 				Context: Context{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
@@ -738,6 +745,54 @@ var testCase = []*Case{
 
 			addr := crypto.Keccak256(pubKey[1:])[12:]
 			return bytes.Equal(addr[:], ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "rlp_u128_size_test",
+		check: func(ctx *VMContext, err error) bool {
+			res := []byte{17, 0, 0, 0, 0, 0, 0, 0}
+			return bytes.Equal(res, ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "platon_rlp_u128_test",
+		check: func(ctx *VMContext, err error) bool {
+			res := []byte{0x90, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
+			return bytes.Equal(res, ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "rlp_bytes_size_test",
+		check: func(ctx *VMContext, err error) bool {
+			res := []byte{17, 0, 0, 0, 0, 0, 0, 0}
+			return bytes.Equal(res, ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "platon_rlp_bytes_test",
+		check: func(ctx *VMContext, err error) bool {
+			res := []byte{0x90, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f}
+			return bytes.Equal(res, ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "rlp_list_size_test",
+		check: func(ctx *VMContext, err error) bool {
+			res := []byte{17, 0, 0, 0, 0, 0, 0, 0}
+			return bytes.Equal(res, ctx.Output)
+		},
+	},
+	{
+		ctx:      &VMContext{},
+		funcName: "platon_rlp_list_test",
+		check: func(ctx *VMContext, err error) bool {
+			res := []byte{0xd0, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f}
+			return bytes.Equal(res, ctx.Output)
 		},
 	},
 }

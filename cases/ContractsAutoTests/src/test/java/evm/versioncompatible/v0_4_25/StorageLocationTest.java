@@ -27,7 +27,7 @@ public class StorageLocationTest extends ContractPrepareTest {
     public void testStorageLocationCheck() {
         try {
             prepare();
-            StorageLocation storageLocation = StorageLocation.deploy(web3j, transactionManager, provider).send();
+            StorageLocation storageLocation = StorageLocation.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = storageLocation.getContractAddress();
             String transactionHash = storageLocation.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("StorageLocation issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
@@ -46,7 +46,7 @@ public class StorageLocationTest extends ContractPrepareTest {
     public void testTransfer() {
         try {
             prepare();
-            StorageLocation storageLocation = StorageLocation.deploy(web3j, transactionManager, provider).send();
+            StorageLocation storageLocation = StorageLocation.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = storageLocation.getContractAddress();
             String transactionHash = storageLocation.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("StorageLocation issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

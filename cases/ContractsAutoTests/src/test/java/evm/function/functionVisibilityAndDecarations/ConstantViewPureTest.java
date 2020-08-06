@@ -29,7 +29,7 @@ public class ConstantViewPureTest extends ContractPrepareTest {
             author = "liweic", showName = "function.ConstantViewPureTest-函数声明方式测试", sourcePrefix = "evm")
     public void constantviewPure() {
         try {
-            ConstantViewPure constantviewpure = ConstantViewPure.deploy(web3j, transactionManager, provider).send();
+            ConstantViewPure constantviewpure = ConstantViewPure.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = constantviewpure.getContractAddress();
             TransactionReceipt tx = constantviewpure.getTransactionReceipt().get();

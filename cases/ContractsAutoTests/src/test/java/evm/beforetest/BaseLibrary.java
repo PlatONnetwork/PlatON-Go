@@ -36,7 +36,7 @@ public class BaseLibrary {
 
 	public TransactionReceipt deploy(BigInteger gasPrice, BigInteger gasLimit, String data) throws Exception {
 		PlatonGetTransactionCount platonGetTransactionCount = web3j
-				.platonGetTransactionCount(credentials.getAddress(), DefaultBlockParameterName.LATEST).send();
+				.platonGetTransactionCount(credentials.getAddress(chainId), DefaultBlockParameterName.LATEST).send();
 		BigInteger nonce = platonGetTransactionCount.getTransactionCount();
 
 		String to = "";

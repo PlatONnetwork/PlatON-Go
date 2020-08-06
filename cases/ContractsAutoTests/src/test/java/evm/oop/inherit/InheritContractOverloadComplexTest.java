@@ -30,7 +30,7 @@ public class InheritContractOverloadComplexTest extends ContractPrepareTest {
         InheritContractOverloadChild inheritContractOverloadChild = null;
         try {
             //合约部署
-            inheritContractOverloadChild = InheritContractOverloadChild.deploy(web3j, transactionManager, provider).send();
+            inheritContractOverloadChild = InheritContractOverloadChild.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = inheritContractOverloadChild.getContractAddress();
             TransactionReceipt tx =  inheritContractOverloadChild.getTransactionReceipt().get();
             collector.logStepPass("InheritContractOverload issued successfully.contractAddress:" + contractAddress

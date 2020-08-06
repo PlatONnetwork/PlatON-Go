@@ -32,7 +32,7 @@ public class NamedCallTest extends ContractPrepareTest {
             author = "liweic", showName = "function.NamedCallTest-函数具名调用测试", sourcePrefix = "evm")
     public void namedcall() {
         try {
-            NamedCall namedcall = NamedCall.deploy(web3j, transactionManager, provider).send();
+            NamedCall namedcall = NamedCall.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = namedcall.getContractAddress();
             TransactionReceipt tx = namedcall.getTransactionReceipt().get();

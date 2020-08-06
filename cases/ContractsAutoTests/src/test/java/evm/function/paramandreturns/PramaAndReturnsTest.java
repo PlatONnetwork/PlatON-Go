@@ -41,7 +41,7 @@ public class PramaAndReturnsTest extends ContractPrepareTest {
     public void ParamAndReturn() {
         try {
 
-            PramaAndReturns pramaAndReturns = PramaAndReturns.deploy(web3j, transactionManager, provider).send();
+            PramaAndReturns pramaAndReturns = PramaAndReturns.deploy(web3j, transactionManager, provider, chainId).send();
 
             String contractAddress = pramaAndReturns.getContractAddress();
             TransactionReceipt tx = pramaAndReturns.getTransactionReceipt().get();

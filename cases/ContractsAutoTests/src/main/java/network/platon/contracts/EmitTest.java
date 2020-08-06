@@ -28,14 +28,14 @@ import rx.functions.Func1;
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
+ * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.9.1.0-SNAPSHOT.
+ * <p>Generated with web3j version 0.13.0.7.
  */
 public class EmitTest extends Contract {
-    private static final String BINARY = "6080604052348015600f57600080fd5b5060e58061001e6000396000f3fe608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680634f9d719e146044575b600080fd5b604a604c565b005b7fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e73334604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a156fea165627a7a72305820c81976b238d764b0802cd8580d66254decc58914d5f67ab2a4baf5031380b8a50029";
+    private static final String BINARY = "6080604052348015600f57600080fd5b5060e58061001e6000396000f3fe608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680634f9d719e146044575b600080fd5b604a604c565b005b7fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e73334604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a156fea165627a7a7230582087178e7852334b3a06251310c35cf832b63601f1b4808153d6e1fc46e4f0cbd70029";
 
     public static final String FUNC_TESTEVENT = "testEvent";
 
@@ -43,30 +43,20 @@ public class EmitTest extends Contract {
             Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}, new TypeReference<Uint256>() {}));
     ;
 
-    @Deprecated
-    protected EmitTest(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
+    protected EmitTest(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    protected EmitTest(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
+    protected EmitTest(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    protected EmitTest(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    protected EmitTest(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
-    }
-
-    public RemoteCall<TransactionReceipt> testEvent(BigInteger weiValue) {
+    public RemoteCall<TransactionReceipt> testEvent(BigInteger vonValue) {
         final Function function = new Function(
                 FUNC_TESTEVENT, 
                 Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function, weiValue);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<EventNameEventResponse> getEventNameEvents(TransactionReceipt transactionReceipt) {
@@ -102,40 +92,20 @@ public class EmitTest extends Contract {
         return eventNameEventObservable(filter);
     }
 
-    public static RemoteCall<EmitTest> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return deployRemoteCall(EmitTest.class, web3j, credentials, contractGasProvider, BINARY, "");
+    public static RemoteCall<EmitTest> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(EmitTest.class, web3j, credentials, contractGasProvider, BINARY,  "", chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<EmitTest> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(EmitTest.class, web3j, credentials, gasPrice, gasLimit, BINARY, "");
+    public static RemoteCall<EmitTest> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return deployRemoteCall(EmitTest.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public static RemoteCall<EmitTest> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return deployRemoteCall(EmitTest.class, web3j, transactionManager, contractGasProvider, BINARY, "");
+    public static EmitTest load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
+        return new EmitTest(contractAddress, web3j, credentials, contractGasProvider, chainId);
     }
 
-    @Deprecated
-    public static RemoteCall<EmitTest> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(EmitTest.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, "");
-    }
-
-    @Deprecated
-    public static EmitTest load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new EmitTest(contractAddress, web3j, credentials, gasPrice, gasLimit);
-    }
-
-    @Deprecated
-    public static EmitTest load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new EmitTest(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
-    }
-
-    public static EmitTest load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider) {
-        return new EmitTest(contractAddress, web3j, credentials, contractGasProvider);
-    }
-
-    public static EmitTest load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider) {
-        return new EmitTest(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static EmitTest load(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
+        return new EmitTest(contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
     public static class EventNameEventResponse {
