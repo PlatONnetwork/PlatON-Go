@@ -305,6 +305,11 @@ func (txg *TxGenAPI) Stop() error {
 	close(txg.txGenExitCh)
 	txg.start = false
 	txg.blockfeed.Unsubscribe()
+	//erase ttfInfo
+	txg.ttfInfo.Range(func(key interface{}, value interface{}) bool {
+		txg.ttfInfo.Delete(key)
+		return true
+	})
 	atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 0)
 
 	return nil
