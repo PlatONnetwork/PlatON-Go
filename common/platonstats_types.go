@@ -1,9 +1,12 @@
 package common
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"reflect"
+	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -76,6 +79,26 @@ func (a *Input) UnmarshalJSON(input []byte) error {
 	}
 	a = &aa
 	return nil
+}
+
+func MustHexID(in string) NodeID {
+	id, err := HexID(in)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
+func HexID(in string) (NodeID, error) {
+	var id NodeID
+	b, err := hex.DecodeString(strings.TrimPrefix(in, "0x"))
+	if err != nil {
+		return id, err
+	} else if len(b) != len(id) {
+		return id, fmt.Errorf("wrong length, want %d hex chars", len(id)*2)
+	}
+	copy(id[:], b)
+	return id, nil
 }
 
 const (
@@ -192,7 +215,7 @@ type StakingFrozenItem struct {
 	NodeID        NodeID  `json:"nodeId,omitempty"`        //备选节点ID
 	NodeAddress   Address `json:"nodeAddress,omitempty"`   //备选节点地址
 	FrozenEpochNo uint64  `json:"frozenEpochNo,omitempty"` //质押资金，被解冻的结算周期（此周期最后一个块的endBlocker里）
-	Recovery      bool    `json:"recovery,omitempty"`      //Recover=true；表示冻结期结束后，质押将变成有效质押；Recover=false, 表示冻结期结束后，质押将原来退回质押钱包（或者和锁仓合约）
+	Recovery      bool    `json:"recovery"`                //Recover=true；表示冻结期结束后，质押将变成有效质押；Recover=false, 表示冻结期结束后，质押将原来退回质押钱包（或者和锁仓合约）
 }
 
 type RestrictingReleaseItem struct {
@@ -232,7 +255,7 @@ type ExeBlockData struct {
 	RewardData                    *RewardData                    `json:"rewardData,omitempty"`
 	ZeroSlashingItemList          []*ZeroSlashingItem            `json:"zeroSlashingItemList,omitempty"`
 	DuplicatedSignSlashingSetting *DuplicatedSignSlashingSetting `json:"duplicatedSignSlashingSetting,omitempty"`
-	StakingFrozenItemList         []*StakingFrozenItem           `json:"unstakingRefundItemList,omitempty"`
+	StakingFrozenItemList         []*StakingFrozenItem           `json:"stakingFrozenItemList,omitempty"`
 	RestrictingReleaseItemList    []*RestrictingReleaseItem      `json:"restrictingReleaseItemList,omitempty"`
 	EmbedTransferTxList           []*EmbedTransferTx             `json:"embedTransferTxList,omitempty"` //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
 	EmbedContractTxList           []*EmbedContractTx             `json:"embedContractTxList,omitempty"` //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
