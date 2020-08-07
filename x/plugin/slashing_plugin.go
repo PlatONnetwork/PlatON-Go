@@ -155,6 +155,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				}
 			}
 
+			//stats:查看是否有0出块的节点
 			if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap, preRoundVal.Arr); nil != err {
 				log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 				return err
@@ -171,7 +172,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				}
 
 				//stats: 收集零出块惩罚数据
-				common.CollectZeroSlashingItem(header.Number.Uint64(), convertSlashNodeItem(slashQueue))
+				//common.CollectZeroSlashingItem(header.Number.Uint64(), convertSlashNodeItem(slashQueue))
 			}
 
 		}

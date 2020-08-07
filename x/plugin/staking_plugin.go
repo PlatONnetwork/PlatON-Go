@@ -2084,6 +2084,7 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 	return resultQueue, nil
 }
 
+//stats:开始处理被惩罚的节点
 // NotifyPunishedVerifiers
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64, queue ...*staking.SlashNodeItem) error {
 
@@ -2124,6 +2125,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
+//stats:执行处罚节点的动作
 func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, slashItem *staking.SlashNodeItem) (bool, error) {
 
 	log.Debug("Call SlashCandidates: call toSlash", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
@@ -2182,12 +2184,18 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	// it will not punish the behavior of low block rate again
 	// If the penalty is imposed again,
 	// the deposit may be lower than the minimum deposit and may be forced to release the staking during the lock-in period
+	//stats:如果节点已经是0出块被惩罚的状态，现在又要0出块惩罚它，则不再扣钱。但是其它惩罚措施，如冻结质押资金，踢出验证人列表，回转委托奖励等，都要继续做）
 	if can.IsLowRatio() && slashItem.SlashType.IsLowRatio() {
 		log.Info("Call SlashCandidates: node has already been punished", "nodeId", slashItem.NodeId.String(), "nodeStatus", can.Status,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "slashType", slashItem.SlashType, "slashAmount", slashItem.Amount)
 	} else {
+
+		//stats: 收集节点要被惩罚的金额
+		common.CollectZeroSlashingItem(blockNumber, common.NodeID(can.NodeId), slashItem.Amount)
+
 		slashBalance := slashItem.Amount
 		// slash the balance
+		//stats:首先从已生效的质押金额，来自自有资金，中扣除惩罚
 		if slashBalance.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
 			val, rval, err := slashBalanceFn(slashBalance, can.Released, false, slashItem.SlashType,
 				slashItem.BenefitAddr, can.StakingAddress, state)
@@ -2198,6 +2206,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 			}
 			slashBalance, can.Released = val, rval
 		}
+		//如果还需要扣除惩罚，则从已生效的质押金额，来自锁仓计划，扣除惩罚
 		if slashBalance.Cmp(common.Big0) > 0 && can.RestrictingPlan.Cmp(common.Big0) > 0 {
 			val, rval, err := slashBalanceFn(slashBalance, can.RestrictingPlan, true, slashItem.SlashType,
 				slashItem.BenefitAddr, can.StakingAddress, state)
@@ -2210,6 +2219,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		}
 
 		// check slash remain balance
+		//如果还需要扣除惩罚，则移除此验证节点
 		if slashBalance.Cmp(common.Big0) != 0 {
 			log.Error("Failed to SlashCandidates: the ramain is not zero",
 				"slashAmount", slashItem.Amount, "slashed remain", slashBalance,
@@ -2247,6 +2257,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	log.Debug("Call SlashCandidates: the status", "needInvalid", needInvalid,
 		"needRemove", needRemove, "needReturnHes", needReturnHes, "current can.Status", can.Status, "need to superpose status", changeStatus)
 
+	//stats:如果节点要被踢出验证人列表，则要把委托收益
 	if needRemove {
 		if err := rm.ReturnDelegateReward(can.BenefitAddress, can.CurrentEpochDelegateReward, state); err != nil {
 			log.Error("Call SlashCandidates:return delegateReward", "err", err)
