@@ -815,7 +815,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	minedCounter.Inc(1)
 	preBlock := cbft.blockTree.FindBlockByHash(block.ParentHash())
 	if preBlock != nil {
-		blockMinedTimer.UpdateSince(time.Unix(preBlock.Time().Int64(), 0))
+		blockMinedGauage.Update(preBlock.Time().Int64())
 	}
 	go func() {
 		select {

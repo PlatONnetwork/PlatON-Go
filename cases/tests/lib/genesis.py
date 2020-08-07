@@ -33,6 +33,8 @@ class Staking:
     operatingThreshold: int
     maxValidators: int
     unStakeFreezeDuration: int
+    rewardPerMaxChangeRange: int
+    rewardPerChangeInterval: int
 
 
 @dataclass
@@ -41,26 +43,29 @@ class Slashing:
     duplicateSignReportReward: int
     slashBlocksReward: int
     maxEvidenceAge: int
+    zeroProduceCumulativeTime: int
+    zeroProduceNumberThreshold: int
 
 
 @dataclass
 class Gov:
     versionProposalVoteDurationSeconds: int
-    versionProposalSupportRate: float
+    versionProposalSupportRate: int
     textProposalVoteDurationSeconds: int
-    textProposalVoteRate: float
-    textProposalSupportRate: float
-    cancelProposalVoteRate: float
-    cancelProposalSupportRate: float
+    textProposalVoteRate: int
+    textProposalSupportRate: int
+    cancelProposalVoteRate: int
+    cancelProposalSupportRate: int
     paramProposalVoteDurationSeconds: int
-    paramProposalVoteRate: float
-    paramProposalSupportRate: float
+    paramProposalVoteRate: int
+    paramProposalSupportRate: int
 
 
 @dataclass
 class Reward:
     newBlockRate: int
     platONFoundationYear: int
+    increaseIssuanceRatio: int
 
 
 @dataclass

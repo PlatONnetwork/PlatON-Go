@@ -1028,7 +1028,7 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolGlobalTxCountFlag.Name) {
 		cfg.GlobalTxCount = ctx.GlobalUint64(TxPoolGlobalTxCountFlag.Name)
 	}
-	if ctx.GlobalIsSet(TxPoolCacheSizeFlag.Name) {
+	if ctx.GlobalIsSet(TxPoolLifetimeFlag.Name) {
 		cfg.Lifetime = ctx.GlobalDuration(TxPoolLifetimeFlag.Name)
 	}
 	if ctx.GlobalIsSet(TxPoolCacheSizeFlag.Name) {

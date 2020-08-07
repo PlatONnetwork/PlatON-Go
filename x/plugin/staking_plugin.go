@@ -2848,6 +2848,7 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 	for _, val := range validatorList {
 
 		weights := new(big.Int).Div(val.Shares, new(big.Int).SetUint64(1e18))
+		weights = new(big.Int).Sqrt(weights)
 		sumWeights.Add(sumWeights, weights)
 
 		sv := &sortValidator{

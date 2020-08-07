@@ -27,14 +27,14 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
     genesis.economicModel.innerAcc.cdfBalance = community_amount
     surplus_amount = str(EconomicConfig.TOKEN_TOTAL - community_amount - 200000000000000000000000000)
     genesis.alloc = {
-        "1000000000000000000000000000000000000003": {
+        "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrzpqayr": {
             "balance": "200000000000000000000000000"
         },
-        "0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD": {
+        "lax196278ns22j23awdfj9f2d4vz0pedld8au6xelj": {
             "balance": surplus_amount
         }
     }
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -267,14 +267,14 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
     genesis.economicModel.innerAcc.cdfBalance = community_amount
     surplus_amount = str(EconomicConfig.TOKEN_TOTAL - community_amount - 200000000000000000000000000)
     genesis.alloc = {
-        "1000000000000000000000000000000000000003": {
+        "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrzpqayr": {
             "balance": "200000000000000000000000000"
         },
-        "0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD": {
+        "lax196278ns22j23awdfj9f2d4vz0pedld8au6xelj": {
             "balance": surplus_amount
         }
     }
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     normal_node = new_genesis_env.get_a_normal_node()

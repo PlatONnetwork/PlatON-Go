@@ -27,7 +27,7 @@ def pledge_punishment(clients):
     # stop node
     first_client.node.stop()
     # Waiting for a settlement round
-    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+    second_client.economic.wait_consensus_blocknum(second_client.node, 4)
     log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
     # view verifier list
     verifier_list = second_client.ppos.getVerifierList()
@@ -213,7 +213,7 @@ def adjust_initial_parameters(new_genesis_env):
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.staking.unStakeFreezeDuration = 3
     genesis.economicModel.slashing.maxEvidenceAge = 2
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -311,7 +311,7 @@ def test_PIP_PVF_009(new_genesis_env):
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.staking.unStakeFreezeDuration = 3
     genesis.economicModel.slashing.maxEvidenceAge = 1
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 

@@ -644,31 +644,35 @@ def test_RV_023(staking_client, global_test_env):
     economic = client.economic
     balance = node.eth.getBalance(staking_address)
     log.info(balance)
-    candidate_info = client.ppos.getCandidateInfo(node.node_id)
-    log.info(candidate_info)
+    economic.wait_consensus_blocknum(other_node, number=4)
     log.info("Stop the new verifier node")
     node.stop()
-    log.info("Go to the next billing cycle")
-    economic.wait_consensus_blocknum(other_node, 3)
-    msg = get_pledge_list(other_node.ppos.getCandidateList)
-    log.info("Real-time certifier list {}".format(msg))
+    for i in range(4):
+        economic.wait_consensus_blocknum(other_node, number=i)
+        candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
+        log.info(candidate_info)
+        if candidate_info["Ret"]["Released"] < client.staking_amount:
+            break
     verifier_list = get_pledge_list(other_node.ppos.getVerifierList)
     log.info("Current billing cycle certifier {}".format(verifier_list))
     assert node.node_id not in verifier_list, "Expected to opt out of certifier list"
+    log.info("Restart the node")
+    node.start()
+    time.sleep(10)
     balance_before = other_node.eth.getBalance(staking_address)
     log.info("Query the account balance after being punished: {}".format(balance_before))
-    log.info("Go to the next billing cycle")
     candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
     log.info(candidate_info)
-    economic.wait_settlement_blocknum(other_node,number=2)
+    log.info("The amount will be refunded after waiting for 2 cycles of punishment")
+    economic.wait_settlement_blocknum(node, number=2)
+
     balance_after = other_node.eth.getBalance(staking_address)
     log.info("The balance after the penalty is refunded to the account:{}".format(balance_after))
     assert balance_before + candidate_info["Ret"][
         "Released"] == balance_after, "After being sent out and removed from the certifier, the amount is refunded abnormally"
+    log.info("Repledge to become verifier")
     msg = other_node.ppos.getCandidateInfo(node.node_id)
     log.info(msg)
-    node.start()
-    time.sleep(10)
     staking_result = client.staking.create_staking(0, staking_address, staking_address)
     assert_code(staking_result, 0)
     candidate_info = node.ppos.getCandidateInfo(node.node_id)

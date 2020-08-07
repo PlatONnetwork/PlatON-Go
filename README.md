@@ -9,7 +9,7 @@ Most of peculiarities according the PlatON's [whitepaper](https://www.platon.net
 The requirements to build PlatON-Go are:
 
 - OS:Windows10/Ubuntu18.04
-- [Golang](https://golang.org/doc/install) :version 1.11+
+- [Golang](https://golang.org/doc/install) :version 1.13+
 - [cmake](https://cmake.org/) :version 3.0+
 - [g++&gcc](http://gcc.gnu.org/) :version 7.4.0+
 > The 'cmake' and 'gcc&g++' are usually included in Ubuntu18.04

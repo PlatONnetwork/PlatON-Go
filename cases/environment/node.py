@@ -409,7 +409,7 @@ class Node:
                 cmd = cmd + " --ws --wsorigins '*' --wsaddr 0.0.0.0 --wsport " + str(self.wsport)
                 cmd = cmd + " --wsapi platon,debug,personal,admin,net,web3"
             cmd = cmd + " --rpc --rpcaddr 0.0.0.0 --rpcport " + str(self.rpc_port)
-            cmd = cmd + " --rpcapi platon,debug,personal,admin,net,web3"
+            cmd = cmd + " --rpcapi platon,debug,personal,admin,net,web3,txpool"
             cmd = cmd + " --txpool.nolocals"
             if self.cfg.append_cmd:
                 cmd = cmd + " " + self.cfg.append_cmd
@@ -564,4 +564,14 @@ class Node:
         result = self.ppos.getCandidateInfo(self.node_id)
         candidate_info = result.get('Ret', {})
         address = candidate_info.get('StakingAddress')
+        return self.web3.toChecksumAddress(address)
+
+    @property
+    def benifit_address(self):
+        """
+        staking wallet address
+        """
+        result = self.ppos.getCandidateInfo(self.node_id)
+        candidate_info = result.get('Ret', {})
+        address = candidate_info.get('BenefitAddress')
         return self.web3.toChecksumAddress(address)

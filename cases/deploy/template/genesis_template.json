@@ -1,6 +1,6 @@
 {
     "config": {
-        "chainId": 100,
+        "chainId": 101,
         "eip155Block": 3,
         "cbft": {
             "initialNodes": [
@@ -9,7 +9,7 @@
             "period": 10000,
             "validatorMode": "ppos"
         },
-        "genesisVersion": 1797
+        "genesisVersion": 3328
     },
     "economicModel": {
         "common": {
@@ -21,14 +21,17 @@
             "stakeThreshold": 1000000000000000000000000,
             "operatingThreshold": 10000000000000000000,
             "maxValidators": 5,
-            "hesitateRatio": 1,
-            "unStakeFreezeDuration": 2
+            "unStakeFreezeDuration": 2,
+            "rewardPerMaxChangeRange": 1000,
+            "rewardPerChangeInterval": 2
         },
         "slashing": {
             "slashFractionDuplicateSign": 100,
             "duplicateSignReportReward": 50,
             "slashBlocksReward": 5,
-            "maxEvidenceAge": 1
+            "maxEvidenceAge": 1,
+            "zeroProduceCumulativeTime": 1,
+            "zeroProduceNumberThreshold": 1
         },
         "gov": {
             "versionProposalVoteDurationSeconds": 1600,
@@ -44,12 +47,13 @@
         },
         "reward": {
             "newBlockRate": 50,
-            "platONFoundationYear": 10
+            "platONFoundationYear": 10,
+            "increaseIssuanceRatio": 250
         },
         "innerAcc": {
-            "platonFundAccount": "0x493301712671Ada506ba6Ca7891F436D29185821",
+            "platonFundAccount": "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6",
             "platonFundBalance": 0,
-            "cdfAccount": "0x54a7a3c6822eb222c53F76443772a60b0f9A8bab",
+            "cdfAccount": "lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru",
             "cdfBalance": 431811981000000000000000000
         }
     },

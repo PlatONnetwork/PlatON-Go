@@ -763,3 +763,50 @@ def test_UP_FV_018(client_new_node):
     log.info("restricting plan informtion: {}".format(restricting_info))
     info = restricting_info['Ret']
     assert info['debt'] == von_amount(economic.delegate_limit, 5), 'ErrMsg: restricting debt amount {}'.format(info['debt'])
+
+
+@pytest.mark.P1
+def test_UP_FV_019(client_new_node):
+    """
+    账户自由金额和锁仓金额申请委托同一个验证人，再申请赎回
+    :param client_new_node:
+    :return:
+    """
+    client = client_new_node
+    economic = client.economic
+    node = client.node
+    # create account
+    amount = economic.create_staking_limit
+    first_address, second_address = create_account_amount(client, amount, amount)
+    delegate_amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 2, 'Amount': delegate_amount}]
+
+    # create Restricting Plan1
+    result = client.restricting.createRestrictingPlan(first_address, plan, first_address)
+    assert_code(result, 0)
+    economic.wait_settlement_blocknum(node)
+    log.info("Current block height：{}".format(node.eth.blockNumber))
+
+    # create Restricting Plan2
+    first_balance1 = node.eth.getBalance(first_address)
+    log.info("first_balance1: {}".format(first_balance1))
+    result = client.restricting.createRestrictingPlan(second_address, plan, second_address)
+    assert_code(result, 0)
+
+    economic.wait_settlement_blocknum(node)
+    log.info("Current block height：{}".format(node.eth.blockNumber))
+    second_balance1 = node.eth.getBalance(second_address)
+    log.info("second_balance1: {}".format(second_balance1))
+    restricting_info = client.ppos.getRestrictingInfo(first_address)
+    log.info("restricting plan1 informtion: {}".format(restricting_info))
+    first_balance2 = node.eth.getBalance(first_address)
+    log.info("first_balance2: {}".format(first_balance2))
+    assert first_balance2 == first_balance1 + delegate_amount
+
+    economic.wait_settlement_blocknum(node)
+    log.info("Current block height：{}".format(node.eth.blockNumber))
+    restricting_info = client.ppos.getRestrictingInfo(second_address)
+    log.info("restricting plan2 informtion: {}".format(restricting_info))
+    second_balance2 = node.eth.getBalance(second_address)
+    log.info("second_balance2: {}".format(second_balance2))
+    assert second_balance2 == second_balance1 + delegate_amount

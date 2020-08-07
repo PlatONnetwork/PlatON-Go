@@ -1,37 +1,19 @@
-# CACHE
-.idea
-.vscode
-*.py[cod]
-*/__pycache__
-*.so
-*.egg
-*.egg-info
-.pytest_cache
+# MATCH
+**/*cache*
+**/*debug*
+**/*report*
+**/*log*
+**/*tool*
+**/*venv*
+**/.*
+
+# ASSIGN
 deploy/tmp
 deploy/node
 deploy/bin
-allure-report
-
-# VE
-venv
-
-# LOG
-*.log
-*/log
-log
-__debug__.py
 
 # OTHER
-report/*
-*/report
-*/.cache
-*/.hypothesis
-*cache
-cache*
-debug_run.py
-*/debug_run.py
-bug_log
-tmp_log
-./deploy/global/
-./tests/ppos_2/report
-*/tool
+**/*.py[cod]
+**/*.so
+**/*.egg
+**/*.egg-info
