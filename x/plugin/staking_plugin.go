@@ -3438,7 +3438,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 		return err
 	}
 
-	// TODO stats: 这里还需要重新当前epoch吗?
+	// TODO stats: 这里还需要重新计算当前epoch吗?
 	refundEpoch = xutil.CalculateEpoch(blockNumber) + duration
 
 	if maxEndVoteEpoch <= refundEpoch {
@@ -3455,6 +3455,10 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, false); nil != err {
 		return err
 	}
+
+	//这里是解除质押引起的质押资金冻结
+	//stats: 保存需要清算的质押资金信息。
+	common.CollectStakingFrozenItem(blockNumber, common.NodeID(nodeId), canAddr, targetEpoch, false)
 	return nil
 }
 
@@ -3472,12 +3476,13 @@ func (sk *StakingPlugin) addRecoveryUnStakeItem(blockNumber uint64, blockHash co
 		"duration", duration, "unstake item target Epoch", targetEpoch,
 		"nodeId", nodeId.String())
 
+	//增加质押被冻结信息，带上recovery=true，表示冻结完成后，节点质押状态将变成正常状态。（这个过程只有被0出块惩罚的节点才有）
 	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, true); nil != err {
 		return err
 	}
 
-	//stats: 保存需要清算的质押资金信息
-	common.CollectUnstakingRefundItem(blockNumber, common.NodeID(nodeId), canAddr, targetEpoch)
+	//stats: 保存需要冻结的，将来需要变成正常质押的质押资金信息
+	common.CollectStakingFrozenItem(blockNumber, common.NodeID(nodeId), canAddr, targetEpoch, true)
 	return nil
 }
 

@@ -13,7 +13,7 @@ import (
 var (
 	address     = common.MustBech32ToAddress("lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj")
 	nodeAddress = common.NodeAddress(address)
-	nodeId      = discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384")
+	nodeId      = common.NodeID(discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384"))
 	blockNo     = big.NewInt(int64(234))
 )
 
@@ -24,11 +24,11 @@ func buildExeBlockData() *common.ExeBlockData {
 	candidate := &common.CandidateInfo{nodeId, address}
 	candidateInfoList := []*common.CandidateInfo{candidate}
 
-	common.CollectRestrictingReleaseItem(blockNumber, address, 111)
-	common.CollectUnstakingRefundItem(blockNumber, nodeId, nodeAddress, 222)
+	common.CollectRestrictingReleaseItem(blockNumber, address, big.NewInt(111), big.NewInt(0))
+	common.CollectStakingFrozenItem(blockNumber, nodeId, nodeAddress, 222, false)
 	common.CollectDuplicatedSignSlashingSetting(blockNumber, 2000, 60)
 
-	rewardData := &common.RewardData{BlockRewardAmount: 12, StakingRewardAmount: 12, CandidateInfoList: candidateInfoList}
+	rewardData := &common.RewardData{BlockRewardAmount: big.NewInt(111), StakingRewardAmount: big.NewInt(111), CandidateInfoList: candidateInfoList}
 	common.CollectRewardData(blockNumber, rewardData)
 
 	return common.GetExeBlockData(blockNumber)

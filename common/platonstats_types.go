@@ -188,10 +188,11 @@ type DuplicatedSignSlashingSetting struct {
 	RewardRatioByPenalties      uint32 `json:"rewardRatioByPenalties,omitempty"`      //unit:1%		//给举报人的赏金=罚金 * RewardRatioByPenalties / 100
 }
 
-type UnstakingRefundItem struct {
+type StakingFrozenItem struct {
 	NodeID        NodeID  `json:"nodeId,omitempty"`        //备选节点ID
 	NodeAddress   Address `json:"nodeAddress,omitempty"`   //备选节点地址
-	RefundEpochNo uint64  `json:"refundEpochNo,omitempty"` //解除质押,资金真正退回的结算周期（此周期最后一个块的endBlocker里
+	FrozenEpochNo uint64  `json:"frozenEpochNo,omitempty"` //质押资金，被解冻的结算周期（此周期最后一个块的endBlocker里）
+	Recovery      bool    `json:"recovery,omitempty"`      //Recover=true；表示冻结期结束后，质押将变成有效质押；Recover=false, 表示冻结期结束后，质押将原来退回质押钱包（或者和锁仓合约）
 }
 
 type RestrictingReleaseItem struct {
@@ -213,7 +214,7 @@ func PopExeBlockData(blockNumber uint64) *ExeBlockData {
 func InitExeBlockData(blockNumber uint64) {
 	exeBlockData := &ExeBlockData{
 		ZeroSlashingItemList:       make([]*ZeroSlashingItem, 0),
-		UnstakingRefundItemList:    make([]*UnstakingRefundItem, 0),
+		StakingFrozenItemList:      make([]*StakingFrozenItem, 0),
 		RestrictingReleaseItemList: make([]*RestrictingReleaseItem, 0),
 		EmbedTransferTxList:        make([]*EmbedTransferTx, 0),
 		EmbedContractTxList:        make([]*EmbedContractTx, 0),
@@ -231,7 +232,7 @@ type ExeBlockData struct {
 	RewardData                    *RewardData                    `json:"rewardData,omitempty"`
 	ZeroSlashingItemList          []*ZeroSlashingItem            `json:"zeroSlashingItemList,omitempty"`
 	DuplicatedSignSlashingSetting *DuplicatedSignSlashingSetting `json:"duplicatedSignSlashingSetting,omitempty"`
-	UnstakingRefundItemList       []*UnstakingRefundItem         `json:"unstakingRefundItemList,omitempty"`
+	StakingFrozenItemList         []*StakingFrozenItem           `json:"unstakingRefundItemList,omitempty"`
 	RestrictingReleaseItemList    []*RestrictingReleaseItem      `json:"restrictingReleaseItemList,omitempty"`
 	EmbedTransferTxList           []*EmbedTransferTx             `json:"embedTransferTxList,omitempty"` //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
 	EmbedContractTxList           []*EmbedContractTx             `json:"embedContractTxList,omitempty"` //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
@@ -245,10 +246,10 @@ func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *Addit
 	}
 }
 
-func CollectUnstakingRefundItem(blockNumber uint64, nodeId NodeID, nodeAddress NodeAddress, refundEpochNo uint64) {
+func CollectStakingFrozenItem(blockNumber uint64, nodeId NodeID, nodeAddress NodeAddress, frozenEpochNo uint64, recovery bool) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
-		log.Debug("CollectUnstakingRefundItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "nodeAddress", nodeAddress.Hex(), "refundEpochNo", refundEpochNo)
-		exeBlockData.UnstakingRefundItemList = append(exeBlockData.UnstakingRefundItemList, &UnstakingRefundItem{NodeID: nodeId, NodeAddress: Address(nodeAddress), RefundEpochNo: refundEpochNo})
+		log.Debug("CollectStakingFrozenItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "nodeAddress", nodeAddress.Hex(), "frozenEpochNo", frozenEpochNo, "recovery", recovery)
+		exeBlockData.StakingFrozenItemList = append(exeBlockData.StakingFrozenItemList, &StakingFrozenItem{NodeID: nodeId, NodeAddress: Address(nodeAddress), FrozenEpochNo: frozenEpochNo, Recovery: recovery})
 	}
 }
 
