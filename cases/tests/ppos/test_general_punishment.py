@@ -58,8 +58,14 @@ def client_consensus_obj_list_reset(global_test_env, staking_cfg):
 def verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount, type):
     log.info("Start stopping the current node ：{} process".format(first_client.node.url))
     first_client.node.stop()
+    start_num = second_client.economic.get_switchpoint_by_consensus(second_client.node, 3)
     log.info("Start waiting for the end of the three consensus rounds")
     second_client.economic.wait_consensus(second_client.node, 3)
+    freeze_duration = second_client.pip.pip.getGovernParamValue('slashing', 'zeroProduceFreezeDuration')
+    settlement_size = second_client.economic.settlement_size
+    num = start_num + (int(freeze_duration['Ret']) * settlement_size)
+    end_num = second_client.economic.get_settlement_switchpoint(num)
+    log.info(f"slashing info start_num: {start_num}, freeze_duration: {freeze_duration}, end_num: {end_num}")
     log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
     verifier_list = second_client.ppos.getVerifierList()
     log.info("Current billing cycle certifier list: {}".format(verifier_list))
@@ -74,6 +80,7 @@ def verify_low_block_rate_penalty(first_client, second_client, block_reward, sla
     else:
         assert amount_after_punishment == 0, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
             amount_after_punishment)
+    return start_num, end_num
 
 
 def VP_GPFV_001_002(client_new_node_obj_list_reset):
