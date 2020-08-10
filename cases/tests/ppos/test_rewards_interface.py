@@ -584,7 +584,7 @@ class TestgetDelegateReward:
         staking_num2 = client2.staking.get_stakingblocknum()
         log.info('Node {} staking block num : {}'.format(client2.node.node_id, staking_num2))
         client2.delegate.delegate(0, address1, amount=10**18 * 1000)
-        client1.economic.wait_settlement(client1.node, number=1)
+        client1.economic.wait_settlement(client1.node, 1)
         reward_info_address1_1 = client1.ppos.getDelegateReward(address1)
         log.info('Not incoming nodeid, Address {} reward information : {}'.format(address1, reward_info_address1_1))
         assert_code(reward_info_address1_1, 0)

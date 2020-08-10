@@ -73,7 +73,7 @@ def test_IV_006_007_008(client_consensus):
     result = client_consensus.ppos.getCandidateInfo(client_consensus.node.node_id)
     log.info(result)
     log.info("Let's go to the next three cycles")
-    client_consensus.economic.wait_settlement(client_consensus.node, number=2)
+    client_consensus.economic.wait_settlement(client_consensus.node, 2)
     msg = client_consensus.ppos.getCandidateInfo(client_consensus.node.node_id)
     log.info(msg)
     assert msg["Code"] == 301204, "预期验证人已退出"
@@ -295,7 +295,7 @@ def test_IV_028(clients_new_node, client_consensus):
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    economic.wait_settlement(node, number=2)
+    economic.wait_settlement(node, 2)
     result = client.staking.create_staking(0, address, address)
     assert_code(result, 0)
 

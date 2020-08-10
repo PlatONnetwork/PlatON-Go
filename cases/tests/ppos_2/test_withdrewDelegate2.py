@@ -23,7 +23,7 @@ def test_ROE_031(staking_delegate_client):
     result = client.delegate.delegate(0, delegate_address)
     log.info(result)
     # The next two cycle
-    client.economic.wait_settlement(node, number=2)
+    client.economic.wait_settlement(node, 2)
     balance1 = client.node.eth.getBalance(delegate_address)
     log.info("The wallet balance:{}".format(balance1))
 
