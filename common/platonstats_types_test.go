@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -18,7 +19,15 @@ var (
 func Test_encode_Data(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
+	bigint, _ := new(big.Int).SetString("4238288267758744845421755", 10)
+	t.Log("bigint::::::::::::", bigint)
+
+	content := fmt.Sprintf("chainBalance=%d", bigint)
+	t.Log("content::::::::::::", content)
+
 	exeData := buildExeBlockData()
+	bytes := Hex2Bytes("f855838203ec8180b842b84027eff1a24cfd76e7151c0410d6a2c9fe9660b0906862fe3c461f5bae4ce5893d4f975239187510ff4b399ec1daea4f71690e00de3de0c56a2bd896cf5cd37eca8a8902b5e3af16b1880000")
+	t.Log("input::::::::::::", Bytes2Hex(bytes))
 
 	jsonBytes, err := json.Marshal(exeData)
 	if err != nil {
@@ -71,7 +80,7 @@ func buildExeBlockData() *ExeBlockData {
 	CollectEmbedTransferTx(blockNumber, Hash{0x01}, address, address, value1)
 	CollectEmbedTransferTx(blockNumber, Hash{0x01}, address, address, value1)
 	CollectEmbedTransferTx(blockNumber, Hash{0x01}, address, address, value1)
-	CollectEmbedContractTx(blockNumber, Hash{0x03}, address, address, []byte{0x01, 0x02, 0x03, 0x04, 0x05})
+	CollectEmbedContractTx(blockNumber, Hash{0x03}, address, address, Hex2Bytes("f855838203ec8180b842b84027eff1a24cfd76e7151c0410d6a2c9fe9660b0906862fe3c461f5bae4ce5893d4f975239187510ff4b399ec1daea4f71690e00de3de0c56a2bd896cf5cd37eca8a8902b5e3af16b1880000"))
 
 	return GetExeBlockData(blockNumber)
 }

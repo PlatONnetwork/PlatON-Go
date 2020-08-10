@@ -123,7 +123,7 @@ type EmbedContractTx struct {
 	TxHash          Hash    `json:"txHash,omitempty"`
 	From            Address `json:"from,omitempty"`
 	ContractAddress Address `json:"contractAddress,omitempty"`
-	Input           string  `json:"input,omitempty"`
+	Input           string  `json:"input,omitempty"` //hex string
 }
 
 type GenesisData struct {
@@ -303,7 +303,7 @@ func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByVali
 func CollectZeroSlashingItem(blockNumber uint64, nodeId NodeID, slashingAmount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
-			log.Debug("CollectZeroSlashingItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "slashingAmount", slashingAmount.Uint64())
+			log.Debug("CollectZeroSlashingItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "slashingAmount", slashingAmount)
 			exeBlockData.ZeroSlashingItemList = append(exeBlockData.ZeroSlashingItemList, &ZeroSlashingItem{NodeID: nodeId, SlashingAmount: slashingAmount})
 		}
 	}

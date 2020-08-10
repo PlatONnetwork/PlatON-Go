@@ -14,8 +14,6 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -476,10 +474,10 @@ func (s *PlatonStatsService) accountChecking(key string, value []byte) error {
 				return ErrAccountNotFound
 			}
 
-			log.Debug("account checking", "blockNumber", keyNumber, "chainBalance", chainBalance.ToInt().Uint64(), "trackingBalance", item.Balance.Uint64())
-			if item.Balance.Cmp(chainBalance.ToInt()) != 0 {
+			log.Debug("account checking", "blockNumber", keyNumber, "chainBalance", chainBalance, "trackingBalance", item.Balance)
+			if item.Balance.Cmp(chainBalance) != 0 {
 				bech32 := item.Addr.Bech32()
-				writeCheckingErr(bech32, message.BlockNumber, chainBalance.ToInt(), item.Balance)
+				writeCheckingErr(bech32, message.BlockNumber, chainBalance, item.Balance)
 				accountCheckingError = true
 			}
 		}
@@ -495,18 +493,18 @@ func (s *PlatonStatsService) accountChecking(key string, value []byte) error {
 	}
 }
 
-func getBalance(backend *eth.EthAPIBackend, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+func getBalance(backend *eth.EthAPIBackend, address common.Address, blockNr rpc.BlockNumber) (*big.Int, error) {
 	state, _, err := backend.StateAndHeaderByNumber(nil, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
 	state.ClearParentReference()
-	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
+	return state.GetBalance(address), state.Error()
 }
 
 func writeCheckingErr(bech32 string, blockNumber uint64, chainBalance, trackingBalance *big.Int) {
 	log.Error("Account chain and tracking balances are not equal", "blockNumber", blockNumber, "address", bech32, "chainBalance", chainBalance, "trackingBalance", trackingBalance)
-	content := fmt.Sprintf("blockNumber=%d    account=%s    chainBalance=%d    trackingBalance=%d\n", blockNumber, bech32, chainBalance.Uint64(), trackingBalance.Uint64())
+	content := fmt.Sprintf("blockNumber=%d    account=%s    chainBalance=%d    trackingBalance=%d\n", blockNumber, bech32, chainBalance, trackingBalance)
 	err := common.WriteFile(checkingErrFile, []byte(content), checkingErrFlag, 666)
 	if err != nil {
 		log.Error("Failed to log account-checking-error", "content", content)
