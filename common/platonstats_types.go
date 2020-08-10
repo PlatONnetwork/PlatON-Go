@@ -123,7 +123,7 @@ type EmbedContractTx struct {
 	TxHash          Hash    `json:"txHash,omitempty"`
 	From            Address `json:"from,omitempty"`
 	ContractAddress Address `json:"contractAddress,omitempty"`
-	Input           Input   `json:"input,omitempty"`
+	Input           string  `json:"input,omitempty"`
 }
 
 type GenesisData struct {
@@ -328,6 +328,6 @@ func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, a
 func CollectEmbedContractTx(blockNumber uint64, txHash Hash, from, contractAddress Address, input []byte) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectEmbedContractTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "contractAddress", from.Bech32(), "input", Bytes2Hex(input))
-		exeBlockData.EmbedContractTxList = append(exeBlockData.EmbedContractTxList, &EmbedContractTx{TxHash: txHash, From: from, ContractAddress: contractAddress, Input: input})
+		exeBlockData.EmbedContractTxList = append(exeBlockData.EmbedContractTxList, &EmbedContractTx{TxHash: txHash, From: from, ContractAddress: contractAddress, Input: Bytes2Hex(input)})
 	}
 }
