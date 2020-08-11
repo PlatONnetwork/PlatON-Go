@@ -495,7 +495,7 @@ func DefaultGenesisBlock() *Genesis {
 
 	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
-		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb129bda4e0cbae2b6aabe4cccc0df0b5a39e12977a2fjk76"),
+		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
 		Timestamp: 0,
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  params.GenesisGasLimit,
