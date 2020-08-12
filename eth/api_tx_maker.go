@@ -49,6 +49,8 @@ type TxGenAPI struct {
 	start       bool
 	blockfeed   event.Subscription
 	ttfInfo     sync.Map
+
+	totalTxSend uint64
 }
 
 // Start, begin make tx ,Broadcast transactions directly through p2p, without entering the transactin pool
@@ -73,6 +75,7 @@ func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer
 	blockch := make(chan *types.Block, 20)
 	txg.blockfeed = txg.eth.blockchain.SubscribeBlocksEvent(blockch)
 	txg.txGenExitCh = make(chan struct{})
+	txg.totalTxSend = 0
 	if err := txg.makeTransaction(normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockch); err != nil {
 		return err
 	}
@@ -172,6 +175,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					if err != nil {
 						log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
 					}
+					txg.totalTxSend++
 					txs = append(txs, newTx)
 					txm.sendDone(account)
 				}
@@ -204,6 +208,10 @@ func (txg *TxGenAPI) GetTTF(begin, end uint64) map[uint64]Ttf {
 		res[i] = v.(Ttf)
 	}
 	return res
+}
+
+func (txg *TxGenAPI) GetTotalSend() uint64 {
+	return txg.totalTxSend
 }
 
 func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
