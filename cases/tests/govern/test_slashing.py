@@ -237,7 +237,7 @@ class TestSlashing:
         assert version_proposal(pip, pip.cfg.version5, 5) == 302022
         assert param_proposal(pip, 'slashing', 'slashBlocksReward', '10') == 302022
         assert text_proposal(pip) == 302022
-        pip_id = version_proposal(pips[1], pip[1].cfg.version5, 5)
+        pip_id = version_proposal(pips[1], pips[1].cfg.version5, 5)
         assert cancel_proposal(pip, pip_id, 2) == 302022
 
     @pytest.mark.P1
