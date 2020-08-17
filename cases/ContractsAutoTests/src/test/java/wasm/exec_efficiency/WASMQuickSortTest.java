@@ -33,8 +33,10 @@ public class WASMQuickSortTest extends WASMContractPrepareTest {
 
             Int64[] arr = new Int64[numberOfCalls];
 
+            // 定义一个数组中的最小值与最大值
             int min = -1000, max = 2000;
 
+            // numberOfCalls表示数组的长度
             for (int i = 0; i < numberOfCalls; i++) {
                 arr[i] = Int64.of(min + (int) (Math.random() * (max - min + 1)));
             }
