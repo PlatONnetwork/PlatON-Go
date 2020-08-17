@@ -18,10 +18,10 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.0.7.
+ * <p>Generated with web3j version 0.13.1.1.
  */
 public class BaseInternal extends Contract {
-    private static final String BINARY = "6080604052348015600f57600080fd5b50604051602080607b83398101806040528101908080519060200190929190505050806000819055505060358060466000396000f3006080604052600080fd00a165627a7a723058201b68f4cb974688e7bf06beb38cf4eee3d43e8745ea4ab707cc102c4abfa409df0029";
+    private static final String BINARY = "6080604052348015600f57600080fd5b50604051602080607b83398101806040528101908080519060200190929190505050806000819055505060358060466000396000f3006080604052600080fd00a165627a7a72305820a1f1915a5a7c1284841b22a5e8ac69e13ff142eb62ff349e692f1737238b7bb20029";
 
     protected BaseInternal(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
