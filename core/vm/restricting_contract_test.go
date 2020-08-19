@@ -161,3 +161,52 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 		t.Log("test pass!")
 	}
 }
+func TestRestrictingContract_getRestrictingBalance(t *testing.T) {
+	// build db data for getting info
+	account := addrArr[0]
+	stateDb, _, _ := newChainState()
+	balance, _ := new(big.Int).SetString("20000000000000000000000000", 10)
+	buildDbRestrictingPlan(t, account, balance, 5, stateDb)
+
+	contract := &RestrictingContract{
+		Plugin:   plugin.RestrictingInstance(),
+		Contract: newContract(common.Big0, sender),
+		Evm:      newEvm(blockNumber, blockHash, stateDb),
+	}
+
+	//accounts:= ""
+	//for _, value := range addrArr {
+	//	accounts = accounts + value.String() + ";"
+	//}
+	accounts := "0x60ceca9c1290ee56b98d4e160ef0453f7c40d219;0x60ceca9c1290ee56b98d4e160ef0453f7c40d219"
+	var params [][]byte
+	param0, _ := rlp.EncodeToBytes(common.Uint16ToBytes(4101))
+	param1, _ := rlp.EncodeToBytes(accounts)
+	params = append(params, param0)
+	params = append(params, param1)
+	input, err := rlp.EncodeToBytes(params)
+	if err != nil {
+		t.Log(err.Error())
+		t.Errorf("fail to rlp encode restricting input")
+	} else {
+		t.Log("rlp encode restricting input: ", hexutil.Encode(input))
+	}
+
+	t.Log("restricting account is", addrArr[0].String())
+
+	if result, err := contract.Run(input); err != nil {
+		t.Errorf("getRestrictingInfo returns error! error is: %s", err.Error())
+	} else {
+
+		t.Log(string(result))
+
+		var res xcom.Result
+		if err = json.Unmarshal(result, &res); err != nil {
+			t.Fatalf("failed to json unmarshal result of restricting info , error: %s", err.Error())
+
+		} else {
+			t.Logf("%v", res.Data)
+		}
+		t.Log("test pass!")
+	}
+}
