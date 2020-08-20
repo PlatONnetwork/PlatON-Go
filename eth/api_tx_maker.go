@@ -258,6 +258,9 @@ func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 					return fmt.Errorf("the tx receipts not find yet,tx:%s", hash.String())
 				}
 				receipt := receipts[index]
+				if receipt.Status == 0 {
+					return fmt.Errorf("the tx receipts status is 0 ,tx:%s", hash.String())
+				}
 				config.ContractsAddress = receipt.ContractAddress.String()
 			}
 
@@ -449,31 +452,23 @@ var (
 		return prifix.Sum(nil)
 	}()
 
+	evmKVHash = func() []byte {
+		prifix := sha3.NewKeccak256()
+		prifix.Write([]byte("SetKV(uint256,uint256)"))
+		return prifix.Sum(nil)
+	}()
+
 	wasmErc20Hash = func() []byte {
 		hash := fnv.New64()
 		hash.Write([]byte("transfer"))
 		return hash.Sum(nil)
 	}()
+	wasmkVHash = func() []byte {
+		hash := fnv.New64()
+		hash.Write([]byte("setKey"))
+		return hash.Sum(nil)
+	}()
 )
-
-func evmErc20(add common.Address, amount *big.Int) []byte {
-	input := make([]byte, 68)
-
-	for i := 0; i < 4; i++ {
-		input[i] = evmErc20Hash[i]
-	}
-
-	for i := 0; i < len(add); i++ {
-		input[i+4+12] = add[i]
-	}
-
-	amountByte := amount.Bytes()
-
-	for i := 0; i < len(amountByte); i++ {
-		input[68-len(amountByte)+i] = amountByte[i]
-	}
-	return input
-}
 
 type WasmERC20Info struct {
 	Method  []byte
@@ -481,15 +476,13 @@ type WasmERC20Info struct {
 	Amount  uint64
 }
 
-func wasmErc20(add common.Address, amount *big.Int) []byte {
-	rlpInfo := &WasmERC20Info{
-		Method:  wasmErc20Hash,
-		Address: add,
-		Amount:  amount.Uint64(),
-	}
-	rlpev, _ := rlp.EncodeToBytes(rlpInfo)
-	return rlpev
+type WasmKeyValueInfo struct {
+	Method []byte
+	Key    uint32
+	Count  uint32
 }
+
+var one = common.Uint16ToBytes(1)
 
 func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Address, uint64, *big.Int) {
 	switch {
@@ -498,13 +491,17 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 	case s.sendState < s.sendEvm:
 		account := s.evmReceiver.Pick().(*txGenTxReceiver)
 		if account.Type == "erc20" {
-			return evmErc20(add, s.amount), account.ContractsAddress, account.GasLimit, nil
+			return BuildEVMInput(evmErc20Hash, add.Bytes(), one), account.ContractsAddress, account.GasLimit, nil
+		} else if account.Type == "kv" {
+			return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(100000))), common.Uint32ToBytes(uint32(rand.Int31n(100000)))), account.ContractsAddress, account.GasLimit, nil
 		}
 		return account.Data, account.ContractsAddress, account.GasLimit, nil
 	case s.sendState < s.sendWasm:
 		account := s.wsamReveiver.Pick().(*txGenTxReceiver)
 		if account.Type == "erc20" {
-			return wasmErc20(add, s.amount), account.ContractsAddress, account.GasLimit, nil
+			return BuildWASMInput(WasmERC20Info{wasmErc20Hash, add, 1}), account.ContractsAddress, account.GasLimit, nil
+		} else if account.Type == "kv" {
+			return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(100000)), uint32(rand.Int31n(100000))}), account.ContractsAddress, account.GasLimit, nil
 		}
 		return account.Data, account.ContractsAddress, account.GasLimit, nil
 	}
@@ -594,6 +591,9 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 	}
 
 	receiverChooser := make([]weightedrand.Choice, 0, len(txgenInput.Evm))
+
+	receiverChooser2 := make([]weightedrand.Choice, 0, len(txgenInput.Wasm))
+
 	for i, ContractConfigs := range [][]*TxGenInputContractConfig{txgenInput.Evm, txgenInput.Wasm} {
 		for _, config := range ContractConfigs {
 			if config.CallWeights != 0 {
@@ -606,14 +606,32 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 				txReceiver.Weights = config.CallWeights
 				txReceiver.GasLimit = config.CallGasLimit
 				txReceiver.Type = config.ContractsType
-				receiverChooser = append(receiverChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
+				if i == 0 {
+					receiverChooser = append(receiverChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
+				} else {
+					receiverChooser2 = append(receiverChooser2, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
+				}
 			}
 		}
-		if i == 0 {
-			t.evmReceiver = weightedrand.NewChooser(receiverChooser...)
-		} else {
-			t.wsamReveiver = weightedrand.NewChooser(receiverChooser...)
-		}
 	}
+	t.evmReceiver = weightedrand.NewChooser(receiverChooser...)
+	t.wsamReveiver = weightedrand.NewChooser(receiverChooser2...)
+
 	return t, nil
+}
+
+func BuildEVMInput(funcName []byte, params ...[]byte) []byte {
+	input := make([]byte, 4+32*len(params))
+
+	copy(input[:4], funcName[:4])
+
+	for i, param := range params {
+		copy(input[4+32*(i+1)-len(param):4+32*(i+1)], param)
+	}
+	return input
+}
+
+func BuildWASMInput(rawStruct interface{}) []byte {
+	rlpev, _ := rlp.EncodeToBytes(rawStruct)
+	return rlpev
 }
