@@ -225,7 +225,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 		singine := types.NewEIP155Signer(new(big.Int).SetInt64(txg.eth.chainConfig.ChainID.Int64()))
 		gasPrice := txg.eth.txPool.GasPrice()
 
-		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
+		for _, input := range [][]*TxGenContractConfig{txgenInput.Wasm, txgenInput.Evm} {
 			for _, config := range input {
 				tx := types.NewContractCreation(nonce, nil, config.DeployGasLimit, gasPrice, common.Hex2Bytes(config.ContractsCode))
 				newTx, err := types.SignTx(tx, singine, pri)
@@ -233,9 +233,9 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 					return err
 				}
 				if err := txg.eth.TxPool().AddRemote(newTx); err != nil {
-					return fmt.Errorf("DeployContracts fail,err:%v,input:%v", err, config.ContractsType)
+					return fmt.Errorf("DeployContracts fail,err:%v,input:%v", err, config.Type)
 				}
-				config.DeployContractTxHash = newTx.Hash().String()
+				config.DeployTxHash = newTx.Hash().String()
 				nonce++
 			}
 		}
@@ -245,9 +245,9 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 
 func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 	return handelTxGenConfig(configPath, func(txgenInput *TxGenInput) error {
-		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
+		for _, input := range [][]*TxGenContractConfig{txgenInput.Wasm, txgenInput.Evm} {
 			for _, config := range input {
-				hash := common.HexToHash(config.DeployContractTxHash)
+				hash := common.HexToHash(config.DeployTxHash)
 				tx, blockHash, _, index := rawdb.ReadTransaction(txg.eth.ChainDb(), hash)
 				if tx == nil {
 					return fmt.Errorf("the tx not find yet,tx:%s", hash.String())
@@ -322,9 +322,9 @@ func (txg *TxGenAPI) Stop() error {
 }
 
 type TxGenInput struct {
-	Wasm []*TxGenInputContractConfig `json:"wasm"`
-	Evm  []*TxGenInputContractConfig `json:"evm"`
-	Tx   []*TxGenInputAccountConfig  `json:"tx"`
+	Wasm []*TxGenContractConfig     `json:"wasm"`
+	Evm  []*TxGenContractConfig     `json:"evm"`
+	Tx   []*TxGenInputAccountConfig `json:"tx"`
 }
 
 type TxGenInputAccountConfig struct {
@@ -332,21 +332,22 @@ type TxGenInputAccountConfig struct {
 	Add string `json:"address"`
 }
 
-type TxGenInputContractConfig struct {
+type TxGenContractConfig struct {
 	//CreateContracts
-	DeployContractTxHash string `json:"deploy_contract_tx_hash"`
-
-	ContractsType string `json:"contracts_type"`
-
-	ContractsCode  string `json:"contracts_code"`
-	DeployGasLimit uint64 `json:"deploy_gas_limit"`
-
+	DeployTxHash     string `json:"deploy_contract_tx_hash"`
+	DeployGasLimit   uint64 `json:"deploy_gas_limit"`
+	Type             string `json:"contracts_type"`
+	ContractsCode    string `json:"contracts_code"`
 	ContractsAddress string `json:"contracts_address"`
 
 	//CallContracts
-	CallWeights  uint   `json:"call_weights"`
-	CallGasLimit uint64 `json:"call_gas_limit"`
-	CallInput    string `json:"call_input"`
+	CallWeights uint                 `json:"call_weights"`
+	CallConfig  []ContractCallConfig `json:"call_config"`
+}
+
+type ContractCallConfig struct {
+	GasLimit uint64 `json:"call_gas_limit"`
+	Input    string `json:"call_input"`
 }
 
 type txGenSendAccount struct {
@@ -358,13 +359,24 @@ type txGenSendAccount struct {
 	SendTime      time.Time
 }
 
-type txGenTxReceiver struct {
+type txGenContractReceiver struct {
 	ContractsAddress common.Address
-	Data             []byte
 	Weights          uint
-	GasLimit         uint64
+	CallInputs       []ContractReceiverCallInput
 
 	Type string
+}
+
+func (t *txGenContractReceiver) pickCallInput() ContractReceiverCallInput {
+	if len(t.CallInputs) == 1 {
+		return t.CallInputs[0]
+	}
+	return t.CallInputs[rand.Intn(len(t.CallInputs))]
+}
+
+type ContractReceiverCallInput struct {
+	Data     []byte
+	GasLimit uint64
 }
 
 func newAccountQueue(accounts []common.Address) *accountQueue {
@@ -489,21 +501,23 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 	case s.sendState < s.sendTx:
 		return nil, add, 30000, s.amount
 	case s.sendState < s.sendEvm:
-		account := s.evmReceiver.Pick().(*txGenTxReceiver)
+		account := s.evmReceiver.Pick().(*txGenContractReceiver)
 		if account.Type == "erc20" {
-			return BuildEVMInput(evmErc20Hash, add.Bytes(), one), account.ContractsAddress, account.GasLimit, nil
+			return BuildEVMInput(evmErc20Hash, add.Bytes(), one), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		} else if account.Type == "kv" {
-			return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(100000))), common.Uint32ToBytes(uint32(rand.Int31n(100000)))), account.ContractsAddress, account.GasLimit, nil
+			return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(100000))), common.Uint32ToBytes(uint32(rand.Int31n(100000)))), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		}
-		return account.Data, account.ContractsAddress, account.GasLimit, nil
+		input := account.pickCallInput()
+		return input.Data, account.ContractsAddress, input.GasLimit, nil
 	case s.sendState < s.sendWasm:
-		account := s.wsamReveiver.Pick().(*txGenTxReceiver)
+		account := s.wsamReveiver.Pick().(*txGenContractReceiver)
 		if account.Type == "erc20" {
-			return BuildWASMInput(WasmERC20Info{wasmErc20Hash, add, 1}), account.ContractsAddress, account.GasLimit, nil
+			return BuildWASMInput(WasmERC20Info{wasmErc20Hash, add, 1}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		} else if account.Type == "kv" {
-			return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(100000)), uint32(rand.Int31n(100000))}), account.ContractsAddress, account.GasLimit, nil
+			return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(100000)), uint32(rand.Int31n(100000))}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		}
-		return account.Data, account.ContractsAddress, account.GasLimit, nil
+		input := account.pickCallInput()
+		return input.Data, account.ContractsAddress, input.GasLimit, nil
 	}
 	log.Crit("generateTxParams fail,the sendState should not grate than the sendWasm", "state", s.sendState, "wasm", s.sendWasm)
 	return nil, common.Address{}, 0, nil
@@ -590,32 +604,37 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 		return nil, errors.New("new tx gen fail ,wasm config not set")
 	}
 
-	receiverChooser := make([]weightedrand.Choice, 0, len(txgenInput.Evm))
+	evmChooser := make([]weightedrand.Choice, 0, len(txgenInput.Evm))
 
-	receiverChooser2 := make([]weightedrand.Choice, 0, len(txgenInput.Wasm))
+	wasmChooser := make([]weightedrand.Choice, 0, len(txgenInput.Wasm))
 
-	for i, ContractConfigs := range [][]*TxGenInputContractConfig{txgenInput.Evm, txgenInput.Wasm} {
+	for i, ContractConfigs := range [][]*TxGenContractConfig{txgenInput.Evm, txgenInput.Wasm} {
 		for _, config := range ContractConfigs {
 			if config.CallWeights != 0 {
-				txReceiver := new(txGenTxReceiver)
+				txReceiver := new(txGenContractReceiver)
 				txReceiver.ContractsAddress = common.MustBech32ToAddress(config.ContractsAddress)
 				if getCodeSize(txReceiver.ContractsAddress) <= 0 {
 					return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", txReceiver.ContractsAddress.String())
 				}
-				txReceiver.Data = common.Hex2Bytes(config.CallInput)
+				txReceiver.CallInputs = make([]ContractReceiverCallInput, 0)
+				for _, config := range config.CallConfig {
+					txReceiver.CallInputs = append(txReceiver.CallInputs, ContractReceiverCallInput{
+						Data:     common.Hex2Bytes(config.Input),
+						GasLimit: config.GasLimit,
+					})
+				}
 				txReceiver.Weights = config.CallWeights
-				txReceiver.GasLimit = config.CallGasLimit
-				txReceiver.Type = config.ContractsType
+				txReceiver.Type = config.Type
 				if i == 0 {
-					receiverChooser = append(receiverChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
+					evmChooser = append(evmChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
 				} else {
-					receiverChooser2 = append(receiverChooser2, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
+					wasmChooser = append(wasmChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
 				}
 			}
 		}
 	}
-	t.evmReceiver = weightedrand.NewChooser(receiverChooser...)
-	t.wsamReveiver = weightedrand.NewChooser(receiverChooser2...)
+	t.evmReceiver = weightedrand.NewChooser(evmChooser...)
+	t.wsamReveiver = weightedrand.NewChooser(wasmChooser...)
 
 	return t, nil
 }
