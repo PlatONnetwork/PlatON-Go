@@ -24,7 +24,6 @@ var (
 	blockMinedGauage       = metrics.NewRegisteredGauge("cbft/gauage/block/mined", nil)
 	viewChangedTimer       = metrics.NewRegisteredTimer("cbft/timer/view/changed", nil)
 	blockQCCollectedGauage = metrics.NewRegisteredGauge("cbft/gauage/block/qc_collected", nil)
-	blockExecutedGauage    = metrics.NewRegisteredGauge("cbft/gauage/block/executed", nil)
 
 	blockProduceMeter          = metrics.NewRegisteredMeter("cbft/meter/block/produce", nil)
 	blockCheckFailureMeter     = metrics.NewRegisteredMeter("cbft/meter/block/check_failure", nil)
