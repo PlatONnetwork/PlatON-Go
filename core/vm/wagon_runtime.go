@@ -938,18 +938,47 @@ func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen 
 		panic(ErrWASMWriteProtection)
 	}
 
-	switch {
-	case valLen == 0:
-		checkGas(ctx, params.SstoreClearGas)
-	default:
-		checkGas(ctx, (toWordSize(uint64(keyLen)+(uint64(valLen)))/32)*params.SstoreSetGas)
-	}
-
 	keyBuf := make([]byte, keyLen)
 	_, err := proc.ReadAt(keyBuf, int64(key))
 	if nil != err {
 		panic(err)
 	}
+
+	currentValue := ctx.evm.StateDB.GetState(ctx.contract.Address(), keyBuf)
+	oldWordSize := toWordSize(uint64(keyLen) + uint64(len(currentValue)))
+	newWordSize := toWordSize(uint64(keyLen) + uint64(valLen))
+
+	switch {
+	case 0 == len(currentValue) && 0 != valLen:
+		checkGas(ctx, newWordSize*params.SstoreSetGas)
+	case 0 != len(currentValue) && 0 == valLen:
+		ctx.evm.StateDB.AddRefund(oldWordSize * params.SstoreRefundGas)
+		checkGas(ctx, oldWordSize*params.SstoreClearGas)
+	default:
+		var (
+			addWordSize    uint64 = 0
+			deleteWordSize uint64 = 0
+			resetWordSize  uint64 = 0
+		)
+
+		if newWordSize >= oldWordSize {
+			addWordSize = newWordSize - oldWordSize
+			resetWordSize = toWordSize(uint64(len(currentValue)))
+		} else {
+			deleteWordSize = oldWordSize - newWordSize
+			resetWordSize = toWordSize(uint64(valLen))
+		}
+
+		if 0 == resetWordSize {
+			resetWordSize = 1
+		}
+
+		checkGas(ctx, addWordSize*params.SstoreSetGas)
+		ctx.evm.StateDB.AddRefund(deleteWordSize * params.SstoreRefundGas)
+		checkGas(ctx, deleteWordSize*params.SstoreClearGas)
+		checkGas(ctx, resetWordSize*params.SstoreResetGas)
+	}
+
 	valBuf := make([]byte, valLen)
 	_, err = proc.ReadAt(valBuf, int64(val))
 	if nil != err {
