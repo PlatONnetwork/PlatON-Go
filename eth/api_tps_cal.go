@@ -123,6 +123,8 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 	preTimestamp := beginHeader.Time.Uint64()
 	topArray := make([]uint64, 0, 250)
 
+	viewCountMap[beginQC.ViewNumber] = 1
+
 	// To transactions
 	txCount := uint64(0)
 	for i := beginNumber + 1; i <= endNumber; i++ {
