@@ -308,8 +308,6 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())
 	}
-	log.Debug("Execute time use", "use", common.Millis(time.Now())-common.Millis(start))
-
 	blockExecutedGauage.Update(common.Millis(time.Now()) - common.Millis(start))
 	return nil
 }
