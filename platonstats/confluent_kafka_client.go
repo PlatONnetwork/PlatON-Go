@@ -29,7 +29,7 @@ func NewConfluentKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGr
 	//brokers := strings.Split(urls, ",")
 
 	if len(blockTopic) == 0 {
-		blockTopic = defaultKafkaAccountCheckingTopic
+		blockTopic = defaultKafkaBlockTopic
 	}
 
 	if len(checkingTopic) == 0 {
@@ -47,11 +47,17 @@ func NewConfluentKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGr
 		AccountCheckingConsumerGroup: checkingConsumerGroup,
 	}
 
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": urls})
+	p, err := kafka.NewProducer(&kafka.ConfigMap{
+		"bootstrap.servers": urls,
+		"compression.type":  "gzip",
+		"message.max.bytes": 500000000,
+	})
 
 	if err != nil {
 		log.Error("Failed to create Kafka producer")
 		panic(err)
+	} else {
+		log.Info("Success to create Kafka producer", "urls", urls, "blockTopic", blockTopic)
 	}
 
 	// Delivery report handler for produced messages
@@ -60,9 +66,9 @@ func NewConfluentKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGr
 			switch ev := e.(type) {
 			case *kafka.Message:
 				if ev.TopicPartition.Error != nil {
-					log.Error("send block message error", "key", ev.Key, "value", ev.Value, "err", ev.TopicPartition.Error)
+					log.Error("send block message error", "topic", ev.TopicPartition.Topic, "key", string(ev.Key), "value", string(ev.Value), "err", ev.TopicPartition.Error)
 				} else {
-					log.Debug("send block message success", "key", ev.Key, "value", ev.Value)
+					log.Debug("send block message success", "topic", ev.TopicPartition.Topic, "key", string(ev.Key), "valueSize", len(ev.Value), "value", string(ev.Value))
 				}
 			}
 		}
@@ -71,9 +77,10 @@ func NewConfluentKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGr
 	client.producer = p
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": urls,
-		"group.id":          checkingConsumerGroup,
-		"auto.offset.reset": "earliest",
+		"bootstrap.servers":       urls,
+		"group.id":                checkingConsumerGroup,
+		"auto.offset.reset":       "earliest",
+		"fetch.message.max.bytes": 6000000,
 	})
 
 	if err != nil {
@@ -85,6 +92,8 @@ func NewConfluentKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGr
 	if err != nil {
 		log.Error("Failed to subscribe consumer topic")
 		panic(err)
+	} else {
+		log.Info("Success to create Kafka consumer", "urls", urls, "checkingTopic", checkingTopic, "group.id", checkingConsumerGroup)
 	}
 
 	client.consumer = c

@@ -319,7 +319,7 @@ var (
 	*/
 	StatsFlag = cli.StringFlag{
 		Name:  "stats",
-		Usage: "Reporting URL of a PlatON stats service, --stats kafka_host:kafka_port,kafka-block-topic,kafka-account-checking-topic,kafka-account-checking-group",
+		Usage: "Reporting URL of a PlatON stats service, --stats kafka_host:kafka_port;kafka-block-topic;kafka-account-checking-topic;kafka-account-checking-group",
 	}
 
 	NoCompactionFlag = cli.BoolFlag{

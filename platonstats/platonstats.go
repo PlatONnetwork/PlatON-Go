@@ -149,6 +149,8 @@ var (
 )
 
 func New(kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic, kafkaAccountCheckingGroup string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
+	log.Info("new PlatON stats service", "kafkaUrl", kafkaUrl, "kafkaBlockTopic", kafkaBlockTopic, "kafkaAccountCheckingTopic", kafkaAccountCheckingTopic, "kafkaAccountCheckingGroup", kafkaAccountCheckingGroup)
+
 	platonStatsService = &PlatonStatsService{
 		kafkaUrl:                  kafkaUrl,
 		kafkaBlockTopic:           kafkaBlockTopic,
@@ -462,21 +464,21 @@ func (s *PlatonStatsService) accountChecking(key string, value []byte) error {
 	accountCheckingError := false
 	if message.BlockNumber == uint64(keyNumber) {
 		for _, item := range message.AccountList {
+			bech32 := item.Addr.Bech32()
 			chainBalance, err := getBalance(s.eth.APIBackend, item.Addr, rpc.BlockNumber(keyNumber))
 			if err != nil {
-				log.Error("Failed to get account chain balance", "blockNumber", keyNumber, "address", item.Addr.Bech32(), "err", err)
+				log.Error("Failed to get account chain balance", "blockNumber", keyNumber, "address", bech32, "err", err)
 				return ErrChain
 			}
 			//the current stateDB's block number is higher than checking request.
 			//so, the account must exists in current stateDB.
 			if chainBalance == nil {
-				log.Error("Failed to find account in current block chain", "blockNumber", keyNumber, "address", item.Addr.Bech32())
+				log.Error("Failed to find account in current block chain", "blockNumber", keyNumber, "address", bech32)
 				return ErrAccountNotFound
 			}
 
-			log.Debug("account checking", "blockNumber", keyNumber, "chainBalance", chainBalance, "trackingBalance", item.Balance)
+			log.Debug("account checking", "blockNumber", keyNumber, "address", bech32, "chainBalance", chainBalance, "trackingBalance", item.Balance)
 			if item.Balance.Cmp(chainBalance) != 0 {
-				bech32 := item.Addr.Bech32()
 				writeCheckingErr(bech32, message.BlockNumber, chainBalance, item.Balance)
 				accountCheckingError = true
 			}

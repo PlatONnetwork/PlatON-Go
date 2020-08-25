@@ -181,7 +181,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 
 	if ctx.GlobalIsSet(utils.StatsFlag.Name) {
 		statsConfig := ctx.GlobalString(utils.StatsFlag.Name)
-		configs := strings.Split(statsConfig, ",")
+		configs := strings.Split(statsConfig, ";")
 		if len(configs) == 1 {
 			cfg.Stats.URL = configs[0]
 		} else if len(configs) == 2 {
