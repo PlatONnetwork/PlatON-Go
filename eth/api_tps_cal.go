@@ -127,6 +127,7 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 
 	// To transactions
 	txCount := uint64(0)
+	txCount += uint64(len(beginBlock.Transactions()))
 	for i := beginNumber + 1; i <= endNumber; i++ {
 		block, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(int64(i)))
 		header := block.Header()
