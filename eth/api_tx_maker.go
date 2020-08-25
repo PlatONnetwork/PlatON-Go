@@ -342,6 +342,7 @@ type TxGenContractConfig struct {
 
 	//CallContracts
 	CallWeights uint                 `json:"call_weights"`
+	CallKind    uint                 `json:"call_kind"`
 	CallConfig  []ContractCallConfig `json:"call_config"`
 }
 
@@ -360,10 +361,16 @@ type txGenSendAccount struct {
 	SendTime      time.Time
 }
 
+const (
+	callKindDefine   = 0
+	callKindGenerate = 1
+)
+
 type txGenContractReceiver struct {
 	ContractsAddress common.Address
 	Weights          uint
 	CallInputs       []ContractReceiverCallInput
+	CallKind         uint
 
 	Type string
 }
@@ -504,24 +511,30 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 		return nil, add, 30000, s.amount
 	case s.sendState < s.sendEvm:
 		account := s.evmReceiver.Pick().(*txGenContractReceiver)
-		if account.Type == "erc20" {
-			return BuildEVMInput(evmErc20Hash, add.Bytes(), one), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
-		} else if account.Type == "kv" {
-			key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
-			return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(key))), common.Uint32ToBytes(count)), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+		if account.CallKind == callKindDefine {
+			input := account.pickCallInput()
+			return input.Data, account.ContractsAddress, input.GasLimit, nil
+		} else {
+			if account.Type == "erc20" {
+				return BuildEVMInput(evmErc20Hash, add.Bytes(), one), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			} else if account.Type == "kv" {
+				key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
+				return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(key))), common.Uint32ToBytes(count)), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			}
 		}
-		input := account.pickCallInput()
-		return input.Data, account.ContractsAddress, input.GasLimit, nil
 	case s.sendState < s.sendWasm:
 		account := s.wsamReveiver.Pick().(*txGenContractReceiver)
-		if account.Type == "erc20" {
-			return BuildWASMInput(WasmERC20Info{wasmErc20Hash, add, 1}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
-		} else if account.Type == "kv" {
-			key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
-			return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(key)), count}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+		if account.CallKind == callKindDefine {
+			input := account.pickCallInput()
+			return input.Data, account.ContractsAddress, input.GasLimit, nil
+		} else {
+			if account.Type == "erc20" {
+				return BuildWASMInput(WasmERC20Info{wasmErc20Hash, add, 1}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			} else if account.Type == "kv" {
+				key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
+				return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(key)), count}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			}
 		}
-		input := account.pickCallInput()
-		return input.Data, account.ContractsAddress, input.GasLimit, nil
 	}
 	log.Crit("generateTxParams fail,the sendState should not grate than the sendWasm", "state", s.sendState, "wasm", s.sendWasm)
 	return nil, common.Address{}, 0, nil
@@ -620,8 +633,12 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 				if getCodeSize(txReceiver.ContractsAddress) <= 0 {
 					return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", txReceiver.ContractsAddress.String())
 				}
+				txReceiver.CallKind = config.CallKind
 				txReceiver.CallInputs = make([]ContractReceiverCallInput, 0)
 				for _, config := range config.CallConfig {
+					if txReceiver.CallKind == callKindDefine && config.Input == "" {
+						return nil, fmt.Errorf("NewTxMakeManger  fail:the call_input can't be nil if CallKind is 0")
+					}
 					txReceiver.CallInputs = append(txReceiver.CallInputs, ContractReceiverCallInput{
 						Data:       common.Hex2Bytes(config.Input),
 						GasLimit:   config.GasLimit,
