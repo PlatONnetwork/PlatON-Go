@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
@@ -106,8 +108,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 		for {
 			select {
 			case txs := <-txsCh:
-				txg.eth.txPool.AddRemotes(txs)
-				//txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
+				txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
 			case <-txg.txGenExitCh:
 				log.Debug("MakeTransaction get receipt nonce  exit")
 				return
@@ -345,8 +346,9 @@ type TxGenContractConfig struct {
 }
 
 type ContractCallConfig struct {
-	GasLimit uint64 `json:"call_gas_limit"`
-	Input    string `json:"call_input"`
+	GasLimit   uint64        `json:"call_gas_limit"`
+	Input      string        `json:"call_input"`
+	Parameters []interface{} `json:"parameters"`
 }
 
 type txGenSendAccount struct {
@@ -374,8 +376,9 @@ func (t *txGenContractReceiver) pickCallInput() ContractReceiverCallInput {
 }
 
 type ContractReceiverCallInput struct {
-	Data     []byte
-	GasLimit uint64
+	Data       []byte
+	GasLimit   uint64
+	Parameters []interface{}
 }
 
 func newAccountQueue(accounts []common.Address) *accountQueue {
@@ -504,7 +507,8 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 		if account.Type == "erc20" {
 			return BuildEVMInput(evmErc20Hash, add.Bytes(), one), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		} else if account.Type == "kv" {
-			return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(10000))), common.Uint32ToBytes(uint32(rand.Int31n(100)))), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
+			return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(key))), common.Uint32ToBytes(count)), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		}
 		input := account.pickCallInput()
 		return input.Data, account.ContractsAddress, input.GasLimit, nil
@@ -513,7 +517,8 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 		if account.Type == "erc20" {
 			return BuildWASMInput(WasmERC20Info{wasmErc20Hash, add, 1}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		} else if account.Type == "kv" {
-			return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(10000)), uint32(rand.Int31n(100))}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
+			return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(key)), count}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		}
 		input := account.pickCallInput()
 		return input.Data, account.ContractsAddress, input.GasLimit, nil
@@ -618,8 +623,9 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 				txReceiver.CallInputs = make([]ContractReceiverCallInput, 0)
 				for _, config := range config.CallConfig {
 					txReceiver.CallInputs = append(txReceiver.CallInputs, ContractReceiverCallInput{
-						Data:     common.Hex2Bytes(config.Input),
-						GasLimit: config.GasLimit,
+						Data:       common.Hex2Bytes(config.Input),
+						GasLimit:   config.GasLimit,
+						Parameters: config.Parameters,
 					})
 				}
 				txReceiver.Weights = config.CallWeights
