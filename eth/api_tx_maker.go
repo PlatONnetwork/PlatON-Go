@@ -17,8 +17,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 
-	"github.com/PlatONnetwork/PlatON-Go/core"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/mroth/weightedrand"
@@ -108,7 +106,8 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 		for {
 			select {
 			case txs := <-txsCh:
-				txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
+				txg.eth.txPool.AddRemotes(txs)
+				//txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
 			case <-txg.txGenExitCh:
 				log.Debug("MakeTransaction get receipt nonce  exit")
 				return
@@ -505,7 +504,7 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 		if account.Type == "erc20" {
 			return BuildEVMInput(evmErc20Hash, add.Bytes(), one), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		} else if account.Type == "kv" {
-			return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(100000))), common.Uint32ToBytes(uint32(rand.Int31n(100000)))), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(10000))), common.Uint32ToBytes(uint32(rand.Int31n(100)))), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		}
 		input := account.pickCallInput()
 		return input.Data, account.ContractsAddress, input.GasLimit, nil
@@ -514,7 +513,7 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 		if account.Type == "erc20" {
 			return BuildWASMInput(WasmERC20Info{wasmErc20Hash, add, 1}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		} else if account.Type == "kv" {
-			return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(100000)), uint32(rand.Int31n(100000))}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(10000)), uint32(rand.Int31n(100))}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 		}
 		input := account.pickCallInput()
 		return input.Data, account.ContractsAddress, input.GasLimit, nil
