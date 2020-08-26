@@ -776,7 +776,9 @@ func (db *StateDB) MigrateStorage(from, to common.Address) {
 		// replace storageRootHash
 		toObj.data.Root = fromObj.data.Root
 		// replace storageTrie
-		toObj.trie = db.db.CopyTrie(fromObj.trie)
+		if nil != fromObj.trie {
+			toObj.trie = db.db.CopyTrie(fromObj.trie)
+		}
 		// replace storage
 		toObj.dirtyStorage = fromObj.dirtyStorage.Copy()
 		toObj.originStorage = fromObj.originStorage.Copy()

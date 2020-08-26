@@ -3,49 +3,41 @@
 #include <stddef.h>
 #include <stdint.h>
 
-uint8_t platon_gas_price(uint8_t gas_price[32]);
-void platon_return(const uint8_t *value, size_t len);
-void platon_block_hash(int64_t num,  uint8_t hash[32]);
+uint8_t platon_gas_price(uint8_t gas_price[16]);
+void platon_block_hash(int64_t num, uint8_t hash[32]);
 uint64_t platon_block_number();
 uint64_t platon_gas_limit();
 uint64_t platon_gas();
 int64_t platon_timestamp();
 void platon_coinbase(uint8_t addr[20]);
-uint8_t platon_balance(const uint8_t  addr[20], uint8_t balance[32]);
+uint8_t platon_balance(const uint8_t addr[20], uint8_t balance[16]);
 void platon_origin(uint8_t addr[20]);
 void platon_caller(uint8_t addr[20]);
-int32_t platon_transfer(const uint8_t to[20], const uint8_t *amount, size_t len);
-uint8_t platon_call_value(uint8_t val[32]);
+uint8_t platon_call_value(uint8_t val[16]);
 void platon_address(uint8_t addr[20]);
 void platon_sha3(const uint8_t *src, size_t srcLen, uint8_t *dest, size_t destLen);
 uint64_t platon_caller_nonce();
-
-
-// c++
+int32_t platon_transfer(const uint8_t to[20], const uint8_t *amount, size_t len);
+void platon_set_state(const uint8_t *key, size_t klen, const uint8_t *value, size_t vlen);
+size_t platon_get_state_length(const uint8_t *key, size_t klen);
+int32_t platon_get_state(const uint8_t *key, size_t klen, uint8_t *value, size_t vlen);
 size_t platon_get_input_length();
 void platon_get_input(const uint8_t *value);
-
-void platon_set_state(const uint8_t* key, size_t klen, const uint8_t *value, size_t vlen);
-size_t platon_get_state_length(const uint8_t* key, size_t klen);
-size_t platon_get_state(const uint8_t* key, size_t klen, uint8_t *value, size_t vlen);
 size_t platon_get_call_output_length();
 void platon_get_call_output(const uint8_t *value);
+void platon_return(const uint8_t *value, const size_t len);
 void platon_revert();
 void platon_panic();
 void platon_debug(uint8_t *dst, size_t len);
-
-
-int32_t platon_call(const uint8_t to[20], const uint8_t *args, size_t argsLen, const uint8_t *value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
-int32_t platon_delegate_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
+int32_t platon_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
+int32_t platon_delegate_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *call_cost, size_t call_cost_len);
 //int32_t platon_static_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
 int32_t platon_destroy(const uint8_t to[20]);
-int32_t platon_migrate(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
-void platon_event(const uint8_t* topic, size_t topicLen, const uint8_t* args, size_t argsLen);
-
-
-void platon_sha256(const uint8_t *input, uint32_t input_len, uint8_t hash[32]);
-void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t addr[20]);
+int32_t platon_migrate(uint8_t new_addr[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
+void platon_event(const uint8_t *topic, size_t topic_len, const uint8_t *args, size_t args_len);
 int32_t platon_ecrecover(const uint8_t hash[32], const uint8_t* sig, const uint8_t sig_len, uint8_t addr[20]);
+void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t addr[20]);
+void platon_sha256(const uint8_t *input, uint32_t input_len, uint8_t hash[32]);
 
 // u128
 size_t rlp_u128_size(uint64_t heigh, uint64_t low);
