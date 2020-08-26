@@ -23,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -32,6 +34,8 @@ import (
 
 var (
 	errMakeStateDB = errors.New("make StateDB error")
+
+	blockExecutedGauage = metrics.NewRegisteredGauge("cbft/gauage/block/executed", nil)
 )
 
 type BlockChainCache struct {
@@ -304,6 +308,7 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())
 	}
+	blockExecutedGauage.Update(common.Millis(time.Now()) - common.Millis(start))
 	return nil
 }
 

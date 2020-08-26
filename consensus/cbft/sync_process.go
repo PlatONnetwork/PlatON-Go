@@ -87,12 +87,10 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 						"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
 					return
 				}
-				start := time.Now()
 				if err := cbft.blockCacheWriter.Execute(block, parentBlock); err != nil {
 					cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return
 				}
-				blockExecutedGauage.Update(time.Since(start).Milliseconds())
 				parentBlock = block
 			}
 

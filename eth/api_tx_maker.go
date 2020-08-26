@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"math/big"
 	"math/rand"
 	"os"
@@ -13,6 +14,10 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
@@ -123,15 +128,17 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				txm.blockProduceTime = time.Now()
 				txLength := len(res.Transactions())
 				var timeUse time.Duration
+				currentLength := 0
 				if txLength > 0 {
 					for _, receipt := range res.Transactions() {
 						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
 							account.ReceiptsNonce = receipt.Nonce()
 							timeUse = timeUse + time.Since(account.SendTime)
+							currentLength++
 						}
 					}
 				}
-				txg.ttfInfo.Store(res.Number().Uint64(), Ttf{txLength, timeUse})
+				txg.ttfInfo.Store(res.Number().Uint64(), Ttf{currentLength, timeUse})
 				log.Debug("makeTransaction receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", txLength)
 				//cache latest 3600 block ttfinfo
 				if res.Number().Uint64() > cacheTtfSize {
@@ -153,21 +160,9 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					} else {
 						account = txm.pickNormalSender()
 					}
-					if account.Nonce >= account.ReceiptsNonce+10 {
-						if time.Since(account.SendTime) >= waitAccountReceiptTime {
-							log.Debug("wait account 20s", "account", account.Address, "nonce", account.Nonce, "receiptnonce", account.ReceiptsNonce, "wait time", time.Since(account.SendTime))
-							account.Nonce = account.ReceiptsNonce + 1
-							delete(txm.sleepAccounts, account.Address)
-						} else {
-							if _, ok := txm.sleepAccounts[account.Address]; !ok {
-								txm.sleepAccounts[account.Address] = struct{}{}
-							}
-							continue
-						}
-					} else {
-						delete(txm.sleepAccounts, account.Address)
+					if !txm.accountActive(account) {
+						continue
 					}
-
 					txContractInputData, txReceive, gasLimit, amount := txm.generateTxParams(toAdd)
 
 					tx := types.NewTransaction(account.Nonce, txReceive, amount, gasLimit, gasPrice, txContractInputData)
@@ -230,7 +225,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 		singine := types.NewEIP155Signer(new(big.Int).SetInt64(txg.eth.chainConfig.ChainID.Int64()))
 		gasPrice := txg.eth.txPool.GasPrice()
 
-		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
+		for _, input := range [][]*TxGenContractConfig{txgenInput.Wasm, txgenInput.Evm} {
 			for _, config := range input {
 				tx := types.NewContractCreation(nonce, nil, config.DeployGasLimit, gasPrice, common.Hex2Bytes(config.ContractsCode))
 				newTx, err := types.SignTx(tx, singine, pri)
@@ -238,9 +233,9 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 					return err
 				}
 				if err := txg.eth.TxPool().AddRemote(newTx); err != nil {
-					return err
+					return fmt.Errorf("DeployContracts fail,err:%v,input:%v", err, config.Type)
 				}
-				config.DeployContractTxHash = newTx.Hash().String()
+				config.DeployTxHash = newTx.Hash().String()
 				nonce++
 			}
 		}
@@ -250,9 +245,9 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 
 func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 	return handelTxGenConfig(configPath, func(txgenInput *TxGenInput) error {
-		for _, input := range [][]*TxGenInputContractConfig{txgenInput.Wasm, txgenInput.Evm} {
+		for _, input := range [][]*TxGenContractConfig{txgenInput.Wasm, txgenInput.Evm} {
 			for _, config := range input {
-				hash := common.HexToHash(config.DeployContractTxHash)
+				hash := common.HexToHash(config.DeployTxHash)
 				tx, blockHash, _, index := rawdb.ReadTransaction(txg.eth.ChainDb(), hash)
 				if tx == nil {
 					return fmt.Errorf("the tx not find yet,tx:%s", hash.String())
@@ -263,6 +258,9 @@ func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 					return fmt.Errorf("the tx receipts not find yet,tx:%s", hash.String())
 				}
 				receipt := receipts[index]
+				if receipt.Status == 0 {
+					return fmt.Errorf("the tx receipts status is 0 ,tx:%s", hash.String())
+				}
 				config.ContractsAddress = receipt.ContractAddress.String()
 			}
 
@@ -279,7 +277,7 @@ func handelTxGenConfig(configPath string, handle func(*TxGenInput) error) error 
 	defer file.Close()
 	var txgenInput TxGenInput
 	if err := json.NewDecoder(file).Decode(&txgenInput); err != nil {
-		return fmt.Errorf("invalid genesis file chain id:%v", err)
+		return fmt.Errorf("invalid TxGenConfig file r:%v", err)
 	}
 
 	if err := handle(&txgenInput); err != nil {
@@ -324,9 +322,9 @@ func (txg *TxGenAPI) Stop() error {
 }
 
 type TxGenInput struct {
-	Wasm []*TxGenInputContractConfig `json:"wasm"`
-	Evm  []*TxGenInputContractConfig `json:"evm"`
-	Tx   []*TxGenInputAccountConfig  `json:"tx"`
+	Wasm []*TxGenContractConfig     `json:"wasm"`
+	Evm  []*TxGenContractConfig     `json:"evm"`
+	Tx   []*TxGenInputAccountConfig `json:"tx"`
 }
 
 type TxGenInputAccountConfig struct {
@@ -334,18 +332,24 @@ type TxGenInputAccountConfig struct {
 	Add string `json:"address"`
 }
 
-type TxGenInputContractConfig struct {
+type TxGenContractConfig struct {
 	//CreateContracts
-	DeployContractTxHash string `json:"deploy_contract_tx_hash"`
-	ContractsCode        string `json:"contracts_code"`
-	DeployGasLimit       uint64 `json:"deploy_gas_limit"`
-
+	DeployTxHash     string `json:"deploy_contract_tx_hash"`
+	DeployGasLimit   uint64 `json:"deploy_gas_limit"`
+	Type             string `json:"contracts_type"`
+	ContractsCode    string `json:"contracts_code"`
 	ContractsAddress string `json:"contracts_address"`
 
 	//CallContracts
-	CallWeights  uint   `json:"call_weights"`
-	CallGasLimit uint64 `json:"call_gas_limit"`
-	CallInput    string `json:"call_input"`
+	CallWeights uint                 `json:"call_weights"`
+	CallKind    uint                 `json:"call_kind"`
+	CallConfig  []ContractCallConfig `json:"call_config"`
+}
+
+type ContractCallConfig struct {
+	GasLimit   uint64        `json:"call_gas_limit"`
+	Input      string        `json:"call_input"`
+	Parameters []interface{} `json:"parameters"`
 }
 
 type txGenSendAccount struct {
@@ -357,11 +361,31 @@ type txGenSendAccount struct {
 	SendTime      time.Time
 }
 
-type txGenTxReceiver struct {
+const (
+	callKindDefine   = 0
+	callKindGenerate = 1
+)
+
+type txGenContractReceiver struct {
 	ContractsAddress common.Address
-	Data             []byte
 	Weights          uint
-	GasLimit         uint64
+	CallInputs       []ContractReceiverCallInput
+	CallKind         uint
+
+	Type string
+}
+
+func (t *txGenContractReceiver) pickCallInput() ContractReceiverCallInput {
+	if len(t.CallInputs) == 1 {
+		return t.CallInputs[0]
+	}
+	return t.CallInputs[rand.Intn(len(t.CallInputs))]
+}
+
+type ContractReceiverCallInput struct {
+	Data       []byte
+	GasLimit   uint64
+	Parameters []interface{}
 }
 
 func newAccountQueue(accounts []common.Address) *accountQueue {
@@ -412,6 +436,24 @@ type TxMakeManger struct {
 	sendState uint
 }
 
+func (s *TxMakeManger) accountActive(account *txGenSendAccount) bool {
+	if account.Nonce >= account.ReceiptsNonce+10 {
+		if time.Since(account.SendTime) >= waitAccountReceiptTime {
+			log.Debug("wait account 20s", "account", account.Address, "nonce", account.Nonce, "receiptnonce", account.ReceiptsNonce, "wait time", time.Since(account.SendTime))
+			account.Nonce = account.ReceiptsNonce + 1
+			delete(s.sleepAccounts, account.Address)
+		} else {
+			if _, ok := s.sleepAccounts[account.Address]; !ok {
+				s.sleepAccounts[account.Address] = struct{}{}
+			}
+			return false
+		}
+	} else {
+		delete(s.sleepAccounts, account.Address)
+	}
+	return true
+}
+
 func (s *TxMakeManger) pickActiveSender() *txGenSendAccount {
 	return s.accounts[s.activeSender.next()]
 }
@@ -424,16 +466,75 @@ func (s *TxMakeManger) pickTxReceive() common.Address {
 	return s.txReceiver[rand.Intn(len(s.txReceiver))]
 }
 
+var (
+	evmErc20Hash = func() []byte {
+		prifix := sha3.NewKeccak256()
+		prifix.Write([]byte("transfer(address,uint256)"))
+		return prifix.Sum(nil)
+	}()
+
+	evmKVHash = func() []byte {
+		prifix := sha3.NewKeccak256()
+		prifix.Write([]byte("SetKV(uint256,uint256)"))
+		return prifix.Sum(nil)
+	}()
+
+	wasmErc20Hash = func() []byte {
+		hash := fnv.New64()
+		hash.Write([]byte("transfer"))
+		return hash.Sum(nil)
+	}()
+	wasmkVHash = func() []byte {
+		hash := fnv.New64()
+		hash.Write([]byte("setKey"))
+		return hash.Sum(nil)
+	}()
+)
+
+type WasmERC20Info struct {
+	Method  []byte
+	Address common.Address
+	Amount  uint64
+}
+
+type WasmKeyValueInfo struct {
+	Method []byte
+	Key    uint32
+	Count  uint32
+}
+
+var one = common.Uint16ToBytes(1)
+
 func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Address, uint64, *big.Int) {
 	switch {
 	case s.sendState < s.sendTx:
 		return nil, add, 30000, s.amount
 	case s.sendState < s.sendEvm:
-		account := s.evmReceiver.Pick().(*txGenTxReceiver)
-		return account.Data, account.ContractsAddress, account.GasLimit, nil
+		account := s.evmReceiver.Pick().(*txGenContractReceiver)
+		if account.CallKind == callKindDefine {
+			input := account.pickCallInput()
+			return input.Data, account.ContractsAddress, input.GasLimit, nil
+		} else {
+			if account.Type == "erc20" {
+				return BuildEVMInput(evmErc20Hash, add.Bytes(), one), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			} else if account.Type == "kv" {
+				key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
+				return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(key))), common.Uint32ToBytes(count)), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			}
+		}
 	case s.sendState < s.sendWasm:
-		account := s.wsamReveiver.Pick().(*txGenTxReceiver)
-		return account.Data, account.ContractsAddress, account.GasLimit, nil
+		account := s.wsamReveiver.Pick().(*txGenContractReceiver)
+		if account.CallKind == callKindDefine {
+			input := account.pickCallInput()
+			return input.Data, account.ContractsAddress, input.GasLimit, nil
+		} else {
+			if account.Type == "erc20" {
+				return BuildWASMInput(WasmERC20Info{wasmErc20Hash, add, 1}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			} else if account.Type == "kv" {
+				key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
+				return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(key)), count}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			}
+		}
 	}
 	log.Crit("generateTxParams fail,the sendState should not grate than the sendWasm", "state", s.sendState, "wasm", s.sendWasm)
 	return nil, common.Address{}, 0, nil
@@ -471,6 +572,7 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 	active := make([]common.Address, 0, activeSender)
 	nomral := make([]common.Address, 0, end-start+1-activeSender)
 
+	currentAccountLenth := uint(0)
 	for i := start; i <= end; i++ {
 		privateKey, err := crypto.HexToECDSA(txgenInput.Tx[i].Pri)
 		if err != nil {
@@ -483,11 +585,13 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 		nonce := GetNonce(address)
 		t.accounts[address] = &txGenSendAccount{privateKey, nonce, address, nonce, time.Now()}
 		t.txReceiver = append(t.txReceiver, address)
-		if i < activeSender {
+
+		if currentAccountLenth < activeSender {
 			active = append(active, address)
 		} else {
 			nomral = append(nomral, address)
 		}
+		currentAccountLenth++
 	}
 	t.normalSender = newAccountQueue(nomral)
 	t.activeSender = newAccountQueue(active)
@@ -517,26 +621,58 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 		return nil, errors.New("new tx gen fail ,wasm config not set")
 	}
 
-	receiverChooser := make([]weightedrand.Choice, 0, len(txgenInput.Evm))
-	for i, ContractConfigs := range [][]*TxGenInputContractConfig{txgenInput.Evm, txgenInput.Wasm} {
+	evmChooser := make([]weightedrand.Choice, 0, len(txgenInput.Evm))
+
+	wasmChooser := make([]weightedrand.Choice, 0, len(txgenInput.Wasm))
+
+	for i, ContractConfigs := range [][]*TxGenContractConfig{txgenInput.Evm, txgenInput.Wasm} {
 		for _, config := range ContractConfigs {
 			if config.CallWeights != 0 {
-				txReceiver := new(txGenTxReceiver)
+				txReceiver := new(txGenContractReceiver)
 				txReceiver.ContractsAddress = common.MustBech32ToAddress(config.ContractsAddress)
 				if getCodeSize(txReceiver.ContractsAddress) <= 0 {
 					return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", txReceiver.ContractsAddress.String())
 				}
-				txReceiver.Data = common.Hex2Bytes(config.CallInput)
+				txReceiver.CallKind = config.CallKind
+				txReceiver.CallInputs = make([]ContractReceiverCallInput, 0)
+				for _, config := range config.CallConfig {
+					if txReceiver.CallKind == callKindDefine && config.Input == "" {
+						return nil, fmt.Errorf("NewTxMakeManger  fail:the call_input can't be nil if CallKind is 0")
+					}
+					txReceiver.CallInputs = append(txReceiver.CallInputs, ContractReceiverCallInput{
+						Data:       common.Hex2Bytes(config.Input),
+						GasLimit:   config.GasLimit,
+						Parameters: config.Parameters,
+					})
+				}
 				txReceiver.Weights = config.CallWeights
-				txReceiver.GasLimit = config.CallGasLimit
-				receiverChooser = append(receiverChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
+				txReceiver.Type = config.Type
+				if i == 0 {
+					evmChooser = append(evmChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
+				} else {
+					wasmChooser = append(wasmChooser, weightedrand.NewChoice(txReceiver, txReceiver.Weights))
+				}
 			}
 		}
-		if i == 0 {
-			t.evmReceiver = weightedrand.NewChooser(receiverChooser...)
-		} else {
-			t.wsamReveiver = weightedrand.NewChooser(receiverChooser...)
-		}
 	}
+	t.evmReceiver = weightedrand.NewChooser(evmChooser...)
+	t.wsamReveiver = weightedrand.NewChooser(wasmChooser...)
+
 	return t, nil
+}
+
+func BuildEVMInput(funcName []byte, params ...[]byte) []byte {
+	input := make([]byte, 4+32*len(params))
+
+	copy(input[:4], funcName[:4])
+
+	for i, param := range params {
+		copy(input[4+32*(i+1)-len(param):4+32*(i+1)], param)
+	}
+	return input
+}
+
+func BuildWASMInput(rawStruct interface{}) []byte {
+	rlpev, _ := rlp.EncodeToBytes(rawStruct)
+	return rlpev
 }
