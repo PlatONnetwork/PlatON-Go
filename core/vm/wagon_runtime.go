@@ -583,7 +583,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t addr[20])
+	// void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t hash[20])
 	// func platon_ripemd160 (param $0 i32) (param $1 i32) (param $2 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
