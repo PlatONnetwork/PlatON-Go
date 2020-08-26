@@ -66,9 +66,9 @@ func NewConfluentKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGr
 			switch ev := e.(type) {
 			case *kafka.Message:
 				if ev.TopicPartition.Error != nil {
-					log.Error("send block message error", "topic", ev.TopicPartition.Topic, "key", string(ev.Key), "value", string(ev.Value), "err", ev.TopicPartition.Error)
+					log.Error("send block message error", "topic", *ev.TopicPartition.Topic, "key", string(ev.Key), "value", string(ev.Value), "err", ev.TopicPartition.Error)
 				} else {
-					log.Debug("send block message success", "topic", ev.TopicPartition.Topic, "key", string(ev.Key), "valueSize", len(ev.Value), "value", string(ev.Value))
+					log.Debug("send block message success", "topic", *ev.TopicPartition.Topic, "key", string(ev.Key), "valueSize", len(ev.Value), "value", string(ev.Value))
 				}
 			}
 		}
