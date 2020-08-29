@@ -36,6 +36,7 @@ func TestWasmRun(t *testing.T) {
 				State:    map[common.Address]map[string][]byte{},
 				Code:     map[common.Address][]byte{},
 				CodeHash: map[common.Address][]byte{},
+				Journal:  mock.NewJournal(),
 			}},
 		config: Config{WasmType: Wagon},
 		contract: &Contract{
@@ -101,6 +102,7 @@ func TestWasmRun(t *testing.T) {
 				State:    map[common.Address]map[string][]byte{},
 				Code:     map[common.Address][]byte{},
 				CodeHash: map[common.Address][]byte{},
+				Journal:  mock.NewJournal(),
 			}},
 		config: Config{WasmType: Wagon},
 		contract: &Contract{
@@ -136,6 +138,7 @@ func TestWasmRun(t *testing.T) {
 				State:    map[common.Address]map[string][]byte{},
 				Code:     map[common.Address][]byte{},
 				CodeHash: map[common.Address][]byte{},
+				Journal:  mock.NewJournal(),
 			}},
 		config: Config{WasmType: Wagon},
 		contract: &Contract{
@@ -171,6 +174,7 @@ func TestWasmRun(t *testing.T) {
 				State:    map[common.Address]map[string][]byte{},
 				Code:     map[common.Address][]byte{},
 				CodeHash: map[common.Address][]byte{},
+				Journal:  mock.NewJournal(),
 			}},
 		config: Config{WasmType: Wagon},
 		contract: &Contract{
