@@ -28,8 +28,10 @@ func buildExeBlockData() *common.ExeBlockData {
 	common.CollectStakingFrozenItem(blockNumber, nodeId, nodeAddress, 222, false)
 	common.CollectDuplicatedSignSlashingSetting(blockNumber, 2000, 60)
 
-	rewardData := &common.RewardData{BlockRewardAmount: big.NewInt(111), StakingRewardAmount: big.NewInt(111), CandidateInfoList: candidateInfoList}
-	common.CollectRewardData(blockNumber, rewardData)
+	/*rewardData := &common.RewardData{BlockRewardAmount: big.NewInt(111), StakingRewardAmount: big.NewInt(111), CandidateInfoList: candidateInfoList}
+	common.CollectRewardData(blockNumber, rewardData)*/
+	common.CollectBlockRewardData(blockNumber, big.NewInt(111), true)
+	common.CollectStakingRewardData(blockNumber, big.NewInt(112), candidateInfoList)
 
 	return common.GetExeBlockData(blockNumber)
 }

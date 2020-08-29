@@ -190,8 +190,10 @@ func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount *big.In
 	d.IssuanceItemList = append(d.IssuanceItemList, &IssuanceItem{Address: address, Amount: amount})
 }
 
+//  注意：委托人不一定每次都能参与到区块奖励的分配中（共识论跨结算周期时会出现，此时节点虽然还在出块，但是已经不在当前结算周期的101备选人列表里了）
 type RewardData struct {
 	BlockRewardAmount   *big.Int         `json:"blockRewardAmount,omitempty"`   //出块奖励
+	DelegatorReward     bool             `json:"delegatorReward,omitempty"`     //是否有委托人的奖励（出块奖励是否分配给委托人）
 	StakingRewardAmount *big.Int         `json:"stakingRewardAmount,omitempty"` //一结算周期内所有101节点的质押奖励
 	CandidateInfoList   []*CandidateInfo `json:"candidateInfoList,omitempty"`   //备选节点信息
 }
@@ -283,10 +285,28 @@ func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, rele
 	}
 }
 
-func CollectRewardData(blockNumber uint64, rewardData *RewardData) {
+func CollectBlockRewardData(blockNumber uint64, blockRewardAmount *big.Int, delegatorReward bool) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
-		log.Debug("CollectRewardData", "blockNumber", blockNumber, "rewardData", rewardData.BlockRewardAmount)
-		exeBlockData.RewardData = rewardData
+		log.Debug("CollectBlockRewardData", "blockNumber", blockNumber, "blockRewardAmount", blockRewardAmount)
+		if exeBlockData.RewardData == nil {
+			exeBlockData.RewardData = new(RewardData)
+		}
+		exeBlockData.RewardData.BlockRewardAmount = blockRewardAmount
+		exeBlockData.RewardData.DelegatorReward = delegatorReward
+	}
+}
+
+func CollectStakingRewardData(blockNumber uint64, stakingRewardAmount *big.Int, candidateInfoList []*CandidateInfo) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		log.Debug("CollectStakingRewardData", "blockNumber", blockNumber, "stakingRewardAmount", stakingRewardAmount)
+		for _, candidateInfo := range candidateInfoList {
+			log.Debug("nodeID:" + Bytes2Hex(candidateInfo.NodeID[:]))
+		}
+		if exeBlockData.RewardData == nil {
+			exeBlockData.RewardData = new(RewardData)
+		}
+		exeBlockData.RewardData.StakingRewardAmount = stakingRewardAmount
+		exeBlockData.RewardData.CandidateInfoList = candidateInfoList
 	}
 }
 

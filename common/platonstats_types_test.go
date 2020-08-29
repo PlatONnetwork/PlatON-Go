@@ -62,8 +62,9 @@ func buildExeBlockData() *ExeBlockData {
 	CollectStakingFrozenItem(blockNumber, nodeId, nodeAddress, 111, false)
 	CollectDuplicatedSignSlashingSetting(blockNumber, 2000, 60)
 
-	rewardData := &RewardData{BlockRewardAmount: big.NewInt(12), StakingRewardAmount: big.NewInt(12), CandidateInfoList: candidateInfoList}
-	CollectRewardData(blockNumber, rewardData)
+	//rewardData := &RewardData{BlockRewardAmount: big.NewInt(12), StakingRewardAmount: big.NewInt(12), CandidateInfoList: candidateInfoList}
+	CollectBlockRewardData(blockNumber, big.NewInt(12), true)
+	CollectStakingRewardData(blockNumber, big.NewInt(12), candidateInfoList)
 
 	value1, _ := new(big.Int).SetString("3000000000000000000000", 10)
 	//value2, _ := new(big.Int).SetString("3000000000000000000000", 10)
