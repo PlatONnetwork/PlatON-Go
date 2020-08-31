@@ -323,7 +323,22 @@ func NewHostModule() *wasm.Module {
 			Kind:     wasm.ExternalFunction,
 		},
 	)
+	//GetSnapshotDBLength
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
 
+			Host: reflect.ValueOf(GetSnapshotDBLength),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_get_snapshotdb_length",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
 	// void platon_set_state(const uint8_t* key, size_t klen, const uint8_t *value, size_t vlen)
 	// func $platon_set_state (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32)
 	addFuncExport(m,
@@ -1150,6 +1165,26 @@ func GetSnapshotDB(proc *exec.Process, key uint32, keyLen uint32, val uint32, va
 		panic(err)
 	}
 	return int32(vlen)
+}
+
+func GetSnapshotDBLength(proc *exec.Process, key uint32, keyLen uint32) uint32 {
+	ctx := proc.HostCtx().(*VMContext)
+	keyBuf := make([]byte, keyLen)
+	_, err := proc.ReadAt(keyBuf, int64(key))
+	if nil != err {
+		panic(err)
+	}
+	val, err := ctx.evm.SnapshotDB.Get(ctx.evm.BlockHash, keyBuf)
+	if err != nil {
+		if err == snapshotdb.ErrNotFound {
+			val = make([]byte, 0)
+		} else {
+			panic(err)
+		}
+	}
+	checkGas(ctx, ctx.gasTable.SLoad)
+
+	return uint32(len(val))
 }
 
 // storage external function
