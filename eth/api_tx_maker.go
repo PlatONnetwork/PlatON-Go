@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	cacheTtfSize = 3600
+	cacheTtfSize = 36000
 
 	reportTime             = time.Second * 10
 	waitBLockTime          = time.Second * 10
@@ -108,10 +108,39 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 		for {
 			select {
 			case txs := <-txsCh:
+				//txg.eth.txPool.AddRemotes(txs)
 				txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
 			case <-txg.txGenExitCh:
 				log.Debug("MakeTransaction get receipt nonce  exit")
 				return
+			case res := <-blockCh:
+				txm.blockProduceTime = time.Now()
+				txLength := len(res.Transactions())
+				var timeUse time.Duration
+				currentLength := 0
+				if txLength > 0 {
+					for _, receipt := range res.Transactions() {
+						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
+							account.ReceiptsNonce = receipt.Nonce()
+							account.mu.Lock()
+							if ac, ok := account.SendTime[receipt.Nonce()]; ok {
+								timeUse = timeUse + time.Since(ac)
+								delete(account.SendTime, receipt.Nonce())
+								account.mu.Unlock()
+								currentLength++
+							} else {
+								account.mu.Unlock()
+								continue
+							}
+						}
+					}
+				}
+				txg.ttfInfo.Store(res.Number().Uint64(), Ttf{currentLength, timeUse})
+				log.Debug("makeTransaction receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", txLength)
+				//cache latest 3600 block ttfinfo
+				if res.Number().Uint64() > cacheTtfSize {
+					txg.ttfInfo.Delete(res.Number().Uint64() - cacheTtfSize)
+				}
 			}
 		}
 	}()
@@ -124,26 +153,6 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 		shouldReport := time.NewTicker(reportTime)
 		for {
 			select {
-			case res := <-blockCh:
-				txm.blockProduceTime = time.Now()
-				txLength := len(res.Transactions())
-				var timeUse time.Duration
-				currentLength := 0
-				if txLength > 0 {
-					for _, receipt := range res.Transactions() {
-						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
-							account.ReceiptsNonce = receipt.Nonce()
-							timeUse = timeUse + time.Since(account.SendTime)
-							currentLength++
-						}
-					}
-				}
-				txg.ttfInfo.Store(res.Number().Uint64(), Ttf{currentLength, timeUse})
-				log.Debug("makeTransaction receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", txLength)
-				//cache latest 3600 block ttfinfo
-				if res.Number().Uint64() > cacheTtfSize {
-					txg.ttfInfo.Delete(res.Number().Uint64() - cacheTtfSize)
-				}
 			case <-shouldmake.C:
 				if time.Since(txm.blockProduceTime) >= waitBLockTime {
 					log.Debug("MakeTx should sleep", "time", time.Since(txm.blockProduceTime))
@@ -358,7 +367,9 @@ type txGenSendAccount struct {
 	Address common.Address
 
 	ReceiptsNonce uint64
-	SendTime      time.Time
+	LastSendTime  time.Time
+	SendTime      map[uint64]time.Time
+	mu            sync.Mutex
 }
 
 const (
@@ -438,8 +449,8 @@ type TxMakeManger struct {
 
 func (s *TxMakeManger) accountActive(account *txGenSendAccount) bool {
 	if account.Nonce >= account.ReceiptsNonce+10 {
-		if time.Since(account.SendTime) >= waitAccountReceiptTime {
-			log.Debug("wait account 20s", "account", account.Address, "nonce", account.Nonce, "receiptnonce", account.ReceiptsNonce, "wait time", time.Since(account.SendTime))
+		if time.Since(account.LastSendTime) >= waitAccountReceiptTime {
+			log.Debug("wait account 20s", "account", account.Address, "nonce", account.Nonce, "receiptnonce", account.ReceiptsNonce, "wait time", time.Since(account.LastSendTime))
 			account.Nonce = account.ReceiptsNonce + 1
 			delete(s.sleepAccounts, account.Address)
 		} else {
@@ -508,7 +519,7 @@ var one = common.Uint16ToBytes(1)
 func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Address, uint64, *big.Int) {
 	switch {
 	case s.sendState < s.sendTx:
-		return nil, add, 30000, s.amount
+		return nil, add, 21000, s.amount
 	case s.sendState < s.sendEvm:
 		account := s.evmReceiver.Pick().(*txGenContractReceiver)
 		if account.CallKind == callKindDefine {
@@ -545,8 +556,13 @@ func (s *TxMakeManger) sendDone(account *txGenSendAccount) {
 	if s.sendState >= s.sendWasm {
 		s.sendState = 0
 	}
+	now := time.Now()
+
+	account.mu.Lock()
+	account.SendTime[account.Nonce] = now
+	account.mu.Unlock()
+	account.LastSendTime = now
 	account.Nonce++
-	account.SendTime = time.Now()
 }
 
 func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, GetNonce func(addr common.Address) uint64, getCodeSize func(addr common.Address) int, accountPath string, start, end uint) (*TxMakeManger, error) {
@@ -583,7 +599,10 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 			return nil, fmt.Errorf("NewTxMakeManger Bech32ToAddress fail:%v", err)
 		}
 		nonce := GetNonce(address)
-		t.accounts[address] = &txGenSendAccount{privateKey, nonce, address, nonce, time.Now()}
+		now := time.Now()
+		t.accounts[address] = &txGenSendAccount{privateKey, nonce, address, nonce, now, nil, sync.Mutex{}}
+		t.accounts[address].SendTime = make(map[uint64]time.Time)
+		t.accounts[address].SendTime[nonce] = now
 		t.txReceiver = append(t.txReceiver, address)
 
 		if currentAccountLenth < activeSender {
