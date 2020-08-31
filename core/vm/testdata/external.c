@@ -33,12 +33,8 @@ int32_t platon_call(const uint8_t to[20], const uint8_t *args, size_t args_len, 
 int32_t platon_delegate_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *call_cost, size_t call_cost_len);
 //int32_t platon_static_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
 int32_t platon_destroy(const uint8_t to[20]);
-int32_t platon_migrate(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
-int32_t platon_clone_migrate(const uint8_t old_addr[20], uint8_t new_addr[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
-void platon_event(const uint8_t* topic, size_t topicLen, const uint8_t* args, size_t argsLen);
-
-
 int32_t platon_migrate(uint8_t new_addr[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
+int32_t platon_clone_migrate(const uint8_t old_addr[20], uint8_t new_addr[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
 void platon_event(const uint8_t *topic, size_t topic_len, const uint8_t *args, size_t args_len);
 int32_t platon_ecrecover(const uint8_t hash[32], const uint8_t* sig, const uint8_t sig_len, uint8_t addr[20]);
 void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t addr[20]);
