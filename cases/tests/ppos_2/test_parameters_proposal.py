@@ -736,7 +736,7 @@ def test_POP_022(client_consensus, client_new_node, new_genesis_env):
     assert_code(result, 0)
     amount1 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount1))
-    client_new_node.economic.wait_settlement(client_new_node.node, number=2)
+    client_new_node.economic.wait_settlement(client_new_node.node, 2)
     amount2 = client_new_node.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount2))
     client_new_node.economic.wait_settlement(client_new_node.node)

@@ -252,7 +252,7 @@ def test_AS_018_019(client_new_node):
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node.economic.wait_settlement(client_new_node.node, number=2)
+    client_new_node.economic.wait_settlement(client_new_node.node, 2)
     result = client_new_node.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 301102)
@@ -276,7 +276,7 @@ def test_AS_020_021(clients_new_node, client_consensus):
     value = economic.create_staking_limit
     result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
-    economic.wait_consensus(other_node, number=4)
+    economic.wait_consensus(other_node, 4)
     validator_list = get_pledge_list(other_node.ppos.getValidatorList)
     assert node.node_id in validator_list
     candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
@@ -284,7 +284,7 @@ def test_AS_020_021(clients_new_node, client_consensus):
     log.info("Close one node")
     node.stop()
     for i in range(4):
-        economic.wait_consensus(other_node, number=i)
+        economic.wait_consensus(other_node, i)
         candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
         log.info(candidate_info)
         if candidate_info["Ret"]["Released"] < value:
@@ -296,7 +296,7 @@ def test_AS_020_021(clients_new_node, client_consensus):
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    economic.wait_settlement(node, number=2)
+    economic.wait_settlement(node, 2)
     result = client.staking.increase_staking(0, address)
     assert_code(result, 301102)
 

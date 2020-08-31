@@ -828,7 +828,7 @@ def test_DG_TR_017(delegate_node_client):
     economic.wait_settlement(node)
     delegate_node_client.staking.withdrew_staking(delegate_node_client.staking_address)
 
-    economic.wait_settlement(node, number=2)
+    economic.wait_settlement(node, 2)
     staking_address, delegate_address = create_staking(delegate_node_client, reward)
     candidate_info = delegate_node_client.ppos.getCandidateInfo(node.node_id)
     assert_reward_per(candidate_info, reward)

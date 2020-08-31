@@ -430,7 +430,7 @@ def test_CS_CL_014_015_016_029(status, clients_new_node, clients_consensus):
     client_consensus4 = clients_consensus[3]
 
     log.info("The next consensus cycle")
-    client_consensus1.economic.wait_consensus(client_consensus1.node, number=1)
+    client_consensus1.economic.wait_consensus(client_consensus1.node, 1)
     blocknumber = client_consensus1.node.eth.blockNumber
 
     log.info("To report the double sign")
@@ -584,7 +584,7 @@ def test_CS_CL_017_018_019(status, clients_new_node, clients_consensus):
     client_consensus4 = clients_consensus[3]
 
     log.info("The next consensus cycle")
-    client_consensus1.economic.wait_consensus(client_consensus1.node, number=1)
+    client_consensus1.economic.wait_consensus(client_consensus1.node, 1)
 
     validatorlist = get_pledge_list(client_consensus1.ppos.getValidatorList)
     log.info("initial validatorlist:{}".format(validatorlist))

@@ -810,3 +810,20 @@ def test_UP_FV_019(client_new_node):
     second_balance2 = node.eth.getBalance(second_address)
     log.info("second_balance2: {}".format(second_balance2))
     assert second_balance2 == second_balance1 + delegate_amount
+
+
+def test_dsas(client_new_node):
+    client = client_new_node
+    economic = client.economic
+    node = client.node
+
+    # create account
+    amount = economic.create_staking_limit
+    first_address, second_address = create_account_amount(client, amount, 0)
+    plan = [{'Epoch': 2, 'Amount': economic.delegate_limit}]
+
+    # create Restricting Plan1
+    result = client.restricting.createRestrictingPlan(second_address, plan, first_address)
+    assert_code(result, 0)
+    result = node.ppos.getRestrictingInfo(second_address)
+    print(result)

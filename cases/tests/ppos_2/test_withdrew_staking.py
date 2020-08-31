@@ -3,8 +3,13 @@ from decimal import Decimal
 import allure
 import pytest
 import time
+
+from dacite import from_dict
+
 from common.log import log
 from client_sdk_python import Web3
+
+from tests.lib import Genesis
 from tests.lib.utils import get_pledge_list, get_block_count_number, assert_code
 from common.key import generate_key
 from tests.ppos_2.conftest import calculate
@@ -12,12 +17,15 @@ from tests.ppos_2.conftest import calculate
 
 @pytest.fixture()
 def staking_client(client_new_node):
+    print(client_new_node.node.node_mark)
     amount = calculate(client_new_node.economic.create_staking_limit, 5)
     staking_amount = calculate(client_new_node.economic.create_staking_limit, 2)
     staking_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3, amount)
     delegate_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                             client_new_node.economic.add_staking_limit * 2)
-    client_new_node.staking.create_staking(0, staking_address, staking_address, amount=staking_amount)
+    result = client_new_node.staking.create_staking(0, staking_address, staking_address, amount=staking_amount)
+    assert_code(result, 0)
+    print(client_new_node.node.ppos.getCandidateInfo(client_new_node.node.node_id))
     setattr(client_new_node, "staking_address", staking_address)
     setattr(client_new_node, "delegate_address", delegate_address)
     setattr(client_new_node, "amount", amount)
@@ -649,25 +657,34 @@ def test_RV_022(client_new_node):
 
 @allure.title("After the maximum penalty, the amount returned & re-pledge, entrustment and redemption")
 @pytest.mark.P1
-def test_RV_023(staking_client, global_test_env):
+def test_RV_023(new_genesis_env, client_new_node):
     """
     Return amount after the highest penalty
     """
-    other_node = global_test_env.get_rand_node()
-    client = staking_client
-    staking_address = client.staking_address
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.slashing.slashBlocksReward = 15
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+
+    other_node = new_genesis_env.get_rand_node()
+    client = client_new_node
     node = client.node
     economic = client.economic
-    balance = node.eth.getBalance(staking_address)
-    log.info(balance)
-    economic.wait_consensus(other_node, number=4)
+    staking_address, _ = client_new_node.economic.account.generate_account(client.node.web3, client.economic.create_staking_limit * 2)
+    delegate_address, _ = client_new_node.economic.account.generate_account(client.node.web3, client.economic.delegate_limit * 3)
+    result = client.staking.create_staking(0, staking_address, staking_address)
+    assert_code(result, 0)
+    msg = client.delegate.delegate(0, delegate_address, node.node_id)
+    assert_code(msg, 0)
+    economic.wait_consensus(other_node, 4)
     log.info("Stop the new verifier node")
     node.stop()
     for i in range(4):
-        economic.wait_consensus(other_node, number=i)
+        economic.wait_consensus(other_node, i)
         candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
         log.info(candidate_info)
-        if candidate_info["Ret"]["Released"] < client.staking_amount:
+        if candidate_info["Ret"]["Released"] < client.economic.create_staking_limit:
             break
     verifier_list = get_pledge_list(other_node.ppos.getVerifierList)
     log.info("Current billing cycle certifier {}".format(verifier_list))
@@ -680,7 +697,7 @@ def test_RV_023(staking_client, global_test_env):
     candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
     log.info(candidate_info)
     log.info("The amount will be refunded after waiting for 2 cycles of punishment")
-    economic.wait_settlement(node, number=2)
+    economic.wait_settlement(node, 2)
 
     balance_after = other_node.eth.getBalance(staking_address)
     log.info("The balance after the penalty is refunded to the account:{}".format(balance_after))
@@ -695,9 +712,9 @@ def test_RV_023(staking_client, global_test_env):
     log.info(candidate_info)
     staking_blocknum = candidate_info["Ret"]["StakingBlockNum"]
     log.info("Delegation")
-    msg = client.delegate.delegate(0, client.delegate_address, node.node_id)
+    msg = client.delegate.delegate(0, delegate_address, node.node_id)
     assert_code(msg, 0)
-    msg = client.delegate.withdrew_delegate(staking_blocknum, client.delegate_address, node.node_id)
+    msg = client.delegate.withdrew_delegate(staking_blocknum, delegate_address, node.node_id)
     assert_code(msg, 0)
 
 
@@ -721,3 +738,28 @@ def test_RV_024(staking_client):
     log.info("Node to commission")
     msg = client.delegate.delegate(0, client.delegate_address)
     assert_code(msg, 301103)
+
+
+
+def test_dsda(client_new_node):
+    """
+
+    """
+    client = client_new_node
+    node = client.node
+    economic = client.economic
+    staking_address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
+    staking_address1, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
+    staking_address2, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
+    result = client.staking.create_staking(0, staking_address, staking_address)
+    assert_code(result, 0)
+    print(client.node.ppos.getCandidateInfo(node.node_id))
+    print("1---------------")
+    result = client.staking.edit_candidate(staking_address, staking_address1)
+    assert_code(result, 0)
+    print(client.node.ppos.getCandidateInfo(node.node_id))
+    print("2---------------")
+    result = client.staking.edit_candidate(staking_address, staking_address2)
+    assert_code(result, 0)
+    print(client.node.ppos.getCandidateInfo(node.node_id))
+    print("3---------------")

@@ -1,12 +1,22 @@
+import os
+import time
+
 import rlp
 from client_sdk_python import HTTPProvider, Web3, WebsocketProvider, ppos
 from client_sdk_python.eth import Eth
 from client_sdk_python.middleware import geth_poa_middleware
 from client_sdk_python.ppos import Ppos
 from hexbytes import HexBytes
+from ruamel import yaml
+
+import conf
+from common.load_file import LoadFile
+from conf.settings import TMP_ADDRES, ACCOUNT_FILE, BASE_DIR
+
+accounts = {}
 
 
-def connect_web3(url, chain_id=101):
+def connect_web3(url, chain_id=104):
     if "ws" in url:
         w3 = Web3(WebsocketProvider(url), chain_id=chain_id)
     else:
@@ -22,6 +32,13 @@ def createRestrictingPlan(url, account, plan, pri_key):
     print(result)
 
 
+def withdrewStaking(url, node_id, pri_key):
+    web3 = connect_web3(url)
+    ppos = Ppos(web3)
+    result = ppos.withdrewStaking(node_id, pri_key)
+    print(result)
+
+
 def delegate(url, typ, node_id, amount, pri_key):
     web3 = connect_web3(url)
     ppos = Ppos(web3)
@@ -33,9 +50,11 @@ def sendTransaction(url, from_address, prikey, to_address, value, chain_id):
     web3 = connect_web3(url)
     platon = Eth(web3)
     nonce = platon.getTransactionCount(from_address)
+    gasPrice = platon.gasPrice
+    print(gasPrice)
     transaction_dict = {
         "to": to_address,
-        "gasPrice": platon.gasPrice,
+        "gasPrice": gasPrice,
         "gas": 21000,
         "nonce": nonce,
         "data": '',
@@ -54,27 +73,75 @@ def sendTransaction(url, from_address, prikey, to_address, value, chain_id):
     print(res)
 
 
-def get_candinfo(url):
+def get_candidatelist(url):
     web3 = connect_web3(url)
     ppos = Ppos(web3)
     result = ppos.getCandidateList()
     print(result)
 
-if __name__ == '__main__':
-    url = 'http://192.168.120.146:6789'
-    account = 'lax18s006gm348myc8sm9qc7a34jzklztf6sdlvdme'
 
-    epoch = 100
-    amount = Web3.toWei(100, 'ether')
-    # amount = ''
-    plan = [{'Epoch': epoch, 'Amount': amount}]
-    pri_key = 'd162b28e2ed3c4c0b991c69585bcec362746b86b1666178d7324a3ca56bd4591'
-    # nodeid = '01027ec8d9ea3c6f334486f88b41f7bfccfaf4aa9412a6cd88e837013b2235b9dba49108b12cc795bba905f5a66e69f6d2fe809f6f048f3fcc0c217360dbc0b2'
-    createRestrictingPlan(url, account, plan, pri_key)
+def get_candinfo(url, node_id):
+    web3 = connect_web3(url)
+    ppos = Ppos(web3)
+    result = ppos.getCandidateInfo(node_id)
+    print(result)
+
+#
+# def create_address(url):
+#     """
+#     创建新钱包地址
+#     """
+#     web3 = connect_web3(url)
+#     platon = Eth(web3)
+#     account = platon.account.create(net_type=web3.net_type)
+#     address = account.address
+#     prikey = account.privateKey.hex()[2:]
+#     account = {
+#         "address": address,
+#         "nonce": 0,
+#         "balance": 0,
+#         "prikey": prikey,
+#     }
+#     accounts = {}
+#     raw_accounts = LoadFile(ACCOUNT_FILE).get_data()
+#     print(raw_accounts)
+#     for account1 in raw_accounts:
+#         accounts[account1['address']] = account1
+#     print(accounts)
+#     accounts[address] = account
+#     # todo delete debug
+#     accounts = list(accounts.values())
+#     with open(os.path.join(BASE_DIR, "deploy/tmp/accounts.yml"), mode="w", encoding="UTF-8") as f:
+#         yaml.dump(accounts, f, Dumper=yaml.RoundTripDumper)
+#
+#
+# def cycle_sendTransaction(url):
+#     """
+#
+#     """
+#
+    # with open(TMP_ADDRES, 'a', encoding='utf-8') as f:
+    #     f.write("2")
+
+
+if __name__ == '__main__':
+    # url = 'http://192.168.9.222:6789'
+    # url = 'http://10.1.1.58:6789'
+    # url = 'http://10.0.0.44:6789'
+    url = 'http://149.129.180.78:6789'
+    # epoch = 100
+    # amount = Web3.toWei(100, 'ether')
+    # plan = [{'Epoch': epoch, 'Amount': amount}]
+    # createRestrictingPlan(url, account, plan, pri_key)
     # delegate(url, 0, nodeid, amount, pri_key)
-    # url = 'http://10.10.8.191:6789'
-    # from_address = 'lax184zj2xdms82dvg5ypacsk48qw3ch0q9rtfrmp3'
-    # pri_key = '91751513fa39f02ada9a7110bef0a20e03375e9b05d78036e84e91366276e5d8'
-    # to_address = 'lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl'
-    # sendTransaction(url, from_address, pri_key, to_address, amount, 298)
-    # get_candinfo(url)
+    # to_address = 'lat1h4hpxa0xl6v6pl9rmvcz8xccamytazlpz7hlfz'
+    # pri_key = '5760032fe6088702d9c1bb6043d1b7603ae0d99c5adf6ccc715b256d0862361f'
+    # from_address = 'lat1ggpeuj4xh2p07vnl5423hhsl075nsqj5ydfdn0'
+    # node_id = '71bc24068d1f1f65331ad7573806bf58186375ef993dddf3ea51c8d0da162c801689aed5aa9e809396cd60273af1d2826d918e36ce4d003c578371a7b3b8b429'
+    # pri_key1 = 'd357920de1df4ecb00cbce60ded2d73f3f51fd1e9fb79b08f366e301e849bd9d'
+    # sendTransaction(url, from_address, pri_key, to_address, amount, 100)
+    # withdrewStaking(url, node_id, pri_key1)
+    # node_id = 'e2181d8dc731b14117ba6d982ce163fc7b9b14bbbaf9cb3c343ef72c24cf3ed568cac6ecbc30fddf9012320fab99f6be6ab37132d083cb514100bdb4b90fff5e'
+    # get_candinfo(url, node_id)
+    # get_candidatelist(url)
+    create_address(url)

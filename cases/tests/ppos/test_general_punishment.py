@@ -495,7 +495,7 @@ def test_zero_out_block_N(new_genesis_env, clients_noconsensus):
     7、非内置节点（有替换节点）零出块处罚一次，小于质押金额且恢复节点后被剔除候选人列表，验证人列表，共识验证人列表
     """
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 10
+    genesis.economicModel.slashing.slashBlocksReward = 15
     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -984,7 +984,7 @@ def test_VP_GPFV_013(new_genesis_env, clients_consensus):
     pledge_amount2 = candidate_info['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
-    assert pledge_amount2 == pledge_amount1 - von_amount(punishment_amonut, 2), "ErrMsg:Consensus Amount of pledge {}".format(
+    assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
         pledge_amount2)
 
 
@@ -1125,7 +1125,7 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 25
+    genesis.economicModel.slashing.slashBlocksReward = 50
     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -1179,7 +1179,7 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert (pledge_amount2 == 0), "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert (pledge_amount3 == increase_amount - (punishment_amonut * 2 - pledge_amount1)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert (pledge_amount3 == increase_amount - (punishment_amonut - pledge_amount1)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -1191,7 +1191,7 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 15
+    genesis.economicModel.slashing.slashBlocksReward = 20
     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -1237,7 +1237,7 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert pledge_amount3 == economic.create_staking_limit - (von_amount(punishment_amonut, 2) - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert pledge_amount3 == economic.create_staking_limit - (punishment_amonut - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 #
@@ -1428,7 +1428,7 @@ def test_VP_GPFV_020(new_genesis_env, clients_noconsensus):
     # Query pledge account balance
     balance2 = client2.node.eth.getBalance(address)
     log.info("pledge account balance: {}".format(balance2))
-    assert balance2 == balance1 + (pledge_amount1 - punishment_amonut *2), "ErrMsg:pledge account balance {}".format(
+    assert balance2 == balance1 + (pledge_amount1 - punishment_amonut), "ErrMsg:pledge account balance {}".format(
         balance2)
 
 

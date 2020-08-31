@@ -741,7 +741,7 @@ def test_AL_BI_004(client_consensus):
     # wait consensus block
     client.economic.wait_consensus(client.node)
     # count the number of blocks
-    blocknumber = client.economic.get_block_count_number(client.node, 10)
+    blocknumber = client.economic.get_block_count_number(client.node, roundnum=10)
     log.info("blocknumber: {}".format(blocknumber))
     # Check account balance again
     balance1 = node.eth.getBalance(address1)
@@ -848,7 +848,7 @@ def view_benifit_reward(client, address):
     # wait consensus block
     client.economic.wait_consensus(client.node)
     # count the number of blocks
-    blocknumber = client.economic.get_block_count_number(client.node, 10)
+    blocknumber = client.economic.get_block_count_number(client.node, roundnum=10)
     log.info("blocknumber: {}".format(blocknumber))
     return blocknumber
 
@@ -1098,7 +1098,7 @@ def test_AL_NBI_016(client_new_node, reset_environment):
             balance1 = node.eth.getBalance(address2)
             log.info("Account Balance：{}".format(balance1))
             # count the number of blocks
-            blocknumber = client_new_node.economic.get_block_count_number(node, 10)
+            blocknumber = client_new_node.economic.get_block_count_number(node, roundnum=10)
             log.info("blocknumber: {}".format(blocknumber))
             total_block_reward = int(Decimal(str(block_reward)) * Decimal(str(blocknumber)))
             log.info("total_block_reward: {}".format(total_block_reward))
@@ -2033,5 +2033,5 @@ def RO_T_001(new_genesis_env, client_noconsensus):
 
 def test2223(client_consensus):
     client = client_consensus
-    print(client.node.node_mark)
-    client.economic.env.deploy_all()
+    print(1)
+    # client.economic.env.deploy_all()

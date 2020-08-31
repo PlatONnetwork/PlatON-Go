@@ -360,6 +360,7 @@ class TestUpgradeVP:
         programversion = client_noconsensus.staking.get_version()
         assert_code(programversion, pip.cfg.version0)
         pip_test.economic.wait_settlement(pip_test.node)
+
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id in verifier_list
@@ -381,6 +382,7 @@ class TestUpgradeVP:
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
         _, staking_reward = pip_test.economic.get_current_year_reward(pip_test.node, verifier_num=5)
         pip.economic.wait_settlement(client_noconsensus.node)
+
         count = get_block_count_number(client_noconsensus.node, 320)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))

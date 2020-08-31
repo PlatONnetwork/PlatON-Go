@@ -114,7 +114,7 @@ def test_ROE_005_018(client_new_node):
     client_new_node.staking.withdrew_staking(address)
 
     # The next two cycle
-    client_new_node.economic.wait_settlement(client_new_node.node, number=2)
+    client_new_node.economic.wait_settlement(client_new_node.node, 2)
     amount1 = client_new_node.node.eth.getBalance(address1)
     log.info("The wallet balance:{}".format(amount1))
 
@@ -732,7 +732,7 @@ def test_ROE_056_057(client_new_node, client_consensus):
     msg = client_consensus.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
     log.info("The next two periods")
-    client_consensus.economic.wait_settlement(node, number=2)
+    client_consensus.economic.wait_settlement(node, 2)
 
     log.info("Restart the node")
     client_new_node.node.start()
@@ -828,7 +828,7 @@ def test_ROE_060(client_new_node):
     result = client_new_node.staking.withdrew_staking(address_staking)
     assert_code(result, 0)
     # The next two cycle
-    client_new_node.economic.wait_settlement(client_new_node.node, number=2)
+    client_new_node.economic.wait_settlement(client_new_node.node, 2)
     # Pledge again after quitting pledge
     result = client_new_node.staking.create_staking(0, address_staking, address_staking)
     assert_code(result, 0)

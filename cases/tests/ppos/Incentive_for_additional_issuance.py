@@ -277,6 +277,7 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
+
     normal_node = new_genesis_env.get_a_normal_node()
     client = Client(new_genesis_env, normal_node, staking_cfg)
     economic = client.economic
@@ -310,9 +311,10 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
         # wait consensus block
         economic.wait_consensus(node)
         # count the number of blocks
-        blocknumber = economic.get_block_count_number(node, 10)
+        blocknumber = economic.get_block_count_number(node, roundnum=6)
         log.info("blocknumber: {}".format(blocknumber))
         # view account amount again
+        # block_high = economic.get_switchpoint_by_settlement(node) - economic.settlement_size
         benifit_balance1 = node.eth.getBalance(address1)
         log.info("benifit_balance: {}".format(benifit_balance1))
         reward = int(blocknumber * Decimal(str(block_reward)))
