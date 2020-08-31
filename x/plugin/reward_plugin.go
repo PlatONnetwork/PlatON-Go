@@ -202,7 +202,10 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	additionalIssuance := new(common.AdditionalIssuanceData)
 	//issuance increase
 	{
+		//todo: ppos_config.issue_total，目前累计增发多少（不包含本次增发）
 		histIssuance := GetHistoryCumulativeIssue(state, lastYear)
+
+		//todo: ppos_config.issue_ratio，读取发行比例（缺省是genesis.json中定义，参数提案通过后，修改相应参数值）
 		increaseIssuanceRatio, err := gov.GovernIncreaseIssuanceRatio(blockNumber, blockHash)
 		if nil != err {
 			log.Error("Failed to increaseIssuance, call GovernIncreaseIssuanceRatio is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
@@ -210,6 +213,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 			return err
 		}
 
+		//计算此次发行金额 = issue_total * increaseIssuanceRatio / 10000
 		tmp := new(big.Int).Mul(histIssuance, big.NewInt(int64(increaseIssuanceRatio)))
 		currIssuance = tmp.Div(tmp, big.NewInt(10000))
 
@@ -219,7 +223,12 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
 		*/
 
+		//计算总发行金额
 		newTotalIssuance := new(big.Int).Add(histIssuance, currIssuance)
+		//todo: ppos_config.issue_total，(整个操作在最后做)更新总发行金额。
+		//todo:增加一个表issue_history表，block/hash/time/issue/issue_total/reward_pool/开发者基金增加值/Platon基金增加值
+		//todo:chain_current_variables.reward_pool_available, chain_current_variables.reward_pool_available_at_next_year，
+		//todo: 重新设置 reward_pool_available = reward_pool_available + reward_pool_available_at_next_year + currIssuance, reward_pool_available_at_next_year=0
 		SetYearEndCumulativeIssue(state, thisYear, newTotalIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "origTotalIssuance", histIssuance, "increment", currIssuance, "newTotalIssuance", newTotalIssuance)
 
@@ -236,13 +245,16 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	//stats: 收集增发数据
 	additionalIssuance.AddIssuanceItem(vm.RewardManagerPoolAddr, rewardpoolIncr)
 
+	//todo: 增发剩余金额
 	lessBalance := new(big.Int).Sub(currIssuance, rewardpoolIncr)
 	if rmp.isLessThanFoundationYear(thisYear) {
+		//如果增发次数小于配置值（注意，配置值包含了创世块中已经分配的一次），则增发剩余金额都转入社区开发者金额
 		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer", "thisYear", thisYear, "developBalance", lessBalance)
 		address, amount := rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
 		//stats: 收集增发数据
 		additionalIssuance.AddIssuanceItem(address, amount)
 	} else {
+		//否则，增发剩余金额的50%，分配给社区开发者基金，50%，分配给PlatON基金会
 		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "develop and platon Balance", lessBalance)
 
 		address, amount := rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
@@ -521,6 +533,7 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 		log.Error("AllocatePackageBlock IsCurrVerifier fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 		return err
 	}
+	blockReward := big.NewInt(0).Set(reward)
 	if currVerifier {
 		cm, err := rmp.stakingPlugin.GetCanMutable(blockHash, add)
 		if err != nil {
@@ -545,11 +558,11 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 		}
 
 		//stats: 收集待分配的出块奖励金额，每个结算周期可能不一样
-		common.CollectBlockRewardData(head.Number.Uint64(), reward, true)
+		common.CollectBlockRewardData(head.Number.Uint64(), blockReward, true)
 	} else {
 		log.Warn("nodeID is not in verify list now, delegator has no block reward", "blockNumber", head.Number, "blockHash", blockHash, "nodeID", nodeID.String())
 		//stats: 收集待分配的出块奖励金额，每个结算周期可能不一样
-		common.CollectBlockRewardData(head.Number.Uint64(), reward, false)
+		common.CollectBlockRewardData(head.Number.Uint64(), blockReward, false)
 	}
 
 	if head.Coinbase != vm.RewardManagerPoolAddr {
@@ -715,6 +728,7 @@ func GetYearEndBalance(state xcom.StateDB, year uint32) *big.Int {
 	return balance.SetBytes(bBalance)
 }
 
+//在每个epoch之后，检查是否要增发
 func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 	yes, err := xcom.IsYearEnd(blockHash, head.Number.Uint64())
 	if nil != err {
@@ -722,27 +736,33 @@ func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *typ
 		return err
 	}
 	if yes {
+		//最后一个epoch的最后一块，是增发块
 		yearNumber, err := LoadChainYearNumber(blockHash, rmp.db)
 		if nil != err {
 			return err
 		}
 		yearNumber++
+		//todo:chain_current_variables.chain_age，链年龄+1
 		if err := StorageChainYearNumber(blockHash, rmp.db, yearNumber); nil != err {
 			log.Error("Failed to execute runIncreaseIssuance function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
+		//todo: ppos_config.issue_cycle，发行周期（分钟）
 		incIssuanceTime, err := xcom.LoadIncIssuanceTime(blockHash, rmp.db)
 		if nil != err {
 			return err
 		}
+		//todo: 执行增发逻辑
 		if err := rmp.increaseIssuance(yearNumber, yearNumber-1, state, head.Number.Uint64(), blockHash); nil != err {
 			return err
 		}
 		// After the increase issue is completed, update the number of rewards to be issued
+		// todo: 这个不需要了
 		if err := StorageRemainingReward(blockHash, rmp.db, GetYearEndBalance(state, yearNumber)); nil != err {
 			log.Error("Failed to execute runIncreaseIssuance function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
+		// todo: chain_current_variables.issue_time，更新增发时间
 		if err := xcom.StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime+int64(xcom.AdditionalCycleTime()*uint64(minutes))); nil != err {
 			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return err
@@ -770,7 +790,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	//注意：创世块中，要把第0年的激励池可用金额数写入
 	//todo:2rd: mysql 保存当前激励池在当前年度的可用金额，当前年度惩罚金额（激惩罚金额只能在下个年度使用）
 	//todo:凡是链上保存的当前的某个变量的值，这些变量，可以放到一个表中，表示当前值，如chain_current_variables表
-	//todo:chain_current_variables.reward_pool_remaining, chain_current_variables.reward_pool_next_year
+	//todo:chain_current_variables.reward_pool_available, chain_current_variables.reward_pool_available_at_next_year
 	remainReward, err := LoadRemainingReward(blockHash, rmp.db)
 	if nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -814,12 +834,15 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 			return nil, nil, err
 		}
 		//获取上年末激励池余额（由于是第1快，所以也就是创世块中设置的、第0年的激励池金额）
+		//todo: 这个究竟有什么作用？
+		//每年开始的remainReward=增发进激励池的+上年的balance余额（惩罚的+上年没用完的（如果有））
 		remainReward = GetYearEndBalance(state, 0)
 		log.Info("Call CalcEpochReward, First calculation", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
 			"yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "incIssuanceTime", incIssuanceTime, "remainReward", remainReward)
 	}
 
 	//计算链年龄，也是链的增发年度数。满1年，就是1；未满1年，就是0
+	//todo:chain_current_variables.chain_age，链年龄
 	yearNumber, err := LoadChainYearNumber(blockHash, rmp.db)
 	if nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -829,9 +852,11 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// Each settlement cycle needs to update the year start time,
 	// which is used to calculate the average annual block production rate
 	//计算Epoch有多少个区块（这是固定数量的）
+	//todo: ppos_config.epoch_size，Epoch有多少个区块
 	epochBlocks := xutil.CalcBlocksEachEpoch()
 	if yearNumber > 0 { //满1年（说明增发过了）
 		//增发过，则取最近的增发块高（这个值，只有在增发前一个结算周期的最后一个块，才会修改）
+		//todo:chain_current_variables.issue_block，增发区块
 		incIssuanceNumber, err := xcom.LoadIncIssuanceNumber(blockHash, rmp.db)
 		if nil != err {
 			return nil, nil, err

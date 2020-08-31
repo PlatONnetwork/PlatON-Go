@@ -7,6 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"gotest.tools/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
@@ -47,6 +49,23 @@ func Test_encode_Data(t *testing.T) {
 			}
 		}
 	}
+}
+
+func Test_bigint(t *testing.T) {
+	reward := big.NewInt(0).SetUint64(10000)
+	blockReward := big.NewInt(0).Set(reward)
+	delegateReward := new(big.Int).SetUint64(0)
+	delegateReward, reward = CalDelegateRewardAndNodeReward(reward, 2000)
+	t.Logf("result: delegateReward=%d, reward=%d, blockReward=%d", delegateReward, reward, blockReward)
+	assert.Equal(t, reward.Uint64(), uint64(8000))
+	assert.Equal(t, delegateReward.Uint64(), uint64(2000))
+	assert.Equal(t, blockReward.Uint64(), uint64(10000))
+}
+
+func CalDelegateRewardAndNodeReward(totalReward *big.Int, per uint16) (*big.Int, *big.Int) {
+	tmp := new(big.Int).Mul(totalReward, big.NewInt(int64(per)))
+	tmp.Div(tmp, big.NewInt(10000))
+	return tmp, new(big.Int).Sub(totalReward, tmp)
 }
 
 func buildExeBlockData() *ExeBlockData {
