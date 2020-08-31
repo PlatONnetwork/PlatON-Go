@@ -47,7 +47,7 @@ func NewHostModule() *wasm.Module {
 	m := wasm.NewModule()
 	m.Export.Entries = make(map[string]wasm.ExportEntry)
 
-	// void platon_gas_price(uint8_t gas_price)
+	// uint8_t platon_gas_price(uint8_t gas_price[16])
 	// func $platon_gas_price(param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -481,7 +481,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int32_t platon_delegate_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
+	// int32_t platon_delegate_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *call_cost, size_t call_cost_len);
 	// func $platon_delegate_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -532,7 +532,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int32_t platon_migrate(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+	// int32_t platon_migrate(uint8_t new_addr[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
 	// func $platon_migrate  (param $1 i32) (param $2 i32) (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -568,7 +568,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_event(const uint8_t* indexes, size_t indexesLen, const uint8_t* args, size_t argsLen)
+	// void platon_event(const uint8_t *topic, size_t topic_len, const uint8_t *args, size_t args_len);
 	// func $platon_event (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
