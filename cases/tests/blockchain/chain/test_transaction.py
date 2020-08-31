@@ -15,6 +15,9 @@ def transaction(w3, from_address, to_address=None, value=1000000000000000000000,
     tx_hash = w3.eth.sendTransaction(params)
     return tx_hash
 
+def test_transac(global_running_env):
+    w3 = global_running_env.get_rand_node().eth
+    w3.sendRawTransaction("0xf867058405f5e100825208940fc888cb0269f243bb4531edcb80ed5d39cc260d830186a08081eda06b2cd17a039d9cb8dec9a7881e681d00e708d8e07914bcd13f91566ffcbd0b6ba07628b5646c2e413ef0be79aba8edc51435c2435b032c86b4af38873a21a93635")
 
 @allure.title("signed transaction")
 @pytest.mark.P0

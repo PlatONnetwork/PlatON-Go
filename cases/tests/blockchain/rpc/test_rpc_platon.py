@@ -27,7 +27,7 @@ def test_platon_GetBalance(global_running_env):
     addr = account.account_with_money["address"]
     from_addr = Web3.toChecksumAddress(addr)
     # balance = platon.getBalance(from_addr)
-    balance = platon.getBalance("0x1111111111111111111111111111111111111111")
+    balance = platon.getBalance(node.web3.pipAddress)
     assert balance == 0
 
 
@@ -52,7 +52,7 @@ def test_platon_call(global_running_env):
     addr = account.account_with_money["address"]
     from_addr = Web3.toChecksumAddress(addr)
 
-    to_addr = Web3.toChecksumAddress("0x1000000000000000000000000000000000000002")
+    to_addr = node.web3.stakingAddress
     data = rlp.encode([rlp.encode(int(1100))])
     recive = platon_call(platon, from_addr, to_addr, data)
     assert recive != "0x"

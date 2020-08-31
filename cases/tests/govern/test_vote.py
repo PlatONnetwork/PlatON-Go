@@ -75,7 +75,7 @@ class TestVoteVP:
     def test_V_STA_2_to_5(self, no_vp_proposal, clients_verifier):
         pip = no_vp_proposal
         value = len(clients_verifier) - 2
-        submitvpandvote(clients_verifier[:value], votingrounds=3)
+        submitvpandvote(clients_verifier[:value], votingrounds=4)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo))
         result = version_proposal_vote(clients_verifier[-2].pip)

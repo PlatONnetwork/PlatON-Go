@@ -17,9 +17,9 @@ def restart_env(global_test_env):
 @pytest.mark.P1
 def test_CH_IN_012(global_test_env):
     """
-    View the creation account created in the genesis.json file
+    View the creation account created in the genesis_0.13.0.json file
     """
-    log.info("View the creation account created in the genesis.json file")
+    log.info("View the creation account created in the genesis_0.13.0.json file")
     w3_list = [one_node.web3 for one_node in global_test_env.consensus_node_list]
     for w3 in w3_list:
         for one_address in global_test_env.genesis_config['alloc']:
@@ -48,7 +48,7 @@ def test_CH_IN_015(global_test_env):
         assert info['staking']['stakeThreshold'] == genesis.economicModel.staking.stakeThreshold
         assert info['staking']['operatingThreshold'] == genesis.economicModel.staking.operatingThreshold
         assert info['staking']['maxValidators'] == genesis.economicModel.staking.maxValidators
-        assert info['staking']['hesitateRatio'] == genesis.economicModel.staking.hesitateRatio
+        # assert info['staking']['hesitateRatio'] == genesis.economicModel.staking.hesitateRatio
         assert info['staking']['unStakeFreezeDuration'] == genesis.economicModel.staking.unStakeFreezeDuration
 
         assert info['slashing']['slashFractionDuplicateSign'] == genesis.economicModel.slashing.slashFractionDuplicateSign
@@ -85,7 +85,7 @@ def test_CH_IN_014(global_test_env):
     log.info("View the foundation lock warehouse plan query")
     w3_list = [one_node.web3 for one_node in global_test_env.consensus_node_list]
     for w3 in w3_list:
-        info = w3.eth.call({"to": "0x1000000000000000000000000000000000000001", "data": "0xda8382100495941000000000000000000000000000000000000003"}, 0)
+        info = w3.eth.call({"to": "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw", "data": "0xda8382100495941000000000000000000000000000000000000003"}, 0)
         recive = json.loads(str(info, encoding="ISO-8859-1"))
         pass
         # move for 0.7.5

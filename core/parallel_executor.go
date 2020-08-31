@@ -79,9 +79,6 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 		txDag := NewTxDag(exe.signer)
 		start := time.Now()
 		// load tx fromAddress from txpool by txHash
-		/*if !ctx.packNewBlock {
-			exe.cacheTxFromAddress(ctx.txList, exe.Signer())
-		}*/
 		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList, exe); err != nil {
 			return err
 		}

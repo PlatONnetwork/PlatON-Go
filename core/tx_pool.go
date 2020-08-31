@@ -743,13 +743,17 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 	// If the transaction is already known, discard it
 	hash := tx.Hash()
 	if pool.all.Get(hash) != nil {
-		//log.Trace("Discarding already known transaction", "hash", hash)
+		if log.GetWasmLogLevel() == log.LvlTrace {
+			log.Trace("Discarding already known transaction", "hash", hash)
+		}
 		knownTxMeter.Mark(1)
 		return false, ErrAlreadyKnown
 	}
 	// If the transaction fails basic validation, discard it
 	if err := pool.validateTx(tx, local); err != nil {
-		//log.Trace("Discarding invalid transaction", "hash", hash, "err", err)
+		if log.GetWasmLogLevel() == log.LvlTrace {
+			log.Trace("Discarding invalid transaction", "hash", hash, "err", err)
+		}
 		invalidTxMeter.Mark(1)
 		return false, err
 	}
@@ -757,14 +761,18 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 	if uint64(pool.all.Count()) >= pool.config.GlobalSlots+pool.config.GlobalQueue {
 		// If the new transaction is underpriced, don't accept it
 		if !local && pool.priced.Underpriced(tx, pool.locals) {
-			//log.Trace("Discarding underpriced transaction", "hash", hash, "price", tx.GasPrice())
+			if log.GetWasmLogLevel() == log.LvlTrace {
+				log.Trace("Discarding underpriced transaction", "hash", hash, "price", tx.GasPrice())
+			}
 			underpricedTxMeter.Mark(1)
 			return false, ErrUnderpriced
 		}
 		// New transaction is better than our worse ones, make room for it
 		drop := pool.priced.Discard(pool.all.Slots()-int(pool.config.GlobalSlots+pool.config.GlobalQueue)+numSlots(tx), pool.locals)
 		for _, tx := range drop {
-			//log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
+			if log.GetWasmLogLevel() == log.LvlTrace {
+				log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
+			}
 			underpricedTxMeter.Mark(1)
 			pool.removeTx(tx.Hash(), false)
 
@@ -791,7 +799,9 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		pool.priced.Put(tx)
 		pool.journalTx(from, tx)
 		pool.queueTxEvent(tx)
-		//log.Trace("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
+		if log.GetWasmLogLevel() == log.LvlTrace {
+			log.Trace("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
+		}
 		return old != nil, nil
 	}
 	// New transaction isn't replacing a pending one, push into queue
@@ -811,7 +821,9 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 	}
 	pool.journalTx(from, tx)
 
-	//log.Trace("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
+	if log.GetWasmLogLevel() == log.LvlTrace {
+		log.Trace("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
+	}
 	return replaced, nil
 }
 
@@ -952,7 +964,9 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 
 		if _, ok := pool.knowns.Load(hash); ok {
 			atomic.AddInt32(&pool.filterKnowns, 1)
-			//log.Trace("Discarding already known transaction", "hash", hash)
+			if log.GetWasmLogLevel() == log.LvlTrace {
+				log.Trace("Discarding already known transaction", "hash", hash)
+			}
 			errs[i] = ErrAlreadyKnown
 			knownTxMeter.Mark(1)
 			continue
@@ -1395,16 +1409,22 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 		for _, tx := range forwards {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
-			//log.Trace("Removed old queued transaction", "hash", hash)
+			if log.GetWasmLogLevel() == log.LvlTrace {
+				log.Trace("Removed old queued transaction", "hash", hash)
+			}
 		}
-		//log.Trace("Removed old queued transactions", "count", len(forwards))
+		if log.GetWasmLogLevel() == log.LvlTrace {
+			log.Trace("Removed old queued transactions", "count", len(forwards))
+		}
 		// Drop all transactions that are too costly (low balance or out of gas)
 		drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
 		}
-		//log.Trace("Removed unpayable queued transactions", "count", len(drops))
+		if log.GetWasmLogLevel() == log.LvlTrace {
+			log.Trace("Removed unpayable queued transactions", "count", len(drops))
+		}
 		queuedNofundsMeter.Mark(int64(len(drops)))
 
 		// Gather all executable transactions and promote them
@@ -1424,7 +1444,9 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 			pool.pendingNonces.set(addr, readies[len(readies)-1].Nonce()+1)
 		}
 
-		//log.Trace("Promoted queued transactions", "count", len(promoted))
+		if log.GetWasmLogLevel() == log.LvlTrace {
+			log.Trace("Promoted queued transactions", "count", len(promoted))
+		}
 		queuedGauge.Dec(int64(len(readies)))
 
 		// Drop all transactions over the allowed limit
@@ -1434,7 +1456,9 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 			for _, tx := range caps {
 				hash := tx.Hash()
 				pool.all.Remove(hash)
-				//		log.Trace("Removed cap-exceeding queued transaction", "hash", hash)
+				if log.GetWasmLogLevel() == log.LvlTrace {
+					log.Trace("Removed cap-exceeding queued transaction", "hash", hash)
+				}
 			}
 			queuedRateLimitMeter.Mark(int64(len(caps)))
 		}
@@ -1500,7 +1524,9 @@ func (pool *TxPool) truncatePending() {
 
 						// Update the account nonce to the dropped transaction
 						pool.pendingNonces.setIfLower(offenders[i], tx.Nonce())
-						//log.Trace("Removed fairness-exceeding pending transaction", "hash", hash)
+						if log.GetWasmLogLevel() == log.LvlTrace {
+							log.Trace("Removed fairness-exceeding pending transaction", "hash", hash)
+						}
 					}
 					pool.priced.Removed(len(caps))
 					pendingGauge.Dec(int64(len(caps)))
@@ -1528,7 +1554,9 @@ func (pool *TxPool) truncatePending() {
 
 					// Update the account nonce to the dropped transaction
 					pool.pendingNonces.setIfLower(addr, tx.Nonce())
-					//log.Trace("Removed fairness-exceeding pending transaction", "hash", hash)
+					if log.GetWasmLogLevel() == log.LvlTrace {
+						log.Trace("Removed fairness-exceeding pending transaction", "hash", hash)
+					}
 				}
 				pool.priced.Removed(len(caps))
 				pendingGauge.Dec(int64(len(caps)))
@@ -1602,13 +1630,17 @@ func (pool *TxPool) demoteUnexecutables() {
 		for _, tx := range olds {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
-			//	log.Trace("Removed old pending transaction", "hash", hash)
+			if log.GetWasmLogLevel() == log.LvlTrace {
+				log.Trace("Removed old pending transaction", "hash", hash)
+			}
 		}
 		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
 		drops, invalids := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
 		for _, tx := range drops {
 			hash := tx.Hash()
-			//log.Trace("Removed unpayable pending transaction", "hash", hash)
+			if log.GetWasmLogLevel() == log.LvlTrace {
+				log.Trace("Removed unpayable pending transaction", "hash", hash)
+			}
 			pool.all.Remove(hash)
 		}
 		pool.priced.Removed(len(olds) + len(drops))
@@ -1616,7 +1648,9 @@ func (pool *TxPool) demoteUnexecutables() {
 
 		for _, tx := range invalids {
 			hash := tx.Hash()
-			//log.Trace("Demoting pending transaction", "hash", hash)
+			if log.GetWasmLogLevel() == log.LvlTrace {
+				log.Trace("Demoting pending transaction", "hash", hash)
+			}
 			pool.enqueueTx(hash, tx)
 		}
 		pendingGauge.Dec(int64(len(olds) + len(drops) + len(invalids)))

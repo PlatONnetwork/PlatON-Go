@@ -550,6 +550,24 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
+	// int32_t platon_clone_migrate(const uint8_t old_addr[20], uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+	// func $platon_clone_migrate (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+				wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(MigrateCloneContract),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_clone_migrate",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
 	// void platon_event(const uint8_t* indexes, size_t indexesLen, const uint8_t* args, size_t argsLen)
 	// func $platon_event (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
 	addFuncExport(m,
@@ -709,6 +727,76 @@ func NewHostModule() *wasm.Module {
 		},
 		wasm.ExportEntry{
 			FieldStr: "platon_rlp_list",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// size_t platon_contract_code_length(const uint8_t addr[20]);
+	// func platon_contract_code_length (param $0 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(ContractCodeLength),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_contract_code_length",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int32_t platon_contract_code(const uint8_t addr[20], uint8_t *code, size_t code_length);
+	// func platon_contract_code (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(ContractCode),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_contract_code",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int32_t platon_deploy(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+	// func $platon_deploy (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+				wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(PlatonDeploy),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_deploy",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int32_t platon_clone(const uint8_t old_addr[20], uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+	// func $platon_clone (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+				wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(PlatonClone),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_clone",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
@@ -931,18 +1019,10 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 }
 
 // storage external function
-
 func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	if ctx.readOnly {
 		panic(ErrWASMWriteProtection)
-	}
-
-	switch {
-	case valLen == 0:
-		checkGas(ctx, params.SstoreClearGas)
-	default:
-		checkGas(ctx, (toWordSize(uint64(keyLen)+(uint64(valLen)))/32)*params.SstoreSetGas)
 	}
 
 	keyBuf := make([]byte, keyLen)
@@ -950,6 +1030,42 @@ func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen 
 	if nil != err {
 		panic(err)
 	}
+
+	currentValue := ctx.evm.StateDB.GetState(ctx.contract.Address(), keyBuf)
+	oldWordSize := toWordSize(uint64(keyLen) + uint64(len(currentValue)))
+	newWordSize := toWordSize(uint64(keyLen) + uint64(valLen))
+
+	switch {
+	case 0 == len(currentValue) && 0 != valLen:
+		checkGas(ctx, newWordSize*params.SstoreSetGas)
+	case 0 != len(currentValue) && 0 == valLen:
+		ctx.evm.StateDB.AddRefund(oldWordSize * params.SstoreRefundGas)
+		checkGas(ctx, oldWordSize*params.SstoreClearGas)
+	default:
+		var (
+			addWordSize    uint64 = 0
+			deleteWordSize uint64 = 0
+			resetWordSize  uint64 = 0
+		)
+
+		if newWordSize >= oldWordSize {
+			addWordSize = newWordSize - oldWordSize
+			resetWordSize = toWordSize(uint64(len(currentValue)))
+		} else {
+			deleteWordSize = oldWordSize - newWordSize
+			resetWordSize = toWordSize(uint64(valLen))
+		}
+
+		if 0 == resetWordSize {
+			resetWordSize = 1
+		}
+
+		checkGas(ctx, addWordSize*params.SstoreSetGas)
+		ctx.evm.StateDB.AddRefund(deleteWordSize * params.SstoreRefundGas)
+		checkGas(ctx, deleteWordSize*params.SstoreClearGas)
+		checkGas(ctx, resetWordSize*params.SstoreResetGas)
+	}
+
 	valBuf := make([]byte, valLen)
 	_, err = proc.ReadAt(valBuf, int64(val))
 	if nil != err {
@@ -1318,6 +1434,21 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 }
 
 func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
+	// Cost of gas
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, ctx.gasTable.SLoad)
+
+	// get input
+	input := make([]byte, argsLen)
+	_, err := proc.ReadAt(input, int64(args))
+	if nil != err {
+		panic(err)
+	}
+
+	return MigrateInnerContract(proc, newAddr, val, valLen, callCost, callCostLen, input)
+}
+
+func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, callCostLen uint32, input []byte) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
 	if ctx.readOnly {
@@ -1329,18 +1460,8 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 		return -1
 	}
 
-	input := make([]byte, argsLen)
-	_, err := proc.ReadAt(input, int64(args))
-	if nil != err {
-		panic(err)
-	}
-
-	if len(input) == 0 {
-		return -1
-	}
-
 	value := make([]byte, valLen)
-	_, err = proc.ReadAt(value, int64(val))
+	_, err := proc.ReadAt(value, int64(val))
 	if nil != err {
 		panic(err)
 	}
@@ -1471,6 +1592,51 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	}
 
 	return 0
+}
+
+func MigrateCloneContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
+	// Cost of gas
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, ctx.gasTable.SLoad)
+
+	// get old contract address
+	address := make([]byte, common.AddressLength)
+	if _, err := proc.ReadAt(address, int64(oldAddr)); nil != err {
+		panic(err)
+	}
+	contractAddress := common.BytesToAddress(address)
+
+	// get contract code
+	contractCode := ctx.evm.StateDB.GetCode(contractAddress)
+	if 0 == len(contractCode) {
+		return -1
+	}
+
+	// get init args
+	initArgs := make([]byte, argsLen)
+	if _, err := proc.ReadAt(initArgs, int64(args)); nil != err {
+		panic(err)
+	}
+
+	// rlp encode
+	createData := struct {
+		Code     []byte
+		InitArgs []byte
+	}{
+		Code:     contractCode,
+		InitArgs: initArgs,
+	}
+	input, err := rlp.EncodeToBytes(createData)
+	if nil != err {
+		panic(err)
+	}
+
+	// add magic number
+	realInput := make([]byte, len(WasmInterp), len(WasmInterp)+len(input))
+	copy(realInput, WasmInterp[0:])
+	realInput = append(realInput, input...)
+
+	return MigrateInnerContract(proc, newAddr, val, valLen, callCost, callCostLen, realInput)
 }
 
 func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32) {
@@ -1872,4 +2038,233 @@ func RlpList(proc *exec.Process, src uint32, length uint32, dest uint32) {
 	if nil != err {
 		panic(err)
 	}
+}
+
+// size_t platon_contract_code_length(const uint8_t addr[20]);
+func ContractCodeLength(proc *exec.Process, addrPtr uint32) uint32 {
+	// Cost of gas
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, ctx.gasTable.SLoad)
+
+	// get contract address
+	address := make([]byte, common.AddressLength)
+	_, err := proc.ReadAt(address, int64(addrPtr))
+	if nil != err {
+		panic(err)
+	}
+	contractAddress := common.BytesToAddress(address)
+
+	// get contract code
+	contractCode := ctx.evm.StateDB.GetCode(contractAddress)
+	return uint32(len(contractCode))
+}
+
+// int32_t platon_contract_code(const uint8_t addr[20], uint8_t *code, size_t code_length);
+func ContractCode(proc *exec.Process, addrPtr uint32, code uint32, codeLen uint32) int32 {
+	// Cost of gas
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, ctx.gasTable.SLoad)
+
+	// get contract address
+	address := make([]byte, common.AddressLength)
+	_, err := proc.ReadAt(address, int64(addrPtr))
+	if nil != err {
+		panic(err)
+	}
+	contractAddress := common.BytesToAddress(address)
+
+	// get contract code
+	contractCode := ctx.evm.StateDB.GetCode(contractAddress)
+	if 0 == len(contractCode) || uint32(len(contractCode)) > codeLen {
+		return 0
+	}
+
+	// write data
+	_, err = proc.WriteAt(contractCode, int64(code))
+	if nil != err {
+		panic(err)
+	}
+
+	return int32(len(contractCode))
+}
+
+// int32_t platon_deploy(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+func PlatonDeploy(proc *exec.Process, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
+	// Cost of gas
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, ctx.gasTable.SLoad)
+
+	// get input
+	input := make([]byte, argsLen)
+	_, err := proc.ReadAt(input, int64(args))
+	if nil != err {
+		panic(err)
+	}
+
+	return CreateContract(proc, newAddr, val, valLen, callCost, callCostLen, input)
+}
+
+func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCostLen uint32, input []byte) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+
+	if ctx.readOnly {
+		panic(ErrWASMWriteProtection)
+	}
+
+	// check call depth
+	if ctx.evm.depth > int(params.CallCreateDepth) {
+		return -1
+	}
+
+	// get transfer value
+	valueBytes := make([]byte, valLen)
+	if _, err := proc.ReadAt(valueBytes, int64(val)); nil != err {
+		panic(err)
+	}
+	bigValue := new(big.Int)
+	bigValue.SetBytes(valueBytes)
+
+	// check balance of sender
+	sender := ctx.contract.caller.Address()
+	if !ctx.evm.CanTransfer(ctx.evm.StateDB, sender, bigValue) {
+		return -1
+	}
+
+	// get gas limit
+	costBytes := make([]byte, callCostLen)
+	if _, err := proc.ReadAt(costBytes, int64(callCost)); nil != err {
+		panic(err)
+	}
+	costValue := new(big.Int)
+	costValue.SetBytes(costBytes)
+	if costValue.Cmp(common.Big0) == 0 {
+		costValue.SetUint64(ctx.contract.Gas)
+	}
+
+	gas := params.CallNewAccountGas
+	gasTemp, err := callGas(ctx.gasTable, ctx.contract.Gas, gas, costValue)
+	if nil != err {
+		panic(err)
+	}
+
+	ctx.evm.callGasTemp = gasTemp
+	gas, overflow := imath.SafeAdd(gas, ctx.evm.callGasTemp)
+	if overflow {
+		panic(errGasUintOverflow)
+	}
+	checkGas(ctx, gas)
+	gas = ctx.evm.callGasTemp
+
+	// generate new address
+	oldContract := ctx.contract.Address()
+	nonce := ctx.evm.StateDB.GetNonce(oldContract)
+	newContract := crypto.CreateAddress(oldContract, nonce)
+	ctx.evm.StateDB.SetNonce(oldContract, nonce+1)
+	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
+	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
+		panic(ErrContractAddressCollision)
+	}
+
+	// create new account
+	snapshotForSnapshotDB, snapshotForStateDB := ctx.evm.DBSnapshot()
+	ctx.evm.StateDB.CreateAccount(newContract)
+	ctx.evm.StateDB.SetNonce(newContract, 1)
+
+	// transfer value to new account
+	ctx.evm.Transfer(ctx.evm.StateDB, sender, newContract, bigValue)
+
+	// init new contract context
+	contract := NewContract(AccountRef(sender), AccountRef(newContract), ctx.evm.StateDB.GetBalance(sender), gas)
+	contract.SetCallCode(&newContract, crypto.Keccak256Hash(input), input)
+	contract.DeployContract = true
+
+	// deploy new contract
+	ret, err := run(ctx.evm, contract, nil, false)
+
+	// check whether the max code size has been exceeded
+	maxCodeSizeExceeded := len(ret) > params.MaxCodeSize
+	// if the contract creation ran successfully and no errors were returned
+	// calculate the gas required to store the code. If the code could not
+	// be stored due to not enough gas set an error and let it be handled
+	// by the error checking condition below.
+	if err == nil && !maxCodeSizeExceeded {
+		createDataGas := uint64(len(ret)) * params.CreateWasmDataGas
+		if contract.UseGas(createDataGas) {
+			ctx.evm.StateDB.SetCode(newContract, ret)
+		} else {
+			err = ErrCodeStoreOutOfGas
+		}
+	}
+
+	// When an error was returned by the VM or when setting the creation code
+	// above we revert to the snapshot and consume any gas remaining. Additionally
+	// when we're in homestead this also counts for code storage gas errors.
+	if maxCodeSizeExceeded || (err != nil && err != ErrCodeStoreOutOfGas) {
+		ctx.evm.RevertToDBSnapshot(snapshotForSnapshotDB, snapshotForStateDB)
+		if err != errExecutionReverted {
+			contract.UseGas(contract.Gas)
+		}
+	}
+
+	// Assign err if contract code size exceeds the max while the err is still empty.
+	if maxCodeSizeExceeded && err == nil {
+		err = errMaxCodeSizeExceeded
+	}
+	ctx.contract.Gas += contract.Gas
+	if nil != err {
+		panic(err)
+	}
+	_, err = proc.WriteAt(newContract.Bytes(), int64(newAddr))
+	if nil != err {
+		panic(err)
+	}
+
+	return 0
+}
+
+// int32_t platon_clone(const uint8_t old_addr[20], uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+func PlatonClone(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
+	// Cost of gas
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, ctx.gasTable.SLoad)
+
+	// get old contract address
+	address := make([]byte, common.AddressLength)
+	if _, err := proc.ReadAt(address, int64(oldAddr)); nil != err {
+		panic(err)
+	}
+	contractAddress := common.BytesToAddress(address)
+
+	// get contract code
+	contractCode := ctx.evm.StateDB.GetCode(contractAddress)
+	if 0 == len(contractCode) {
+		return -1
+	}
+
+	// get init args
+	initArgs := make([]byte, argsLen)
+	if _, err := proc.ReadAt(initArgs, int64(args)); nil != err {
+		panic(err)
+	}
+
+	// rlp encode
+	createData := struct {
+		Code     []byte
+		InitArgs []byte
+	}{
+		Code:     contractCode,
+		InitArgs: initArgs,
+	}
+	input, err := rlp.EncodeToBytes(createData)
+	if nil != err {
+		panic(err)
+	}
+
+	// add magic number
+	realInput := make([]byte, len(WasmInterp), len(WasmInterp)+len(input))
+	copy(realInput, WasmInterp[0:])
+	realInput = append(realInput, input...)
+
+	// create contract
+	return CreateContract(proc, newAddr, val, valLen, callCost, callCostLen, realInput)
 }

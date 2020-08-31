@@ -13,34 +13,56 @@ def test_CS_CL_001(clients_new_node):
     :return:
     """
     client = clients_new_node[0]
+    node_id_1 = client.node.node_id
+    log.info(client.node.node_id)
     address, _ = client.economic.account.generate_account(client.node.web3,
                                                           10 ** 18 * 10000000)
     pledge_amount = client.economic.create_staking_limit * 2
     result = client.staking.create_staking(0, address, address, amount=pledge_amount)
     assert_code(result, 0)
-    # Next settlement period
+    log.info("Next settlement period")
     client.economic.wait_settlement_blocknum(client.node)
-    # The next consensus cycle
+    log.info("The next consensus cycle")
     client.economic.wait_consensus_blocknum(client.node)
     validatorlist1 = get_pledge_list(client.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist1))
-    node_1 = get_validator_term(client.node)
-    log.info("Maximum tenure node:{}".format(node_1))
+
+    log.info("替换的第一轮共识轮")
+    log.info(client.ppos.getValidatorList())
+
+    max_term_nodeid_1 = get_validator_term(client.node)
+    log.info("Maximum tenure node list:{}".format(max_term_nodeid_1))
+    assert node_id_1 not in max_term_nodeid_1
+    assert node_id_1 in validatorlist1
+
     # The next consensus cycle
+    log.info("The next consensus cycle")
     client.economic.wait_consensus_blocknum(client.node)
 
     validatorlist2 = get_pledge_list(client.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist2))
-    node_2 = get_validator_term(client.node)
-    log.info("Maximum tenure node:{}".format(node_2))
-    assert node_1 not in validatorlist2
+
+    log.info("替换的第二轮共识轮")
+    log.info(client.ppos.getValidatorList())
+
+    max_term_nodeid_2 = get_validator_term(client.node)
+    log.info("Maximum tenure node:{}".format(max_term_nodeid_2))
+    assert node_id_1 not in max_term_nodeid_2
+    assert node_id_1 in validatorlist2
+
     # The next consensus cycle
+    log.info("The next consensus cycle")
     client.economic.wait_consensus_blocknum(client.node)
+
     validatorlist3 = get_pledge_list(client.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist3))
-    node_3 = get_validator_term(client.node)
-    log.info("Maximum tenure node:{}".format(node_3))
-    assert node_2 not in validatorlist3
+
+    log.info("替换的第三轮共识轮")
+    log.info(client.ppos.getValidatorList())
+    max_term_nodeid_3 = get_validator_term(client.node)
+    log.info("Maximum tenure node:{}".format(max_term_nodeid_3))
+    assert node_id_1 not in max_term_nodeid_3
+    assert node_id_1 in validatorlist3
 
 
 @pytest.mark.P1

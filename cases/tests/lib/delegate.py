@@ -61,3 +61,36 @@ class Delegate:
     def withdraw_delegate_reward(self, from_address, transaction_cfg=None):
         pri_key = self.economic.account.find_pri_key(from_address)
         return self.ppos.withdrawDelegateReward(pri_key, transaction_cfg)
+
+    def get_delegate_reward_by_nodeid(self, from_address, node_ids=[]):
+        reward = 0
+        data = self.ppos.getDelegateReward(from_address, node_ids)
+        if len(node_ids) == 1:
+            return data.get('Ret')[0].get('reward')
+
+        elif len(node_ids) == 0:
+            for rewardinfo in data.get('Ret'):
+                reward += rewardinfo.get('reward')
+        else:
+            for rewardinfo in data.get('Ret'):
+                if rewardinfo.get('nodeID') in node_ids:
+                    reward += rewardinfo.get('reward')
+        return reward
+
+    def get_staking_num_by_nodeid(self, from_address, node_ids=None):
+        if node_ids is None:
+            node_ids = []
+        else:
+            node_ids = [node_ids]
+        data = self.ppos.getDelegateReward(from_address, node_ids)
+        if data.get('Code') != 0:
+            raise Exception('address {} no reward information'.format(from_address))
+        for rewardinfo in data.get('Ret'):
+            if node_ids[0] == rewardinfo.get('nodeID'):
+                return rewardinfo.get('stakingNum')
+        raise Exception('Address {} no reward inforamtion about nodeid {}'.format(
+            from_address, node_ids[0]
+        ))
+
+
+

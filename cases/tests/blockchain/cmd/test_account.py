@@ -42,7 +42,7 @@ def account_env(global_test_env) -> (Node, AccountEnv):
     account_env.remote_pwd_file = remote_pwd_file
     account_env.remote_account_file = remote_account_file
     account_env.remote_key_file = remote_key_file
-    account_env.remote_account_address = "c198603d3793c11e5362c8564a65d3880bae341b"
+    account_env.remote_account_address = "lax1785psd0qs0g8p79j54mnewh0ndwcvqq6g23h8h"
 
     yield node, account_env
 
@@ -174,7 +174,7 @@ def test_CMD_006(account_env):
 @pytest.mark.SYNC
 def test_CMD_007(account_env):
     node, env = account_env
-
+    log.info(node.node_mark)
     return_list = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
     old_counts = len(return_list) - 1
 
@@ -182,7 +182,7 @@ def test_CMD_007(account_env):
     node.upload_file("./deploy/key.pri", remote_key_file)
 
     run_ssh_cmd(node.ssh, "{} account import {} --datadir {}".format(node.remote_bin_file, remote_key_file, node.remote_data_dir), "88888888", "88888888")
-    time.sleep(0.2)
+    time.sleep(2)
     return_list2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
 
     new_counts = len(return_list2) - 1

@@ -54,28 +54,28 @@ class TestSupportRateVoteRatePP:
     @pytest.mark.compatibility
     @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_001_VS_EP_002(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 3, 0, 0.332, 0.751)
+        update_setting_rate(new_genesis_env, 3, 0, 3320, 7510)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=3, status=3)
 
     @pytest.mark.P1
     @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_002(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 3, 0, 0.334, 0.749)
+        update_setting_rate(new_genesis_env, 3, 0, 3340, 7490)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=3, status=3)
 
     @pytest.mark.P1
     @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_003(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 3, 0, 0.333, 0.751)
+        update_setting_rate(new_genesis_env, 3, 0, 3330, 7510)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=3, status=3)
 
     @pytest.mark.P1
     @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_004(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 3, 0, 0.334, 0.75)
+        update_setting_rate(new_genesis_env, 3, 0, 3340, 7500)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=3, status=3)
 
@@ -83,21 +83,21 @@ class TestSupportRateVoteRatePP:
     @pytest.mark.P0
     @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_005(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 3, 0, 0.332, 0.749)
+        update_setting_rate(new_genesis_env, 3, 0, 3320, 7490)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=3, status=2)
 
     @pytest.mark.P1
     @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_006(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 3, 0, 0.333, 0.749)
+        update_setting_rate(new_genesis_env, 3, 0, 3330, 7490)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=3, status=2)
 
     @pytest.mark.P1
     @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_007(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 3, 0, 0.332, 0.75)
+        update_setting_rate(new_genesis_env, 3, 0, 3320, 7500)
         submitppandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=3, status=3)
 
@@ -106,28 +106,28 @@ class TestSupportRateVoteRateCPP:
     @pytest.mark.P1
     @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_001(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.332, 0.751)
+        update_setting_rate(new_genesis_env, 4, 3320, 7510)
         submitcppandvote(clients_consensus[:3], [1, 2, 3])
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
     @pytest.mark.P1
     @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_002(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.334, 0.749)
+        update_setting_rate(new_genesis_env, 4, 3340, 7490)
         submitcppandvote(clients_consensus[:3], [1, 2, 3])
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
     @pytest.mark.P1
     @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_003(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.333, 0.751)
+        update_setting_rate(new_genesis_env, 4, 3330, 7510)
         submitcppandvote(clients_consensus[:3], [1, 2, 3])
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
     @pytest.mark.P1
     @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_004(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.334, 0.75)
+        update_setting_rate(new_genesis_env, 4, 3340, 7500)
         submitcppandvote(clients_consensus[:3], [1, 2, 3])
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
@@ -135,21 +135,21 @@ class TestSupportRateVoteRateCPP:
     @pytest.mark.P0
     @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_005(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.332, 0.749)
+        update_setting_rate(new_genesis_env, 4, 3320, 7490)
         submitcppandvote(clients_consensus[:3], [1, 2, 3])
         verify_proposal_status(clients_consensus, proposaltype=4, status=2)
 
     @pytest.mark.P1
     @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_006(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.333, 0.749)
+        update_setting_rate(new_genesis_env, 4, 3330, 7490)
         submitcppandvote(clients_consensus[:3], [1, 2, 3])
         verify_proposal_status(clients_consensus, proposaltype=4, status=2)
 
     @pytest.mark.P1
     @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_007(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.332, 0.75)
+        update_setting_rate(new_genesis_env, 4, 3320, 7500)
         submitcppandvote(clients_consensus[:3], [1, 2, 3])
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
@@ -159,28 +159,28 @@ class TestSupportRateVoteRateCVP:
     @pytest.mark.P0
     @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_001_VS_BL_2(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.332, 0.751)
+        update_setting_rate(new_genesis_env, 4, 3320, 7510)
         submitcvpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
     @pytest.mark.P1
     @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_002(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.334, 0.749)
+        update_setting_rate(new_genesis_env, 4, 3340, 7490)
         submitcvpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
     @pytest.mark.P1
     @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_003(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.333, 0.751)
+        update_setting_rate(new_genesis_env, 4, 3330, 7510)
         submitcvpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
     @pytest.mark.P1
     @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_004(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.334, 0.75)
+        update_setting_rate(new_genesis_env, 4, 3340, 7500)
         submitcvpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
@@ -188,21 +188,21 @@ class TestSupportRateVoteRateCVP:
     @pytest.mark.P0
     @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_005(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.332, 0.749)
+        update_setting_rate(new_genesis_env, 4, 3320, 7490)
         submitcvpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=4, status=2)
 
     @pytest.mark.P1
     @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_006(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.333, 0.749)
+        update_setting_rate(new_genesis_env, 4, 3330, 7490)
         submitcvpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=4, status=2)
 
     @pytest.mark.P1
     @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_007(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 4, 0.332, 0.75)
+        update_setting_rate(new_genesis_env, 4, 3320, 7500)
         submitcvpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=4, status=3)
 
@@ -212,28 +212,28 @@ class TestSupportRateVoteRateTP:
     @pytest.mark.P1
     @allure.title('Text proposal statistical function verification')
     def test_UP_TE_001_VS_BL_3(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 1, 40, 0.332, 0.75)
+        update_setting_rate(new_genesis_env, 1, 40, 3320, 7500)
         submittpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=1, status=3)
 
     @pytest.mark.P1
     @allure.title('Text proposal statistical function verification')
     def test_UP_TE_002(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 1, 40, 0.334, 0.749)
+        update_setting_rate(new_genesis_env, 1, 40, 3340, 7490)
         submittpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=1, status=3)
 
     @pytest.mark.P1
     @allure.title('Text proposal statistical function verification')
     def test_UP_TE_003(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 1, 40, 0.333, 0.751)
+        update_setting_rate(new_genesis_env, 1, 40, 3330, 7510)
         submittpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=1, status=3)
 
     @pytest.mark.P1
     @allure.title('Text proposal statistical function verification')
     def test_UP_TE_004(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 1, 40, 0.334, 0.75)
+        update_setting_rate(new_genesis_env, 1, 40, 3340, 7500)
         submittpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=1, status=3)
 
@@ -241,21 +241,21 @@ class TestSupportRateVoteRateTP:
     @pytest.mark.P0
     @allure.title('Text proposal statistical function verification')
     def test_UP_TE_005(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 1, 40, 0.332, 0.749)
+        update_setting_rate(new_genesis_env, 1, 40, 3320, 7490)
         submittpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=1, status=2)
 
     @pytest.mark.P1
     @allure.title('Text proposal statistical function verification')
     def test_UP_TE_006(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 1, 40, 0.333, 0.749)
+        update_setting_rate(new_genesis_env, 1, 40, 3330, 7490)
         submittpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=1, status=2)
 
     @pytest.mark.P1
     @allure.title('Text proposal statistical function verification')
     def test_UP_TE_007(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 1, 40, 0.333, 0.75)
+        update_setting_rate(new_genesis_env, 1, 40, 3330, 7500)
         submittpandvote(clients_consensus[:3], 1, 2, 3)
         verify_proposal_status(clients_consensus, proposaltype=1, status=3)
 
@@ -360,6 +360,7 @@ class TestUpgradeVP:
         programversion = client_noconsensus.staking.get_version()
         assert_code(programversion, pip.cfg.version0)
         pip_test.economic.wait_settlement_blocknum(pip_test.node)
+        log.info(f'blocknem ====== {pip_test.node.eth.blockNumber}')
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id in verifier_list
@@ -369,11 +370,16 @@ class TestUpgradeVP:
         assert_code(programversion, pip.cfg.version0)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo))
+        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock') - 1)
+        validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
+        log.info('Validator list =====: {}'.format(validator_list))
+
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         wait_block_number(pip.node, proposalinfo.get('ActiveBlock'))
+        log.info(f'blocknem ====== {pip_test.node.eth.blockNumber}')
 
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
@@ -392,6 +398,7 @@ class TestUpgradeVP:
         balance_after = pip.node.eth.getBalance(address, 2 * pip.economic.settlement_size)
         log.info('Block number {} address balace {}'.format(2 * pip.economic.settlement_size, balance_after))
         _, staking_reward = pip_test.economic.get_current_year_reward(pip_test.node, verifier_num=5)
+        log.info('Staking reward : {}'.format(staking_reward))
         assert balance_after - balance_before == staking_reward
 
     @pytest.mark.P0
@@ -446,7 +453,7 @@ class TestUpgradeVP:
     @pytest.mark.P1
     @allure.title('Version proposal statistical function verification')
     def test_UV_NO_1(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 2, 0.251)
+        update_setting_rate(new_genesis_env, 2, 2501)
         pip = clients_consensus[0].pip
         submitvpandvote([clients_consensus[0]])
         node_version = verifier_node_version(pip)
@@ -464,7 +471,7 @@ class TestUpgradeVP:
     @pytest.mark.P1
     @allure.title('Version proposal statistical function verification')
     def test_UV_UP_1(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 2, 0.25)
+        update_setting_rate(new_genesis_env, 2, 2500)
         pip = clients_consensus[0].pip
         submitvpandvote([clients_consensus[0]])
         proposalinfo = pip.get_effect_proposal_info_of_vote()

@@ -229,9 +229,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("lat1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzhprgeh"),
+				PlatONFundAccount: common.MustBech32ToAddress("lat10spacq8cz76y2n60pl7sg5yazncmjuusdrs9z0"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("lat1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzhprgeh"),
+				CDFAccount:        common.MustBech32ToAddress("lat17tfkaghs4vded6mz6k53xyv5cvqsl63h8c2v5t"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
