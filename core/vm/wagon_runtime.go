@@ -47,7 +47,7 @@ func NewHostModule() *wasm.Module {
 	m := wasm.NewModule()
 	m.Export.Entries = make(map[string]wasm.ExportEntry)
 
-	// void platon_gas_price(uint8_t gas_price)
+	// uint8_t platon_gas_price(uint8_t gas_price[16])
 	// func $platon_gas_price(param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -63,7 +63,7 @@ func NewHostModule() *wasm.Module {
 			Kind:     wasm.ExternalFunction,
 		},
 	)
-	// platon_block_hash(int64_t num,  uint8_t hash[32])
+	// void platon_block_hash(int64_t num, uint8_t hash[32])
 	// func $platon_block_hash(param $0 i64) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -158,7 +158,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// uint8_t platon_balance(const uint8_t addr[20], uint8_t balance[32])
+	// uint8_t platon_balance(const uint8_t addr[20], uint8_t balance[16])
 	// func $platon_balance (param $0 i32) (param $1 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -207,7 +207,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// uint8_t platon_call_value(uint8_t val[32]);
+	// uint8_t platon_call_value(uint8_t val[16])
 	// func $platon_call_value (param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -323,7 +323,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// size_t platon_get_state(const uint8_t* key, size_t klen, uint8_t *value, size_t vlen)
+	// int32_t platon_get_state(const uint8_t *key, size_t klen, uint8_t *value, size_t vlen)
 	// func $platon_get_state (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -404,7 +404,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_return(const uint8_t *value, size_t len)
+	// void platon_return(const uint8_t *value, const size_t len)
 	// func $platon_return(param $0 i32) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -464,7 +464,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int32_t platon_call(const uint8_t to[20], const uint8_t *args, size_t argsLen, const uint8_t *value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+	// int32_t platon_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
 	// func $platon_call  (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -481,7 +481,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int32_t platon_delegate_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
+	// int32_t platon_delegate_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *call_cost, size_t call_cost_len);
 	// func $platon_delegate_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -532,7 +532,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int32_t platon_migrate(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+	// int32_t platon_migrate(uint8_t new_addr[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
 	// func $platon_migrate  (param $1 i32) (param $2 i32) (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -568,7 +568,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_event(const uint8_t* indexes, size_t indexesLen, const uint8_t* args, size_t argsLen)
+	// void platon_event(const uint8_t *topic, size_t topic_len, const uint8_t *args, size_t args_len);
 	// func $platon_event (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -600,7 +600,8 @@ func NewHostModule() *wasm.Module {
 			Kind:     wasm.ExternalFunction,
 		},
 	)
-	// void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t addr[20])
+
+	// void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t hash[20])
 	// func platon_ripemd160 (param $0 i32) (param $1 i32) (param $2 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
