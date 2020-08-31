@@ -190,7 +190,7 @@ func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount *big.In
 	d.IssuanceItemList = append(d.IssuanceItemList, &IssuanceItem{Address: address, Amount: amount})
 }
 
-//  注意：委托人不一定每次都能参与到区块奖励的分配中（共识论跨结算周期时会出现，此时节点虽然还在出块，但是已经不在当前结算周期的101备选人列表里了）
+//  注意：委托人不一定每次都能参与到出块奖励的分配中（共识论跨结算周期时会出现，此时节点虽然还在出块，但是可能已经不在当前结算周期的101备选人列表里了，那这个出块节点的委托人在当前结算周期，就不参与这个块的出块奖励分配）
 type RewardData struct {
 	BlockRewardAmount   *big.Int         `json:"blockRewardAmount,omitempty"`   //出块奖励
 	DelegatorReward     bool             `json:"delegatorReward,omitempty"`     //是否有委托人的奖励（出块奖励是否分配给委托人）
