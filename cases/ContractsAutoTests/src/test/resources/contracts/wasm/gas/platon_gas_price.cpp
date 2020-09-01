@@ -8,7 +8,7 @@ CONTRACT platon_gas_price : public platon::Contract{
     ACTION void init() {}
 
     ACTION void test() {
-        //Gas gas("platon_call");
+        Gas gas("platon_gas");
         platon_gas();
         //gas.Reset("platon_ecrecover");
         //platon_ecrecover();
