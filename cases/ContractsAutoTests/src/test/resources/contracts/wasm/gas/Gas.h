@@ -8,7 +8,7 @@ class Gas {
   {
     emit();
   }
-  PLATON_EVENT0(GasUsed, const std::string &, uint64_t)
+  PLATON_EVENT1(GasUsed, const std::string &, uint64_t)
   void Reset(const char *name) {
     emit();
     name_ = name;
@@ -16,6 +16,6 @@ class Gas {
   }
   void emit() {
     uint64_t cost = gas_ - platon_gas();
-    PLATON_EMIT_EVENT0(GasUsed, name_, cost);
+    PLATON_EMIT_EVENT1(GasUsed, name_, cost);
   }
 };
