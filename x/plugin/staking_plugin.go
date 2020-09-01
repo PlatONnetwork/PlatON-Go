@@ -962,6 +962,14 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	refundAmount := calcRealRefund(blockNumber.Uint64(), blockHash, total, amount)
 	realSub := refundAmount
 
+	//stats
+	threshold, err := gov.GovernOperatingThreshold(blockNumber.Uint64(), blockHash)
+	if nil != err {
+		log.Error("Failed to get governParams", "err", err)
+		return nil, common.InternalError
+	}
+	common.CollectStakingSetting(blockNumber.Uint64(), threshold)
+
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
 	if err := UpdateDelegateRewardPer(blockHash, nodeId, stakingBlockNum, rewardsReceive, rm.db); err != nil {

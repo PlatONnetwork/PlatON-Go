@@ -213,6 +213,10 @@ type DuplicatedSignSlashingSetting struct {
 	RewardRatioByPenalties      uint32 `json:"rewardRatioByPenalties,omitempty"`      //unit:1%		//给举报人的赏金=罚金 * RewardRatioByPenalties / 100
 }
 
+type StakingSetting struct {
+	OperatingThreshold *big.Int `json:"operatingThreshold,omitempty"` //质押，委托操作，要求的最小数量；当某次操作后，剩余数量小于此值时，这剩余数量将随此次操作一次处理完。
+}
+
 type StakingFrozenItem struct {
 	NodeID        NodeID  `json:"nodeId,omitempty"`        //备选节点ID
 	NodeAddress   Address `json:"nodeAddress,omitempty"`   //备选节点地址
@@ -257,6 +261,7 @@ type ExeBlockData struct {
 	RewardData                    *RewardData                    `json:"rewardData,omitempty"`
 	ZeroSlashingItemList          []*ZeroSlashingItem            `json:"zeroSlashingItemList,omitempty"`
 	DuplicatedSignSlashingSetting *DuplicatedSignSlashingSetting `json:"duplicatedSignSlashingSetting,omitempty"`
+	StakingSetting                *StakingSetting                `json:"stakingSetting,omitempty"`
 	StakingFrozenItemList         []*StakingFrozenItem           `json:"stakingFrozenItemList,omitempty"`
 	RestrictingReleaseItemList    []*RestrictingReleaseItem      `json:"restrictingReleaseItemList,omitempty"`
 	EmbedTransferTxList           []*EmbedTransferTx             `json:"embedTransferTxList,omitempty"` //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
@@ -316,6 +321,15 @@ func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByVali
 		if exeBlockData.DuplicatedSignSlashingSetting == nil {
 			//在同一个区块中，只要设置一次即可
 			exeBlockData.DuplicatedSignSlashingSetting = &DuplicatedSignSlashingSetting{PenaltyRatioByValidStakings: penaltyRatioByValidStakings, RewardRatioByPenalties: rewardRatioByPenalties}
+		}
+	}
+}
+
+func CollectStakingSetting(blockNumber uint64, operatingThreshold *big.Int) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		log.Debug("CollectStakingSetting", "blockNumber", blockNumber, "operatingThreshold", operatingThreshold)
+		if exeBlockData.StakingSetting == nil {
+			exeBlockData.StakingSetting = &StakingSetting{OperatingThreshold: operatingThreshold}
 		}
 	}
 }

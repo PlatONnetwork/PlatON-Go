@@ -335,6 +335,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		sdb = snapshotdb.NewMemBaseDB()
 	}
 
+	//stats
 	genesisDataCollector := new(common.GenesisData)
 
 	genesisIssuance := new(big.Int)
@@ -367,6 +368,11 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	}
 
 	//总的发行量
+	//todo: 采集：创世块发行量
+	//跟踪系统: update chain_env.issue_time=0, chain_env.issue_block=0，
+	//update chain_env.issue_amount, chain_env.total_issue_amount,
+	//update chain_env.age, chain_env.reward_pool_available = findBalance(RewardManagerPoolAddr)
+
 	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
 	var initDataStateHash = common.ZeroHash
@@ -440,6 +446,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	}
 
 	//stats:保持创世块统计数据
+	//todo: Genesis增加一个指示器，collected bool，当true，则不再写。
 	statsdb.Instance().WriteGenesisData(genesisDataCollector)
 
 	log.Debug("Call ToBlock finished", "genesisHash", block.Hash().Hex())

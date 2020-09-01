@@ -58,7 +58,6 @@ const (
 	AfterFoundationYearDeveloperRewardRate = 50
 	AfterFoundationYearFoundRewardRate     = 50
 	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
-
 )
 
 var (
@@ -225,10 +224,10 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 
 		//计算总发行金额
 		newTotalIssuance := new(big.Int).Add(histIssuance, currIssuance)
-		//todo: ppos_config.issue_total，(整个操作在最后做)更新总发行金额。
+		//todo: chain_env.issue_amount, chain_env.total_issue_amount，更新发行金额，总发行金额(整个操作在最后做)。
 		//todo:增加一个表issue_history表，block/hash/time/issue/issue_total/reward_pool/开发者基金增加值/Platon基金增加值
-		//todo:chain_current_variables.reward_pool_available, chain_current_variables.reward_pool_available_at_next_year，
-		//todo: 重新设置 reward_pool_available = reward_pool_available + reward_pool_available_at_next_year + currIssuance, reward_pool_available_at_next_year=0
+		//todo:chain_env.reward_pool_available, chain_env.reward_pool_next_year_available，
+		//todo: 重新设置 reward_pool_available = reward_pool_available + reward_pool_next_year_available + currIssuance, reward_pool_next_year_available=0
 		SetYearEndCumulativeIssue(state, thisYear, newTotalIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "origTotalIssuance", histIssuance, "increment", currIssuance, "newTotalIssuance", newTotalIssuance)
 
@@ -788,9 +787,9 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	//获取当年剩余的激励池可用金额数,
 	//重放难度系数：1， desc：用blockHash, reward.RemainingRewardKey作为UNIKEY存储到mysql中
 	//注意：创世块中，要把第0年的激励池可用金额数写入
-	//todo:2rd: mysql 保存当前激励池在当前年度的可用金额，当前年度惩罚金额（激惩罚金额只能在下个年度使用）
-	//todo:凡是链上保存的当前的某个变量的值，这些变量，可以放到一个表中，表示当前值，如chain_current_variables表
-	//todo:chain_current_variables.reward_pool_available, chain_current_variables.reward_pool_available_at_next_year
+	//todo:replay: mysql 保存当前激励池在当前年度的可用金额，当前年度惩罚金额（激惩罚金额只能在下个年度使用）
+	//todo:凡是链上保存的当前的某个变量的值，这些变量，可以放到一个表中，表示当前值，如chain_env表
+	//todo:chain_env.reward_pool_available, chain_env.reward_pool_next_year_available
 	remainReward, err := LoadRemainingReward(blockHash, rmp.db)
 	if nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -803,7 +802,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	//重放难度系数：1， desc：用blockHash, reward.YearStartBlockNumberKey 作为UNIKEY存储到mysql中
 	//重放难度系数：1， desc：用blockHash, reward.YearStartTimeKey 作为UNIKEY存储到mysql中
 	//todo:2rd: mysql 保存滑动窗口的开始时间，开始块高.(起始可以都是0)
-	//todo:chain_current_variables.sliding_window_start_block,chain_current_variables.sliding_window_start_time
+	//todo:chain_env.sliding_window_start_block,chain_env.sliding_window_start_time
 	yearStartBlockNumber, yearStartTime, err := LoadYearStartTime(blockHash, rmp.db)
 	if nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -811,7 +810,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	}
 	//获取下一次增发的预期时间
 	//todo:2rd: mysql 保存下个增发点的预期时间(起始可以是0)
-	//todo:chain_current_variables.issue_time，增发时间
+	//todo:chain_env.issue_time，增发时间
 	incIssuanceTime, err := xcom.LoadIncIssuanceTime(blockHash, rmp.db)
 	if nil != err {
 		log.Error("load incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -821,8 +820,8 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		yearStartBlockNumber = head.Number.Uint64() //此时滑动窗口起始块高 yearStartBlockNumber=1
 		yearStartTime = head.Time.Int64()           //此时滑动窗口起始时间 yearStartTime=区块1的时间
 		//计算链下一年的预期增发时间点（当前区块时间 + 增发周期长度）
-		//todo:2rd: mysql 保存gengeis.json的配置，增发周期（注意时间单位：分钟)，设置新表：ppos_config
-		//todo: ppos_config.issue_cycle，发行周期（分钟）
+		//todo:2rd: mysql 保存gengeis.json的配置，增发周期（注意时间单位：分钟)，设置新表：ppos_env
+		//todo: ppos_env.issue_cycle，发行周期（分钟）
 		incIssuanceTime = yearStartTime + int64(xcom.AdditionalCycleTime()*uint64(minutes))
 		if err := xcom.StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime); nil != err {
 			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -842,7 +841,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	}
 
 	//计算链年龄，也是链的增发年度数。满1年，就是1；未满1年，就是0
-	//todo:chain_current_variables.chain_age，链年龄
+	//todo:chain_env.age，链年龄
 	yearNumber, err := LoadChainYearNumber(blockHash, rmp.db)
 	if nil != err {
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -852,17 +851,21 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// Each settlement cycle needs to update the year start time,
 	// which is used to calculate the average annual block production rate
 	//计算Epoch有多少个区块（这是固定数量的）
-	//todo: ppos_config.epoch_size，Epoch有多少个区块
+	//todo: ppos_env.epoch_size，Epoch有多少个区块
 	epochBlocks := xutil.CalcBlocksEachEpoch()
 	if yearNumber > 0 { //满1年（说明增发过了）
 		//增发过，则取最近的增发块高（这个值，只有在增发前一个结算周期的最后一个块，才会修改）
-		//todo:chain_current_variables.issue_block，增发区块
+		//todo:chain_env.issue_block，增发区块
 		incIssuanceNumber, err := xcom.LoadIncIssuanceNumber(blockHash, rmp.db)
 		if nil != err {
 			return nil, nil, err
 		}
 		addition := true
-		if yearStartBlockNumber == 1 { //滑动窗口起始块高，说明窗口起始块还没调整过，刚完成第一次增发, yearNumber刚刚变成 1
+		//滑动窗口起始块高，说明窗口起始块还没调整过，刚完成第一次增发, yearNumber刚刚变成 1
+		//滑动窗口开始时，size是不确定的，size的调整是以epochBlocks为单位的。窗口起始块高是0（或者1），每过1个结算周期，结束块高增长一个epochBlocks；
+		//当第一次增发后，增发完成的那个块高，就是滑动窗口的结束块高，此时，滑动窗口的size确定。
+		//以后，每过一个结算周期，起始块高+一个epochBlocks；结算块高就是当前块高。
+		if yearStartBlockNumber == 1 {
 			if head.Number.Uint64() <= incIssuanceNumber {
 				//由于CalcEpochReward只有在结算周期末执行，所以，这里出现 < 的情况应该没有
 				//此时刚到第一次增发点，不用调整滑动窗口起始块
