@@ -9,13 +9,13 @@ class Gas {
     emit();
   }
   PLATON_EVENT0(GasUsed, const std::string &, uint64_t)
-  void Reset(name) {
+  void Reset(const char *name) {
     emit();
     name_ = name;
     gas_ = platon_gas();
   }
   void emit() {
     uint64_t cost = gas_ - platon_gas();
-    PLATON_EMIT_EVENT0(name_, cost);
+    PLATON_EMIT_EVENT0(GasUsed, name_, cost);
   }
 };
