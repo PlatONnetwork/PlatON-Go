@@ -114,7 +114,7 @@ func (txg *TxGenAPI) CalTtf(configPaths []string, output string) error {
 			txConut += ttf.TxLength
 			timeUse += ttf.TimeUse
 		} else {
-			analysts = append(analysts, [2]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds()})
+			analysts = append(analysts, [2]int64{endTime.Unix(), (time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds()) / 3})
 			endTime = endTime.Add(time.Second * 3)
 			txConut = 0
 			timeUse = 0
