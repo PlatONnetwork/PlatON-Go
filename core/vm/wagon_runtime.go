@@ -3,6 +3,8 @@ package vm
 import (
 	"crypto/sha256"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"golang.org/x/crypto/ripemd160"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -289,6 +291,54 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
+	// void platon_set_snapshotdb(const uint8_t* key, size_t klen, const uint8_t *value, size_t vlen)
+	// func $platon_set_snapshotdb (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(SetSnapshotDB),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_set_snapshotdb",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int32_t platon_get_snapshotdb(const uint8_t *key, size_t klen, uint8_t *value, size_t vlen)
+	// func $platon_get_snapshotdb (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(GetSnapshotDB),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_get_snapshotdb",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+	//GetSnapshotDBLength
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+
+			Host: reflect.ValueOf(GetSnapshotDBLength),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "platon_get_snapshotdb_length",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
 	// void platon_set_state(const uint8_t* key, size_t klen, const uint8_t *value, size_t vlen)
 	// func $platon_set_state (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32)
 	addFuncExport(m,
@@ -1017,6 +1067,124 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 	ctx.contract.Gas += returnGas
 
 	return status
+}
+
+// storage external function
+func SetSnapshotDB(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) {
+	ctx := proc.HostCtx().(*VMContext)
+	if ctx.readOnly {
+		panic(ErrWASMWriteProtection)
+	}
+
+	keyBuf := make([]byte, keyLen)
+	_, err := proc.ReadAt(keyBuf, int64(key))
+	if nil != err {
+		panic(err)
+	}
+
+	currentValue, err := ctx.evm.SnapshotDB.Get(ctx.evm.BlockHash, keyBuf)
+	if err != nil {
+		if err == snapshotdb.ErrNotFound {
+			currentValue = make([]byte, 0)
+		} else {
+			panic(err)
+		}
+	}
+	oldWordSize := toWordSize(uint64(keyLen) + uint64(len(currentValue)))
+	newWordSize := toWordSize(uint64(keyLen) + uint64(valLen))
+
+	switch {
+	case 0 == len(currentValue) && 0 != valLen:
+		checkGas(ctx, newWordSize*params.SstoreSetGas)
+	case 0 != len(currentValue) && 0 == valLen:
+		ctx.evm.StateDB.AddRefund(oldWordSize * params.SstoreRefundGas)
+		checkGas(ctx, oldWordSize*params.SstoreClearGas)
+		if err := ctx.evm.SnapshotDB.Del(ctx.evm.BlockHash, keyBuf); err != nil {
+			panic(err)
+		}
+		return
+	default:
+		var (
+			addWordSize    uint64 = 0
+			deleteWordSize uint64 = 0
+			resetWordSize  uint64 = 0
+		)
+
+		if newWordSize >= oldWordSize {
+			addWordSize = newWordSize - oldWordSize
+			resetWordSize = toWordSize(uint64(len(currentValue)))
+		} else {
+			deleteWordSize = oldWordSize - newWordSize
+			resetWordSize = toWordSize(uint64(valLen))
+		}
+
+		if 0 == resetWordSize {
+			resetWordSize = 1
+		}
+
+		checkGas(ctx, addWordSize*params.SstoreSetGas)
+		ctx.evm.StateDB.AddRefund(deleteWordSize * params.SstoreRefundGas)
+		checkGas(ctx, deleteWordSize*params.SstoreClearGas)
+		checkGas(ctx, resetWordSize*params.SstoreResetGas)
+	}
+
+	valBuf := make([]byte, valLen)
+	_, err = proc.ReadAt(valBuf, int64(val))
+	if nil != err {
+		panic(err)
+	}
+	if err := ctx.evm.SnapshotDB.Put(ctx.evm.BlockHash, keyBuf, valBuf); err != nil {
+		panic(err)
+	}
+}
+
+func GetSnapshotDB(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, ctx.gasTable.SLoad)
+
+	keyBuf := make([]byte, keyLen)
+	_, err := proc.ReadAt(keyBuf, int64(key))
+	if nil != err {
+		panic(err)
+	}
+	valBuf, err := ctx.evm.SnapshotDB.Get(ctx.evm.BlockHash, keyBuf)
+	if err != nil {
+		if err == snapshotdb.ErrNotFound {
+			valBuf = make([]byte, 0)
+		} else {
+			panic(err)
+		}
+	}
+	vlen := len(valBuf)
+	if uint32(vlen) > valLen {
+		return -1
+	}
+
+	_, err = proc.WriteAt(valBuf, int64(val))
+	if nil != err {
+		panic(err)
+	}
+	return int32(vlen)
+}
+
+func GetSnapshotDBLength(proc *exec.Process, key uint32, keyLen uint32) uint32 {
+	ctx := proc.HostCtx().(*VMContext)
+	keyBuf := make([]byte, keyLen)
+	_, err := proc.ReadAt(keyBuf, int64(key))
+	if nil != err {
+		panic(err)
+	}
+	val, err := ctx.evm.SnapshotDB.Get(ctx.evm.BlockHash, keyBuf)
+	if err != nil {
+		if err == snapshotdb.ErrNotFound {
+			val = make([]byte, 0)
+		} else {
+			panic(err)
+		}
+	}
+	checkGas(ctx, ctx.gasTable.SLoad)
+
+	return uint32(len(val))
 }
 
 // storage external function
