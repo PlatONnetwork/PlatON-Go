@@ -290,7 +290,7 @@ def test_CS_CL_007(clients_new_node):
     client_noconsensus1 = clients_new_node[0]
     client_noconsensus2 = clients_new_node[1]
     address1, _ = client_noconsensus1.economic.account.generate_account(client_noconsensus1.node.web3,
-                                                                        10 ** 18 * 10000000)
+                                                                        10 ** 18 * 100000000)
     address2, _ = client_noconsensus1.economic.account.generate_account(client_noconsensus1.node.web3,
                                                                         10 ** 18 * 10000000)
     value = client_noconsensus1.economic.create_staking_limit * 2
@@ -300,7 +300,7 @@ def test_CS_CL_007(clients_new_node):
     assert_code(result, 0)
     # Next settlement period
     client_noconsensus1.economic.wait_settlement(client_noconsensus2.node)
-
+    print(client_noconsensus2.ppos.getVerifierList)
     verifierlist = get_pledge_list(client_noconsensus2.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
     log.info("node:{}".format(client_noconsensus1.node.node_id))

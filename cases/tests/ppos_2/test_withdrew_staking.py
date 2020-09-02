@@ -504,6 +504,7 @@ def test_RV_014_015(staking_client):
     log.info(balance_1)
     log.info("Enter the next cycle")
     economic.wait_settlement(node, 2)
+    economic.wait_consensus(node)
     balance_2 = node.eth.getBalance(staking_address)
     log.info(balance_2)
     verifier_list = get_pledge_list(node.ppos.getVerifierList)
