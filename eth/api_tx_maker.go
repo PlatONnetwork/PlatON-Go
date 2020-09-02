@@ -564,6 +564,12 @@ var (
 		return prifix.Sum(nil)
 	}()
 
+	evmKVHashAddr = func() []byte {
+		prifix := sha3.NewKeccak256()
+		prifix.Write([]byte("SetKV(uint256)"))
+		return prifix.Sum(nil)
+	}()
+
 	wasmErc20Hash = func() []byte {
 		hash := fnv.New64()
 		hash.Write([]byte("transfer"))
@@ -612,7 +618,7 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 				return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(key))), common.Uint32ToBytes(count)), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 			} else if account.Type == "kv_addr" {
 				val := int32(account.CallInputs[0].Parameters[0].(float64))
-				return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(val)))), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+				return BuildEVMInput(evmKVHashAddr, common.Uint32ToBytes(uint32(rand.Int31n(val)))), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 			}
 		}
 	case s.sendState < s.sendWasm:
