@@ -365,7 +365,12 @@ func (txg *TxGenAPI) Stop(resPath string) error {
 		return errors.New("the tx maker has been closed")
 	}
 	if resPath == "" {
-		return errors.New("the res to save  path should not empty")
+		close(txg.txGenStopTxCh)
+		close(txg.txGenExitCh)
+		txg.start = false
+		txg.blockfeed.Unsubscribe()
+		atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 0)
+		return nil
 	}
 	file, err := os.Create(resPath)
 	if err != nil {
