@@ -78,11 +78,12 @@ type TxGenResData struct {
 }
 
 type TxGenAPI struct {
-	eth           *Ethereum
-	txGenExitCh   chan struct{}
-	txGenStopTxCh chan struct{}
-	start         bool
-	blockfeed     event.Subscription
+	eth              *Ethereum
+	txGenExitCh      chan struct{}
+	txGenStopTxCh    chan struct{}
+	start            bool
+	blockfeed        event.Subscription
+	blockExecuteFeed event.Subscription
 
 	res *TxGenResData
 }
@@ -107,21 +108,25 @@ func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer
 	atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 1)
 
 	blockch := make(chan *types.Block, 20)
-	txg.blockfeed = txg.eth.blockchain.SubscribeBlocksEvent(blockch)
+	txg.blockfeed = txg.eth.blockchain.SubscribeWriteStateBlocksEvent(blockch)
+
+	blockExecutech := make(chan *types.Block, 20)
+	txg.blockExecuteFeed = txg.eth.blockchain.SubscribeExecuteBlocksEvent(blockExecutech)
+
 	txg.txGenExitCh = make(chan struct{})
 	txg.txGenStopTxCh = make(chan struct{})
 	txg.res = new(TxGenResData)
 	txg.res.TotalTxSend = 0
 	txg.res.Tps = make([]Tps, 0)
 	txg.res.Ttf = make([]Ttf, 0)
-	if err := txg.makeTransaction(normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockch); err != nil {
+	if err := txg.makeTransaction(normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockExecutech, blockch); err != nil {
 		return err
 	}
 	txg.start = true
 	return nil
 }
 
-func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, blockCh chan *types.Block) error {
+func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, blockExcuteCh, blockQCCh chan *types.Block) error {
 	state, err := txg.eth.blockchain.State()
 	if err != nil {
 		return err
@@ -136,17 +141,23 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 	singine := types.NewEIP155Signer(new(big.Int).SetInt64(txg.eth.chainConfig.ChainID.Int64()))
 
 	txsCh := make(chan []*types.Transaction, 1)
-
 	go func() {
 		for {
 			select {
-			case txs := <-txsCh:
-				//txg.eth.txPool.AddRemotes(txs)
-				txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
 			case <-txg.txGenExitCh:
-				log.Debug("MakeTransaction get receipt nonce  exit")
+				log.Debug("MakeTx get receipt nonce  exit")
 				return
-			case res := <-blockCh:
+			case res := <-blockExcuteCh:
+				txLength := len(res.Transactions())
+				if txLength > 0 {
+					for _, receipt := range res.Transactions() {
+						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
+							account.ReceiptsNonce = receipt.Nonce()
+						}
+					}
+				}
+				log.Debug("MakeTx receive excute block", "num", res.Number(), "txLength", txLength)
+			case res := <-blockQCCh:
 				txm.blockProduceTime = time.Now()
 				txLength := len(res.Transactions())
 				var timeUse time.Duration
@@ -154,7 +165,6 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				if txLength > 0 {
 					for _, receipt := range res.Transactions() {
 						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
-							account.ReceiptsNonce = receipt.Nonce()
 							account.mu.Lock()
 							if ac, ok := account.SendTime[receipt.Nonce()]; ok {
 								timeUse = timeUse + time.Since(ac)
@@ -173,7 +183,19 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					txg.res.Tps = append(txg.res.Tps, Tps{txm.blockProduceTime, res.Number().Int64(), txLength})
 				}
 
-				log.Debug("makeTransaction receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", txLength)
+				log.Debug("MakeTx receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", txLength)
+			}
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case txs := <-txsCh:
+				//txg.eth.txPool.AddRemotes(txs)
+				txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
+			case <-txg.txGenExitCh:
+				log.Debug("MakeTransaction send tx exit")
+				return
 			}
 		}
 	}()
@@ -218,7 +240,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				}
 
 				if len(txs) != 0 {
-					log.Debug("make Transaction time use", "use", time.Since(now), "txs", len(txs))
+					log.Debug("MakeTx time use", "use", time.Since(now), "txs", len(txs))
 					txsCh <- txs
 				}
 			case <-shouldReport.C:
@@ -227,7 +249,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 			case <-txg.txGenStopTxCh:
 				shouldmake.Stop()
 				shouldReport.Stop()
-				log.Debug("MakeTransaction exit")
+				log.Debug("MakeTx exit")
 				return
 			}
 		}
@@ -369,6 +391,7 @@ func (txg *TxGenAPI) Stop(resPath string) error {
 		close(txg.txGenExitCh)
 		txg.start = false
 		txg.blockfeed.Unsubscribe()
+		txg.blockExecuteFeed.Unsubscribe()
 		atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 0)
 		return nil
 	}
@@ -402,6 +425,7 @@ func (txg *TxGenAPI) Stop(resPath string) error {
 	close(txg.txGenExitCh)
 	txg.start = false
 	txg.blockfeed.Unsubscribe()
+	txg.blockExecuteFeed.Unsubscribe()
 
 	atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 0)
 
