@@ -180,7 +180,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					if currentLength > 0 {
 						txg.res.Ttf = append(txg.res.Ttf, Ttf{txm.blockProduceTime, res.Number().Int64(), currentLength, timeUse})
 					}
-					txg.res.Tps = append(txg.res.Tps, Tps{txm.blockProduceTime, res.Number().Int64(), txLength})
+					txg.res.Tps = append(txg.res.Tps, Tps{common.MillisToTime(res.Header().Time.Int64()), res.Number().Int64(), txLength})
 				}
 
 				log.Debug("MakeTx receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", txLength)
