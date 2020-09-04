@@ -148,15 +148,13 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				log.Debug("MakeTx get receipt nonce  exit")
 				return
 			case res := <-blockExcuteCh:
-				txLength := len(res.Transactions())
-				if txLength > 0 {
-					for _, receipt := range res.Transactions() {
-						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
+				for _, receipt := range res.Transactions() {
+					if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
+						if account.ReceiptsNonce < receipt.Nonce() {
 							account.ReceiptsNonce = receipt.Nonce()
 						}
 					}
 				}
-				log.Debug("MakeTx receive excute block", "num", res.Number(), "txLength", txLength)
 			case res := <-blockQCCh:
 				txm.blockProduceTime = time.Now()
 				txLength := len(res.Transactions())
@@ -165,12 +163,12 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				if txLength > 0 {
 					for _, receipt := range res.Transactions() {
 						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
+							currentLength++
 							account.mu.Lock()
 							if ac, ok := account.SendTime[receipt.Nonce()]; ok {
 								timeUse = timeUse + time.Since(ac)
 								delete(account.SendTime, receipt.Nonce())
 								account.mu.Unlock()
-								currentLength++
 							} else {
 								account.mu.Unlock()
 								continue
