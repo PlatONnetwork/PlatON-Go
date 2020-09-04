@@ -103,7 +103,7 @@ func build_vrf_Nonce() ([]byte, [][]byte) {
 	preNonces := make([][]byte, 0)
 	curentNonce := crypto.Keccak256([]byte(string("nonce")))
 	for i := 0; i < int(xcom.MaxValidators()); i++ {
-		preNonces = append(preNonces, crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:])
+		preNonces = append(preNonces, crypto.Keccak256([]byte(time.Now().Add(time.Duration(i)).String())[:]))
 		time.Sleep(time.Microsecond * 10)
 	}
 	return curentNonce, preNonces
