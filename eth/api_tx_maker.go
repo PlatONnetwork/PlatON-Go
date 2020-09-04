@@ -203,7 +203,6 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 
 	go func() {
 		shouldmake := time.NewTicker(time.Millisecond * time.Duration(txm.txFrequency))
-		shouldReport := time.NewTicker(reportTime)
 		for {
 			select {
 			case <-shouldmake.C:
@@ -214,15 +213,23 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				now := time.Now()
 				txs := make([]*types.Transaction, 0, txm.totalSenderTxPer)
 				toAdd := txm.pickTxReceive()
+				deactive := 0
 
-				for i := 0; i < txm.totalSenderTxPer; i++ {
+				loop := 0
+				loopEnd := len(txm.accounts)
+				for len(txs) <= txm.totalSenderTxPer {
+					if loop > loopEnd {
+						break
+					}
+					loop++
 					var account *txGenSendAccount
-					if i < txm.activeSenderTxPer {
+					if len(txs) < txm.activeSenderTxPer {
 						account = txm.pickActiveSender()
 					} else {
 						account = txm.pickNormalSender()
 					}
-					if !txm.accountActive(account) {
+					if !account.active() {
+						deactive++
 						continue
 					}
 					txContractInputData, txReceive, gasLimit, amount := txm.generateTxParams(toAdd)
@@ -240,15 +247,13 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				}
 
 				if len(txs) != 0 {
-					log.Debug("MakeTx time use", "use", time.Since(now), "txs", len(txs))
+					log.Debug("MakeTx time use", "use", time.Since(now), "txs", len(txs), "deactive", deactive)
 					txsCh <- txs
+				} else {
+					log.Debug("MakeTx with no tx", "use", time.Since(now), "deactive", deactive)
 				}
-			case <-shouldReport.C:
-				sleepAccountsLength := len(txm.sleepAccounts)
-				log.Debug("MakeTx info", "sleepAccount", sleepAccountsLength, "perTx", txm.totalSenderTxPer)
 			case <-txg.txGenStopTxCh:
 				shouldmake.Stop()
-				shouldReport.Stop()
 				log.Debug("MakeTx exit")
 				return
 			}
@@ -475,6 +480,18 @@ type txGenSendAccount struct {
 	mu            sync.Mutex
 }
 
+func (account *txGenSendAccount) active() bool {
+	if account.Nonce >= account.ReceiptsNonce+15 {
+		if time.Since(account.LastSendTime) >= waitAccountReceiptTime {
+			log.Debug("wait account 20s", "account", account.Address, "nonce", account.Nonce, "receiptnonce", account.ReceiptsNonce, "wait time", time.Since(account.LastSendTime))
+			account.Nonce = account.ReceiptsNonce + 1
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
 const (
 	callKindDefine   = 0
 	callKindGenerate = 1
@@ -539,8 +556,6 @@ type TxMakeManger struct {
 	evmReceiver  weightedrand.Chooser
 	wsamReveiver weightedrand.Chooser
 
-	sleepAccounts map[common.Address]struct{}
-
 	blockProduceTime time.Time
 
 	sendTx   uint
@@ -548,24 +563,6 @@ type TxMakeManger struct {
 	sendWasm uint
 
 	sendState uint
-}
-
-func (s *TxMakeManger) accountActive(account *txGenSendAccount) bool {
-	if account.Nonce >= account.ReceiptsNonce+15 {
-		if time.Since(account.LastSendTime) >= waitAccountReceiptTime {
-			log.Debug("wait account 20s", "account", account.Address, "nonce", account.Nonce, "receiptnonce", account.ReceiptsNonce, "wait time", time.Since(account.LastSendTime))
-			account.Nonce = account.ReceiptsNonce + 1
-			delete(s.sleepAccounts, account.Address)
-		} else {
-			if _, ok := s.sleepAccounts[account.Address]; !ok {
-				s.sleepAccounts[account.Address] = struct{}{}
-			}
-			return false
-		}
-	} else {
-		delete(s.sleepAccounts, account.Address)
-	}
-	return true
 }
 
 func (s *TxMakeManger) pickActiveSender() *txGenSendAccount {
@@ -738,7 +735,6 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 	t.activeSenderTxPer = int(activeTxPer)
 	t.txFrequency = int(txFrequency)
 
-	t.sleepAccounts = make(map[common.Address]struct{})
 	t.blockProduceTime = time.Now()
 
 	rand.Seed(time.Now().UTC().UnixNano()) // always seed random!

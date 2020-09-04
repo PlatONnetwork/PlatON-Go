@@ -34,7 +34,7 @@ type AnalystEntity struct {
 	Tps                uint64
 }
 
-func (txg *TxGenAPI) CalTps(input, output string) error {
+func (txg *TxGenAPI) CalTps(t int, input, output string) error {
 	file, err := os.OpenFile(input, os.O_RDWR, 0666)
 	if err != nil {
 		return fmt.Errorf("Failed to open config file:%v", err)
@@ -45,15 +45,15 @@ func (txg *TxGenAPI) CalTps(input, output string) error {
 		return fmt.Errorf("invalid res file :%v", err)
 	}
 
-	endTime := res.Tps[0].BlockProduceTime.Add(time.Second * 3)
+	endTime := res.Tps[0].BlockProduceTime.Add(time.Second * time.Duration(t))
 	txConut := 0
 	analysts := make([][2]int64, 0)
 	for _, tps := range res.Tps {
 		if tps.BlockProduceTime.Before(endTime) {
 			txConut += tps.TxLength
 		} else {
-			analysts = append(analysts, [2]int64{endTime.Unix(), int64(txConut / 3)})
-			endTime = endTime.Add(time.Second * 3)
+			analysts = append(analysts, [2]int64{endTime.Unix(), int64(txConut / t)})
+			endTime = endTime.Add(time.Second * time.Duration(t))
 			txConut = 0
 			txConut += tps.TxLength
 		}
@@ -87,7 +87,7 @@ func (txg *TxGenAPI) CalTps(input, output string) error {
 	return nil
 }
 
-func (txg *TxGenAPI) CalTtf(configPaths []string, output string) error {
+func (txg *TxGenAPI) CalTtf(t int, configPaths []string, output string) error {
 	x := make(ttfs, 0)
 	for _, path := range configPaths {
 		file, err := os.OpenFile(path, os.O_RDWR, 0666)
@@ -105,7 +105,7 @@ func (txg *TxGenAPI) CalTtf(configPaths []string, output string) error {
 		}
 	}
 	sort.Sort(x)
-	endTime := x[0].BlockProduceTime.Add(time.Second * 3)
+	endTime := x[0].BlockProduceTime.Add(time.Second * time.Duration(t))
 	txConut := 0
 	timeUse := time.Duration(0)
 	analysts := make([][2]int64, 0)
@@ -114,8 +114,8 @@ func (txg *TxGenAPI) CalTtf(configPaths []string, output string) error {
 			txConut += ttf.TxLength
 			timeUse += ttf.TimeUse
 		} else {
-			analysts = append(analysts, [2]int64{endTime.Unix(), (time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds()) / 3})
-			endTime = endTime.Add(time.Second * 3)
+			analysts = append(analysts, [2]int64{endTime.Unix(), (time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds()) / int64(t)})
+			endTime = endTime.Add(time.Second * time.Duration(t))
 			txConut = 0
 			timeUse = 0
 			txConut += ttf.TxLength
