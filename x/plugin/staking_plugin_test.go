@@ -103,7 +103,7 @@ func build_vrf_Nonce() ([]byte, [][]byte) {
 	preNonces := make([][]byte, 0)
 	curentNonce := crypto.Keccak256([]byte(string("nonce")))
 	for i := 0; i < int(xcom.MaxValidators()); i++ {
-		preNonces = append(preNonces, crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:])
+		preNonces = append(preNonces, crypto.Keccak256([]byte(time.Now().Add(time.Duration(i)).String())[:]))
 		time.Sleep(time.Microsecond * 10)
 	}
 	return curentNonce, preNonces
@@ -194,7 +194,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canTmp.ProgramVersion, canTmp.Shares, canTmp.NodeId, canTmp.StakingBlockNum, canTmp.StakingTxIndex)
+		powerKey := staking.TallyPowerKey(canTmp.ProgramVersion, canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.NodeId)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return nil, err
@@ -332,7 +332,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 	}
 
 	// new block
-	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -564,7 +564,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canBase.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.NodeId, canBase.StakingBlockNum, canBase.StakingTxIndex)
+		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.NodeId)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
@@ -701,7 +701,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	// new block
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 
-	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -756,7 +756,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
 	}
 
-	nonce = crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce = crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header = &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -883,7 +883,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canBase.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.NodeId, canBase.StakingBlockNum, canBase.StakingTxIndex)
+		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.NodeId)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
@@ -1018,7 +1018,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	// new block
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 
-	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
