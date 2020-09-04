@@ -228,7 +228,9 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 						continue
 					}
 					txContractInputData, txReceive, gasLimit, amount := txm.generateTxParams(toAdd)
-
+					if account.ReceiptsNonce > account.Nonce {
+						account.Nonce = account.ReceiptsNonce + 1
+					}
 					tx := types.NewTransaction(account.Nonce, txReceive, amount, gasLimit, gasPrice, txContractInputData)
 					newTx, err := types.SignTx(tx, singine, account.Priv)
 					if err != nil {
@@ -551,7 +553,7 @@ type TxMakeManger struct {
 }
 
 func (s *TxMakeManger) accountActive(account *txGenSendAccount) bool {
-	if account.Nonce >= account.ReceiptsNonce+10 {
+	if account.Nonce >= account.ReceiptsNonce+15 {
 		if time.Since(account.LastSendTime) >= waitAccountReceiptTime {
 			log.Debug("wait account 20s", "account", account.Address, "nonce", account.Nonce, "receiptnonce", account.ReceiptsNonce, "wait time", time.Since(account.LastSendTime))
 			account.Nonce = account.ReceiptsNonce + 1
