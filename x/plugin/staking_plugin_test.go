@@ -332,7 +332,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 	}
 
 	// new block
-	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -701,7 +701,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	// new block
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 
-	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -756,7 +756,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
 	}
 
-	nonce = crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce = crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header = &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -1018,7 +1018,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	// new block
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 
-	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
