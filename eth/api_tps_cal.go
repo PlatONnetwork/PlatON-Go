@@ -34,7 +34,7 @@ type AnalystEntity struct {
 	Tps                uint64
 }
 
-func (txg *TxGenAPI) CalTps(t int, input, output string) error {
+func (txg *TxGenAPI) CalTps(input, output string, t int) error {
 	file, err := os.OpenFile(input, os.O_RDWR, 0666)
 	if err != nil {
 		return fmt.Errorf("Failed to open config file:%v", err)
@@ -87,7 +87,7 @@ func (txg *TxGenAPI) CalTps(t int, input, output string) error {
 	return nil
 }
 
-func (txg *TxGenAPI) CalTtf(t int, configPaths []string, output string) error {
+func (txg *TxGenAPI) CalTtf(configPaths []string, output string, t int) error {
 	x := make(ttfs, 0)
 	for _, path := range configPaths {
 		file, err := os.OpenFile(path, os.O_RDWR, 0666)
@@ -114,7 +114,7 @@ func (txg *TxGenAPI) CalTtf(t int, configPaths []string, output string) error {
 			txConut += ttf.TxLength
 			timeUse += ttf.TimeUse
 		} else {
-			analysts = append(analysts, [2]int64{endTime.Unix(), (time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds()) / int64(t)})
+			analysts = append(analysts, [2]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds()})
 			endTime = endTime.Add(time.Second * time.Duration(t))
 			txConut = 0
 			timeUse = 0
