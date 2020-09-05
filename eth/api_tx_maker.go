@@ -107,10 +107,10 @@ func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer
 	//so this node can keep in sync with other nodes
 	atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 1)
 
-	blockch := make(chan *types.Block, 20)
+	blockch := make(chan *types.Block, 200)
 	txg.blockfeed = txg.eth.blockchain.SubscribeWriteStateBlocksEvent(blockch)
 
-	blockExecutech := make(chan *types.Block, 20)
+	blockExecutech := make(chan *types.Block, 200)
 	txg.blockExecuteFeed = txg.eth.blockchain.SubscribeExecuteBlocksEvent(blockExecutech)
 
 	txg.txGenExitCh = make(chan struct{})
@@ -155,33 +155,51 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 						}
 					}
 				}
+				txm.blockCache[res.Hash()] = res
 			case res := <-blockQCCh:
 				txm.blockProduceTime = time.Now()
 				txLength := len(res.Transactions())
 				var timeUse time.Duration
+
+				current := txm.blockProduceTime.UnixNano()
 				currentLength := 0
 				if txLength > 0 {
-					for _, receipt := range res.Transactions() {
-						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
-							currentLength++
-							account.mu.Lock()
-							if ac, ok := account.SendTime[receipt.Nonce()]; ok {
-								timeUse = timeUse + time.Since(ac)
-								delete(account.SendTime, receipt.Nonce())
-								account.mu.Unlock()
-							} else {
-								account.mu.Unlock()
-								continue
+					if block, ok := txm.blockCache[res.Hash()]; ok {
+						delete(txm.blockCache, res.Hash())
+						txm.mu.Lock()
+						for _, receipt := range block.Transactions() {
+							if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
+								if ac, ok := account.SendTime[receipt.Nonce()]; ok {
+									currentLength++
+									timeUse = timeUse + time.Duration(current-ac.UnixNano())
+									delete(account.SendTime, receipt.Nonce())
+								} else {
+									continue
+								}
 							}
 						}
+						txm.mu.Unlock()
+					} else {
+						txm.mu.Lock()
+						for _, receipt := range res.Transactions() {
+							if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
+								if ac, ok := account.SendTime[receipt.Nonce()]; ok {
+									currentLength++
+									timeUse = timeUse + time.Duration(current-ac.UnixNano())
+									delete(account.SendTime, receipt.Nonce())
+								} else {
+									continue
+								}
+							}
+						}
+						txm.mu.Unlock()
 					}
 					if currentLength > 0 {
 						txg.res.Ttf = append(txg.res.Ttf, Ttf{txm.blockProduceTime, res.Number().Int64(), currentLength, timeUse})
 					}
 					txg.res.Tps = append(txg.res.Tps, Tps{common.MillisToTime(res.Header().Time.Int64()), res.Number().Int64(), txLength})
 				}
-
-				log.Debug("MakeTx receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", txLength)
+				log.Debug("MakeTx receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", currentLength, "cost", time.Since(txm.blockProduceTime), "cacheBlock", len(txm.blockCache))
 			}
 		}
 	}()
@@ -217,6 +235,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 
 				loop := 0
 				loopEnd := len(txm.accounts)
+				txm.mu.Lock()
 				for len(txs) <= txm.totalSenderTxPer {
 					if loop > loopEnd {
 						break
@@ -245,6 +264,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					txs = append(txs, newTx)
 					txm.sendDone(account)
 				}
+				txm.mu.Unlock()
 
 				if len(txs) != 0 {
 					log.Debug("MakeTx time use", "use", time.Since(now), "txs", len(txs), "deactive", deactive)
@@ -477,7 +497,6 @@ type txGenSendAccount struct {
 	ReceiptsNonce uint64
 	LastSendTime  time.Time
 	SendTime      map[uint64]time.Time
-	mu            sync.Mutex
 }
 
 func (account *txGenSendAccount) active() bool {
@@ -543,7 +562,11 @@ func (a *accountQueue) next() common.Address {
 
 type TxMakeManger struct {
 	//from
-	accounts          map[common.Address]*txGenSendAccount
+	accounts map[common.Address]*txGenSendAccount
+
+	blockCache map[common.Hash]*types.Block
+	mu         sync.Mutex
+
 	activeSender      *accountQueue
 	activeSenderTxPer int
 	normalSender      *accountQueue
@@ -675,9 +698,7 @@ func (s *TxMakeManger) sendDone(account *txGenSendAccount) {
 	}
 	now := time.Now()
 
-	account.mu.Lock()
 	account.SendTime[account.Nonce] = now
-	account.mu.Unlock()
 	account.LastSendTime = now
 	account.Nonce++
 }
@@ -717,7 +738,7 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 		}
 		nonce := GetNonce(address)
 		now := time.Now()
-		t.accounts[address] = &txGenSendAccount{privateKey, nonce, address, nonce, now, nil, sync.Mutex{}}
+		t.accounts[address] = &txGenSendAccount{privateKey, nonce, address, nonce, now, nil}
 		t.accounts[address].SendTime = make(map[uint64]time.Time)
 		t.accounts[address].SendTime[nonce] = now
 		t.txReceiver = append(t.txReceiver, address)
@@ -734,6 +755,8 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 	t.totalSenderTxPer = int(totalTxPer)
 	t.activeSenderTxPer = int(activeTxPer)
 	t.txFrequency = int(txFrequency)
+
+	t.blockCache = make(map[common.Hash]*types.Block)
 
 	t.blockProduceTime = time.Now()
 
