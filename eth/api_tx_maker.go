@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -144,9 +143,23 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 	go func() {
 		for {
 			select {
+			case txs := <-txsCh:
+				//txg.eth.txPool.AddRemotes(txs)
+				txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
 			case <-txg.txGenExitCh:
-				log.Debug("MakeTx get receipt nonce  exit")
+				log.Debug("MakeTransaction send tx exit")
 				return
+			}
+		}
+	}()
+
+	log.Info("begin to MakeTransaction")
+	gasPrice := txg.eth.txPool.GasPrice()
+
+	go func() {
+		shouldmake := time.NewTicker(time.Millisecond * time.Duration(txm.txFrequency))
+		for {
+			select {
 			case res := <-blockExcuteCh:
 				for _, receipt := range res.Transactions() {
 					if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
@@ -166,7 +179,6 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				if txLength > 0 {
 					if block, ok := txm.blockCache[res.Hash()]; ok {
 						delete(txm.blockCache, res.Hash())
-						txm.mu.Lock()
 						for _, receipt := range block.Transactions() {
 							if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
 								if ac, ok := account.SendTime[receipt.Nonce()]; ok {
@@ -178,9 +190,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 								}
 							}
 						}
-						txm.mu.Unlock()
 					} else {
-						txm.mu.Lock()
 						for _, receipt := range res.Transactions() {
 							if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
 								if ac, ok := account.SendTime[receipt.Nonce()]; ok {
@@ -192,7 +202,6 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 								}
 							}
 						}
-						txm.mu.Unlock()
 					}
 					if currentLength > 0 {
 						txg.res.Ttf = append(txg.res.Ttf, Ttf{txm.blockProduceTime, res.Number().Int64(), currentLength, timeUse})
@@ -200,29 +209,6 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					txg.res.Tps = append(txg.res.Tps, Tps{common.MillisToTime(res.Header().Time.Int64()), res.Number().Int64(), txLength})
 				}
 				log.Debug("MakeTx receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", currentLength, "cost", time.Since(txm.blockProduceTime), "cacheBlock", len(txm.blockCache))
-			}
-		}
-	}()
-	go func() {
-		for {
-			select {
-			case txs := <-txsCh:
-				//txg.eth.txPool.AddRemotes(txs)
-				txg.eth.protocolManager.txsCh <- core.NewTxsEvent{txs}
-			case <-txg.txGenExitCh:
-				log.Debug("MakeTransaction send tx exit")
-				return
-			}
-		}
-	}()
-
-	log.Info("begin to MakeTransaction")
-	gasPrice := txg.eth.txPool.GasPrice()
-
-	go func() {
-		shouldmake := time.NewTicker(time.Millisecond * time.Duration(txm.txFrequency))
-		for {
-			select {
 			case <-shouldmake.C:
 				if time.Since(txm.blockProduceTime) >= waitBLockTime {
 					log.Debug("MakeTx should sleep", "time", time.Since(txm.blockProduceTime))
@@ -235,7 +221,6 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 
 				loop := 0
 				loopEnd := len(txm.accounts)
-				txm.mu.Lock()
 				for len(txs) <= txm.totalSenderTxPer {
 					if loop > loopEnd {
 						break
@@ -264,7 +249,6 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					txs = append(txs, newTx)
 					txm.sendDone(account)
 				}
-				txm.mu.Unlock()
 
 				if len(txs) != 0 {
 					log.Debug("MakeTx time use", "use", time.Since(now), "txs", len(txs), "deactive", deactive)
@@ -565,7 +549,6 @@ type TxMakeManger struct {
 	accounts map[common.Address]*txGenSendAccount
 
 	blockCache map[common.Hash]*types.Block
-	mu         sync.Mutex
 
 	activeSender      *accountQueue
 	activeSenderTxPer int
