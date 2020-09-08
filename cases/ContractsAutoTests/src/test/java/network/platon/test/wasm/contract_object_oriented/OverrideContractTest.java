@@ -1,4 +1,4 @@
-package wasm.contract_object_oriented;
+package network.platon.test.wasm.contract_object_oriented;
 
 import com.platon.rlp.datatypes.Uint32;
 import com.platon.rlp.datatypes.Uint64;
@@ -6,7 +6,7 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.OverrideContract;
 import org.junit.Test;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;
 

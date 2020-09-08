@@ -1,4 +1,4 @@
-package wasm.contract_cross_call;
+package network.platon.test.wasm.contract_cross_call;
 
 import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -7,7 +7,7 @@ import network.platon.contracts.wasm.ContractDelegateCallStorageString;
 import network.platon.contracts.wasm.ContractStorageString;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 public class ContractDelegateCallStorageStrTest extends WASMContractPrepareTest {
 

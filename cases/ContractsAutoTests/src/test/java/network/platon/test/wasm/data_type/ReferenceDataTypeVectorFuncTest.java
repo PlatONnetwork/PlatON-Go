@@ -1,4 +1,4 @@
-package wasm.data_type;
+package network.platon.test.wasm.data_type;
 
 import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -7,7 +7,7 @@ import network.platon.contracts.wasm.ReferenceDataTypeVectorFuncContract;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
  * @title 测试合约引用类型(verctor类型)属性/函数

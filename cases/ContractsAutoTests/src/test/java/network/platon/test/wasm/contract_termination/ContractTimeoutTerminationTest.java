@@ -1,4 +1,4 @@
-package wasm.contract_termination;
+package network.platon.test.wasm.contract_termination;
 
 import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -7,7 +7,7 @@ import network.platon.contracts.wasm.Contract_timeout_termination;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.exceptions.TransactionException;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
  * @title 合约死循环终止

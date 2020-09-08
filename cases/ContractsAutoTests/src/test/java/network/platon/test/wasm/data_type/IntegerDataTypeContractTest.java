@@ -1,4 +1,4 @@
-package wasm.data_type;
+package network.platon.test.wasm.data_type;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -14,7 +14,7 @@ import network.platon.contracts.wasm.IntegerDataTypeContract_4;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;
 

@@ -1,4 +1,4 @@
-//package wasm.storage;
+//package network.platon.test.wasm.storage;
 //
 //import network.platon.test.evm.beforetest.ContractPrepareTest;
 //import network.platon.autotest.junit.annotations.DataSource;

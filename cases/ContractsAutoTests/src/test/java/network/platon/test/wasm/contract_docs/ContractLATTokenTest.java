@@ -1,4 +1,4 @@
-package wasm.contract_docs;
+package network.platon.test.wasm.contract_docs;
 
 import com.platon.rlp.datatypes.Uint64;
 import com.platon.rlp.datatypes.Uint8;
@@ -9,7 +9,7 @@ import network.platon.contracts.wasm.LATToken;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.util.List;
 

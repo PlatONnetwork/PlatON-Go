@@ -1,4 +1,4 @@
-package wasm.contract_cross_call;
+package network.platon.test.wasm.contract_cross_call;
 
 import com.platon.rlp.datatypes.Uint64;
 import com.platon.rlp.datatypes.Uint8;
@@ -7,7 +7,7 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractCallPrecompile;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 public class ContractCrossCallPrecompileContractsTest extends WASMContractPrepareTest {
 

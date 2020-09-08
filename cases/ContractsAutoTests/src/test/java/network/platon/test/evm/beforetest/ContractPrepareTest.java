@@ -1,8 +1,6 @@
 package network.platon.test.evm.beforetest;
 
-import network.platon.autotest.junit.rules.AssertCollector;
-import network.platon.autotest.junit.rules.DriverService;
-import org.junit.Rule;
+import network.platon.test.BaseTest;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
@@ -16,14 +14,7 @@ import java.math.BigInteger;
  * @author: albedo
  * @create: 2019/12/26 11:27
  **/
-public class ContractPrepareTest {
-    @Rule
-    public DriverService driverService = new DriverService();
-    @Rule
-    public AssertCollector collector = new AssertCollector();
-
-    // 底层链ID
-    protected long chainId;
+public class ContractPrepareTest extends BaseTest {
 
     protected Web3j web3j = null;
     protected Credentials credentials = null;

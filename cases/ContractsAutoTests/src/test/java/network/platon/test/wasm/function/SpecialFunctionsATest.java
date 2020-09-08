@@ -1,4 +1,4 @@
-package wasm.function;
+package network.platon.test.wasm.function;
 
 import com.platon.rlp.datatypes.Int64;
 import com.platon.rlp.datatypes.Uint64;
@@ -6,7 +6,7 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.SpecialFunctionsA;
 import org.junit.Test;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

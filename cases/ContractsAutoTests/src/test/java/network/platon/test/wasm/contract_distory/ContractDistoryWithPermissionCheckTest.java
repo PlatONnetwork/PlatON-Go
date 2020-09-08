@@ -1,11 +1,11 @@
-package wasm.contract_distory;
+package network.platon.test.wasm.contract_distory;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractDistoryWithPermissionCheck;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
  * @title 合约销毁,带用户权限校验

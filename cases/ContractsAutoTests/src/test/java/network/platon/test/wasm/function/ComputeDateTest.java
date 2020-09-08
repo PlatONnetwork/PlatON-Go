@@ -1,4 +1,4 @@
-package wasm.function;
+package network.platon.test.wasm.function;
 
 import com.platon.rlp.datatypes.Int32;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -6,7 +6,7 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ComputeDate;
 import org.junit.Before;
 import org.junit.Test;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
  * 验证计算方法在合约里的实现

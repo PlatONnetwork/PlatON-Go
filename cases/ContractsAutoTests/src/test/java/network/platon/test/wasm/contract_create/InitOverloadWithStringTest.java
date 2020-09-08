@@ -1,4 +1,4 @@
-package wasm.contract_create;
+package network.platon.test.wasm.contract_create;
 
 import com.platon.rlp.datatypes.Int8;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -6,7 +6,7 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitOverloadWithString;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
  * @title 创建合约包含字符串操作

@@ -1,4 +1,4 @@
-package wasm.contract_clone;
+package network.platon.test.wasm.contract_clone;
 
 import com.platon.rlp.datatypes.Uint64;
 import com.platon.rlp.datatypes.WasmAddress;
@@ -10,7 +10,7 @@ import network.platon.contracts.wasm.CreateContract;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 import com.platon.rlp.datatypes.Int32;
 
 /**

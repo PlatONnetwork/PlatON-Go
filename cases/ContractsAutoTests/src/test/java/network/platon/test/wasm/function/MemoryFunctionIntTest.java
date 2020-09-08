@@ -1,11 +1,11 @@
-package wasm.function;
+package network.platon.test.wasm.function;
 
 import com.platon.rlp.datatypes.Int32;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.MemoryFunctionInt;
 import org.junit.Test;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
  * 验证内存memory函数-整型存储

@@ -1,4 +1,4 @@
-package wasm.data_type;
+package network.platon.test.wasm.data_type;
 
 import com.platon.rlp.datatypes.Int32;
 import com.platon.rlp.datatypes.Int64;
@@ -9,7 +9,7 @@ import network.platon.contracts.wasm.BasicDataTypeContract;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
  * @title 测试基本类型

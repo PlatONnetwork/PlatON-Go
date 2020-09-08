@@ -1,4 +1,4 @@
-package wasm.contract_docs;
+package network.platon.test.wasm.contract_docs;
 
 import com.platon.rlp.datatypes.Uint128;
 import com.platon.rlp.datatypes.Uint8;
@@ -13,7 +13,7 @@ import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

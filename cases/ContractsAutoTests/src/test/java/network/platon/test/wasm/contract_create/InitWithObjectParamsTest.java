@@ -1,10 +1,10 @@
-package wasm.contract_create;
+package network.platon.test.wasm.contract_create;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitWithObjectParams;
 import org.junit.Test;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
  * @title 创建合约init带一个入参对象测试

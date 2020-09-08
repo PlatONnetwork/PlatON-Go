@@ -1,4 +1,4 @@
-package wasm.contract_cross_call;
+package network.platon.test.wasm.contract_cross_call;
 
 import com.google.gson.Gson;
 import com.platon.rlp.datatypes.Uint64;
@@ -8,7 +8,7 @@ import network.platon.contracts.wasm.ContractDelegateCallPPOS;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
 

@@ -1,4 +1,4 @@
-package wasm.contract_event;
+package network.platon.test.wasm.contract_event;
 
 import com.platon.rlp.datatypes.Int8;
 import com.platon.rlp.datatypes.Uint8;
@@ -7,7 +7,7 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractEmitEventWithArray;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.util.ArrayList;
 import java.util.List;

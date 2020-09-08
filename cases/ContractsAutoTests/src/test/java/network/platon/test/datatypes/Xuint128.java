@@ -27,6 +27,4 @@ public class Xuint128 extends Uint128{
 
     public static final Uint128 TEN = Uint128.of(BigInteger.TEN);
 
-
-
 }

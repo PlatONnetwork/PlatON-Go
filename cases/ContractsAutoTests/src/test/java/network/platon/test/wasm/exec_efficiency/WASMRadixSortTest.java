@@ -1,4 +1,4 @@
-package wasm.exec_efficiency;
+package network.platon.test.wasm.exec_efficiency;
 
 import com.platon.rlp.datatypes.Int32;
 import com.platon.rlp.datatypes.Int64;
@@ -7,7 +7,7 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.RadixSort;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;
 import java.util.Arrays;

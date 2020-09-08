@@ -1,4 +1,4 @@
-package wasm.complex_contract;
+package network.platon.test.wasm.complex_contract;
 
 import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -7,7 +7,7 @@ import network.platon.contracts.wasm.CrowdFunding;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;
 

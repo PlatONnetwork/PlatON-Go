@@ -1,10 +1,11 @@
-package wasm.beforetest;
+package network.platon.test.wasm.beforetest;
 
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
 import network.platon.autotest.junit.rules.DriverService;
 import network.platon.autotest.utils.FileUtil;
+import network.platon.test.BaseTest;
 import network.platon.utils.CompileUtil;
 import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
@@ -25,12 +26,7 @@ import java.util.concurrent.Semaphore;
  * @author qcxiao
  * @updateTime 2020/2/6 12:11
  */
-public class WASMGeneratorPreTest {
-
-    @Rule
-    public DriverService driverService = new DriverService();
-    @Rule
-    public AssertCollector collector = new AssertCollector();
+public class WASMGeneratorPreTest extends BaseTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao",

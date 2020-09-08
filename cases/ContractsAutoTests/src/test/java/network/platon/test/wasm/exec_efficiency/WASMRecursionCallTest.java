@@ -1,4 +1,4 @@
-package wasm.exec_efficiency;
+package network.platon.test.wasm.exec_efficiency;
 
 
 import com.platon.rlp.datatypes.Uint64;
@@ -8,7 +8,7 @@ import network.platon.contracts.wasm.RecursionCall;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;
 

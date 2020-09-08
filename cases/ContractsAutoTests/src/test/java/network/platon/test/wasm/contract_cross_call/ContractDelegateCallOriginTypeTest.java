@@ -1,4 +1,4 @@
-//package wasm.contract_cross_call;
+//package network.platon.test.wasm.contract_cross_call;
 //
 //
 //import com.platon.rlp.network.platon.test.datatypes.Uint64;
@@ -8,7 +8,7 @@
 //import network.platon.contracts.wasm.ContractOriginType;
 //import org.junit.Test;
 //import org.web3j.protocol.core.methods.response.TransactionReceipt;
-//import wasm.beforetest.WASMContractPrepareTest;
+//import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 //
 //public class ContractDelegateCallOriginTypeTest extends WASMContractPrepareTest {
 //

@@ -1,4 +1,4 @@
-package wasm.contract_func;
+package network.platon.test.wasm.contract_func;
 
 import com.platon.rlp.datatypes.Uint64;
 import com.platon.rlp.datatypes.WasmAddress;
@@ -17,7 +17,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

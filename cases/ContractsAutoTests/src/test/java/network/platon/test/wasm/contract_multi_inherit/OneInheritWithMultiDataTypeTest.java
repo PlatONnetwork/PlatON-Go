@@ -1,4 +1,4 @@
-package wasm.contract_multi_inherit;
+package network.platon.test.wasm.contract_multi_inherit;
 
 import com.platon.rlp.datatypes.Uint32;
 import com.platon.rlp.datatypes.Uint64;
@@ -8,7 +8,7 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.OneInheritWithMultiDataType;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import wasm.beforetest.WASMContractPrepareTest;
+import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
  * @title 合约基础类单继承带有多种类型参数测试

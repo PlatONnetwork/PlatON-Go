@@ -1,4 +1,4 @@
-//package wasm.storage;
+//package network.platon.test.wasm.storage;
 //
 //import com.alibaba.fastjson.JSONArray;
 //import com.platon.rlp.network.platon.test.datatypes.Uint32;
