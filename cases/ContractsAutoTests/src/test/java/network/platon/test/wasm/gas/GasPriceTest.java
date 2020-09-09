@@ -270,7 +270,7 @@ public class GasPriceTest extends WASMContractPrepareTest {
                     GasPrice newGasPrice = GasPrice.deploy(web3j, transactionManager, provider,chainId).send();
                     WasmAddress wasmAddress = new WasmAddress(newGasPrice.getContractAddress());
 
-                    transactionReceipt = gasPrice.platonCall(wasmAddress, "platon_timestamp").send();
+                    transactionReceipt = gasPrice.platonCall(wasmAddress, "platonTimestamp").send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
                     this.checkGas(gas, "platonCall");
                     break;
@@ -280,7 +280,7 @@ public class GasPriceTest extends WASMContractPrepareTest {
                     GasPrice newGasPrice = GasPrice.deploy(web3j, transactionManager, provider,chainId).send();
                     WasmAddress wasmAddress = new WasmAddress(newGasPrice.getContractAddress());
 
-                    transactionReceipt = gasPrice.platonDelegateCall(wasmAddress, "platon_timestamp").send();
+                    transactionReceipt = gasPrice.platonDelegateCall(wasmAddress, "platonTimestamp").send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
                     this.checkGas(gas, "platonDelegateCall");
                     break;
