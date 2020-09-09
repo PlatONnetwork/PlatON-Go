@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -34,61 +36,9 @@ type AnalystEntity struct {
 	Tps                uint64
 }
 
-func (txg *TxGenAPI) CalTps(input, output string, t int) error {
-	file, err := os.OpenFile(input, os.O_RDWR, 0666)
-	if err != nil {
-		return fmt.Errorf("Failed to open config file:%v", err)
-	}
-	defer file.Close()
-	var res TxGenResData
-	if err := json.NewDecoder(file).Decode(&res); err != nil {
-		return fmt.Errorf("invalid res file :%v", err)
-	}
-
-	endTime := res.Tps[0].BlockProduceTime.Add(time.Second * time.Duration(t))
-	txConut := 0
-	analysts := make([][2]int64, 0)
-	for _, tps := range res.Tps {
-		if tps.BlockProduceTime.Before(endTime) {
-			txConut += tps.TxLength
-		} else {
-			analysts = append(analysts, [2]int64{endTime.Unix(), int64(txConut / t)})
-			endTime = endTime.Add(time.Second * time.Duration(t))
-			txConut = 0
-			txConut += tps.TxLength
-		}
-	}
-
-	xlsxFile := xlsx.NewFile()
-	sheet, err := xlsxFile.AddSheet("tps statistics")
-	if err != nil {
-		return err
-	}
-
-	// add title
-	row := sheet.AddRow()
-	cell_1 := row.AddCell()
-	cell_1.Value = "time"
-	cell_2 := row.AddCell()
-	cell_2.Value = "tps"
-
-	//add data
-	for _, d := range analysts {
-		row := sheet.AddRow()
-		beginNumber := row.AddCell()
-		beginNumber.Value = strconv.FormatInt(d[0], 10)
-		endNumber := row.AddCell()
-		endNumber.Value = strconv.FormatInt(d[1], 10)
-	}
-	err = xlsxFile.Save(output)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (txg *TxGenAPI) CalTtf(configPaths []string, output string, t int) error {
-	x := make(ttfs, 0)
+func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
+	x := make(BlockInfos, 0)
+	sendTotal := uint64(0)
 	for _, path := range configPaths {
 		file, err := os.OpenFile(path, os.O_RDWR, 0666)
 		if err != nil {
@@ -103,24 +53,25 @@ func (txg *TxGenAPI) CalTtf(configPaths []string, output string, t int) error {
 		for _, ttf := range res.Ttf {
 			x = append(x, ttf)
 		}
+		sendTotal += res.TotalTxSend
 	}
 	sort.Sort(x)
-	endTime := x[0].BlockProduceTime.Add(time.Second * time.Duration(t))
+	endTime := common.MillisToTime(x[0].ProduceTime).Add(time.Second * time.Duration(t))
 	txConut := 0
-	timeUse := time.Duration(0)
-	analysts := make([][2]int64, 0)
+	timeUse := int64(0)
+	analysts := make([][3]int64, 0)
+	total := 0
+
 	for _, ttf := range x {
-		if ttf.BlockProduceTime.Before(endTime) {
-			txConut += ttf.TxLength
-			timeUse += ttf.TimeUse
-		} else {
-			analysts = append(analysts, [2]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds()})
+		total += ttf.TxLength
+		if !common.MillisToTime(ttf.ProduceTime).Before(endTime) {
+			analysts = append(analysts, [3]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds(), int64(txConut) / int64(t)})
 			endTime = endTime.Add(time.Second * time.Duration(t))
 			txConut = 0
 			timeUse = 0
-			txConut += ttf.TxLength
-			timeUse += ttf.TimeUse
 		}
+		txConut += ttf.TxLength
+		timeUse += ttf.TimeUse
 	}
 
 	xlsxFile := xlsx.NewFile()
@@ -135,14 +86,28 @@ func (txg *TxGenAPI) CalTtf(configPaths []string, output string, t int) error {
 	cell_1.Value = "time"
 	cell_2 := row.AddCell()
 	cell_2.Value = "ttf"
+	cell_3 := row.AddCell()
+	cell_3.Value = "tps"
+	cell_4 := row.AddCell()
+	cell_4.Value = "totalReceive"
+	cell_5 := row.AddCell()
+	cell_5.Value = "totalSend"
 
 	//add data
-	for _, d := range analysts {
+	for i, d := range analysts {
 		row := sheet.AddRow()
-		beginNumber := row.AddCell()
-		beginNumber.Value = strconv.FormatInt(d[0], 10)
-		endNumber := row.AddCell()
-		endNumber.Value = strconv.FormatInt(d[1], 10)
+		time := row.AddCell()
+		time.Value = strconv.FormatInt(d[0], 10)
+		ttf := row.AddCell()
+		ttf.Value = strconv.FormatInt(d[1], 10)
+		tps := row.AddCell()
+		tps.Value = strconv.FormatInt(d[2], 10)
+		if i == 0 {
+			totalReceive := row.AddCell()
+			totalReceive.Value = strconv.FormatInt(int64(total), 10)
+			totalSend := row.AddCell()
+			totalSend.Value = strconv.FormatInt(int64(sendTotal), 10)
+		}
 	}
 	err = xlsxFile.Save(output)
 	if err != nil {
