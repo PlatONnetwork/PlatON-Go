@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -131,6 +132,34 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 	singine := types.NewEIP155Signer(new(big.Int).SetInt64(txg.eth.chainConfig.ChainID.Int64()))
 
 	txsCh := make(chan []*types.Transaction, 2)
+
+	type needSignTx struct {
+		tx  *types.Transaction
+		pri *ecdsa.PrivateKey
+	}
+
+	signTxCh := make(chan needSignTx, txm.totalSenderTxPer)
+
+	signDoneTxCh := make(chan *types.Transaction, txm.totalSenderTxPer)
+
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go func() {
+			for {
+				select {
+				case <-txg.txGenExitCh:
+					return
+				case ntx := <-signTxCh:
+					newTx, err := types.SignTx(ntx.tx, singine, ntx.pri)
+					if err != nil {
+						log.Error(fmt.Errorf("sign error,%s", err.Error()).Error())
+					}
+					signDoneTxCh <- newTx
+				}
+			}
+
+		}()
+	}
+
 	go func() {
 		ev := core.NewTxsEvent{}
 		for {
@@ -152,6 +181,8 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 	shouldmake := time.NewTicker(time.Millisecond * time.Duration(txm.txFrequency))
 	go func() {
 		loopEnd := len(txm.accounts) + 100
+		deactive := 0
+		loop := 0
 		for {
 			select {
 			case res := <-blockExcuteCh:
@@ -200,16 +231,16 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				}
 				txs := make([]*types.Transaction, 0, txm.totalSenderTxPer)
 				toAdd := txm.pickTxReceive()
-				deactive := 0
-				loop := 0
-
+				deactive, loop = 0, 0
 				now := time.Now()
-				for len(txs) <= txm.totalSenderTxPer {
+				var account *txGenSendAccount
+
+				sendTxLength := 0
+				for sendTxLength < txm.totalSenderTxPer {
 					if loop > loopEnd {
 						break
 					}
 					loop++
-					var account *txGenSendAccount
 					if len(txs) < txm.activeSenderTxPer {
 						account = txm.pickActiveSender()
 					} else {
@@ -223,21 +254,26 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					txContractInputData, txReceive, gasLimit, amount := txm.generateTxParams(toAdd)
 
 					tx := types.NewTransaction(account.Nonce, txReceive, amount, gasLimit, gasPrice, txContractInputData)
-					newTx, err := types.SignTx(tx, singine, account.Priv)
+					signTxCh <- needSignTx{tx, account.Priv}
+					/*newTx, err := types.SignTx(tx, singine, account.Priv)
 					if err != nil {
 						log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
-					}
+					}*/
 					txg.res.TotalTxSend++
-					txs = append(txs, newTx)
+					//txs = append(txs, newTx)
+					sendTxLength++
 					txm.sendDone(account, now)
 				}
-
+				for i := 0; i < sendTxLength; i++ {
+					txs = append(txs, <-signDoneTxCh)
+				}
 				if len(txs) != 0 {
 					txsCh <- txs
 				}
 				log.Debug("makeTx time use", "use", time.Since(now), "txs", len(txs), "deactive", deactive, "loop", loop)
 			case <-txg.txGenStopTxCh:
 				shouldmake.Stop()
+			case <-txg.txGenExitCh:
 				log.Debug("makeTx exit")
 				return
 			}

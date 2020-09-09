@@ -204,9 +204,10 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if diff.Cmp(big.NewInt(5)) > 0 {
 		atomic.StoreUint32(&pm.acceptTxs, 0)
 	}
+	log.Info("begin sync from peer", "peerID", peer.id, "pHead", pHead, "pBn", pBn, "mode", mode, "diff", diff)
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
 	if err := pm.downloader.Synchronise(peer.id, pHead, pBn, mode); err != nil {
-		log.Info("begin sync from peer", "peerID", peer.id, "pHead", pHead, "pBn", pBn, "mode", mode, "err", err)
+		log.Info("sync from peer fail", "peerID", peer.id, "pHead", pHead, "pBn", pBn, "mode", mode, "err", err)
 		return
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
