@@ -116,6 +116,87 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	return nil
 }
 
+type Tps struct {
+	BlockProduceTime time.Time
+	TxLength         int
+}
+
+func (txg *TxGenAPI) CalBlockTps(ctx context.Context, beginBn, endBn uint64, output string) error {
+
+	res := make([]Tps, 0)
+
+	for i := uint64(beginBn); i < endBn; i++ {
+		block, err := txg.eth.APIBackend.BlockByNumber(ctx, rpc.BlockNumber(i))
+		if err != nil {
+			return err
+		}
+		res = append(res, Tps{common.MillisToTime(block.Header().Time.Int64()), block.Transactions().Len()})
+	}
+	t := 10
+	endTime := res[0].BlockProduceTime.Add(time.Second * time.Duration(t))
+	blockCount := 0
+	beginTimestamp := int64(0)
+	endTimestamp := int64(0)
+	txConut := 0
+	analysts := make([][3]int64, 0)
+	for i := 0; i < len(res); i++ {
+		if res[i].BlockProduceTime.Before(endTime) {
+			blockCount += 1
+			if blockCount == 1 {
+				beginTimestamp = common.Millis(res[i].BlockProduceTime)
+			}
+			txConut += res[i].TxLength
+		} else {
+			endTimestamp = common.Millis(res[i-1].BlockProduceTime)
+			fmt.Println("rowInfo", "endTime", endTime.Unix(), "beginTimestamp", beginTimestamp, "endTimestamp", endTimestamp, "txConut", txConut, "blockCount", blockCount)
+			if blockCount == 1 && beginTimestamp == endTimestamp {
+				analysts = append(analysts, [3]int64{endTime.Unix(), int64(txConut / t), 0})
+			} else {
+				analysts = append(analysts, [3]int64{endTime.Unix(), int64(txConut / t), (endTimestamp - beginTimestamp) / int64(blockCount-1)})
+			}
+			endTime = endTime.Add(time.Second * time.Duration(t))
+			blockCount = 0
+			beginTimestamp = int64(0)
+			endTimestamp = int64(0)
+			txConut = 0
+			blockCount += 1
+			beginTimestamp = common.Millis(res[i].BlockProduceTime)
+			txConut += res[i].TxLength
+		}
+	}
+
+	xlsxFile := xlsx.NewFile()
+	sheet, err := xlsxFile.AddSheet("tps statistics")
+	if err != nil {
+		return err
+	}
+
+	// add title
+	row := sheet.AddRow()
+	cell_1 := row.AddCell()
+	cell_1.Value = "time"
+	cell_2 := row.AddCell()
+	cell_2.Value = "tps"
+	cell_3 := row.AddCell()
+	cell_3.Value = "avg interval"
+
+	//add data
+	for _, d := range analysts {
+		row := sheet.AddRow()
+		beginNumber := row.AddCell()
+		beginNumber.Value = strconv.FormatInt(d[0], 10)
+		tps := row.AddCell()
+		tps.Value = strconv.FormatInt(d[1], 10)
+		interval := row.AddCell()
+		interval.Value = strconv.Itoa(int(d[2]))
+	}
+	err = xlsxFile.Save(output)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (txg *TxGenAPI) CalBlockAnalyst(ctx context.Context, beginBn, endBn uint64, interval uint64, resultPath string) ([]*AnalystEntity, error) {
 	if beginBn >= endBn || endBn < interval || endBn%interval != 0 || beginBn%interval != 1 {
 		return nil, fmt.Errorf("Invalid parameter, beginBn: %d, endBn: %d, interval: %d \n", beginBn, endBn, interval)
