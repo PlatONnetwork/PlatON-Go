@@ -75,7 +75,9 @@ public class GasPriceTest extends WASMContractPrepareTest {
                 }
                 case 2:{
                     //根据blockNumber查询blockHash
-                    transactionReceipt = gasPrice.platonBlockHash(Int64.of(BigInteger.ONE)).send();
+                    BigInteger currentBlockNumber = web3j.platonBlockNumber().send().getBlockNumber();
+//                    transactionReceipt = gasPrice.platonBlockHash(Int64.of(BigInteger.TEN)).send();
+                    transactionReceipt = gasPrice.platonBlockHash(Int64.of(currentBlockNumber)).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
                     this.checkGas(gas, "platonBlockHash");
                     break;
@@ -303,11 +305,12 @@ public class GasPriceTest extends WASMContractPrepareTest {
                     collector.assertTrue((Math.abs(5000 - gas.intValue())) < 100);
 
                     //合约销毁，地址未使用过
+                    gasPrice = GasPrice.deploy(web3j, transactionManager, provider,chainId).send();
                     wasmAddress = new WasmAddress("lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl");
                     transactionReceipt = gasPrice.platonDestory(wasmAddress).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
                     collector.logStepPass("gas of platonDestory: " + gas);
-                    collector.assertTrue((Math.abs(30000 - gas.intValue())) < 100);
+                    collector.assertTrue((Math.abs(5000 - gas.intValue())) < 100);
                     break;
                 }
                 case 30:{
@@ -316,8 +319,12 @@ public class GasPriceTest extends WASMContractPrepareTest {
                     WasmAddress wasmAddress = new WasmAddress(newGasPrice.getContractAddress());
 
                     transactionReceipt = gasPrice.platonMigrate(wasmAddress).send();
-                    gas = this.getGasValue(transactionReceipt, gasPrice);
-                    this.checkGas(gas, "platonMigrate");
+                    collector.logStepPass("transactionReceipt: " + JSONObject.toJSONString(transactionReceipt));
+                    List<GasPrice.GasUsedEventResponse> eventList = gasPrice.getGasUsedEvents(transactionReceipt);
+                    collector.logStepPass("eventList: " + JSONObject.toJSONString(eventList));
+                    gas = eventList.get(2).arg1.value;
+                    collector.logStepPass("gas of platonMigrate: " + gas);
+                    collector.assertTrue((Math.abs(153200 - gas.intValue())) < 10000);
                     break;
                 }
                 case 31:{
@@ -327,7 +334,8 @@ public class GasPriceTest extends WASMContractPrepareTest {
 
                     transactionReceipt = gasPrice.platonMigrateClone(wasmAddress).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
-                    this.checkGas(gas, "platonMigrateClone");
+                    collector.logStepPass("gas of platonMigrateClone: " + gas);
+                    collector.assertTrue((Math.abs(153200 - gas.intValue())) < 10000);
                     break;
                 }
                 case 32:{
@@ -437,8 +445,12 @@ public class GasPriceTest extends WASMContractPrepareTest {
                     WasmAddress wasmAddress = new WasmAddress(newGasPrice.getContractAddress());
 
                     transactionReceipt = gasPrice.platonDeploy(wasmAddress).send();
-                    gas = this.getGasValue(transactionReceipt, gasPrice);
-                    this.checkGas(gas, "platonDeploy");
+                    collector.logStepPass("transactionReceipt: " + JSONObject.toJSONString(transactionReceipt));
+                    List<GasPrice.GasUsedEventResponse> eventList = gasPrice.getGasUsedEvents(transactionReceipt);
+                    collector.logStepPass("eventList: " + JSONObject.toJSONString(eventList));
+                    gas = eventList.get(2).arg1.value;
+                    collector.logStepPass("gas of platonDeploy: " + gas);
+                    collector.assertTrue((Math.abs(110000 - gas.intValue())) < 10000);
                     break;
                 }
                 case 45:{
@@ -448,7 +460,8 @@ public class GasPriceTest extends WASMContractPrepareTest {
 
                     transactionReceipt = gasPrice.platonClone(wasmAddress).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
-                    this.checkGas(gas, "platonClone");
+                    collector.logStepPass("gas of platonClone: " + gas);
+                    collector.assertTrue((Math.abs(110000 - gas.intValue())) < 10000);
                     break;
                 }
             }
