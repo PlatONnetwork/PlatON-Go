@@ -61,7 +61,7 @@ public class WASMGeneratorPreTest extends BaseTest {
      **/
     public void compileWasm() throws InterruptedException {
         //String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm").toUri().getPath());
-        String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "gas").toUri().getPath());
+        String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm").toUri().getPath());
 
         String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "build").toUri().getPath());
 
