@@ -142,9 +142,8 @@ CONTRACT GasPrice : public platon::Contract{
                              gas_bytes.data(), gas_bytes.size());
     }
 
-    ACTION void platonDestory() {
-        uint8_t to[20] = {};
-        platon_destroy(to);
+    ACTION void platonDestory(const Address & to) {
+        platon_destroy(to.data());
     }
 
     ACTION void platonMigrate(const Address & contract_address){

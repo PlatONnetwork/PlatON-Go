@@ -26,7 +26,15 @@ import java.util.List;
  */
 public class GasPriceTest extends WASMContractPrepareTest {
 
-    private static final String GASMAPSTR = "{\"platonGasPrice\": 2, \"platonBlockHash\": 2, \"platonBlockNumber\": 2, \"platonGasLimit\": 2, \"platonGas\": 2, \"platonTimestamp\": 2, \"platonCoinbase\": 2, \"platonBalance\": 400, \"platonOrigin\": 2, \"platonCaller\": 2, \"platonCallValue\": 2, \"platonAddress\": 2, \"platonSha3\": 150, \"platonCallerNonce\": 2, \"platonTransfer\": 7444, \"platonGetStateLength\": 200, \"platonGetState\": 200, \"platonGetInputLength\": 2, \"platonGetInput\": 2, \"platonGetCallOutputLength\": 2, \"platonGetCallOutput\": 2, \"platonReturn\": 302, \"platonRevert\": 0, \"platonPanic\": 0, \"platonDebug\": 310, \"platonEcrecover\": 3000, \"platonRipemd160\": 1800, \"platonSha256\": 1260,  \"platonRlpBytesSize\": 2, \"platonRlpListSize\": 2}";
+    private static final String GASMAPSTR = "{\"platonGasPrice\": 2, \"platonBlockHash\": 20, \"platonBlockNumber\": 2," +
+            " \"platonGasLimit\": 2, \"platonGas\": 2, \"platonTimestamp\": 2, \"platonCoinbase\": 2, " +
+            "\"platonBalance\": 400, \"platonOrigin\": 2, \"platonCaller\": 2, \"platonCallValue\": 2, " +
+            "\"platonAddress\": 2, \"platonSha3\": 150, \"platonCallerNonce\": 2, \"platonTransfer\": 7444, " +
+            "\"platonGetStateLength\": 200, \"platonGetState\": 200, \"platonGetInputLength\": 2, " +
+            "\"platonGetInput\": 2, \"platonGetCallOutputLength\": 2, \"platonGetCallOutput\": 2, \"platonReturn\": 302, " +
+            "\"platonRevert\": 0, \"platonPanic\": 0, \"platonEvent\": 1293, \"platonDebug\": 310, " +
+            "\"platonEcrecover\": 3000, \"platonRipemd160\": 840, \"platonSha256\": 84, \"platonRlpU128Size\": 2, \"platonRlpU128\": 17, \"platonRlpBytesSize\": 2, \"platonRlpBytes\": 35," +
+            " \"platonRlpListSize\": 2, \"platonRlpList\": 35, \"platonContractCodeLength\": 200, \"platonContractCode\": 200}";
     private static final JSONObject GASMAP = JSONObject.parseObject(GASMAPSTR);
     private BigInteger getGasValue(TransactionReceipt transactionReceipt, GasPrice gasPrice){
         collector.logStepPass("transactionReceipt: " + JSONObject.toJSONString(transactionReceipt));
@@ -179,14 +187,14 @@ public class GasPriceTest extends WASMContractPrepareTest {
                     transactionReceipt = gasPrice.platonSetState(key.getBytes(), value.getBytes()).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
                     collector.logStepPass("gas of platonSetState: " + gas);
-                    collector.assertTrue((Math.abs(10000 - gas.intValue())) < 100);
+                    collector.assertTrue((Math.abs(5000 - gas.intValue())) < 100);
 
                     //存储单个账户的store (调用SetState()), 删除数据
                     value = "";
                     transactionReceipt = gasPrice.platonSetState(key.getBytes(), value.getBytes()).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
                     collector.logStepPass("gas of platonSetState: " + gas);
-                    collector.assertTrue((Math.abs(40000 - gas.intValue())) < 100);
+                    collector.assertTrue((Math.abs(10000 - gas.intValue())) < 100);
                     break;
                 }
                 case 17:{
@@ -286,10 +294,20 @@ public class GasPriceTest extends WASMContractPrepareTest {
                     break;
                 }
                 case 29:{
-                    //合约销毁
-                    transactionReceipt = gasPrice.platonDestory().send();
+                    //合约销毁，地址使用过
+                    WasmAddress wasmAddress = new WasmAddress(gasPrice.getContractAddress());
+                    gasPrice.platonBlockNumber();
+                    transactionReceipt = gasPrice.platonDestory(wasmAddress).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
-                    this.checkGas(gas, "platonDestory");
+                    collector.logStepPass("gas of platonDestory: " + gas);
+                    collector.assertTrue((Math.abs(5000 - gas.intValue())) < 100);
+
+                    //合约销毁，地址未使用过
+                    wasmAddress = new WasmAddress("lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl");
+                    transactionReceipt = gasPrice.platonDestory(wasmAddress).send();
+                    gas = this.getGasValue(transactionReceipt, gasPrice);
+                    collector.logStepPass("gas of platonDestory: " + gas);
+                    collector.assertTrue((Math.abs(30000 - gas.intValue())) < 100);
                     break;
                 }
                 case 30:{
@@ -314,7 +332,7 @@ public class GasPriceTest extends WASMContractPrepareTest {
                 }
                 case 32:{
                     //合约事件
-                    RlpString rlpString = RlpString.create("test".getBytes());
+                    RlpString rlpString = RlpString.create(RandomStringUtils.randomAlphanumeric(20).getBytes());
                     byte[] topic = RlpEncoder.encode(rlpString);
                     List<String> args = Arrays.asList("hello", "world");
                     RlpType[] values = new RlpType[args.size()];
@@ -322,7 +340,6 @@ public class GasPriceTest extends WASMContractPrepareTest {
                         values[i] = RlpString.create(args.get(i));
                     }
                     byte[] endcodedArgs = RlpEncoder.encode(new RlpList(values));
-
                     transactionReceipt = gasPrice.platonEvent(endcodedArgs, topic).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
                     this.checkGas(gas, "platonEvent");
@@ -344,14 +361,14 @@ public class GasPriceTest extends WASMContractPrepareTest {
                 }
                 case 34:{
                     //ripemd160算法求Hash
-                    transactionReceipt = gasPrice.platonRipemd160("helloworld".getBytes()).send();
+                    transactionReceipt = gasPrice.platonRipemd160(RandomStringUtils.randomAlphanumeric(33).getBytes()).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
                     this.checkGas(gas, "platonRipemd160");
                     break;
                 }
                 case 35:{
                     //sha256算法求Hash
-                    transactionReceipt = gasPrice.platonSha256("helloworldworldhello".getBytes()).send();
+                    transactionReceipt = gasPrice.platonSha256(RandomStringUtils.randomAlphanumeric(33).getBytes()).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice);
                     this.checkGas(gas, "platonSha256");
                     break;
