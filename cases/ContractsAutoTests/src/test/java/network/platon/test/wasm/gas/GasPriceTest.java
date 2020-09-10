@@ -454,7 +454,7 @@ public class GasPriceTest extends WASMContractPrepareTest {
             }
 
         } catch (Exception e) {
-            collector.logStepPass("Gas price test fail.");
+            collector.logStepFail("Gas price test fail.", e.getMessage());
             e.printStackTrace();
         }
     }
