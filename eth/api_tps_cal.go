@@ -50,7 +50,7 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 			return fmt.Errorf("invalid res file r:%v", err)
 		}
 
-		for _, ttf := range res.Ttf {
+		for _, ttf := range res.Blocks {
 			x = append(x, ttf)
 		}
 		sendTotal += res.TotalTxSend
@@ -75,7 +75,7 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	}
 
 	xlsxFile := xlsx.NewFile()
-	sheet, err := xlsxFile.AddSheet("ttf statistics")
+	sheet, err := xlsxFile.AddSheet("block tx statistics")
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	cell_1 := row.AddCell()
 	cell_1.Value = "time"
 	cell_2 := row.AddCell()
-	cell_2.Value = "ttf"
+	cell_2.Value = "latency"
 	cell_3 := row.AddCell()
 	cell_3.Value = "tps"
 	cell_4 := row.AddCell()

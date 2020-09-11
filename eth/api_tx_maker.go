@@ -64,7 +64,7 @@ func (t BlockInfos) Swap(i, j int) {
 }
 
 type TxGenResData struct {
-	Ttf         []BlockInfo `json:"ttf"`
+	Blocks      []BlockInfo `json:"blocks"`
 	TotalTxSend uint64      `json:"total_tx_send"`
 }
 
@@ -73,7 +73,6 @@ type TxGenAPI struct {
 	txGenExitCh      chan struct{}
 	txGenStopTxCh    chan struct{}
 	start            bool
-	blockfeed        event.Subscription
 	blockExecuteFeed event.Subscription
 
 	res *TxGenResData
@@ -99,9 +98,6 @@ func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer
 	//so this node can keep in sync with other nodes
 	atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 1)
 
-	blockch := make(chan *types.Block, 200)
-	txg.blockfeed = txg.eth.blockchain.SubscribeWriteStateBlocksEvent(blockch)
-
 	blockExecutech := make(chan *types.Block, 200)
 	txg.blockExecuteFeed = txg.eth.blockchain.SubscribeExecuteBlocksEvent(blockExecutech)
 
@@ -109,15 +105,15 @@ func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer
 	txg.txGenStopTxCh = make(chan struct{})
 	txg.res = new(TxGenResData)
 	txg.res.TotalTxSend = 0
-	txg.res.Ttf = make([]BlockInfo, 0)
-	if err := txg.makeTransaction(normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockExecutech, blockch, time.Second*time.Duration(waitAccountReceiptTime)); err != nil {
+	txg.res.Blocks = make([]BlockInfo, 0)
+	if err := txg.makeTransaction(normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockExecutech, time.Second*time.Duration(waitAccountReceiptTime)); err != nil {
 		return err
 	}
 	txg.start = true
 	return nil
 }
 
-func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, blockExcuteCh, blockQCCh chan *types.Block, waitAccountReceiptTime time.Duration) error {
+func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, blockExcuteCh chan *types.Block, waitAccountReceiptTime time.Duration) error {
 	state, err := txg.eth.blockchain.State()
 	if err != nil {
 		return err
@@ -187,43 +183,25 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 			select {
 			case res := <-blockExcuteCh:
 				txm.blockProduceTime = time.Now()
+				length := 0
+				timeUse := int64(0)
+
+				headerTime := common.MillisToTime(res.Header().Time.Int64()).UnixNano()
+
 				for _, receipt := range res.Transactions() {
 					if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
 						if account.ReceiptsNonce < receipt.Nonce() {
 							account.ReceiptsNonce = receipt.Nonce()
 						}
-					}
-				}
-				log.Debug("makeTx update receiptsNonce", "use", time.Since(txm.blockProduceTime), "txs", len(res.Transactions()))
-				txm.blockCache[res.Hash()] = res
-			case res := <-blockQCCh:
-				now := time.Now()
-				timeUse := int64(0)
-				txm.blockProduceTime = now
-				length := 0
-
-				if block, ok := txm.blockCache[res.Hash()]; ok {
-					for _, receipt := range block.Transactions() {
-						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
-							timeUse = timeUse + now.UnixNano() - account.SendTime[receipt.Nonce()].UnixNano()
-							length++
-							delete(account.SendTime, receipt.Nonce())
-						}
-					}
-					delete(txm.blockCache, res.Hash())
-				} else {
-					for _, receipt := range res.Transactions() {
-						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
-							timeUse = timeUse + now.UnixNano() - account.SendTime[receipt.Nonce()].UnixNano()
-							length++
-							delete(account.SendTime, receipt.Nonce())
-						}
+						timeUse = timeUse + headerTime - account.SendTime[receipt.Nonce()].UnixNano()
+						length++
+						delete(account.SendTime, receipt.Nonce())
 					}
 				}
 				if length > 0 {
-					txg.res.Ttf = append(txg.res.Ttf, BlockInfo{common.Millis(now), res.Number().Int64(), length, timeUse})
+					txg.res.Blocks = append(txg.res.Blocks, BlockInfo{res.Header().Time.Int64(), res.Number().Int64(), length, timeUse})
 				}
-				log.Debug("makeTx update res", "use", time.Since(now), "txs", len(res.Transactions()))
+				log.Debug("makeTx update receiptsNonce", "block", res.Number(), "use", time.Since(txm.blockProduceTime), "txs", len(res.Transactions()), "current_txs", length)
 			case <-shouldmake.C:
 				if time.Since(txm.blockProduceTime) >= waitBLockTime {
 					log.Debug("makeTx should sleep", "time", time.Since(txm.blockProduceTime))
@@ -282,18 +260,33 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 	return nil
 }
 
-func (txg *TxGenAPI) GetTTF(latest uint64) ([]BlockInfo, error) {
-	if latest == 0 {
-		return txg.res.Ttf, nil
-	}
-	if int(latest) > len(txg.res.Ttf) {
-		return nil, fmt.Errorf("the ttf res Length %v less than %v", len(txg.res.Ttf), latest)
-	}
-	return txg.res.Ttf[len(txg.res.Ttf)-1-int(latest) : len(txg.res.Ttf)-1], nil
-}
+func (txg *TxGenAPI) GetRes(resPath string) (*TxGenResData, error) {
+	if resPath != "" {
+		file, err := os.Create(resPath)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to open config file:%v", err)
+		}
+		defer file.Close()
+		output, err := json.Marshal(txg.res)
+		if err != nil {
+			return nil, err
+		}
 
-func (txg *TxGenAPI) GetTotalSend() uint64 {
-	return txg.res.TotalTxSend
+		if err := file.Truncate(0); err != nil {
+			return nil, err
+		}
+		if _, err := file.Seek(0, 0); err != nil {
+			return nil, err
+		}
+		if _, err := file.Write(output); err != nil {
+			return nil, err
+		}
+		if err := file.Sync(); err != nil {
+			return nil, err
+		}
+	}
+
+	return txg.res, nil
 }
 
 func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
@@ -405,7 +398,6 @@ func (txg *TxGenAPI) Stop(resPath string) error {
 		close(txg.txGenStopTxCh)
 		close(txg.txGenExitCh)
 		txg.start = false
-		txg.blockfeed.Unsubscribe()
 		txg.blockExecuteFeed.Unsubscribe()
 		atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 0)
 		return nil
@@ -439,7 +431,6 @@ func (txg *TxGenAPI) Stop(resPath string) error {
 
 	close(txg.txGenExitCh)
 	txg.start = false
-	txg.blockfeed.Unsubscribe()
 	txg.blockExecuteFeed.Unsubscribe()
 
 	atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 0)
@@ -557,8 +548,6 @@ func (a *accountQueue) next() common.Address {
 type TxMakeManger struct {
 	//from
 	accounts map[common.Address]*txGenSendAccount
-
-	blockCache map[common.Hash]*types.Block
 
 	activeSender      *accountQueue
 	activeSenderTxPer int
@@ -747,8 +736,6 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 	t.totalSenderTxPer = int(totalTxPer)
 	t.activeSenderTxPer = int(activeTxPer)
 	t.txFrequency = int(txFrequency)
-
-	t.blockCache = make(map[common.Hash]*types.Block)
 
 	t.blockProduceTime = time.Now()
 

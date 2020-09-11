@@ -115,7 +115,6 @@ type BlockChain struct {
 	chainSideFeed event.Feed
 	chainHeadFeed event.Feed
 
-	BlockFeed        event.Feed
 	BlockExecuteFeed event.Feed
 
 	logsFeed     event.Feed
@@ -1110,7 +1109,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if !bc.cacheConfig.DBDisabledGC.IsSet() && bc.cleaner.NeedCleanup() {
 		bc.cleaner.Cleanup()
 	}
-	bc.BlockFeed.Send(block)
 
 	return status, nil
 }
@@ -1625,11 +1623,6 @@ func (bc *BlockChain) SubscribeChainSideEvent(ch chan<- ChainSideEvent) event.Su
 // SubscribeLogsEvent registers a subscription of []*types.Log.
 func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	return bc.scope.Track(bc.logsFeed.Subscribe(ch))
-}
-
-// SubscribeLogsEvent registers a subscription of *types.Block.
-func (bc *BlockChain) SubscribeWriteStateBlocksEvent(ch chan<- *types.Block) event.Subscription {
-	return bc.scope.Track(bc.BlockFeed.Subscribe(ch))
 }
 
 // SubscribeLogsEvent registers a subscription of *types.Block.
