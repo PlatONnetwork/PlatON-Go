@@ -59,19 +59,22 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	endTime := common.MillisToTime(x[0].ProduceTime).Add(time.Second * time.Duration(t))
 	txConut := 0
 	timeUse := int64(0)
-	analysts := make([][3]int64, 0)
+	timeUse2 := int64(0)
+	analysts := make([][4]int64, 0)
 	total := 0
 
 	for _, ttf := range x {
 		total += ttf.TxLength
 		if !common.MillisToTime(ttf.ProduceTime).Before(endTime) {
-			analysts = append(analysts, [3]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds(), int64(txConut) / int64(t)})
+			analysts = append(analysts, [4]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds(), int64(txConut) / int64(t), time.Duration(int64(float64(timeUse2) / float64(txConut))).Milliseconds()})
 			endTime = endTime.Add(time.Second * time.Duration(t))
 			txConut = 0
 			timeUse = 0
+			timeUse2 = 0
 		}
 		txConut += ttf.TxLength
 		timeUse += ttf.TimeUse
+		timeUse2 += ttf.TTfTimeUse
 	}
 
 	xlsxFile := xlsx.NewFile()
@@ -89,19 +92,23 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	cell_3 := row.AddCell()
 	cell_3.Value = "tps"
 	cell_4 := row.AddCell()
-	cell_4.Value = "totalReceive"
+	cell_4.Value = "ttf"
 	cell_5 := row.AddCell()
-	cell_5.Value = "totalSend"
+	cell_5.Value = "totalReceive"
+	cell_6 := row.AddCell()
+	cell_6.Value = "totalSend"
 
 	//add data
 	for i, d := range analysts {
 		row := sheet.AddRow()
 		time := row.AddCell()
 		time.Value = strconv.FormatInt(d[0], 10)
-		ttf := row.AddCell()
-		ttf.Value = strconv.FormatInt(d[1], 10)
+		latency := row.AddCell()
+		latency.Value = strconv.FormatInt(d[1], 10)
 		tps := row.AddCell()
 		tps.Value = strconv.FormatInt(d[2], 10)
+		ttf := row.AddCell()
+		ttf.Value = strconv.FormatInt(d[3], 10)
 		if i == 0 {
 			totalReceive := row.AddCell()
 			totalReceive.Value = strconv.FormatInt(int64(total), 10)
