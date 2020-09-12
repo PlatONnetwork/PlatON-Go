@@ -2,9 +2,15 @@ package eth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"sort"
 	"strconv"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
@@ -25,12 +31,180 @@ type AnalystEntity struct {
 	MissViewList       []uint64
 	TotalProduceTime   uint64
 	AverageProduceTime uint64
-	TopArray           []uint64
+	TopArray           [][]uint64
 	TxCount            uint64
 	Tps                uint64
 }
 
-func (txg *TxGenAPI) GetTps(ctx context.Context, beginBn, endBn uint64, interval uint64, resultPath string) ([]*AnalystEntity, error) {
+func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
+	x := make(BlockInfos, 0)
+	sendTotal := uint64(0)
+	for _, path := range configPaths {
+		file, err := os.OpenFile(path, os.O_RDWR, 0666)
+		if err != nil {
+			return fmt.Errorf("Failed to open config file:%v", err)
+		}
+		defer file.Close()
+		var res TxGenResData
+		if err := json.NewDecoder(file).Decode(&res); err != nil {
+			return fmt.Errorf("invalid res file r:%v", err)
+		}
+
+		for _, ttf := range res.Blocks {
+			x = append(x, ttf)
+		}
+		sendTotal += res.TotalTxSend
+	}
+	sort.Sort(x)
+	endTime := common.MillisToTime(x[0].ProduceTime).Add(time.Second * time.Duration(t))
+	txConut := 0
+	timeUse := int64(0)
+	timeUse2 := int64(0)
+	analysts := make([][4]int64, 0)
+	total := 0
+
+	for _, ttf := range x {
+		total += ttf.TxLength
+		if !common.MillisToTime(ttf.ProduceTime).Before(endTime) {
+			analysts = append(analysts, [4]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds(), int64(txConut) / int64(t), time.Duration(int64(float64(timeUse2) / float64(txConut))).Milliseconds()})
+			endTime = endTime.Add(time.Second * time.Duration(t))
+			txConut = 0
+			timeUse = 0
+			timeUse2 = 0
+		}
+		txConut += ttf.TxLength
+		timeUse += ttf.TimeUse
+		timeUse2 += ttf.TTfTimeUse
+	}
+
+	xlsxFile := xlsx.NewFile()
+	sheet, err := xlsxFile.AddSheet("block tx statistics")
+	if err != nil {
+		return err
+	}
+
+	// add title
+	row := sheet.AddRow()
+	cell_1 := row.AddCell()
+	cell_1.Value = "time"
+	cell_2 := row.AddCell()
+	cell_2.Value = "latency"
+	cell_3 := row.AddCell()
+	cell_3.Value = "tps"
+	cell_4 := row.AddCell()
+	cell_4.Value = "ttf"
+	cell_5 := row.AddCell()
+	cell_5.Value = "totalReceive"
+	cell_6 := row.AddCell()
+	cell_6.Value = "totalSend"
+
+	//add data
+	for i, d := range analysts {
+		row := sheet.AddRow()
+		time := row.AddCell()
+		time.Value = strconv.FormatInt(d[0], 10)
+		latency := row.AddCell()
+		latency.Value = strconv.FormatInt(d[1], 10)
+		tps := row.AddCell()
+		tps.Value = strconv.FormatInt(d[2], 10)
+		ttf := row.AddCell()
+		ttf.Value = strconv.FormatInt(d[3], 10)
+		if i == 0 {
+			totalReceive := row.AddCell()
+			totalReceive.Value = strconv.FormatInt(int64(total), 10)
+			totalSend := row.AddCell()
+			totalSend.Value = strconv.FormatInt(int64(sendTotal), 10)
+		}
+	}
+	err = xlsxFile.Save(output)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type Tps struct {
+	BlockProduceTime time.Time
+	TxLength         int
+}
+
+func (txg *TxGenAPI) CalBlockTps(ctx context.Context, beginBn, endBn uint64, output string) error {
+
+	res := make([]Tps, 0)
+
+	for i := uint64(beginBn); i < endBn; i++ {
+		block, err := txg.eth.APIBackend.BlockByNumber(ctx, rpc.BlockNumber(i))
+		if err != nil {
+			return err
+		}
+		res = append(res, Tps{common.MillisToTime(block.Header().Time.Int64()), block.Transactions().Len()})
+	}
+	t := 10
+	endTime := res[0].BlockProduceTime.Add(time.Second * time.Duration(t))
+	blockCount := 0
+	beginTimestamp := int64(0)
+	endTimestamp := int64(0)
+	txConut := 0
+	analysts := make([][3]int64, 0)
+	for i := 0; i < len(res); i++ {
+		if res[i].BlockProduceTime.Before(endTime) {
+			blockCount += 1
+			if blockCount == 1 {
+				beginTimestamp = common.Millis(res[i].BlockProduceTime)
+			}
+			txConut += res[i].TxLength
+		} else {
+			endTimestamp = common.Millis(res[i-1].BlockProduceTime)
+			fmt.Println("rowInfo", "endTime", endTime.Unix(), "beginTimestamp", beginTimestamp, "endTimestamp", endTimestamp, "txConut", txConut, "blockCount", blockCount)
+			if blockCount == 1 && beginTimestamp == endTimestamp {
+				analysts = append(analysts, [3]int64{endTime.Unix(), int64(txConut / t), 0})
+			} else {
+				analysts = append(analysts, [3]int64{endTime.Unix(), int64(txConut / t), (endTimestamp - beginTimestamp) / int64(blockCount-1)})
+			}
+			endTime = endTime.Add(time.Second * time.Duration(t))
+			blockCount = 0
+			beginTimestamp = int64(0)
+			endTimestamp = int64(0)
+			txConut = 0
+			blockCount += 1
+			beginTimestamp = common.Millis(res[i].BlockProduceTime)
+			txConut += res[i].TxLength
+		}
+	}
+
+	xlsxFile := xlsx.NewFile()
+	sheet, err := xlsxFile.AddSheet("tps statistics")
+	if err != nil {
+		return err
+	}
+
+	// add title
+	row := sheet.AddRow()
+	cell_1 := row.AddCell()
+	cell_1.Value = "time"
+	cell_2 := row.AddCell()
+	cell_2.Value = "tps"
+	cell_3 := row.AddCell()
+	cell_3.Value = "avg interval"
+
+	//add data
+	for _, d := range analysts {
+		row := sheet.AddRow()
+		beginNumber := row.AddCell()
+		beginNumber.Value = strconv.FormatInt(d[0], 10)
+		tps := row.AddCell()
+		tps.Value = strconv.FormatInt(d[1], 10)
+		interval := row.AddCell()
+		interval.Value = strconv.Itoa(int(d[2]))
+	}
+	err = xlsxFile.Save(output)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (txg *TxGenAPI) CalBlockAnalyst(ctx context.Context, beginBn, endBn uint64, interval uint64, resultPath string) ([]*AnalystEntity, error) {
 	if beginBn >= endBn || endBn < interval || endBn%interval != 0 || beginBn%interval != 1 {
 		return nil, fmt.Errorf("Invalid parameter, beginBn: %d, endBn: %d, interval: %d \n", beginBn, endBn, interval)
 	}
@@ -95,7 +269,7 @@ func (txg *TxGenAPI) GetTps(ctx context.Context, beginBn, endBn uint64, interval
 		MissViewList	missing view
 		ViewBlockRate   view produce block rate
 */
-func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *EthAPIBackend) (uint64, uint64, []uint64, uint64, uint64, ViewCountMap, []uint64, uint64, error) {
+func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *EthAPIBackend) (uint64, uint64, [][]uint64, uint64, uint64, ViewCountMap, []uint64, uint64, error) {
 	ctx := context.Background()
 	beginBlock, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(beginNumber))
 	endBlock, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(endNumber))
@@ -121,7 +295,7 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 	endHeader := endBlock.Header()
 
 	preTimestamp := beginHeader.Time.Uint64()
-	topArray := make([]uint64, 0, 250)
+	topArray := make([][]uint64, 0, 250)
 
 	viewCountMap[beginQC.ViewNumber] = 1
 
@@ -132,7 +306,7 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 		block, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(int64(i)))
 		header := block.Header()
 		diff := header.Time.Uint64() - preTimestamp
-		topArray = append(topArray, diff)
+		topArray = append(topArray, []uint64{diff, uint64(len(block.Transactions()))})
 		preTimestamp = header.Time.Uint64()
 		txCount = txCount + uint64(len(block.Transactions()))
 
