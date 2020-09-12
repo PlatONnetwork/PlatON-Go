@@ -21,10 +21,10 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class ErrorParamConstructorBase extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b506040516020806100f58339810180604052602081101561003057600080fd5b81019080805190602001909291905050508060008190555050609e806100576000396000f3fe608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630dbe671f146044575b600080fd5b348015604f57600080fd5b506056606c565b6040518082815260200191505060405180910390f35b6000548156fea165627a7a723058206d2e7a1154ecfe1e0a2b236005642fae48ac4c6b4c9d76aa711333bdc01436210029";
+    private static final String BINARY = "608060405234801561001057600080fd5b506040516020806100f58339810180604052602081101561003057600080fd5b81019080805190602001909291905050508060008190555050609e806100576000396000f3fe608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630dbe671f146044575b600080fd5b348015604f57600080fd5b506056606c565b6040518082815260200191505060405180910390f35b6000548156fea165627a7a72305820e1dd9aa6e94b0ab0e23420934957eac59602b650d1946d81a7adce5b4a4018010029";
 
     public static final String FUNC_A = "a";
 
@@ -44,12 +44,12 @@ public class ErrorParamConstructorBase extends Contract {
     }
 
     public static RemoteCall<ErrorParamConstructorBase> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId, BigInteger _a) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_a)));
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new Uint256(_a)));
         return deployRemoteCall(ErrorParamConstructorBase.class, web3j, credentials, contractGasProvider, BINARY, encodedConstructor, chainId);
     }
 
     public static RemoteCall<ErrorParamConstructorBase> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId, BigInteger _a) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_a)));
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new Uint256(_a)));
         return deployRemoteCall(ErrorParamConstructorBase.class, web3j, transactionManager, contractGasProvider, BINARY, encodedConstructor, chainId);
     }
 

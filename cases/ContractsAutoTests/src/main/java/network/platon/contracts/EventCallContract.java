@@ -33,10 +33,10 @@ import rx.functions.Func1;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class EventCallContract extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610372806100206000396000f3fe608060405234801561001057600080fd5b50600436106100575760003560e01c806336aacafa1461005c5780637b0cb839146100665780639d6d4cde14610084578063b53c846b146100a2578063b7301a1f146100ac575b600080fd5b6100646100ca565b005b61006e61020d565b6040518082815260200191505060405180910390f35b61008c61027b565b6040518082815260200191505060405180910390f35b6100aa61029c565b005b6100b46102e3565b6040518082815260200191505060405180910390f35b7f9f252e5d94c6346e0073dfdaa81c6bba97bc07b05f8378efc62d77d157e1b0116000604051808215151515815260200191505060405180910390a17f9f252e5d94c6346e0073dfdaa81c6bba97bc07b05f8378efc62d77d157e1b0116001604051808215151515815260200191505060405180910390a17ffc3a67c9f0b5967ae4041ed898b05ec1fa49d2a3c22336247201d71be6f9712033604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390a1600c6040518082815260200191505060405180910390a03373ffffffffffffffffffffffffffffffffffffffff167fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c600c6040518082815260200191505060405180910390a2565b60007ffc3a67c9f0b5967ae4041ed898b05ec1fa49d2a3c22336247201d71be6f9712033604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390a160018101905090565b6000600181019050806040518082815260200191505060405180910390a090565b600c6040518082815260200191505060405180910390a0600d6040518082815260200191505060405180910390a0600e6040518082815260200191505060405180910390a0565b60003373ffffffffffffffffffffffffffffffffffffffff167fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c600c6040518082815260200191505060405180910390a26001810190509056fea265627a7a7231582083405dfca5259e435f66366f2b233a175f8c86e459b93724009d5a537f4fb1fb64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610372806100206000396000f3fe608060405234801561001057600080fd5b50600436106100575760003560e01c806336aacafa1461005c5780637b0cb839146100665780639d6d4cde14610084578063b53c846b146100a2578063b7301a1f146100ac575b600080fd5b6100646100ca565b005b61006e61020d565b6040518082815260200191505060405180910390f35b61008c61027b565b6040518082815260200191505060405180910390f35b6100aa61029c565b005b6100b46102e3565b6040518082815260200191505060405180910390f35b7f9f252e5d94c6346e0073dfdaa81c6bba97bc07b05f8378efc62d77d157e1b0116000604051808215151515815260200191505060405180910390a17f9f252e5d94c6346e0073dfdaa81c6bba97bc07b05f8378efc62d77d157e1b0116001604051808215151515815260200191505060405180910390a17ffc3a67c9f0b5967ae4041ed898b05ec1fa49d2a3c22336247201d71be6f9712033604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390a1600c6040518082815260200191505060405180910390a03373ffffffffffffffffffffffffffffffffffffffff167fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c600c6040518082815260200191505060405180910390a2565b60007ffc3a67c9f0b5967ae4041ed898b05ec1fa49d2a3c22336247201d71be6f9712033604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390a160018101905090565b6000600181019050806040518082815260200191505060405180910390a090565b600c6040518082815260200191505060405180910390a0600d6040518082815260200191505060405180910390a0600e6040518082815260200191505060405180910390a0565b60003373ffffffffffffffffffffffffffffffffffffffff167fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c600c6040518082815260200191505060405180910390a26001810190509056fea265627a7a7231582068dfac6031b6aac65c71ef6e1a2cc13ec7dd2f38e1c9ac96dff936c537136c4864736f6c634300050d0032";
 
     public static final String FUNC_ANONYMOUSEVENT = "anonymousEvent";
 
@@ -77,9 +77,9 @@ public class EventCallContract extends Contract {
     }
 
     public List<AnonymousEventResponse> getAnonymousEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(ANONYMOUS_EVENT, transactionReceipt);
+        List<EventValuesWithLog> valueList = extractEventParametersWithLog(ANONYMOUS_EVENT, transactionReceipt);
         ArrayList<AnonymousEventResponse> responses = new ArrayList<AnonymousEventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
+        for (EventValuesWithLog eventValues : valueList) {
             AnonymousEventResponse typedResponse = new AnonymousEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse._id = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
@@ -92,7 +92,7 @@ public class EventCallContract extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, AnonymousEventResponse>() {
             @Override
             public AnonymousEventResponse call(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(ANONYMOUS_EVENT, log);
+                EventValuesWithLog eventValues = extractEventParametersWithLog(ANONYMOUS_EVENT, log);
                 AnonymousEventResponse typedResponse = new AnonymousEventResponse();
                 typedResponse.log = log;
                 typedResponse._id = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
@@ -108,9 +108,9 @@ public class EventCallContract extends Contract {
     }
 
     public List<Anonymous2EventResponse> getAnonymous2Events(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(ANONYMOUS2_EVENT, transactionReceipt);
+        List<EventValuesWithLog> valueList = extractEventParametersWithLog(ANONYMOUS2_EVENT, transactionReceipt);
         ArrayList<Anonymous2EventResponse> responses = new ArrayList<Anonymous2EventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
+        for (EventValuesWithLog eventValues : valueList) {
             Anonymous2EventResponse typedResponse = new Anonymous2EventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse._id = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
@@ -123,7 +123,7 @@ public class EventCallContract extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, Anonymous2EventResponse>() {
             @Override
             public Anonymous2EventResponse call(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(ANONYMOUS2_EVENT, log);
+                EventValuesWithLog eventValues = extractEventParametersWithLog(ANONYMOUS2_EVENT, log);
                 Anonymous2EventResponse typedResponse = new Anonymous2EventResponse();
                 typedResponse.log = log;
                 typedResponse._id = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
@@ -139,9 +139,9 @@ public class EventCallContract extends Contract {
     }
 
     public List<BoolEventEventResponse> getBoolEventEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(BOOLEVENT_EVENT, transactionReceipt);
+        List<EventValuesWithLog> valueList = extractEventParametersWithLog(BOOLEVENT_EVENT, transactionReceipt);
         ArrayList<BoolEventEventResponse> responses = new ArrayList<BoolEventEventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
+        for (EventValuesWithLog eventValues : valueList) {
             BoolEventEventResponse typedResponse = new BoolEventEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.result = (Boolean) eventValues.getNonIndexedValues().get(0).getValue();
@@ -154,7 +154,7 @@ public class EventCallContract extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, BoolEventEventResponse>() {
             @Override
             public BoolEventEventResponse call(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(BOOLEVENT_EVENT, log);
+                EventValuesWithLog eventValues = extractEventParametersWithLog(BOOLEVENT_EVENT, log);
                 BoolEventEventResponse typedResponse = new BoolEventEventResponse();
                 typedResponse.log = log;
                 typedResponse.result = (Boolean) eventValues.getNonIndexedValues().get(0).getValue();
@@ -170,9 +170,9 @@ public class EventCallContract extends Contract {
     }
 
     public List<DepositEventResponse> getDepositEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(DEPOSIT_EVENT, transactionReceipt);
+        List<EventValuesWithLog> valueList = extractEventParametersWithLog(DEPOSIT_EVENT, transactionReceipt);
         ArrayList<DepositEventResponse> responses = new ArrayList<DepositEventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
+        for (EventValuesWithLog eventValues : valueList) {
             DepositEventResponse typedResponse = new DepositEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse._from = (String) eventValues.getIndexedValues().get(0).getValue();
@@ -186,7 +186,7 @@ public class EventCallContract extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, DepositEventResponse>() {
             @Override
             public DepositEventResponse call(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(DEPOSIT_EVENT, log);
+                EventValuesWithLog eventValues = extractEventParametersWithLog(DEPOSIT_EVENT, log);
                 DepositEventResponse typedResponse = new DepositEventResponse();
                 typedResponse.log = log;
                 typedResponse._from = (String) eventValues.getIndexedValues().get(0).getValue();
@@ -203,9 +203,9 @@ public class EventCallContract extends Contract {
     }
 
     public List<IncrementEventResponse> getIncrementEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(INCREMENT_EVENT, transactionReceipt);
+        List<EventValuesWithLog> valueList = extractEventParametersWithLog(INCREMENT_EVENT, transactionReceipt);
         ArrayList<IncrementEventResponse> responses = new ArrayList<IncrementEventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
+        for (EventValuesWithLog eventValues : valueList) {
             IncrementEventResponse typedResponse = new IncrementEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.who = (String) eventValues.getNonIndexedValues().get(0).getValue();
@@ -218,7 +218,7 @@ public class EventCallContract extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, IncrementEventResponse>() {
             @Override
             public IncrementEventResponse call(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(INCREMENT_EVENT, log);
+                EventValuesWithLog eventValues = extractEventParametersWithLog(INCREMENT_EVENT, log);
                 IncrementEventResponse typedResponse = new IncrementEventResponse();
                 typedResponse.log = log;
                 typedResponse.who = (String) eventValues.getNonIndexedValues().get(0).getValue();

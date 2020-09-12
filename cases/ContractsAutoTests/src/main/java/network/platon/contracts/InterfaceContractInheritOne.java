@@ -20,7 +20,7 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class InterfaceContractInheritOne extends Contract {
     private static final String BINARY = "";
@@ -37,8 +37,8 @@ public class InterfaceContractInheritOne extends Contract {
 
     public RemoteCall<BigInteger> sum(BigInteger a, BigInteger b) {
         final Function function = new Function(FUNC_SUM, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(a), 
-                new org.web3j.abi.datatypes.generated.Uint256(b)), 
+                Arrays.<Type>asList(new Uint256(a),
+                new Uint256(b)),
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }

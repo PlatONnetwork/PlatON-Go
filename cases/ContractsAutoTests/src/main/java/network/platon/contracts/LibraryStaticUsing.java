@@ -31,10 +31,10 @@ import rx.functions.Func1;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class LibraryStaticUsing extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610182806100206000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063f207564e14610030575b600080fd5b61005c6004803603602081101561004657600080fd5b8101908080359060200190929190505050610076565b604051808215151515815260200191505060405180910390f35b600073b5d12fd8b2f6e307e5863ceb5f2bf338cd0bd06b63f360234c607b846040518363ffffffff1660e01b8152600401808381526020018281526020019250505060206040518083038186803b1580156100d057600080fd5b505af41580156100e4573d6000803e3d6000fd5b505050506040513d60208110156100fa57600080fd5b810190808051906020019092919050505090507f0b3bdb70bcb1393d4319be3261bd6ab95e2ea1665e718029d24cecca39e84ccc81604051808215151515815260200191505060405180910390a191905056fea265627a7a72315820103be023dc5e13c12596b1c5c28832e1cccac5dd87f08eb9a6166ffbe13198ba64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610182806100206000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063f207564e14610030575b600080fd5b61005c6004803603602081101561004657600080fd5b8101908080359060200190929190505050610076565b604051808215151515815260200191505060405180910390f35b600073144e95a85e5ef626c811aa22c0257754d9aa17e363f360234c607b846040518363ffffffff1660e01b8152600401808381526020018281526020019250505060206040518083038186803b1580156100d057600080fd5b505af41580156100e4573d6000803e3d6000fd5b505050506040513d60208110156100fa57600080fd5b810190808051906020019092919050505090507f0b3bdb70bcb1393d4319be3261bd6ab95e2ea1665e718029d24cecca39e84ccc81604051808215151515815260200191505060405180910390a191905056fea265627a7a723158202a436606f747f20486e180e2ca12b5784523c50e27b996c188707a74c9f0a39864736f6c634300050d0032";
 
     public static final String FUNC_REGISTER = "register";
 
@@ -51,9 +51,9 @@ public class LibraryStaticUsing extends Contract {
     }
 
     public List<ResultEventResponse> getResultEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(RESULT_EVENT, transactionReceipt);
+        List<EventValuesWithLog> valueList = extractEventParametersWithLog(RESULT_EVENT, transactionReceipt);
         ArrayList<ResultEventResponse> responses = new ArrayList<ResultEventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
+        for (EventValuesWithLog eventValues : valueList) {
             ResultEventResponse typedResponse = new ResultEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.result = (Boolean) eventValues.getNonIndexedValues().get(0).getValue();
@@ -66,7 +66,7 @@ public class LibraryStaticUsing extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, ResultEventResponse>() {
             @Override
             public ResultEventResponse call(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(RESULT_EVENT, log);
+                EventValuesWithLog eventValues = extractEventParametersWithLog(RESULT_EVENT, log);
                 ResultEventResponse typedResponse = new ResultEventResponse();
                 typedResponse.log = log;
                 typedResponse.result = (Boolean) eventValues.getNonIndexedValues().get(0).getValue();

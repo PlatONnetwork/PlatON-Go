@@ -21,10 +21,10 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class ConstructorDefaultVisibility extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b506040516020806100f6833981018060405281019080805190602001909291905050508081028060008190555050806001819055505060a2806100546000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806335f646c0146044575b600080fd5b348015604f57600080fd5b506056606c565b6040518082815260200191505060405180910390f35b60006001549050905600a165627a7a72305820bf3f77eae9b287bb392725d51559a2f427753078567d2aec6ef6572d70711f700029";
+    private static final String BINARY = "608060405234801561001057600080fd5b506040516020806100f6833981018060405281019080805190602001909291905050508081028060008190555050806001819055505060a2806100546000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806335f646c0146044575b600080fd5b348015604f57600080fd5b506056606c565b6040518082815260200191505060405180910390f35b60006001549050905600a165627a7a7230582043d7c47b37f44383dce1b9fa0fb1168f71522d93c5a258a5abf32e7c73e2365a0029";
 
     public static final String FUNC_GETOUTI = "getOutI";
 
@@ -44,12 +44,12 @@ public class ConstructorDefaultVisibility extends Contract {
     }
 
     public static RemoteCall<ConstructorDefaultVisibility> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId, BigInteger _y) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_y)));
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new Uint256(_y)));
         return deployRemoteCall(ConstructorDefaultVisibility.class, web3j, credentials, contractGasProvider, BINARY, encodedConstructor, chainId);
     }
 
     public static RemoteCall<ConstructorDefaultVisibility> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId, BigInteger _y) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_y)));
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new Uint256(_y)));
         return deployRemoteCall(ConstructorDefaultVisibility.class, web3j, transactionManager, contractGasProvider, BINARY, encodedConstructor, chainId);
     }
 

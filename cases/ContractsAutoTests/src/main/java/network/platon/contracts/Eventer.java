@@ -32,10 +32,10 @@ import rx.functions.Func1;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class Eventer extends Contract {
-    private static final String BINARY = "6080604052348015600f57600080fd5b5060f48061001e6000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063bf819c20146044575b600080fd5b348015604f57600080fd5b5060566058565b005b7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe7f8f50d21be7587a4814a9d4c10b7c8d1eea6389adbd44cb59ddaba790fd2ecbbd60405160405180910390a35600a165627a7a72305820d7159162cd1d095e14d10ff44c305d12521e8bd9b9ce43e3c14a3eaf6849d7110029";
+    private static final String BINARY = "6080604052348015600f57600080fd5b5060f48061001e6000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063bf819c20146044575b600080fd5b348015604f57600080fd5b5060566058565b005b7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe7f8f50d21be7587a4814a9d4c10b7c8d1eea6389adbd44cb59ddaba790fd2ecbbd60405160405180910390a35600a165627a7a72305820c42ab16b1c413bcb7952fb3248e78deb6a82cc581ee1d6cda4ba2795ea2542c00029";
 
     public static final String FUNC_GETEVENT = "getEvent";
 
@@ -64,9 +64,9 @@ public class Eventer extends Contract {
     }
 
     public List<TestInt8EventResponse> getTestInt8Events(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(TESTINT8_EVENT, transactionReceipt);
+        List<EventValuesWithLog> valueList = extractEventParametersWithLog(TESTINT8_EVENT, transactionReceipt);
         ArrayList<TestInt8EventResponse> responses = new ArrayList<TestInt8EventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
+        for (EventValuesWithLog eventValues : valueList) {
             TestInt8EventResponse typedResponse = new TestInt8EventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.out1 = (BigInteger) eventValues.getIndexedValues().get(0).getValue();
@@ -80,7 +80,7 @@ public class Eventer extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, TestInt8EventResponse>() {
             @Override
             public TestInt8EventResponse call(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(TESTINT8_EVENT, log);
+                EventValuesWithLog eventValues = extractEventParametersWithLog(TESTINT8_EVENT, log);
                 TestInt8EventResponse typedResponse = new TestInt8EventResponse();
                 typedResponse.log = log;
                 typedResponse.out1 = (BigInteger) eventValues.getIndexedValues().get(0).getValue();
@@ -97,9 +97,9 @@ public class Eventer extends Contract {
     }
 
     public List<AnonEventEventResponse> getAnonEventEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(ANONEVENT_EVENT, transactionReceipt);
+        List<EventValuesWithLog> valueList = extractEventParametersWithLog(ANONEVENT_EVENT, transactionReceipt);
         ArrayList<AnonEventEventResponse> responses = new ArrayList<AnonEventEventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
+        for (EventValuesWithLog eventValues : valueList) {
             AnonEventEventResponse typedResponse = new AnonEventEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.param0 = (String) eventValues.getNonIndexedValues().get(0).getValue();
@@ -113,7 +113,7 @@ public class Eventer extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, AnonEventEventResponse>() {
             @Override
             public AnonEventEventResponse call(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(ANONEVENT_EVENT, log);
+                EventValuesWithLog eventValues = extractEventParametersWithLog(ANONEVENT_EVENT, log);
                 AnonEventEventResponse typedResponse = new AnonEventEventResponse();
                 typedResponse.log = log;
                 typedResponse.param0 = (String) eventValues.getNonIndexedValues().get(0).getValue();

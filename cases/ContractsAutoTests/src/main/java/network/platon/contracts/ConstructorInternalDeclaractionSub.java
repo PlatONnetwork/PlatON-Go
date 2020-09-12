@@ -23,10 +23,10 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class ConstructorInternalDeclaractionSub extends Contract {
-    private static final String BINARY = "6080604052600a60005534801561001557600080fd5b506040516020806101f08339810180604052602081101561003557600080fd5b8101908080519060200190929190505050808060008190555050506101918061005f6000396000f3fe608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806306661abd1461005c57806382ab890a14610087578063a87d942c14610109575b600080fd5b34801561006857600080fd5b50610071610134565b6040518082815260200191505060405180910390f35b34801561009357600080fd5b506100c0600480360360208110156100aa57600080fd5b810190808035906020019092919050505061013a565b604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390f35b34801561011557600080fd5b5061011e61015c565b6040518082815260200191505060405180910390f35b60005481565b6000808260008082825401925050819055503360005481915091509150915091565b6000805490509056fea165627a7a7230582052acbfd18a768e324b176d4449cefb1bf9fb28af774286b61b497a5c24eb30d00029";
+    private static final String BINARY = "6080604052600a60005534801561001557600080fd5b506040516020806101f08339810180604052602081101561003557600080fd5b8101908080519060200190929190505050808060008190555050506101918061005f6000396000f3fe608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806306661abd1461005c57806382ab890a14610087578063a87d942c14610109575b600080fd5b34801561006857600080fd5b50610071610134565b6040518082815260200191505060405180910390f35b34801561009357600080fd5b506100c0600480360360208110156100aa57600080fd5b810190808035906020019092919050505061013a565b604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390f35b34801561011557600080fd5b5061011e61015c565b6040518082815260200191505060405180910390f35b60005481565b6000808260008082825401925050819055503360005481915091509150915091565b6000805490509056fea165627a7a72305820c315b77e73b2d5a380aaccb086e065cca9f4fa859727a082e4c6c5dcc6e968480029";
 
     public static final String FUNC_COUNT = "count";
 
@@ -52,7 +52,7 @@ public class ConstructorInternalDeclaractionSub extends Contract {
     public RemoteCall<TransactionReceipt> update(BigInteger amount) {
         final Function function = new Function(
                 FUNC_UPDATE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(amount)), 
+                Arrays.<Type>asList(new Uint256(amount)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -65,12 +65,12 @@ public class ConstructorInternalDeclaractionSub extends Contract {
     }
 
     public static RemoteCall<ConstructorInternalDeclaractionSub> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId, BigInteger _count) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_count)));
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new Uint256(_count)));
         return deployRemoteCall(ConstructorInternalDeclaractionSub.class, web3j, credentials, contractGasProvider, BINARY, encodedConstructor, chainId);
     }
 
     public static RemoteCall<ConstructorInternalDeclaractionSub> deploy(Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId, BigInteger _count) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_count)));
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new Uint256(_count)));
         return deployRemoteCall(ConstructorInternalDeclaractionSub.class, web3j, transactionManager, contractGasProvider, BINARY, encodedConstructor, chainId);
     }
 

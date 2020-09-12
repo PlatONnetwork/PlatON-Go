@@ -22,7 +22,7 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class AbstractContractESubclass extends Contract {
     private static final String BINARY = "";
@@ -49,7 +49,7 @@ public class AbstractContractESubclass extends Contract {
     public RemoteCall<TransactionReceipt> setInterAge(BigInteger v) {
         final Function function = new Function(
                 FUNC_SETINTERAGE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Int256(v)), 
+                Arrays.<Type>asList(new Int256(v)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }

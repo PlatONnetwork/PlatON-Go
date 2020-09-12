@@ -32,10 +32,10 @@ import rx.functions.Func1;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class DelegatecallCallee extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c14610046578063371303c0146100645780635a3617561461006e575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b005b610076610112565b6040518082815260200191505060405180910390f35b60005481565b60008081548092919060010191905055507fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e733600054604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a1565b6000805490509056fea265627a7a723158209c561232152c66045de81923005b99b35cf2505c6e5e4cda2d0552a449b8497864736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c14610046578063371303c0146100645780635a3617561461006e575b600080fd5b61004e61008c565b6040518082815260200191505060405180910390f35b61006c610092565b005b610076610112565b6040518082815260200191505060405180910390f35b60005481565b60008081548092919060010191905055507fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e733600054604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a1565b6000805490509056fea265627a7a72315820a493e1984bf42b233800066284843a244bd3b7efb7655673d4843b1c6962548864736f6c634300050d0032";
 
     public static final String FUNC_GETCALLEEX = "getCalleeX";
 
@@ -56,9 +56,9 @@ public class DelegatecallCallee extends Contract {
     }
 
     public List<EventNameEventResponse> getEventNameEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(EVENTNAME_EVENT, transactionReceipt);
+        List<EventValuesWithLog> valueList = extractEventParametersWithLog(EVENTNAME_EVENT, transactionReceipt);
         ArrayList<EventNameEventResponse> responses = new ArrayList<EventNameEventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
+        for (EventValuesWithLog eventValues : valueList) {
             EventNameEventResponse typedResponse = new EventNameEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.seder = (String) eventValues.getNonIndexedValues().get(0).getValue();
@@ -72,7 +72,7 @@ public class DelegatecallCallee extends Contract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, EventNameEventResponse>() {
             @Override
             public EventNameEventResponse call(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(EVENTNAME_EVENT, log);
+                EventValuesWithLog eventValues = extractEventParametersWithLog(EVENTNAME_EVENT, log);
                 EventNameEventResponse typedResponse = new EventNameEventResponse();
                 typedResponse.log = log;
                 typedResponse.seder = (String) eventValues.getNonIndexedValues().get(0).getValue();

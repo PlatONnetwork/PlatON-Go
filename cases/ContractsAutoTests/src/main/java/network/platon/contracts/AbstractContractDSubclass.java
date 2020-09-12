@@ -21,7 +21,7 @@ import org.web3j.tx.gas.GasProvider;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.1.
+ * <p>Generated with web3j version 0.13.0.11.
  */
 public class AbstractContractDSubclass extends Contract {
     private static final String BINARY = "";
@@ -59,7 +59,7 @@ public class AbstractContractDSubclass extends Contract {
     public RemoteCall<TransactionReceipt> setParentName(String name) {
         final Function function = new Function(
                 FUNC_SETPARENTNAME, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Utf8String(name)), 
+                Arrays.<Type>asList(new Utf8String(name)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -67,7 +67,7 @@ public class AbstractContractDSubclass extends Contract {
     public RemoteCall<TransactionReceipt> setParentNameD(String name) {
         final Function function = new Function(
                 FUNC_SETPARENTNAMED, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Utf8String(name)), 
+                Arrays.<Type>asList(new Utf8String(name)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
