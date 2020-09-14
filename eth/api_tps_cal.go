@@ -58,23 +58,37 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	sort.Sort(x)
 	endTime := common.MillisToTime(x[0].ProduceTime).Add(time.Second * time.Duration(t))
 	txConut := 0
-	timeUse := int64(0)
-	timeUse2 := int64(0)
-	analysts := make([][4]int64, 0)
+	latency, ttf := int64(0), int64(0)
+	analysts := make([][5]int64, 0)
 	total := 0
+
+	interval := make(map[int64]int64)
+
+	max, min := int64(0), int64(0)
 
 	for _, info := range x {
 		total += info.TxLength
 		if !common.MillisToTime(info.ProduceTime).Before(endTime) {
-			analysts = append(analysts, [4]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds(), int64(txConut) / int64(t), time.Duration(int64(float64(timeUse2) / float64(txConut))).Milliseconds()})
+			for i, _ := range interval {
+				if i <= min {
+					min = i
+				}
+				if i >= max {
+					max = i
+				}
+			}
+			analysts = append(analysts, [5]int64{endTime.Unix(), time.Duration(int64(float64(latency) / float64(txConut))).Milliseconds(), int64(txConut) / int64(t), time.Duration(int64(float64(ttf) / float64(txConut))).Milliseconds(), (interval[max] - interval[min]) / int64(len(interval))})
 			endTime = endTime.Add(time.Second * time.Duration(t))
 			txConut = 0
-			timeUse = 0
-			timeUse2 = 0
+			latency = 0
+			ttf = 0
+			interval = make(map[int64]int64)
 		}
 		txConut += info.TxLength
-		timeUse += info.Latency
-		timeUse2 += info.Ttf
+		latency += info.Latency
+		ttf += info.Ttf
+		interval[info.Number] = info.ProduceTime
+		min, max = info.Number, info.Number
 	}
 
 	xlsxFile := xlsx.NewFile()
@@ -94,108 +108,31 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	cell_4 := row.AddCell()
 	cell_4.Value = "ttf"
 	cell_5 := row.AddCell()
-	cell_5.Value = "totalReceive"
+	cell_5.Value = "avg interval"
 	cell_6 := row.AddCell()
-	cell_6.Value = "totalSend"
+	cell_6.Value = "totalReceive"
+	cell_7 := row.AddCell()
+	cell_7.Value = "totalSend"
 
 	//add data
 	for i, d := range analysts {
 		row := sheet.AddRow()
 		time := row.AddCell()
 		time.Value = strconv.FormatInt(d[0], 10)
-		latency := row.AddCell()
-		latency.Value = strconv.FormatInt(d[1], 10)
-		tps := row.AddCell()
-		tps.Value = strconv.FormatInt(d[2], 10)
-		ttf := row.AddCell()
-		ttf.Value = strconv.FormatInt(d[3], 10)
+		latencyCell := row.AddCell()
+		latencyCell.Value = strconv.FormatInt(d[1], 10)
+		tpsCell := row.AddCell()
+		tpsCell.Value = strconv.FormatInt(d[2], 10)
+		ttfCell := row.AddCell()
+		ttfCell.Value = strconv.FormatInt(d[3], 10)
+		intervalCell := row.AddCell()
+		intervalCell.Value = strconv.FormatInt(d[4], 10)
 		if i == 0 {
 			totalReceive := row.AddCell()
 			totalReceive.Value = strconv.FormatInt(int64(total), 10)
 			totalSend := row.AddCell()
 			totalSend.Value = strconv.FormatInt(int64(sendTotal), 10)
 		}
-	}
-	err = xlsxFile.Save(output)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-type Tps struct {
-	BlockProduceTime time.Time
-	TxLength         int
-}
-
-func (txg *TxGenAPI) CalBlockTps(ctx context.Context, beginBn, endBn uint64, output string) error {
-
-	res := make([]Tps, 0)
-
-	for i := uint64(beginBn); i < endBn; i++ {
-		block, err := txg.eth.APIBackend.BlockByNumber(ctx, rpc.BlockNumber(i))
-		if err != nil {
-			return err
-		}
-		res = append(res, Tps{common.MillisToTime(block.Header().Time.Int64()), block.Transactions().Len()})
-	}
-	t := 10
-	endTime := res[0].BlockProduceTime.Add(time.Second * time.Duration(t))
-	blockCount := 0
-	beginTimestamp := int64(0)
-	endTimestamp := int64(0)
-	txConut := 0
-	analysts := make([][3]int64, 0)
-	for i := 0; i < len(res); i++ {
-		if res[i].BlockProduceTime.Before(endTime) {
-			blockCount += 1
-			if blockCount == 1 {
-				beginTimestamp = common.Millis(res[i].BlockProduceTime)
-			}
-			txConut += res[i].TxLength
-		} else {
-			endTimestamp = common.Millis(res[i-1].BlockProduceTime)
-			fmt.Println("rowInfo", "endTime", endTime.Unix(), "beginTimestamp", beginTimestamp, "endTimestamp", endTimestamp, "txConut", txConut, "blockCount", blockCount)
-			if blockCount == 1 && beginTimestamp == endTimestamp {
-				analysts = append(analysts, [3]int64{endTime.Unix(), int64(txConut / t), 0})
-			} else {
-				analysts = append(analysts, [3]int64{endTime.Unix(), int64(txConut / t), (endTimestamp - beginTimestamp) / int64(blockCount-1)})
-			}
-			endTime = endTime.Add(time.Second * time.Duration(t))
-			blockCount = 0
-			beginTimestamp = int64(0)
-			endTimestamp = int64(0)
-			txConut = 0
-			blockCount += 1
-			beginTimestamp = common.Millis(res[i].BlockProduceTime)
-			txConut += res[i].TxLength
-		}
-	}
-
-	xlsxFile := xlsx.NewFile()
-	sheet, err := xlsxFile.AddSheet("tps statistics")
-	if err != nil {
-		return err
-	}
-
-	// add title
-	row := sheet.AddRow()
-	cell_1 := row.AddCell()
-	cell_1.Value = "time"
-	cell_2 := row.AddCell()
-	cell_2.Value = "tps"
-	cell_3 := row.AddCell()
-	cell_3.Value = "avg interval"
-
-	//add data
-	for _, d := range analysts {
-		row := sheet.AddRow()
-		beginNumber := row.AddCell()
-		beginNumber.Value = strconv.FormatInt(d[0], 10)
-		tps := row.AddCell()
-		tps.Value = strconv.FormatInt(d[1], 10)
-		interval := row.AddCell()
-		interval.Value = strconv.Itoa(int(d[2]))
 	}
 	err = xlsxFile.Save(output)
 	if err != nil {
