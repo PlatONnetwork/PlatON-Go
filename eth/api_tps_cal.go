@@ -36,6 +36,10 @@ type AnalystEntity struct {
 	Tps                uint64
 }
 
+// CalRes, Integrate pressure test data, calculate pressure test results, including delay, tps, ttf, average interval, total number of receptions, total number of transmissions
+// configPaths,Summary of pressure test data of each node
+// output,Calculated pressure test result,file type:xlsx
+// t,Average statistical time
 func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	x := make(BlockInfos, 0)
 	sendTotal := uint64(0)
