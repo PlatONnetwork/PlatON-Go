@@ -43,8 +43,8 @@ type BlockInfo struct {
 	ProduceTime int64 `json:"id_time"`
 	Number      int64 `json:"block"`
 	TxLength    int   `json:"tx_length"`
-	TimeUse     int64 `json:"time_use"`
-	TTfTimeUse  int64 `json:"ttf_time_use"`
+	Latency     int64 `json:"latency"`
+	Ttf         int64 `json:"ttf"`
 }
 
 type BlockInfos []BlockInfo
@@ -194,19 +194,20 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					}
 				}
 				log.Debug("makeTx update receiptsNonce", "block", res.Number(), "use", time.Since(txm.blockProduceTime), "txs", len(res.Transactions()))
+				txm.blockCache[res.Hash()] = res
 			case res := <-blockQCCh:
-				now := time.Now()
-				timeUse := int64(0)
-				timeUse2 := int64(0)
-				header := common.MillisToTime(res.Header().Time.Int64()).UnixNano()
-				txm.blockProduceTime = now
+				txm.blockProduceTime = time.Now()
+				ttf, latency, sendTime := int64(0), int64(0), int64(0)
+				headerTime := common.MillisToTime(res.Header().Time.Int64()).UnixNano()
+				currentTime := txm.blockProduceTime.UnixNano()
 				length := 0
 
 				if block, ok := txm.blockCache[res.Hash()]; ok {
 					for _, receipt := range block.Transactions() {
 						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
-							timeUse = timeUse + now.UnixNano() - account.SendTime[receipt.Nonce()].UnixNano()
-							timeUse2 = timeUse2 + header - account.SendTime[receipt.Nonce()].UnixNano()
+							sendTime = account.SendTime[receipt.Nonce()].UnixNano()
+							ttf += currentTime - sendTime
+							latency += headerTime - sendTime
 							length++
 							delete(account.SendTime, receipt.Nonce())
 						}
@@ -215,17 +216,19 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				} else {
 					for _, receipt := range res.Transactions() {
 						if account, ok := txm.accounts[receipt.FromAddr(singine)]; ok {
-							timeUse = timeUse + now.UnixNano() - account.SendTime[receipt.Nonce()].UnixNano()
-							timeUse2 = timeUse2 + header - account.SendTime[receipt.Nonce()].UnixNano()
+							sendTime = account.SendTime[receipt.Nonce()].UnixNano()
+							ttf += currentTime - sendTime
+							latency += headerTime - sendTime
 							length++
 							delete(account.SendTime, receipt.Nonce())
 						}
 					}
+					log.Error("makeTx update res fail,should always read receipt from block cache")
 				}
 				if length > 0 {
-					txg.res.Blocks = append(txg.res.Blocks, BlockInfo{common.Millis(now), res.Number().Int64(), length, timeUse2, timeUse})
+					txg.res.Blocks = append(txg.res.Blocks, BlockInfo{common.Millis(txm.blockProduceTime), res.Number().Int64(), length, latency, ttf})
 				}
-				log.Debug("makeTx update res", "use", time.Since(now), "txs", len(res.Transactions()), "current", length)
+				log.Debug("makeTx update res", "block", res.Number(), "use", time.Since(txm.blockProduceTime), "txs", len(res.Transactions()), "current", length)
 			case <-shouldmake.C:
 				if time.Since(txm.blockProduceTime) >= waitBLockTime {
 					log.Debug("makeTx should sleep", "time", time.Since(txm.blockProduceTime))
@@ -248,7 +251,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					} else {
 						account = txm.pickNormalSender()
 					}
-					if !account.active(waitAccountReceiptTime) {
+					if !account.active(now, waitAccountReceiptTime) {
 						deactive++
 						continue
 					}
@@ -261,7 +264,6 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					if err != nil {
 						log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
 					}*/
-					txg.res.TotalTxSend++
 					//txs = append(txs, newTx)
 					sendTxLength++
 					txm.sendDone(account, now)
@@ -270,6 +272,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					txs = append(txs, <-signDoneTxCh)
 				}
 				if len(txs) != 0 {
+					txg.res.TotalTxSend += uint64(len(txs))
 					txsCh <- txs
 				}
 				log.Debug("makeTx time use", "use", time.Since(now), "txs", len(txs), "deactive", deactive, "loop", loop)
@@ -506,9 +509,9 @@ type txGenSendAccount struct {
 	SendTime      map[uint64]time.Time
 }
 
-func (account *txGenSendAccount) active(waitAccountReceiptTime time.Duration) bool {
+func (account *txGenSendAccount) active(now time.Time, waitAccountReceiptTime time.Duration) bool {
 	if account.Nonce >= account.ReceiptsNonce+10 {
-		waitTime := time.Since(account.LastSendTime)
+		waitTime := now.Sub(account.LastSendTime)
 		if waitTime >= waitAccountReceiptTime {
 			log.Debug("wait account too much time", "account", account.Address, "nonce", account.Nonce, "receiptnonce", account.ReceiptsNonce, "wait time", waitTime)
 			account.Nonce = account.ReceiptsNonce + 1

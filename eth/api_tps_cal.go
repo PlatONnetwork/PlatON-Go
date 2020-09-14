@@ -63,18 +63,18 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	analysts := make([][4]int64, 0)
 	total := 0
 
-	for _, ttf := range x {
-		total += ttf.TxLength
-		if !common.MillisToTime(ttf.ProduceTime).Before(endTime) {
+	for _, info := range x {
+		total += info.TxLength
+		if !common.MillisToTime(info.ProduceTime).Before(endTime) {
 			analysts = append(analysts, [4]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds(), int64(txConut) / int64(t), time.Duration(int64(float64(timeUse2) / float64(txConut))).Milliseconds()})
 			endTime = endTime.Add(time.Second * time.Duration(t))
 			txConut = 0
 			timeUse = 0
 			timeUse2 = 0
 		}
-		txConut += ttf.TxLength
-		timeUse += ttf.TimeUse
-		timeUse2 += ttf.TTfTimeUse
+		txConut += info.TxLength
+		timeUse += info.Latency
+		timeUse2 += info.Ttf
 	}
 
 	xlsxFile := xlsx.NewFile()
