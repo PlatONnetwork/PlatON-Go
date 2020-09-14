@@ -60,7 +60,7 @@ public class CreateContractTest extends WASMContractPrepareTest {
             collector.logStepPass("The deployment contract length is verified correctly");
 
             // test deploy simple contract
-            SimpleContract deploySimpleContract = new SimpleContract(deploySimple.toString(), web3j, transactionManager, provider, chainId);
+            SimpleContract deploySimpleContract = SimpleContract.load(deploySimple.toString(), web3j, transactionManager, provider, chainId);
             deploySimpleContract.set(Uint64.of(7)).send();
             Uint64 deploySimpleGet = deploySimpleContract.get().send();
             collector.assertEqual(deploySimpleGet, Uint64.of(7));
@@ -78,7 +78,7 @@ public class CreateContractTest extends WASMContractPrepareTest {
             collector.logStepPass("The cloned contract length is verified correctly");
 
             // test clone simple contract
-            SimpleContract cloneSimpleContract = new SimpleContract(cloneSimple.toString(), web3j, transactionManager, provider, chainId);
+            SimpleContract cloneSimpleContract = SimpleContract.load(cloneSimple.toString(), web3j, transactionManager, provider, chainId);
             cloneSimpleContract.set(Uint64.of(7)).send();
             Uint64 cloneSimpleGet = cloneSimpleContract.get().send();
             collector.assertEqual(cloneSimpleGet, Uint64.of(7));
@@ -93,7 +93,7 @@ public class CreateContractTest extends WASMContractPrepareTest {
             collector.logStepPass("migrate contract successfully, contract address:" + migrateSimpleAddress.toString());
 
             // test migrate simple contract
-            SimpleContract migrateSimpleContract = new SimpleContract(migrateSimpleAddress.toString(), web3j, transactionManager, provider, chainId);
+            SimpleContract migrateSimpleContract = SimpleContract.load(migrateSimpleAddress.toString(), web3j, transactionManager, provider, chainId);
             migrateSimpleContract.set(Uint64.of(7)).send();
             Uint64 migrateSimpleGet = migrateSimpleContract.get().send();
             collector.assertEqual(migrateSimpleGet, Uint64.of(7));
@@ -108,7 +108,7 @@ public class CreateContractTest extends WASMContractPrepareTest {
             collector.logStepPass("migrate clone contract successfully, contract address:" + migrateCloneSimpleAddress.toString());
 
             // test migrate clone simple contract
-            SimpleContract migrateCloneSimpleContract = new SimpleContract(migrateCloneSimpleAddress.toString(), web3j, transactionManager, provider, chainId);
+            SimpleContract migrateCloneSimpleContract = SimpleContract.load(migrateCloneSimpleAddress.toString(), web3j, transactionManager, provider, chainId);
             migrateCloneSimpleContract.set(Uint64.of(7)).send();
             Uint64 migrateCloneSimpleGet = migrateCloneSimpleContract.get().send();
             collector.assertEqual(migrateCloneSimpleGet, Uint64.of(7));
@@ -127,7 +127,7 @@ public class CreateContractTest extends WASMContractPrepareTest {
                 collector.logStepPass("create contract create a new contratc successfully, contract address:" + failMigrateDeployAddress.toString());
 
                 // new create contract clone migrate
-                failMigrateDeployContract = new CreateContract(failMigrateDeployAddress.toString(), web3j, transactionManager, provider, chainId);
+                failMigrateDeployContract = CreateContract.load(failMigrateDeployAddress.toString(), web3j, transactionManager, provider, chainId);
                 receipt = failMigrateDeployContract.migrate_clone(failMigrateCreateContractAddress).send();
                 collector.assertTrue(receipt.isStatusOK());
                 collector.logStepPass("deploy create contract clone successfully");

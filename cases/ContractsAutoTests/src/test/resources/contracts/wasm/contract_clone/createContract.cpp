@@ -8,7 +8,7 @@ CONTRACT UpdateContract : public platon::Contract {
     public:
         CONST void init(){}
 
-        ACTION int32_t get_contract_length(const Address & contract_address){
+        CONST int32_t get_contract_length(const Address & contract_address){
             size_t code_length = platon_contract_code_length(contract_address.data());
             if(0 == code_length) return 0;
             bytes contract_code(code_length);
