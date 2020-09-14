@@ -32,7 +32,7 @@ import rx.functions.Func1;
  * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.0.11.
+ * <p>Generated with web3j version 0.13.1.5.
  */
 public class ERC20 extends Contract {
     private static final String BINARY = "";
