@@ -51,9 +51,9 @@ public class Platon_gas_price extends WasmContract {
     }
 
     public List<GasUsedEventResponse> getGasUsedEvents(TransactionReceipt transactionReceipt) {
-        List<WasmContract.WasmEventValuesWithLog> valueList = extractEventParametersWithLog(GASUSED_EVENT, transactionReceipt);
+        List<WasmEventValuesWithLog> valueList = extractEventParametersWithLog(GASUSED_EVENT, transactionReceipt);
         ArrayList<GasUsedEventResponse> responses = new ArrayList<GasUsedEventResponse>(valueList.size());
-        for (WasmContract.WasmEventValuesWithLog eventValues : valueList) {
+        for (WasmEventValuesWithLog eventValues : valueList) {
             GasUsedEventResponse typedResponse = new GasUsedEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
@@ -67,7 +67,7 @@ public class Platon_gas_price extends WasmContract {
         return web3j.platonLogObservable(filter).map(new Func1<Log, GasUsedEventResponse>() {
             @Override
             public GasUsedEventResponse call(Log log) {
-                WasmContract.WasmEventValuesWithLog eventValues = extractEventParametersWithLog(GASUSED_EVENT, log);
+                WasmEventValuesWithLog eventValues = extractEventParametersWithLog(GASUSED_EVENT, log);
                 GasUsedEventResponse typedResponse = new GasUsedEventResponse();
                 typedResponse.log = log;
                 typedResponse.topic = (String) eventValues.getIndexedValues().get(0);
