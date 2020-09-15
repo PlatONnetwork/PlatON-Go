@@ -38,23 +38,22 @@ public class ReferenceDataTypeArrayComplexTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeArrayComplex.含数组（Array）运算逻辑合约",sourcePrefix = "evm")
     public void testReferenceDataTypeArrayTest() {
-
-        ReferenceDataTypeArrayComplexContract referenceDataTypeArrayComplex = null;
-        try {
-            //合约部署
+        try{
+            ReferenceDataTypeArrayComplexContract referenceDataTypeArrayComplex = null;
             referenceDataTypeArrayComplex = ReferenceDataTypeArrayComplexContract.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = referenceDataTypeArrayComplex.getContractAddress();
             TransactionReceipt tx =  referenceDataTypeArrayComplex.getTransactionReceipt().get();
             collector.logStepPass("referenceDataTypeArrayComplex issued successfully.contractAddress:" + contractAddress
-                                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
+                    + ", hash:" + tx.getTransactionHash() + ",deploy gas used:" + tx.getGasUsed());
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
-        } catch (Exception e) {
-            collector.logStepFail("referenceDataTypeArrayComplex deploy fail.", e.toString());
-            e.printStackTrace();
-        }
 
-        //调用合约方法
-        try {
+            if(getIntParam("seq") == 3){
+                List<BigInteger> array = new ArrayList<BigInteger>();
+                BigInteger actualValue = referenceDataTypeArrayComplex.sumComplexArray(array).send();
+                collector.logStepPass("referenceDataTypeArrayComplex 执行sumComplexArray() successfully.hash:" + actualValue);
+                collector.assertEqual(actualValue,BigInteger.ZERO, "checkout execute success.");
+                return;
+            }
             BigInteger sumBig = new BigInteger(sum);
             List<BigInteger> array = new ArrayList<BigInteger>();
             array.add(new BigInteger(a));
@@ -67,8 +66,8 @@ public class ReferenceDataTypeArrayComplexTest extends ContractPrepareTest {
             BigInteger actualValue = referenceDataTypeArrayComplex.sumComplexArray(array).send();
             collector.logStepPass("referenceDataTypeArrayComplex 执行sumComplexArray() successfully.hash:" + actualValue);
             collector.assertEqual(actualValue,sumBig, "checkout execute success.");
-        } catch (Exception e) {
-            collector.logStepFail("referenceDataTypeArrayComplex Calling Method fail.", e.toString());
+        }catch (Exception e){
+            collector.logStepFail(Thread.currentThread().getStackTrace()[1].getMethodName() + " fail.", e.getMessage());
             e.printStackTrace();
         }
 
