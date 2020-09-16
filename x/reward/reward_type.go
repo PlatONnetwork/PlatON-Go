@@ -35,13 +35,14 @@ func NewDelegateRewardPer(epoch uint64, totalReward, totalDelegate *big.Int) *De
 	}
 }
 
+//todo：这英文每看到啊？
 type DelegateRewardPer struct {
-	//this is the node total effective delegate  amount at this epoch,will Decrease when receive delegate reward
+	//节点在该周期的剩余委托金额，账户每次领取收益都会扣除对应委托金额，当该值为0时该记录删除
 	Left  *big.Int
 	Epoch uint64
-	//this is the node total delegate reward per amount at this epoch
+	//节点在该周期的总委托金额
 	Delegate *big.Int
-	//this is the node total effective delegate  amount at this epoch
+	//节点在该周期的总委托收益
 	Reward *big.Int
 }
 

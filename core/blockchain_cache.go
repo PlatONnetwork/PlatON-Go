@@ -17,11 +17,14 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 
@@ -296,6 +299,9 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 
 	t := time.Now()
 	//to execute
+	//stats: 初始化执行区块数据存放对象
+	common.InitExeBlockData(block.NumberU64())
+
 	receipts, err := bcc.ProcessDirectly(block, state, parent)
 	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(),
 		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "duration", time.Since(t), "makeState", elapse, "err", err)
@@ -305,6 +311,15 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		bcc.WriteReceipts(sealHash, receipts, block.NumberU64())
 		bcc.WriteStateDB(sealHash, state, block.NumberU64())
 		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
+
+		//stats: 保存 ExeBlockData in snapshotDB
+
+		exeBlockData := common.PopExeBlockData(block.NumberU64())
+		json, _ := json.Marshal(exeBlockData)
+
+		log.Debug("Execute block finished, write ExeBlockData", "number", block.NumberU64(), "exeBlockData", string(json))
+		statsdb.Instance().WriteExeBlockData(block.Number(), exeBlockData)
+
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())
 	}

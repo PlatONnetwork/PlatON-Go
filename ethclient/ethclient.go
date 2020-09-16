@@ -26,7 +26,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
-	"github.com/PlatONnetwork/PlatON-Go"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"

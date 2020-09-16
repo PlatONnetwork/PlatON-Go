@@ -50,6 +50,7 @@ func TestEVMCallError(t *testing.T) {
 		sender = vm.AccountRef(cfg.Origin)
 	)
 	vmenv.Call(
+		vm.InvokedByTx,
 		sender,
 		common.BytesToAddress([]byte("contract")),
 		nil,
@@ -94,6 +95,7 @@ func TestEVMCall(t *testing.T) {
 	sender := vm.AccountRef(cfg.Origin)
 	// Call the code with the given configuration.
 	vmenv.Call(
+		vm.InvokedByTx,
 		sender,
 		common.BytesToAddress([]byte("contract")),
 		nil,

@@ -385,12 +385,14 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 			TxEditorCandidate, int(staking.ErrCanStatusInvalid.Code)), nil
 	}
 
+	//发起修改交易的钱包地址，必须和发起质押的钱包地址一致
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
 			TxEditorCandidate, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
+	//修改收益地址
 	if canOld.BenefitAddress != vm.RewardManagerPoolAddr {
 		canOld.BenefitAddress = benefitAddress
 	}
@@ -412,12 +414,14 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	canOld.NextRewardPer = rewardPer
 
 	if canOld.NextRewardPer != canOld.RewardPer {
+		//分红比例修改时，和原有比例不能变化太大
 		rewardPerMaxChangeRange, err := gov.GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
 		if nil != err {
 			log.Error("Failed to editCandidate, call GovernRewardPerMaxChangeRange is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 				"err", err)
 			return nil, err
 		}
+		//分红比例修改时，不能太频繁。要和上次修改间隔一定的epoch
 		rewardPerChangeInterval, err := gov.GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
 		if nil != err {
 			log.Error("Failed to editCandidate, call GovernRewardPerChangeInterval is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
@@ -432,6 +436,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 		}
 
 		difference := uint16(math.Abs(float64(canOld.NextRewardPer) - float64(canOld.RewardPer)))
+		//分红比例修改时，和原有比例不能变化太大
 		if difference > rewardPerMaxChangeRange {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 				fmt.Sprintf("invalid rewardPer: %d, modified by more than: %d", rewardPer, rewardPerMaxChangeRange),

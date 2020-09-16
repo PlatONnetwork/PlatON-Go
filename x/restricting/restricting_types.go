@@ -24,9 +24,9 @@ import (
 
 // for genesis and plugin test
 type RestrictingInfo struct {
-	NeedRelease     *big.Int
-	StakingAmount   *big.Int
-	CachePlanAmount *big.Int
+	NeedRelease     *big.Int //欠释放金额，到了结算周期需要释放却因为质押而无法释放的金额
+	StakingAmount   *big.Int //质押的金额
+	CachePlanAmount *big.Int //可用的锁仓金额= 锁仓总额 - 已释放的 - 用于质押的 - 被惩罚的
 	ReleaseList     []uint64 // ReleaseList representation which epoch will release restricting
 }
 

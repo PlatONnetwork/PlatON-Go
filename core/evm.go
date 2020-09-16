@@ -106,3 +106,17 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
 }
+
+type transferItem struct {
+	From   common.Address
+	To     common.Address
+	Amount *big.Int
+}
+
+func buildTransferItem(from, to common.Address, amount *big.Int) *transferItem {
+	return &transferItem{
+		From:   from,
+		To:     to,
+		Amount: amount,
+	}
+}

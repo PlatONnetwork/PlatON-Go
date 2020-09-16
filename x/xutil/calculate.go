@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -82,6 +84,7 @@ func EpochsPerYear() uint64 {
 
 // CalcBlocksEachEpoch return how many blocks per epoch
 func CalcBlocksEachEpoch() uint64 {
+	log.Warn("CalcBlocksEachEpoch", "CalcBlocksEachEpoch", ConsensusSize(), "EpochSize", EpochSize)
 	return ConsensusSize() * EpochSize()
 }
 

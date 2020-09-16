@@ -282,10 +282,10 @@ func (sk *StakingPlugin) GetCanMutableByIrr(addr common.NodeAddress) (*staking.C
 func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
 	typ uint16, addr common.NodeAddress, can *staking.Candidate) error {
 
-	if typ == FreeVon { // from account free von
+	if typ == FreeVon { // from account free von 来自stakingAddress地址的余额
 
 		origin := state.GetBalance(can.StakingAddress)
-		if origin.Cmp(amount) < 0 {
+		if origin.Cmp(amount) < 0 { //todo?: 是否要检查origin>amount?
 			log.Error("Failed to CreateCandidate on stakingPlugin: the account free von is not Enough",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
 				"stakeAddr", can.StakingAddress, "originVon", origin, "stakingVon", amount)
@@ -295,7 +295,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		state.AddBalance(vm.StakingContractAddr, amount)
 		can.ReleasedHes = amount
 
-	} else if typ == RestrictVon { //  from account RestrictingPlan von
+	} else if typ == RestrictVon { //  from account RestrictingPlan von， 来自staking创建的锁仓计划的金额
 
 		err := rt.PledgeLockFunds(can.StakingAddress, amount, state)
 		if nil != err {
@@ -493,7 +493,8 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 		return err
 	}
 
-	if err := sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), epoch, canAddr, can); nil != err {
+	var err error
+	if err = sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), epoch, canAddr, can); nil != err {
 		return err
 	}
 
@@ -548,8 +549,10 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 		can.RestrictingPlanHes = new(big.Int).SetInt64(0)
 	}
 
+	//var realSettleEpoch uint64
+	var err error
 	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
-		if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
+		if err = sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Add UnStakeItemStore failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
@@ -958,6 +961,14 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 	refundAmount := calcRealRefund(blockNumber.Uint64(), blockHash, total, amount)
 	realSub := refundAmount
+
+	//stats
+	threshold, err := gov.GovernOperatingThreshold(blockNumber.Uint64(), blockHash)
+	if nil != err {
+		log.Error("Failed to get governParams", "err", err)
+		return nil, common.InternalError
+	}
+	common.CollectStakingSetting(blockNumber.Uint64(), threshold)
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
@@ -2081,6 +2092,7 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 	return resultQueue, nil
 }
 
+//stats:开始处理被惩罚的节点
 // NotifyPunishedVerifiers
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64, queue ...*staking.SlashNodeItem) error {
 
@@ -2121,6 +2133,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
+//stats:执行处罚节点的动作
 func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, slashItem *staking.SlashNodeItem) (bool, error) {
 
 	log.Debug("Call SlashCandidates: call toSlash", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
@@ -2179,12 +2192,18 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	// it will not punish the behavior of low block rate again
 	// If the penalty is imposed again,
 	// the deposit may be lower than the minimum deposit and may be forced to release the staking during the lock-in period
+	//stats:如果节点已经是0出块被惩罚的状态，现在又要0出块惩罚它，则不再扣钱。但是其它惩罚措施，如冻结质押资金，踢出验证人列表，回转委托奖励等，都要继续做）
 	if can.IsLowRatio() && slashItem.SlashType.IsLowRatio() {
+		//stats: 节点已经处于0出块惩罚状态，不在惩罚金额
 		log.Info("Call SlashCandidates: node has already been punished", "nodeId", slashItem.NodeId.String(), "nodeStatus", can.Status,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "slashType", slashItem.SlashType, "slashAmount", slashItem.Amount)
 	} else {
+		//stats: 收集节点要被惩罚的金额
+		common.CollectZeroSlashingItem(blockNumber, common.NodeID(can.NodeId), slashItem.Amount)
+
 		slashBalance := slashItem.Amount
 		// slash the balance
+		//stats:首先从已生效的质押金额，来自自有资金，中扣除惩罚
 		if slashBalance.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
 			val, rval, err := slashBalanceFn(slashBalance, can.Released, false, slashItem.SlashType,
 				slashItem.BenefitAddr, can.StakingAddress, state)
@@ -2195,6 +2214,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 			}
 			slashBalance, can.Released = val, rval
 		}
+		//如果还需要扣除惩罚，则从已生效的质押金额，来自锁仓计划，扣除惩罚
 		if slashBalance.Cmp(common.Big0) > 0 && can.RestrictingPlan.Cmp(common.Big0) > 0 {
 			val, rval, err := slashBalanceFn(slashBalance, can.RestrictingPlan, true, slashItem.SlashType,
 				slashItem.BenefitAddr, can.StakingAddress, state)
@@ -2207,6 +2227,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		}
 
 		// check slash remain balance
+		//如果还需要扣除惩罚，则移除此验证节点
 		if slashBalance.Cmp(common.Big0) != 0 {
 			log.Error("Failed to SlashCandidates: the ramain is not zero",
 				"slashAmount", slashItem.Amount, "slashed remain", slashBalance,
@@ -2244,6 +2265,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	log.Debug("Call SlashCandidates: the status", "needInvalid", needInvalid,
 		"needRemove", needRemove, "needReturnHes", needReturnHes, "current can.Status", can.Status, "need to superpose status", changeStatus)
 
+	//stats:如果节点要被踢出验证人列表，则要把本结算周期积累的委托收益都转移给节点（相当于本结算周期的有效委托，将不会有委托收益）
 	if needRemove {
 		if err := rm.ReturnDelegateReward(can.BenefitAddress, can.CurrentEpochDelegateReward, state); err != nil {
 			log.Error("Call SlashCandidates:return delegateReward", "err", err)
@@ -2253,7 +2275,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	// Only when the staking is released, the staking-related information needs to be emptied.
 	// When penalizing the low block rate first, and then report double signing, the pledged deposit in the period of hesitation should be returned
-	if needReturnHes {
+	if needReturnHes { //解质押
 		// Return the pledged deposit during the hesitation period
 		if can.ReleasedHes.Cmp(common.Big0) > 0 {
 			state.AddBalance(can.StakingAddress, can.ReleasedHes)
@@ -2275,12 +2297,17 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		can.CleanShares()
 	}
 
+	//节点0出块处罚后，剩余金额足够，此时needReturnHes=false，然后状态需要变为Invalid;
+	//连续0出块处罚，第二次不扣钱，也不做其它处罚
+	//如果节点先被0出块处罚，接着被双签举报，那冻结器满后，会被解质押。
 	if needInvalid && can.IsValid() {
 		can.AppendStatus(changeStatus)
 		// Only when the staking is released, the staking-related information needs to be emptied.
 		if needReturnHes {
+			//解质押；两种情况会走到这里，1.节点是被双签举报，2. 节点0出块处罚完后，剩余质押金不够最低质押金要求
 			// need to sub account rc
 			// Only need to be executed if the pledge is released
+			//钱包账户质押节点数-1
 			if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 				log.Error("Failed to SlashCandidates: Sub Account staking Reference Count is failed", "slashType", slashItem.SlashType,
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2381,10 +2408,13 @@ func handleSlashTypeFn(blockNumber uint64, blockHash common.Hash, slashType stak
 	case staking.LowRatio:
 		if ok, _ := CheckStakeThreshold(blockNumber, blockHash, remain); !ok {
 			changeStatus |= staking.NotEnough
+			//需要解质押时（意味着要删除节点信息），未生效的质押要立刻退回
 			needReturnHes = true
 		}
 		changeStatus |= staking.Invalided
+		//节点处于无效状态（不能出块，不能修改信息，不能参与选举）
 		needInvalid = true
+		//101被备选人节点里删除
 		needRemove = true
 	case staking.LowRatioDel:
 		changeStatus |= staking.Invalided
@@ -3436,6 +3466,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 		return err
 	}
 
+	// TODO stats: 这里还需要重新计算当前epoch吗?
 	refundEpoch = xutil.CalculateEpoch(blockNumber) + duration
 
 	if maxEndVoteEpoch <= refundEpoch {
@@ -3452,6 +3483,10 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, false); nil != err {
 		return err
 	}
+
+	//这里是解除质押引起的质押资金冻结
+	//stats: 保存需要清算的质押资金信息。
+	common.CollectStakingFrozenItem(blockNumber, common.NodeID(nodeId), canAddr, targetEpoch, false)
 	return nil
 }
 
@@ -3469,9 +3504,13 @@ func (sk *StakingPlugin) addRecoveryUnStakeItem(blockNumber uint64, blockHash co
 		"duration", duration, "unstake item target Epoch", targetEpoch,
 		"nodeId", nodeId.String())
 
+	//增加质押被冻结信息，带上recovery=true，表示冻结完成后，节点质押状态将变成正常状态。（这个过程只有被0出块惩罚的节点才有）
 	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, true); nil != err {
 		return err
 	}
+
+	//stats: 保存需要冻结的，将来需要变成正常质押的质押资金信息
+	common.CollectStakingFrozenItem(blockNumber, common.NodeID(nodeId), canAddr, targetEpoch, true)
 	return nil
 }
 

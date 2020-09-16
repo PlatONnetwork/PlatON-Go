@@ -61,7 +61,8 @@ type txdata struct {
 	S *big.Int `json:"s" gencodec:"required"`
 
 	// This is only used when marshaling to JSON.
-	Hash *common.Hash `json:"hash" rlp:"-"`
+	Hash *common.Hash    `json:"hash" rlp:"-"`
+	From *common.Address `json:"hash" rlp:"-"`
 }
 
 type txdataMarshaling struct {
@@ -134,6 +135,11 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 	hash := tx.Hash()
 	data := tx.data
 	data.Hash = &hash
+	//stats: for PlatON stats
+	var signer Signer = NewEIP155Signer(tx.ChainId())
+	from, _ := Sender(signer, tx)
+
+	data.From = &from
 	return data.MarshalJSON()
 }
 
@@ -218,6 +224,7 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 
 	var err error
 	msg.from, err = Sender(s, tx)
+	//tx.SetFromAddr(&msg.from)
 	return msg, err
 }
 

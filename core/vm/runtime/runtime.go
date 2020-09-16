@@ -109,6 +109,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	cfg.State.SetCode(address, code)
 	// Call the code with the given configuration.
 	ret, _, err := vmenv.Call(
+		vm.InvokedByTx,
 		sender,
 		common.BytesToAddress([]byte("contract")),
 		input,
@@ -157,6 +158,7 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 	sender := cfg.State.GetOrNewStateObject(cfg.Origin)
 	// Call the code with the given configuration.
 	ret, leftOverGas, err := vmenv.Call(
+		vm.InvokedByTx,
 		sender,
 		address,
 		input,

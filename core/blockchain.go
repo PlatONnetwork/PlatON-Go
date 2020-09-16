@@ -121,6 +121,8 @@ type BlockChain struct {
 	scope        event.SubscriptionScope
 	genesisBlock *types.Block
 
+	platonstatsFeed event.Feed
+
 	mu      sync.RWMutex // global mutex for locking chain operations
 	chainmu sync.RWMutex // blockchain insertion lock
 	procmu  sync.RWMutex // block processor lock

@@ -6,6 +6,7 @@ require (
 	github.com/Azure/azure-pipeline-go v0.0.0-20180607212504-7571e8eb0876 // indirect
 	github.com/Azure/azure-storage-blob-go v0.0.0-20180712005634-eaae161d9d5e
 	github.com/PlatONnetwork/wagon v0.6.1-0.20200422074910-d2bccc71e673
+	github.com/Shopify/sarama v1.26.4
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/aristanetworks/goarista v0.0.0-20170210015632-ea17b1a17847
@@ -13,6 +14,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cespare/cp v0.1.0
 	github.com/cespare/xxhash v1.1.0
+	github.com/confluentinc/confluent-kafka-go v1.4.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v17.12.0-ce-rc1.0.20180625184442-8e610b2b55bf+incompatible
