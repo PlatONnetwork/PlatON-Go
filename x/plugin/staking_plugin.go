@@ -2194,10 +2194,10 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	// the deposit may be lower than the minimum deposit and may be forced to release the staking during the lock-in period
 	//stats:如果节点已经是0出块被惩罚的状态，现在又要0出块惩罚它，则不再扣钱。但是其它惩罚措施，如冻结质押资金，踢出验证人列表，回转委托奖励等，都要继续做）
 	if can.IsLowRatio() && slashItem.SlashType.IsLowRatio() {
+		//stats: 节点已经处于0出块惩罚状态，不在惩罚金额
 		log.Info("Call SlashCandidates: node has already been punished", "nodeId", slashItem.NodeId.String(), "nodeStatus", can.Status,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "slashType", slashItem.SlashType, "slashAmount", slashItem.Amount)
 	} else {
-
 		//stats: 收集节点要被惩罚的金额
 		common.CollectZeroSlashingItem(blockNumber, common.NodeID(can.NodeId), slashItem.Amount)
 
@@ -2265,7 +2265,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	log.Debug("Call SlashCandidates: the status", "needInvalid", needInvalid,
 		"needRemove", needRemove, "needReturnHes", needReturnHes, "current can.Status", can.Status, "need to superpose status", changeStatus)
 
-	//stats:如果节点要被踢出验证人列表，则要把委托收益
+	//stats:如果节点要被踢出验证人列表，则要把本结算周期积累的委托收益都转移给节点（相当于本结算周期的有效委托，将不会有委托收益）
 	if needRemove {
 		if err := rm.ReturnDelegateReward(can.BenefitAddress, can.CurrentEpochDelegateReward, state); err != nil {
 			log.Error("Call SlashCandidates:return delegateReward", "err", err)
@@ -2275,7 +2275,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	// Only when the staking is released, the staking-related information needs to be emptied.
 	// When penalizing the low block rate first, and then report double signing, the pledged deposit in the period of hesitation should be returned
-	if needReturnHes {
+	if needReturnHes { //解质押
 		// Return the pledged deposit during the hesitation period
 		if can.ReleasedHes.Cmp(common.Big0) > 0 {
 			state.AddBalance(can.StakingAddress, can.ReleasedHes)
@@ -2297,12 +2297,17 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		can.CleanShares()
 	}
 
+	//节点0出块处罚后，剩余金额足够，此时needReturnHes=false，然后状态需要变为Invalid;
+	//连续0出块处罚，第二次不扣钱，也不做其它处罚
+	//如果节点先被0出块处罚，接着被双签举报，那冻结器满后，会被解质押。
 	if needInvalid && can.IsValid() {
 		can.AppendStatus(changeStatus)
 		// Only when the staking is released, the staking-related information needs to be emptied.
 		if needReturnHes {
+			//解质押；两种情况会走到这里，1.节点是被双签举报，2. 节点0出块处罚完后，剩余质押金不够最低质押金要求
 			// need to sub account rc
 			// Only need to be executed if the pledge is released
+			//钱包账户质押节点数-1
 			if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 				log.Error("Failed to SlashCandidates: Sub Account staking Reference Count is failed", "slashType", slashItem.SlashType,
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2403,10 +2408,13 @@ func handleSlashTypeFn(blockNumber uint64, blockHash common.Hash, slashType stak
 	case staking.LowRatio:
 		if ok, _ := CheckStakeThreshold(blockNumber, blockHash, remain); !ok {
 			changeStatus |= staking.NotEnough
+			//需要解质押时（意味着要删除节点信息），未生效的质押要立刻退回
 			needReturnHes = true
 		}
 		changeStatus |= staking.Invalided
+		//节点处于无效状态（不能出块，不能修改信息，不能参与选举）
 		needInvalid = true
+		//101被备选人节点里删除
 		needRemove = true
 	case staking.LowRatioDel:
 		changeStatus |= staking.Invalided

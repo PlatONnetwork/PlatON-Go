@@ -322,9 +322,10 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 				log.Error("HandleDelegatePerReward ReturnDelegateReward fail", "err", err, "blockNumber", blockNumber)
 			}
 		} else {
-			//质押节点给委托用户的奖励信息。
+			//质押节点给有效委托的奖励信息。（总的，没有算每个有效委托的奖励）
 			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, verifier.DelegateTotal)
 			//把奖励信息保存起来。
+			//把每个节点，按key=节点ID+质押块高，来保存应该分配的委托奖励信息
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
 				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 					"nodeId", verifier.NodeId.TerminalString(), "err", err, "CurrentEpochDelegateReward", verifier.CurrentEpochDelegateReward, "delegateTotal", verifier.DelegateTotal)
@@ -333,6 +334,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 			currentEpochDelegateReward := new(big.Int).Set(verifier.CurrentEpochDelegateReward)
 
 			//查看是否有新的委托分红比例生效。
+			//清除节点的当前结算周期的委托分红金额；如果有新的委托分红比例生效，就切换到新的委托分红比例。
 			verifier.PrepareNextEpoch()
 			canAddr, err := xutil.NodeId2Addr(verifier.NodeId)
 			if nil != err {
@@ -556,7 +558,7 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 			}
 		}
 
-		//stats: 收集待分配的出块奖励金额，每个结算周期可能不一样
+		//stats: 收集待分配的出块奖励金额，每个结算周期可能不一样，当前节点已经不在101备选人列表中，委托用户不能参与本结算周期的委托分红。
 		common.CollectBlockRewardData(head.Number.Uint64(), blockReward, true)
 	} else {
 		log.Warn("nodeID is not in verify list now, delegator has no block reward", "blockNumber", head.Number, "blockHash", blockHash, "nodeID", nodeID.String())
@@ -816,7 +818,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Error("load incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
-	if yearStartTime == 0 { //特殊处理：说明是链的第1块，则需要计算下1年增发的时间
+	if yearStartTime == 0 { //特殊处理：说明是链的第1块，则需要计算1岁时的增发时间
 		yearStartBlockNumber = head.Number.Uint64() //此时滑动窗口起始块高 yearStartBlockNumber=1
 		yearStartTime = head.Time.Int64()           //此时滑动窗口起始时间 yearStartTime=区块1的时间
 		//计算链下一年的预期增发时间点（当前区块时间 + 增发周期长度）
@@ -875,7 +877,8 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		//默认每过一个结算周期，都要调整滑动窗口的起始块高
 		if addition {
 			if yearStartBlockNumber == 1 {
-				yearStartBlockNumber += epochBlocks - 1 //第一次调整时，要注意减去1，因为块高是从0开始计算的
+				//第一次调整时，是第一次增发后的第一个结算周期末，调整后起始块位于0岁的第1个结算周期末（因为yearStartBlockNumber=1，这个起点不是0岁0周期末，而是0岁1周期起始块）。
+				yearStartBlockNumber += epochBlocks - 1
 			} else {
 				yearStartBlockNumber += epochBlocks
 			}

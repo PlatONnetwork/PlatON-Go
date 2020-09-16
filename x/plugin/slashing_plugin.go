@@ -640,7 +640,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 			"err", err)
 		return err
 	}
-
+	//计算有效质押金
 	totalBalance := calcCanTotalBalance(blockNumber, canMutable)
 	slashAmount := calcAmountByRate(totalBalance, uint64(fraction), TenThousandDenominator)
 

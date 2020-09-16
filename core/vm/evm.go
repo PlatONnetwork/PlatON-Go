@@ -311,12 +311,13 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 	log.Info("to check if called by contract", "invokedByContract", invokedByContract)
 	if invokedByContract {
 		if value.Sign() > 0 {
-			log.Info("collect embed transfer tx in Call()", "blockNumber", evm.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32(), "amount", value, "&value", &value)
+			log.Info("collect embed transfer tx in Call()", "blockNumber", evm.BlockNumber.Uint64(), "txHash", evm.StateDB.TxHash(), "caller", caller.Address().Bech32(), "to", to.Address().Bech32(), "amount", value, "&value", &value)
 			common.CollectEmbedTransferTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), value)
 		}
 		if contract.CodeAddr != nil {
+			//codeAddr就是to.Address,参考to和setCodeAddress
 			if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
-				log.Info("collect embed PlantON precompiled contract tx in Call()", "blockNumber", evm.BlockNumber.Uint64(), "contractAddress", contract.CodeAddr.Bech32())
+				log.Info("collect embed PlantON precompiled contract tx in Call()", "blockNumber", evm.BlockNumber.Uint64(), "txHash", evm.StateDB.TxHash(), "caller", caller.Address().Bech32(), "to", contract.CodeAddr.Bech32())
 				common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
 			}
 		}

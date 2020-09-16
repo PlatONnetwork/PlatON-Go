@@ -54,7 +54,7 @@ var (
 	EpochValArrPrefix       = []byte(EpochValArrPrefixStr)
 	RoundIndexKey           = []byte(RoundIndexKeyStr)
 	RoundValArrPrefix       = []byte(RoundValArrPrefixStr)
-	AccountStakeRcPrefix    = []byte(AccountStakeRcPrefixStr)
+	AccountStakeRcPrefix    = []byte(AccountStakeRcPrefixStr) //存储一个帐号（钱包）质押了多少个节点；如果此值>0,则此钱包账户不能做委托。
 	PPOSHASHKey             = []byte(PPOSHASHStr)
 	RoundValAddrArrPrefix   = []byte(RoundValAddrArrPrefixStr)
 	RoundAddrBoundaryPrefix = []byte(RoundAddrBoundaryPrefixStr)

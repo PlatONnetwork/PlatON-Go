@@ -209,7 +209,7 @@ type ZeroSlashingItem struct {
 }
 
 type DuplicatedSignSlashingSetting struct {
-	PenaltyRatioByValidStakings uint32 `json:"penaltyRatioByValidStakings,omitempty"` //unit:1%%		//罚金 = 有效质押 & PenaltyRatioByValidStakings / 10000
+	PenaltyRatioByValidStakings uint32 `json:"penaltyRatioByValidStakings,omitempty"` //unit:1%%		//罚金 = 有效质押 * PenaltyRatioByValidStakings / 10000
 	RewardRatioByPenalties      uint32 `json:"rewardRatioByPenalties,omitempty"`      //unit:1%		//给举报人的赏金=罚金 * RewardRatioByPenalties / 100
 }
 
@@ -292,7 +292,7 @@ func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, rele
 
 func CollectBlockRewardData(blockNumber uint64, blockRewardAmount *big.Int, delegatorReward bool) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
-		log.Debug("CollectBlockRewardData", "blockNumber", blockNumber, "blockRewardAmount", blockRewardAmount)
+		log.Debug("CollectBlockRewardData", "blockNumber", blockNumber, "blockRewardAmount", blockRewardAmount, "delegatorReward", delegatorReward)
 		if exeBlockData.RewardData == nil {
 			exeBlockData.RewardData = new(RewardData)
 		}
