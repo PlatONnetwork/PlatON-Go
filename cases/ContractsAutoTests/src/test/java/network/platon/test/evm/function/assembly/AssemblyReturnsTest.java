@@ -3,7 +3,7 @@ package network.platon.test.evm.function.assembly;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.AssemblyReturns;
+import network.platon.contracts.evm.AssemblyReturns;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;

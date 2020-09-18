@@ -3,7 +3,7 @@ package network.platon.test.evm.versioncompatible.v0_4_25;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.DeprecatedFunctions;
+import network.platon.contracts.evm.DeprecatedFunctions;
 import org.junit.Test;
 import org.web3j.tuples.generated.Tuple2;
 import org.web3j.tx.exceptions.ContractCallException;

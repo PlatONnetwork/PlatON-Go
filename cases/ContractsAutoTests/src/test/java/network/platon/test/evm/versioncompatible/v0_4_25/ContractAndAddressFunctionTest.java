@@ -4,7 +4,7 @@ import network.platon.test.evm.beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.ContractAndAddressFunction;
+import network.platon.contracts.evm.ContractAndAddressFunction;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import org.web3j.protocol.core.DefaultBlockParameterName;

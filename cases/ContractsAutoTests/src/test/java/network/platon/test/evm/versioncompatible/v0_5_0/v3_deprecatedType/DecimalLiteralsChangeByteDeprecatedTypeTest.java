@@ -3,7 +3,7 @@ package network.platon.test.evm.versioncompatible.v0_5_0.v3_deprecatedType;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.DecimalLiteralsChangeByte;
+import network.platon.contracts.evm.DecimalLiteralsChangeByte;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;

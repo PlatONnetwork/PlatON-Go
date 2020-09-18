@@ -3,7 +3,7 @@ package network.platon.test.evm.data_type.TypeConversion;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.TypeConversionContract;
+import network.platon.contracts.evm.TypeConversionContract;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;

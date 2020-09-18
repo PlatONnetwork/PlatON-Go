@@ -5,7 +5,7 @@
 //import network.platon.autotest.junit.annotations.DataSource;
 //import network.platon.autotest.junit.enums.DataSourceType;
 //import network.platon.autotest.utils.FileUtil;
-//import network.platon.contracts.SimpleStorage;
+//import network.platon.contracts.evm.SimpleStorage;
 //import network.platon.utils.DataChangeUtil;
 //import network.platon.utils.OneselfFileUtil;
 //import org.junit.Test;

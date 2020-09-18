@@ -3,7 +3,7 @@ package network.platon.test.evm.data_type.ReferenceData;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.ReferenceDataTypeArrayOperatorContract;
+import network.platon.contracts.evm.ReferenceDataTypeArrayOperatorContract;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;

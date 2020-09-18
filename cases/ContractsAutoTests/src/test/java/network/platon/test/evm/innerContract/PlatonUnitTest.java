@@ -3,8 +3,8 @@
 //import network.platon.test.evm.beforetest.ContractPrepareTest;
 //import network.platon.autotest.junit.annotations.DataSource;
 //import network.platon.autotest.junit.enums.DataSourceType;
-//import network.platon.contracts.Guessing;
-//import network.platon.contracts.PlatonUnit;
+//import network.platon.contracts.evm.Guessing;
+//import network.platon.contracts.evm.PlatonUnit;
 //import org.junit.Before;
 //import org.junit.Test;
 //import org.web3j.protocol.core.DefaultBlockParameterName;

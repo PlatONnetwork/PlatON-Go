@@ -4,7 +4,7 @@ import network.platon.test.evm.beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.DoWhileCheck;
+import network.platon.contracts.evm.DoWhileCheck;
 import org.junit.Test;
 import org.web3j.tuples.generated.Tuple2;
 import org.web3j.tx.Transfer;

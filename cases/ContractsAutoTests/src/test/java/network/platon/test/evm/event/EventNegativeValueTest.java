@@ -4,7 +4,7 @@ package network.platon.test.evm.event;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.Eventer;
+import network.platon.contracts.evm.Eventer;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 

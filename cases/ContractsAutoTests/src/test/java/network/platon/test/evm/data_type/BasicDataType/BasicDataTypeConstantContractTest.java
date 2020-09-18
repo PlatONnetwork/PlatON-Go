@@ -3,7 +3,7 @@ package network.platon.test.evm.data_type.BasicDataType;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.BasicDataTypeConstantContract;
+import network.platon.contracts.evm.BasicDataTypeConstantContract;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;

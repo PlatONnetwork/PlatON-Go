@@ -3,7 +3,7 @@ package network.platon.test.evm.versioncompatible.v0_5_0.v8_contractAndAddress;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.ContractAndAddress;
+import network.platon.contracts.evm.ContractAndAddress;
 import org.junit.Before;
 import org.junit.Test;
 

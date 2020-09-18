@@ -3,7 +3,7 @@ package network.platon.test.evm.versioncompatible.v0_5_13.v3_stringmappingSuppor
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.StringmappingSupport;
+import network.platon.contracts.evm.StringmappingSupport;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;

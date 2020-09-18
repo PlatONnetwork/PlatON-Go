@@ -3,7 +3,7 @@ package network.platon.test.evm.versioncompatible.v0_5_0.v10_deprecatedFunction;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.Sha3AndKeccake256;
+import network.platon.contracts.evm.Sha3AndKeccake256;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;

@@ -3,7 +3,7 @@ package network.platon.test.evm.exceptionhandle;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.RequireMessageHandle;
+import network.platon.contracts.evm.RequireMessageHandle;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.exceptions.TransactionException;

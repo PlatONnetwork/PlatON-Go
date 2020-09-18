@@ -3,7 +3,7 @@ package network.platon.test.evm.lib;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.SafeMathMock;
+import network.platon.contracts.evm.SafeMathMock;
 import org.junit.Test;
 
 import java.math.BigInteger;

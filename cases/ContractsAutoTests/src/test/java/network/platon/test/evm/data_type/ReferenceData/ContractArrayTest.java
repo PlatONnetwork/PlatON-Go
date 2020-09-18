@@ -3,7 +3,7 @@ package network.platon.test.evm.data_type.ReferenceData;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.ContractArray;
+import network.platon.contracts.evm.ContractArray;
 
 import org.junit.Before;
 import org.junit.Test;

@@ -3,7 +3,7 @@ package network.platon.test.evm.versioncompatible.v0_5_13.v1_librayUseMapping;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.UserMapping;
+import network.platon.contracts.evm.UserMapping;
 import org.junit.Before;
 import org.junit.Test;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
