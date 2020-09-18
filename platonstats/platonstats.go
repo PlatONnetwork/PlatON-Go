@@ -376,7 +376,7 @@ func readBlockNumber() (uint64, error) {
 }
 
 func writeStatsLog(blockNumber uint64) {
-	if err := common.WriteFile(statsLogFile, []byte(strconv.FormatUint(blockNumber, 10)), statsLogFlag, 666); err != nil {
+	if err := common.WriteFile(statsLogFile, []byte(strconv.FormatUint(blockNumber, 10)), statsLogFlag, os.ModePerm); err != nil {
 		log.Error("Failed to log stats block number", "blockNumber", blockNumber)
 	}
 }
@@ -511,7 +511,7 @@ func getBalance(backend *eth.EthAPIBackend, address common.Address, blockNr rpc.
 func writeCheckingErr(bech32 string, blockNumber uint64, chainBalance, trackingBalance *big.Int) {
 	log.Error("Account chain and tracking balances are not equal", "blockNumber", blockNumber, "address", bech32, "chainBalance", chainBalance, "trackingBalance", trackingBalance)
 	content := fmt.Sprintf("blockNumber=%d    account=%s    chainBalance=%d    trackingBalance=%d\n", blockNumber, bech32, chainBalance, trackingBalance)
-	err := common.WriteFile(checkingErrFile, []byte(content), checkingErrFlag, 666)
+	err := common.WriteFile(checkingErrFile, []byte(content), checkingErrFlag, os.ModePerm)
 	if err != nil {
 		log.Error("Failed to log account-checking-error", "content", content)
 	}
