@@ -163,6 +163,9 @@ func New(kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic, kafkaAccountCheck
 		statsLogFile = filepath.Join(datadir, statsLogFile)
 		checkingErrFile = filepath.Join(datadir, checkingErrFile)
 	}
+	log.Debug("PlatON stats log file", "datadir", datadir)
+	log.Debug("PlatON stats log file", "statsLogFile", statsLogFile)
+	log.Debug("PlatON stats log file", "checkingErrFile", checkingErrFile)
 	return platonStatsService, nil
 }
 
@@ -366,6 +369,7 @@ func readBlockNumber() (uint64, error) {
 			log.Warn("Failed to read PlatON stats service log", "error", err)
 			return 0, errors.New("Failed to read PlatON stats service log")
 		} else {
+			log.Warn("Success to read PlatON stats service log", "blockNumber", blockNumber)
 			return blockNumber, nil
 		}
 	}
