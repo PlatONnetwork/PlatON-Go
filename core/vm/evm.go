@@ -211,7 +211,7 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 }
 
 func (evm *EVM) RevertToDBSnapshot(snapshotDBID, stateDBID int) {
-	if evm.SnapshotDB != nil {
+	if evm.SnapshotDB != nil && evm.StateDB.TxHash() != common.ZeroHash {
 		evm.SnapshotDB.RevertToSnapshot(evm.BlockHash, snapshotDBID)
 	}
 	evm.StateDB.RevertToSnapshot(stateDBID)
@@ -219,6 +219,9 @@ func (evm *EVM) RevertToDBSnapshot(snapshotDBID, stateDBID int) {
 
 func (evm *EVM) DBSnapshot() (snapshotID int, StateDBID int) {
 	if evm.SnapshotDB != nil {
+		if evm.StateDB.TxHash() == common.ZeroHash {
+			return 0, evm.StateDB.Snapshot()
+		}
 		return evm.SnapshotDB.Snapshot(evm.BlockHash), evm.StateDB.Snapshot()
 	}
 	return 0, evm.StateDB.Snapshot()
