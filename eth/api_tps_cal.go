@@ -63,36 +63,33 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	endTime := common.MillisToTime(x[0].ProduceTime).Add(time.Second * time.Duration(t))
 	txConut := 0
 	latency, ttf := int64(0), int64(0)
-	analysts := make([][5]int64, 0)
+	analysts := make([][4]int64, 0)
 	total := 0
-
-	interval := make(map[int64]int64)
-
-	max, min := int64(0), int64(0)
 
 	for _, info := range x {
 		total += info.TxLength
-		if !common.MillisToTime(info.ProduceTime).Before(endTime) {
-			for i, _ := range interval {
-				if i <= min {
-					min = i
+		for common.MillisToTime(info.ProduceTime).After(endTime) {
+			latRes := time.Duration(0).Milliseconds()
+			tpsRes := int64(0)
+			ttfRes := time.Duration(0).Milliseconds()
+			if txConut > 0 {
+				latRes = time.Duration(int64(float64(latency) / float64(txConut))).Milliseconds()
+				tpsRes = int64(txConut) / int64(t)
+				if tpsRes == 0 {
+					tpsRes = 1
 				}
-				if i >= max {
-					max = i
-				}
+				ttfRes = time.Duration(int64(float64(ttf) / float64(txConut))).Milliseconds()
 			}
-			analysts = append(analysts, [5]int64{endTime.Unix(), time.Duration(int64(float64(latency) / float64(txConut))).Milliseconds(), int64(txConut) / int64(t), time.Duration(int64(float64(ttf) / float64(txConut))).Milliseconds(), (interval[max] - interval[min]) / int64(len(interval))})
+			analysts = append(analysts, [4]int64{endTime.Unix(), latRes, tpsRes, ttfRes})
+
 			endTime = endTime.Add(time.Second * time.Duration(t))
 			txConut = 0
 			latency = 0
 			ttf = 0
-			interval = make(map[int64]int64)
 		}
 		txConut += info.TxLength
 		latency += info.Latency
 		ttf += info.Ttf
-		interval[info.Number] = info.ProduceTime
-		min, max = info.Number, info.Number
 	}
 
 	xlsxFile := xlsx.NewFile()
@@ -111,8 +108,6 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 	cell_3.Value = "tps"
 	cell_4 := row.AddCell()
 	cell_4.Value = "ttf"
-	cell_5 := row.AddCell()
-	cell_5.Value = "avg interval"
 	cell_6 := row.AddCell()
 	cell_6.Value = "totalReceive"
 	cell_7 := row.AddCell()
@@ -129,8 +124,6 @@ func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
 		tpsCell.Value = strconv.FormatInt(d[2], 10)
 		ttfCell := row.AddCell()
 		ttfCell.Value = strconv.FormatInt(d[3], 10)
-		intervalCell := row.AddCell()
-		intervalCell.Value = strconv.FormatInt(d[4], 10)
 		if i == 0 {
 			totalReceive := row.AddCell()
 			totalReceive.Value = strconv.FormatInt(int64(total), 10)

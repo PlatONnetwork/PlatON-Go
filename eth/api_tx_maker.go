@@ -225,9 +225,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					}
 					log.Error("makeTx update res fail,should always read receipt from block cache")
 				}
-				if length > 0 {
-					txg.res.Blocks = append(txg.res.Blocks, BlockInfo{common.Millis(txm.blockProduceTime), res.Number().Int64(), length, latency, ttf})
-				}
+				txg.res.Blocks = append(txg.res.Blocks, BlockInfo{common.Millis(txm.blockProduceTime), res.Number().Int64(), length, latency, ttf})
 				log.Debug("makeTx update res", "block", res.Number(), "use", time.Since(txm.blockProduceTime), "txs", len(res.Transactions()), "current", length)
 			case <-shouldmake.C:
 				if time.Since(txm.blockProduceTime) >= waitBLockTime {
