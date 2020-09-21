@@ -153,7 +153,7 @@ public class RequireHandleTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "paramException",
             author = "albedo", showName = "exceptionhandle.RequireHandle-检测异常", sourcePrefix = "evm")
     public void testParamException() {
         try {
