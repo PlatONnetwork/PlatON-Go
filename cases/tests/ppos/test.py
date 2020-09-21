@@ -11,12 +11,12 @@ from ruamel import yaml
 
 import conf
 from common.load_file import LoadFile
-from conf.settings import TMP_ADDRES, ACCOUNT_FILE, BASE_DIR
+# from conf.settings import TMP_ADDRES, ACCOUNT_FILE, BASE_DIR
 
 accounts = {}
 
 
-def connect_web3(url, chain_id=104):
+def connect_web3(url, chain_id=101):
     if "ws" in url:
         w3 = Web3(WebsocketProvider(url), chain_id=chain_id)
     else:
@@ -50,8 +50,8 @@ def sendTransaction(url, from_address, prikey, to_address, value, chain_id):
     web3 = connect_web3(url)
     platon = Eth(web3)
     nonce = platon.getTransactionCount(from_address)
+    print(nonce)
     gasPrice = platon.gasPrice
-    print(gasPrice)
     transaction_dict = {
         "to": to_address,
         "gasPrice": gasPrice,
@@ -68,9 +68,10 @@ def sendTransaction(url, from_address, prikey, to_address, value, chain_id):
 
     data = signedTransactionDict.rawTransaction
     result = HexBytes(platon.sendRawTransaction(data)).hex()
+    # print(result)
     # log.debug("result:::::::{}".format(result))
-    res = platon.waitForTransactionReceipt(result)
-    print(res)
+    # res = platon.waitForTransactionReceipt(result)
+    # print(res)
 
 
 def get_candidatelist(url):
@@ -86,6 +87,11 @@ def get_candinfo(url, node_id):
     result = ppos.getCandidateInfo(node_id)
     print(result)
 
+def get_RestrictingPlan(url, address):
+    web3 = connect_web3(url)
+    ppos = Ppos(web3)
+    result = ppos.getRestrictingInfo(address)
+    print(result)
 #
 # def create_address(url):
 #     """
@@ -126,22 +132,24 @@ def get_candinfo(url, node_id):
 
 if __name__ == '__main__':
     # url = 'http://192.168.9.222:6789'
-    # url = 'http://10.1.1.58:6789'
+    url = 'http://10.1.1.58:6789'
     # url = 'http://10.0.0.44:6789'
-    url = 'http://149.129.180.78:6789'
+    # url = 'http://149.129.180.78:6789'
     # epoch = 100
-    # amount = Web3.toWei(100, 'ether')
+    amount = Web3.toWei(1, 'ether')
     # plan = [{'Epoch': epoch, 'Amount': amount}]
     # createRestrictingPlan(url, account, plan, pri_key)
     # delegate(url, 0, nodeid, amount, pri_key)
-    # to_address = 'lat1h4hpxa0xl6v6pl9rmvcz8xccamytazlpz7hlfz'
-    # pri_key = '5760032fe6088702d9c1bb6043d1b7603ae0d99c5adf6ccc715b256d0862361f'
-    # from_address = 'lat1ggpeuj4xh2p07vnl5423hhsl075nsqj5ydfdn0'
+    to_address = 'lat13l39glde394a6kkrm5aenj4ty7m7565x8sgtrf'
+    pri_key = '91751513fa39f02ada9a7110bef0a20e03375e9b05d78036e84e91366276e5d8'
+    from_address = 'lax184zj2xdms82dvg5ypacsk48qw3ch0q9rtfrmp3'
     # node_id = '71bc24068d1f1f65331ad7573806bf58186375ef993dddf3ea51c8d0da162c801689aed5aa9e809396cd60273af1d2826d918e36ce4d003c578371a7b3b8b429'
     # pri_key1 = 'd357920de1df4ecb00cbce60ded2d73f3f51fd1e9fb79b08f366e301e849bd9d'
-    # sendTransaction(url, from_address, pri_key, to_address, amount, 100)
+    while 1:
+        sendTransaction(url, from_address, pri_key, to_address, amount, 298)
     # withdrewStaking(url, node_id, pri_key1)
     # node_id = 'e2181d8dc731b14117ba6d982ce163fc7b9b14bbbaf9cb3c343ef72c24cf3ed568cac6ecbc30fddf9012320fab99f6be6ab37132d083cb514100bdb4b90fff5e'
     # get_candinfo(url, node_id)
     # get_candidatelist(url)
-    create_address(url)
+    # addresss = 'lat13l39glde394a6kkrm5aenj4ty7m7565x8sgtrf'
+    # get_RestrictingPlan(url, 'lax17ax3lr6qy405sf03ncema3nmusdqmpzq7ujvpz')
