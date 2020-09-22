@@ -17,4 +17,16 @@ chmod a+x solc-${VERSION}
 # chmod a+x solc-${VERSION}
 #fi
 # echo "Run solc command to compile contract ...."
-./solc-${VERSION} -o ${TARGET} --bin --abi --overwrite ${CONTRACT}
+version_num=0
+array=(${VERSION//./ })
+sum=0
+len=${#array[@]}
+for(( i=0;i<$len;i++))
+do
+    let sum+=$[10**($len-i)*${array[i]}]
+done;
+if [ "$sum" -ge "630" ]; then
+  ./solc-${VERSION} -o ${TARGET} --evm-version istanbul --bin --abi --overwrite ${CONTRACT}
+else
+  ./solc-${VERSION} -o ${TARGET} --bin --abi --overwrite ${CONTRACT}
+fi

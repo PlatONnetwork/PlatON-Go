@@ -1,7 +1,7 @@
 pragma solidity ^0.5.13;
 
 /*
- * evm 跨合约调用 Platon系统合约
+ * network.platon.test.evm 跨合约调用 Platon系统合约
  * @author hudenian
  * @dev 2020/02/25
 */
