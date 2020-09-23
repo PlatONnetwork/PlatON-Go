@@ -32,11 +32,11 @@ func TestEnforceRestrictions(t *testing.T) {
 	)
 	evmInterpreter.readOnly = true
 	varstore := operation{
-		execute:       opSstore,
-		gasCost:       gasSStore,
-		validateStack: makeStackFunc(2, 0),
-		valid:         true,
-		writes:        true,
+		execute:    opSstore,
+		dynamicGas: gasSStore,
+		minStack:   minStack(2, 0),
+		maxStack:   maxStack(2, 0),
+		writes:     true,
 	}
 	err := evmInterpreter.enforceRestrictions(SSTORE, varstore, nil)
 	if err == nil {
