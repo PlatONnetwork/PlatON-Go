@@ -30,7 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
-var testAddrString = "lax1ju8gz29tsd8gatqh4w8rsyhszpnceau340amnz"
+var testAddrString = "atx1ju8gz29tsd8gatqh4w8rsyhszpnceau3f69x3g"
 var testPrivHex = "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032"
 
 // These tests are sanity checks.
@@ -134,9 +134,9 @@ func TestNewContractAddress(t *testing.T) {
 	caddr0 := CreateAddress(addr, 0)
 	caddr1 := CreateAddress(addr, 1)
 	caddr2 := CreateAddress(addr, 2)
-	checkAddr(t, common.MustBech32ToAddress("lax1xv7rxyyzfd7xs5fn72ldkt9yhz6d7ceac8r3c4"), caddr0)
-	checkAddr(t, common.MustBech32ToAddress("lax130d8svcuj94qsjq59rjtqlyk6053d5t9wsgpsh"), caddr1)
-	checkAddr(t, common.MustBech32ToAddress("lax1e8w7maz3h33vaz9lj2f2lvfa7ddkwp5eyjeay2"), caddr2)
+	checkAddr(t, common.MustBech32ToAddress("atx1xv7rxyyzfd7xs5fn72ldkt9yhz6d7ceayjmv6l"), caddr0)
+	checkAddr(t, common.MustBech32ToAddress("atx130d8svcuj94qsjq59rjtqlyk6053d5t9j9suja"), caddr1)
+	checkAddr(t, common.MustBech32ToAddress("atx1e8w7maz3h33vaz9lj2f2lvfa7ddkwp5ec8pqxq"), caddr2)
 }
 
 func TestLoadECDSAFile(t *testing.T) {
