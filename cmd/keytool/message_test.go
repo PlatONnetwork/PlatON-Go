@@ -40,7 +40,7 @@ func TestMessageSignVerify(t *testing.T) {
 Passphrase: {{.InputLine "foobar"}}
 Repeat passphrase: {{.InputLine "foobar"}}
 `)
-	_, matches := generate.ExpectRegexp(`main net Address: (lat1[0-9a-z]{38})\nother net Address: lax1[0-9a-z]{38}\n`)
+	_, matches := generate.ExpectRegexp(`main net Address: (atp1[0-9a-z]{38})\nother net Address: atx1[0-9a-z]{38}\n`)
 
 	address := matches[1]
 	generate.ExpectExit()
@@ -59,8 +59,8 @@ Passphrase: {{.InputLine "foobar"}}
 	_, matches = verify.ExpectRegexp(`
 Signature verification successful!
 Recovered public key: [0-9a-f]+
-Recovered main net address: (lat1[0-9a-z]{38})
-Recovered test net address: (lax1[0-9a-z]{38})
+Recovered main net address: (atp1[0-9a-z]{38})
+Recovered test net address: (atx1[0-9a-z]{38})
 `)
 	recovered := matches[1]
 	verify.ExpectExit()

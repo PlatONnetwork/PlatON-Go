@@ -81,31 +81,31 @@ var (
 	}
 
 	addrArr = []common.Address{
-		common.MustBech32ToAddress("lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj"),
-		common.MustBech32ToAddress("lax1mplpp7806tpj7h5gklp8n9f6aahwtzgzjqryaa"),
-		common.MustBech32ToAddress("lax1atkxp3ecamv5drn2enqagql6eudxwrmdnh5qsw"),
-		common.MustBech32ToAddress("lax1t3veg9jjvkkrr2h7sa9zx8evt58098p6xspu4t"),
-		common.MustBech32ToAddress("lax1h9zfav3xewfu806lajskepd8xafcuf8s5722uu"),
-		common.MustBech32ToAddress("lax1jz966xprhhdxdnr9u7ytn5qefduht9m2qcwfsw"),
-		common.MustBech32ToAddress("lax18h7xf2rak5skvfn4mll2frgvyzzpf48c8n5amr"),
-		common.MustBech32ToAddress("lax14k9d7dgx3n04wty7lddqd8dy35hpvk4pk3409g"),
-		common.MustBech32ToAddress("lax17va4mfrudm9uv88s03ec0t7xau8297rx4rnqsg"),
-		common.MustBech32ToAddress("lax19e0mfauw87umrzvdulta3keagnrzqs97t2vy8j"),
-		common.MustBech32ToAddress("lax19pw0sn4ru9m7rlyl894whjfjngy02xa4z57x7d"),
-		common.MustBech32ToAddress("lax1jxllmjyr9xham97ldl5jel20eduj0tkdw0g9h2"),
-		common.MustBech32ToAddress("lax1tzmzll6sg6hjy5h3lrkttse59tdrjnmjzfuf5u"),
-		common.MustBech32ToAddress("lax13mq3dsgas527sg3v40ztasr23qx9rkffpqazlk"),
-		common.MustBech32ToAddress("lax1xe8vht0ycdd7utu2qnuzpxatyd453g66qxn47n"),
-		common.MustBech32ToAddress("lax1y6ykcw22rcfqjh5z9edssr5wlgzscuuvev7qry"),
-		common.MustBech32ToAddress("lax1x9p98qjv66mmeutp8j4sqyndvpm00guffccn8r"),
-		common.MustBech32ToAddress("lax124z0qh23u306vjt6lmq0rfwkg5cmyxlqmjwcmv"),
-		common.MustBech32ToAddress("lax18k5rp7kj56vrm9ydwf3t9t0haffmj5a706xfnm"),
-		common.MustBech32ToAddress("lax1s9d8jyxqxhe0h9z3ek35n95h3pzfcg5gm7auvu"),
-		common.MustBech32ToAddress("lax1fnw5ncy9slyzf3mzne73ysuskux3q46qt3fek6"),
-		common.MustBech32ToAddress("lax16pqmt742fdepysd92yrlarceecd68elae9unre"),
-		common.MustBech32ToAddress("lax1e0zc8hkmhe44rwrqxmqyqkttkzsznxnnp79644"),
-		common.MustBech32ToAddress("lax1rs9y2zd6gm02gam44k9jpgvl8x9cypjzy5hnmw"),
-		common.MustBech32ToAddress("lax1amssl39r4vee7knc3uac966hww8swhkwmxdu9d"),
+		common.MustBech32ToAddress("atx1e8su9veseal8t8eyj0zuw49nfkvtqlunk9u8vc"),
+		common.MustBech32ToAddress("atx1mplpp7806tpj7h5gklp8n9f6aahwtzgzw4melh"),
+		common.MustBech32ToAddress("atx1atkxp3ecamv5drn2enqagql6eudxwrmd0zvajy"),
+		common.MustBech32ToAddress("atx1t3veg9jjvkkrr2h7sa9zx8evt58098p669ephp"),
+		common.MustBech32ToAddress("atx1h9zfav3xewfu806lajskepd8xafcuf8sgtjh7k"),
+		common.MustBech32ToAddress("atx1jz966xprhhdxdnr9u7ytn5qefduht9m2udk5jy"),
+		common.MustBech32ToAddress("atx18h7xf2rak5skvfn4mll2frgvyzzpf48cmxvqef"),
+		common.MustBech32ToAddress("atx14k9d7dgx3n04wty7lddqd8dy35hpvk4p2ydj8z"),
+		common.MustBech32ToAddress("atx17va4mfrudm9uv88s03ec0t7xau8297rxfktajz"),
+		common.MustBech32ToAddress("atx19e0mfauw87umrzvdulta3keagnrzqs97hl5e9c"),
+		common.MustBech32ToAddress("atx19pw0sn4ru9m7rlyl894whjfjngy02xa47pxmu8"),
+		common.MustBech32ToAddress("atx1jxllmjyr9xham97ldl5jel20eduj0tkdj6sc4q"),
+		common.MustBech32ToAddress("atx1tzmzll6sg6hjy5h3lrkttse59tdrjnmj7uy5kk"),
+		common.MustBech32ToAddress("atx13mq3dsgas527sg3v40ztasr23qx9rkffa49lau"),
+		common.MustBech32ToAddress("atx1xe8vht0ycdd7utu2qnuzpxatyd453g66untgue"),
+		common.MustBech32ToAddress("atx1y6ykcw22rcfqjh5z9edssr5wlgzscuuv9exapw"),
+		common.MustBech32ToAddress("atx1x9p98qjv66mmeutp8j4sqyndvpm00guf4dqw9f"),
+		common.MustBech32ToAddress("atx124z0qh23u306vjt6lmq0rfwkg5cmyxlq88k9ex"),
+		common.MustBech32ToAddress("atx18k5rp7kj56vrm9ydwf3t9t0haffmj5a7n07533"),
+		common.MustBech32ToAddress("atx1s9d8jyxqxhe0h9z3ek35n95h3pzfcg5g8t9pwk"),
+		common.MustBech32ToAddress("atx1fnw5ncy9slyzf3mzne73ysuskux3q46qhy3y5s"),
+		common.MustBech32ToAddress("atx16pqmt742fdepysd92yrlarceecd68ela9sywpn"),
+		common.MustBech32ToAddress("atx1e0zc8hkmhe44rwrqxmqyqkttkzsznxnnata8hl"),
+		common.MustBech32ToAddress("atx1rs9y2zd6gm02gam44k9jpgvl8x9cypjzcp0wey"),
+		common.MustBech32ToAddress("atx1amssl39r4vee7knc3uac966hww8swhkw8n4p88"),
 	}
 
 	priKeyArr = []*ecdsa.PrivateKey{
@@ -149,11 +149,11 @@ var (
 	lastBlockHash   common.Hash
 	lastHeader      types.Header
 
-	sender        = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
-	anotherSender = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp553n425hnm")
+	sender        = common.MustBech32ToAddress("atx1pmhjxvfqeccm87kzpkkr08djgvpp5535gxm6s5")
+	anotherSender = common.MustBech32ToAddress("atx1pmhjxvfqeccm87kzpkkr08djgvpp553nflv233")
 	senderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
-	delegateSender        = common.MustBech32ToAddress("lax1c8enpvs5v6974shxgxxav5dsn36e5jl4v29pec")
+	delegateSender        = common.MustBech32ToAddress("atx1c8enpvs5v6974shxgxxav5dsn36e5jl4slaumj")
 	delegateSenderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
 	sndb = snapshotdb.Instance()

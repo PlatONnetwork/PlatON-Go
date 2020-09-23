@@ -105,7 +105,7 @@ func (s *StateSuite) SetUpTest(c *checker.C) {
 }
 
 func (s *StateSuite) TestNull(c *checker.C) {
-	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
+	address := common.MustBech32ToAddress("atx1qqqqqqyzx9q8zzl38xgwg5qpxeexmz649nlcfu")
 	s.state.CreateAccount(address)
 	value := common.FromHex("0x823140710bf13990e4500136726d8b55")
 	//value := nil
@@ -263,7 +263,7 @@ func TestEmptyByte(t *testing.T) {
 	db, _ := leveldb.New(tmpDir, 0, 0, "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
-	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
+	address := common.MustBech32ToAddress("atx1qqqqqqyzx9q8zzl38xgwg5qpxeexmz649nlcfu")
 	state.CreateAccount(address)
 	so := state.getStateObject(address)
 
@@ -323,7 +323,7 @@ func TestForEachStorage(t *testing.T) {
 	db, _ := leveldb.New(tmpDir, 0, 0, "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
-	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
+	address := common.MustBech32ToAddress("atx1qqqqqqyzx9q8zzl38xgwg5qpxeexmz649nlcfu")
 	state.CreateAccount(address)
 
 	key := []byte("a")
@@ -354,10 +354,10 @@ func TestMigrateStorage(t *testing.T) {
 	db, _ := leveldb.New(tmpDir, 0, 0, "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
-	from := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
+	from := common.MustBech32ToAddress("atx1qqqqqqyzx9q8zzl38xgwg5qpxeexmz649nlcfu")
 	state.CreateAccount(from)
 
-	to := common.MustBech32ToAddress("lax1qqqqqqrjxpq8zzl38xgwg5qpxeex6mnxwyzlxv")
+	to := common.MustBech32ToAddress("atx1qqqqqqrjxpq8zzl38xgwg5qpxeex6mnxj36zyx")
 	state.CreateAccount(to)
 
 	state.SetState(from, []byte("a"), []byte("fromA"))

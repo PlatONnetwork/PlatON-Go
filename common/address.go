@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	MainNetAddressPrefix = "lat"
-	TestNetAddressPrefix = "lax"
+	MainNetAddressPrefix = "atp"
+	TestNetAddressPrefix = "atx"
 )
 
 var currentAddressPrefix string

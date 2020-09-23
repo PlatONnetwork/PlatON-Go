@@ -514,7 +514,7 @@ func DefaultGenesisBlock() *Genesis {
 func DefaultTestnetGenesisBlock() *Genesis {
 
 	// TODO this should change
-	generalAddr := common.MustBech32ToAddress("lax1n8ws5exjsz0ru2f7gw7m7fcyel7c0t8v66eyfs")
+	generalAddr := common.MustBech32ToAddress("atx1n8ws5exjsz0ru2f7gw7m7fcyel7c0t8vx0pet6")
 	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
