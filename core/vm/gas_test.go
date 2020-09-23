@@ -17,21 +17,17 @@
 package vm
 
 import (
-	"math/big"
+	"github.com/holiman/uint256"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 func TestCallGas(t *testing.T) {
 
-	gasTable := params.GasTableHomestead
-	_, err := callGas(gasTable, 100, 2, new(big.Int).SetUint64(10))
+	_, err := callGas(100, 2, uint256.NewInt().SetUint64(10))
 	assert.Nil(t, err)
 
-	gasTable = params.GasTableConstantinople
-	_, err = callGas(gasTable, 100, 2, new(big.Int).SetUint64(1000000000000000))
+	_, err = callGas(100, 2, uint256.NewInt().SetUint64(1000000000000000))
 	assert.Nil(t, err)
 }

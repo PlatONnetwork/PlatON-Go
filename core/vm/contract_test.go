@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/holiman/uint256"
 	"math/big"
 	"testing"
 
@@ -32,31 +33,17 @@ func TestValidJumpdest(t *testing.T) {
 		CodeHash:  common.BytesToHash(code),
 		jumpdests: make(map[common.Hash]bitvec),
 	}
-	r := contract.validJumpdest(new(big.Int).SetUint64(3))
+	r := contract.validJumpdest(uint256.NewInt().SetUint64(3))
 	if r {
 		t.Errorf("Expected false, got true")
 	}
-	r = contract.validJumpdest(new(big.Int).SetUint64(1))
+	r = contract.validJumpdest(uint256.NewInt().SetUint64(1))
 	if !r {
 		t.Errorf("Expected true, got false")
 	}
-	r = contract.validJumpdest(new(big.Int).SetUint64(2))
+	r = contract.validJumpdest(uint256.NewInt().SetUint64(2))
 	if r {
 		t.Errorf("Expected false, got true")
-	}
-}
-
-func TestAsDelegate(t *testing.T) {
-	contract := &Contract{
-		caller: &Contract{
-			CallerAddress: common.BytesToAddress([]byte("aaa")),
-			self:          &MockAddressRef{},
-			value:         buildBigInt(1),
-		},
-	}
-	c := contract.AsDelegate()
-	if c.CallerAddress != contract.caller.Address() {
-		t.Errorf("Not equal, expect: %s, actual: %s", contract.caller.Address(), c.CallerAddress)
 	}
 }
 
@@ -137,17 +124,6 @@ func TestUseGas(t *testing.T) {
 	cr = contract.UseGas(1000)
 	if cr {
 		t.Errorf("Expected: false, got true")
-	}
-}
-
-func TestAddress(t *testing.T) {
-	addr := common.BytesToAddress([]byte("aaa"))
-	contract := &Contract{
-		self: &MockAddressRef{},
-	}
-	cr := contract.Address()
-	if cr != addr {
-		t.Errorf("Expected: %s, got: %s", addr, cr)
 	}
 }
 

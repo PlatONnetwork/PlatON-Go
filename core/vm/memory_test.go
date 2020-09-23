@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/holiman/uint256"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -59,7 +60,7 @@ func TestSet32(t *testing.T) {
 	}
 	for _, v := range testCases {
 		m.Resize(32)
-		m.Set32(v.offset, v.val.Big())
+		m.Set32(v.offset, uint256.NewInt().SetBytes(v.val.Bytes()))
 		actual := common.Bytes2Hex(m.Data())
 		if actual != v.want.HexWithNoPrefix() {
 			t.Errorf("Expected: %s, got: %s", v.want.Hex(), actual)
@@ -98,7 +99,7 @@ func TestGet(t *testing.T) {
 	for _, v := range testCases {
 		m.Resize(v.size)
 		m.Set(v.offset, v.size, v.value)
-		actual := common.Bytes2Hex(m.Get(int64(v.offset), int64(v.size)))
+		actual := common.Bytes2Hex(m.GetCopy(int64(v.offset), int64(v.size)))
 		if actual != v.want {
 			t.Errorf("Expected: %s, got: %s", v.want, actual)
 		}
