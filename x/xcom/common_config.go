@@ -229,9 +229,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("lat10spacq8cz76y2n60pl7sg5yazncmjuusdrs9z0"),
+				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("lat17tfkaghs4vded6mz6k53xyv5cvqsl63h8c2v5t"),
+				CDFAccount:        common.MustBech32ToAddress("atp17tfkaghs4vded6mz6k53xyv5cvqsl63h7wu5ty"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -280,9 +280,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("lax1q8r3em9wlamt0qe92alx5a9ff5j2s6lzrnmdyz"),
+				PlatONFundAccount: common.MustBech32ToAddress("atx1q8r3em9wlamt0qe92alx5a9ff5j2s6lzlxrsxg"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("lax1qtxa5d3defggwzdx2877z5fmytfu9f893lyygz"),
+				CDFAccount:        common.MustBech32ToAddress("atx1qtxa5d3defggwzdx2877z5fmytfu9f89d2ue2g"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -331,9 +331,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6"),
+				PlatONFundAccount: common.MustBech32ToAddress("atx1fyeszufxwxk62p46djncj86rd553skpph926ws"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("lax1c8enpvs5v6974shxgxxav5dsn36e5jl4v29pec"),
+				CDFAccount:        common.MustBech32ToAddress("atx1c8enpvs5v6974shxgxxav5dsn36e5jl4slaumj"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -382,9 +382,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("lax1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzcy38hc"),
+				PlatONFundAccount: common.MustBech32ToAddress("atx1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzy3f64j"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("lax13w4sd2tsdampxxydf7mrzzc72ytalkg5ukpsvj"),
+				CDFAccount:        common.MustBech32ToAddress("atx13w4sd2tsdampxxydf7mrzzc72ytalkg5qredwc"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
