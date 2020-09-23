@@ -225,8 +225,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Reward: rewardConfig{
 				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				PlatONFoundationYear:  2,
+				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("lat10spacq8cz76y2n60pl7sg5yazncmjuusdrs9z0"),

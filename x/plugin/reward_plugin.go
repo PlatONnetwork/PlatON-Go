@@ -54,9 +54,9 @@ type RewardMgrPlugin struct {
 
 const (
 	LessThanFoundationYearDeveloperRate    = 100
-	AfterFoundationYearDeveloperRewardRate = 50
-	AfterFoundationYearFoundRewardRate     = 50
-	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
+	AfterFoundationYearDeveloperRewardRate = 85
+	AfterFoundationYearFoundRewardRate     = 15
+	RewardPoolIncreaseRate                 = 20 // 20% of fixed-issued tokens are allocated to reward pool each year
 
 )
 
