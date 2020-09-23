@@ -1672,7 +1672,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	}
 
 	expectedCumulativeIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
-	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.LAT))
+	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.ATP))
 	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
 		t.Fatal("Failed to Delegate:", err)
 	}
@@ -3824,7 +3824,7 @@ func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
 	del := new(staking.Delegation)
 	del.Released = new(big.Int).SetInt64(0)
 	del.RestrictingPlan = new(big.Int).SetInt64(0)
-	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.LAT))
+	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.ATP))
 	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
 	del.DelegateEpoch = 1
 	del.CumulativeIncome = new(big.Int)
@@ -3844,9 +3844,9 @@ func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
 	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
 
 	del = new(staking.Delegation)
-	del.Released = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.LAT))
+	del.Released = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.ATP))
 	del.RestrictingPlan = new(big.Int).SetInt64(0)
-	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.LAT))
+	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.ATP))
 	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
 	del.DelegateEpoch = 2
 	del.CumulativeIncome = new(big.Int)
