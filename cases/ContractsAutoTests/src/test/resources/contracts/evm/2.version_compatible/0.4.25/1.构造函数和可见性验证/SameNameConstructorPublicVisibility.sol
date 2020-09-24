@@ -22,12 +22,14 @@ contract SameNameConstructorPublicVisibility {
         //0.4.25版本years时间单位支持验证
         uint time = 1 years;
         //0.4.25版本允许小数点后不跟数字的数值写法验证
-        uint ethPoint=255. lat;
+//        uint ethPoint=255. lat;
+        uint ethPoint=255. atp;
         //0.4.25版本十六进制数字支持带“0X”和“0x”等2种前缀表示验证
         uint hexX=0Xff;
         uint hexx=0xff;
         //0.4.25版本支持十六进制数与以太币单位组合验证
-        uint hexEther=0xff lat;
+//        uint hexEther=0xff lat;
+        uint hexEther=0xff atp;
         return (conParam,time,ethPoint,hexX,hexx,hexEther);
     }
 

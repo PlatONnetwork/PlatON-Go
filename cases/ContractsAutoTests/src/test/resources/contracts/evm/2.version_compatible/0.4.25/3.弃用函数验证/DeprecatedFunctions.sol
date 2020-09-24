@@ -32,7 +32,7 @@ contract DeprecatedFunctions {
 
     function kill() public {
 //        address _to = "lax1eg6m0kg4gk802s9ducrgml30gn505ueuswqu73"; // lat1eg6m0kg4gk802s9ducrgml30gn505ueultjns7
-        address _to = "atx1eg6m0kg4gk802s9ducrgml30gn505ueuvmcpum"; // lat1eg6m0kg4gk802s9ducrgml30gn505ueultjns7
+        address _to = "atx1eg6m0kg4gk802s9ducrgml30gn505ueuvmcpum"; // atp1eg6m0kg4gk802s9ducrgml30gn505ueuxayt03
         //suicide() 验证
         suicide(_to);
     }
