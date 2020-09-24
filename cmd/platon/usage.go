@@ -73,6 +73,8 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.NetworkIdFlag,
 			utils.MainFlag,
 			utils.TestnetFlag,
+			utils.AlayaNetFlag,
+			utils.AlayaTestNetFlag,
 			utils.DemonetFlag,
 			utils.SyncModeFlag,
 			//	utils.EthStatsURLFlag,
