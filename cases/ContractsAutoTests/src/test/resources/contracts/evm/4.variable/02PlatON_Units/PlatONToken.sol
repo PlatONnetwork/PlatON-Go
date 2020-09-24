@@ -25,7 +25,8 @@ contract PlatONToken {
 
     function Plat() public view returns(uint platontoken){
         //1lat = 1000000000000000000
-        return platontoken + 1 lat;
+//        return platontoken + 1 lat;
+        return platontoken + 1 atp;
     }
 
     function Pfinney() public view returns(uint platontoken){

@@ -10,7 +10,8 @@ contract Guessing {
     uint256 public endBlock; //竞猜截止块高
     bytes32 public block_hash;//竞猜截止块高的块hash
     bool public guessingClosed = false; //竞猜是否已开奖
-    uint256 public baseUnit = 5 lat; //最小转金额
+//    uint256 public baseUnit = 5 lat; //最小转金额
+    uint256 public baseUnit = 5 atp; //最小转金额
 
     uint256 public balance; //竞猜奖池总金额
     uint256 public averageAmount; //每个中奖号码对应获奖金额
