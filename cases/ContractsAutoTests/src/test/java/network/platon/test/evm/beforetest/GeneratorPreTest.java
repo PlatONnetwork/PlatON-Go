@@ -158,7 +158,8 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     }
                     libraryAddressNoPre = receipt.getContractAddress();
                     collector.logStepPass("contract address >>>> " + libraryAddressNoPre);
-                    if (libraryAddressNoPre.startsWith("lax") || libraryAddressNoPre.startsWith("lat")) {
+                    if (libraryAddressNoPre.startsWith("apt") || libraryAddressNoPre.startsWith("apx")) {
+//                    if (libraryAddressNoPre.startsWith("lax") || libraryAddressNoPre.startsWith("lat")) {
                         libraryAddressNoPreMap.put(libraryArr[i].split("\\.")[0], DataChangeUtil.bytesToHex(Bech32.addressDecode(libraryAddressNoPre)));
                         break;
                     }

@@ -39,7 +39,8 @@ public class TokenTransferTest {
     // 发行代币的总额
     private String ownerAmount;
     // 接收代币的地址
-    private final static String transferTo = "lax1354ckckjla0869lernuzrjh7arslu3vypxek6h";
+//    private final static String transferTo = "lax1354ckckjla0869lernuzrjh7arslu3vypxek6h";
+    private final static String transferTo = "atx1354ckckjla0869lernuzrjh7arslu3vyanptca";
     // 代币名称
     private String tokenName;
     // 发行代币的地址

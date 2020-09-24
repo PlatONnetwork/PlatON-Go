@@ -50,7 +50,8 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
 
             // transfer in contract
-            String to = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
+//            String to = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
+            String to = "atx1fyeszufxwxk62p46djncj86rd553skpph926ws";
             Xuint128 value = new Xuint128("100000");
             TransactionReceipt transferTr = contract.Transfer(to, value).send();
             collector.logStepPass("Send Transfer, hash:  " + transferTr.getTransactionHash()
@@ -98,7 +99,8 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             Credentials spendCredentials = Credentials.create("a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7");
             t.sendFunds(spendCredentials.getAddress(chainId), new BigDecimal(10), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
             TransactionManager spenderTM = transactionManager = new RawTransactionManager(web3j, spendCredentials, chainId);
-            String to2 = "lax1rcdwxsrnwlmcjarslme34qy88d8awh9pnjpmz9";
+//            String to2 = "lax1rcdwxsrnwlmcjarslme34qy88d8awh9pnjpmz9";
+            String to2 = "atx1rcdwxsrnwlmcjarslme34qy88d8awh9p08exq0";
             Xuint128 valule2 = new Xuint128("10000");
             VIDToken v = VIDToken.load(contractAddress, web3j, spenderTM, provider, chainId);
             TransactionReceipt transferFromTr = v.TransferFrom(credentials.getAddress(chainId), to2, valule2).send();

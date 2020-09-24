@@ -72,7 +72,8 @@ contract ERC200513Token {
      */
     function _transfer(address _from, address _to, uint _value) internal returns (bool success){
         // 确保目标地址不为0x0，因为0x0地址代表销毁
-        require(_to != address("lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq542u6a") || _to != address("lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j"));
+//        require(_to != address("lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq542u6a") || _to != address("lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j"));
+        require(_to != address("atp1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdruy9j") || _to != address("atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq89qwkc"));
         // 检查发送者余额
         require(balanceOf[_from] >= _value);
         // 确保转移为正数个

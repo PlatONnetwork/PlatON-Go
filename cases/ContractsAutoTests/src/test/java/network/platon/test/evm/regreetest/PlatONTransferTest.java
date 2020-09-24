@@ -54,7 +54,8 @@ public class PlatONTransferTest {
         chainId = Integer.valueOf(driverService.param.get("chainId"));
         //transferFrom = driverService.param.get("transferFrom");
         transferFrom = driverService.param.get("address");
-        transferTo = "lax10eycqggu2yawpadtmn7d2zdw0vnmscklynzq8x"; //driverService.param.get("transferTo");
+//        transferTo = "lax10eycqggu2yawpadtmn7d2zdw0vnmscklynzq8x"; //driverService.param.get("transferTo");
+        transferTo = "atx10eycqggu2yawpadtmn7d2zdw0vnmscklcx6a9v"; //driverService.param.get("transferTo");
         amount = "1"; //driverService.param.get("amount");
     }
 

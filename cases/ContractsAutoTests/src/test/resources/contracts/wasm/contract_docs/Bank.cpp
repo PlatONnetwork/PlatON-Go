@@ -81,10 +81,12 @@ CONTRACT Bank: public platon::Contract, public Ownable
 
 			// 
 			//dev.self() = Address("0x493301712671Ada506ba6Ca7891F436D29185823"); // setting.
-			auto address_info = make_address("lax10jc0t4ndqarj4q6ujl3g3ycmufgc77epxg02lt");
+//			auto address_info = make_address("lax10jc0t4ndqarj4q6ujl3g3ycmufgc77epxg02lt");
+			auto address_info = make_address("atx10jc0t4ndqarj4q6ujl3g3ycmufgc77ep6ahhap");
             if(address_info.second) dev.self() = address_info.first;
 
-            auto address_init = make_address("laxqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq");
+//            auto address_init = make_address("laxqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq");
+            auto address_init = make_address("atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq89qwkc");
             if(address_init.second) Address initaddr = address_init.first;
 		}
 

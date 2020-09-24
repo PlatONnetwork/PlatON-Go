@@ -36,7 +36,8 @@ public class AtomicSwapTest extends ContractPrepareTest {
              * 方法作用：初始化一个map并且给定这个map的key转入多少金额
              * 参数：key、参与者地址(目前0.12.1的版本需要改为0x...)、时间戳(必须大于当前区块时间)、初始减去多少、初始转多少VON
              */
-            tx = atomicSwap.initiate(stringToBytes32("hello"), "lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl", new BigInteger("1690063146613"), BigInteger.valueOf(1), BigInteger.valueOf(100000)).send();
+//            tx = atomicSwap.initiate(stringToBytes32("hello"), "lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl", new BigInteger("1690063146613"), BigInteger.valueOf(1), BigInteger.valueOf(100000)).send();
+            tx = atomicSwap.initiate(stringToBytes32("hello"), "atx1uqug0zq7rcxddndleq4ux2ft3tv6dqljazusp4", new BigInteger("1690063146613"), BigInteger.valueOf(1), BigInteger.valueOf(100000)).send();
 
             List<AtomicSwap.InitiatedEventResponse> emitEventData = atomicSwap.getInitiatedEvents(tx);
 

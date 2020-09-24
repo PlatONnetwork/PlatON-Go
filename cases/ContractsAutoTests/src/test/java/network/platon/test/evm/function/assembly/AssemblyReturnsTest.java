@@ -63,7 +63,8 @@ public class AssemblyReturnsTest extends ContractPrepareTest {
             collector.assertEqual(true ,result.getValue4());
 
             collector.logStepPass("Assemblyreturns第五个返回值：" + result.getValue5());
-            collector.assertEqual("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2" ,result.getValue5().toString());
+//            collector.assertEqual("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2" ,result.getValue5().toString());
+            collector.assertEqual("atx1w2kjkufl4g2v93xd94a0lewc75ufdr66lx6pvq" ,result.getValue5().toString());
 
         } catch (Exception e) {
             collector.logStepFail("AssemblyReturnsContract Calling Method fail.", e.toString());

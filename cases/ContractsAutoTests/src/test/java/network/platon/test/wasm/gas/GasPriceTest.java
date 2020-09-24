@@ -333,7 +333,8 @@ public class GasPriceTest extends WASMContractPrepareTest {
 
                     //合约销毁，地址未使用过
                     gasPrice = GasPrice.deploy(web3j, transactionManager, provider,chainId).send();
-                    wasmAddress = new WasmAddress("lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl");
+//                    wasmAddress = new WasmAddress("lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl");
+                    wasmAddress = new WasmAddress("atx1uqug0zq7rcxddndleq4ux2ft3tv6dqljazusp4");
                     transactionReceipt = gasPrice.platonDestory(wasmAddress).send();
                     gas = this.getGasValue(transactionReceipt, gasPrice, "platon_destroy");
                     collector.logStepPass("gas of platonDestory: " + gas);

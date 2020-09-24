@@ -61,7 +61,8 @@ public class ContractLATTokenTest extends WASMContractPrepareTest {
             collector.logStepPass("Call balanceOf of LATToken, balance: " + balance.getValue());
 
             // transfer
-            WasmAddress receiver = new WasmAddress("lax19xdjrg06xz9te85c839zqtelmaj2tgt047fh5q");
+//            WasmAddress receiver = new WasmAddress("lax19xdjrg06xz9te85c839zqtelmaj2tgt047fh5q");
+            WasmAddress receiver = new WasmAddress("atx19xdjrg06xz9te85c839zqtelmaj2tgt0ft32k2");
             balance = contract.balanceOf(receiver).send();
             collector.logStepPass("Call balanceOf of LATToken, token before balance: " + balance.getValue());
             TransactionReceipt trasferTR = contract.transfer(receiver, Uint64.of(100000000)).send();

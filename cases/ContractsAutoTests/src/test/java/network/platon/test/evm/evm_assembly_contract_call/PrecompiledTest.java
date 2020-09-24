@@ -42,7 +42,8 @@ public class PrecompiledTest extends ContractPrepareTest {
 
 
             //验证ecrecover函数
-            String ecrecover = "lax132dnv620rmht2qxgfgvmkdqn0vz3vtk9lecarh";
+//            String ecrecover = "lax132dnv620rmht2qxgfgvmkdqn0vz3vtk9lecarh";
+            String ecrecover = "atx132dnv620rmht2qxgfgvmkdqn0vz3vtk9rvqqpa";
 
             String hash = "e281eaa11e6e37e6f53aade5d6c5b7201ef1c66162ec42ccc3215a0c4349350d";
             byte[] a = DataChangeUtil.hexToByteArray(hash);

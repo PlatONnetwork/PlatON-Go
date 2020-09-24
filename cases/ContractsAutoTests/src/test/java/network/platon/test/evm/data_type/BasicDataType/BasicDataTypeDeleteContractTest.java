@@ -62,7 +62,8 @@ public class BasicDataTypeDeleteContractTest extends ContractPrepareTest {
             BigInteger intActual = tuple6.getValue6();
             collector.assertEqual(boolActual,false, "checkout delete bool execute success.");
             collector.assertEqual(uintActual,new BigInteger("0"), "checkout delete uint execute success.");
-            collector.assertEqual(addrStr,"lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j", "checkout delete address execute success.");
+//            collector.assertEqual(addrStr,"lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmscn5j", "checkout delete address execute success.");
+            collector.assertEqual(addrStr,"atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq89qwkc", "checkout delete address execute success.");
             //collector.assertEqual(bytesActual,new byte[]("0x0"), "checkout delete bytes execute success.");
             collector.assertEqual(str,"", "checkout delete string execute success.");
             collector.assertEqual(intActual,new BigInteger("0"), "checkout delete int execute success.");

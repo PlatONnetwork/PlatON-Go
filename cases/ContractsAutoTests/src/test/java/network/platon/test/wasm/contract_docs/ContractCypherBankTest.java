@@ -58,7 +58,7 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
 
             // buy
 //            WasmAddress receiver = new WasmAddress("lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl");
-            WasmAddress receiver = new WasmAddress("lax19xdjrg06xz9te85c839zqtelmaj2tgt047fh5q");
+            WasmAddress receiver = new WasmAddress("atx19xdjrg06xz9te85c839zqtelmaj2tgt0ft32k2");
 
             TransactionReceipt buyTr = contract.buy(receiver, new BigInteger("100000000000000000000")).send();
             collector.logStepPass("Send buy, txHash: " + buyTr.getTransactionHash() + " gasUsed: " + buyTr.getGasUsed());
@@ -97,13 +97,15 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
             collector.logStepPass("Send sell ,logs size: " + sellTr.getLogs().size());
 
             // transfer
-            TransactionReceipt transferTr = contract.transfer(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2"), new Xuint128("300000000000000000")).send();
+//            TransactionReceipt transferTr = contract.transfer(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2"), new Xuint128("300000000000000000")).send();
+            TransactionReceipt transferTr = contract.transfer(new WasmAddress("atx1w2kjkufl4g2v93xd94a0lewc75ufdr66lx6pvq"), new Xuint128("300000000000000000")).send();
             collector.logStepPass("Send transfer, txHash: " + transferTr.getTransactionHash() +
                     " gasUsed: " + transferTr.getGasUsed());
             collector.logStepPass("Send transfer ,logs size: " + transferTr.getLogs().size());
 
             // balanceOf
-            Uint128 balanceOf = contract.balanceOf(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2")).send();
+//            Uint128 balanceOf = contract.balanceOf(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2")).send();
+            Uint128 balanceOf = contract.balanceOf(new WasmAddress("atx1w2kjkufl4g2v93xd94a0lewc75ufdr66lx6pvq")).send();
             collector.logStepPass("Call balanceOf, res: " + balanceOf + " expect: " + "300000000000000000"); //
 
             // myDividends
@@ -112,7 +114,8 @@ public class ContractCypherBankTest extends WASMContractPrepareTest {
 
             // dividendsOf
 //            BigInteger dividendsOf = contract.dividendsOf(new WasmAddress(credentials.getAddress(chainId))).send();
-            Uint128 dividendsOf = contract.dividendsOf(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2")).send();
+//            Uint128 dividendsOf = contract.dividendsOf(new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2")).send();
+            Uint128 dividendsOf = contract.dividendsOf(new WasmAddress("atx1w2kjkufl4g2v93xd94a0lewc75ufdr66lx6pvq")).send();
             collector.logStepPass("Call dividendsOf, res: " + dividendsOf);
 
             // totalEthereumBalance

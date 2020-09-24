@@ -37,8 +37,10 @@ public class ContractBridgeTest extends WASMContractPrepareTest {
     public void testHomeBridge() {
         try {
             // deploy contract.
-            WasmAddress wasmAddress1 = new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2");
-            WasmAddress wasmAddress2 = new WasmAddress("lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6");
+//            WasmAddress wasmAddress1 = new WasmAddress("lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2");
+            WasmAddress wasmAddress1 = new WasmAddress("atx1w2kjkufl4g2v93xd94a0lewc75ufdr66lx6pvq");
+//            WasmAddress wasmAddress2 = new WasmAddress("lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6");
+            WasmAddress wasmAddress2 = new WasmAddress("atx1fyeszufxwxk62p46djncj86rd553skpph926ws");
             HomeBridge contract = HomeBridge.deploy(web3j, transactionManager, provider, chainId,
                     Xuint128.ONE, new WasmAddress[]{wasmAddress1, wasmAddress2}, Xuint128.ONE).send();
             String contractAddress = contract.getContractAddress();
