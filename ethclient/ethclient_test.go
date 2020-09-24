@@ -18,11 +18,12 @@ package ethclient
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math/big"
 	"reflect"
 	"testing"
+
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // Verify that Client implements the ethereum interfaces.
@@ -43,7 +44,7 @@ var (
 func TestToFilterArg(t *testing.T) {
 	blockHashErr := fmt.Errorf("cannot specify both BlockHash and FromBlock/ToBlock")
 	addresses := []common.Address{
-		common.MustBech32ToAddress("lax16dnj9t0v8mwt98yw0ddy0u6j6uqnjdrzej57np"),
+		common.MustBech32ToAddress("atx16dnj9t0v8mwt98yw0ddy0u6j6uqnjdrz98vr3t"),
 	}
 	blockHash := common.HexToHash(
 		"0xeb94bb7d78b73657a9d7a99792413f50c0a45c51fc62bdcb08a53f18e9a2b4eb",

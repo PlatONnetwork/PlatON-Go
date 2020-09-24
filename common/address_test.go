@@ -20,12 +20,12 @@ func TestIsStringAddress(t *testing.T) {
 		str string
 		exp bool
 	}{
-		{"lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", true},
-		{"lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", true},
+		{"atp1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2amt7l6", true},
+		{"atp1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2amt7l6", true},
 		{"lao1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
 		{"lam1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
-		{"lat1x4w7852dxs70sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
-		{"lat1x4w7852dxs69sy2mgf8w0s7tmv", false},
+		{"atp1x4w7852dxs70sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
+		{"atp1x4w7852dxs69sy2mgf8w0s7tmv", false},
 		{"0x5aaeb6053f3e94c9b9a09f33669435e7ef1beae", false},
 		{"5aaeb6053f3e94c9b9a09f33669435e7ef1beaed11", false},
 		{"0xxaaeb6053f3e94c9b9a09f33669435e7ef1beaed", false},
@@ -76,7 +76,7 @@ func TestAddressUnmarshalJSON(t *testing.T) {
 		{`"0x00"`, true, nil},
 		{`"0xG000000000000000000000000000000000000000"`, true, nil},
 		{`"lac1flzyluu23zjknw70duwd00z6u9jgx7vug9n7t4"`, true, nil},
-		{`"lax1lkdax58s3m3upsvmsk5wzcg55ydxp2jwqpvpf2"`, false, byteInt},
+		{`"atx1lkdax58s3m3upsvmsk5wzcg55ydxp2jwu55utq"`, false, byteInt},
 	}
 
 	for i, test := range tests {
@@ -110,7 +110,7 @@ func TestAddressHexChecksum(t *testing.T) {
 		//{"0x0a", ZeroAddr},
 		//{"0x00a", ZeroAddr},
 		//{"0x000000000000000000000000000000000000000a", ZeroAddr},
-		{"lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", MustBech32ToAddress("lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4")},
+		{"atp1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2amt7l6", MustBech32ToAddress("atp1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2amt7l6")},
 	}
 	for i, test := range tests {
 		output := MustBech32ToAddress(test.Input)
@@ -129,7 +129,7 @@ func TestAddressHexChecksum(t *testing.T) {
 //}
 
 func BenchmarkAddressString(b *testing.B) {
-	testAddr := MustBech32ToAddress("lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4")
+	testAddr := MustBech32ToAddress("atp1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2amt7l6")
 	for n := 0; n < b.N; n++ {
 		testAddr.String()
 	}

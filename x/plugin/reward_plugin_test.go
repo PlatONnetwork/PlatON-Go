@@ -18,19 +18,21 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -561,7 +563,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 	defer chain.SnapDB.Clear()
 
 	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
-	index, queue, can, delegate := generateStk(1000, big.NewInt(params.LAT*3), 10)
+	index, queue, can, delegate := generateStk(1000, big.NewInt(params.ATP*3), 10)
 	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		if err := stkDB.SetEpochValIndex(hash, index); err != nil {
 			return err
@@ -738,7 +740,7 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 	defer chain.SnapDB.Clear()
 
 	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
-	index, queue, can, delegate := generateStk(1000, big.NewInt(params.LAT*3), 10)
+	index, queue, can, delegate := generateStk(1000, big.NewInt(params.ATP*3), 10)
 	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		if err := stkDB.SetEpochValIndex(hash, index); err != nil {
 			return err

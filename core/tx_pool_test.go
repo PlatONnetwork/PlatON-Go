@@ -232,7 +232,7 @@ func (c *testChain) State() (*state.StateDB, error) {
 		c.statedb, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
 		// simulate that the new head block included tx0 and tx1
 		c.statedb.SetNonce(c.address, 2)
-		c.statedb.SetBalance(c.address, new(big.Int).SetUint64(params.LAT))
+		c.statedb.SetBalance(c.address, new(big.Int).SetUint64(params.ATP))
 		*c.trigger = false
 	}
 	return stdb, nil
@@ -250,7 +250,7 @@ func TestStateChangeDuringTransactionPoolReset(t *testing.T) {
 		trigger    = false
 	)
 
-	statedb.SetBalance(address, new(big.Int).SetUint64(params.LAT))
+	statedb.SetBalance(address, new(big.Int).SetUint64(params.ATP))
 	blockchain := &testChain{&testBlockChain{statedb, 1000000000, new(event.Feed)}, address, &trigger}
 
 	// setup pool with 2 transaction in it
