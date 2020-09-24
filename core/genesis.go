@@ -158,7 +158,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		} else {
 			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
 		}
-		if genesis.Config.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
+		if genesis.Config.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || genesis.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
 			common.SetAddressPrefix(common.MainNetAddressPrefix)
 		} else {
 			common.SetAddressPrefix(common.TestNetAddressPrefix)
@@ -192,18 +192,23 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
+		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || newcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
+			common.SetAddressPrefix(common.MainNetAddressPrefix)
+		} else {
+			common.SetAddressPrefix(common.TestNetAddressPrefix)
+		}
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
 
 	if genesis == nil && stored != params.MainnetGenesisHash {
-		if storedcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
+		if storedcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || storedcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
 			common.SetAddressPrefix(common.MainNetAddressPrefix)
 		} else {
 			common.SetAddressPrefix(common.TestNetAddressPrefix)
 		}
 	} else {
-		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
+		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || newcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
 			common.SetAddressPrefix(common.MainNetAddressPrefix)
 		} else {
 			common.SetAddressPrefix(common.TestNetAddressPrefix)
@@ -265,7 +270,7 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	if err != nil {
 		return err
 	}
-	if chainID != nil && chainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
+	if chainID != nil && (chainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || chainID.Cmp(params.AlayaChainConfig.ChainID) == 0) {
 		common.SetAddressPrefix(common.MainNetAddressPrefix)
 	} else {
 		common.SetAddressPrefix(common.TestNetAddressPrefix)
@@ -317,6 +322,10 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.MainnetChainConfig
 	case ghash == params.TestnetGenesisHash:
 		return params.TestnetChainConfig
+	case ghash == params.AlayanetGenesisHash:
+		return params.AlayaChainConfig
+	case ghash == params.AlayaTestnetGenesisHash:
+		return params.AlayaTestChainConfig
 	default:
 		return params.AllEthashProtocolChanges
 	}
@@ -488,7 +497,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 
-	generalAddr := common.MustBech32ToAddress("lat1dl93r6fr022ca5yjqe6cgkg06er9pyqfwkwwdg")
+	generalAddr := common.MustBech32ToAddress("atp1dl93r6fr022ca5yjqe6cgkg06er9pyqfhqckj8")
 	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
@@ -504,6 +513,56 @@ func DefaultGenesisBlock() *Genesis {
 			generalAddr:              {Balance: generalBalance},
 		},
 		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
+	}
+	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	return &genesis
+}
+
+// DefaultGenesisBlock returns the PlatON main net genesis block.
+func DefaultAlayaGenesisBlock() *Genesis {
+
+	generalAddr := common.MustBech32ToAddress("atp1dl93r6fr022ca5yjqe6cgkg06er9pyqfhqckj8")
+	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
+
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
+
+	genesis := Genesis{
+		Config:    params.AlayaChainConfig,
+		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
+		Timestamp: 0,
+		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  params.GenesisGasLimit,
+		Alloc: map[common.Address]GenesisAccount{
+			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
+			generalAddr:              {Balance: generalBalance},
+		},
+		EconomicModel: xcom.GetEc(xcom.DefaultAlayaNet),
+	}
+	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	return &genesis
+}
+
+// DefaultGenesisBlock returns the PlatON main net genesis block.
+func DefaultAlayaTestGenesisBlock() *Genesis {
+
+	generalAddr := common.MustBech32ToAddress("atx1dl93r6fr022ca5yjqe6cgkg06er9pyqfaxyupd")
+	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
+
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
+
+	genesis := Genesis{
+		Config:    params.AlayaTestChainConfig,
+		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
+		Timestamp: 0,
+		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  params.GenesisGasLimit,
+		Alloc: map[common.Address]GenesisAccount{
+			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
+			generalAddr:              {Balance: generalBalance},
+		},
+		EconomicModel: xcom.GetEc(xcom.DefaultAlayaTestNet),
 	}
 	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
 	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
