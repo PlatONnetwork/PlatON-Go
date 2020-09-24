@@ -1,13 +1,12 @@
 package network.platon.test.evm.oop.abstracttest;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.AbstractContractFather;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-
 import java.math.BigInteger;
 /**
  * @title 1、抽象合约实现部分方法，验证是否可编译、部署、执行

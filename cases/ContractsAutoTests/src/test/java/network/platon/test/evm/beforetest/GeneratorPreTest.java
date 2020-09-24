@@ -1,6 +1,7 @@
 package network.platon.test.evm.beforetest;
 
-import com.platon.sdk.utlis.Bech32;
+import com.alaya.bech32.Bech32;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
@@ -10,8 +11,6 @@ import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;

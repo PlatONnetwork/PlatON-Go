@@ -1,12 +1,12 @@
 package network.platon.test.evm.versioncompatible.v0_4_25;
 
+import com.alaya.tuples.generated.Tuple2;
+import com.alaya.tx.exceptions.ContractCallException;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.DeprecatedFunctions;
 import org.junit.Test;
-import org.web3j.tuples.generated.Tuple2;
-import org.web3j.tx.exceptions.ContractCallException;
 
 /**
  * @title 0.5.0版本弃用但0.4.25版本仍生效函数测试

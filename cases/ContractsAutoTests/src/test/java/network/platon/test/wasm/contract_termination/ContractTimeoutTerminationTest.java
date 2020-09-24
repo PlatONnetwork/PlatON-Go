@@ -1,12 +1,12 @@
 package network.platon.test.wasm.contract_termination;
 
-import com.platon.rlp.datatypes.Uint64;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.protocol.exceptions.TransactionException;
+import com.alaya.rlp.wasm.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.Contract_timeout_termination;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.protocol.exceptions.TransactionException;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**

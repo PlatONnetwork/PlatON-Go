@@ -1,19 +1,18 @@
 package network.platon.test.wasm.data_type;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.*;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.platon.rlp.datatypes.*;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.IntegerDataTypeContract_1;
 import network.platon.contracts.wasm.IntegerDataTypeContract_2;
 import network.platon.contracts.wasm.IntegerDataTypeContract_3;
-//import network.platon.contracts.wasm.IntegerDataTypeContract_4;
 import network.platon.contracts.wasm.IntegerDataTypeContract_4;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;

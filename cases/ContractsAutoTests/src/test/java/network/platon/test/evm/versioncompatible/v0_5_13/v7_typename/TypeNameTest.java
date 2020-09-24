@@ -1,13 +1,12 @@
 package network.platon.test.evm.versioncompatible.v0_5_13.v7_typename;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.TypeName;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-
 
 /**
  * @title type(C).name()：提供对合约名称的访问

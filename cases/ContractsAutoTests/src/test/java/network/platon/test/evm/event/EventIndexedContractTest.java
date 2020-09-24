@@ -1,5 +1,6 @@
 package network.platon.test.evm.event;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -7,7 +8,6 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.EventIndexedContract;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
 import java.util.List;

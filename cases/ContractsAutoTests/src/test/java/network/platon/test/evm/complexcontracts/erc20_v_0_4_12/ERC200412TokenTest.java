@@ -1,13 +1,12 @@
 package network.platon.test.evm.complexcontracts.erc20_v_0_4_12;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.ERC200412Token;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 

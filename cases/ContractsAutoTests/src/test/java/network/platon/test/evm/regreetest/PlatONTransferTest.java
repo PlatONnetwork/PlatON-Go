@@ -1,7 +1,17 @@
 package network.platon.test.evm.regreetest;
 
-import com.platon.sdk.utlis.Bech32;
-import com.platon.sdk.utlis.NetworkParameters;
+import com.alaya.bech32.Bech32;
+import com.alaya.crypto.Credentials;
+import com.alaya.parameters.NetworkParameters;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.DefaultBlockParameterName;
+import com.alaya.protocol.core.methods.response.PlatonGetTransactionCount;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.protocol.http.HttpService;
+import com.alaya.tx.RawTransactionManager;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.Transfer;
+import com.alaya.utils.Convert;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
@@ -9,16 +19,6 @@ import network.platon.autotest.junit.rules.DriverService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.PlatonGetTransactionCount;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.protocol.http.HttpService;
-import org.web3j.tx.RawTransactionManager;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

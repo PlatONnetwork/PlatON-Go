@@ -1,13 +1,13 @@
 package network.platon.test.wasm.data_type;
 
-import com.platon.rlp.datatypes.Uint64;
-import com.platon.rlp.datatypes.Uint8;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
+import com.alaya.rlp.wasm.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeMapTestContract;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -61,7 +61,7 @@ public class ReferenceDataTypeMapTypeTest extends WASMContractPrepareTest {
         //调用合约方法
         try {
             //1、验证：map中的key与value可以是任意类型
-            TransactionReceipt  transactionReceipt = referenceDataTypeMapTestContract.setMapKeyType().send();
+            TransactionReceipt transactionReceipt = referenceDataTypeMapTestContract.setMapKeyType().send();
             collector.logStepPass("referenceDataTypeMapContract 【验证map中的key与value可以是任意类型】 successfully hash:" + transactionReceipt.getTransactionHash());
             //2、验证：string类型map容器赋值
             TransactionReceipt  transactionReceipt1 = referenceDataTypeMapTestContract.addMapString(key,value).send();

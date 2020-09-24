@@ -1,5 +1,7 @@
 package network.platon.test.evm.function.assembly;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tuples.generated.Tuple5;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -7,8 +9,6 @@ import network.platon.contracts.evm.AssemblyReturns;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple5;
 
 import java.math.BigInteger;
 

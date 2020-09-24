@@ -1,11 +1,11 @@
 package network.platon.test.evm.createcontract;
 
+import com.alaya.tuples.generated.Tuple2;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.CreateContract;
 import org.junit.Test;
-import org.web3j.tuples.generated.Tuple2;
 
 import java.math.BigInteger;
 

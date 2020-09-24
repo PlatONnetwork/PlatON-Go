@@ -17,15 +17,15 @@
             <version>0.0.3</version>
         </dependency>
         <dependency>
-            <groupId>com.platon.client</groupId>
-            <artifactId>core</artifactId>
-            <version>0.13.1.5</version>
+            <groupId>com.alaya.client</groupId>
+            <artifactId>alaya-core</artifactId>
+            <version>0.13.2.0</version>
         </dependency>
-        <dependency>
-            <groupId>com.platon.client</groupId>
-            <artifactId>console</artifactId>
-            <version>0.7.3.4</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.platon.client</groupId>-->
+<!--            <artifactId>console</artifactId>-->
+<!--            <version>0.7.3.4</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>

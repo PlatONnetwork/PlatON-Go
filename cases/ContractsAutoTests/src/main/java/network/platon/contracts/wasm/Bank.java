@@ -1,12 +1,11 @@
 package network.platon.contracts.wasm;
 
-import com.platon.rlp.datatypes.Uint128;
-import com.platon.rlp.datatypes.Uint8;
-import com.platon.rlp.datatypes.WasmAddress;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import com.alaya.rlp.wasm.datatypes.Uint128;
 import org.web3j.abi.WasmEventEncoder;
 import org.web3j.abi.WasmFunctionEncoder;
 import org.web3j.abi.datatypes.WasmEvent;

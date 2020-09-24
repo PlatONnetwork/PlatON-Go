@@ -1,7 +1,7 @@
 package network.platon.test.wasm.function;
 
-import com.platon.rlp.datatypes.Int64;
-import com.platon.rlp.datatypes.Uint64;
+import com.alaya.rlp.wasm.datatypes.Int64;
+import com.alaya.rlp.wasm.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.SpecialFunctionsA;

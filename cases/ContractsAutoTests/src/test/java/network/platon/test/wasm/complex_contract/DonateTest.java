@@ -1,16 +1,15 @@
 package network.platon.test.wasm.complex_contract;
 
-import com.platon.rlp.datatypes.Uint128;
-import com.platon.rlp.datatypes.WasmAddress;
+import com.alaya.protocol.core.DefaultBlockParameterName;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint128;
+import com.alaya.rlp.wasm.datatypes.WasmAddress;
+import com.alaya.utils.Convert;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.Donate;
-//import network.platon.contracts.wasm.VRF;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.utils.Convert;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigDecimal;
@@ -40,7 +39,7 @@ public class DonateTest extends WASMContractPrepareTest {
         Uint128 _openingTime = Uint128.of((System.currentTimeMillis() - 1 * 60 * 60 * 1000));
         Uint128 _closingTime = Uint128.of((System.currentTimeMillis() + 24 * 60 * 60 * 1000));
         Uint128 _minVonAmount = Uint128.of(1);
-        Uint128 _maxVonAmount = Uint128.of(Convert.toVon(new BigDecimal(10000), Convert.Unit.LAT).toBigInteger());
+        Uint128 _maxVonAmount = Uint128.of(Convert.toVon(new BigDecimal(10000), Convert.Unit.ATP).toBigInteger());
         Uint128 _maxNumDonors = Uint128.of(100000);
 
         try {

@@ -1,12 +1,11 @@
 package network.platon.test.evm.versioncompatible.v0_4_25;
 
+import com.alaya.tuples.generated.Tuple2;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.ConstructorPublicVisibility;
 import org.junit.Test;
-import org.web3j.tuples.generated.Tuple2;
-
 import java.math.BigInteger;
 /**
  * @title 构造函数和可见性测试

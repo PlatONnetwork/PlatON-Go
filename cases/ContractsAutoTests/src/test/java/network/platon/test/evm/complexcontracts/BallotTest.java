@@ -1,5 +1,10 @@
 package network.platon.test.evm.complexcontracts;
 
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.http.HttpService;
+import com.alaya.tx.RawTransactionManager;
+import com.alaya.tx.gas.ContractGasProvider;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
@@ -8,11 +13,6 @@ import network.platon.contracts.evm.Ballot;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.http.HttpService;
-import org.web3j.tx.RawTransactionManager;
-import org.web3j.tx.gas.ContractGasProvider;
 
 import java.math.BigInteger;
 

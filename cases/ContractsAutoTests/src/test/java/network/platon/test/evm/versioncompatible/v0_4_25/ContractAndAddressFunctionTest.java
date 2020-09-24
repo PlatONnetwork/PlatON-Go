@@ -1,5 +1,11 @@
 package network.platon.test.evm.versioncompatible.v0_4_25;
 
+import com.alaya.protocol.core.DefaultBlockParameterName;
+import com.alaya.protocol.core.methods.response.PlatonGetBalance;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tuples.generated.Tuple3;
+import com.alaya.tx.Transfer;
+import com.alaya.utils.Convert;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -7,13 +13,6 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.ContractAndAddressFunction;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.PlatonGetBalance;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple3;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 

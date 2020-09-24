@@ -1,5 +1,7 @@
 package network.platon.test.evm.versioncompatible.v0_5_0.v7_dataLocation;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tuples.generated.Tuple2;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;

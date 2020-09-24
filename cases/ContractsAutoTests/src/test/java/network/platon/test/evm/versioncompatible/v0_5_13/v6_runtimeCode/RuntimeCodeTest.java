@@ -1,5 +1,6 @@
 package network.platon.test.evm.versioncompatible.v0_5_13.v6_runtimeCode;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -7,8 +8,6 @@ import network.platon.contracts.evm.RuntimeCode;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-
 
 /**
  * @title type(C).runtimeCode()：提供运行时代码的访问

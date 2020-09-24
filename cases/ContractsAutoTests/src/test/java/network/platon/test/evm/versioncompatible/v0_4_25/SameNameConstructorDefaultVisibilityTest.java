@@ -1,12 +1,11 @@
 package network.platon.test.evm.versioncompatible.v0_4_25;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.SameNameConstructorDefaultVisibility;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-
 import java.math.BigInteger;
 /**
  * @title 构造函数和可见性测试

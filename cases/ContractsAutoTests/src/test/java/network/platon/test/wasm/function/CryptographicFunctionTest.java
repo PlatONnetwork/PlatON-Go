@@ -1,8 +1,8 @@
 package network.platon.test.wasm.function;
 
-import com.platon.rlp.datatypes.WasmAddress;
-import com.platon.sdk.utlis.Bech32;
-import com.platon.sdk.utlis.NetworkParameters;
+import com.alaya.bech32.Bech32;
+import com.alaya.parameters.NetworkParameters;
+import com.alaya.rlp.wasm.datatypes.WasmAddress;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.CryptographicFunction;

@@ -1,14 +1,14 @@
 package network.platon.test.evm.versioncompatible.v0_4_25;
 
+import com.alaya.tuples.generated.Tuple2;
+import com.alaya.tx.Transfer;
+import com.alaya.utils.Convert;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.DoWhileCheck;
 import org.junit.Test;
-import org.web3j.tuples.generated.Tuple2;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

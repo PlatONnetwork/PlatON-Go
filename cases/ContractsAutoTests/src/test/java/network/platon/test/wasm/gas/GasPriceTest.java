@@ -1,24 +1,23 @@
 package network.platon.test.wasm.gas;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.solidity.RlpEncoder;
+import com.alaya.rlp.solidity.RlpList;
+import com.alaya.rlp.solidity.RlpString;
+import com.alaya.rlp.solidity.RlpType;
+import com.alaya.rlp.wasm.datatypes.*;
+import com.alaya.utils.Numeric;
 import com.alibaba.fastjson.JSONObject;
-import com.platon.rlp.datatypes.*;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.*;
 import network.platon.utils.DataChangeUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.rlp.RlpEncoder;
-import org.web3j.rlp.RlpList;
-import org.web3j.rlp.RlpString;
-import org.web3j.rlp.RlpType;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
-import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**

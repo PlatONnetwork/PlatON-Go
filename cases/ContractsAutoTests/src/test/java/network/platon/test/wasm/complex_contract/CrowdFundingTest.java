@@ -1,12 +1,12 @@
 package network.platon.test.wasm.complex_contract;
 
-import com.platon.rlp.datatypes.Uint64;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.CrowdFunding;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigInteger;
@@ -30,7 +30,7 @@ public class CrowdFundingTest extends WASMContractPrepareTest {
         Long blocks = 30L;//设置截止块高与当前块高为20
 
         try {
-            CrowdFunding crowdFunding = CrowdFunding.deploy(web3j, transactionManager, provider,chainId,Uint64.of("10000"),Uint64.of("10000")).send();
+            CrowdFunding crowdFunding = CrowdFunding.deploy(web3j, transactionManager, provider,chainId, Uint64.of("10000"),Uint64.of("10000")).send();
             String contractAddress = crowdFunding.getContractAddress();
             String transactionHash = crowdFunding.getTransactionReceipt().get().getTransactionHash();
             collector.logStepPass("CrowdFunding issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);

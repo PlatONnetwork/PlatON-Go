@@ -1,13 +1,13 @@
 package network.platon.test.evm.data_type.structs;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tuples.generated.Tuple6;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.StructDataType;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple6;
 
 import java.math.BigInteger;
 
@@ -44,7 +44,7 @@ public class StructDataTypeTest extends ContractPrepareTest {
             collector.logStepPass( "currentBlockNumber:" + tx.getBlockNumber());
 
             //查询执行结果
-            Tuple6<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>  tuple6 =  structDataType.getRunValue().send();
+            Tuple6<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> tuple6 =  structDataType.getRunValue().send();
 
             collector.assertEqual("2",tuple6.getValue1().toString());
             collector.assertEqual("2",tuple6.getValue2().toString());

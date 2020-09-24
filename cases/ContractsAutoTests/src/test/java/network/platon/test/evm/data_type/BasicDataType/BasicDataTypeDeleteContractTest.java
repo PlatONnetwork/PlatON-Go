@@ -1,14 +1,14 @@
 package network.platon.test.evm.data_type.BasicDataType;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tuples.generated.Tuple2;
+import com.alaya.tuples.generated.Tuple6;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.BasicDataTypeDeleteContract;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple2;
-import org.web3j.tuples.generated.Tuple6;
 
 import java.math.BigInteger;
 

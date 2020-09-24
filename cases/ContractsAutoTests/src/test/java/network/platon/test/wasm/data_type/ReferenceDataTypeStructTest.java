@@ -1,12 +1,12 @@
 package network.platon.test.wasm.data_type;
 
-import com.platon.rlp.datatypes.Uint64;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeStructContract;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -50,7 +50,7 @@ public class ReferenceDataTypeStructTest extends WASMContractPrepareTest {
         //调用合约方法
         try {
             //1、验证：定义struct类型并赋值
-            TransactionReceipt  transactionReceipt = referenceDataTypeStructContract.setStructPersonA(name,Uint64.of(age)).send();
+            TransactionReceipt  transactionReceipt = referenceDataTypeStructContract.setStructPersonA(name, Uint64.of(age)).send();
             collector.logStepPass("referenceDataTypeStructContract 【验证定义struct类型并赋值】 successfully hash:" + transactionReceipt.getTransactionHash());
             //2、验证：struct取值
             String actualValue = referenceDataTypeStructContract.getPersonName().send();

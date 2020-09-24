@@ -1,13 +1,12 @@
 package network.platon.test.evm.oop.abstracttest;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.AbstractContractFSubclass;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-
 /**
  * @title 测试：抽象合约是否可以继承抽象合约，是否可以正常编译部署执行
  * @description:

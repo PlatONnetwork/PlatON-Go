@@ -1,7 +1,9 @@
 package network.platon.test.wasm.contract_clone;
 
-import com.platon.rlp.datatypes.Uint64;
-import com.platon.rlp.datatypes.WasmAddress;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Int32;
+import com.alaya.rlp.wasm.datatypes.Uint64;
+import com.alaya.rlp.wasm.datatypes.WasmAddress;
 import network.platon.test.datatypes.Xuint128;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -9,9 +11,7 @@ import network.platon.contracts.wasm.SimpleContract;
 import network.platon.contracts.wasm.CreateContract;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
-import com.platon.rlp.datatypes.Int32;
 
 /**
  * @author wanghengtao

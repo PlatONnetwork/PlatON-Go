@@ -1,16 +1,15 @@
 package network.platon.test.evm.complexcontracts;
 
+import com.alaya.protocol.core.DefaultBlockParameterName;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tx.Transfer;
+import com.alaya.utils.Convert;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.Guessing;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
@@ -58,7 +57,7 @@ public class GuessingTest extends ContractPrepareTest {
 
             //发起转账(触发竞猜操作)
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1000"), Convert.Unit.LAT, new BigInteger("1000000000"), new BigInteger("4712388")).send();
+            TransactionReceipt transactionReceipt = transfer.sendFunds(contractAddress, new BigDecimal("1000"), Convert.Unit.ATP, new BigInteger("1000000000"), new BigInteger("4712388")).send();
             collector.logStepPass("gas used>>>>>>>" + transactionReceipt.getGasUsed().toString());
 
             //查询合约余额

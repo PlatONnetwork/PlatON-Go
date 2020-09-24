@@ -1,10 +1,10 @@
 package network.platon.test.wasm.contract_create;
 
+import com.alaya.protocol.exceptions.TransactionException;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InitOverload;
 import org.junit.Test;
-import org.web3j.protocol.exceptions.TransactionException;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
