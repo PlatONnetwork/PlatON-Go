@@ -247,14 +247,14 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
+				UnStakeFreezeDuration:   uint64(8), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
-				MaxEvidenceAge:             uint32(27),
+				MaxEvidenceAge:             uint32(7),
 				SlashBlocksReward:          uint32(250),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
@@ -275,8 +275,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Reward: rewardConfig{
 				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				PlatONFoundationYear:  2,
+				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
@@ -298,14 +298,14 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
+				UnStakeFreezeDuration:   uint64(8), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
-				MaxEvidenceAge:             uint32(27),
+				MaxEvidenceAge:             uint32(7),
 				SlashBlocksReward:          uint32(250),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
@@ -326,8 +326,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Reward: rewardConfig{
 				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				PlatONFoundationYear:  2,
+				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atx1rft06q6ygj8lnukka7hfs07m9ymspzjlg9cfqt"),
