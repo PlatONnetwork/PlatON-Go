@@ -62,22 +62,22 @@ const (
 
 var (
 
-	// 10 LAT
-	TenLAT, _ = new(big.Int).SetString("10000000000000000000", 10)
+	// 10 ATP
+	TenATP, _ = new(big.Int).SetString("10000000000000000000", 10)
 
-	// 10000 LAT
-	TenThousandLAT, _ = new(big.Int).SetString("10000000000000000000000", 10)
+	// 10000 ATP
+	TenThousandATP, _ = new(big.Int).SetString("10000000000000000000000", 10)
 
 	// hard code genesis staking balance
-	// 150W LAT
+	// 150W ATP
 	GeneStakingAmount, _ = new(big.Int).SetString("1500000000000000000000000", 10)
 
-	// 100W LAT
-	MillionLAT, _ = new(big.Int).SetString("1000000000000000000000000", 10)
-	// 1000W LAT
-	TenMillionLAT, _ = new(big.Int).SetString("10000000000000000000000000", 10)
+	// 100W ATP
+	MillionATP, _ = new(big.Int).SetString("1000000000000000000000000", 10)
+	// 1000W ATP
+	TenMillionATP, _ = new(big.Int).SetString("10000000000000000000000000", 10)
 
-	BillionLAT, _ = new(big.Int).SetString("1000000000000000000000000000", 10)
+	BillionATP, _ = new(big.Int).SetString("1000000000000000000000000000", 10)
 
 	// The maximum time range for the cumulative number of zero blocks
 	maxZeroProduceCumulativeTime uint16 = 64
@@ -180,7 +180,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		cdfundBalance *big.Int
 	)
 
-	// 3.31811981  thousand millions LAT
+	// 3.31811981  thousand millions ATP
 	if cdfundBalance, ok = new(big.Int).SetString("331811981000000000000000000", 10); !ok {
 		return nil
 	}
@@ -196,8 +196,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionLAT),
-				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				StakeThreshold:          new(big.Int).Set(MillionATP),
+				OperatingThreshold:      new(big.Int).Set(TenATP),
 				MaxValidators:           uint64(101),
 				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
@@ -247,8 +247,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionLAT),
-				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				StakeThreshold:          new(big.Int).Set(MillionATP),
+				OperatingThreshold:      new(big.Int).Set(TenATP),
 				MaxValidators:           uint64(101),
 				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
@@ -298,8 +298,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionLAT),
-				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				StakeThreshold:          new(big.Int).Set(MillionATP),
+				OperatingThreshold:      new(big.Int).Set(TenATP),
 				MaxValidators:           uint64(101),
 				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
@@ -349,8 +349,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionLAT),
-				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				StakeThreshold:          new(big.Int).Set(MillionATP),
+				OperatingThreshold:      new(big.Int).Set(TenATP),
 				MaxValidators:           uint64(101),
 				UnStakeFreezeDuration:   uint64(2), // freezing 2 epoch
 				RewardPerMaxChangeRange: uint16(500),
@@ -400,8 +400,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionLAT),
-				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				StakeThreshold:          new(big.Int).Set(MillionATP),
+				OperatingThreshold:      new(big.Int).Set(TenATP),
 				MaxValidators:           uint64(25),
 				UnStakeFreezeDuration:   uint64(2),
 				RewardPerMaxChangeRange: uint16(500),
@@ -451,8 +451,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionLAT),
-				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				StakeThreshold:          new(big.Int).Set(MillionATP),
+				OperatingThreshold:      new(big.Int).Set(TenATP),
 				MaxValidators:           uint64(101),
 				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
@@ -502,15 +502,15 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 
 func CheckStakeThreshold(threshold *big.Int) error {
 
-	if threshold.Cmp(MillionLAT) < 0 || threshold.Cmp(TenMillionLAT) > 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] LAT", MillionLAT, TenMillionLAT))
+	if threshold.Cmp(MillionATP) < 0 || threshold.Cmp(TenMillionATP) > 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] ATP", MillionATP, TenMillionATP))
 	}
 	return nil
 }
 
 func CheckOperatingThreshold(threshold *big.Int) error {
-	if threshold.Cmp(TenLAT) < 0 || threshold.Cmp(TenThousandLAT) > 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d] LAT", TenLAT, TenThousandLAT))
+	if threshold.Cmp(TenATP) < 0 || threshold.Cmp(TenThousandATP) > 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d] ATP", TenATP, TenThousandATP))
 	}
 	return nil
 }
