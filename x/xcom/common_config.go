@@ -62,22 +62,20 @@ const (
 
 var (
 
-	// 10 ATP
-	TenATP, _ = new(big.Int).SetString("10000000000000000000", 10)
+	// 1 ATP
+	DelegateLowerLimit, _ = new(big.Int).SetString("1000000000000000000", 10)
 
-	// 10000 ATP
-	TenThousandATP, _ = new(big.Int).SetString("10000000000000000000000", 10)
+	// 1W ATP
+	DelegateUpperLimit, _ = new(big.Int).SetString("10000000000000000000000", 10)
 
 	// hard code genesis staking balance
-	// 150W ATP
-	GeneStakingAmount, _ = new(big.Int).SetString("1500000000000000000000000", 10)
+	// 1W ATP
+	GeneStakingAmount, _ = new(big.Int).SetString("10000000000000000000000", 10)
 
+	// 1W
+	StakeLowerLimit, _ = new(big.Int).SetString("10000000000000000000000", 10)
 	// 100W ATP
-	MillionATP, _ = new(big.Int).SetString("1000000000000000000000000", 10)
-	// 1000W ATP
-	TenMillionATP, _ = new(big.Int).SetString("10000000000000000000000000", 10)
-
-	BillionATP, _ = new(big.Int).SetString("1000000000000000000000000000", 10)
+	StakeUpperLimit, _ = new(big.Int).SetString("1000000000000000000000000", 10)
 
 	// The maximum time range for the cumulative number of zero blocks
 	maxZeroProduceCumulativeTime uint16 = 64
@@ -180,8 +178,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		cdfundBalance *big.Int
 	)
 
-	// 3.31811981  thousand millions ATP
-	if cdfundBalance, ok = new(big.Int).SetString("331811981000000000000000000", 10); !ok {
+	if cdfundBalance, ok = new(big.Int).SetString("4000000000000000000000000", 10); !ok {
 		return nil
 	}
 
@@ -196,8 +193,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionATP),
-				OperatingThreshold:      new(big.Int).Set(TenATP),
+				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
+				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
 				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
@@ -247,17 +244,17 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionATP),
-				OperatingThreshold:      new(big.Int).Set(TenATP),
+				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
+				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
+				UnStakeFreezeDuration:   uint64(8), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
-				MaxEvidenceAge:             uint32(27),
+				MaxEvidenceAge:             uint32(7),
 				SlashBlocksReward:          uint32(250),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
@@ -278,8 +275,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Reward: rewardConfig{
 				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				PlatONFoundationYear:  2,
+				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
@@ -298,17 +295,17 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionATP),
-				OperatingThreshold:      new(big.Int).Set(TenATP),
+				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
+				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
+				UnStakeFreezeDuration:   uint64(8), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
 			Slashing: slashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
-				MaxEvidenceAge:             uint32(27),
+				MaxEvidenceAge:             uint32(7),
 				SlashBlocksReward:          uint32(250),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
@@ -329,13 +326,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Reward: rewardConfig{
 				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				PlatONFoundationYear:  2,
+				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
+				PlatONFundAccount: common.MustBech32ToAddress("atx1rft06q6ygj8lnukka7hfs07m9ymspzjlg9cfqt"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("atp17tfkaghs4vded6mz6k53xyv5cvqsl63h7wu5ty"),
+				CDFAccount:        common.MustBech32ToAddress("atx1n8ws5exjsz0ru2f7gw7m7fcyel7c0t8vx0pet6"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -349,8 +346,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionATP),
-				OperatingThreshold:      new(big.Int).Set(TenATP),
+				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
+				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
 				UnStakeFreezeDuration:   uint64(2), // freezing 2 epoch
 				RewardPerMaxChangeRange: uint16(500),
@@ -400,8 +397,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionATP),
-				OperatingThreshold:      new(big.Int).Set(TenATP),
+				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
+				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(25),
 				UnStakeFreezeDuration:   uint64(2),
 				RewardPerMaxChangeRange: uint16(500),
@@ -451,8 +448,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionATP),
-				OperatingThreshold:      new(big.Int).Set(TenATP),
+				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
+				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
 				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
@@ -502,15 +499,15 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 
 func CheckStakeThreshold(threshold *big.Int) error {
 
-	if threshold.Cmp(MillionATP) < 0 || threshold.Cmp(TenMillionATP) > 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] ATP", MillionATP, TenMillionATP))
+	if threshold.Cmp(StakeLowerLimit) < 0 || threshold.Cmp(StakeUpperLimit) > 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] ATP", StakeLowerLimit, StakeUpperLimit))
 	}
 	return nil
 }
 
 func CheckOperatingThreshold(threshold *big.Int) error {
-	if threshold.Cmp(TenATP) < 0 || threshold.Cmp(TenThousandATP) > 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d] ATP", TenATP, TenThousandATP))
+	if threshold.Cmp(DelegateLowerLimit) < 0 || threshold.Cmp(DelegateUpperLimit) > 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d] ATP", DelegateLowerLimit, DelegateUpperLimit))
 	}
 	return nil
 }
