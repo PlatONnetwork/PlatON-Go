@@ -1,10 +1,10 @@
 package network.platon.utils;
 
 
-import com.platon.rlp.RLPCodec;
-import com.platon.rlp.RLPList;
+import com.alaya.rlp.wasm.RLPCodec;
+import com.alaya.rlp.wasm.RLPList;
+import com.alaya.utils.Numeric;
 import org.apache.commons.lang.StringUtils;
-import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 
@@ -130,7 +130,7 @@ public class DataChangeUtil {
      */
 	public static String decodeSystemContractRlp(String hexRlp, long chainId) {
 		        byte[] data = Numeric.hexStringToByteArray(hexRlp);
-			        RLPList rlpList = RLPCodec.decode(data,RLPList.class, chainId);
+			        RLPList rlpList = RLPCodec.decode(data, RLPList.class, chainId);
 				        return RLPCodec.decode(rlpList.get(0),String.class, chainId);
 					    }
 
