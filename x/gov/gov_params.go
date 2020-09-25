@@ -72,7 +72,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleStaking, KeyOperatingThreshold,
-				fmt.Sprintf("minimum amount of stake increasing funds, delegation funds, or delegation withdrawing funds, range: [%d, %d]", xcom.TenLAT, xcom.TenThousandLAT)},
+				fmt.Sprintf("minimum amount of stake increasing funds, delegation funds, or delegation withdrawing funds, range: [%d, %d]", xcom.DelegateLowerLimit, xcom.DelegateUpperLimit)},
 			ParamValue: &ParamValue{"", xcom.OperatingThreshold().String(), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
