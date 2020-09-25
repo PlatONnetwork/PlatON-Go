@@ -488,10 +488,10 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 
-	generalAddr := common.MustBech32ToAddress("lat1dl93r6fr022ca5yjqe6cgkg06er9pyqfwkwwdg")
-	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
+	generalAddr := common.MustBech32ToAddress("atx1fyeszufxwxk62p46djncj86rd553skpph926ws")
+	generalBalance, _ := new(big.Int).SetString("100000000000000000000000000", 10)
 
-	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("1000000000000000000000000", 10)
 
 	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
