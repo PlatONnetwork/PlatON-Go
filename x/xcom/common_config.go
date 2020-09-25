@@ -258,7 +258,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(250),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
-				ZeroProduceFreezeDuration:  uint64(20),
+				ZeroProduceFreezeDuration:  uint64(7),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -309,7 +309,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(250),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
-				ZeroProduceFreezeDuration:  uint64(20),
+				ZeroProduceFreezeDuration:  uint64(7),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -330,9 +330,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("atx1rft06q6ygj8lnukka7hfs07m9ymspzjlg9cfqt"),
+				PlatONFundAccount: common.MustBech32ToAddress("atx10spacq8cz76y2n60pl7sg5yazncmjuus7n6hw2"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("atx1n8ws5exjsz0ru2f7gw7m7fcyel7c0t8vx0pet6"),
+				CDFAccount:        common.MustBech32ToAddress("atx17tfkaghs4vded6mz6k53xyv5cvqsl63h5gq7cw"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -435,7 +435,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFundAccount: common.MustBech32ToAddress("atx1fyeszufxwxk62p46djncj86rd553skpph926ws"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.MustBech32ToAddress("atx1c8enpvs5v6974shxgxxav5dsn36e5jl4slaumj"),
-				CDFBalance:        new(big.Int).Set(cdfundBalance),
+				CDFBalance:        new(big.Int).Set(new(big.Int).Mul(cdfundBalance, new(big.Int).SetUint64(1000))),
 			},
 		}
 	case DefaultDemoNet:
