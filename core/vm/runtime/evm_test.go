@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"github.com/holiman/uint256"
 	"math/big"
 	"testing"
 
@@ -201,7 +202,7 @@ func TestCreate(t *testing.T) {
 		code,
 		cfg.GasLimit,
 		cfg.Value,
-		cfg.Value,
+		uint256.NewInt().SetBytes(cfg.Value.Bytes()),
 	)
 	vmenv.Create(
 		sender,
