@@ -82,7 +82,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
 
 @allure.title("Two distribution-Transfer amount：{value}")
 @pytest.mark.P0
-@pytest.mark.parametrize('value', [0, 1000, 0.000000000000000001, 100000000])
+@pytest.mark.parametrize('value', [0, 1000, 0.000000000000000001, 10000000])
 def test_IT_SD_004_to_006(client_consensus, value):
     """
     IT_SD_006:二次分配：普通钱包转keyshard钱包
