@@ -134,7 +134,12 @@ var (
 		},
 	}
 
-	initialAlayaTestNetConsensusNodes = []initNode{}
+	initialAlayaTestNetConsensusNodes = []initNode{
+		{
+			"enode://b7f1f7757a900cce7ce4caf8663ecf871205763ac201c65f9551d5b841731a9cd9550bc05f3a16fbc2ef589c9faeef74d4500b60d76047939e2ba7fa4a5915aa@tf1.8e1f.platon.network:16789",
+			"f1735bac863706b49809a4e635fe0c2e224aef5ad549f18ba3f2f6b61c0c9d0005f12d497a301ba26a8aaf009c90e4198301875002984c5cd9bd614cd2fbcb81c57f6355a8400d56c20804e1dfb34782c1f2eadda82c8b226aa4a71bfa60be8c",
+		},
+	}
 
 	initialDemoNetConsensusNodes = []initNode{}
 

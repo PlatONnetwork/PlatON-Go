@@ -111,7 +111,7 @@ Repeat passphrase: {{.InputLine "foobar2"}}
 func TestUnlockFlag(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	platon := runPlatON(t,
-		"--datadir", datadir, "--ipcdisable", "--testnet", "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
+		"--datadir", datadir, "--ipcdisable", "--alayatestnet", "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "atx10m66vy6lrlt2qfvnamwgd8rdg8vnfthc7wlna0",
 		"js", "testdata/empty.js")
 	platon.Expect(`
