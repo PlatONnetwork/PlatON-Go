@@ -6,8 +6,8 @@ import time
 
 import allure
 import pytest
-from client_sdk_python import Web3
-from client_sdk_python.eth import Eth
+from alaya import Web3
+from alaya.eth import Eth
 from hexbytes import HexBytes
 password = "88888888"
 to_address = "lax1zy3rg32u8ge06yfrp3pw00xdf2zwqgqshrlnax"

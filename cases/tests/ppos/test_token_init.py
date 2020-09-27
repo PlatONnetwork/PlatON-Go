@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import allure
 import pytest
-from client_sdk_python import Web3
+from alaya import Web3
 from dacite import from_dict
 from platon_account.internal.transactions import bech32_address_bytes
 

@@ -4,7 +4,7 @@ from copy import copy
 
 import pytest
 from dacite import from_dict
-from client_sdk_python import Web3
+from alaya import Web3
 from tests.lib.genesis import Genesis
 from environment.node import Node
 
