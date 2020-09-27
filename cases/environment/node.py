@@ -1,12 +1,12 @@
 import os
 import json
-from client_sdk_python import Web3
-from client_sdk_python.admin import Admin
-from client_sdk_python.debug import Debug
-from client_sdk_python.eth import Eth
-from client_sdk_python.personal import Personal
-from client_sdk_python.ppos import Ppos
-from client_sdk_python.pip import Pip
+from alaya import Web3
+from alaya.admin import Admin
+from alaya.debug import Debug
+from alaya.eth import Eth
+from alaya.personal import Personal
+from alaya.ppos import Ppos
+from alaya.pip import Pip
 
 from common.connect import run_ssh, connect_linux, wait_connect_web3
 from common.load_file import LoadFile

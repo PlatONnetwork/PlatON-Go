@@ -2,7 +2,7 @@ import time
 from copy import copy
 
 import pytest
-from client_sdk_python.eth import PlatON
+from alaya.eth import PlatON
 from hexbytes import HexBytes
 
 from common.log import log

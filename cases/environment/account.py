@@ -1,6 +1,6 @@
 from common.load_file import LoadFile
-from client_sdk_python.eth import Eth
-from client_sdk_python.personal import Personal
+from alaya.eth import Eth
+from alaya.personal import Personal
 from hexbytes import HexBytes
 import random
 import rlp

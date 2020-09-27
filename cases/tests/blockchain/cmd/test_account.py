@@ -2,12 +2,12 @@ import time
 
 import allure
 import pytest
-from client_sdk_python.eth import Eth
+from alaya.eth import Eth
 from eth_utils import is_integer
 
 from common.log import log
 from common.connect import run_ssh_cmd
-from client_sdk_python.admin import Admin
+from alaya.admin import Admin
 
 from conf.settings import NODE_FILE
 # from environment import t1est_env_impl

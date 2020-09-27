@@ -7,7 +7,7 @@ import time
 from dacite import from_dict
 
 from common.log import log
-from client_sdk_python import Web3
+from alaya import Web3
 
 from tests.lib import Genesis
 from tests.lib.utils import get_pledge_list, get_block_count_number, assert_code

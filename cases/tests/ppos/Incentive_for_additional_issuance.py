@@ -4,7 +4,7 @@ import time
 import pytest
 from dacite import from_dict
 from common.log import log
-from client_sdk_python import Web3
+from alaya import Web3
 from decimal import Decimal
 from tests.conftest import get_client_consensus
 from tests.lib import EconomicConfig, Genesis, assert_code, von_amount, Client

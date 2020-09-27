@@ -2,10 +2,10 @@ import os
 import time
 
 import rlp
-from client_sdk_python import HTTPProvider, Web3, WebsocketProvider, ppos
-from client_sdk_python.eth import Eth
-from client_sdk_python.middleware import geth_poa_middleware
-from client_sdk_python.ppos import Ppos
+from alaya import HTTPProvider, Web3, WebsocketProvider, ppos
+from alaya.eth import Eth
+from alaya.middleware import geth_poa_middleware
+from alaya.ppos import Ppos
 from hexbytes import HexBytes
 from ruamel import yaml
 

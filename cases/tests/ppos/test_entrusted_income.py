@@ -3,11 +3,11 @@ import time
 import pytest
 import allure
 import rlp
-from client_sdk_python.utils.transactions import send_obj_transaction
+from alaya.utils.transactions import send_obj_transaction
 from dacite import from_dict
 from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
-from client_sdk_python import Web3
+from alaya import Web3
 from decimal import Decimal
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
     get_governable_parameter_value, get_the_dynamic_parameter_gas_fee, get_getDelegateReward_gas_fee, \
