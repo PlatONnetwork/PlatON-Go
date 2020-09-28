@@ -29,11 +29,11 @@ public class MultiIndexContract extends WasmContract {
 
     public static final String FUNC_MULTIINDEXMODIFY = "MultiIndexModify";
 
+    public static final String FUNC_GETMULTIINDEXINDEX = "getMultiIndexIndex";
+
     public static final String FUNC_MULTIINDEXERASE = "MultiIndexErase";
 
     public static final String FUNC_GETMULTIINDEXCEND = "getMultiIndexCend";
-
-    public static final String FUNC_GETMULTIINDEXINDEX = "getMultiIndexIndex";
 
     public static final String FUNC_ADDINITMULTIINDEX = "addInitMultiIndex";
 
@@ -61,6 +61,11 @@ public class MultiIndexContract extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<Boolean> getMultiIndexIndex(Uint8 my_age) {
+        final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXINDEX, Arrays.asList(my_age), Boolean.class);
+        return executeRemoteCall(function, Boolean.class);
+    }
+
     public RemoteCall<TransactionReceipt> MultiIndexErase(String my_name) {
         final WasmFunction function = new WasmFunction(FUNC_MULTIINDEXERASE, Arrays.asList(my_name), Void.class);
         return executeRemoteCallTransaction(function);
@@ -73,11 +78,6 @@ public class MultiIndexContract extends WasmContract {
 
     public RemoteCall<Boolean> getMultiIndexCend(Uint8 my_sex) {
         final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXCEND, Arrays.asList(my_sex), Boolean.class);
-        return executeRemoteCall(function, Boolean.class);
-    }
-
-    public RemoteCall<Boolean> getMultiIndexIndex(Uint8 my_age) {
-        final WasmFunction function = new WasmFunction(FUNC_GETMULTIINDEXINDEX, Arrays.asList(my_age), Boolean.class);
         return executeRemoteCall(function, Boolean.class);
     }
 
