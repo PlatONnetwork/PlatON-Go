@@ -3,12 +3,7 @@ package network.platon.utils;
 import lombok.extern.slf4j.Slf4j;
 import network.platon.autotest.utils.FileUtil;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.concurrent.*;
 
 /**
  * @title 将ABI文件和二进制文件生成包装类
@@ -62,6 +57,7 @@ public class GeneratorUtil {
 
     public void generatorWasm(String contractName) throws Exception {
         try {
+            System.out.println("==========start wasm generator==========");
             String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "wasm", "build").toUri().getPath());
             String binPath = filePath + contractName + ".wasm";
             String abiPath = filePath + contractName + ".abi.json";

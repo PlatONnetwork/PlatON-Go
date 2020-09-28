@@ -1,7 +1,5 @@
 package network.platon.utils;
 
-import com.example.contract.Solc;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
@@ -47,7 +45,6 @@ public class CompileUtil {
             while ((line = br.readLine()) != null) {
                 sb.append(line).append("\n");
             }
-
             String result = sb.toString();
             System.out.println(result);
         } catch (Exception e) {
