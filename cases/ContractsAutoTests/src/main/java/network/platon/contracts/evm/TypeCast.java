@@ -1,33 +1,33 @@
 package network.platon.contracts.evm;
 
+import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Function;
+import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Bytes4;
+import com.alaya.abi.solidity.datatypes.generated.Uint16;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.RemoteCall;
+import com.alaya.tuples.generated.Tuple3;
+import com.alaya.tx.Contract;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Bytes4;
-import org.web3j.abi.datatypes.generated.Uint16;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.RemoteCall;
-import org.web3j.tuples.generated.Tuple3;
-import org.web3j.tx.Contract;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.GasProvider;
 
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.5.
+ * <p>Generated with web3j version 0.13.2.0.
  */
 public class TypeCast extends Contract {
-    private static final String BINARY = "6060604052341561000f57600080fd5b6101dc8061001e6000396000f300606060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806312e9b56d14610046575b600080fd5b341561005157600080fd5b610059610101565b604051808461ffff1661ffff168152602001837bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001935050505060405180910390f35b600080600080600080600060127e01000000000000000000000000000000000000000000000000000000000000029350837e01000000000000000000000000000000000000000000000000000000000000900492506104d27c01000000000000000000000000000000000000000000000000000000000291506112347c0100000000000000000000000000000000000000000000000000000000029050828282965096509650505050509091925600a165627a7a723058205d38fe2dc06e785e313e98a554974fcdd67ee6b65c9333598c1bd7061f67e5660029";
+    private static final String BINARY = "608060405234801561001057600080fd5b506101de806100206000396000f300608060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806312e9b56d14610046575b600080fd5b34801561005257600080fd5b5061005b610103565b604051808461ffff1661ffff168152602001837bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001935050505060405180910390f35b600080600080600080600060127e01000000000000000000000000000000000000000000000000000000000000029350837e01000000000000000000000000000000000000000000000000000000000000900492506104d27c01000000000000000000000000000000000000000000000000000000000291506112347c0100000000000000000000000000000000000000000000000000000000029050828282965096509650505050509091925600a165627a7a72305820cd46208788d8b6a58c2b0d10acd0501487c5bebf6632adf4aaba5a1a0b9f912e0029";
 
     public static final String FUNC_TYPECAST = "typeCast";
 

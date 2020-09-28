@@ -1,31 +1,31 @@
 package network.platon.contracts.evm;
 
+import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Function;
+import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Uint32;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.RemoteCall;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tx.Contract;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint32;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.RemoteCall;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Contract;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.GasProvider;
 
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.5.
+ * <p>Generated with web3j version 0.13.2.0.
  */
 public class DisallowTypeChange extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5061019c806100206000396000f3fe608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630b7f16651461005c578063420343a414610093578063a56dfe4a1461009d575b600080fd5b34801561006857600080fd5b506100716100d4565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b61009b6100ed565b005b3480156100a957600080fd5b506100b261015b565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b60008060009054906101000a900463ffffffff16905090565b60007faaaa00000000000000000000000000000000000000000000000000000000000090506000819050807c010000000000000000000000000000000000000000000000000000000090046000806101000a81548163ffffffff021916908363ffffffff1602179055505050565b6000809054906101000a900463ffffffff168156fea165627a7a72305820f0e1c771937135fd4dcca42c5766ca9a20e369870d73383315c18f8219fe9eee0029";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610165806100206000396000f3fe6080604052600436106100345760003560e01c80630b7f166514610039578063420343a414610070578063a56dfe4a1461007a575b600080fd5b34801561004557600080fd5b5061004e6100b1565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b6100786100ca565b005b34801561008657600080fd5b5061008f61011b565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b60008060009054906101000a900463ffffffff16905090565b60007faaaa000000000000000000000000000000000000000000000000000000000000905060008190508060e01c6000806101000a81548163ffffffff021916908363ffffffff1602179055505050565b6000809054906101000a900463ffffffff168156fea265627a7a72315820c1e5391f5067eddfe2b6981d25b939a9440204405101de94ed0bc552a94c82f664736f6c63430005110032";
 
     public static final String FUNC_GETY = "getY";
 

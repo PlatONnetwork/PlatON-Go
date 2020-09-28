@@ -7,7 +7,6 @@ import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.evm.Inter;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
 

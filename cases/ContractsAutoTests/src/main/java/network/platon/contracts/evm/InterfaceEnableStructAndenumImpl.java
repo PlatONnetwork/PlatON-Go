@@ -1,29 +1,29 @@
 package network.platon.contracts.evm;
 
+import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Function;
+import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Uint8;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.RemoteCall;
+import com.alaya.tx.Contract;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint8;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.RemoteCall;
-import org.web3j.tx.Contract;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.GasProvider;
 
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.5.
+ * <p>Generated with web3j version 0.13.2.0.
  */
 public class InterfaceEnableStructAndenumImpl extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060f28061001f6000396000f3fe608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680636ff65603146044575b600080fd5b348015604f57600080fd5b5060566079565b60405180826001811115606557fe5b60ff16815260200191505060405180910390f35b6000608160a8565b602060405190810160405280600180811115609857fe5b8152509050806000015191505090565b6020604051908101604052806000600181111560c057fe5b8152509056fea165627a7a72305820278f38a7d78f49bf527afafd5ab2833172e4df97408e85c0c71581df56c566150029";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060d68061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80636ff6560314602d575b600080fd5b60336056565b60405180826001811115604257fe5b60ff16815260200191505060405180910390f35b6000605e6084565b6040518060200160405280600180811115607457fe5b8152509050806000015191505090565b604051806020016040528060006001811115609b57fe5b8152509056fea265627a7a72315820c18d4a1cd2d227a590049732070b80625fc8bd4e8b4942eda8fc6ffb83ccface64736f6c63430005110032";
 
     public static final String FUNC_GETPRODUCTCONDITION = "getProductCondition";
 

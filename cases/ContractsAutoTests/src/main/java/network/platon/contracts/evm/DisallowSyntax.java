@@ -1,43 +1,43 @@
 package network.platon.contracts.evm;
 
+import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Function;
+import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Uint256;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.RemoteCall;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tx.Contract;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.RemoteCall;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Contract;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.GasProvider;
 
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.5.
+ * <p>Generated with web3j version 0.13.2.0.
  */
 public class DisallowSyntax extends Contract {
     private static final String BINARY = "";
 
-    public static final String FUNC_TESTBLOCK = "testBlock";
-
-    public static final String FUNC_METHOD = "method";
-
     public static final String FUNC_GETMSGVALUE = "getMsgValue";
-
-    public static final String FUNC_MULVALUE2 = "mulvalue2";
 
     public static final String FUNC_GETVALUE = "getValue";
 
+    public static final String FUNC_METHOD = "method";
+
+    public static final String FUNC_MULVALUE2 = "mulvalue2";
+
     public static final String FUNC_TESRETURN = "tesReturn";
+
+    public static final String FUNC_TESTBLOCK = "testBlock";
 
     protected DisallowSyntax(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
@@ -47,13 +47,20 @@ public class DisallowSyntax extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<TransactionReceipt> testBlock(String _to, BigInteger _value) {
+    public RemoteCall<TransactionReceipt> getMsgValue(BigInteger vonValue) {
         final Function function = new Function(
-                FUNC_TESTBLOCK, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_to), 
-                new Uint256(_value)),
+                FUNC_GETMSGVALUE, 
+                Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<BigInteger> getValue(String _to, BigInteger _value) {
+        final Function function = new Function(FUNC_GETVALUE, 
+                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.Address(_to), 
+                new Uint256(_value)),
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<TransactionReceipt> method() {
@@ -62,14 +69,6 @@ public class DisallowSyntax extends Contract {
                 Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> getMsgValue(BigInteger vonValue) {
-        final Function function = new Function(
-                FUNC_GETMSGVALUE, 
-                Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> mulvalue2(BigInteger a, BigInteger b) {
@@ -81,20 +80,21 @@ public class DisallowSyntax extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<BigInteger> getValue(String _to, BigInteger _value) {
-        final Function function = new Function(FUNC_GETVALUE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_to), 
-                new Uint256(_value)),
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
-        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
-    }
-
     public RemoteCall<TransactionReceipt> tesReturn(BigInteger _id, BigInteger vonValue) {
         final Function function = new Function(
                 FUNC_TESRETURN, 
                 Arrays.<Type>asList(new Uint256(_id)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> testBlock(String _to, BigInteger _value) {
+        final Function function = new Function(
+                FUNC_TESTBLOCK, 
+                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.Address(_to), 
+                new Uint256(_value)),
+                Collections.<TypeReference<?>>emptyList());
+        return executeRemoteCallTransaction(function);
     }
 
     public static RemoteCall<DisallowSyntax> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

@@ -1,26 +1,26 @@
 package network.platon.contracts.evm;
 
+import com.alaya.abi.solidity.EventEncoder;
+import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Bool;
+import com.alaya.abi.solidity.datatypes.Event;
+import com.alaya.abi.solidity.datatypes.Function;
+import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.DefaultBlockParameter;
+import com.alaya.protocol.core.RemoteCall;
+import com.alaya.protocol.core.methods.request.PlatonFilter;
+import com.alaya.protocol.core.methods.response.Log;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tx.Contract;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.web3j.abi.EventEncoder;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Bool;
-import org.web3j.abi.datatypes.Event;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.DefaultBlockParameter;
-import org.web3j.protocol.core.RemoteCall;
-import org.web3j.protocol.core.methods.request.PlatonFilter;
-import org.web3j.protocol.core.methods.response.Log;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Contract;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.GasProvider;
 import rx.Observable;
 import rx.functions.Func1;
 
@@ -28,13 +28,13 @@ import rx.functions.Func1;
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.5.
+ * <p>Generated with web3j version 0.13.2.0.
  */
 public class LibraryStaticUsing extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b50610182806100206000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063f207564e14610030575b600080fd5b61005c6004803603602081101561004657600080fd5b8101908080359060200190929190505050610076565b604051808215151515815260200191505060405180910390f35b600073657b6d5d927aa7bbef1871eca8bbd7f6f7dd52bb63f360234c607b846040518363ffffffff1660e01b8152600401808381526020018281526020019250505060206040518083038186803b1580156100d057600080fd5b505af41580156100e4573d6000803e3d6000fd5b505050506040513d60208110156100fa57600080fd5b810190808051906020019092919050505090507f0b3bdb70bcb1393d4319be3261bd6ab95e2ea1665e718029d24cecca39e84ccc81604051808215151515815260200191505060405180910390a191905056fea265627a7a72315820103be023dc5e13c12596b1c5c28832e1cccac5dd87f08eb9a6166ffbe13198ba64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610182806100206000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063f207564e14610030575b600080fd5b61005c6004803603602081101561004657600080fd5b8101908080359060200190929190505050610076565b604051808215151515815260200191505060405180910390f35b600073dee83aaa15e71d87c3ce1c49c99fa49e8f205dc563f360234c607b846040518363ffffffff1660e01b8152600401808381526020018281526020019250505060206040518083038186803b1580156100d057600080fd5b505af41580156100e4573d6000803e3d6000fd5b505050506040513d60208110156100fa57600080fd5b810190808051906020019092919050505090507f0b3bdb70bcb1393d4319be3261bd6ab95e2ea1665e718029d24cecca39e84ccc81604051808215151515815260200191505060405180910390a191905056fea265627a7a723158206510d1e8e8cc45816a5d5c0435c23eeecf3e2e6f0fd2a49f45646f5b4b376fd264736f6c63430005110032";
 
     public static final String FUNC_REGISTER = "register";
 
@@ -84,7 +84,7 @@ public class LibraryStaticUsing extends Contract {
     public RemoteCall<TransactionReceipt> register(BigInteger value) {
         final Function function = new Function(
                 FUNC_REGISTER, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(value)), 
+                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.generated.Uint256(value)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }

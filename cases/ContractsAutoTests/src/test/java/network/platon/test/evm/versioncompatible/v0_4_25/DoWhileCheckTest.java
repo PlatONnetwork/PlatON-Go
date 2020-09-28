@@ -30,7 +30,7 @@ public class DoWhileCheckTest extends ContractPrepareTest {
             DoWhileCheck doWhileCheck = DoWhileCheck.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress = doWhileCheck.getContractAddress();
             String transactionHash = doWhileCheck.getTransactionReceipt().get().getTransactionHash();
-            Transfer.sendFunds(web3j,credentials, chainId,contractAddress, BigDecimal.valueOf(300.00), Convert.Unit.GLAT);
+            Transfer.sendFunds(web3j,credentials, chainId,contractAddress, BigDecimal.valueOf(300.00), Convert.Unit.GATP);
             collector.logStepPass("DoWhileCheck issued successfully.contractAddress:" + contractAddress + ", hash:" + transactionHash);
             collector.logStepPass("deploy gas used:" + doWhileCheck.getTransactionReceipt().get().getGasUsed());
             Tuple2<BigInteger, BigInteger> result = doWhileCheck.doWhileCheck().send();

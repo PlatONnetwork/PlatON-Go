@@ -11,6 +11,7 @@ import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
 import org.junit.Before;
 import org.junit.Test;
+
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -227,7 +228,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
         ExecutorService executorService = Executors.newCachedThreadPool();
         CountDownLatch countDownLatch = new CountDownLatch(size);
         // 信号量
-        final Semaphore semaphore = new Semaphore(50);
+        final Semaphore semaphore = new Semaphore(20);
         GeneratorUtil generatorUtil = new GeneratorUtil();
         collector.logStepPass("staring generator, Total " + size + " contract, please wait...");
 

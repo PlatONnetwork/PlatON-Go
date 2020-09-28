@@ -42,7 +42,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.LAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(1.00), Convert.Unit.ATP, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("1000000000000000000"), "checkout to contract account transfer");
@@ -189,7 +189,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000000001), Convert.Unit.MICROLAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000000001), Convert.Unit.MICROATP, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("100"), "checkout to contract account transfer");
@@ -219,7 +219,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.000000000000021), Convert.Unit.MILLILAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.000000000000021), Convert.Unit.MILLIATP, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("21"), "checkout to contract account transfer");
@@ -249,7 +249,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.00000000000000005), Convert.Unit.LAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.00000000000000005), Convert.Unit.ATP, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("50"), "checkout to contract account transfer");
@@ -278,7 +278,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000000000000000001), Convert.Unit.KLAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000000000000000001), Convert.Unit.KATP, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("100"), "checkout to contract account transfer");
@@ -308,7 +308,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
 
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.00000000000000000000001), Convert.Unit.MLAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.00000000000000000000001), Convert.Unit.MATP, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("10"), "checkout to contract account transfer");
@@ -337,7 +337,7 @@ public class ContractAndAddressFunctionTest extends ContractPrepareTest {
             collector.logStepPass("deploy gas used:" + contractAndAddress.getTransactionReceipt().get().getGasUsed());
 
             Transfer transfer = new Transfer(web3j, transactionManager);
-            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000000000000000000000001), Convert.Unit.GLAT, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
+            TransactionReceipt receipt = transfer.sendFunds(contractAddress, BigDecimal.valueOf(0.0000000000000000000000001), Convert.Unit.GATP, new BigInteger(gasPrice), new BigInteger(gasLimit)).send();
             if (StringUtils.equals(receipt.getStatus(), "0x1")) {
                 PlatonGetBalance balance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send();
                 collector.assertEqual(balance.getBalance(), new BigInteger("100"), "checkout to contract account transfer");

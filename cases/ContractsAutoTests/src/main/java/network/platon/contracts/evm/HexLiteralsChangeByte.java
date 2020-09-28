@@ -1,37 +1,37 @@
 package network.platon.contracts.evm;
 
+import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Function;
+import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Bytes1;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.RemoteCall;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tx.Contract;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Bytes1;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.RemoteCall;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Contract;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.GasProvider;
 
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.5.
+ * <p>Generated with web3j version 0.13.2.0.
  */
 public class HexLiteralsChangeByte extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b506102e5806100206000396000f3fe608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630b7f16651461005c578063420343a4146100cb578063ee4950021461012d575b600080fd5b34801561006857600080fd5b5061007161019c565b60405180827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200191505060405180910390f35b6100d36101d1565b60405180827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200191505060405180910390f35b34801561013957600080fd5b50610142610288565b60405180827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200191505060405180910390f35b60008060009054906101000a90047f010000000000000000000000000000000000000000000000000000000000000002905090565b6000807f6162000000000000000000000000000000000000000000000000000000000000905060f17f0100000000000000000000000000000000000000000000000000000000000000026000806101000a81548160ff02191690837f0100000000000000000000000000000000000000000000000000000000000000900402179055506000809054906101000a90047f01000000000000000000000000000000000000000000000000000000000000000291505090565b6000809054906101000a90047f0100000000000000000000000000000000000000000000000000000000000000028156fea165627a7a72305820ff6b82443f54546c111cf3fab6ae22d50e289de17763948bcc33ad9d2202f68b0029";
+    private static final String BINARY = "608060405234801561001057600080fd5b5061022f806100206000396000f3fe6080604052600436106100345760003560e01c80630b7f166514610039578063420343a4146100a8578063ee4950021461010a575b600080fd5b34801561004557600080fd5b5061004e610179565b60405180827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200191505060405180910390f35b6100b061018f565b60405180827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200191505060405180910390f35b34801561011657600080fd5b5061011f6101e8565b60405180827effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff19167effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200191505060405180910390f35b60008060009054906101000a900460f81b905090565b6000807f6162000000000000000000000000000000000000000000000000000000000000905060f160f81b6000806101000a81548160ff021916908360f81c02179055506000809054906101000a900460f81b91505090565b6000809054906101000a900460f81b8156fea265627a7a72315820956e9cc63188a3340ee7b3f1a72cdc39886388afd171bded2d422588f81764ff64736f6c63430005110032";
+
+    public static final String FUNC_B1 = "b1";
 
     public static final String FUNC_GETY = "getY";
 
     public static final String FUNC_TESTCHANGE = "testChange";
-
-    public static final String FUNC_B1 = "b1";
 
     protected HexLiteralsChangeByte(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
@@ -39,6 +39,13 @@ public class HexLiteralsChangeByte extends Contract {
 
     protected HexLiteralsChangeByte(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
+    }
+
+    public RemoteCall<byte[]> b1() {
+        final Function function = new Function(FUNC_B1, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Bytes1>() {}));
+        return executeRemoteCallSingleValueReturn(function, byte[].class);
     }
 
     public RemoteCall<byte[]> getY() {
@@ -54,13 +61,6 @@ public class HexLiteralsChangeByte extends Contract {
                 Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<byte[]> b1() {
-        final Function function = new Function(FUNC_B1, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Bytes1>() {}));
-        return executeRemoteCallSingleValueReturn(function, byte[].class);
     }
 
     public static RemoteCall<HexLiteralsChangeByte> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

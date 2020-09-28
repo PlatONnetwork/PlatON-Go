@@ -10,6 +10,9 @@ import org.junit.Test;
 import java.math.BigInteger;
 import java.util.List;
 
+/**
+ * 合约版本solidity ^0.5.17
+ */
 public class AtomicSwapTest extends ContractPrepareTest {
     @Before
     public void before() {

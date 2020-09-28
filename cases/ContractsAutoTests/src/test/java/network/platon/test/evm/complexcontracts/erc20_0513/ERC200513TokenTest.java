@@ -14,7 +14,7 @@ import java.math.BigInteger;
 
 /**
  * @title ERC200513Token测试
- * @description:
+ * @description: 合约版本solidity ^0.5.17
  * @author: hudenian
  * @create: 2019/12/28
  */

@@ -1,37 +1,37 @@
 package network.platon.contracts.evm;
 
+import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Function;
+import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Uint256;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.RemoteCall;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tx.Contract;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.RemoteCall;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Contract;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.GasProvider;
 
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.5.
+ * <p>Generated with web3j version 0.13.2.0.
  */
 public class DelegatecallCaller_050 extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5061024a806100206000396000f3fe608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630c55699c1461005c5780637b8ed01814610087578063a7126c2d146100b2575b600080fd5b34801561006857600080fd5b50610071610103565b6040518082815260200191505060405180910390f35b34801561009357600080fd5b5061009c610109565b6040518082815260200191505060405180910390f35b3480156100be57600080fd5b50610101600480360360208110156100d557600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610112565b005b60005481565b60008054905090565b8073ffffffffffffffffffffffffffffffffffffffff1660405180807f696e63282900000000000000000000000000000000000000000000000000000081525060050190506040518091039020604051602001808281526020019150506040516020818303038152906040526040518082805190602001908083835b6020831015156101b3578051825260208201915060208101905060208303925061018e565b6001836020036101000a038019825116818451168082178552505050505050905001915050600060405180830381855af49150503d8060008114610213576040519150601f19603f3d011682016040523d82523d6000602084013e610218565b606091505b5050505056fea165627a7a723058206bb650e43d121c3b8e6d4272555dd2d36ccb9ec96d3c464c9b96b9d34a5c94df0029";
-
-    public static final String FUNC_X = "x";
+    private static final String BINARY = "608060405234801561001057600080fd5b50610214806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630c55699c146100465780637b8ed01814610064578063a7126c2d14610082575b600080fd5b61004e6100c6565b6040518082815260200191505060405180910390f35b61006c6100cc565b6040518082815260200191505060405180910390f35b6100c46004803603602081101561009857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506100d5565b005b60005481565b60008054905090565b8073ffffffffffffffffffffffffffffffffffffffff1660405180807f696e63282900000000000000000000000000000000000000000000000000000081525060050190506040518091039020604051602001808281526020019150506040516020818303038152906040526040518082805190602001908083835b602083106101745780518252602082019150602081019050602083039250610151565b6001836020036101000a038019825116818451168082178552505050505050905001915050600060405180830381855af49150503d80600081146101d4576040519150601f19603f3d011682016040523d82523d6000602084013e6101d9565b606091505b5050505056fea265627a7a72315820b7c772995a6bbc6c1dbbea5b8c2da71f3a4187c311abfdeb4cd30bb9a4927a1d64736f6c63430005110032";
 
     public static final String FUNC_GETCALLERX = "getCallerX";
 
     public static final String FUNC_INC_DELEGATECALL = "inc_delegatecall";
+
+    public static final String FUNC_X = "x";
 
     protected DelegatecallCaller_050(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider, chainId);
@@ -39,13 +39,6 @@ public class DelegatecallCaller_050 extends Contract {
 
     protected DelegatecallCaller_050(String contractAddress, Web3j web3j, TransactionManager transactionManager, GasProvider contractGasProvider, Long chainId) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
-    }
-
-    public RemoteCall<BigInteger> x() {
-        final Function function = new Function(FUNC_X, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
-        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<BigInteger> getCallerX() {
@@ -58,9 +51,16 @@ public class DelegatecallCaller_050 extends Contract {
     public RemoteCall<TransactionReceipt> inc_delegatecall(String _contractAddress) {
         final Function function = new Function(
                 FUNC_INC_DELEGATECALL, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_contractAddress)), 
+                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.Address(_contractAddress)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<BigInteger> x() {
+        final Function function = new Function(FUNC_X, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public static RemoteCall<DelegatecallCaller_050> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

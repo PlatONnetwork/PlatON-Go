@@ -1,30 +1,30 @@
 package network.platon.contracts.evm;
 
+import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Function;
+import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.RemoteCall;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.tx.Contract;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.RemoteCall;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Contract;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.GasProvider;
 
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.5.
+ * <p>Generated with web3j version 0.13.2.0.
  */
 public class DisallowVariable extends Contract {
-    private static final String BINARY = "6080604052600160025534801561001557600080fd5b5060db806100246000396000f3fe608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630f2da424146044575b600080fd5b606d60048036036020811015605857600080fd5b81019080803590602001909291905050506083565b6040518082815260200191505060405180910390f35b60008060006002600391509150600060016000868152602001908152602001600020905050505091905056fea165627a7a7230582026c0e07222bdba9afc5451c0b55901ef47a25ca2f10d762a232477f4593c9eb40029";
+    private static final String BINARY = "60806040526001600255348015601457600080fd5b5060c1806100236000396000f3fe608060405260043610601c5760003560e01c80630f2da424146021575b600080fd5b604a60048036036020811015603557600080fd5b81019080803590602001909291905050506060565b6040518082815260200191505060405180910390f35b60008060006002600391509150600060016000868152602001908152602001600020905050505091905056fea265627a7a723158201566017fcad4ac67aa1624e6d040c021f00190373ddff398aec567525d99787864736f6c63430005110032";
 
     public static final String FUNC_TESEMPTY = "tesEmpty";
 
@@ -39,7 +39,7 @@ public class DisallowVariable extends Contract {
     public RemoteCall<TransactionReceipt> tesEmpty(BigInteger _id, BigInteger vonValue) {
         final Function function = new Function(
                 FUNC_TESEMPTY, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_id)), 
+                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.generated.Uint256(_id)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function, vonValue);
     }

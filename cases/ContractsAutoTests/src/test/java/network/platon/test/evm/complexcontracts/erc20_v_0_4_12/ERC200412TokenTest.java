@@ -13,7 +13,7 @@ import java.math.BigInteger;
 
 /**
  * @title ERC200412Token测试
- * @description:
+ * @description: 合约版本solidity ^0.4.26
  * @author: albedo
  * @create: 2019/12/28
  */

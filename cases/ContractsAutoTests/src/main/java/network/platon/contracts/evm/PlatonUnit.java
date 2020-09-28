@@ -1,29 +1,29 @@
 package network.platon.contracts.evm;
 
+import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Function;
+import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Uint256;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.Web3j;
+import com.alaya.protocol.core.RemoteCall;
+import com.alaya.tx.Contract;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.RemoteCall;
-import org.web3j.tx.Contract;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.GasProvider;
 
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://github.com/PlatONnetwork/client-sdk-java/releases">platon-web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.1.5.
+ * <p>Generated with web3j version 0.13.2.0.
  */
 public class PlatonUnit extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060fd8061001f6000396000f3fe60806040526004361060265760003560e01c806312065fe0146038578063b69ef8a8146060575b6030600054346088565b600081905550005b348015604357600080fd5b50604a60a3565b6040518082815260200191505060405180910390f35b348015606b57600080fd5b50607260c2565b6040518082815260200191505060405180910390f35b600080828401905083811015609957fe5b8091505092915050565b60003073ffffffffffffffffffffffffffffffffffffffff1631905090565b6000548156fea265627a7a72315820a96106c7f63f399e9b55b5ae9b9a4e1e8c3df95816b4791b551a1200a74a8eed64736f6c634300050d0032";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060e68061001f6000396000f3fe60806040526004361060265760003560e01c806312065fe0146038578063b69ef8a8146060575b6030600054346088565b600081905550005b348015604357600080fd5b50604a60a3565b6040518082815260200191505060405180910390f35b348015606b57600080fd5b50607260ab565b6040518082815260200191505060405180910390f35b600080828401905083811015609957fe5b8091505092915050565b600047905090565b6000548156fea265627a7a7231582024b6c3c425485051b13573e9b85f3702fee0273dc077c1ed103f489d7bf8f3b864736f6c63430005110032";
 
     public static final String FUNC_BALANCE = "balance";
 
