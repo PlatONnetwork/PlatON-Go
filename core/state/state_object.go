@@ -345,8 +345,8 @@ func (self *stateObject) updateTrie(db Database) Trie {
 // UpdateRoot sets the trie root to the current root hash of
 func (self *stateObject) updateRoot(db Database) {
 	self.updateTrie(db)
-	//self.data.Root = self.trie.Hash()
-	self.data.Root = self.trie.ParallelHash()
+	self.data.Root = self.trie.Hash()
+	//self.data.Root = self.trie.ParallelHash()
 }
 
 // CommitTrie the storage trie of the object to db.

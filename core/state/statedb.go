@@ -895,13 +895,13 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 // goes into transaction receipts.
 func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	s.Finalise(deleteEmptyObjects)
-	//return s.trie.Hash()
-	return s.trie.ParallelHash()
+	return s.trie.Hash()
+	//return s.trie.ParallelHash()
 }
 
 func (s *StateDB) Root() common.Hash {
-	//return s.trie.Hash()
-	return s.trie.ParallelHash()
+	return s.trie.Hash()
+	//return s.trie.ParallelHash()
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
@@ -952,8 +952,8 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		delete(s.stateObjectsDirty, addr)
 	}
 	// Write trie changes.
-	//root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
-	root, err = s.trie.ParallelCommit(func(leaf []byte, parent common.Hash) error {
+	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	//root, err = s.trie.ParallelCommit(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
@@ -968,6 +968,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		return nil
 	})
 
+	//log.Trace("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }
 

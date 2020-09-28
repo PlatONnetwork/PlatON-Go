@@ -71,7 +71,7 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 	}
 	trie := &Trie{
 		db:  db,
-		dag: newTrieDag(),
+		// dag: newTrieDag(),
 	}
 	// If root is not empty, restore the node from the DB (the whole tree)
 	if root != (common.Hash{}) && root != emptyRoot {
@@ -302,7 +302,9 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 			return false, rn, err
 		}
 
-		t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		if t.dag != nil {
+			t.dag.addVertexAndEdge(fprefix, prefix, nn)
+		}
 		return true, nn, nil
 
 	default:
@@ -325,8 +327,10 @@ func (t *Trie) TryDelete(key []byte) error {
 	if err != nil {
 		return err
 	}
-	t.dag.delVertexAndEdgeByNode(nil, t.root)
-	t.dag.addVertexAndEdge(nil, nil, n)
+	if t.dag != nil {
+		t.dag.delVertexAndEdgeByNode(nil, t.root)
+		t.dag.addVertexAndEdge(nil, nil, n)
+	}
 	t.root = n
 	return nil
 }
@@ -554,7 +558,9 @@ func (t *Trie) ParallelCommit(onleaf LeafCallback) (root common.Hash, err error)
 	t.root = cached
 
 	// clear dag
-	t.dag.clear()
+	if t.dag != nil {
+		t.dag.clear()
+	}
 	return common.BytesToHash(hash.(hashNode)), nil
 }
 
@@ -571,7 +577,7 @@ func (t *Trie) parallelHashRoot(db *Database, onleaf LeafCallback) (node, node, 
 	if t.root == nil {
 		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
-	if len(t.dag.nodes) > 100 {
+	if t.dag != nil && len(t.dag.nodes) > 100 {
 		//t.dag.init(t.root)
 		return t.dag.hash(db, true, onleaf)
 	} else {
@@ -592,7 +598,7 @@ func (t *Trie) DeepCopyTrie() *Trie {
 		db:   t.db,
 		root: cpyRoot,
 		//dag:          t.dag.DeepCopy(),
-		dag: newTrieDag(),
+		// dag: newTrieDag(),
 	}
 }
 

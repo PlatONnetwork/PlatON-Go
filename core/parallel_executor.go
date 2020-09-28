@@ -3,7 +3,6 @@ package core
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 	"github.com/hashicorp/golang-lru"
 	"math/big"
 	"runtime"
@@ -20,7 +19,7 @@ import (
 
 const (
 	// Number of contractAddress->bool associations to keep.
-	contractCacheSize = 10000
+	contractCacheSize = 100000
 )
 
 var (
@@ -141,12 +140,14 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 		log.Trace("Finalise stateDB cost", "number", ctx.header.Number, "time", time.Since(start))
 	}
 
-	// dag print info
-	logVerbosity := debug.GetLogVerbosity()
-	if logVerbosity == log.LvlTrace {
-		inf := ctx.txListInfo()
-		log.Trace("TxList Info", "blockNumber", ctx.header.Number, "txList", inf)
-	}
+	/*
+		// dag print info
+		logVerbosity := debug.GetLogVerbosity()
+		if logVerbosity == log.LvlTrace {
+			inf := ctx.txListInfo()
+			log.Trace("TxList Info", "blockNumber", ctx.header.Number, "txList", inf)
+		}
+	*/
 	return nil
 }
 
@@ -198,7 +199,12 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	fromObj.SubBalance(subTotal)
 	fromObj.SetNonce(fromObj.GetNonce() + 1)
 
-	toObj := ctx.GetState().GetOrNewParallelStateObject(*msg.To())
+	var toObj *state.ParallelStateObject
+	if msg.From() == *msg.To() {
+		toObj = fromObj
+	} else {
+		toObj = ctx.GetState().GetOrNewParallelStateObject(*msg.To())
+	}
 	toObj.AddBalance(msg.Value())
 
 	ctx.buildTransferSuccessResult(idx, fromObj, toObj, intrinsicGas, minerEarnings)
@@ -227,15 +233,32 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 }
 
 func (exe *Executor) isContract(address *common.Address, state *state.StateDB) bool {
-	if address == nil {
+	if address == nil { // create contract
 		return true
 	}
 	if cached, ok := exe.contractCache.Get(*address); ok {
 		return cached.(bool)
 	}
 	isContract := vm.IsPrecompiledContract(*address) || state.GetCodeSize(*address) > 0
-	if isContract {
-		exe.contractCache.Add(*address, true)
-	}
+	//if isContract {
+	//	exe.contractCache.Add(*address, true)
+	//}
+	exe.contractCache.Add(*address, isContract)
 	return isContract
 }
+
+/*// load tx fromAddress from txpool by txHash
+func (exe *Executor) cacheTxFromAddress(txs []*types.Transaction, signer types.Signer) {
+	hit := 0
+	for _, tx := range txs {
+		txpool_tx := exe.txpool.all.Get(tx.Hash())
+		if txpool_tx != nil {
+			fromAddress := txpool_tx.FromAddr(signer)
+			if fromAddress != (common.Address{}) {
+				tx.CacheFromAddr(signer, fromAddress)
+				hit++
+			}
+		}
+	}
+	log.Debug("Parallel execute cacheTxFromAddress", "hit", hit, "total", len(txs))
+}*/

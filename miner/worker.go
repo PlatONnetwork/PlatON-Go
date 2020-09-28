@@ -980,8 +980,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.gasFloor),
-		Time:       big.NewInt(timestamp),
+		//GasLimit:   core.CalcGasLimit(parent, w.gasFloor),
+		GasLimit: 92000000000,
+		Time:     big.NewInt(timestamp),
 	}
 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
