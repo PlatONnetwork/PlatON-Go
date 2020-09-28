@@ -17,7 +17,7 @@ public class ContractDelegateCallPPOSTest extends WASMContractPrepareTest {
     private String restrictingContractAddr = "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpd3er4y";
 
 //    private String stakingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3";
-    private String stakingContractAddr = "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpd3er4y";
+    private String stakingContractAddr = "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzrzv4mm";
 
 //    private String slashingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x";
     private String slashingContractAddr = "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyld0s8v";

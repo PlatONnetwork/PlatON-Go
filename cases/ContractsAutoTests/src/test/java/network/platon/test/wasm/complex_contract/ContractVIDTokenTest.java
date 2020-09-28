@@ -8,6 +8,7 @@ import com.alaya.tx.RawTransactionManager;
 import com.alaya.tx.TransactionManager;
 import com.alaya.tx.Transfer;
 import com.alaya.utils.Convert;
+import com.alibaba.fastjson.JSONObject;
 import network.platon.test.datatypes.Xuint128;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -64,6 +65,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
 
             // approve
             TransactionReceipt approveTR = contract.Approve(to, value).send();
+            collector.logStepPass(JSONObject.toJSONString(approveTR));
             collector.logStepPass("Send Approve, hash:  " + approveTR.getTransactionHash()
                     + " gasUsed: " + approveTR.getGasUsed());
 
