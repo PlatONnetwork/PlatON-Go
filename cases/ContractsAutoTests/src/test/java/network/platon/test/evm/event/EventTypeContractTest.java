@@ -59,7 +59,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
             try {
                 eventCallContract.getTwoDimensionalArrayEventEvents(receipt);
             } catch (UnsupportedOperationException e) {
-                collector.assertEqual(e.getCause().getMessage(),"org.web3j.abi.datatypes.generated.StaticArray2<org.web3j.abi.datatypes.generated.Uint256>");
+                collector.assertEqual(e.getCause().getMessage(),"com.alaya.abi.solidity.datatypes.generated.StaticArray2<com.alaya.abi.solidity.datatypes.generated.Uint256>");
             }
         } catch (Exception e) {
             collector.logStepFail("EventTypeContractTest testTwoDimensionalArray failure,exception msg:" , e.getMessage());
