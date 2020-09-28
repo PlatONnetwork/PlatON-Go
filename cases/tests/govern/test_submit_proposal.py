@@ -447,7 +447,7 @@ class TestSubmitCancel:
         result = pip.submitCancel(pip.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
                                       address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
-        assert_code(result, 302020)
+        assert_code(result, 302021)
 
     @pytest.mark.P0
     @allure.title('New node submit cancel proposal')
@@ -813,13 +813,13 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = 10**18 * 1000000 + 0.1
+        value = 10**18 * 10000 + 0.1
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold', str(value),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = -10**18 * 1000000
+        value = -10**18 * 10000
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold', str(value),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -830,18 +830,18 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold', 10**18 * 1000000,
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold', 10**18 * 10000,
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = 10**18 * 1000000 - 1
+        value = 10**18 * 10000 - 1
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
                                      str(value), pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = 10**18 * 10000000 + 1
+        value = 10**18 * 100000 + 1
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
                                      str(value), pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -853,8 +853,8 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client, 'stakeThreshold')) != 10**18 * 1000000:
-            value = 10**18 * 1000000
+        if int(get_governable_parameter_value(client, 'stakeThreshold')) != 10**18 * 10000:
+            value = 10**18 * 10000
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold', str(value),
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -864,7 +864,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_010(self, no_vp_proposal):
         pip = no_vp_proposal
-        value = 10**18 * 10000000
+        value = 10**18 * 100000
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
                                      str(value),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -881,13 +881,13 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = 10**18 * 10 + 0.5
+        value = 10**18 * 1 + 0.5
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', str(value),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = -10**18 * 10
+        value = -10**18 * 1
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', str(value),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -898,12 +898,12 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', 1,
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', 0.1,
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = 10**18 * 10 - 1
+        value = 10**18 * 1 - 1
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
                                      str(value), pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -921,8 +921,8 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client, 'operatingThreshold')) != 10**18 * 10:
-            value = 10**18 * 10
+        if int(get_governable_parameter_value(client, 'operatingThreshold')) != 10**18 * 1:
+            value = 10**18 * 1
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', str(value),
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
