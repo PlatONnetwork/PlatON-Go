@@ -135,7 +135,7 @@ CONTRACT VIDToken : public Contract {
     if(address_info.second){
       spender = address_info.first;
     }
-
+    DEBUG("VIDToken", "Approve", "line138")
     platon_assert(!paused_.get());
     auto sender = platon_caller();
     platon_assert(!paused_.get());
@@ -147,10 +147,12 @@ CONTRACT VIDToken : public Contract {
       std::map<Address, u128> allow;
       allow[spender] = value;
       allowed[sender] = allow;
+      DEBUG("VIDToken", "Approve", "line150")
     } else {
       allowed[sender][spender] = value;
+      DEBUG("VIDToken", "Approve", "line153")
     }
-
+    DEBUG("VIDToken", "Approve", "line155")
     PLATON_EMIT_EVENT0(ApprovalEv, sender, spender, value);
     return 0;
   }
@@ -224,13 +226,14 @@ CONTRACT VIDToken : public Contract {
     if(address_info1.second){
       addr1 = address_info1.first;
     }
+    DEBUG("VIDToken", "Approve", "line229", "addr1")
 
     Address addr2;
     auto address_info2 = make_address(spender);
     if(address_info2.second){
       addr2 = address_info2.first;
     }
-
+    DEBUG("VIDToken", "Approve", "line236", "addr2")
 
     return Allowed(addr1, addr2);
   }
