@@ -326,6 +326,15 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain *Bloc
 	return pool
 }
 
+// Nonce returns the next nonce of an account, with all transactions executable
+// by the pool already applied on top.
+func (pool *TxPool) Nonce(addr common.Address) uint64 {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	return pool.pendingState.GetNonce(addr)
+}
+
 func (pool *TxPool) txExtBufferReadLoop() {
 	for {
 		select {

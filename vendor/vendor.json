@@ -426,6 +426,12 @@
 			"revisionTime": "2017-09-29T03:49:55Z"
 		},
 		{
+			"checksumSHA1": "WoTMg37Eu19EFC6fx6lTnPJvI4M=",
+			"path": "github.com/mroth/weightedrand",
+			"revision": "f3b9ff9feda22abc0965f8bb0832d6d0dc414edd",
+			"revisionTime": "2020-08-19T12:49:15Z"
+		},
+		{
 			"checksumSHA1": "FYM/8R2CqS6PSNAoKl6X5gNJ20A=",
 			"path": "github.com/naoina/toml",
 			"revision": "9fafd69674167c06933b1787ae235618431ce87f",
