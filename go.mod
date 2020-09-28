@@ -41,6 +41,7 @@ require (
 	github.com/mattn/go-isatty v0.0.0-20170209175615-281032e84ae0 // indirect
 	github.com/mattn/go-runewidth v0.0.3-0.20170201023540-14207d285c6c // indirect
 	github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7 // indirect
+	github.com/mroth/weightedrand v0.3.0
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/nsf/termbox-go v0.0.0-20170211012700-3540b76b9c77 // indirect
