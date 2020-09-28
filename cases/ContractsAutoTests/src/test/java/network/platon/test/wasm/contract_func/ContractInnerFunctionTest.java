@@ -130,7 +130,7 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke origin success. origin string: " + origin.toString());
             collector.logStepPass("To invoke origin success. origin: " + origin.getAddress());
             //如果java-sdk没有转换地址就在此处转换
-            String laxAddress = origin.getAddress().startsWith("la") ? origin.getAddress() : PlatonAddressChangeUtil.encode("lax", convertBits(Numeric.hexStringToByteArray(origin.getAddress()), 8, 5, true));
+            String laxAddress = origin.getAddress().startsWith("at") ? origin.getAddress() : PlatonAddressChangeUtil.encode("lax", convertBits(Numeric.hexStringToByteArray(origin.getAddress()), 8, 5, true));
             collector.assertEqual(credentials.getAddress(chainId), laxAddress);
 
             // test: transfer
