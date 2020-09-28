@@ -34,22 +34,22 @@ def test_IT_IA_002_to_007(new_genesis_env):
     """
     # Initialization genesis file Initial amount
     node_count = len(new_genesis_env.consensus_node_list)
-    default_pledge_amount = Web3.toWei(node_count * 1500000, 'ether')
+    default_pledge_amount = Web3.toWei(node_count * 10000, 'ether')
     node = new_genesis_env.get_rand_node()
-    community_amount = default_pledge_amount + 259096239000000000000000000 + 62215742000000000000000000
+    community_amount = Web3.toWei(4000000, 'ether')
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     print(genesis)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
-    surplus_amount = str(EconomicConfig.TOKEN_TOTAL - community_amount - 200000000000000000000000000)
+    surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - Web3.toWei(1000000, 'ether'))
     genesis.alloc = {
-        "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrzpqayr": {
-            "balance": "200000000000000000000000000"
+        "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf": {
+            "balance": "1000000000000000000000000"
         },
-        "lax196278ns22j23awdfj9f2d4vz0pedld8au6xelj": {
+        "atx1zkrxx6rf358jcvr7nruhyvr9hxpwv9unj58er9": {
             "balance": surplus_amount
         }
     }
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.1.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.2.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -70,14 +70,14 @@ def test_IT_IA_002_to_007(new_genesis_env):
     log.info("Total issuance of Chuangshi block：{}".format(reality_total))
     log.info("--------------Dividing line---------------")
     assert foundation == 0, "ErrMsg:Initial amount of foundation {}".format(foundation)
-    assert foundation_louckup == 259096239000000000000000000, "ErrMsg:Initial lock up amount of foundation {}".format(
+    assert foundation_louckup == 0, "ErrMsg:Initial lock up amount of foundation {}".format(
         foundation_louckup)
     assert staking == default_pledge_amount, "ErrMsg:Amount of initial pledge account: {}".format(staking)
-    assert incentive_pool == 262215742000000000000000000, "ErrMsg:Initial amount of incentive pool {}".format(
+    assert incentive_pool == Web3.toWei(1000000, 'ether'), "ErrMsg:Initial amount of incentive pool {}".format(
         incentive_pool)
     assert remain == int(surplus_amount), "ErrMsg:Initial amount of remaining total account {}".format(remain)
-    assert develop == 0, "ErrMsg:Community developer foundation account amount {}".format(develop)
-    assert reality_total == EconomicConfig.TOKEN_TOTAL, "ErrMsg:Initialize release value {}".format(reality_total)
+    assert develop == community_amount - default_pledge_amount, "ErrMsg:Community developer foundation account amount {}".format(develop)
+    assert reality_total == Web3.toWei(105000000, 'ether'), "ErrMsg:Initialize release value {}".format(reality_total)
 
 
 @allure.title("Two distribution-Transfer amount：{value}")
@@ -198,11 +198,11 @@ def test_IT_SD_008_001(client_new_node):
     address, _ = client.economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
     address_balance = node.eth.getBalance(address)
     print("Account {} balance：{}".format(address, address_balance))
-    first_balance1 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw')
-    first_balance2 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3')
-    first_balance4 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x')
-    first_balance5 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq97wrcc5')
-    first_balance6 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxsakwkt')
+    first_balance1 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpd3er4y')
+    first_balance2 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzrzv4mm')
+    first_balance4 = node.eth.getBalance(' atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf')
+    first_balance5 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9zmm967')
+    first_balance6 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxvgwn5p')
     log.info("Balance of Restriction plan : {}".format(first_balance1))
     log.info("Balance of Staking : {}".format(first_balance2))
     log.info("Balance of punishment : {}".format(first_balance4))
@@ -211,30 +211,30 @@ def test_IT_SD_008_001(client_new_node):
     # Transfer to the incentive pool
     log.info("Transfer amount：{}".format(node.web3.toWei(1000, 'ether')))
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw',
+                                                     'atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpd3er4y',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3',
+                                                     'atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzrzv4mm',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x',
+                                                     ' atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq97wrcc5',
+                                                     'atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9zmm967',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxsakwkt',
+                                                     'atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxvgwn5p',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
-    second_balance1 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw')
-    second_balance2 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3')
-    second_balance4 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x')
-    second_balance5 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq97wrcc5')
-    second_balance6 = node.eth.getBalance('lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxsakwkt')
+    second_balance1 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpd3er4y')
+    second_balance2 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzrzv4mm')
+    second_balance4 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf')
+    second_balance5 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9zmm967')
+    second_balance6 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxvgwn5p')
     log.info("Balance of Restriction plan : {}".format(second_balance1))
     log.info("Balance of Staking : {}".format(second_balance2))
     log.info("Balance of punishment : {}".format(second_balance4))
@@ -496,7 +496,7 @@ def test_AL_IE_001(client_consensus):
     client.economic.env.deploy_all()
     # 查询激励池初始金额
     incentive_pool = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, 0)
-    assert incentive_pool == 262215742000000000000000000, "ErrMsg:Initial amount of incentive pool {}".format(
+    assert incentive_pool == Web3.toWei(1000000, 'ether'), "ErrMsg:Initial amount of incentive pool {}".format(
         incentive_pool)
 
 
@@ -631,7 +631,7 @@ def test_AL_BI_002(new_genesis_env, staking_cfg):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 5
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.2.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     client_noc_list_obj = get_clients_noconsensus(new_genesis_env, staking_cfg)
@@ -816,7 +816,7 @@ def test_AL_NBI_004_to_006(new_genesis_env, client_new_node, reset_environment):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.staking.maxValidators = 4
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.2.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # create pledge node
@@ -1246,7 +1246,7 @@ def test_AL_NBI_019(client_consensus):
     log.info("Start resetting the chain")
     economic.env.deploy_all()
     time.sleep(5)
-    incentive_pool_balance = 262215742000000000000000000
+    incentive_pool_balance = Web3.toWei(1000000, 'ether')
     log.info("Get the initial value of the incentive pool：{}".format(incentive_pool_balance))
     annualcycle = math.ceil((economic.additional_cycle_time * 60) / economic.settlement_size)
     log.info("Number of current additional settlement cycles：{}".format(annualcycle))
