@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -34,61 +36,13 @@ type AnalystEntity struct {
 	Tps                uint64
 }
 
-func (txg *TxGenAPI) CalTps(input, output string) error {
-	file, err := os.OpenFile(input, os.O_RDWR, 0666)
-	if err != nil {
-		return fmt.Errorf("Failed to open config file:%v", err)
-	}
-	defer file.Close()
-	var res TxGenResData
-	if err := json.NewDecoder(file).Decode(&res); err != nil {
-		return fmt.Errorf("invalid res file :%v", err)
-	}
-
-	endTime := res.Tps[0].BlockProduceTime.Add(time.Second * 3)
-	txConut := 0
-	analysts := make([][2]int64, 0)
-	for _, tps := range res.Tps {
-		if tps.BlockProduceTime.Before(endTime) {
-			txConut += tps.TxLength
-		} else {
-			analysts = append(analysts, [2]int64{endTime.Unix(), int64(txConut / 3)})
-			endTime = endTime.Add(time.Second * 3)
-			txConut = 0
-			txConut += tps.TxLength
-		}
-	}
-
-	xlsxFile := xlsx.NewFile()
-	sheet, err := xlsxFile.AddSheet("tps statistics")
-	if err != nil {
-		return err
-	}
-
-	// add title
-	row := sheet.AddRow()
-	cell_1 := row.AddCell()
-	cell_1.Value = "time"
-	cell_2 := row.AddCell()
-	cell_2.Value = "tps"
-
-	//add data
-	for _, d := range analysts {
-		row := sheet.AddRow()
-		beginNumber := row.AddCell()
-		beginNumber.Value = strconv.FormatInt(d[0], 10)
-		endNumber := row.AddCell()
-		endNumber.Value = strconv.FormatInt(d[1], 10)
-	}
-	err = xlsxFile.Save(output)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (txg *TxGenAPI) CalTtf(configPaths []string, output string) error {
-	x := make(ttfs, 0)
+// CalRes, Integrate pressure test data, calculate pressure test results, including delay, tps, ttf, average interval, total number of receptions, total number of transmissions
+// configPaths,Summary of pressure test data of each node
+// output,Calculated pressure test result,file type:xlsx
+// t,Average statistical time
+func (txg *TxGenAPI) CalRes(configPaths []string, output string, t int) error {
+	x := make(BlockInfos, 0)
+	sendTotal := uint64(0)
 	for _, path := range configPaths {
 		file, err := os.OpenFile(path, os.O_RDWR, 0666)
 		if err != nil {
@@ -100,31 +54,46 @@ func (txg *TxGenAPI) CalTtf(configPaths []string, output string) error {
 			return fmt.Errorf("invalid res file r:%v", err)
 		}
 
-		for _, ttf := range res.Ttf {
+		for _, ttf := range res.Blocks {
 			x = append(x, ttf)
 		}
+		sendTotal += res.TotalTxSend
 	}
 	sort.Sort(x)
-	endTime := x[0].BlockProduceTime.Add(time.Second * 3)
+	endTime := common.MillisToTime(x[0].ProduceTime).Add(time.Second * time.Duration(t))
 	txConut := 0
-	timeUse := time.Duration(0)
-	analysts := make([][2]int64, 0)
-	for _, ttf := range x {
-		if ttf.BlockProduceTime.Before(endTime) {
-			txConut += ttf.TxLength
-			timeUse += ttf.TimeUse
-		} else {
-			analysts = append(analysts, [2]int64{endTime.Unix(), time.Duration(int64(float64(timeUse) / float64(txConut))).Milliseconds()})
-			endTime = endTime.Add(time.Second * 3)
+	latency, ttf := int64(0), int64(0)
+	analysts := make([][4]int64, 0)
+	total := 0
+
+	for _, info := range x {
+		total += info.TxLength
+		for common.MillisToTime(info.ProduceTime).After(endTime) {
+			latRes := time.Duration(0).Milliseconds()
+			tpsRes := int64(0)
+			ttfRes := time.Duration(0).Milliseconds()
+			if txConut > 0 {
+				latRes = time.Duration(int64(float64(latency) / float64(txConut))).Milliseconds()
+				tpsRes = int64(txConut) / int64(t)
+				if tpsRes == 0 {
+					tpsRes = 1
+				}
+				ttfRes = time.Duration(int64(float64(ttf) / float64(txConut))).Milliseconds()
+			}
+			analysts = append(analysts, [4]int64{endTime.Unix(), latRes, tpsRes, ttfRes})
+
+			endTime = endTime.Add(time.Second * time.Duration(t))
 			txConut = 0
-			timeUse = 0
-			txConut += ttf.TxLength
-			timeUse += ttf.TimeUse
+			latency = 0
+			ttf = 0
 		}
+		txConut += info.TxLength
+		latency += info.Latency
+		ttf += info.Ttf
 	}
 
 	xlsxFile := xlsx.NewFile()
-	sheet, err := xlsxFile.AddSheet("ttf statistics")
+	sheet, err := xlsxFile.AddSheet("block tx statistics")
 	if err != nil {
 		return err
 	}
@@ -134,15 +103,33 @@ func (txg *TxGenAPI) CalTtf(configPaths []string, output string) error {
 	cell_1 := row.AddCell()
 	cell_1.Value = "time"
 	cell_2 := row.AddCell()
-	cell_2.Value = "ttf"
+	cell_2.Value = "latency"
+	cell_3 := row.AddCell()
+	cell_3.Value = "tps"
+	cell_4 := row.AddCell()
+	cell_4.Value = "ttf"
+	cell_6 := row.AddCell()
+	cell_6.Value = "totalReceive"
+	cell_7 := row.AddCell()
+	cell_7.Value = "totalSend"
 
 	//add data
-	for _, d := range analysts {
+	for i, d := range analysts {
 		row := sheet.AddRow()
-		beginNumber := row.AddCell()
-		beginNumber.Value = strconv.FormatInt(d[0], 10)
-		endNumber := row.AddCell()
-		endNumber.Value = strconv.FormatInt(d[1], 10)
+		time := row.AddCell()
+		time.Value = strconv.FormatInt(d[0], 10)
+		latencyCell := row.AddCell()
+		latencyCell.Value = strconv.FormatInt(d[1], 10)
+		tpsCell := row.AddCell()
+		tpsCell.Value = strconv.FormatInt(d[2], 10)
+		ttfCell := row.AddCell()
+		ttfCell.Value = strconv.FormatInt(d[3], 10)
+		if i == 0 {
+			totalReceive := row.AddCell()
+			totalReceive.Value = strconv.FormatInt(int64(total), 10)
+			totalSend := row.AddCell()
+			totalSend.Value = strconv.FormatInt(int64(sendTotal), 10)
+		}
 	}
 	err = xlsxFile.Save(output)
 	if err != nil {
@@ -151,7 +138,7 @@ func (txg *TxGenAPI) CalTtf(configPaths []string, output string) error {
 	return nil
 }
 
-func (txg *TxGenAPI) CalAnalystEntity(ctx context.Context, beginBn, endBn uint64, interval uint64, resultPath string) ([]*AnalystEntity, error) {
+func (txg *TxGenAPI) CalBlockAnalyst(ctx context.Context, beginBn, endBn uint64, interval uint64, resultPath string) ([]*AnalystEntity, error) {
 	if beginBn >= endBn || endBn < interval || endBn%interval != 0 || beginBn%interval != 1 {
 		return nil, fmt.Errorf("Invalid parameter, beginBn: %d, endBn: %d, interval: %d \n", beginBn, endBn, interval)
 	}
