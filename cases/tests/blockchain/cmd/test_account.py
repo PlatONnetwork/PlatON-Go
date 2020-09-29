@@ -27,7 +27,7 @@ def account_env(global_test_env) -> (Node, AccountEnv):
 
     env = global_test_env
     node = env.get_rand_node()
-    log.info("Node::::::::::::::::::::::::::::::{}".format(node))
+    log.info("Node::::::::::::::::::::::::::::::{}:{}".format(node.host, node.p2p_port))
 
     remote_pwd_file = node.remote_node_path + "/password.txt"
     node.upload_file("./deploy/keystore/password.txt", remote_pwd_file)
@@ -42,7 +42,7 @@ def account_env(global_test_env) -> (Node, AccountEnv):
     account_env.remote_pwd_file = remote_pwd_file
     account_env.remote_account_file = remote_account_file
     account_env.remote_key_file = remote_key_file
-    account_env.remote_account_address = "atx1twqgd2d9m99wslnevu7p3wze2zqua2aaw338kd"
+    account_env.remote_account_address = "atx1zkrxx6rf358jcvr7nruhyvr9hxpwv9unj58er9"
 
     yield node, account_env
 

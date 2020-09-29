@@ -94,7 +94,7 @@ def global_test_env(request, worker_id):
         set_report_env(allure_dir, env)
 
     # delete env and close env
-    # env.shutdown()
+    env.shutdown()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
