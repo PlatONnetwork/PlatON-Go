@@ -70,7 +70,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
                     + " gasUsed: " + approveTR.getGasUsed());
 
             // allowance
-            Uint128 allowance = contract.Allowance(credentials.getAddress(), to).send();
+            Uint128 allowance = contract.Allowance(credentials.getAddress(chainId), to).send();
             collector.logStepPass("Call allowance, res: " + allowance);
             collector.assertEqual(allowance.value, value.value);
 

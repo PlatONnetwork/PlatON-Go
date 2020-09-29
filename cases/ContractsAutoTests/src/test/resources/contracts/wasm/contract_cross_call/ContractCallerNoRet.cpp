@@ -13,7 +13,7 @@ CONTRACT cross_caller_noret : public platon::Contract {
 		uint64_t transfer_value = 0;
 		auto address_info = make_address(target_address);
 		if(address_info.second){
-			if (platon_call(address_info.first, transfer_value, gasValue, "info")) {
+			if (platon_call_with_return_value(address_info.first, transfer_value, gasValue, "info")) {
 				status.self() = 0; // successed
 				DEBUG("cross_caller_noret call receiver_noret info has successed!")
 				} else {
