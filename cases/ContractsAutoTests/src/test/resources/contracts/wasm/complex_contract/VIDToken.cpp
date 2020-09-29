@@ -1,4 +1,5 @@
 #define TESTNET
+#undef NDEBUG
 #include <platon/platon.hpp>
 
 using namespace platon;
