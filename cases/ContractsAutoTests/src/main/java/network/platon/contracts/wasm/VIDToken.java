@@ -46,15 +46,17 @@ public class VIDToken extends WasmContract {
 
     public static final String FUNC_VALIDATEFILE = "ValidateFile";
 
-    public static final String FUNC_VERIFYFILE = "VerifyFile";
-
     public static final String FUNC_PAUSE = "pause";
 
     public static final String FUNC_UNPAUSE = "unpause";
 
     public static final String FUNC_TRANSFER = "Transfer";
 
+    public static final String FUNC_VERIFYFILE = "VerifyFile";
+
     public static final String FUNC_BALANCEOF = "BalanceOf";
+
+    public static final String FUNC_TRANSFERTOKEN = "TransferToken";
 
     public static final String FUNC_INCREASEAPPROVAL = "IncreaseApproval";
 
@@ -63,8 +65,6 @@ public class VIDToken extends WasmContract {
     public static final String FUNC_ALLOWANCE = "Allowance";
 
     public static final String FUNC_TOKENFALLBACK = "TokenFallback";
-
-    public static final String FUNC_TRANSFERTOKEN = "TransferToken";
 
     public static final String FUNC_BURN = "Burn";
 
@@ -146,11 +146,6 @@ public class VIDToken extends WasmContract {
     public RemoteCall<TransactionReceipt> ValidateFile(String to_addr, Uint128 payment, String data, Boolean store, Boolean log, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_VALIDATEFILE, Arrays.asList(to_addr,payment,data,store,log), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Boolean> VerifyFile(String file_hash) {
-        final WasmFunction function = new WasmFunction(FUNC_VERIFYFILE, Arrays.asList(file_hash), Boolean.class);
-        return executeRemoteCall(function, Boolean.class);
     }
 
     public List<TransferEvEventResponse> getTransferEvEvents(TransactionReceipt transactionReceipt) {
@@ -533,9 +528,24 @@ public class VIDToken extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<Boolean> VerifyFile(String file_hash) {
+        final WasmFunction function = new WasmFunction(FUNC_VERIFYFILE, Arrays.asList(file_hash), Boolean.class);
+        return executeRemoteCall(function, Boolean.class);
+    }
+
     public RemoteCall<Uint128> BalanceOf(String owner_addr) {
         final WasmFunction function = new WasmFunction(FUNC_BALANCEOF, Arrays.asList(owner_addr), Uint128.class);
         return executeRemoteCall(function, Uint128.class);
+    }
+
+    public RemoteCall<TransactionReceipt> TransferToken(String token_addr_s, Uint128 tokens) {
+        final WasmFunction function = new WasmFunction(FUNC_TRANSFERTOKEN, Arrays.asList(token_addr_s,tokens), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> TransferToken(String token_addr_s, Uint128 tokens, BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_TRANSFERTOKEN, Arrays.asList(token_addr_s,tokens), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public RemoteCall<TransactionReceipt> IncreaseApproval(String spender_addr, Uint128 added_value) {
@@ -570,16 +580,6 @@ public class VIDToken extends WasmContract {
 
     public RemoteCall<TransactionReceipt> TokenFallback(String from_addr, Uint128 value, String data, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_TOKENFALLBACK, Arrays.asList(from_addr,value,data), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> TransferToken(String token_addr_s, Uint128 tokens) {
-        final WasmFunction function = new WasmFunction(FUNC_TRANSFERTOKEN, Arrays.asList(token_addr_s,tokens), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> TransferToken(String token_addr_s, Uint128 tokens, BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_TRANSFERTOKEN, Arrays.asList(token_addr_s,tokens), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
     }
 

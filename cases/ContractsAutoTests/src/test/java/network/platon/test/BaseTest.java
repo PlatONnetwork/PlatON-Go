@@ -1,9 +1,15 @@
 package network.platon.test;
 
+import com.alaya.crypto.ECKeyPair;
+import com.alaya.crypto.Keys;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.rules.AssertCollector;
 import network.platon.autotest.junit.rules.DriverService;
 import org.junit.Rule;
+
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 
 public class BaseTest {
 
@@ -32,23 +38,19 @@ public class BaseTest {
 //        return credentials.getAddress();
 //    }
 //
-//    public ECKeyPair generateEcKeyPair(){
-//        ECKeyPair ecKeyPair = null;
-//        try {
-//            if(this.getParam("secretType").equals("sm2")){
-//                ecKeyPair = Keys.createSm2EcKeyPair();
-//            }else {
-//                ecKeyPair = Keys.createEcKeyPair();
-//            }
-//        } catch (InvalidAlgorithmParameterException e) {
-//            e.printStackTrace();
-//        } catch (NoSuchAlgorithmException e) {
-//            e.printStackTrace();
-//        } catch (NoSuchProviderException e) {
-//            e.printStackTrace();
-//        }
-//        return ecKeyPair;
-//    }
+    public ECKeyPair generateEcKeyPair(){
+        ECKeyPair ecKeyPair = null;
+        try {
+            ecKeyPair = Keys.createEcKeyPair();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchProviderException e) {
+            e.printStackTrace();
+        }
+        return ecKeyPair;
+    }
 //
 //    public ECKeyPair generateEcKeyPair(byte[] privateKey){
 //        ECKeyPair ecKeyPair;
@@ -70,16 +72,16 @@ public class BaseTest {
 //        return getCredentialsAddress(credentials);
 //    }
 
-//    public String generatePrivateKey() {
-//        ECKeyPair ecKeyPair = this.generateEcKeyPair();
-//        //私钥长度不足64位时需要补0
-//        String privateKey = ecKeyPair.getPrivateKey().toString(16);
-//        int len = privateKey.length();
-//        for(int i=0;i<(64-len);i++){
-//            privateKey = "0" + privateKey;
-//        }
-//        return privateKey;
-//    }
+    public String generatePrivateKey() {
+        ECKeyPair ecKeyPair = this.generateEcKeyPair();
+        //私钥长度不足64位时需要补0
+        String privateKey = ecKeyPair.getPrivateKey().toString(16);
+        int len = privateKey.length();
+        for(int i=0;i<(64-len);i++){
+            privateKey = "0" + privateKey;
+        }
+        return privateKey;
+    }
 //
 //    public String generatePublicKeyFromPrivateKey(String privateKey){
 //        ECKeyPair ecKeyPair = this.generateEcKeyPair(privateKey);
