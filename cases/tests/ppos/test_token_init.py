@@ -200,7 +200,7 @@ def test_IT_SD_008_001(client_new_node):
     print("Account {} balance：{}".format(address, address_balance))
     first_balance1 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpd3er4y')
     first_balance2 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzrzv4mm')
-    first_balance4 = node.eth.getBalance(' atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf')
+    first_balance4 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyld0s8v')
     first_balance5 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9zmm967')
     first_balance6 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxvgwn5p')
     log.info("Balance of Restriction plan : {}".format(first_balance1))
@@ -219,7 +219,7 @@ def test_IT_SD_008_001(client_new_node):
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
-                                                     ' atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf',
+                                                     'atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyld0s8v',
                                                      node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     result = client.economic.account.sendTransaction(node.web3, '', address,
@@ -232,7 +232,7 @@ def test_IT_SD_008_001(client_new_node):
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     second_balance1 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpd3er4y')
     second_balance2 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzrzv4mm')
-    second_balance4 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf')
+    second_balance4 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyld0s8v')
     second_balance5 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9zmm967')
     second_balance6 = node.eth.getBalance('atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxvgwn5p')
     log.info("Balance of Restriction plan : {}".format(second_balance1))
