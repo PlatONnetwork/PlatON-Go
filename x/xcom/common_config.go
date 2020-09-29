@@ -166,7 +166,6 @@ func ResetEconomicDefaultConfig(newEc *EconomicModel) {
 const (
 	DefaultMainNet      = iota // PlatON default main net flag
 	DefaultTestNet             // PlatON default test net flag
-	DefaultDemoNet             // PlatON default demo net flag
 	DefaultUnitTestNet         // PlatON default unit test
 	DefaultAlayaNet            // PlatON default Alaya net flag
 	DefaultAlayaTestNet        // PlatON default Alaya test net flag
@@ -436,57 +435,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.MustBech32ToAddress("atx1c8enpvs5v6974shxgxxav5dsn36e5jl4slaumj"),
 				CDFBalance:        new(big.Int).Set(new(big.Int).Mul(cdfundBalance, new(big.Int).SetUint64(1000))),
-			},
-		}
-	case DefaultDemoNet:
-		ec = &EconomicModel{
-			Common: commonConfig{
-				MaxEpochMinutes:     uint64(360), // 6 hours
-				NodeBlockTimeWindow: uint64(20),  // 20 seconds
-				PerRoundBlocks:      uint64(10),
-				MaxConsensusVals:    uint64(25),
-				AdditionalCycleTime: uint64(525960),
-			},
-			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
-				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
-				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
-				RewardPerMaxChangeRange: uint16(500),
-				RewardPerChangeInterval: uint16(10),
-			},
-			Slashing: slashingConfig{
-				SlashFractionDuplicateSign: uint32(10),
-				DuplicateSignReportReward:  uint32(50),
-				MaxEvidenceAge:             uint32(27),
-				SlashBlocksReward:          uint32(0),
-				ZeroProduceCumulativeTime:  uint16(30),
-				ZeroProduceNumberThreshold: uint16(1),
-				ZeroProduceFreezeDuration:  uint64(20),
-			},
-			Gov: governanceConfig{
-				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
-				//VersionProposalActive_ConsensusRounds: uint64(5),
-				VersionProposalSupportRate:       6670,
-				TextProposalVoteDurationSeconds:  uint64(14 * 24 * 3600),
-				TextProposalVoteRate:             5000,
-				TextProposalSupportRate:          6670,
-				CancelProposalVoteRate:           5000,
-				CancelProposalSupportRate:        6670,
-				ParamProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
-				ParamProposalVoteRate:            5000,
-				ParamProposalSupportRate:         6670,
-			},
-			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
-			},
-			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("atx1wgvgmgzs7jeamx5ervsfygwmlc9qlhzzy3f64j"),
-				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("atx13w4sd2tsdampxxydf7mrzzc72ytalkg5qredwc"),
-				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
 	default: // DefaultTestNet
