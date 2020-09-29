@@ -69,8 +69,8 @@ var (
 	DelegateUpperLimit, _ = new(big.Int).SetString("10000000000000000000000", 10)
 
 	// hard code genesis staking balance
-	// 1W ATP
-	GeneStakingAmount, _ = new(big.Int).SetString("10000000000000000000000", 10)
+	// 2W ATP
+	GeneStakingAmount, _ = new(big.Int).SetString("20000000000000000000000", 10)
 
 	// 1W
 	StakeLowerLimit, _ = new(big.Int).SetString("10000000000000000000000", 10)
