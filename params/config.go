@@ -141,8 +141,6 @@ var (
 		},
 	}
 
-	initialDemoNetConsensusNodes = []initNode{}
-
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(100),
@@ -201,20 +199,6 @@ var (
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
-			Amount:        10,
-			ValidatorMode: "ppos",
-			Period:        20000,
-		},
-		GenesisVersion: GenesisVersion,
-	}
-
-	// DemonetChainConfig is the chain parameters to run a node on the demo network.
-	DemonetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(399),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
-		Cbft: &CbftConfig{
-			InitialNodes:  ConvertNodeUrl(initialDemoNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
 			Period:        20000,
