@@ -56,9 +56,9 @@ public class BasicDataIntegerTypeContract extends WasmContract {
 
     public static final String FUNC_SET_INT8 = "set_int8";
 
-    public static final String FUNC_SET_INT16 = "set_int16";
-
     public static final String FUNC_GET_INT8 = "get_int8";
+
+    public static final String FUNC_SET_INT16 = "set_int16";
 
     public static final String FUNC_GET_INT16 = "get_int16";
 
@@ -183,6 +183,11 @@ public class BasicDataIntegerTypeContract extends WasmContract {
         return executeRemoteCallTransaction(function, vonValue);
     }
 
+    public RemoteCall<Int8> get_int8() {
+        final WasmFunction function = new WasmFunction(FUNC_GET_INT8, Arrays.asList(), Int8.class);
+        return executeRemoteCall(function, Int8.class);
+    }
+
     public RemoteCall<TransactionReceipt> set_int16(Int16 value) {
         final WasmFunction function = new WasmFunction(FUNC_SET_INT16, Arrays.asList(value), Void.class);
         return executeRemoteCallTransaction(function);
@@ -191,11 +196,6 @@ public class BasicDataIntegerTypeContract extends WasmContract {
     public RemoteCall<TransactionReceipt> set_int16(Int16 value, BigInteger vonValue) {
         final WasmFunction function = new WasmFunction(FUNC_SET_INT16, Arrays.asList(value), Void.class);
         return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<Int8> get_int8() {
-        final WasmFunction function = new WasmFunction(FUNC_GET_INT8, Arrays.asList(), Int8.class);
-        return executeRemoteCall(function, Int8.class);
     }
 
     public RemoteCall<Int16> get_int16() {

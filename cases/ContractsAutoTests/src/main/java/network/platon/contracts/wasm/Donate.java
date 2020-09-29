@@ -103,26 +103,6 @@ public class Donate extends WasmContract {
         return executeRemoteCall(function, WasmAddress.class);
     }
 
-    public RemoteCall<TransactionReceipt> pause() {
-        final WasmFunction function = new WasmFunction(FUNC_PAUSE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> pause(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_PAUSE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
-    public RemoteCall<TransactionReceipt> unpause() {
-        final WasmFunction function = new WasmFunction(FUNC_UNPAUSE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteCall<TransactionReceipt> unpause(BigInteger vonValue) {
-        final WasmFunction function = new WasmFunction(FUNC_UNPAUSE, Arrays.asList(), Void.class);
-        return executeRemoteCallTransaction(function, vonValue);
-    }
-
     public List<DonatedEventResponse> getDonatedEvents(TransactionReceipt transactionReceipt) {
         List<WasmEventValuesWithLog> valueList = extractEventParametersWithLog(DONATED_EVENT, transactionReceipt);
         ArrayList<DonatedEventResponse> responses = new ArrayList<DonatedEventResponse>(valueList.size());
@@ -154,6 +134,26 @@ public class Donate extends WasmContract {
         PlatonFilter filter = new PlatonFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(WasmEventEncoder.encode(DONATED_EVENT));
         return donatedEventObservable(filter);
+    }
+
+    public RemoteCall<TransactionReceipt> pause() {
+        final WasmFunction function = new WasmFunction(FUNC_PAUSE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> pause(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_PAUSE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
+    }
+
+    public RemoteCall<TransactionReceipt> unpause() {
+        final WasmFunction function = new WasmFunction(FUNC_UNPAUSE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteCall<TransactionReceipt> unpause(BigInteger vonValue) {
+        final WasmFunction function = new WasmFunction(FUNC_UNPAUSE, Arrays.asList(), Void.class);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public List<OwnershipTransferredEventResponse> getOwnershipTransferredEvents(TransactionReceipt transactionReceipt) {

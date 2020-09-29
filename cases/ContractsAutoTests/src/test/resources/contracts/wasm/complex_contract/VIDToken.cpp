@@ -1,4 +1,5 @@
 #define TESTNET
+#undef NDEBUG
 #include <platon/platon.hpp>
 
 using namespace platon;
@@ -131,26 +132,29 @@ CONTRACT VIDToken : public Contract {
 
   ACTION bool Approve(const std::string& spender_addr, u128 value) {
     Address spender;
+    printf("VIDToken Approve line134")
     auto address_info = make_address(spender_addr);
     if(address_info.second){
       spender = address_info.first;
     }
-
+    printf("VIDToken Approve line139")
     platon_assert(!paused_.get());
     auto sender = platon_caller();
     platon_assert(!paused_.get());
     platon_assert(value == 0 || (Allowed(sender, spender) == 0),
                   "A1- Reset allowance to first");
-
+    printf("VIDToken Approve line145")
     auto& allowed = allowed_.self();
     if (allowed.find(sender) == allowed.end()) {
       std::map<Address, u128> allow;
       allow[spender] = value;
       allowed[sender] = allow;
+      printf("VIDToken Approve line151")
     } else {
       allowed[sender][spender] = value;
+      printf("VIDToken Approve line154")
     }
-
+    printf("VIDToken Approve line156")
     PLATON_EMIT_EVENT0(ApprovalEv, sender, spender, value);
     return 0;
   }
@@ -220,17 +224,19 @@ CONTRACT VIDToken : public Contract {
 
   CONST u128 Allowance(const std::string& owner, const std::string& spender) {
     Address addr1;
+    printf("VIDToken Approve line226")
     auto address_info1 = make_address(owner);
     if(address_info1.second){
       addr1 = address_info1.first;
     }
+    printf("VIDToken Approve line231")
 
     Address addr2;
     auto address_info2 = make_address(spender);
     if(address_info2.second){
       addr2 = address_info2.first;
     }
-
+    printf("VIDToken Approve line238")
 
     return Allowed(addr1, addr2);
   }
