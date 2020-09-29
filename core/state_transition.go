@@ -234,6 +234,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	evm.Ctx = ctx
 
 	if contractCreation {
+		//todo:考虑返回新合约地址，这样在组装交易回执时，不用再计算新合约地址
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
