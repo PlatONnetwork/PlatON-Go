@@ -436,6 +436,7 @@ class TestgetDelegateReward:
         log.info('Calculated gas : {}'.format(gas))
         result = client0.delegate.withdraw_delegate_reward(delegate_address)
         assert_code(result, 0)
+        client1.economic.wait_consensus(client0.node)
         balance_after = client0.node.eth.getBalance(delegate_address)
         log.info('After withdraw reward, address balance : {}'.format(balance_after))
         assert balance_before + reward - gas == balance_after
@@ -712,6 +713,7 @@ class TestwithdrawDelegateReward():
         result = client.delegate.withdraw_delegate_reward(address)
         log.info('Address {} withdraw delegate reward result : {}'.format(address, result))
         assert_code(result, 0)
+        client.economic.wait_consensus(client.node)
         balance_after_withdraw = client.node.eth.getBalance(address)
         log.info('Address {} after withdraw reward balance : {}'.format(address, balance_after_withdraw))
         gas = get_getDelegateReward_gas_fee(client, 1, 0)
@@ -963,6 +965,7 @@ class TestwithdrawDelegateReward():
         result = client1.delegate.withdraw_delegate_reward(address1)
         assert_code(result, 305001)
         gas = get_getDelegateReward_gas_fee(client1, 0, 0)
+        client1.economic.wait_consensus(client1.node)
         balance_after_withdraw_reward = client1.node.eth.getBalance(address1)
         log.info('Address {} after withdraw reward balance {}'.format(address1, balance_after_withdraw_reward))
         assert init_amount - gas == balance_after_withdraw_reward
@@ -1327,8 +1330,9 @@ class TestGas:
         address1, _ = client1.economic.account.generate_account(client1.node.web3, init_amount)
         address2, _ = client1.economic.account.generate_account(client1.node.web3, init_amount)
         balance = client1.node.eth.getBalance(address1)
-        print(balance)
+        log.info('Address {} balance : {}'.format(address1, balance))
         staking_and_delegate(client1, address1)
+        client1.economic.wait_consensus(client1.node)
         stakingnum = client1.staking.get_stakingblocknum()
         balance_address1 = client1.node.eth.getBalance(address1)
         log.info('Address {} balance : {}'.format(address1, balance_address1))
@@ -1341,6 +1345,7 @@ class TestGas:
         balance_address1 = client2.node.eth.getBalance(address1)
         print('balance_address1: {}'.format(balance_address1))
         staking_and_delegate(client2, address1)
+        time.sleep(2)
         balance_address1_1 = client2.node.eth.getBalance(address1)
         log.info('Address {} balance : {}'.format(address1, balance_address1_1))
         data = rlp.encode([rlp.encode(int(1004)), rlp.encode(0), rlp.encode(bytes.fromhex(client1.node.node_id)),

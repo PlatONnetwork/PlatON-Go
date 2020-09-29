@@ -21,6 +21,7 @@ def staking_client(client_new_node):
     amount = calculate(client_new_node.economic.create_staking_limit, 5)
     staking_amount = calculate(client_new_node.economic.create_staking_limit, 2)
     staking_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3, amount)
+    log.info("staking_address {} amount {}".format(staking_address, client_new_node.node.eth.getBalance(staking_address)))
     delegate_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                             client_new_node.economic.add_staking_limit * 2)
     result = client_new_node.staking.create_staking(0, staking_address, staking_address, amount=staking_amount)
@@ -31,7 +32,7 @@ def staking_client(client_new_node):
     setattr(client_new_node, "amount", amount)
     setattr(client_new_node, "staking_amount", staking_amount)
     yield client_new_node
-    client_new_node.economic.env.deploy_all()
+    # client_new_node.economic.env.deploy_all()
 
 
 @pytest.fixture()
@@ -104,7 +105,7 @@ def test_RV_002(staking_client):
     log.info(node_list)
     assert node.node_id not in node_list
     log.info("Enter the 4th billing cycle")
-    economic.wait_settlement(node)
+    economic.wait_settlement(node, 1)
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info(msg)
     staking_address_balance_3 = node.eth.getBalance(staking_address)
