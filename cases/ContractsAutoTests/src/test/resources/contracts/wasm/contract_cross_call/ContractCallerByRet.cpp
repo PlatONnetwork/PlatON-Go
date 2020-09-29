@@ -16,22 +16,17 @@ CONTRACT cross_caller_byret : public platon::Contract {
 
             uint64_t transfer_value = 0;
             auto address_info = make_address(target_address);
-            DEBUG("target_address1++++++++++++++++++++1")
-            DEBUG("target_address++++1:", address_info)
-            println("target_address++++1:", address_info)
             if(address_info.second){
-                DEBUG("target_address2++++++++++++++++++++2")
-                DEBUG("target_address++++2:", address_info)
-                println("target_address++++2:", address_info)
                 auto result = platon::platon_call_with_return_value<uint8_t>(address_info.first, transfer_value, gasValue, "info");
-                if(result.second){
-                    status.self() = 0; // successed
-                    DEBUG("cross_caller_byret call receiver_byret info has successed!")
-                } else {
-                    status.self() = 1; //failed
+            if(result.second){
+                status.self() = 0; // successed
 
-                    DEBUG("cross_caller_byret call receiver_byret info has failed!")
-                }
+                DEBUG("cross_caller_byret call receiver_byret info has successed!")
+            } else {
+                status.self() = 1; //failed
+
+                DEBUG("cross_caller_byret call receiver_byret info has failed!")
+            }
             }
         }
 
