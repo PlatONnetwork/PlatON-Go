@@ -346,6 +346,11 @@ class TestSlashing:
         - 1. 节点被处罚冻结期内，可以进行版本声明
         - 2. 冻结期内，已发送版本声明，也不会被选举
         """
+        # init: 修改依赖参数的值，并重新部署环境
+        genesis = to_genesis(new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.slashBlocksReward = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
         # step1：提交版本升级提案
         pips = get_pips(verifiers)
         pip = pips[0]
@@ -368,7 +373,7 @@ class TestSlashing:
         assert version_declare(pip) == 0
 
     @pytest.mark.P1
-    def test_proposal_multiple_voting(self, verifiers):
+    def test_proposal_multiple_voting(self, verifiers, new_genesis_env):
         """
         @describe: 同一提案，节点处罚前已经投票，处罚完成后再次投票
         @step:
@@ -378,6 +383,11 @@ class TestSlashing:
         @expect:
         - 1. 节点重复投票失败，提案未统计重复投票信息
         """
+        # init: 修改依赖参数的值，并重新部署环境
+        genesis = to_genesis(new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.slashBlocksReward = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
         # step1：
         pips = get_pips(verifiers)
         pip = pips[0]
@@ -409,6 +419,7 @@ class TestSlashing:
         genesis = to_genesis(new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration = 4
         genesis.economicModel.slashing.zeroProduceFreezeDuration = 2
+        genesis.economicModel.slashing.slashBlocksReward = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         # step1: 发起参数提案，投票使提案生效
@@ -441,6 +452,7 @@ class TestSlashing:
         genesis = to_genesis(new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration = 4
         genesis.economicModel.slashing.zeroProduceFreezeDuration = 2
+        genesis.economicModel.slashing.slashBlocksReward = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         # step1: 发起参数提案，投票使提案生效
@@ -449,7 +461,7 @@ class TestSlashing:
         assert param_proposal(pip, 'slashing', 'zeroProduceFreezeDuration', value) == code
 
     @pytest.mark.P1
-    def test_all_process_of_pip_after_slashed(self, verifiers):
+    def test_all_process_of_pip_after_slashed(self, verifiers, new_genesis_env):
         """
         @describe: 在处罚结束之后，执行pip所有流程
         @step:
@@ -459,6 +471,11 @@ class TestSlashing:
         @expect:
         - 1. pip流程未受到处罚影响
         """
+        # init: 修改依赖参数的值，并重新部署环境
+        genesis = to_genesis(new_genesis_env.genesis_config)
+        genesis.economicModel.slashing.slashBlocksReward = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
         # step1: 构造零出块处罚，并在处罚结束后发起提案
         pips = get_pips(verifiers)
         pip = pips[0]

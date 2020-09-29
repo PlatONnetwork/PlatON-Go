@@ -42,7 +42,7 @@ def account_env(global_test_env) -> (Node, AccountEnv):
     account_env.remote_pwd_file = remote_pwd_file
     account_env.remote_account_file = remote_account_file
     account_env.remote_key_file = remote_key_file
-    account_env.remote_account_address = "lax1785psd0qs0g8p79j54mnewh0ndwcvqq6g23h8h"
+    account_env.remote_account_address = "atx1twqgd2d9m99wslnevu7p3wze2zqua2aaw338kd"
 
     yield node, account_env
 
@@ -153,7 +153,7 @@ def test_CMD_004_2(account_env):
 def test_CMD_005(account_env):
     node, env = account_env
     returnList = run_ssh_cmd(node.ssh, "{} account update {} --datadir {}".format(node.remote_bin_file, env.remote_account_address, node.remote_data_dir), "88888888", "88888888", "88888888")
-
+    log.info(f'returnList is {returnList}')
     assert len(returnList) == 6
     assert returnList[5].strip() == "Repeat passphrase:"
 

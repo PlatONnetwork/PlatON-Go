@@ -841,7 +841,7 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = 10**18 * 100000 + 1
+        value = 10**18 * 1000000 + 1
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
                                      str(value), pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -898,7 +898,7 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', 0.1,
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', '0.1',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)

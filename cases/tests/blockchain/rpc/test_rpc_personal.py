@@ -10,7 +10,7 @@ from alaya import Web3
 from alaya.eth import Eth
 from hexbytes import HexBytes
 password = "88888888"
-to_address = "lax1zy3rg32u8ge06yfrp3pw00xdf2zwqgqshrlnax"
+to_address = "atx1nssezvh4cljl5emq3a244j53xeg0kery423jja"
 g_txHash = None
 
 
