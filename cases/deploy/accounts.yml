@@ -1,15 +1,15 @@
 - id: 1
-  address: '0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD'
+  address: 'lax196278ns22j23awdfj9f2d4vz0pedld8au6xelj'
   prikey: a689f0879f53710e9e0c1025af410a530d6381eebb5916773195326e123b822b
   nonce: 0
   balance: 9618188019000000000000000000
 - id: 2
-  address: '0x1000000000000000000000000000000000000003'
+  address: 'lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrzpqayr'
   prikey: 6382b6fc972ae9c22a2d8913dace308d09e406d118efddb702a7ea9e505cc823
   nonce: 0
   balance: 200000000000000000000000000
 - id: 3
-  address: '0x54a7a3c6822eb222c53F76443772a60b0f9A8bab'
+  address: 'lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru'
   prikey: e13ebe4242500201e1bbfcd3372176e05f282595326727c8d4dcfc83daeb40fe
   nonce: 0
   balance: 0

@@ -22,8 +22,8 @@ const (
 	GasLimitBoundDivisor uint64 = 256                // The bound divisor of the gas limit, used in update calculations.
 	MinGasLimit          uint64 = 5000               // Minimum the gas limit may ever be.
 	GenesisGasLimit      uint64 = 4712388            // Gas limit of the Genesis block.
-	DefaultMinerGasCeil  uint64 = 4000 * 21000 * 1.2 // 100800000
-	MaxGasCeil           uint64 = 21000 * 10000
+	DefaultMinerGasCeil  uint64 = 21000 * 8000 * 1.2 // 201600000
+	MaxGasCeil           uint64 = 21000 * 30000
 
 	MaximumExtraDataSize uint64 = 32    // Maximum size extra data may be after Genesis.
 	ExpByteGas           uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.
@@ -74,8 +74,6 @@ const (
 	MemoryGas                  uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas           uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 	TxDataNonZeroWasmDeployGas uint64 = 4     // Per byte of data attached to a transaction that is not equal to zero for wasm deploying. NOTE: Not payable on data of calls between transactions.
-	SelfdestructGas            uint64 = 5000  // Cost of SELFDESTRUCT post EIP 150 (Tangerine)
-	CreateBySelfdestructGas    uint64 = 25000 // CreateBySelfdestructGas is used when the refunded account is one that does not exist. This logic is similar to call.Introduced in Tangerine Whistle (Eip 150)
 	// todo: MAX CODE SIZE. pre value : 24576
 	MaxCodeSize = 524288 // Maximum bytecode to permit for a contract
 

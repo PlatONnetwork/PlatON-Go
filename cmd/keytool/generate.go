@@ -18,20 +18,22 @@ package main
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
+	"github.com/pborman/uuid"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/pborman/uuid"
-	"gopkg.in/urfave/cli.v1"
 )
 
 type outputGenerate struct {
-	Address      string
+	Address      common.AddressOutput
 	AddressEIP55 string
 }
 
@@ -90,7 +92,7 @@ If you want to encrypt an existing private key, it can be specified by setting
 		}
 
 		// Encrypt key with passphrase.
-		passphrase := promptPassphrase(true)
+		passphrase := getPassphrase(ctx, true)
 		keyjson, err := keystore.EncryptKey(key, passphrase, keystore.StandardScryptN, keystore.StandardScryptP)
 		if err != nil {
 			utils.Fatalf("Error encrypting key: %v", err)
@@ -106,12 +108,12 @@ If you want to encrypt an existing private key, it can be specified by setting
 
 		// Output some information.
 		out := outputGenerate{
-			Address: key.Address.Hex(),
+			Address: common.NewAddressOutput(key.Address),
 		}
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)
 		} else {
-			fmt.Println("Address:", out.Address)
+			out.Address.Print()
 		}
 		return nil
 	},

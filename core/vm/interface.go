@@ -39,11 +39,6 @@ type StateDB interface {
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
 
-	// todo: new func for abi of contract.
-	GetAbiHash(common.Address) common.Hash
-	GetAbi(common.Address) []byte
-	SetAbi(common.Address, []byte)
-
 	AddRefund(uint64)
 	SubRefund(uint64)
 	GetRefund() uint64
@@ -79,6 +74,14 @@ type StateDB interface {
 	TxIdx() uint32
 
 	IntermediateRoot(deleteEmptyObjects bool) common.Hash
+}
+
+// MerkleProof
+type ProofList [][]byte
+
+func (n *ProofList) Put(key []byte, value []byte) error {
+	*n = append(*n, value)
+	return nil
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM

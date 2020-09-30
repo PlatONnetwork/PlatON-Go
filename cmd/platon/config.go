@@ -76,13 +76,13 @@ type ethstatsConfig struct {
 	URL string `toml:",omitempty"`
 }
 
-type gethConfig struct {
+type platonConfig struct {
 	Eth      eth.Config
 	Node     node.Config
 	Ethstats ethstatsConfig
 }
 
-func loadConfig(file string, cfg *gethConfig) error {
+func loadConfig(file string, cfg *platonConfig) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -97,7 +97,7 @@ func loadConfig(file string, cfg *gethConfig) error {
 	return err
 }
 
-func loadConfigFile(filePath string, cfg *gethConfig) error {
+func loadConfigFile(filePath string, cfg *platonConfig) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		utils.Fatalf("Failed to read config file: %v", err)
@@ -121,10 +121,10 @@ func defaultNodeConfig() node.Config {
 	return cfg
 }
 
-func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
+func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 
 	// Load defaults.
-	cfg := gethConfig{
+	cfg := platonConfig{
 		Eth:  eth.DefaultConfig,
 		Node: defaultNodeConfig(),
 	}
@@ -189,7 +189,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	return stack
 }
 
-func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, gethConfig) {
+func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, platonConfig) {
 	stack, cfg := makeConfigNode(ctx)
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 

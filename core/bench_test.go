@@ -18,11 +18,12 @@ package core
 
 import (
 	"crypto/ecdsa"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -240,7 +241,7 @@ func benchWriteChain(b *testing.B, full bool, count uint64) {
 		if err != nil {
 			b.Fatalf("cannot create temporary directory: %v", err)
 		}
-		db, err := ethdb.NewLDBDatabase(dir, 128, 1024)
+		db, err := rawdb.NewLevelDBDatabase(dir, 128, 1024, "")
 		if err != nil {
 			b.Fatalf("error opening database at %v: %v", dir, err)
 		}

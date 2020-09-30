@@ -18,11 +18,11 @@ package vm
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 
@@ -166,6 +166,8 @@ type EVM struct {
 	Context
 	// StateDB gives access to the underlying state
 	StateDB StateDB
+
+	SnapshotDB snapshotdb.DB
 	// Depth is the current call stack
 	depth int
 
@@ -191,9 +193,10 @@ type EVM struct {
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
-func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *EVM {
+func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *EVM {
 	evm := &EVM{
 		Context:      ctx,
+		SnapshotDB:   snapshotDB,
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
 		chainConfig:  chainConfig,
@@ -202,12 +205,26 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 	}
 
 	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
-	if currVersion := gov.GetCurrentActiveVersion(statedb); currVersion >= params.FORKVERSION_0_11_0  {
-		log.Trace("NewEVM append wasm interpreter", "blockNumber", ctx.BlockNumber, "blockHash", ctx.BlockHash.TerminalString(), "currVerion", currVersion)
-		evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
-	}
+	evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
 	evm.interpreter = evm.interpreters[0]
 	return evm
+}
+
+func (evm *EVM) RevertToDBSnapshot(snapshotDBID, stateDBID int) {
+	if evm.SnapshotDB != nil && evm.StateDB.TxHash() != common.ZeroHash {
+		evm.SnapshotDB.RevertToSnapshot(evm.BlockHash, snapshotDBID)
+	}
+	evm.StateDB.RevertToSnapshot(stateDBID)
+}
+
+func (evm *EVM) DBSnapshot() (snapshotID int, StateDBID int) {
+	if evm.SnapshotDB != nil {
+		if evm.StateDB.TxHash() == common.ZeroHash {
+			return 0, evm.StateDB.Snapshot()
+		}
+		return evm.SnapshotDB.Snapshot(evm.BlockHash), evm.StateDB.Snapshot()
+	}
+	return 0, evm.StateDB.Snapshot()
 }
 
 // Cancel cancels any running EVM operation. This may be called concurrently and
@@ -240,8 +257,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	var (
-		to       = AccountRef(addr)
-		snapshot = evm.StateDB.Snapshot() // - snapshot.
+		to                                        = AccountRef(addr)
+		snapshotForSnapshotDB, snapshotForStateDB = evm.DBSnapshot()
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
@@ -262,8 +279,9 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := NewContract(caller, to, value, gas)
-
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+
+	// Even if the account has no code, we need to continue because it might be a precompile
 	start := time.Now()
 
 	// Capture the tracer start/end events in debug mode
@@ -280,7 +298,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
 	if err != nil {
-		evm.StateDB.RevertToSnapshot(snapshot)
+		evm.RevertToDBSnapshot(snapshotForSnapshotDB, snapshotForStateDB)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
@@ -310,8 +328,8 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	}
 
 	var (
-		snapshot = evm.StateDB.Snapshot()
-		to       = AccountRef(caller.Address())
+		snapshotForSnapshotDB, snapshotForStateDB = evm.DBSnapshot()
+		to                                        = AccountRef(caller.Address())
 	)
 	// initialise a new contract and set the code that is to be used by the
 	// EVM. The contract is a scoped environment for this execution context
@@ -321,7 +339,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 
 	ret, err = run(evm, contract, input, false)
 	if err != nil {
-		evm.StateDB.RevertToSnapshot(snapshot)
+		evm.RevertToDBSnapshot(snapshotForSnapshotDB, snapshotForStateDB)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
@@ -344,8 +362,8 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	}
 
 	var (
-		snapshot = evm.StateDB.Snapshot()
-		to       = AccountRef(caller.Address())
+		snapshotForSnapshotDB, snapshotForStateDB = evm.DBSnapshot()
+		to                                        = AccountRef(caller.Address())
 	)
 
 	// Initialise a new contract and make initialise the delegate values
@@ -354,7 +372,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 
 	ret, err = run(evm, contract, input, false)
 	if err != nil {
-		evm.StateDB.RevertToSnapshot(snapshot)
+		evm.RevertToDBSnapshot(snapshotForSnapshotDB, snapshotForStateDB)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
@@ -376,8 +394,8 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	}
 
 	var (
-		to       = AccountRef(addr)
-		snapshot = evm.StateDB.Snapshot()
+		to                                        = AccountRef(addr)
+		snapshotForSnapshotDB, snapshotForStateDB = evm.DBSnapshot()
 	)
 	// Initialise a new contract and set the code that is to be used by the
 	// EVM. The contract is a scoped environment for this execution context
@@ -390,7 +408,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	// when we're in Homestead this also counts for code storage gas errors.
 	ret, err = run(evm, contract, input, true)
 	if err != nil {
-		evm.StateDB.RevertToSnapshot(snapshot)
+		evm.RevertToDBSnapshot(snapshotForSnapshotDB, snapshotForStateDB)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
@@ -429,7 +447,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		return nil, common.Address{}, 0, ErrContractAddressCollision
 	}
 	// Create a new account on the state
-	snapshot := evm.StateDB.Snapshot()
+	snapshotForSnapshotDB, snapshotForStateDB := evm.DBSnapshot()
 	evm.StateDB.CreateAccount(address)
 	evm.StateDB.SetNonce(address, 1)
 	evm.Transfer(evm.StateDB, caller.Address(), address, value)
@@ -460,10 +478,9 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// by the error checking condition below.
 	if err == nil && !maxCodeSizeExceeded {
 		var createDataGas uint64
-		currVersion := gov.GetCurrentActiveVersion(evm.StateDB)
-		if CanUseWASMInterp(ret) && currVersion >= params.FORKVERSION_0_11_0 {
+		if CanUseWASMInterp(ret) {
 			createDataGas = uint64(len(ret)) * params.CreateWasmDataGas
-		}else {
+		} else {
 			createDataGas = uint64(len(ret)) * params.CreateDataGas
 		}
 
@@ -478,7 +495,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
 	if maxCodeSizeExceeded || (err != nil && err != ErrCodeStoreOutOfGas) {
-		evm.StateDB.RevertToSnapshot(snapshot)
+		evm.RevertToDBSnapshot(snapshotForSnapshotDB, snapshotForStateDB)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}

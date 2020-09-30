@@ -18,10 +18,6 @@ package misc
 
 import (
 	"errors"
-	"math/big"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var (
@@ -37,15 +33,15 @@ var (
 // ApplyDAOHardFork modifies the state database according to the DAO hard-fork
 // rules, transferring all balances of a set of DAO accounts to a single refund
 // contract.
-func ApplyDAOHardFork(statedb *state.StateDB) {
-	// Retrieve the contract to refund balances into
-	if !statedb.Exist(params.DAORefundContract) {
-		statedb.CreateAccount(params.DAORefundContract)
-	}
-
-	// Move every DAO account and extra-balance account funds into the refund contract
-	for _, addr := range params.DAODrainList() {
-		statedb.AddBalance(params.DAORefundContract, statedb.GetBalance(addr))
-		statedb.SetBalance(addr, new(big.Int))
-	}
-}
+//func ApplyDAOHardFork(statedb *state.StateDB) {
+//	// Retrieve the contract to refund balances into
+//	if !statedb.Exist(params.DAORefundContract) {
+//		statedb.CreateAccount(params.DAORefundContract)
+//	}
+//
+//	// Move every DAO account and extra-balance account funds into the refund contract
+//	for _, addr := range params.DAODrainList() {
+//		statedb.AddBalance(params.DAORefundContract, statedb.GetBalance(addr))
+//		statedb.SetBalance(addr, new(big.Int))
+//	}
+//}

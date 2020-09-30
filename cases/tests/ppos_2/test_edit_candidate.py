@@ -23,7 +23,7 @@ def test_MPI_001_002(client_new_node):
     result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
     result = client_new_node.ppos.editCandidate(address, client_new_node.node.node_id, external_id,
-                                                node_name, website, details, pri_key)
+                                                node_name, website, details, pri_key, reward_per=0)
     assert_code(result, 0)
     result = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     log.info(result)
@@ -276,7 +276,7 @@ def test_MPI_014(client_new_node):
     result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
     result = client_new_node.ppos.editCandidate(address, illegal_nodeID, external_id,
-                                                node_name, website, details, pri_key)
+                                                node_name, website, details, pri_key, reward_per=0)
     log.info(result)
     assert_code(result, 301102)
 
@@ -338,6 +338,6 @@ def test_MPI_017(client_new_node):
                                                                          10 ** 18 * 10000000)
 
     result = client_new_node.ppos.editCandidate(address, client_new_node.node.node_id,
-                                                external_id, node_name, website, details, pri_key)
+                                                external_id, node_name, website, details, pri_key, reward_per=0)
     log.info(result)
     assert_code(result, 301102)

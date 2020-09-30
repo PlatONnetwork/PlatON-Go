@@ -21,6 +21,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/console"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -160,7 +161,8 @@ func accountList(ctx *cli.Context) error {
 	var index int
 	for _, wallet := range stack.AccountManager().Wallets() {
 		for _, account := range wallet.Accounts() {
-			fmt.Printf("Account #%d: {%x} %s\n", index, account.Address, &account.URL)
+			out := common.NewAddressOutput(account.Address)
+			fmt.Printf("Account #%d: {mainnet:%s,testnet:%s} %s\n", index, out.MainNet, out.TestNet, &account.URL)
 			index++
 		}
 	}
@@ -178,11 +180,11 @@ func unlockAccount(ctx *cli.Context, ks *keystore.KeyStore, address string, i in
 		password := getPassPhrase(prompt, false, i, passwords)
 		err = ks.Unlock(account, password)
 		if err == nil {
-			log.Info("Unlocked account", "address", account.Address.Hex())
+			log.Info("Unlocked account", "address", account.Address.String())
 			return account, password
 		}
 		if err, ok := err.(*keystore.AmbiguousAddrError); ok {
-			log.Info("Unlocked account", "address", account.Address.Hex())
+			log.Info("Unlocked account", "address", account.Address.String())
 			return ambiguousAddrRecovery(ks, err, password), password
 		}
 		if err != keystore.ErrDecrypt {
@@ -227,7 +229,7 @@ func getPassPhrase(prompt string, confirmation bool, i int, passwords []string) 
 }
 
 func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrError, auth string) accounts.Account {
-	fmt.Printf("Multiple key files exist for address %x:\n", err.Addr)
+	fmt.Printf("Multiple key files exist for address %s:\n", err.Addr)
 	for _, a := range err.Matches {
 		fmt.Println("  ", a.URL)
 	}
@@ -254,7 +256,10 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 
 // accountCreate creates a new account into the keystore defined by the CLI flags.
 func accountCreate(ctx *cli.Context) error {
-	cfg := gethConfig{Node: defaultNodeConfig()}
+	if !ctx.GlobalBool(utils.TestnetFlag.Name) {
+		common.SetAddressPrefix(common.MainNetAddressPrefix)
+	}
+	cfg := platonConfig{Node: defaultNodeConfig()}
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
 		if err := loadConfig(file, &cfg); err != nil {
@@ -275,7 +280,7 @@ func accountCreate(ctx *cli.Context) error {
 	if err != nil {
 		utils.Fatalf("Failed to create account: %v", err)
 	}
-	fmt.Printf("Address: {%x}\n", address)
+	common.NewAddressOutput(address).Print()
 	return nil
 }
 
@@ -315,6 +320,6 @@ func accountImport(ctx *cli.Context) error {
 	if err != nil {
 		utils.Fatalf("Could not create the account: %v", err)
 	}
-	fmt.Printf("Address: {%x}\n", acct.Address)
+	common.NewAddressOutput(acct.Address).Print()
 	return nil
 }

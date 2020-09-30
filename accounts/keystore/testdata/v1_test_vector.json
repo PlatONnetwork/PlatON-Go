@@ -18,7 +18,7 @@
                 "mac": "3f3d5af884b17a100b0b3232c0636c230a54dc2ac8d986227219b0dd89197644",
                 "version": "1"
             },
-            "address": "cb61d5a9c4896fb9658090b597ef0e7be6f7b67e",
+            "address": {"mainnet": "lat1edsat2wy39hmjevqjz6e0mcw00n00dn7gr5m7m","testnet": "lax1edsat2wy39hmjevqjz6e0mcw00n00dn78xx5s5"},
             "id": "e25f7c1f-d318-4f29-b62c-687190d4d299",
             "version": "1"
         },

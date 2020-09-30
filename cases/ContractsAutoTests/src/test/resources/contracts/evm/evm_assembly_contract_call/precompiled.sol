@@ -1,7 +1,7 @@
 pragma solidity ^0.5.13;
 
 /*
-evm 跨合约调用 系统合约
+network.platon.test.evm 跨合约调用 系统合约
 */
 contract precompiled {
 

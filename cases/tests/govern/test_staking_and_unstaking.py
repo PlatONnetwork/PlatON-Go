@@ -10,6 +10,7 @@ from tests.lib import Genesis, PipConfig
 from dacite import from_dict
 from tests.govern.test_voting_statistics import submitcvpandvote, submitcppandvote, submittpandvote, \
     submitvpandvote, submitppandvote
+from common.key import mock_duplicate_sign
 
 
 def create_lockup_plan(client):
@@ -607,13 +608,13 @@ class TestSlashing:
         log.info('Stop the node {}'.format(pip.node.node_id))
         shares = clients_consensus[1].staking.get_staking_amount(pip_test.node)
         pip.node.stop()
-        wait_block_number(pip_test.node, 4 * pip_test.economic.settlement_size)
-        balance_before = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size - 1)
-        log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size - 1,
+        wait_block_number(pip_test.node, 3 * pip_test.economic.settlement_size)
+        balance_before = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size - 1)
+        log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size - 1,
                                                                      balance_before))
-        balance_after = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size)
+        balance_after = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size)
 
-        log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size,
+        log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size,
                                                                      balance_after))
         assert balance_after - balance_before == shares
 
@@ -796,13 +797,16 @@ class TestSlashing:
         pip = clients_consensus[0].pip
         pip_test = clients_consensus[1].pip
         address = pip.node.staking_address
+        balance_before = pip.node.eth.getBalance(address)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
-                                 '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
+                                 '1', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
-
+        result = proposal_vote(pip, proposaltype=pip.cfg.param_proposal)
+        assert_code(result, 0)
         proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Get param proposal information : {}'.format(proposalinfo_param))
+
         result = pip.submitCancel(pip.node.node_id, str(time.time()), 14, proposalinfo_param.get('ProposalID'),
                                   pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel result : {}'.format(result))
@@ -813,25 +817,26 @@ class TestSlashing:
         log.info('Get cancel proposal information : {}'.format(proposalinfo_cancel))
 
         shares0 = clients_consensus[0].staking.get_staking_amount(clients_consensus[0].node)
+        log.info('get staking amount {}'.format(shares0))
         log.info('Stop node {}'.format(pip.node.node_id))
         pip.node.stop()
-        wait_block_number(pip_test.node, 3 * pip_test.economic.settlement_size)
-        balance_before = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size - 1)
-        log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size - 1,
-                                                                     balance_before))
-        balance_after = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size)
 
-        log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size,
-                                                                     balance_after))
-        assert balance_after == balance_before
+        # wait_block_number(pip_test.node, 3 * pip_test.economic.settlement_size)
+        # balance_before = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size - 1)
+        # log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size - 1,
+        #                                                              balance_before))
+        # balance_after = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size)
+        # log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size,
+        #                                                              balance_after))
+        # assert balance_after == balance_before
 
         wait_block_number(pip_test.node, 4 * pip_test.economic.settlement_size)
         balance_before = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size - 1,
                                                                      balance_before))
-        balance_after = pip_test.node.eth.getBalance(address, 4 * pip_test.economic.settlement_size)
-
-        log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size,
+        wait_block_number(pip_test.node, 8 * pip_test.economic.settlement_size)
+        balance_after = pip_test.node.eth.getBalance(address, 8 * pip_test.economic.settlement_size + 1)
+        log.info('Block bumber {} staking address balance {}'.format(8 * pip_test.economic.settlement_size,
                                                                      balance_after))
         assert balance_after - balance_before == shares0
 
@@ -984,3 +989,40 @@ class TestSlashing:
             assert balance_after_lockup - balance_before_lockup == shares
         else:
             assert balance_after_lockup == balance_before_lockup
+
+def test_fixbug(new_genesis_env, clients_consensus):
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.gov.versionProposalVoteDurationSeconds = 1000
+    new_genesis_env.set_genesis(genesis.to_dict())
+    new_genesis_env.deploy_all()
+    pip_stop = clients_consensus[0].pip
+    pip = clients_consensus[1].pip
+    submitvpandvote(clients_consensus, votingrounds=15)
+    proprosalinfo = pip.get_effect_proposal_info_of_vote()
+    log.info('Proposalinfo : {}'.format(proprosalinfo))
+    log.info('Stop node {}'.format(pip_stop.node.node_id))
+    log.info('stop node nodeid {}'.format(pip_stop.node.node_id))
+    pip_stop.node.stop()
+    pip.economic.wait_settlement_blocknum(pip.node)
+    pip.economic.wait_consensus_blocknum(pip.node, 1)
+    verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
+    log.info('Verifier list : {}'.format(verifier_list))
+    validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)
+    log.info('Validator list : {}'.format(validator_list))
+    assert pip_stop.node.node_id not in verifier_list
+    assert pip_stop.node.node_id not in validator_list
+    wait_block_number(pip.node, proprosalinfo.get('ActiveBlock'))
+    assert pip.chain_version == proprosalinfo.get('NewVersion')
+    verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
+    log.info('Verifier list : {}'.format(verifier_list))
+    validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)
+    log.info('Validator list : {}'.format(validator_list))
+    assert pip_stop.node.node_id not in verifier_list
+    assert pip_stop.node.node_id not in validator_list
+    result = clients_consensus[1].ppos.getCandidateInfo(pip_stop.node.node_id)
+    log.info('Get nodeid {} candidate infor {}'.format(pip_stop.node.node_id, result))
+    assert_code(result, 301204)
+    assert result.get('Ret') == 'Query candidate info failed:Candidate info is not found'
+
+
+

@@ -37,7 +37,7 @@ func (dummyContractRef) ReturnGas(*big.Int)          {}
 func (dummyContractRef) Address() common.Address     { return common.Address{} }
 func (dummyContractRef) Value() *big.Int             { return new(big.Int) }
 func (dummyContractRef) SetCode(common.Hash, []byte) {}
-func (d *dummyContractRef) ForEachStorage(callback func(key, value common.Hash) bool) {
+func (d *dummyContractRef) ForEachStorage(callback func(key common.Hash, value []byte) bool) {
 	d.calledForEach = true
 }
 func (d *dummyContractRef) SubBalance(amount *big.Int) {}
@@ -48,7 +48,7 @@ func (d *dummyContractRef) Balance() *big.Int          { return new(big.Int) }
 
 func TestStoreCapture(t *testing.T) {
 	var (
-		env      = NewEVM(Context{}, new(mock.MockStateDB), params.TestChainConfig, Config{})
+		env      = NewEVM(Context{}, nil, mock.NewMockStateDB(), params.TestChainConfig, Config{})
 		logger   = NewStructLogger(nil)
 		mem      = NewMemory()
 		stack    = newstack()

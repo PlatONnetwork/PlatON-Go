@@ -25,6 +25,9 @@ class Server:
             return run_ssh(self.ssh, cmd, self.password)
         return run_ssh(self.ssh, cmd)
 
+    def clean_supervisor_conf(self):
+        self.run_ssh("sudo -S -p '' rm -rf /etc/supervisor/conf.d/node-*", True)
+
     def put_compression(self):
         try:
             ls = self.run_ssh("cd {};ls".format(self.cfg.remote_compression_tmp_path))

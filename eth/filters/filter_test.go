@@ -32,7 +32,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
@@ -54,7 +53,7 @@ func BenchmarkFilters(b *testing.B) {
 	defer os.RemoveAll(dir)
 
 	var (
-		db, _      = ethdb.NewLDBDatabase(dir, 0, 0)
+		db, _      = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
 		mux        = new(event.TypeMux)
 		txFeed     = new(event.Feed)
 		rmLogsFeed = new(event.Feed)
@@ -115,7 +114,7 @@ func TestFilters(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	var (
-		db, _      = ethdb.NewLDBDatabase(dir, 0, 0)
+		db, _      = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
 		mux        = new(event.TypeMux)
 		txFeed     = new(event.Feed)
 		rmLogsFeed = new(event.Feed)

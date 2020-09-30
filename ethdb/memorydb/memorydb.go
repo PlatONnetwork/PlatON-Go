@@ -1,3 +1,20 @@
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
+// Package memorydb implements the key-value database layer based on memory maps.
 package memorydb
 
 import (
@@ -84,6 +101,7 @@ func (db *Database) Get(key []byte) ([]byte, error) {
 func (db *Database) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
+
 	if db.db == nil {
 		return errMemorydbClosed
 	}
@@ -114,36 +132,7 @@ func (db *Database) NewBatch() ethdb.Batch {
 // NewIterator creates a binary-alphabetical iterator over the entire keyspace
 // contained within the memory database.
 func (db *Database) NewIterator() ethdb.Iterator {
-	return db.NewIteratorWithStart(nil)
-}
-
-// NewIteratorWithStart creates a binary-alphabetical iterator over a subset of
-// database content starting at a particular initial key (or after, if it does
-// not exist).
-func (db *Database) NewIteratorWithStart(start []byte) ethdb.Iterator {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
-
-	var (
-		st     = string(start)
-		keys   = make([]string, 0, len(db.db))
-		values = make([][]byte, 0, len(db.db))
-	)
-	// Collect the keys from the memory database corresponding to the given start
-	for key := range db.db {
-		if key >= st {
-			keys = append(keys, key)
-		}
-	}
-	// Sort the items and retrieve the associated values
-	sort.Strings(keys)
-	for _, key := range keys {
-		values = append(values, db.db[key])
-	}
-	return &iterator{
-		keys:   keys,
-		values: values,
-	}
+	return db.NewIteratorWithPrefix(nil)
 }
 
 // NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
@@ -234,6 +223,7 @@ func (b *batch) ValueSize() int {
 func (b *batch) Write() error {
 	b.db.lock.Lock()
 	defer b.db.lock.Unlock()
+
 	for _, keyvalue := range b.writes {
 		if keyvalue.delete {
 			delete(b.db.db, string(keyvalue.key))
@@ -251,7 +241,7 @@ func (b *batch) Reset() {
 }
 
 // Replay replays the batch contents.
-func (b *batch) Replay(w ethdb.KeyValueWriter) error {
+func (b *batch) Replay(w ethdb.Writer) error {
 	for _, keyvalue := range b.writes {
 		if keyvalue.delete {
 			if err := w.Delete(keyvalue.key); err != nil {
@@ -266,8 +256,8 @@ func (b *batch) Replay(w ethdb.KeyValueWriter) error {
 	return nil
 }
 
-// iterator can walk over the (potentially partial) keyspace of a memory key
-// value store. Internally it is a deep copy of the entire iterated state,
+// iterator can walk over the (potentially partial) keyspace of a memory
+// key value store. Internally it is a deep copy of the entire iterated state,
 // sorted by keys.
 type iterator struct {
 	inited bool

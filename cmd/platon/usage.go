@@ -22,11 +22,10 @@ import (
 	"io"
 	"sort"
 
-	"strings"
+	"gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
-	"gopkg.in/urfave/cli.v1"
 )
 
 // AppHelpTemplate is the test template for the default, global app help topic.
@@ -114,6 +113,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.TxPoolGlobalQueueFlag,
 			utils.TxPoolGlobalTxCountFlag,
 			utils.TxPoolLifetimeFlag,
+			utils.TxPoolCacheSizeFlag,
 		},
 	},
 	{
@@ -123,7 +123,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.CacheDatabaseFlag,
 			utils.CacheGCFlag,
 			utils.CacheTrieDBFlag,
-			utils.TrieCacheGenFlag,
 		},
 	},
 	{
@@ -195,16 +194,8 @@ var AppHelpFlagGroups = []flagGroup{
 		}, debug.Flags...),
 	},
 	{
-		Name: "METRICS AND STATS",
-		Flags: []cli.Flag{
-			utils.MetricsEnabledFlag,
-			utils.MetricsEnableInfluxDBFlag,
-			utils.MetricsInfluxDBEndpointFlag,
-			utils.MetricsInfluxDBDatabaseFlag,
-			utils.MetricsInfluxDBUsernameFlag,
-			utils.MetricsInfluxDBPasswordFlag,
-			utils.MetricsInfluxDBHostTagFlag,
-		},
+		Name:  "METRICS AND STATS",
+		Flags: metricsFlags,
 	},
 	//{
 	//	Name:  "WHISPER (EXPERIMENTAL)",
@@ -323,9 +314,6 @@ func init() {
 			uncategorized := []cli.Flag{}
 			for _, flag := range data.(*cli.App).Flags {
 				if _, ok := categorized[flag.String()]; !ok {
-					if strings.HasPrefix(flag.GetName(), "dashboard") {
-						continue
-					}
 					uncategorized = append(uncategorized, flag)
 				}
 			}

@@ -19,6 +19,8 @@ package core
 import (
 	"container/list"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -78,7 +80,7 @@ func (tm *TestManager) Db() ethdb.Database {
 func NewTestManager() *TestManager {
 	testManager := &TestManager{}
 	testManager.eventMux = new(event.TypeMux)
-	testManager.db = ethdb.NewMemDatabase()
+	testManager.db = rawdb.NewMemoryDatabase()
 	// testManager.txPool = NewTxPool(testManager)
 	// testManager.blockChain = NewBlockChain(testManager)
 	// testManager.stateManager = NewStateManager(testManager)

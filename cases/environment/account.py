@@ -1,22 +1,10 @@
 from common.load_file import LoadFile
-from common.log import log
 from client_sdk_python.eth import Eth
 from client_sdk_python.personal import Personal
 from hexbytes import HexBytes
 import random
-from client_sdk_python import (
-    Web3
-)
 import rlp
 import os
-from eth_keys import (
-    keys,
-)
-from eth_utils.curried import (
-    keccak,
-    text_if_str,
-    to_bytes,
-)
 
 
 class Account:
@@ -54,16 +42,8 @@ class Account:
 
     def sendTransaction(self, connect, data, from_address, to_address, gasPrice, gas, value, check_address=True):
         platon = Eth(connect)
-
         account = self.accounts[from_address]
-        if check_address:
-            to_address = Web3.toChecksumAddress(to_address)
-        tmp_from_address = Web3.toChecksumAddress(from_address)
-        nonce = platon.getTransactionCount(tmp_from_address)
-
-        # if nonce < account['nonce']:
-        #     nonce = account['nonce']
-
+        nonce = platon.getTransactionCount(from_address)
         transaction_dict = {
             "to": to_address,
             "gasPrice": gasPrice,
@@ -72,16 +52,11 @@ class Account:
             "data": data,
             "chainId": self.chain_id,
             "value": value,
-            'from': tmp_from_address,
         }
-
-        # log.debug("account['prikey']:::::::{}".format(account['prikey']))
 
         signedTransactionDict = platon.account.signTransaction(
             transaction_dict, account['prikey']
         )
-
-        # log.debug("signedTransactionDict:::::::{}，nonce::::::::::{}".format(signedTransactionDict, nonce))
 
         data = signedTransactionDict.rawTransaction
         result = HexBytes(platon.sendRawTransaction(data)).hex()
@@ -89,7 +64,6 @@ class Account:
         res = platon.waitForTransactionReceipt(result)
         account['nonce'] = nonce + 1
         self.accounts[from_address] = account
-
         return res
 
     def generate_account_in_node(self, node, passwd, balance=0):
@@ -148,13 +122,11 @@ class Account:
         return result
 
     def generate_account(self, web3, balance=0):
-        extra_entropy = ''
-        extra_key_bytes = text_if_str(to_bytes, extra_entropy)
-        key_bytes = keccak(os.urandom(32) + extra_key_bytes)
-        privatekey = keys.PrivateKey(key_bytes)
-        address = privatekey.public_key.to_address()
-        address = Web3.toChecksumAddress(address)
-        prikey = privatekey.to_hex()[2:]
+        platon = Eth(web3)
+        account = platon.account.create(net_type=web3.net_type)
+        address = account.address
+
+        prikey = account.privateKey.hex()[2:]
         if balance != 0:
             self.sendTransaction(web3, '', self.account_with_money['address'], address, web3.platon.gasPrice, 21000, balance)
         account = {

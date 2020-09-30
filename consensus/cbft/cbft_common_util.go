@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -21,6 +21,10 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -37,7 +41,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -65,7 +68,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x6d9de4538777bba57b756728568b4681010212d7fdd69b1fb2846052233fed0b")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x6093debe3698d4a81024b1eac65a2476af3a62a21d6e8059c71cfe32c604ac1b")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -82,7 +85,7 @@ func NewBlockWithSign(parent common.Hash, number uint64, node *TestCBFT) *types.
 		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x6d9de4538777bba57b756728568b4681010212d7fdd69b1fb2846052233fed0b")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x6093debe3698d4a81024b1eac65a2476af3a62a21d6e8059c71cfe32c604ac1b")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -144,11 +147,8 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 	return New(sysConfig, optConfig, ctx.EventMux, ctx)
 }
 
-// CreateBackend returns a new Backend for testing.
-func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
-
+func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 	var (
-		db    = ethdb.NewMemDatabase()
 		gspec = core.Genesis{
 			Config: chainConfig,
 			Alloc:  core.GenesisAlloc{},
@@ -160,7 +160,15 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 	gspec.Alloc[cvm.RewardManagerPoolAddr] = core.GenesisAccount{
 		Balance: twoBillion,
 	}
-	gspec.MustCommit(db)
+	block := gspec.MustCommit(db)
+	return gspec, block
+}
+
+// CreateBackend returns a new Backend for testing.
+func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
+
+	var db = rawdb.NewMemoryDatabase()
+	gspec, _ := CreateGenesis(db)
 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
 	cache := core.NewBlockChainCache(chain)
@@ -172,7 +180,7 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 // CreateValidatorBackend returns a new ValidatorBackend for testing.
 func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
 	var (
-		db    = ethdb.NewMemDatabase()
+		db    = rawdb.NewMemoryDatabase()
 		gspec = core.Genesis{
 			Config: chainConfig,
 			Alloc:  core.GenesisAlloc{},

@@ -181,6 +181,7 @@ class TestgetTallyResult:
         submitppandvote(clients_consensus[0:-1], 1, 2, 3)
         proposalinfo = clients_consensus[0].pip.get_effect_proposal_info_of_vote(clients_consensus[0].pip.cfg.param_proposal)
         log.info('Param proposal information {}'.format(proposalinfo))
+        log.info('listparam {}'.format(clients_consensus[0].pip.pip.listGovernParam()))
         result = pip.pip.getTallyResult(proposalinfo.get('ProposalID'))
         log.info('Interface getTallyResult info : {}'.format(result))
         assert_code(result, 302030)
@@ -327,6 +328,9 @@ class TestgetAccuVerifiersCount:
         log.info('Stop the node {}'.format(clients_consensus[0].node.node_id))
         clients_consensus[0].node.stop()
         pip.economic.wait_consensus_blocknum(pip.node, 2)
+        log.info(pip.node.debug.getWaitSlashingNodeList())
+        log.info(pip.pip.listGovernParam())
+        log.info(clients_consensus[1].ppos.getCandidateInfo(pip.node.node_id, pip.node.staking_address))
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 2, 0, 0]
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 1, 1]
 
@@ -429,21 +433,25 @@ class TestListGovernParam:
     def test_IN_LG_001(self, client_noconsensus):
         name, module = self.get_govern_param(client_noconsensus)
         assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'slashBlocksReward',
-                             'stakeThreshold', 'maxBlockGasLimit', 'duplicateSignReportReward', 'maxEvidenceAge', 'slashFractionDuplicateSign'}
-        assert set(module) == {'block', 'slashing', 'staking'}
+                             'stakeThreshold', 'maxBlockGasLimit', 'duplicateSignReportReward', 'maxEvidenceAge',
+                             'slashFractionDuplicateSign', 'zeroProduceCumulativeTime', 'zeroProduceNumberThreshold',
+                             'rewardPerMaxChangeRange', 'rewardPerChangeInterval', 'increaseIssuanceRatio'}
+        assert set(module) == {'block', 'slashing', 'staking', 'reward'}
 
     @pytest.mark.P2
     @allure.title('Interface listGovernParam function verification')
     def test_IN_LG_002(self, client_noconsensus):
         name, module = self.get_govern_param(client_noconsensus, 'staking')
-        assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'stakeThreshold'}
+        assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'stakeThreshold',
+                             'rewardPerMaxChangeRange', 'rewardPerChangeInterval'}
         assert set(module) == {'staking'}
 
     @pytest.mark.P2
     @allure.title('Interface listGovernParam function verification')
     def test_IN_LG_003(self, client_noconsensus):
         name, module = self.get_govern_param(client_noconsensus, 'slashing')
-        assert set(name) == {'slashBlocksReward', 'duplicateSignReportReward', 'maxEvidenceAge', 'slashFractionDuplicateSign'}
+        assert set(name) == {'slashBlocksReward', 'duplicateSignReportReward', 'maxEvidenceAge',
+                             'slashFractionDuplicateSign', 'zeroProduceCumulativeTime', 'zeroProduceNumberThreshold'}
         assert set(module) == {'slashing'}
 
     @pytest.mark.P2
@@ -452,6 +460,11 @@ class TestListGovernParam:
         name, module = self.get_govern_param(client_noconsensus, 'block')
         assert set(name) == {'maxBlockGasLimit'}
         assert set(module) == {'block'}
+
+        name, module = self.get_govern_param(client_noconsensus, 'reward')
+        assert set(name) == {'increaseIssuanceRatio'}
+        assert set(module) == {'reward'}
+
 
     @pytest.mark.P2
     @allure.title('Interface listGovernParam function verification')
@@ -706,7 +719,6 @@ class TestGasUse:
         log.info('Calculated gas : {}'.format(gas))
         balance_after = self.get_balance(pip)
         assert_code(balance_before - balance_after, (gas + 33000) * pip.cfg.transaction_cfg.get('gasPrice'))
-
 
 if __name__ == '__main__':
     pytest.main(['./tests/govern/', '-s', '-q', '--alluredir', './report/report'])

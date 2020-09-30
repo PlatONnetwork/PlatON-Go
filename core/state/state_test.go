@@ -18,24 +18,30 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
+	checker "gopkg.in/check.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	checker "gopkg.in/check.v1"
 )
 
 type StateSuite struct {
-	db    *ethdb.MemDatabase
+	db    ethdb.Database
 	state *StateDB
 }
 
@@ -60,7 +66,7 @@ func (s *StateSuite) TestDump(c *checker.C) {
 	// check that dump contains the state objects that are in trie
 	got := string(s.state.Dump())
 	want := `{
-    "root": "1d75ab73e172edb7c3b3c0fd004d9896992fb96b617f6f954641d7618159e5e4",
+    "root": "32d937466d6678befa41bcd94571dde0c612392ee2d2fa21a0d420b8f2b803bc",
     "accounts": {
         "0000000000000000000000000000000000000001": {
             "balance": "22",
@@ -94,12 +100,12 @@ func (s *StateSuite) TestDump(c *checker.C) {
 }
 
 func (s *StateSuite) SetUpTest(c *checker.C) {
-	s.db = ethdb.NewMemDatabase()
+	s.db = rawdb.NewMemoryDatabase()
 	s.state, _ = New(common.Hash{}, NewDatabase(s.db))
 }
 
 func (s *StateSuite) TestNull(c *checker.C) {
-	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	s.state.CreateAccount(address)
 	value := common.FromHex("0x823140710bf13990e4500136726d8b55")
 	//value := nil
@@ -145,7 +151,7 @@ func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
 // use testing instead of checker because checker does not support
 // printing/logging in tests (-check.vv does not work)
 func TestSnapshot2(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
 
 	stateobjaddr0 := toAddr([]byte("so0"))
 	stateobjaddr1 := toAddr([]byte("so1"))
@@ -188,7 +194,8 @@ func TestSnapshot2(t *testing.T) {
 
 	so0Restored := state.getStateObject(stateobjaddr0)
 	// Update lazily-loaded values before comparing.
-	key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
+	//key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
+	key := storageaddr.Bytes()
 	so0Restored.GetState(state.db, key)
 	so0Restored.Code(state.db)
 	// non-deleted is equal (restored)
@@ -225,12 +232,12 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 		t.Errorf("Dirty storage size mismatch: have %d, want %d", len(so1.dirtyStorage), len(so0.dirtyStorage))
 	}
 	for k, v := range so1.dirtyStorage {
-		if so0.dirtyStorage[k] != v {
+		if !bytes.Equal(so0.dirtyStorage[k], v) {
 			t.Errorf("Dirty storage key %x mismatch: have %v, want %v", k, so0.dirtyStorage[k], v)
 		}
 	}
 	for k, v := range so0.dirtyStorage {
-		if so1.dirtyStorage[k] != v {
+		if !bytes.Equal(so1.dirtyStorage[k], v) {
 			t.Errorf("Dirty storage key %x mismatch: have %v, want none.", k, v)
 		}
 	}
@@ -238,12 +245,12 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 		t.Errorf("Origin storage size mismatch: have %d, want %d", len(so1.originStorage), len(so0.originStorage))
 	}
 	for k, v := range so1.originStorage {
-		if so0.originStorage[k] != v {
+		if !bytes.Equal(so0.originStorage[k], v) {
 			t.Errorf("Origin storage key %x mismatch: have %v, want %v", k, so0.originStorage[k], v)
 		}
 	}
 	for k, v := range so0.originStorage {
-		if so1.originStorage[k] != v {
+		if !bytes.Equal(so1.originStorage[k], v) {
 			t.Errorf("Origin storage key %x mismatch: have %v, want none.", k, v)
 		}
 	}
@@ -252,10 +259,11 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 func TestEmptyByte(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, _ := ethdb.NewLDBDatabase(tmpDir, 0, 0)
+
+	db, _ := leveldb.New(tmpDir, 0, 0, "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
-	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	state.CreateAccount(address)
 	so := state.getStateObject(address)
 
@@ -312,10 +320,10 @@ func TestEmptyByte(t *testing.T) {
 func TestForEachStorage(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, _ := ethdb.NewLDBDatabase(tmpDir, 0, 0)
+	db, _ := leveldb.New(tmpDir, 0, 0, "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
-	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	state.CreateAccount(address)
 
 	key := []byte("a")
@@ -332,8 +340,8 @@ func TestForEachStorage(t *testing.T) {
 	fmt.Printf("after Commit, key: %v, value: %v \n", key, svalue)
 	state.SetState(address, key, svalue)
 
-	state.ForEachStorage(address, func(key, value []byte) bool {
-		fmt.Println("load out, key:", string(key), "value:", string(value))
+	state.ForEachStorage(address, func(key []byte, value []byte) bool {
+		fmt.Println("load out, key:", hex.EncodeToString(key), "value:", string(value))
 		fmt.Printf("load out, key: %v, value: %v \n", key, value /*Bytes2Bits(key), Bytes2Bits(value)*/)
 		return true
 	})
@@ -343,13 +351,13 @@ func TestMigrateStorage(t *testing.T) {
 
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, _ := ethdb.NewLDBDatabase(tmpDir, 0, 0)
+	db, _ := leveldb.New(tmpDir, 0, 0, "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
-	from := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	from := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	state.CreateAccount(from)
 
-	to := common.HexToAddress("0x723040710bf13990e4500136726d6e66")
+	to := common.MustBech32ToAddress("lax1qqqqqqrjxpq8zzl38xgwg5qpxeex6mnxwyzlxv")
 	state.CreateAccount(to)
 
 	state.SetState(from, []byte("a"), []byte("fromA"))

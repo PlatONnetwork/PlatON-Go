@@ -8,7 +8,7 @@ solc/*
 *.zip
 *plan.error.xml
 src/test/resources/contracts/wasm/build/*
-src/test/resources/contracts/evm/build/*
+src/test/resources/contracts/network.platon.test.evm/build/*
 scripts/platon-web3j
 autotest_log
 

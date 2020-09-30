@@ -18,11 +18,12 @@ package vm
 
 import (
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"math/big"
-	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
@@ -360,11 +361,13 @@ func testPrecompiled(addr string, test PrecompiledTest, t *testing.T) {
 
 func TestRunPlatONPrecompiledContract(t *testing.T) {
 	restricting := &RestrictingContract{
-		Plugin:   plugin.RestrictingInstance(),
-		Evm:      &EVM{
-					Context: Context{Coinbase: vm.StakingContractAddr},
-					StateDB: &mock.MockStateDB{Balance: map[common.Address]*big.Int{common.Address{1}: big.NewInt(99)}},
-				  },
+		Plugin: plugin.RestrictingInstance(),
+		Evm: &EVM{
+			Context: Context{Coinbase: vm.StakingContractAddr},
+			StateDB: &mock.MockStateDB{
+				Journal: mock.NewJournal(),
+				Balance: map[common.Address]*big.Int{common.Address{1}: big.NewInt(99)}},
+		},
 	}
 
 	in := common.Hex2Bytes("38d18acb67d25c8bb9942764b62f18e17054f66a817bd4295423adf9ed98873e000000000000000000000000000000000000000000000000000000000000001b38d18acb67d25c8bb9942764b62f18e17054f66a817bd4295423adf9ed98873e789d1dd423d25f0772d2748d60f7e4b81bb14d086eba8e8e8efb6dcff8a4ae02")

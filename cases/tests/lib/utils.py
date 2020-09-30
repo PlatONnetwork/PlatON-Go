@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import json
+import json, rlp
 import time
 import random
 import string
@@ -147,7 +147,7 @@ def get_no_pledge_node_list(node_list: List[Node]) -> List[Node]:
     return no_pledge_node_list
 
 
-def get_pledge_list(func) -> list:
+def get_pledge_list(func, nodeid=None) -> list:
     """
     View the list of specified node IDs
     :param func: Query method, 1. List of current pledge nodes 2,
@@ -158,10 +158,19 @@ def get_pledge_list(func) -> list:
     if validator_info == "Getting verifierList is failed:The validator is not exist":
         time.sleep(10)
         validator_info = func().get('Ret')
-    validator_list = []
-    for info in validator_info:
-        validator_list.append(info.get('NodeId'))
-    return validator_list
+    if validator_info == "Getting candidateList is failed:CandidateList info is not found":
+        time.sleep(10)
+        validator_info == func().get('Ret')
+    if not nodeid:
+        validator_list = []
+        for info in validator_info:
+            validator_list.append(info.get('NodeId'))
+        return validator_list
+    else:
+        for info in validator_info:
+            if nodeid == info.get('NodeId'):
+                return info.get('RewardPer'), info.get('NextRewardPer')
+        raise Exception('Nodeid {} not in the list'.format(nodeid))
 
 
 def check_node_in_list(nodeid, func) -> bool:
@@ -243,9 +252,9 @@ def wait_block_number(node, block, interval=1):
     """
     current_block = node.block_number
     if 0 < block - current_block <= 10:
-        timeout = 10 + int(time.time())
+        timeout = 10 + int(time.time()) + 50
     elif block - current_block > 10:
-        timeout = int((block - current_block) * interval * 1.5) + int(time.time())
+        timeout = int((block - current_block) * interval * 1.5) + int(time.time()) + 50
     else:
         log.info('current block {} is greater than block {}'.format(node.block_number, block))
         return
@@ -268,14 +277,23 @@ def get_validator_term(node):
     Get the nodeID with the highest term
     """
     msg = node.ppos.getValidatorList()
-    term = []
-    nodeid = []
+    term_list = []
+    nodeid_list = []
     for i in msg["Ret"]:
-        term.append(i["ValidatorTerm"])
-        nodeid.append(i["NodeId"])
-    max_term = (max(term))
-    term_nodeid_dict = dict(zip(term, nodeid))
-    return term_nodeid_dict[max_term]
+        term_list.append(i["ValidatorTerm"])
+        nodeid_list.append(i["NodeId"])
+
+    max_term = (max(term_list))
+    log.info("Maximum tenure{}".format(max_term))
+    term_nodeid_dict = dict(zip(nodeid_list, term_list))
+
+    max_term_nodeid = []
+
+    for key in term_nodeid_dict:
+        value = term_nodeid_dict[key]
+        if value == max_term:
+            max_term_nodeid.append(key)
+    return max_term_nodeid
 
 
 def get_max_staking_tx_index(node):
@@ -303,7 +321,7 @@ def get_block_count_number(node, number):
     current_block = node.block_number
     count = 0
     for i in range(number - 1):
-        nodeid = get_pub_key(node.url, current_block)
+        nodeid = node.eth.ecrecover(current_block)
         current_block = current_block - 1
         if nodeid == node.node_id:
             count = count + 1
@@ -348,7 +366,7 @@ def von_amount(amonut, base):
     return int(Decimal(str(amonut)) * Decimal(str(base)))
 
 
-def get_governable_parameter_value(client_obj, parameter):
+def get_governable_parameter_value(client_obj, parameter, flag=None):
     """
     Get governable parameter value
     :return:
@@ -359,7 +377,11 @@ def get_governable_parameter_value(client_obj, parameter):
     for i in parameter_information:
         if i['ParamItem']['Name'] == parameter:
             log.info("{} ParamValue: {}".format(parameter, i['ParamValue']['Value']))
-            return i['ParamValue']['Value']
+            log.info("{} Param old Value: {}".format(parameter, i['ParamValue']['StaleValue']))
+            if not flag:
+                return i['ParamValue']['Value']
+            else:
+                return int(i['ParamValue']['Value']), int(i['ParamValue']['StaleValue'])
 
 
 def get_the_dynamic_parameter_gas_fee(data):
@@ -375,3 +397,11 @@ def get_the_dynamic_parameter_gas_fee(data):
     non_zero_number = byte_group_length - zero_number
     dynamic_gas = non_zero_number * 68 + zero_number * 4
     return dynamic_gas
+
+
+def get_getDelegateReward_gas_fee(client, staking_num, uncalcwheels, gasprice=None):
+    data = rlp.encode([rlp.encode(int(5000))])
+    if gasprice is None:
+        gasprice = client.node.eth.gasPrice
+    gas = get_the_dynamic_parameter_gas_fee(data) + 8000 + 3000 + 21000 + staking_num * 1000 + uncalcwheels * 100
+    return gas * gasprice

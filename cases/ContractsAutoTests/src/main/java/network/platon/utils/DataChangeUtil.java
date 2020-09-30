@@ -128,12 +128,11 @@ public class DataChangeUtil {
      * @param hexRlp
      * @return
      */
-    public static String decodeSystemContractRlp(String hexRlp) {
-        byte[] data = Numeric.hexStringToByteArray(hexRlp);
-        RLPList rlpList = RLPCodec.decode(data,RLPList.class);
-        return RLPCodec.decode(rlpList.get(0),String.class);
-    }
-
+	public static String decodeSystemContractRlp(String hexRlp, long chainId) {
+		        byte[] data = Numeric.hexStringToByteArray(hexRlp);
+			        RLPList rlpList = RLPCodec.decode(data,RLPList.class, chainId);
+				        return RLPCodec.decode(rlpList.get(0),String.class, chainId);
+					    }
 
 
 

@@ -11,12 +11,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 func TestReadWriteDatabaseVersion(t *testing.T) {
-	chainDb := ethdb.NewMemDatabase()
+	chainDb := NewMemoryDatabase()
 	bcVersion := ReadDatabaseVersion(chainDb)
 	assert.Equal(t, 0, bcVersion, "got: %d, want: %d", bcVersion, 0)
 
@@ -27,7 +25,7 @@ func TestReadWriteDatabaseVersion(t *testing.T) {
 
 func TestReadWriteEconomicModel(t *testing.T) {
 
-	chainDb := ethdb.NewMemDatabase()
+	chainDb := NewMemoryDatabase()
 	ec := ReadEconomicModel(chainDb, common.ZeroHash)
 	assert.Nil(t, ec, "the ec is not nil")
 
@@ -41,7 +39,7 @@ func TestReadWriteEconomicModel(t *testing.T) {
 
 func TestReadWriteChainConfig(t *testing.T) {
 
-	chainDb := ethdb.NewMemDatabase()
+	chainDb := NewMemoryDatabase()
 	config := ReadChainConfig(chainDb, common.ZeroHash)
 	assert.Nil(t, config, "the chainConfig is not nil")
 
@@ -55,7 +53,7 @@ func TestReadWritePreimages(t *testing.T) {
 	blob := []byte("test")
 	hash := crypto.Keccak256Hash(blob)
 
-	chainDb := ethdb.NewMemDatabase()
+	chainDb := NewMemoryDatabase()
 	preimage := ReadPreimage(chainDb, hash)
 	assert.Equal(t, 0, len(preimage), "the preimage is not nil")
 

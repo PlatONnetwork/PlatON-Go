@@ -114,7 +114,7 @@ func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, con
 }
 
 func IsEVMPrecompiledContract(addr common.Address) bool {
-	if _, ok := PrecompiledContractsHomestead[addr]; ok {
+	if _, ok := PrecompiledContractsByzantium[addr]; ok {
 		return true
 	}
 	return false
