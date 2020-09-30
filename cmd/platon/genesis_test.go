@@ -32,25 +32,7 @@ var customGenesisTests = []struct {
 	{
 		genesis: `{
     "alloc":{
-        "1000000000000000000000000000000000000001":{
-            "balance":"0"
-        },
-        "1000000000000000000000000000000000000002":{
-            "balance":"0"
-        },
-        "1000000000000000000000000000000000000003":{
-            "balance":"200000000000000000000000000"
-        },
-        "1000000000000000000000000000000000000004":{
-            "balance":"0"
-        },
-        "1000000000000000000000000000000000000005":{
-            "balance":"0"
-        },
-        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
-            "balance":"8050000000000000000000000000"
-        },
-        "55bfd49472fd41211545b01713a9c3a97af78b05":{
+        "atx17zqcdshx7eptgmkn2jzyx7w7tg0e4nnrfjnzq9":{
             "balance":"2000000000000000000000000000"
         }
     },
@@ -89,9 +71,9 @@ var customGenesisTests = []struct {
             "platonFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundAccount": "atx15myzn7h77r8r6m8fz7zs7zcq89japd2kza7u83",
             "platonFundBalance": 0,
-            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfAccount": "atx18unvsalu3ljuhn3cck9fqnppanvszmf4mthtw6",
             "cdfBalance": 331811981000000000000000000
         }
     },
@@ -116,31 +98,13 @@ var customGenesisTests = []struct {
     }
 }`,
 		query:  "platon.getBlock(0).nonce",
-		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		result: "0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 	//Genesis file with only cbft config
 	{
 		genesis: `{
     "alloc":{
-        "1000000000000000000000000000000000000001":{
-            "balance":"0"
-        },
-        "1000000000000000000000000000000000000002":{
-            "balance":"0"
-        },
-        "1000000000000000000000000000000000000003":{
-            "balance":"200000000000000000000000000"
-        },
-        "1000000000000000000000000000000000000004":{
-            "balance":"0"
-        },
-        "1000000000000000000000000000000000000005":{
-            "balance":"0"
-        },
-        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
-            "balance":"8050000000000000000000000000"
-        },
-        "55bfd49472fd41211545b01713a9c3a97af78b05":{
+        "atx17zqcdshx7eptgmkn2jzyx7w7tg0e4nnrfjnzq9":{
             "balance":"2000000000000000000000000000"
         }
     },
@@ -176,13 +140,13 @@ var customGenesisTests = []struct {
         },
         "reward":{
             "newBlockRate": 50,
-            "platonFoundationYear": 10 
+            "platonFoundationYear": 2 
         },
         "innerAcc":{
-            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundAccount": "atx15myzn7h77r8r6m8fz7zs7zcq89japd2kza7u83",
             "platonFundBalance": 0,
-            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
-            "cdfBalance": 331811981000000000000000000
+            "cdfAccount": "atx18unvsalu3ljuhn3cck9fqnppanvszmf4mthtw6",
+            "cdfBalance": 331811981000000000000000000000
         }
     },
     "coinbase":"0x0000000000000000000000000000000000000000",
@@ -206,32 +170,14 @@ var customGenesisTests = []struct {
     }
 }`,
 		query:  "platon.getBlock(0).nonce",
-		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		result: "0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 	//Genesis file with specific chain configurations
 	{
 		genesis: `{
     "alloc":{
-        "1000000000000000000000000000000000000001":{
-            "balance":"0"
-        },
-        "1000000000000000000000000000000000000002":{
-            "balance":"0"
-        },
-        "1000000000000000000000000000000000000003":{
-            "balance":"200000000000000000000000000"
-        },
-        "1000000000000000000000000000000000000004":{
-            "balance":"0"
-        },
-        "1000000000000000000000000000000000000005":{
-            "balance":"0"
-        },
-        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
-            "balance":"8050000000000000000000000000"
-        },
-        "55bfd49472fd41211545b01713a9c3a97af78b05":{
-            "balance":"2000000000000000000000000000"
+        "atx17zqcdshx7eptgmkn2jzyx7w7tg0e4nnrfjnzq9":{
+            "balance":"2000000000000000000000000000000000000"
         }
     },
     "economicModel":{
@@ -269,10 +215,10 @@ var customGenesisTests = []struct {
             "platonFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundAccount": "atx15myzn7h77r8r6m8fz7zs7zcq89japd2kza7u83",
             "platonFundBalance": 0,
-            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
-            "cdfBalance": 331811981000000000000000000
+            "cdfAccount": "atx18unvsalu3ljuhn3cck9fqnppanvszmf4mthtw6",
+            "cdfBalance": 33181198100000000000000000000000
         }
     },
     "coinbase":"0x0000000000000000000000000000000000000000",
@@ -299,7 +245,7 @@ var customGenesisTests = []struct {
     }
 }`,
 		query:  "platon.getBlock(0).nonce",
-		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		result: "0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 }
 
@@ -321,7 +267,7 @@ func TestCustomGenesis(t *testing.T) {
 		// Query the custom genesis block
 		platon := runPlatON(t,
 			"--datadir", datadir, "--maxpeers", "0", "--port", "0",
-			"--nodiscover", "--nat", "none", "--ipcdisable", "--testnet",
+			"--nodiscover", "--nat", "none", "--ipcdisable", "--alayatestnet",
 			"--exec", tt.query, "console")
 		t.Log("testi", i)
 		platon.ExpectRegexp(tt.result)

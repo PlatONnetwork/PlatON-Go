@@ -2129,33 +2129,33 @@ var utf8 = require('utf8');
 var segwit_addr = require('./segwit_addr.js');
 
 var unitMap = {
-    'nolat':      '0',
+    'noatp':      	'0',
     'von':          '1',
     'kvon':         '1000',
     'Kvon':         '1000',
     'babbage':      '1000',
-    'femtolat':   '1000',
+    'femtoatp':   	'1000',
     'mvon':         '1000000',
     'Mvon':         '1000000',
     'lovelace':     '1000000',
-    'picolat':    '1000000',
+    'picoatp':    	'1000000',
     'gvon':         '1000000000',
     'Gvon':         '1000000000',
     'shannon':      '1000000000',
-    'nanolat':    '1000000000',
+    'nanoatp':    	'1000000000',
     'nano':         '1000000000',
     'szabo':        '1000000000000',
-    'microlat':   '1000000000000',
+    'microatp':   	'1000000000000',
     'micro':        '1000000000000',
     'finney':       '1000000000000000',
-    'millilat':   '1000000000000000',
+    'milliatp':   	'1000000000000000',
     'milli':        '1000000000000000',
-    'lat':        '1000000000000000000',
-    'klat':       '1000000000000000000000',
+    'atp':        	'1000000000000000000',
+    'katp':       	'1000000000000000000000',
     'grand':        '1000000000000000000000',
-    'mlat':       '1000000000000000000000000',
-    'glat':       '1000000000000000000000000000',
-    'tlat':       '1000000000000000000000000000000'
+    'matp':       	'1000000000000000000000000',
+    'gatp':       	'1000000000000000000000000000',
+    'tatp':       	'1000000000000000000000000000000'
 };
 
 /**
@@ -2382,12 +2382,12 @@ var toHex = function (val) {
  * Returns value of unit in von
  *
  * @method getValueOfUnit
- * @param {String} unit the unit to convert to, default lat
+ * @param {String} unit the unit to convert to, default atp
  * @returns {BigNumber} value of the unit (in von)
  * @throws error if the unit is not correct:w
  */
 var getValueOfUnit = function (unit) {
-    unit = unit ? unit.toLowerCase() : 'lat';
+    unit = unit ? unit.toLowerCase() : 'atp';
     var unitValue = unitMap[unit];
     if (unitValue === undefined) {
         throw new Error('This unit doesn\'t exists, please use the one of the following units' + JSON.stringify(unitMap, null, 2));
@@ -2396,24 +2396,24 @@ var getValueOfUnit = function (unit) {
 };
 
 /**
- * Takes a number of von and converts it to any other lat unit.
+ * Takes a number of von and converts it to any other atp unit.
  *
  * Possible units are:
  *   SI Short   SI Full        Effigy       Other
- * - kvon       femtolat     babbage
- * - mvon       picolat      lovelace
- * - gvon       nanolat      shannon      nano
- * - --         microlat     szabo        micro
- * - --         millilat     finney       milli
- * - lat      --             --
- * - klat                    --           grand
- * - mlat
- * - glat
- * - tlat
+ * - kvon       femtoatp     babbage
+ * - mvon       picoatp      lovelace
+ * - gvon       nanoatp      shannon      nano
+ * - --         microatp     szabo        micro
+ * - --         milliatp     finney       milli
+ * - atp      --             --
+ * - katp                    --           grand
+ * - matp
+ * - gatp
+ * - tatp
  *
  * @method fromVon
  * @param {Number|String} number can be a number, number string or a HEX of a decimal
- * @param {String} unit the unit to convert to, default lat
+ * @param {String} unit the unit to convert to, default atp
  * @return {String|Object} When given a BigNumber object it returns one as well, otherwise a number
 */
 var fromVon = function(number, unit) {
@@ -2427,20 +2427,20 @@ var fromVon = function(number, unit) {
  *
  * Possible units are:
  *   SI Short   SI Full        Effigy       Other
- * - kvon       femtolat     babbage
- * - mvon       picolat      lovelace
- * - gvon       nanolat      shannon      nano
- * - --         microlat     szabo        micro
- * - --         millilat     finney       milli
- * - lat      --             --
- * - klat                    --           grand
- * - mlat
- * - glat
- * - tlat
+ * - kvon       femtoatp     babbage
+ * - mvon       picoatp      lovelace
+ * - gvon       nanoatp      shannon      nano
+ * - --         microatp     szabo        micro
+ * - --         milliatp     finney       milli
+ * - atp      --             --
+ * - katp                    --           grand
+ * - matp
+ * - gatp
+ * - tatp
  *
  * @method toVon
  * @param {Number|String|BigNumber} number can be a number, number string or a HEX of a decimal
- * @param {String} unit the unit to convert from, default lat
+ * @param {String} unit the unit to convert from, default atp
  * @return {String|Object} When given a BigNumber object it returns one as well, otherwise a number
 */
 var toVon = function(number, unit) {
@@ -2523,16 +2523,12 @@ var isAddress = function (address) {
  * @return {Boolean}
 */
 var isBech32Address = function (address) {
-    var hrp = "lat";
+    if(address.length != 42)
+    {
+        return false;
+    }
+    var hrp = address.substr(0,3);
     var ret = segwit_addr.decode(hrp, address);
-    if (ret === null) {
-        hrp = "lax";
-        ret = segwit_addr.decode(hrp, address);
-    }
-    else {
-        return true;
-    }
-
     if (ret === null) {
         return false;
     }
@@ -2554,6 +2550,26 @@ var toBech32Address = function (address, hrp) {
 
     return ''
 };
+
+/**
+ * Resolve the bech32 address
+ *
+ * @method decodeBech32Address
+ * @param {String} bech32Address
+ * @return {String} formatted address
+ */
+var decodeBech32Address = function (bech32Address) {
+    if (isBech32Address(bech32Address)) {
+        var hrp = bech32Address.substr(0,3);
+        address = segwit_addr.DecodeAddress(hrp, bech32Address);
+        if (address !== null) {
+            return "0x" + address
+        }
+    }
+
+    return ''
+};
+
 
 /**
  * Checks if the given string is a checksummed address
@@ -2762,6 +2778,7 @@ module.exports = {
     toChecksumAddress: toChecksumAddress,
     isBech32Address:isBech32Address,
     toBech32Address:toBech32Address,
+    decodeBech32Address:decodeBech32Address,
     isFunction: isFunction,
     isString: isString,
     isObject: isObject,
@@ -2877,6 +2894,7 @@ Web3.prototype.isChecksumAddress = utils.isChecksumAddress;
 Web3.prototype.toChecksumAddress = utils.toChecksumAddress;
 Web3.prototype.isBech32Address = utils.isBech32Address;
 Web3.prototype.toBech32Address = utils.toBech32Address;
+Web3.prototype.decodeBech32Address = utils.decodeBech32Address;
 Web3.prototype.padLeft = utils.padLeft;
 Web3.prototype.padRight = utils.padRight;
 
@@ -4217,12 +4235,10 @@ var outputPostFormatter = function(post){
 };
 
 var inputAddressFormatter = function (address) {
-    //var strAddress = segwit_addr.DecodeAddress("lax",address)
-    var iban = new Iban(address);
-    if (iban.isValid() && iban.isDirect()) {
-        return segwit_addr.EncodeAddress("lax",'0x' + iban.address())
-    } else if (utils.isBech32Address(address)) {
+    if (utils.isBech32Address(address)) {
         return address;
+    } else if (utils.isAddress(address)) {
+        return '0x' + address.toLowerCase().replace('0x', '');
     }
     throw new Error('invalid address');
 };

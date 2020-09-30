@@ -22,7 +22,7 @@ package params
 //    new(big.Int).Mul(value, big.NewInt(params.GVon))
 //
 const (
-	Von   = 1
-	GVon  = 1e9
-	LAT   =	1e18
+	Von  = 1
+	GVon = 1e9
+	ATP  = 1e18
 )

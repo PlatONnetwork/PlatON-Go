@@ -26,7 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -100,7 +100,7 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	if vm.IsPlatONPrecompiledContract(s.address) {
+	if cvm.PrecompiledContractCheckInstance.IsPlatONPrecompiledContract(s.address) {
 		return false
 	}
 	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)

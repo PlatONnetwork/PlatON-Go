@@ -107,13 +107,13 @@ func TestImportPreSaleKey(t *testing.T) {
 	// file content of a presale key file generated with:
 	// python pyethsaletool.py genwallet
 	// with password "foo"
-	fileContent := "{\"encseed\": \"26d87f5f2bf9835f9a47eefae571bc09f9107bb13d54ff12a4ec095d01f83897494cf34f7bed2ed34126ecba9db7b62de56c9d7cd136520a0427bfb11b8954ba7ac39b90d4650d3448e31185affcd74226a68f1e94b1108e6e0a4a91cdd83eba\", \"ethaddr\": \"lax163vykhmz9xmmayrj0v8u334erw6z0qslq30zf2\", \"email\": \"gustav.simonsson@gmail.com\", \"btcaddr\": \"1EVknXyFC68kKNLkh6YnKzW41svSRoaAcx\"}"
+	fileContent := "{\"encseed\": \"26d87f5f2bf9835f9a47eefae571bc09f9107bb13d54ff12a4ec095d01f83897494cf34f7bed2ed34126ecba9db7b62de56c9d7cd136520a0427bfb11b8954ba7ac39b90d4650d3448e31185affcd74226a68f1e94b1108e6e0a4a91cdd83eba\", \"ethaddr\": \"atx163vykhmz9xmmayrj0v8u334erw6z0qsluyhltq\", \"email\": \"gustav.simonsson@gmail.com\", \"btcaddr\": \"1EVknXyFC68kKNLkh6YnKzW41svSRoaAcx\"}"
 	pass := "foo"
 	account, _, err := importPreSaleKey(ks, []byte(fileContent), pass)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if account.Address != common.MustBech32ToAddress("lax163vykhmz9xmmayrj0v8u334erw6z0qslq30zf2") {
+	if account.Address != common.MustBech32ToAddress("atx163vykhmz9xmmayrj0v8u334erw6z0qsluyhltq") {
 		t.Errorf("imported account has wrong address %x", account.Address)
 	}
 	if !strings.HasPrefix(account.URL.Path, dir) {
@@ -192,7 +192,7 @@ func TestV1_1(t *testing.T) {
 func TestV1_2(t *testing.T) {
 	t.Parallel()
 	ks := &keyStorePassphrase{"testdata/v1", LightScryptN, LightScryptP, true}
-	addr := common.MustBech32ToAddress("lax1edsat2wy39hmjevqjz6e0mcw00n00dn78xx5s5")
+	addr := common.MustBech32ToAddress("atx1edsat2wy39hmjevqjz6e0mcw00n00dn7mn7fj7")
 	file := "testdata/v1/cb61d5a9c4896fb9658090b597ef0e7be6f7b67e/cb61d5a9c4896fb9658090b597ef0e7be6f7b67e"
 	k, err := ks.GetKey(addr, file, "g")
 	if err != nil {

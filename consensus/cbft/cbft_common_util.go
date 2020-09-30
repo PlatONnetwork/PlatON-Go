@@ -68,7 +68,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x6093debe3698d4a81024b1eac65a2476af3a62a21d6e8059c71cfe32c604ac1b")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x53caa7051f7dcfd2c32d3e2f79da8c906eaa36bebfd2c95270502c53ddc1ad97")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -85,7 +85,7 @@ func NewBlockWithSign(parent common.Hash, number uint64, node *TestCBFT) *types.
 		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x6093debe3698d4a81024b1eac65a2476af3a62a21d6e8059c71cfe32c604ac1b")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x53caa7051f7dcfd2c32d3e2f79da8c906eaa36bebfd2c95270502c53ddc1ad97")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -167,6 +167,7 @@ func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 // CreateBackend returns a new Backend for testing.
 func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
 
+	xcom.GetEc(xcom.DefaultUnitTestNet)
 	var db = rawdb.NewMemoryDatabase()
 	gspec, _ := CreateGenesis(db)
 
