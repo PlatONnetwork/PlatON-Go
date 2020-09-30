@@ -622,6 +622,9 @@ func (db *Database) Dereference(root common.Hash) {
 
 // dereference is the private locked version of Dereference.
 func (db *Database) dereference(child common.Hash, parent common.Hash, clearFn func([]byte)) {
+	if _, ok := db.freshNodes[child]; ok {
+		return
+	}
 	// Dereference the parent-child
 	node := db.dirties[parent]
 
