@@ -972,12 +972,12 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			oversize = nodes > limit
 		} else {
 			triedb.Reference(root, common.Hash{})
+			triedb.DereferenceDB(currentBlock.Root())
+
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
-
-			triedb.DereferenceDB(currentBlock.Root())
 
 			if triedb.UselessSize() > bc.cacheConfig.DBGCBlock {
 				triedb.UselessGC(1)
