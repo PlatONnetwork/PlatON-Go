@@ -1190,6 +1190,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 				Data : hexutil.Encode(logsValue.Data),
 				Index : logsValue.Index,
 				Removed : logsValue.Removed,
+				Topics:logsValue.Topics,
 			}
 			rb.Logs[logIndex] = tb
 		}

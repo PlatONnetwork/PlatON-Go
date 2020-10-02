@@ -56,6 +56,8 @@ type Log struct {
 }
 
 type LogBlock struct {
+	// list of topics provided by the contract.
+	Topics []common.Hash `json:"topics" gencodec:"required"`
 	// supplied by the contract, usually ABI-encoded
 	Data string `json:"data" gencodec:"required"`
 	// index of the log in the receipt
