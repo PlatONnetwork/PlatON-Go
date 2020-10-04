@@ -154,7 +154,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if (stored == common.Hash{}) {
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
-			genesis = DefaultGenesisBlock()
+			genesis = DefaultAlayaGenesisBlock()
 		} else {
 			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
 		}
