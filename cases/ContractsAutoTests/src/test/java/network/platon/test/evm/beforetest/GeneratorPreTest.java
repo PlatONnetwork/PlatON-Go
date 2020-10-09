@@ -86,32 +86,38 @@ public class GeneratorPreTest extends ContractPrepareTest {
         int size = files.size();
         log.info("size: " + size);
 
-        ExecutorService executorService = Executors.newCachedThreadPool();
+//        ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
-        final Semaphore semaphore = new Semaphore(1);
+//        final Semaphore semaphore = new Semaphore(1);
         // 请求总数与文件数定义一致size
-        CountDownLatch countDownLatch = new CountDownLatch(size);
+//        CountDownLatch countDownLatch = new CountDownLatch(size);
         CompileUtil compileUtil = new CompileUtil();
 
         for (String file : files) {
             //collector.logStepPass("staring compile:" + file);
-            executorService.execute(() -> {
-                try {
-                    semaphore.acquire();
-                    compileUtil.evmCompile(file);
-                    log.info("compile success:" + file);
-                } catch (Exception e) {
-                    log.info("compile fail:" + file, e.toString());
-                } finally {
-                    semaphore.release();
-                    countDownLatch.countDown();
-                }
-
-            });
+            try{
+                compileUtil.evmCompile(file);
+                log.info("compile success:" + file);
+            }catch (Exception e){
+                log.info("compile fail:" + file, e.toString());
+            }
+//            executorService.execute(() -> {
+//                try {
+//                    semaphore.acquire();
+//                    compileUtil.evmCompile(file);
+//                    log.info("compile success:" + file);
+//                } catch (Exception e) {
+//                    log.info("compile fail:" + file, e.toString());
+//                } finally {
+////                    semaphore.release();
+////                    countDownLatch.countDown();
+//                }
+//
+//            });
         }
 
-        countDownLatch.await();
-        executorService.shutdown();
+//        countDownLatch.await();
+//        executorService.shutdown();
     }
 
 
