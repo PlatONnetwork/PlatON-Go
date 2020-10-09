@@ -27,6 +27,7 @@ public class CompileUtil {
         }else {
             buildPath += "build/" + compilerVersion + "/";
         }
+        String contractName = file.getName().replaceAll("\\.sol", "");
         log.info(compilerVersion);
         log.info(buildPath);
         File buildPathFile = new File(buildPath);
@@ -34,9 +35,9 @@ public class CompileUtil {
             buildPathFile.mkdirs();
         }
         File[] list = new File(buildPath).listFiles();
-        if(buildPathFile.exists()){
-            if (null != list) {
-                for (File f : list) {
+        if (null != list) {
+            for (File f : list) {
+                if(f.getName().equals(contractName + ".abi") || f.getName().equals(contractName + ".bin")){
                     f.delete();
                 }
             }
