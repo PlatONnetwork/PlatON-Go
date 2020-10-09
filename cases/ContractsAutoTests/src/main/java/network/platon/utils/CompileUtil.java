@@ -33,11 +33,12 @@ public class CompileUtil {
         if (!buildPathFile.exists() || !buildPathFile.isDirectory()) {
             buildPathFile.mkdirs();
         }
-
         File[] list = new File(buildPath).listFiles();
-        if (null != list) {
-            for (File f : list) {
-                f.delete();
+        if(buildPathFile.exists()){
+            if (null != list) {
+                for (File f : list) {
+                    f.delete();
+                }
             }
         }
         try {
