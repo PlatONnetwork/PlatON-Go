@@ -87,7 +87,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
-        final Semaphore semaphore = new Semaphore(20);
+        final Semaphore semaphore = new Semaphore(1);
         // 请求总数与文件数定义一致size
         CountDownLatch countDownLatch = new CountDownLatch(size);
         CompileUtil compileUtil = new CompileUtil();
@@ -217,7 +217,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
         ExecutorService executorService = Executors.newCachedThreadPool();
         CountDownLatch countDownLatch = new CountDownLatch(size);
         // 信号量
-        final Semaphore semaphore = new Semaphore(20);
+        final Semaphore semaphore = new Semaphore(1);
         GeneratorUtil generatorUtil = new GeneratorUtil();
         collector.logStepPass("staring generator, Total " + size + " contract, please wait...");
 
