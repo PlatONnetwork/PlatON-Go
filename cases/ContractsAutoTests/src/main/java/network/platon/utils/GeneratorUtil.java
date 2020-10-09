@@ -27,7 +27,7 @@ public class GeneratorUtil {
 
             String outputPath = FileUtil.pathOptimization(System.getProperty("user.dir") + "/src/main/java");
             String packagePath = "network.platon.contracts.evm" + "." + compilerVersion.replaceAll("\\.", "_");
-
+            log.info("packagePath: " + packagePath);
             String os = System.getProperty("os.name");
             String[] args = null;
             String rootPath = FileUtil.pathOptimization(Paths.get("scripts", "platon-web3j", "bin").toUri().getPath());
