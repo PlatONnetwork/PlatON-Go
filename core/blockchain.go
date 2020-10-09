@@ -114,12 +114,12 @@ type BlockChain struct {
 	chainFeed     event.Feed
 	chainSideFeed event.Feed
 	chainHeadFeed event.Feed
+	logsFeed      event.Feed
+	scope         event.SubscriptionScope
+	genesisBlock  *types.Block
 
-	BlockFeed event.Feed
-
-	logsFeed     event.Feed
-	scope        event.SubscriptionScope
-	genesisBlock *types.Block
+	BlockFeed        event.Feed
+	BlockExecuteFeed event.Feed
 
 	mu      sync.RWMutex // global mutex for locking chain operations
 	chainmu sync.RWMutex // blockchain insertion lock
@@ -1242,7 +1242,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	if logs != nil {
 		bc.logsFeed.Send(logs)
 	}
-	//bc.BlockFeed.Send(block)
+	bc.BlockExecuteFeed.Send(block)
 
 	return receipts, nil
 }
@@ -1627,7 +1627,12 @@ func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscript
 }
 
 // SubscribeLogsEvent registers a subscription of *types.Block.
-func (bc *BlockChain) SubscribeBlocksEvent(ch chan<- *types.Block) event.Subscription {
+func (bc *BlockChain) SubscribeExecuteBlocksEvent(ch chan<- *types.Block) event.Subscription {
+	return bc.scope.Track(bc.BlockExecuteFeed.Subscribe(ch))
+}
+
+// SubscribeLogsEvent registers a subscription of *types.Block.
+func (bc *BlockChain) SubscribeWriteStateBlocksEvent(ch chan<- *types.Block) event.Subscription {
 	return bc.scope.Track(bc.BlockFeed.Subscribe(ch))
 }
 
