@@ -756,7 +756,7 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 			return nil, fmt.Errorf("NewTxMakeManger HexToECDSA fail:%v", err)
 		}
 
-		address := common.HexToAddress(txgenInput.Tx[i].Add)
+		address := common.MustBech32ToAddress(txgenInput.Tx[i].Add)
 		if err != nil {
 			return nil, fmt.Errorf("NewTxMakeManger Bech32ToAddress fail:%v", err)
 		}
@@ -809,7 +809,7 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 		for _, config := range ContractConfigs {
 			if config.CallWeights != 0 {
 				txReceiver := new(txGenContractReceiver)
-				txReceiver.ContractsAddress = common.HexToAddress(config.ContractsAddress)
+				txReceiver.ContractsAddress = common.MustBech32ToAddress(config.ContractsAddress)
 				if getCodeSize(txReceiver.ContractsAddress) <= 0 {
 					return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", txReceiver.ContractsAddress.String())
 				}
