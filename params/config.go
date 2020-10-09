@@ -99,8 +99,6 @@ var (
 		},
 	}
 
-	initialDemoNetConsensusNodes = []initNode{}
-
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(100),
@@ -131,20 +129,6 @@ var (
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
-			Amount:        10,
-			ValidatorMode: "ppos",
-			Period:        20000,
-		},
-		GenesisVersion: GenesisVersion,
-	}
-
-	// DemonetChainConfig is the chain parameters to run a node on the demo network.
-	DemonetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(399),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
-		Cbft: &CbftConfig{
-			InitialNodes:  ConvertNodeUrl(initialDemoNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
 			Period:        20000,
@@ -354,28 +338,6 @@ func newCompatError(what string, storedblock, newblock *big.Int) *ConfigCompatEr
 
 func (err *ConfigCompatError) Error() string {
 	return fmt.Sprintf("mismatching %s in database (have %d, want %d, rewindto %d)", err.What, err.StoredConfig, err.NewConfig, err.RewindTo)
-}
-
-// Rules wraps ChainConfig and is merely syntactic sugar or can be used for functions
-// that do not have or require information about the block.
-//
-// Rules is a one time interface meaning that it shouldn't be used in between transition
-// phases.
-type Rules struct {
-	ChainID  *big.Int
-	IsEIP155 bool
-}
-
-// Rules ensures c's ChainID is not nil.
-func (c *ChainConfig) Rules(num *big.Int) Rules {
-	chainID := c.ChainID
-	if chainID == nil {
-		chainID = new(big.Int)
-	}
-	return Rules{
-		ChainID:  new(big.Int).Set(chainID),
-		IsEIP155: c.IsEIP155(num),
-	}
 }
 
 func ConvertNodeUrl(initialNodes []initNode) []CbftNode {

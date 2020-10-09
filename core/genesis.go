@@ -536,12 +536,6 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	return &genesis
 }
 
-// DefaultDemonetGenesisBlock returns the PlatON Demo net genesis block.
-func DefaultDemonetGenesisBlock() *Genesis {
-	genesis := Genesis{}
-	return &genesis
-}
-
 func DefaultGrapeGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:    params.GrapeChainConfig,
