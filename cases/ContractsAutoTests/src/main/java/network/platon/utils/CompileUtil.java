@@ -25,7 +25,7 @@ public class CompileUtil {
         if(System.getProperty("os.name").toLowerCase().startsWith("windows")){
             buildPath += "build\\" + compilerVersion + "\\";
         }else {
-            buildPath += "/build/" + compilerVersion + "/";
+            buildPath += "build/" + compilerVersion + "/";
         }
         log.info(compilerVersion);
         log.info(buildPath);
