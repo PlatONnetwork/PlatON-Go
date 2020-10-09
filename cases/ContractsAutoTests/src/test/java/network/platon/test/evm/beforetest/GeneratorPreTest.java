@@ -33,7 +33,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
     @Before
     public void before() {
-        this.prepare();
+//        this.prepare();
         contractAndLibrarys = driverService.param.get("contractAndLibrarys") == null ? "" : driverService.param.get("contractAndLibrarys").toString();
     }
 
@@ -81,26 +81,13 @@ public class GeneratorPreTest extends ContractPrepareTest {
      **/
     public void compile() throws InterruptedException {
         String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm").toUri().getPath());
-        String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
-
-        File buildPathFile = new File(buildPath);
-        if (!buildPathFile.exists() || !buildPathFile.isDirectory()) {
-            buildPathFile.mkdirs();
-        }
-
-        File[] list = new File(buildPath).listFiles();
-        if (null != list) {
-            for (File file : list) {
-                file.delete();
-            }
-        }
         // 获取所有sol源文件
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
         int size = files.size();
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
-        final Semaphore semaphore = new Semaphore(20);
+        final Semaphore semaphore = new Semaphore(1);
         // 请求总数与文件数定义一致size
         CountDownLatch countDownLatch = new CountDownLatch(size);
         CompileUtil compileUtil = new CompileUtil();
@@ -110,7 +97,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
-                    compileUtil.evmCompile(file, buildPath);
+                    compileUtil.evmCompile(file);
                     log.info("compile success:" + file);
                 } catch (Exception e) {
                     log.info("compile fail:" + file, e.toString());
@@ -223,26 +210,26 @@ public class GeneratorPreTest extends ContractPrepareTest {
      **/
     public void generatorEVMWrapper() throws InterruptedException {
         // 获取已编译后的二进制文件
-        List<String> binFileName = new OneselfFileUtil().getBinFileName();
+        List<File> binFileName = new OneselfFileUtil().getBinFiles();
         // 获取合约文件数量
         int size = binFileName.size();
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         CountDownLatch countDownLatch = new CountDownLatch(size);
         // 信号量
-        final Semaphore semaphore = new Semaphore(20);
+        final Semaphore semaphore = new Semaphore(1);
         GeneratorUtil generatorUtil = new GeneratorUtil();
         collector.logStepPass("staring generator, Total " + size + " contract, please wait...");
 
-        for (String fileName : binFileName) {
+        for (File file : binFileName) {
             //collector.logStepPass("staring compile:" + fileName);
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
-                    generatorUtil.generator(fileName);
-                    collector.logStepPass("generator success:" + fileName);
+                    generatorUtil.generator(file);
+                    collector.logStepPass("generator success:" + file);
                 } catch (Exception e) {
-                    collector.logStepFail("generator fail:" + fileName, e.toString());
+                    collector.logStepFail("generator fail:" + file.getName(), e.toString());
                 } finally {
                     semaphore.release();
                     countDownLatch.countDown();

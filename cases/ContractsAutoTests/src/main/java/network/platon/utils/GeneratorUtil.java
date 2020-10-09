@@ -3,6 +3,7 @@ package network.platon.utils;
 import lombok.extern.slf4j.Slf4j;
 import network.platon.autotest.utils.FileUtil;
 
+import java.io.File;
 import java.nio.file.Paths;
 
 /**
@@ -12,27 +13,20 @@ import java.nio.file.Paths;
  **/
 @Slf4j
 public class GeneratorUtil {
-    public static void main(String[] args) {
-        try {
-            generator("test");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * @description:
      * @author: qcxiao
      * @create: 2019/12/14 16:34
      **/
-    public static void generator(String contractName) throws Exception {
+    public static void generator(File contractFile) throws Exception {
         try {
-            String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
-            String binPath = filePath + contractName + ".bin";
-            String abiPath = filePath + contractName + ".abi";
+            String binPath = contractFile.getPath();
+            String abiPath = contractFile.getPath().replace(".bin", ".abi");
+            String compilerVersion = contractFile.getPath().replaceAll("(.*)(0\\..\\d*\\.\\d*)(.*$)", "$2");
 
             String outputPath = FileUtil.pathOptimization(System.getProperty("user.dir") + "/src/main/java");
-            String packagePath = "network.platon.contracts.evm";
+            String packagePath = "network.platon.contracts.evm" + "." + compilerVersion.replaceAll("\\.", "_");
 
             String os = System.getProperty("os.name");
             String[] args = null;
