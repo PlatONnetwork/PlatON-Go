@@ -64,6 +64,10 @@ const tmplSourceGo = `
 
 package {{.Package}}
 
+import (
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
+)
+
 {{range $contract := .Contracts}}
 	// {{.Type}}ABI is the input ABI used to generate the binding from.
 	const {{.Type}}ABI = "{{.InputABI}}"
