@@ -84,6 +84,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
         // 获取所有sol源文件
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
         int size = files.size();
+        log.info("size: " + size);
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
