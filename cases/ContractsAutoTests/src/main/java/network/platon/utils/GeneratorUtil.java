@@ -42,7 +42,7 @@ public class GeneratorUtil {
                 if (os.startsWith("Windows")) {
                     args = new String[]{"cmd", "/C", rootPath + "platon-web3j.bat" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};
                 } else {
-                    System.out.println("Not supported operate system platform");
+                    log.error("Not supported operate system platform");
                 }
             } else {
                 args = new String[]{"/bin/bash", "-c", rootPath + "platon-web3j" + " " + "solidity" + " " + "generate" + " " + binPath + " " + abiPath + " " + "-o" + " " + outputPath + " " + "-p" + " " + packagePath};

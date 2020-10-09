@@ -1,9 +1,5 @@
 package network.platon.utils;
 
-
-import com.alaya.rlp.wasm.RLPCodec;
-import com.alaya.rlp.wasm.RLPList;
-import com.alaya.utils.Numeric;
 import org.apache.commons.lang.StringUtils;
 
 import java.math.BigInteger;
@@ -119,27 +115,9 @@ public class DataChangeUtil {
         return byteValueLen;
     }
 
-
-    /**
-     * ppos系统约data字段rlp解码处理
-     * 系统合约的最外层是一个RLPList
-     * RlpList里面放实际的RLP编码值
-     *
-     * @param hexRlp
-     * @return
-     */
-	public static String decodeSystemContractRlp(String hexRlp, long chainId) {
-		        byte[] data = Numeric.hexStringToByteArray(hexRlp);
-			        RLPList rlpList = RLPCodec.decode(data, RLPList.class, chainId);
-				        return RLPCodec.decode(rlpList.get(0),String.class, chainId);
-					    }
-
-
-
     public static void main(String[] args) {
 //        String hexvalue = "aaaa";
 //        byte bytess = hexToByte(hexvalue);
-//        System.out.println(bytess);
         test();
     }
 

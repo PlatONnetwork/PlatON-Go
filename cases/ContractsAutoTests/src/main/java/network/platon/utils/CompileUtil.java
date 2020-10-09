@@ -46,7 +46,6 @@ public class CompileUtil {
                 sb.append(line).append("\n");
             }
             String result = sb.toString();
-            System.out.println(result);
         } catch (Exception e) {
             throw new Exception();
         } finally {
