@@ -5,7 +5,6 @@ import com.alaya.tuples.generated.Tuple6;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.evm.StructDataType;
 import org.junit.Before;
 import org.junit.Test;
 

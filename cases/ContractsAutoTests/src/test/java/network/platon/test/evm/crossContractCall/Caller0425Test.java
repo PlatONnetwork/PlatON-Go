@@ -4,8 +4,6 @@ import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.evm.Callee0425;
-import network.platon.contracts.evm.Caller0425;
 import org.junit.Before;
 import org.junit.Test;
 

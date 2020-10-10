@@ -1,9 +1,6 @@
 package network.platon.test.evm.crossContractCall;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
-import network.platon.contracts.evm.CallerOne;
-import network.platon.contracts.evm.CallerThree;
-import network.platon.contracts.evm.CallerTwo;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;

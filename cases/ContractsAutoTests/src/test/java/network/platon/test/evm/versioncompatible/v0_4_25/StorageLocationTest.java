@@ -4,7 +4,6 @@ import network.platon.test.evm.beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.evm.StorageLocation;
 import org.junit.Test;
 /**
  * @title 数据位置测试

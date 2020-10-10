@@ -9,7 +9,6 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
 import network.platon.autotest.junit.rules.DriverService;
-import network.platon.contracts.evm.Ballot;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

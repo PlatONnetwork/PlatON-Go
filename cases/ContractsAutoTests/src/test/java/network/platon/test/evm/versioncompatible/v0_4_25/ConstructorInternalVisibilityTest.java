@@ -3,7 +3,6 @@ package network.platon.test.evm.versioncompatible.v0_4_25;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.evm.ConstructorInternalVisibility;
 import org.junit.Test;
 
 import java.math.BigInteger;

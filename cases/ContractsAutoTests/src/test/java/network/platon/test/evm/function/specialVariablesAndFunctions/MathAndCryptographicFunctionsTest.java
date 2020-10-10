@@ -6,7 +6,6 @@ import com.alaya.parameters.NetworkParameters;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.evm.MathAndCryptographicFunctions;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;

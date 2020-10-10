@@ -6,7 +6,7 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import org.junit.Before;
 import org.junit.Test;
-import network.platon.contracts.evm.ErrorParamConstructor;
+
 import java.math.BigInteger;
 
 

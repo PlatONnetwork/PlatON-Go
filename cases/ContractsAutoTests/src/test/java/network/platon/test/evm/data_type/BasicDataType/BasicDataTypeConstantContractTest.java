@@ -5,7 +5,6 @@ import com.alaya.tuples.generated.Tuple3;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.evm.BasicDataTypeConstantContract;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Before;
 import org.junit.Test;

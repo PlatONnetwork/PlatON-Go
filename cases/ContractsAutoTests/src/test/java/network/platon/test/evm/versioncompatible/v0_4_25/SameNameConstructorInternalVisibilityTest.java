@@ -4,7 +4,6 @@ import com.alaya.tuples.generated.Tuple3;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
-import network.platon.contracts.evm.SameNameConstructorInternalVisibility;
 import org.junit.Test;
 import java.math.BigInteger;
 /**
