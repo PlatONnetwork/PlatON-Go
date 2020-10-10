@@ -22,11 +22,11 @@ import "./BaseAbstractParent.sol";
  */
  contract AbstractContractFSubclass is AbstractContractDSubclass {
 
-     function parentName() public view returns (string memory v){
+     function parentName() public override returns (string memory v){
            return myName;
      }
 
-     function dSubClassName() public view returns (string memory dSubName){
+     function dSubClassName() public override returns (string memory dSubName){
 
      }
  }

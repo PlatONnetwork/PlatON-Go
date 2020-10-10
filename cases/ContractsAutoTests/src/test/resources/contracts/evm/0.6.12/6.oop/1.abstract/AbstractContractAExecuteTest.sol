@@ -21,8 +21,8 @@ pragma solidity ^0.6.12;
   * ------------------------------------------------
   * 验证结果：抽象合约可以编译、部署，但是不可以执行调用方法
   */
-contract AbstractContractGrandpa {
-    function name() public view returns (string memory v);
+abstract contract AbstractContractGrandpa {
+    function name() public virtual returns (string memory v);
 }
 
 /**
@@ -30,8 +30,8 @@ contract AbstractContractGrandpa {
  * ------------------------------------------------
  *  验证结果：抽象合约可以编译、部署，但是不可以执行调用方法
  */
-contract AbstractContractFather {
-    function fatherName() public view returns (string memory v);
+abstract contract AbstractContractFather {
+    function fatherName() public virtual returns (string memory v);
 
     function fatherAge() public view returns (int v) {
         int age = 20;
@@ -45,6 +45,10 @@ contract AbstractContractFather {
  *   验证结果：抽象合约被继承，但未被实现抽象方法,可以编译、部署，但是不可以执行调用方法
  */
 contract AbstractContractSon is AbstractContractFather {
+
+    function fatherName() public override returns (string memory v){
+        string memory name = "fatherName";
+    }
     function sonName() public view returns (string memory v) {
         string memory name = "sonName";
         return name;

@@ -22,7 +22,7 @@ import "./BaseAbstract.sol";
 contract AbstractContractBSubclass is AbstractContractParentClass {
 
     //实现父类抽象函数
-    function parentName() public view returns (string memory v){
+    function parentName() public override returns (string memory v){
         return myName;
     }
 
@@ -40,13 +40,13 @@ contract AbstractContractBSubclass is AbstractContractParentClass {
  contract AbstractContractCSubclass is AbstractContractASubclass,AbstractContractParentClass {
 
      //实现ParentClass父类函数
-     function parentName() public view returns (string memory v){
+     function parentName() public override returns (string memory v){
           string memory name = "parentName";
           return name;
      }
 
      //实现ASubclass父类函数
-     function aSubName() public view returns (string memory v){
+     function aSubName() public override returns (string memory v){
          return subName;
      }
 

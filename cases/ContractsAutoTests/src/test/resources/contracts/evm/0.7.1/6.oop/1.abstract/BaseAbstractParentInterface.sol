@@ -7,6 +7,6 @@ import "./BaseAbstractInterface.sol";
  * 基础合约（定义抽象合约继承接口）
  */
 
-contract AbstractContractESubclass is AbstractContractAInterface {
-    function setInterAge(int v) public;
+abstract contract AbstractContractESubclass is AbstractContractAInterface {
+    function setInterAge(int v) public virtual;
 }

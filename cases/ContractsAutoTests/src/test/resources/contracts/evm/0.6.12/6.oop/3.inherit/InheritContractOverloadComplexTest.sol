@@ -23,11 +23,11 @@ pragma solidity ^0.6.12;
 contract InheritContractOverloadBaseBase {
 	uint public x;
 	uint public y;
-	function init(uint a, uint b) public {
+	function init(uint a, uint b) public virtual{
 		x = b;
 		y = a;
 	}
-	function init(uint a) public {
+	function init(uint a) public virtual{
 		x = a + 1;
 	}
     function getX() public view returns (uint) {
@@ -39,11 +39,11 @@ contract InheritContractOverloadBaseBase {
 }
 
 contract InheritContractOverloadBase is InheritContractOverloadBaseBase {
-	function init(uint a, uint b) public {
+	function init(uint a, uint b) public override{
 		x = a;
 		y = b;
 	}
-	function init(uint a) public {
+	function init(uint a) public override{
 		x = a;
 	}
 }

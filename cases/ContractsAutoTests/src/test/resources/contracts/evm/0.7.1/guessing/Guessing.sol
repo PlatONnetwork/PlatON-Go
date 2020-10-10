@@ -45,7 +45,9 @@ contract Guessing {
      *
      * 默认函数，可以向合约直接打款
      */
-    function () payable external {
+    fallback() external {
+    }
+    receive() payable external {
         guessing(msg.value,msg.sender);
     }
 

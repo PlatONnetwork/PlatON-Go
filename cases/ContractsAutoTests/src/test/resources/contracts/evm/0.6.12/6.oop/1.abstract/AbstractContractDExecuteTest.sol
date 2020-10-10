@@ -23,11 +23,11 @@ import "./BaseAbstractParentInterface.sol";
  contract AbstractContractGSubclass is AbstractContractESubclass {
      int public age = 0;
 
-     function setInterAge(int v) public{
+     function setInterAge(int v) public override{
          age = v;
      }
 
-     function aInterAge() external view returns (int){
+     function aInterAge() external override returns (int){
          return age;
      }
  }

@@ -22,28 +22,36 @@ pragma solidity ^0.6.12;
  */
 contract InheritContractParentOneClass {
 
-    function getDate() public view returns (uint) {
+    function getDate() public virtual  returns (uint) {
         return 1;
     }
 }
 
 contract InheritContractParentTwoClass {
 
- function getDate() public view returns (uint) {
+ function getDate() public virtual  returns (uint) {
         return 2;
     }
 }
 
 contract InheritContractAMutipleClass is InheritContractParentTwoClass,InheritContractParentOneClass {
 
-    function callGetDateA() public view returns (uint) {
+    function getDate() public override(InheritContractParentTwoClass, InheritContractParentOneClass) returns (uint) {
+        return InheritContractParentTwoClass.getDate();
+    }
+
+    function callGetDateA() public returns (uint) {
         return getDate();
     }
 }
 
 contract InheritContractBMutipleClass is InheritContractParentOneClass,InheritContractParentTwoClass {
 
-    function callGetDateB() public view returns (uint) {
+    function getDate() public override(InheritContractParentOneClass, InheritContractParentTwoClass) returns (uint) {
+        return InheritContractParentOneClass.getDate();
+    }
+
+    function callGetDateB() public returns (uint) {
         return getDate();
     }
 }

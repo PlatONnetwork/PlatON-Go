@@ -36,7 +36,7 @@ contract precompiled {
         bytes memory ret = new bytes(data.length);
         assembly {
             let len := mload(data)
-            if iszero(call(gas, 0x04, 0, add(data, 0x20), len, add(ret,0x20), len)) {
+            if iszero(call(gas(), 0x04, 0, add(data, 0x20), len, add(ret,0x20), len)) {
                 invalid()
             }
         }
@@ -65,7 +65,7 @@ contract precompiled {
             mstore(add(memPtr, 0xa0), modulus)
 
         // call the precompiled contract BigModExp (0x05)
-            let success := call(gas, 0x05, 0x0, memPtr, 0xc0, memPtr, 0x20)
+            let success := call(gas(), 0x05, 0x0, memPtr, 0xc0, memPtr, 0x20)
             switch success
             case 0 {
                 revert(0x0, 0x0)
@@ -89,7 +89,7 @@ contract precompiled {
         input[2] = bx;
         input[3] = by;
         assembly {
-            let success := call(gas, 0x06, 0, input, 0x80, result, 0x40)
+            let success := call(gas(), 0x06, 0, input, 0x80, result, 0x40)
             switch success
             case 0 {
                 revert(0,0)
@@ -111,7 +111,7 @@ contract precompiled {
         input[1] = y;
         input[2] = scalar;
         assembly {
-            let success := call(gas, 0x07, 0, input, 0x60, result, 0x40)
+            let success := call(gas(), 0x07, 0, input, 0x60, result, 0x40)
             switch success
             case 0 {
                 revert(0,0)
@@ -131,7 +131,7 @@ contract precompiled {
         require(len % 192 == 0);
         assembly {
             let memPtr := mload(0x40)
-            let success := call(gas, 0x08, 0, add(input, 0x20), len, memPtr, 0x20)
+            let success := call(gas(), 0x08, 0, add(input, 0x20), len, memPtr, 0x20)
             switch success
             case 0 {
                 revert(0,0)
