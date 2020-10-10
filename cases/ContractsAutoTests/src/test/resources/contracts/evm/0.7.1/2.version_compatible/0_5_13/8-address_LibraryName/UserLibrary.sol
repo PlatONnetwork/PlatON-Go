@@ -13,18 +13,18 @@ library UserLibrary {
         mapping(uint=>string) user;
     }
 
-    function set_age(uint new_age) internal returns(_User memory)  {
-        _User memory user;
-        user.age =new_age;
-        return user;
-    }
+    //function set_age(uint new_age) internal returns(_User storage)  {
+    //    _User memory user;
+    //    user.age =new_age;
+    //    return user;
+    //}
 
     /**
      * library库中允许包含mapping做为入参与出参
      * 
      */
     function set_user(mapping(uint=>uint) storage id_age_map,uint _id) public returns(mapping(uint=>uint) storage)  {
-        _User memory user;
+        _User storage user;
         id_age_map[_id]= 23;
         return id_age_map;
     }
@@ -34,7 +34,7 @@ library UserLibrary {
      * 
      */
     function set_user_inter(mapping(uint=>uint) storage id_age_map,uint _id) external returns(mapping(uint=>uint) storage)  {
-        _User memory user;
+        _User storage user;
         id_age_map[_id]= 24;
         return id_age_map;
     }

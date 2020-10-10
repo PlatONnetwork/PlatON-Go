@@ -31,7 +31,7 @@ contract DeleteDemo{
     MapStruct ms;
 
     function delMapping() payable public{
-        ms = MapStruct(200);
+        //ms = MapStruct(200);
         ms.m[msg.sender] = 2000;
 
         delete ms;

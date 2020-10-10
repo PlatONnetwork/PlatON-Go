@@ -62,9 +62,10 @@ contract BlockTransactionPropertiesFunctions {
         return msg.value;
     }
 
+    //将now做为不推荐使用的全局变量，推荐大家使用block.timestamp以保证使用者明白含义（0.7.0）
     function getNow() public view returns(uint) {
         // 获取当前块的时间戳
-        return now;
+        return block.timestamp;
     }
 
     function getGasprice() public view returns(uint) {
