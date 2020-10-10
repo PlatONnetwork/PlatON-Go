@@ -9,13 +9,13 @@ contract RecursiveStorageMemoryComplex {
 
     constructor() public {
         storageTree.data = 0x42;
-        storageTree.children.length = 2;
+        //storageTree.children.length = 2;
         storageTree.children[0].data = 0x4200;
         storageTree.children[1].data = 0x4201;
-        storageTree.children[0].children.length = 3;
+        //storageTree.children[0].children.length = 3;
         for (uint i = 0; i < 3; i++)
             storageTree.children[0].children[i].data = 0x420000 + i;
-        storageTree.children[1].children.length = 4;
+        //storageTree.children[1].children.length = 4;
         for (uint i = 0; i < 4; i++)
             storageTree.children[1].children[i].data = 0x420100 + i;
     }

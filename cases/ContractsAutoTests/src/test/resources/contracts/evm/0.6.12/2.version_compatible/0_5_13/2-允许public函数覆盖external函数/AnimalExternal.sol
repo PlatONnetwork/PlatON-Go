@@ -20,7 +20,7 @@ contract AnimalExternal {
       _birthDay = "2011-01-01";
     }
     //声明external函数
-    function birthDay() view external returns (string memory) {
+    function birthDay() view external virtual returns (string memory) {
       return _birthDay;
     }
 

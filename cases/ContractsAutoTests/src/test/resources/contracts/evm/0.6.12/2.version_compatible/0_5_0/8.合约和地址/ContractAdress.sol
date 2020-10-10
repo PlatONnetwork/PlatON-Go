@@ -18,5 +18,5 @@ pragma solidity ^0.6.12;
 
 
 contract ContractAdress{
-    function () external {}
+    fallback() external {}
 }

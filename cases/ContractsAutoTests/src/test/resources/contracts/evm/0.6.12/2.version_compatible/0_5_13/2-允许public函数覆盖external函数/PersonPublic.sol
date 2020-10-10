@@ -12,7 +12,7 @@ contract PersonPublic is AnimalExternal {
      * 0.5.13 允许public函数覆盖external函数
      *
      */
-    function birthDay() view public returns (string memory) {
+    function birthDay() view public override returns (string memory) {
 
       return "2020-12-15";
     }

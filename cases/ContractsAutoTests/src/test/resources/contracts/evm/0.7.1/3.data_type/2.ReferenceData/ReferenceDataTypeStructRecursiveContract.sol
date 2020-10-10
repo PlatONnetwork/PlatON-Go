@@ -15,11 +15,11 @@ contract ReferenceDataTypeStructRecursiveContract {
      } 
      Person person;
      //构造函数赋值
-     constructor() public {   
-         person.children.length = 2;
-         person.children[0].children.length = 10;
-         person.children[1].children.length = 20;
-     }
+     //constructor() public {
+     //    person.children.length = 2;
+     //    person.children[0].children.length = 10;
+     //    person.children[1].children.length = 20;
+     //}
      //获取结构数组长度
      function getStructPersonLength() public view returns (uint256, uint256, uint256) {
         Person memory memoryPerson;
