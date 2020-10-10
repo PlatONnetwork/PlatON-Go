@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_5_17.event;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_5_17.EventIndexedContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -21,7 +22,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testIntIndex",
-            author = "albedo", showName = "event.EventIndexedContractTest-有符号整型索引", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventIndexedContractTest-有符号整型索引", sourcePrefix = "evm/0.5.17")
     public void testIntIndex() {
         try {
             prepare();
@@ -46,7 +47,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
     }
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testOneDimensionalArray",
-            author = "albedo", showName = "event.EventIndexedContractTest-一维数组索引", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventIndexedContractTest-一维数组索引", sourcePrefix = "evm/0.5.17")
     public void testOneDimensionalArray() {
         try {
             prepare();
@@ -69,7 +70,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testTwoDimensionalArray",
-            author = "albedo", showName = "event.EventIndexedContractTest-二维数组索引", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventIndexedContractTest-二维数组索引", sourcePrefix = "evm/0.5.17")
     public void testTwoDimensionalArray() {
         try {
             prepare();
@@ -92,7 +93,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testStr",
-            author = "albedo", showName = "event.EventIndexedContractTest-字符串索引", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventIndexedContractTest-字符串索引", sourcePrefix = "evm/0.5.17")
     public void testStr() {
         try {
             prepare();
@@ -114,7 +115,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
     }
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testEnum",
-            author = "albedo", showName = "event.EventIndexedContractTest-枚举类型索引", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventIndexedContractTest-枚举类型索引", sourcePrefix = "evm/0.5.17")
     public void testEnum() {
         try {
             prepare();
@@ -136,7 +137,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testComplex",
-            author = "albedo", showName = "event.EventIndexedContractTest-复杂多索引", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventIndexedContractTest-复杂多索引", sourcePrefix = "evm/0.5.17")
     public void testComplex() {
         try {
             prepare();
@@ -164,7 +165,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testAnonymousIndexed",
-            author = "albedo", showName = "event.EventIndexedContractTest-匿名事件索引数目", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventIndexedContractTest-匿名事件索引数目", sourcePrefix = "evm/0.5.17")
     public void testAnonymousIndexed() {
         try {
             prepare();

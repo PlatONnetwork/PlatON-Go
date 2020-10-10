@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_4_26.complexcontracts;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_4_26.VIDToken;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -17,7 +18,7 @@ public class EVMVIDTokenTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "complexcontracts.EVMVIDTokenTest", sourcePrefix = "evm")
+            author = "qcxiao", showName = "complexcontracts.EVMVIDTokenTest", sourcePrefix = "evm/0.4.26")
     public void test() {
         try {
             VIDToken token = VIDToken.deploy(web3j, transactionManager, provider, chainId).send();

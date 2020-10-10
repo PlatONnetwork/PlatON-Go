@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_4_26.csdccontracts;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_4_26.NewSecPledgeApplyManager;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -33,7 +34,7 @@ public class NewSecPledgeApplyManagerTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "NewSecPledgeApplyManagerTest-结算复杂合约测试验证", sourcePrefix = "evm")
+            author = "hudenian", showName = "NewSecPledgeApplyManagerTest-结算复杂合约测试验证", sourcePrefix = "evm/0.4.26")
     public void createPledgeApplyCommonTest() {
         try {
 

@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_5_17.function.Modifier;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_5_17.Modifiers;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -28,7 +29,7 @@ public class ModifiersTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.ModifiersTest-多修饰器函数测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.ModifiersTest-多修饰器函数测试", sourcePrefix = "evm/0.5.17")
     public void modifiers() {
         try {
             Modifiers modifiers = Modifiers.deploy(web3j, transactionManager, provider, chainId).send();

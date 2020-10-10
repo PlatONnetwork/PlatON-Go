@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_5_17.controlstruct;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_5_17.ForError;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -25,7 +26,7 @@ public class ForErrorTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ForErrorTest-for控制结构测试", sourcePrefix = "evm")
+            author = "hudenian", showName = "ForErrorTest-for控制结构测试", sourcePrefix = "evm/0.5.17")
     public void forStruct() {
         try {
 

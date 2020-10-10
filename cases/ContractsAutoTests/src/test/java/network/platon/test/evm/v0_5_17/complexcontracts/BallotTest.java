@@ -9,6 +9,7 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
 import network.platon.autotest.junit.rules.DriverService;
+import network.platon.contracts.evm.v0_5_17.Ballot;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public class BallotTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao"
-            , showName = "complexcontracts.BallotTest-投票功能合约", sourcePrefix = "evm")
+            , showName = "complexcontracts.BallotTest-投票功能合约", sourcePrefix = "evm/0.5.17")
     public void testBallot() {
         Web3j web3j = null;
         Credentials credentials = null;

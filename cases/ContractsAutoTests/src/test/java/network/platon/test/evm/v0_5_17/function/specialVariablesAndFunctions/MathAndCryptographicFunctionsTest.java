@@ -3,6 +3,7 @@ package network.platon.test.evm.v0_5_17.function.specialVariablesAndFunctions;
 import com.alaya.bech32.Bech32;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.parameters.NetworkParameters;
+import network.platon.contracts.evm.v0_5_17.MathAndCryptographicFunctions;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -41,7 +42,7 @@ public class MathAndCryptographicFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.MathAndCryptographicFunctionsTest-数学和加密函数测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.MathAndCryptographicFunctionsTest-数学和加密函数测试", sourcePrefix = "evm/0.5.17")
     public void MathAndCryptographicfunction() {
         try {
             MathAndCryptographicFunctions mathAndCryptographicFunctions = MathAndCryptographicFunctions.deploy(web3j, transactionManager, provider, chainId).send();

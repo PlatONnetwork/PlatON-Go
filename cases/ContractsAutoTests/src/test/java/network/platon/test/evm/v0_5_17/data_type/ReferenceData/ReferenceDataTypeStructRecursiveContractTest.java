@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_5_17.data_type.ReferenceData;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tuples.generated.Tuple3;
+import network.platon.contracts.evm.v0_5_17.ReferenceDataTypeStructRecursiveContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -24,7 +25,7 @@ public class ReferenceDataTypeStructRecursiveContractTest extends ContractPrepar
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructRecursive.结构体嵌套递归",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructRecursive.结构体嵌套递归",sourcePrefix = "evm/0.5.17")
     public void testReferenceDataTypeStructRecursive() {
 
         ReferenceDataTypeStructRecursiveContract referenceDataTypeStructRecursive = null;

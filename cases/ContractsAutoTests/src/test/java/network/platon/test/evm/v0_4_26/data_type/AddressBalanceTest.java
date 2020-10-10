@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_4_26.data_type;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_4_26.AddressBalance;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -17,7 +18,7 @@ public class AddressBalanceTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1", author = "qcxiao",
-            showName = "AddressBalanceTest.查询某地址余额",sourcePrefix = "evm")
+            showName = "AddressBalanceTest.查询某地址余额",sourcePrefix = "evm/0.4.26")
     public void test() {
 
 //        String useAddress = "lax10eycqggu2yawpadtmn7d2zdw0vnmscklynzq8x";

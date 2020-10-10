@@ -1,5 +1,6 @@
 package network.platon.test.evm.v0_5_17.function.specialVariablesAndFunctions;
 
+import network.platon.contracts.evm.v0_5_17.Blockhash;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -23,7 +24,7 @@ public class BlockhashTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.BlockhashTest-验证以blockhash函数", sourcePrefix = "evm")
+            author = "liweic", showName = "function.BlockhashTest-验证以blockhash函数", sourcePrefix = "evm/0.5.17")
     public void blockhashTest() {
         try {
             Blockhash blockhash = Blockhash.deploy(web3j, transactionManager, provider, chainId).send();

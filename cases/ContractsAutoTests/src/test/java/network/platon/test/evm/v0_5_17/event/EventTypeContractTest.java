@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_5_17.event;
 
 import com.alaya.abi.solidity.datatypes.generated.Uint256;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_5_17.EventTypeContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -20,7 +21,7 @@ import java.util.List;
 public class EventTypeContractTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testOneDimensionalArray",
-            author = "albedo", showName = "event.EventTypeContractTest-一维数组类型", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventTypeContractTest-一维数组类型", sourcePrefix = "evm/0.5.17")
     public void testOneDimensionalArray() {
         try {
             prepare();
@@ -45,7 +46,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testTwoDimensionalArray",
-            author = "albedo", showName = "event.EventTypeContractTest-二维数组类型", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventTypeContractTest-二维数组类型", sourcePrefix = "evm/0.5.17")
     public void testTwoDimensionalArray() {
         try {
             prepare();
@@ -68,7 +69,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testStr",
-            author = "albedo", showName = "event.EventTypeContractTest-字符串", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventTypeContractTest-字符串", sourcePrefix = "evm/0.5.17")
     public void testStr() {
         try {
             prepare();
@@ -88,7 +89,7 @@ public class EventTypeContractTest extends ContractPrepareTest {
     }
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testEnum",
-            author = "albedo", showName = "event.EventTypeContractTest-枚举", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventTypeContractTest-枚举", sourcePrefix = "evm/0.5.17")
     public void testEnum() {
         try {
             prepare();

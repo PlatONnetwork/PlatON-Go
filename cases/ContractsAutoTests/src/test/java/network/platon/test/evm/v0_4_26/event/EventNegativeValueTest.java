@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_4_26.event;
 
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_4_26.Eventer;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -21,7 +22,7 @@ public class EventNegativeValueTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "event.EventNegativeValueTest-事件负值调用", sourcePrefix = "evm")
+            author = "qcxiao", showName = "event.EventNegativeValueTest-事件负值调用", sourcePrefix = "evm/0.4.26")
     public void test() {
         prepare();
         try {

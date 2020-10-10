@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_4_26.function.functionVisibilityAndDecarations;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_4_26.ConstantViewPure;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -24,7 +25,7 @@ public class ConstantViewPureTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.ConstantViewPureTest-函数声明方式测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.ConstantViewPureTest-函数声明方式测试", sourcePrefix = "evm/0.4.26")
     public void constantviewPure() {
         try {
             ConstantViewPure constantviewpure = ConstantViewPure.deploy(web3j, transactionManager, provider, chainId).send();

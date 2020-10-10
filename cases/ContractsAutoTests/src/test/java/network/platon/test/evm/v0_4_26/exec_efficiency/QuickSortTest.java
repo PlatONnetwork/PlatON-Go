@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_4_26.exec_efficiency;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_4_26.QuickSort;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -30,7 +31,7 @@ public class QuickSortTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "zjsunzone", showName = "exec_efficiency.QuickSort-快速排序", sourcePrefix = "evm")
+            author = "zjsunzone", showName = "exec_efficiency.QuickSort-快速排序", sourcePrefix = "evm/0.4.26")
     public void test() {
         prepare();
         try {

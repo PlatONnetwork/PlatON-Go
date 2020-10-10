@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_5_17.data_type.TypeConversion;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_5_17.TypeConversionBytesToUintContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -23,7 +24,7 @@ public class TypeConversionBytesToUintContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "TypeConversionContract.字节转换整型",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "TypeConversionContract.字节转换整型",sourcePrefix = "evm/0.5.17")
     public void testTypeConversionContract() {
 
         TypeConversionBytesToUintContract typeConversionBytesToUintContract = null;

@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_5_17.data_type.BasicDataType;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_5_17.BasicDataTypeContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -23,7 +24,7 @@ public class BasicDataTypeContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "BasicDataTypeUintOverTest.合约基本数据类型",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "BasicDataTypeUintOverTest.合约基本数据类型",sourcePrefix = "evm/0.5.17")
     public void testBasicDataTypeContract() {
 
         BasicDataTypeContract basicDataTypeContract = null;

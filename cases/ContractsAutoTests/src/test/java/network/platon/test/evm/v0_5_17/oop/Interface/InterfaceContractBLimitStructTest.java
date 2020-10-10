@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_5_17.oop.Interface;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_5_17.InterfaceContractStructTest;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -22,7 +23,7 @@ public class InterfaceContractBLimitStructTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InterfaceContractLimitStruct.验证接口定义结构体", sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InterfaceContractLimitStruct.验证接口定义结构体", sourcePrefix = "evm/0.5.17")
     public void testInterfaceContractLimitEnum() {
 
         InterfaceContractStructTest interfaceContractStructTest= null;

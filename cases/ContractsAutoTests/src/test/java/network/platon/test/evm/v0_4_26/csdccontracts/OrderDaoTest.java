@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_4_26.csdccontracts;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_4_26.OrderDao;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -32,7 +33,7 @@ public class OrderDaoTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "OrderDaoTest-结算复杂合约测试验证", sourcePrefix = "evm")
+            author = "hudenian", showName = "OrderDaoTest-结算复杂合约测试验证", sourcePrefix = "evm/0.4.26")
     public void orderDaoTest() {
         try {
             //调用者合约地址

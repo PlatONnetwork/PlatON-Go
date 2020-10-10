@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_5_17.exceptionhandle;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.protocol.exceptions.TransactionException;
+import network.platon.contracts.evm.v0_5_17.AssertHandle;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -26,7 +27,7 @@ import java.math.BigInteger;
 public class AssertHandleTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "intChangeException",
-            author = "albedo", showName = "exceptionhandle.AssertHandle-整数显式转换为枚举", sourcePrefix = "evm")
+            author = "albedo", showName = "exceptionhandle.AssertHandle-整数显式转换为枚举", sourcePrefix = "evm/0.5.17")
     public void testIntChangeException() {
         try {
             prepare();
@@ -55,7 +56,7 @@ public class AssertHandleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "paramException",
-            author = "albedo", showName = "exceptionhandle.AssertHandle-调用assert的参数为false", sourcePrefix = "evm")
+            author = "albedo", showName = "exceptionhandle.AssertHandle-调用assert的参数为false", sourcePrefix = "evm/0.5.17")
     public void testParamException() {
         try {
             prepare();

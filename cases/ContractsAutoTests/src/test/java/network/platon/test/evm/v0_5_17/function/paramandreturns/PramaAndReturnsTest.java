@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_5_17.function.paramandreturns;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tuples.generated.Tuple2;
+import network.platon.contracts.evm.v0_5_17.PramaAndReturns;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -35,7 +36,7 @@ public class PramaAndReturnsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.PramaAndReturnsTest-参数和返回类型测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.PramaAndReturnsTest-参数和返回类型测试", sourcePrefix = "evm/0.5.17")
     public void ParamAndReturn() {
         try {
 
