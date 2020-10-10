@@ -243,7 +243,7 @@ def test_DI_015_016(client_new_node, client_consensus):
     address, _ = economic.account.generate_account(client_new_node.node.web3, economic.create_staking_limit * 2)
     address_delegate, _ = economic.account.generate_account(client_new_node.node.web3, economic.delegate_limit * 10)
     value = economic.create_staking_limit
-    result = client.staking.create_staking(0, address, address, amount=value)
+    result = client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     economic.wait_settlement(node)
     # validator_list = get_pledge_list(other_node.ppos.getValidatorList)
