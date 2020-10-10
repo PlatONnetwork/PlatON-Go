@@ -9,7 +9,13 @@ contract PlatonUnit {
      *
      * 默认函数，可以向合约直接打款
      */
-    function () payable external {
+//    function () payable external {
+//        balance = add(balance,msg.value);
+//    }
+
+    fallback() external {
+    }
+    receive() payable external {
         balance = add(balance,msg.value);
     }
 

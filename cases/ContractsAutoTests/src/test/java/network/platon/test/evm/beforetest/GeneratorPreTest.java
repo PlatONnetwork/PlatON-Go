@@ -84,16 +84,23 @@ public class GeneratorPreTest extends ContractPrepareTest {
         // 获取所有sol源文件
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
         int size = files.size();
+        log.info("size: " + size);
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
-        final Semaphore semaphore = new Semaphore(1);
+        final Semaphore semaphore = new Semaphore(20);
         // 请求总数与文件数定义一致size
         CountDownLatch countDownLatch = new CountDownLatch(size);
         CompileUtil compileUtil = new CompileUtil();
 
         for (String file : files) {
             //collector.logStepPass("staring compile:" + file);
+//            try{
+//                compileUtil.evmCompile(file);
+//                log.info("compile success:" + file);
+//            }catch (Exception e){
+//                log.info("compile fail:" + file, e.toString());
+//            }
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
@@ -217,7 +224,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
         ExecutorService executorService = Executors.newCachedThreadPool();
         CountDownLatch countDownLatch = new CountDownLatch(size);
         // 信号量
-        final Semaphore semaphore = new Semaphore(1);
+        final Semaphore semaphore = new Semaphore(50);
         GeneratorUtil generatorUtil = new GeneratorUtil();
         collector.logStepPass("staring generator, Total " + size + " contract, please wait...");
 

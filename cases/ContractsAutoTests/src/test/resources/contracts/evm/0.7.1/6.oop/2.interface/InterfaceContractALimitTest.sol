@@ -41,7 +41,7 @@ interface InterfaceContractParent  {
     */
 
    //5.0以后版本
-   function sumExternal(int a,int b)  external view  returns (int);
+   function sumExternal(int a,int b)  external virtual  returns (int);
 
    //5.0以前版本,否则Error: Functions in interfaces must be declared external
    //function sumPublic(int a,int b) public returns (int);
@@ -49,7 +49,7 @@ interface InterfaceContractParent  {
 
 contract InterfaceContractParentTest is InterfaceContractParent {
 
-   function sumExternal(int a,int b)  external view returns (int) {
+   function sumExternal(int a,int b)  external override returns (int) {
       return a + b;
    }
   

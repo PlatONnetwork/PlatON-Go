@@ -7,6 +7,6 @@ pragma solidity ^0.7.1;
  */
 
 interface AbstractContractAInterface{
-    function aInterAge() external view returns (int age);
+    function aInterAge() external returns (int age);
 }
 

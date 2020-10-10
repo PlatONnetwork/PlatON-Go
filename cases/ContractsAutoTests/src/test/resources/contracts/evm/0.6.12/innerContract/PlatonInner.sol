@@ -14,7 +14,7 @@ contract PlatonInner {
         uint retsize;
         bytes memory resval;
         assembly {
-            if iszero(call(gas, addr, 0,  add(data, 0x20), len, 0, 0)) {
+            if iszero(call(gas(), addr, 0,  add(data, 0x20), len, 0, 0)) {
                 invalid()
             }
             retsize := returndatasize()
