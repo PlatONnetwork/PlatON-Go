@@ -38,7 +38,7 @@ def test_staking_gas(client_new_node):
     esgas = node.eth.estimateGas({"from": benifit_address, "to": node.web3.stakingAddress, "data": data})
     print('esgas', esgas)
     gas = get_the_dynamic_parameter_gas_fee(data) + 21000 + 6000 + 32000
-    log.info('gas', gas)
+    log.info('gas'.format(gas))
     gasPrice = node.web3.platon.gasPrice
     log.info(gasPrice)
     balance2 = node.eth.getBalance(benifit_address)

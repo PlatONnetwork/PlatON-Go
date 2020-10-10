@@ -291,11 +291,12 @@ def test_CS_CL_007(clients_new_node):
     client_noconsensus2 = clients_new_node[1]
     economic = client_noconsensus1.economic
     node = client_noconsensus1.node
-    address1, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 3)
-    address2, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 3)
-    value = client_noconsensus1.economic.create_staking_limit * 2
+    address1, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 4)
+    address2, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 4)
+    value = client_noconsensus1.economic.create_staking_limit * 3
     result = client_noconsensus1.staking.create_staking(0, address1, address1, amount=value)
     assert_code(result, 0)
+    time.sleep(3)
     result = client_noconsensus2.staking.create_staking(0, address2, address2, amount=value)
     assert_code(result, 0)
     # Next settlement period
