@@ -18,5 +18,10 @@ pragma solidity ^0.7.1;
 
 
 contract ContractPayable{
-    function () external payable {} //回退函数（没有名字、没有参数、没有返回值）
+
+    fallback() external {
+    }
+    receive() payable external {
+        
+    }
 }

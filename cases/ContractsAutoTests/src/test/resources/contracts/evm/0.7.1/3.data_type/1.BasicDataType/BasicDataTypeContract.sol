@@ -13,13 +13,6 @@ pragma solidity ^0.7.1;
 
 contract BasicDataTypeContract {
 
-  /**
-   * 1、整型 (1个数字1个字节代表8位)
-        1)、int有符号整型，默认int256，包含位数：int8、int16、int24.....int256
-        2)、uint：无符号整数，默认uint256，包含位数：uint8、uint16,uint24.....uint256
-   */
-
-    //1)、验证有符号/无符号整数
     int a = -1;//正常
     int b = 1;//正常
     uint c = 2;//正常
@@ -51,30 +44,13 @@ contract BasicDataTypeContract {
         return a + 1;
     }
 
-  /**
-   * 2、浮点型
-        可以用来声明变量，但是不可以用来赋值
-      1)、fixed 有符号固定位浮点数，关键字为 fixedMxN
-      2)、ufixed:无符号的固定位浮点数，关键字为 ufixedMxN
-      （M 表示这个类型要占用的位数，以 8 步进，可为 8 到 256 位。N 表示小数点的个数，可为 0 到 80 之间。）
-   *     
-   */ 
+
 
   //1、fixed 有符号固定位浮点数，关键字为 fixedMxN
   //fixed f1 = 1.0;//编译异常
 
-    /**
-    *3、布尔型：取值为常量值true和false
-    *  
-    */
     bool h = true;
     bool j = false;
-
-    /**
-     *4、字节数组
-     *1)、定长字节数组，关键字：bytes1、bytes2、bytes3...，byte32，byte默认代表bytes1。
-     *2)、变长字节数组，关键字：bytes，动态分配大小字节数组
-     */
       
       //1)、验证定长字节数组
       bytes1 b1 = "a";

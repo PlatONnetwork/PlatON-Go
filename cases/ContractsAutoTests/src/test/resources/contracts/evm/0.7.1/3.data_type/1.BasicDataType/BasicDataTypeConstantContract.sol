@@ -88,16 +88,6 @@ contract BasicDataTypeConstantContract {
         return a;
     }
 
-    /**
-    *5、字符串字面常量:
-    *   字符串字面常量是指由双引号或单引号引起来的字符串
-    *-------  测试点----
-    * 1)、赋值操作
-    * 2)、字符串是特殊的动态长度字节数组
-    *      转换：字符串字面常数的类型———>转换成 bytes1，……，bytes32 ,或者bytes
-    * 3)、字符串不能够字节的修改长度和内容，需要转换为bytes动态字节数组
-    */
-
    //1)、赋值
      string strA = 'hello';
      string strB = "world";

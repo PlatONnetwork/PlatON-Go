@@ -53,11 +53,6 @@ contract MappingDataTypeContract {
    // mapping (uintArr => string) public stringMap1;//异常
 
 
-/**
- *2、赋值、取值
- *   map[keyType] ← 不同数值类型;
- */
-
     mapping (uint => string) nameMap;
     string[] nameArr = ["Lucy","Ella","Lily"];
 

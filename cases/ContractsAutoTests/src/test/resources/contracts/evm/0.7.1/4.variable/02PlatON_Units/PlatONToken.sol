@@ -29,16 +29,6 @@ contract PlatONToken {
         return platontoken + 1 atp;
     }
 
-    function Pfinney() public view returns(uint platontoken){
-        //1finney = 1000000000000000
-        return platontoken + 1 finney;
-    }
-
-    function Pszabo() public view  returns(uint platontoken){
-        //1 szabo = 1000000000000
-        return platontoken + 1 szabo;
-    }
-
     function Pvon() public view returns(uint platontoken){
         //默认缺省单位是von
         return platontoken + 1;

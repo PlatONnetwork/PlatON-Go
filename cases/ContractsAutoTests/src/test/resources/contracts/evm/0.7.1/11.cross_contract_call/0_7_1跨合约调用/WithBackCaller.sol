@@ -47,7 +47,7 @@ contract WithBackCaller{
     }
 
     function callgetNameTestWithGas(address other,string memory name,uint256 gasValue) public {
-        (bool success, bytes memory data) = other.call.gas(gasValue)(abi.encodeWithSignature("getName(string,string)","hellogas",name));
+        (bool success, bytes memory data) = other.call{gas:gasValue}(abi.encodeWithSignature("getName(string,string)","hellogas",name));
         if(!success){
             revert();
         }

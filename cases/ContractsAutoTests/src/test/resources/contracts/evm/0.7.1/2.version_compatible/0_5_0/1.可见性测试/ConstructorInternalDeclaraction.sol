@@ -12,7 +12,7 @@ contract ConstructorInternalDeclaraction {
     uint public count = 10;
 
     //构造函数必须显式声明为internal(0.4.x可以不显式声明或者用同名构造函数)
-    constructor(uint _count) internal {
+    constructor(uint _count) public {
         count = _count;
     }
 }
