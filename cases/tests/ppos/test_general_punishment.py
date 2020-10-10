@@ -175,7 +175,7 @@ def test_internal_node_zero_out_block_N(new_genesis_env, clients_consensus):
     3、内置节点（无替换节点）零出块处罚一次，小于质押金额且恢复节点后被剔除候选人列表，验证人列表，共识验证人列表
     """
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 10
+    genesis.economicModel.slashing.slashBlocksReward = 50
     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -285,15 +285,21 @@ def test_internal_node_more_zero_out_block_Y(new_genesis_env, clients_consensus)
     assert result, "error: Node not kicked out ValidatorList"
 
 
-def test_internal_node_more_zero_out_block_N(client_consensus_obj_list_reset):
+def test_internal_node_more_zero_out_block_N(new_genesis_env, client_consensus_obj_list_reset):
     """
     4、内置节点（无替换节点）零出块处罚多次，小于质押金额且恢复节点后被剔除候选人列表，验证人列表，共识验证人列表
     """
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.slashing.slashBlocksReward = 30
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+
     first_client = client_consensus_obj_list_reset[0]
     log.info("Current connection node1: {}".format(first_client.node.node_mark))
     second_client = client_consensus_obj_list_reset[1]
     log.info("Current connection node2: {}".format(second_client.node.node_mark))
-    economic = first_client.economic
+    # economic = first_client.economic
     node = first_client.node
     time.sleep(5)
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
@@ -304,7 +310,7 @@ def test_internal_node_more_zero_out_block_N(client_consensus_obj_list_reset):
     assert result is False, "error: Node not kicked out VerifierList"
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
     assert result is False, "error: Node not kicked out ValidatorList"
-    log.info("candidate info".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
+    log.info("candidate info：{}".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
     second_client.economic.wait_settlement(second_client.node)
     node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
     assert node_status == 0
@@ -346,7 +352,7 @@ def test_internal_node_more_zero_out_block_N(client_consensus_obj_list_reset):
     assert result is False, "error: Node not kicked out VerifierList"
     result = check_node_in_list(first_client.node.node_id, second_client.ppos.getValidatorList)
     assert result is False, "error: Node not kicked out ValidatorList"
-    log.info("candidate info".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
+    log.info("candidate info {}".format(second_client.node.ppos.getCandidateInfo(first_client.node.node_id)))
     node_status = second_client.node.ppos.getCandidateInfo(first_client.node.node_id)['Ret']['Status']
     assert node_status == 7
     second_client.economic.wait_settlement(second_client.node)
@@ -495,8 +501,8 @@ def test_zero_out_block_N(new_genesis_env, clients_noconsensus):
     7、非内置节点（有替换节点）零出块处罚一次，小于质押金额且恢复节点后被剔除候选人列表，验证人列表，共识验证人列表
     """
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 15
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    genesis.economicModel.slashing.slashBlocksReward = 30
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.2.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -1125,8 +1131,8 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 50
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    genesis.economicModel.slashing.slashBlocksReward = 120
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.2.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -1178,8 +1184,8 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
-    assert (pledge_amount2 == 0), "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert (pledge_amount3 == increase_amount - (punishment_amonut - pledge_amount1)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
+    assert pledge_amount3 == increase_amount - (punishment_amonut - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -1191,7 +1197,7 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 20
+    genesis.economicModel.slashing.slashBlocksReward = 60
     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -1320,7 +1326,7 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.slashing.slashBlocksReward = 25
+    genesis.economicModel.slashing.slashBlocksReward = 30
     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -1373,8 +1379,7 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert (pledge_amount3 == amount - (punishment_amonut * 2 - pledge_amount1)) or (pledge_amount3 == amount - (
-            punishment_amonut - pledge_amount1)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert pledge_amount3 == amount - (punishment_amonut - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -1487,14 +1492,18 @@ def test_VP_GPFV_021(client_new_node_obj_list_reset):
 
 
 def test_test_VP_GPFV_003_01(clients_consensus):
-    client = clients_consensus[0]
-    client1 = clients_consensus[1]
-    economic = client.economic
-    node = client.node
-    print('node', node.node_mark)
-    log.info("balance: {}".format(node.eth.getBalance('lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru')))
-    node.stop()
-    economic.wait_settlement(client1.node, 3)
-    result = client1.node.ppos.getCandidateInfo(node.node_id)
-    print(result)
-    log.info("balance: {}".format(client1.node.eth.getBalance('lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru')))
+    """
+    废弃
+    """
+    pass
+    # client = clients_consensus[0]
+    # client1 = clients_consensus[1]
+    # economic = client.economic
+    # node = client.node
+    # print('node', node.node_mark)
+    # log.info("balance: {}".format(node.eth.getBalance('lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru')))
+    # node.stop()
+    # economic.wait_settlement(client1.node, 3)
+    # result = client1.node.ppos.getCandidateInfo(node.node_id)
+    # print(result)
+    # log.info("balance: {}".format(client1.node.eth.getBalance('lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru')))

@@ -187,7 +187,7 @@ def test_ROE_042(free_locked_delegate_client):
     assert_code(result, 0)
     balance1 = node.eth.getBalance(delegate_address)
     log.info("Wallet balance{}".format(balance1))
-    amount = client.delegate_amount * 3 + node.web3.toWei(5, "ether")
+    amount = client.delegate_amount * 3
     result = client.delegate.withdrew_delegate(client.staking_blocknum, delegate_address,
                                                amount=amount)
     assert_code(result, 0)
@@ -239,7 +239,7 @@ def test_ROE_044(free_locked_delegate_client):
     assert_code(result, 0)
     balance1 = node.eth.getBalance(delegate_address)
     log.info("Wallet balance{}".format(balance1))
-    amount = client.delegate_amount * 4 + node.web3.toWei(5, "ether")
+    amount = client.delegate_amount * 4
     result = client.delegate.withdrew_delegate(client.staking_blocknum, delegate_address,
                                                amount=amount)
     assert_code(result, 0)

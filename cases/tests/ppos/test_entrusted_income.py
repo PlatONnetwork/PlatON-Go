@@ -27,7 +27,6 @@ def create_staking_node(client):
     result = client.staking.create_staking(0, staking_address, staking_address,
                                            amount=von_amount(economic.create_staking_limit, 2), reward_per=1000)
     assert_code(result, 0)
-    print(staking_address)
     return staking_address
 
 
@@ -64,7 +63,7 @@ def create_restricting_plan(client):
     economic = client.economic
     node = client.node
     # create restricting plan
-    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 10)
     benifit_address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
     plan = [{'Epoch': 5, 'Amount': client.node.web3.toWei(1000, 'ether')}]
     result = client.restricting.createRestrictingPlan(benifit_address, plan, address)
@@ -79,7 +78,9 @@ def get_dividend_information(client, node_id, address):
     :return:
     """
     result = client.ppos.getCandidateInfo(node_id)
+    print(result)
     blocknum = result['Ret']['StakingBlockNum']
+    print(blocknum)
     result = client.ppos.getDelegateInfo(blocknum, address, node_id)
     log.info("Commission information：{}".format(result))
     info = result['Ret']
@@ -1147,7 +1148,7 @@ def test_EI_BC_028_030(client_new_node, delegate_type, reset_environment):
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('amount', [1, 2, 3])
+@pytest.mark.parametrize('amount', [1, 3, 4])
 def test_EI_BC_031_032_033(client_new_node, amount, reset_environment):
     """
     生效期N自由金额再委托，赎回部分委托，赎回委托金额<生效期N自由金额（自由首次委托）
@@ -1163,7 +1164,7 @@ def test_EI_BC_031_032_033(client_new_node, amount, reset_environment):
     log.info("Create delegate account：{}".format(address))
     create_staking_node(client)
     log.info("Create pledge node id :{}".format(node.node_id))
-    delegate_amount = economic.delegate_limit * 2
+    delegate_amount = economic.delegate_limit * 3
     result = client.delegate.delegate(0, address, amount=delegate_amount)
     assert_code(result, 0)
     log.info("Commissioned successfully, commissioned amount：{}".format(economic.delegate_limit))
@@ -1172,11 +1173,14 @@ def test_EI_BC_031_032_033(client_new_node, amount, reset_environment):
     result = client.delegate.delegate(0, address, amount=delegate_amount)
     assert_code(result, 0)
     result = client.ppos.getCandidateInfo(node.node_id)
+    print(result)
     blocknum = result['Ret']['StakingBlockNum']
+    print("DelegateInfo: ", client.node.ppos.getDelegateInfo(blocknum, address, node.node_id))
     redemption_amount = node.web3.toWei(amount, 'ether')
     result = client.delegate.withdrew_delegate(blocknum, address, amount=redemption_amount)
     assert_code(result, 0)
     block_reward, staking_reward = economic.get_current_year_reward(node)
+    print("DelegateInfo: ", client.node.ppos.getDelegateInfo(blocknum, address, node.node_id))
     economic.wait_settlement(node)
     log.info("Current block height：{}".format(node.eth.blockNumber))
     current_delegate_amount = von_amount(delegate_amount, 2) - redemption_amount
