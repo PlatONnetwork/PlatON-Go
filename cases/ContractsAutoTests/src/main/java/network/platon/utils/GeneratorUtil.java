@@ -26,7 +26,7 @@ public class GeneratorUtil {
             String compilerVersion = contractFile.getPath().replaceAll("(.*)(0\\..\\d*\\.\\d*)(.*$)", "$2");
 
             String outputPath = FileUtil.pathOptimization(System.getProperty("user.dir") + "/src/main/java");
-            String packagePath = "network.platon.contracts.evm" + "." + compilerVersion.replaceAll("\\.", "_");
+            String packagePath = "network.platon.contracts.evm.v" + compilerVersion.replaceAll("\\.", "_");
             log.info("packagePath: " + packagePath);
             String os = System.getProperty("os.name");
             String[] args = null;
