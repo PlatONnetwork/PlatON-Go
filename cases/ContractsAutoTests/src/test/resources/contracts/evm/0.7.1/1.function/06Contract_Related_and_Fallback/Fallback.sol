@@ -10,7 +10,7 @@ contract FallBack {
     uint a = 1;
 
     //定义一个回退函数
-    function () external {
+    fallback() external {
         a = 100; 
     }
     

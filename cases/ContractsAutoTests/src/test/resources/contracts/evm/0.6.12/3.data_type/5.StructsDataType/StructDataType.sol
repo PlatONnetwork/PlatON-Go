@@ -22,8 +22,8 @@ contract StructDataType {
         storageA.m[1] = 2;
         storageB.m[3] = 4;
         storageB.x = 5;
-        storageC.ma.length = 6;
-        storageD.a.length = 7;
+        //storageC.ma.length = 6;
+        //storageD.a.length = 7;
     }
 
     uint storageAmValue;
