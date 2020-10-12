@@ -27,14 +27,14 @@ import "./BaseAbstractParentInterface.sol";
          age = v;
      }
 
-     function aInterAge() external override returns (int){
+     function aInterAge() external override view returns (int){
          return age;
      }
  }
 
 //2）、接口是不可以继承抽象合约（编译报错）
 /* interface AbstractContractBInterface is AbstractContractParentClass{
-      function bInterAge() external returns (int  age);
+      function bInterAge() external view returns (int  age);
  }*/
 
 
