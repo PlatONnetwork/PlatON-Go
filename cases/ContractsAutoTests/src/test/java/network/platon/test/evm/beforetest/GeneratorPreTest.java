@@ -33,7 +33,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
     @Before
     public void before() {
-//        this.prepare();
+        this.prepare();
         contractAndLibrarys = driverService.param.get("contractAndLibrarys") == null ? "" : driverService.param.get("contractAndLibrarys").toString();
     }
 
@@ -52,11 +52,17 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
             //2.将含有library库的合约中的引用替换为library库对对合约地址
             String[] contractAndLibrarysArr = contractAndLibrarys.split(";");
+            log.info("" + contractAndLibrarysArr.length);
             if (contractAndLibrarysArr.length > 0) {
                 for (int i = 0; i < contractAndLibrarysArr.length; i++) {
                     log.info("contractAndLibrarysArr[i] is:" + contractAndLibrarysArr[i]);
-                    String[] singleContractLib = contractAndLibrarysArr[i].split("&");
-                    deployLibrary(singleContractLib[0], singleContractLib[1]);
+                    try{
+                        String[] singleContractLib = contractAndLibrarysArr[i].split("&");
+                        deployLibrary(singleContractLib[0], singleContractLib[1]);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
                 }
             }
 

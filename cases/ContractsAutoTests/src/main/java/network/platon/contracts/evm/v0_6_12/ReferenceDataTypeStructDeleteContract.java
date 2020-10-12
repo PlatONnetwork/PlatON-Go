@@ -1,17 +1,18 @@
 package network.platon.contracts.evm.v0_6_12;
 
 import com.alaya.abi.solidity.TypeReference;
+import com.alaya.abi.solidity.datatypes.Bool;
 import com.alaya.abi.solidity.datatypes.Function;
 import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Uint256;
 import com.alaya.crypto.Credentials;
 import com.alaya.protocol.Web3j;
 import com.alaya.protocol.core.RemoteCall;
-import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tx.Contract;
 import com.alaya.tx.TransactionManager;
 import com.alaya.tx.gas.GasProvider;
+import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * <p>Auto generated code.
@@ -20,7 +21,7 @@ import java.util.Collections;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class ReferenceDataTypeStructDeleteContract extends Contract {
     private static final String BINARY = "608060405234801561001057600080fd5b506005600081905550600a600160020181905550600180600301600060018152602001908152602001600020819055506002600160030160006002815260200190815260200160002081905550600360016000016000018190555060018060000160010160006001815260200190815260200160002060006101000a81548160ff02191690831515021790555060018060000160010160006002815260200190815260200160002060006101000a81548160ff021916908315150217905550600160008082016000808201600090555050600282016000905550506000805561019e806100fe6000396000f3fe608060405234801561001057600080fd5b50600436106100575760003560e01c806311977c5c1461005c5780631268893e1461007a5780635ff76c8a1461009857806379e44a38146100b6578063d587919c146100d4575b600080fd5b6100646100f4565b6040518082815260200191505060405180910390f35b6100826100fd565b6040518082815260200191505060405180910390f35b6100a061011c565b6040518082815260200191505060405180910390f35b6100be61012c565b6040518082815260200191505060405180910390f35b6100dc610139565b60405180821515815260200191505060405180910390f35b60008054905090565b6000600160030160006001815260200190815260200160002054905090565b6000600160000160000154905090565b6000600160020154905090565b6000600160000160010160006001815260200190815260200160002060009054906101000a900460ff1690509056fea2646970667358221220d56bc4eea1d43e02e03a90b84c046b468d2957ba2ac4c66becb1c60fdf8eb13764736f6c634300060c0033";
@@ -51,44 +52,39 @@ public class ReferenceDataTypeStructDeleteContract extends Contract {
         return deployRemoteCall(ReferenceDataTypeStructDeleteContract.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public RemoteCall<TransactionReceipt> getNestedMapping() {
-        final Function function = new Function(
-                FUNC_GETNESTEDMAPPING, 
+    public RemoteCall<Boolean> getNestedMapping() {
+        final Function function = new Function(FUNC_GETNESTEDMAPPING, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
+        return executeRemoteCallSingleValueReturn(function, Boolean.class);
     }
 
-    public RemoteCall<TransactionReceipt> getNestedValue() {
-        final Function function = new Function(
-                FUNC_GETNESTEDVALUE, 
+    public RemoteCall<BigInteger> getNestedValue() {
+        final Function function = new Function(FUNC_GETNESTEDVALUE, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> getToDeleteInt() {
-        final Function function = new Function(
-                FUNC_GETTODELETEINT, 
+    public RemoteCall<BigInteger> getToDeleteInt() {
+        final Function function = new Function(FUNC_GETTODELETEINT, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> getTopMapping() {
-        final Function function = new Function(
-                FUNC_GETTOPMAPPING, 
+    public RemoteCall<BigInteger> getTopMapping() {
+        final Function function = new Function(FUNC_GETTOPMAPPING, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> getTopValue() {
-        final Function function = new Function(
-                FUNC_GETTOPVALUE, 
+    public RemoteCall<BigInteger> getTopValue() {
+        final Function function = new Function(FUNC_GETTOPVALUE, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public static ReferenceDataTypeStructDeleteContract load(String contractAddress, Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

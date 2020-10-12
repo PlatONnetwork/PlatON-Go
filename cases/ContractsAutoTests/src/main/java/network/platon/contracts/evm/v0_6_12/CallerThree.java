@@ -32,7 +32,7 @@ import rx.functions.Func1;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class CallerThree extends Contract {
     private static final String BINARY = "608060405234801561001057600080fd5b50610130806100206000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c80630c55699c14604157806317f936fb14605d578063371303c0146079575b600080fd5b60476081565b6040518082815260200191505060405180910390f35b60636087565b6040518082815260200191505060405180910390f35b607f6090565b005b60005481565b60008054905090565b60008081548092919060010191905055507fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e733600054604051808373ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a156fea2646970667358221220c74567adb5117236267d4d696b832a0c2dbeaebcd211876bf6faac6f45716a2264736f6c634300060c0033";
@@ -88,12 +88,11 @@ public class CallerThree extends Contract {
         return eventNameEventObservable(filter);
     }
 
-    public RemoteCall<TransactionReceipt> getCalleeThreeX() {
-        final Function function = new Function(
-                FUNC_GETCALLEETHREEX, 
+    public RemoteCall<BigInteger> getCalleeThreeX() {
+        final Function function = new Function(FUNC_GETCALLEETHREEX, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<TransactionReceipt> inc() {
@@ -104,12 +103,11 @@ public class CallerThree extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> x() {
-        final Function function = new Function(
-                FUNC_X, 
+    public RemoteCall<BigInteger> x() {
+        final Function function = new Function(FUNC_X, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public static RemoteCall<CallerThree> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

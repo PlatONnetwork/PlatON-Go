@@ -32,7 +32,7 @@ import rx.functions.Func1;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class EmitTest extends Contract {
     private static final String BINARY = "6080604052348015600f57600080fd5b5060b68061001e6000396000f3fe608060405260043610601c5760003560e01c80634f9d719e146021575b600080fd5b60276029565b005b7fb0333e0e3a6b99318e4e2e0d7e5e5f93646f9cbf62da1587955a4092bf7df6e73334604051808373ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a156fea264697066735822122067a6fbfd55a141931c2bb13a0f876a7cdfcdf5a1940f812c61d4a5f9448ec2d664736f6c63430007010033";
@@ -84,12 +84,12 @@ public class EmitTest extends Contract {
         return eventNameEventObservable(filter);
     }
 
-    public RemoteCall<TransactionReceipt> testEvent() {
+    public RemoteCall<TransactionReceipt> testEvent(BigInteger vonValue) {
         final Function function = new Function(
                 FUNC_TESTEVENT, 
                 Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<EmitTest> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

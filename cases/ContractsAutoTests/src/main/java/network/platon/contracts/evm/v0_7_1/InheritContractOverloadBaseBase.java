@@ -3,6 +3,7 @@ package network.platon.contracts.evm.v0_7_1;
 import com.alaya.abi.solidity.TypeReference;
 import com.alaya.abi.solidity.datatypes.Function;
 import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Uint256;
 import com.alaya.crypto.Credentials;
 import com.alaya.protocol.Web3j;
 import com.alaya.protocol.core.RemoteCall;
@@ -21,7 +22,7 @@ import java.util.Collections;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class InheritContractOverloadBaseBase extends Contract {
     private static final String BINARY = "608060405234801561001057600080fd5b506101b9806100206000396000f3fe608060405234801561001057600080fd5b50600436106100625760003560e01c80630b7f1665146100675780630c55699c146100855780635197c7aa146100a3578063a56dfe4a146100c1578063a5843f08146100df578063b7b0422d14610117575b600080fd5b61006f610145565b6040518082815260200191505060405180910390f35b61008d61014f565b6040518082815260200191505060405180910390f35b6100ab610155565b6040518082815260200191505060405180910390f35b6100c961015e565b6040518082815260200191505060405180910390f35b610115600480360360408110156100f557600080fd5b810190808035906020019092919080359060200190929190505050610164565b005b6101436004803603602081101561012d57600080fd5b8101908080359060200190929190505050610176565b005b6000600154905090565b60005481565b60008054905090565b60015481565b80600081905550816001819055505050565b600181016000819055505056fea26469706673582212203f43391596ee0a365b5cd783755482476130648a14218939fb70debb8096d0ea64736f6c63430007010033";
@@ -44,27 +45,25 @@ public class InheritContractOverloadBaseBase extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<TransactionReceipt> getX() {
-        final Function function = new Function(
-                FUNC_GETX, 
+    public RemoteCall<BigInteger> getX() {
+        final Function function = new Function(FUNC_GETX, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> getY() {
-        final Function function = new Function(
-                FUNC_GETY, 
+    public RemoteCall<BigInteger> getY() {
+        final Function function = new Function(FUNC_GETY, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<TransactionReceipt> init(BigInteger a, BigInteger b) {
         final Function function = new Function(
                 FUNC_INIT, 
-                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.generated.Uint256(a), 
-                new com.alaya.abi.solidity.datatypes.generated.Uint256(b)), 
+                Arrays.<Type>asList(new Uint256(a),
+                new Uint256(b)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -72,25 +71,23 @@ public class InheritContractOverloadBaseBase extends Contract {
     public RemoteCall<TransactionReceipt> init(BigInteger a) {
         final Function function = new Function(
                 FUNC_INIT, 
-                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.generated.Uint256(a)), 
+                Arrays.<Type>asList(new Uint256(a)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<TransactionReceipt> x() {
-        final Function function = new Function(
-                FUNC_X, 
+    public RemoteCall<BigInteger> x() {
+        final Function function = new Function(FUNC_X, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> y() {
-        final Function function = new Function(
-                FUNC_Y, 
+    public RemoteCall<BigInteger> y() {
+        final Function function = new Function(FUNC_Y, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public static RemoteCall<InheritContractOverloadBaseBase> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

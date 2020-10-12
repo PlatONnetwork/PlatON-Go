@@ -3,6 +3,7 @@ package network.platon.contracts.evm.v0_6_12;
 import com.alaya.abi.solidity.TypeReference;
 import com.alaya.abi.solidity.datatypes.Function;
 import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Uint256;
 import com.alaya.crypto.Credentials;
 import com.alaya.protocol.Web3j;
 import com.alaya.protocol.core.RemoteCall;
@@ -21,7 +22,7 @@ import java.util.Collections;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class AssertContract extends Contract {
     private static final String BINARY = "608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555060fa8061005f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806314fef936146037578063de292789146080575b600080fd5b606a60048036036040811015604b57600080fd5b810190808035906020019092919080359060200190929190505050609c565b6040518082815260200191505060405180910390f35b608660ba565b6040518082815260200191505060405180910390f35b600081831160a657fe5b818301600181905550600154905092915050565b600060015490509056fea2646970667358221220b132c1b125087ee04f22872adf7221eb9c4e8d869593bd3028e85cc0e09b57c964736f6c634300060c0033";
@@ -46,19 +47,18 @@ public class AssertContract extends Contract {
         return deployRemoteCall(AssertContract.class, web3j, transactionManager, contractGasProvider, BINARY,  "", chainId);
     }
 
-    public RemoteCall<TransactionReceipt> getResult() {
-        final Function function = new Function(
-                FUNC_GETRESULT, 
+    public RemoteCall<BigInteger> getResult() {
+        final Function function = new Function(FUNC_GETRESULT, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<TransactionReceipt> toSenderAmount(BigInteger frist, BigInteger second) {
         final Function function = new Function(
                 FUNC_TOSENDERAMOUNT, 
-                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.generated.Uint256(frist), 
-                new com.alaya.abi.solidity.datatypes.generated.Uint256(second)), 
+                Arrays.<Type>asList(new Uint256(frist),
+                new Uint256(second)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }

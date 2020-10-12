@@ -18,7 +18,7 @@ import java.util.Arrays;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class InheritContractBase extends Contract {
     private static final String BINARY = "608060405260008055348015601357600080fd5b506040516098380380609883398181016040526020811015603357600080fd5b81019080805190602001909291905050508060008190555050603f8060596000396000f3fe6080604052600080fdfea264697066735822122047b5570ffd1245671eedee2ea4e069663b620550fd34b1f49b1439396b28566c64736f6c63430007010033";

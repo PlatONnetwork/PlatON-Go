@@ -31,7 +31,7 @@ import rx.functions.Func1;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class CallExternal extends Contract {
     private static final String BINARY = "608060405234801561001057600080fd5b50610223806100206000396000f3fe60806040526004361061001e5760003560e01c8063de29278914610023575b600080fd5b61002b610041565b6040518082815260200191505060405180910390f35b6000806040516100509061012d565b604051809103906000f08015801561006c573d6000803e3d6000fd5b5090508073ffffffffffffffffffffffffffffffffffffffff1663569c5f6d6040518163ffffffff1660e01b815260040160206040518083038186803b1580156100b557600080fd5b505afa1580156100c9573d6000803e3d6000fd5b505050506040513d60208110156100df57600080fd5b810190808051906020019092919050505091507f0a9f1213b326cb97c7a18f80791661027e1cf7a53125f3d6729d0ae093bd8ad2826040518082815260200191505060405180910390a15090565b60b48061013a8339019056fe6080604052348015600f57600080fd5b5060968061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063569c5f6d14602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b60008060019050600060029050808201925050509056fea2646970667358221220849feb7e1607a5cd0f6e16bed143d82e8f57badf48987a05567131c34fc8b2a064736f6c63430007010033a26469706673582212206861e6fa0e3c2f2bd4ee1c57c9dd13c52744bcb2ac782096a2a590d16e81b88c64736f6c63430007010033";
@@ -81,12 +81,12 @@ public class CallExternal extends Contract {
         return externalCValueEventObservable(filter);
     }
 
-    public RemoteCall<TransactionReceipt> getResult() {
+    public RemoteCall<TransactionReceipt> getResult(BigInteger vonValue) {
         final Function function = new Function(
                 FUNC_GETRESULT, 
                 Arrays.<Type>asList(), 
                 Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<CallExternal> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

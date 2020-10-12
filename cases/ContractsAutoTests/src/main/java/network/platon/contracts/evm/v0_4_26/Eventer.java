@@ -32,7 +32,7 @@ import rx.functions.Func1;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class Eventer extends Contract {
     private static final String BINARY = "6080604052348015600f57600080fd5b5060f48061001e6000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063bf819c20146044575b600080fd5b348015604f57600080fd5b5060566058565b005b7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe7f8f50d21be7587a4814a9d4c10b7c8d1eea6389adbd44cb59ddaba790fd2ecbbd60405160405180910390a35600a165627a7a7230582001ea7e23316e03c35a0d249701f710d4bec204ed97ff80b235e7e362fd87bf960029";

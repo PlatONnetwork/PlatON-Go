@@ -21,7 +21,7 @@ import java.util.Collections;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class DisallowVariable extends Contract {
     private static final String BINARY = "60806040526001600255348015601457600080fd5b5060c2806100236000396000f3fe608060405260043610601c5760003560e01c80630f2da424146021575b600080fd5b604a60048036036020811015603557600080fd5b81019080803590602001909291905050506060565b6040518082815260200191505060405180910390f35b60008060006002600391509150600060016000868152602001908152602001600020905050505091905056fea264697066735822122012f3bd3c5e2384c20de121b0b0134cf983623861176b204fe2ea52a2f84685f264736f6c634300060c0033";
@@ -36,12 +36,12 @@ public class DisallowVariable extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<TransactionReceipt> tesEmpty(BigInteger _id) {
+    public RemoteCall<TransactionReceipt> tesEmpty(BigInteger _id, BigInteger vonValue) {
         final Function function = new Function(
                 FUNC_TESEMPTY, 
                 Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.generated.Uint256(_id)), 
                 Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+        return executeRemoteCallTransaction(function, vonValue);
     }
 
     public static RemoteCall<DisallowVariable> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

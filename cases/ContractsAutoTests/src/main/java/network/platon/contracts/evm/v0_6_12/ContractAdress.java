@@ -14,7 +14,7 @@ import com.alaya.tx.gas.GasProvider;
  * or the com.alaya.codegen.SolidityFunctionWrapperGenerator in the 
  * <a href="https://github.com/PlatONnetwork/client-sdk-java/tree/master/codegen">codegen module</a> to update.
  *
- * <p>Generated with web3j version 0.13.2.0.
+ * <p>Generated with web3j version 0.13.2.1.
  */
 public class ContractAdress extends Contract {
     private static final String BINARY = "6080604052348015600f57600080fd5b50604880601d6000396000f3fe6080604052348015600f57600080fd5b5000fea26469706673582212205abe5efa04cd92b06b0cefcbcb22d883bcaeed6d8fa4a9b1e307efcb459e164864736f6c634300060c0033";
