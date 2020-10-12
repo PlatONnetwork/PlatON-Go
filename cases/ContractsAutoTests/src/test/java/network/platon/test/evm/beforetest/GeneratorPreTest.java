@@ -26,7 +26,7 @@ import java.util.concurrent.Semaphore;
  * @author: qcxiao
  * @create: 2019/12/18 11:27
  **/
-@Slf4j
+//@Slf4j
 public class GeneratorPreTest extends ContractPrepareTest {
 
     private String contractAndLibrarys;
@@ -52,10 +52,10 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
             //2.将含有library库的合约中的引用替换为library库对对合约地址
             String[] contractAndLibrarysArr = contractAndLibrarys.split(";");
-            log.info("" + contractAndLibrarysArr.length);
+//            log.info("" + contractAndLibrarysArr.length);
             if (contractAndLibrarysArr.length > 0) {
                 for (int i = 0; i < contractAndLibrarysArr.length; i++) {
-                    log.info("contractAndLibrarysArr[i] is:" + contractAndLibrarysArr[i]);
+//                    log.info("contractAndLibrarysArr[i] is:" + contractAndLibrarysArr[i]);
                     try{
                         String[] singleContractLib = contractAndLibrarysArr[i].split("&");
                         deployLibrary(singleContractLib[0], singleContractLib[1]);
@@ -90,7 +90,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
         // 获取所有sol源文件
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
         int size = files.size();
-        log.info("size: " + size);
+//        log.info("size: " + size);
 
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
@@ -111,9 +111,9 @@ public class GeneratorPreTest extends ContractPrepareTest {
                 try {
                     semaphore.acquire();
                     compileUtil.evmCompile(file);
-                    log.info("compile success:" + file);
+//                    log.info("compile success:" + file);
                 } catch (Exception e) {
-                    log.info("compile fail:" + file, e.toString());
+//                    log.info("compile fail:" + file, e.toString());
                 } finally {
                     semaphore.release();
                     countDownLatch.countDown();
