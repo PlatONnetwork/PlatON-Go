@@ -36,11 +36,12 @@ def test_IT_IA_002_to_007(new_genesis_env):
     node_count = len(new_genesis_env.consensus_node_list)
     default_pledge_amount = Web3.toWei(node_count * 10500, 'ether')
     node = new_genesis_env.get_rand_node()
-    community_amount = Web3.toWei(2000000, 'ether')
+    community_amount = Web3.toWei(1000000, 'ether')
+    platon_fund = Web3.toWei(2000000, 'ether')
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     print(genesis)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
-    surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - Web3.toWei(1000000, 'ether'))
+    surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - platon_fund -  Web3.toWei(2000000, 'ether'))
     genesis.alloc = {
         "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf": {
             "balance": "2000000000000000000000000"
@@ -49,7 +50,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
             "balance": surplus_amount
         }
     }
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.2.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/alaya_genesis_0.13.2.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -71,11 +72,11 @@ def test_IT_IA_002_to_007(new_genesis_env):
     reality_total = foundation_louckup + incentive_pool + staking + foundation + remain + develop
     log.info("Total issuance of Chuangshi block：{}".format(reality_total))
     log.info("--------------Dividing line---------------")
-    assert foundation == 0, "ErrMsg:Initial amount of foundation {}".format(foundation)
+    assert foundation == Web3.toWei(2000000, 'ether'), "ErrMsg:Initial amount of foundation {}".format(foundation)
     assert foundation_louckup == 0, "ErrMsg:Initial lock up amount of foundation {}".format(
         foundation_louckup)
     assert staking == default_pledge_amount, "ErrMsg:Amount of initial pledge account: {}".format(staking)
-    assert incentive_pool == Web3.toWei(1000000, 'ether'), "ErrMsg:Initial amount of incentive pool {}".format(
+    assert incentive_pool == Web3.toWei(2000000, 'ether'), "ErrMsg:Initial amount of incentive pool {}".format(
         incentive_pool)
     assert remain == int(surplus_amount), "ErrMsg:Initial amount of remaining total account {}".format(remain)
     assert develop == community_amount - default_pledge_amount, "ErrMsg:Community developer foundation account amount {}".format(
