@@ -69,8 +69,8 @@ var (
 	DelegateUpperLimit, _ = new(big.Int).SetString("10000000000000000000000", 10)
 
 	// hard code genesis staking balance
-	// 2W ATP
-	GeneStakingAmount, _ = new(big.Int).SetString("20000000000000000000000", 10)
+	// 10500 ATP
+	GeneStakingAmount, _ = new(big.Int).SetString("10500000000000000000000", 10)
 
 	// 1W
 	StakeLowerLimit, _ = new(big.Int).SetString("10000000000000000000000", 10)
@@ -173,11 +173,15 @@ const (
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
 	var (
-		ok            bool
-		cdfundBalance *big.Int
+		ok                bool
+		cdfundBalance     *big.Int
+		platonFundBalance *big.Int
 	)
 
-	if cdfundBalance, ok = new(big.Int).SetString("4000000000000000000000000", 10); !ok {
+	if cdfundBalance, ok = new(big.Int).SetString("1000000000000000000000000", 10); !ok {
+		return nil
+	}
+	if platonFundBalance, ok = new(big.Int).SetString("2000000000000000000000000", 10); !ok {
 		return nil
 	}
 
@@ -228,7 +232,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
-				PlatONFundBalance: new(big.Int).SetInt64(0),
+				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atp17tfkaghs4vded6mz6k53xyv5cvqsl63h7wu5ty"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
@@ -279,7 +283,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
-				PlatONFundBalance: new(big.Int).SetInt64(0),
+				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atp17tfkaghs4vded6mz6k53xyv5cvqsl63h7wu5ty"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
@@ -330,7 +334,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atx10spacq8cz76y2n60pl7sg5yazncmjuus7n6hw2"),
-				PlatONFundBalance: new(big.Int).SetInt64(0),
+				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atx17tfkaghs4vded6mz6k53xyv5cvqsl63h5gq7cw"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
@@ -381,7 +385,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atx1q8r3em9wlamt0qe92alx5a9ff5j2s6lzlxrsxg"),
-				PlatONFundBalance: new(big.Int).SetInt64(0),
+				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atx1qtxa5d3defggwzdx2877z5fmytfu9f89d2ue2g"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
