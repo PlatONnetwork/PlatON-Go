@@ -3,16 +3,15 @@ package network.platon.contracts.evm.v0_6_12;
 import com.alaya.abi.solidity.TypeReference;
 import com.alaya.abi.solidity.datatypes.Function;
 import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Int256;
 import com.alaya.crypto.Credentials;
 import com.alaya.protocol.Web3j;
 import com.alaya.protocol.core.RemoteCall;
-import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tx.Contract;
 import com.alaya.tx.TransactionManager;
 import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * <p>Auto generated code.
@@ -36,13 +35,12 @@ public class InterfaceContractParent extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<TransactionReceipt> sumExternal(BigInteger a, BigInteger b) {
-        final Function function = new Function(
-                FUNC_SUMEXTERNAL, 
-                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.generated.Int256(a), 
-                new com.alaya.abi.solidity.datatypes.generated.Int256(b)), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+    public RemoteCall<BigInteger> sumExternal(BigInteger a, BigInteger b) {
+        final Function function = new Function(FUNC_SUMEXTERNAL, 
+                Arrays.<Type>asList(new Int256(a),
+                new Int256(b)),
+                Arrays.<TypeReference<?>>asList(new TypeReference<Int256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public static RemoteCall<InterfaceContractParent> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

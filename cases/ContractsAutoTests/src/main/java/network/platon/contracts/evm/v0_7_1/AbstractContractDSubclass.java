@@ -3,6 +3,7 @@ package network.platon.contracts.evm.v0_7_1;
 import com.alaya.abi.solidity.TypeReference;
 import com.alaya.abi.solidity.datatypes.Function;
 import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.Utf8String;
 import com.alaya.crypto.Credentials;
 import com.alaya.protocol.Web3j;
 import com.alaya.protocol.core.RemoteCall;
@@ -41,26 +42,24 @@ public class AbstractContractDSubclass extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<TransactionReceipt> dSubClassName() {
-        final Function function = new Function(
-                FUNC_DSUBCLASSNAME, 
+    public RemoteCall<String> dSubClassName() {
+        final Function function = new Function(FUNC_DSUBCLASSNAME, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
+        return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
-    public RemoteCall<TransactionReceipt> parentName() {
-        final Function function = new Function(
-                FUNC_PARENTNAME, 
+    public RemoteCall<String> parentName() {
+        final Function function = new Function(FUNC_PARENTNAME, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
+        return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> setParentName(String name) {
         final Function function = new Function(
                 FUNC_SETPARENTNAME, 
-                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.Utf8String(name)), 
+                Arrays.<Type>asList(new Utf8String(name)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -68,7 +67,7 @@ public class AbstractContractDSubclass extends Contract {
     public RemoteCall<TransactionReceipt> setParentNameD(String name) {
         final Function function = new Function(
                 FUNC_SETPARENTNAMED, 
-                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.Utf8String(name)), 
+                Arrays.<Type>asList(new Utf8String(name)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }

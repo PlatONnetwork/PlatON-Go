@@ -7,13 +7,11 @@ import com.alaya.abi.solidity.datatypes.generated.Uint256;
 import com.alaya.crypto.Credentials;
 import com.alaya.protocol.Web3j;
 import com.alaya.protocol.core.RemoteCall;
-import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tx.Contract;
 import com.alaya.tx.TransactionManager;
 import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * <p>Auto generated code.
@@ -25,7 +23,7 @@ import java.util.Collections;
  * <p>Generated with web3j version 0.13.2.1.
  */
 public class InheritContractParentThreeClass extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060b78061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c8063430fe9c1146037578063887c5838146053575b600080fd5b603d606f565b6040518082815260200191505060405180910390f35b60596078565b6040518082815260200191505060405180910390f35b60006002905090565b6000600390509056fea2646970667358221220f31fedcc4dce19eb86b35dcfb31ec8f2c939c711afe57e186e69dac5081a640364736f6c634300060c0033";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060b78061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c8063430fe9c1146037578063887c5838146053575b600080fd5b603d606f565b6040518082815260200191505060405180910390f35b60596078565b6040518082815260200191505060405180910390f35b60006002905090565b6000600390509056fea2646970667358221220b9dbcb256633051b6ac0b4283bec91f6de591d6444b5285fb3be4fb6350eec1564736f6c634300060c0033";
 
     public static final String FUNC_GETDATATHREE = "getDataThree";
 
@@ -46,12 +44,11 @@ public class InheritContractParentThreeClass extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> getDate() {
-        final Function function = new Function(
-                FUNC_GETDATE, 
+    public RemoteCall<BigInteger> getDate() {
+        final Function function = new Function(FUNC_GETDATE, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public static RemoteCall<InheritContractParentThreeClass> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

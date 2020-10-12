@@ -3,16 +3,15 @@ package network.platon.contracts.evm.v0_7_1;
 import com.alaya.abi.solidity.TypeReference;
 import com.alaya.abi.solidity.datatypes.Function;
 import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Uint256;
 import com.alaya.crypto.Credentials;
 import com.alaya.protocol.Web3j;
 import com.alaya.protocol.core.RemoteCall;
-import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tx.Contract;
 import com.alaya.tx.TransactionManager;
 import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * <p>Auto generated code.
@@ -36,13 +35,12 @@ public class InterfaceContractInheritTwo extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<TransactionReceipt> reduce(BigInteger c, BigInteger d) {
-        final Function function = new Function(
-                FUNC_REDUCE, 
-                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.generated.Uint256(c), 
-                new com.alaya.abi.solidity.datatypes.generated.Uint256(d)), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+    public RemoteCall<BigInteger> reduce(BigInteger c, BigInteger d) {
+        final Function function = new Function(FUNC_REDUCE, 
+                Arrays.<Type>asList(new Uint256(c),
+                new Uint256(d)),
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public static RemoteCall<InterfaceContractInheritTwo> deploy(Web3j web3j, Credentials credentials, GasProvider contractGasProvider, Long chainId) {

@@ -25,7 +25,7 @@ import java.util.Collections;
  * <p>Generated with web3j version 0.13.2.1.
  */
 public class AbstractContractGSubclass extends Contract {
-    private static final String BINARY = "60806040526000805534801561001457600080fd5b5060f3806100236000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c8063262a9dff14604157806335f99d4814605d578063d1eef376146088575b600080fd5b604760a4565b6040518082815260200191505060405180910390f35b608660048036036020811015607157600080fd5b810190808035906020019092919050505060aa565b005b608e60b4565b6040518082815260200191505060405180910390f35b60005481565b8060008190555050565b6000805490509056fea264697066735822122088798519f8d0f0b8a4ee7367534a6b6cdb6cf2e0c46f3fed1cf13ae5ca238d5964736f6c63430007010033";
+    private static final String BINARY = "60806040526000805534801561001457600080fd5b5060f3806100236000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c8063262a9dff14604157806335f99d4814605d578063d1eef376146088575b600080fd5b604760a4565b6040518082815260200191505060405180910390f35b608660048036036020811015607157600080fd5b810190808035906020019092919050505060aa565b005b608e60b4565b6040518082815260200191505060405180910390f35b60005481565b8060008190555050565b6000805490509056fea26469706673582212204c9bbd4927c2cdae4a4c1b631ee53b19495404fbba8c234351c8db4d19376f2d64736f6c63430007010033";
 
     public static final String FUNC_AINTERAGE = "aInterAge";
 
@@ -41,12 +41,11 @@ public class AbstractContractGSubclass extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<TransactionReceipt> aInterAge() {
-        final Function function = new Function(
-                FUNC_AINTERAGE, 
+    public RemoteCall<BigInteger> aInterAge() {
+        final Function function = new Function(FUNC_AINTERAGE, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Int256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<BigInteger> age() {

@@ -7,13 +7,11 @@ import com.alaya.abi.solidity.datatypes.generated.Uint256;
 import com.alaya.crypto.Credentials;
 import com.alaya.protocol.Web3j;
 import com.alaya.protocol.core.RemoteCall;
-import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tx.Contract;
 import com.alaya.tx.TransactionManager;
 import com.alaya.tx.gas.GasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * <p>Auto generated code.
@@ -25,7 +23,7 @@ import java.util.Collections;
  * <p>Generated with web3j version 0.13.2.1.
  */
 public class InheritContractSubclass extends Contract {
-    private static final String BINARY = "608060405234801561001057600080fd5b5060e68061001f6000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c8063430fe9c1146041578063825b71d914605d578063887c5838146079575b600080fd5b60476095565b6040518082815260200191505060405180910390f35b6063609e565b6040518082815260200191505060405180910390f35b607f60a7565b6040518082815260200191505060405180910390f35b60006002905090565b60006004905090565b6000600390509056fea2646970667358221220e1e9ea957ec116e9956913e482fdf55ed11a20514296f57ea9da377e1182b2cb64736f6c634300060c0033";
+    private static final String BINARY = "608060405234801561001057600080fd5b5060e68061001f6000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c8063430fe9c1146041578063825b71d914605d578063887c5838146079575b600080fd5b60476095565b6040518082815260200191505060405180910390f35b6063609e565b6040518082815260200191505060405180910390f35b607f60a7565b6040518082815260200191505060405180910390f35b60006002905090565b60006004905090565b6000600390509056fea264697066735822122098032aa4a6ad9408b6fc009b892072a28b0b497f288e842c0b20145fbd655a8a64736f6c634300060c0033";
 
     public static final String FUNC_GETDATATHREE = "getDataThree";
 
@@ -48,12 +46,11 @@ public class InheritContractSubclass extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteCall<TransactionReceipt> getDate() {
-        final Function function = new Function(
-                FUNC_GETDATE, 
+    public RemoteCall<BigInteger> getDate() {
+        final Function function = new Function(FUNC_GETDATE, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<BigInteger> getSubData() {
