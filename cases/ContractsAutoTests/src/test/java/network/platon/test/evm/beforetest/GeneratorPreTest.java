@@ -1,8 +1,6 @@
 package network.platon.test.evm.beforetest;
-
 import com.alaya.bech32.Bech32;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
-import lombok.extern.slf4j.Slf4j;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
@@ -12,7 +10,6 @@ import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
 import org.junit.Before;
 import org.junit.Test;
-
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -26,7 +23,6 @@ import java.util.concurrent.Semaphore;
  * @author: qcxiao
  * @create: 2019/12/18 11:27
  **/
-@Slf4j
 public class GeneratorPreTest extends ContractPrepareTest {
 
     private String contractAndLibrarys;
@@ -52,10 +48,10 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
             //2.将含有library库的合约中的引用替换为library库对对合约地址
             String[] contractAndLibrarysArr = contractAndLibrarys.split(";");
-            log.info("" + contractAndLibrarysArr.length);
+//            log.info("" + contractAndLibrarysArr.length);
             if (contractAndLibrarysArr.length > 0) {
                 for (int i = 0; i < contractAndLibrarysArr.length; i++) {
-                    log.info("contractAndLibrarysArr[i] is:" + contractAndLibrarysArr[i]);
+//                    log.info("contractAndLibrarysArr[i] is:" + contractAndLibrarysArr[i]);
                     try{
                         String[] singleContractLib = contractAndLibrarysArr[i].split("&");
                         deployLibrary(singleContractLib[0], singleContractLib[1],singleContractLib[2]);
@@ -90,30 +86,21 @@ public class GeneratorPreTest extends ContractPrepareTest {
         // 获取所有sol源文件
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
         int size = files.size();
-        log.info("size: " + size);
-
+//        log.info("size: " + size);
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
         final Semaphore semaphore = new Semaphore(20);
         // 请求总数与文件数定义一致size
         CountDownLatch countDownLatch = new CountDownLatch(size);
         CompileUtil compileUtil = new CompileUtil();
-
         for (String file : files) {
-            //collector.logStepPass("staring compile:" + file);
-//            try{
-//                compileUtil.evmCompile(file);
-//                log.info("compile success:" + file);
-//            }catch (Exception e){
-//                log.info("compile fail:" + file, e.toString());
-//            }
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
                     compileUtil.evmCompile(file);
-                    log.info("compile success:" + file);
+//                    log.info("compile success:" + file);
                 } catch (Exception e) {
-                    log.info("compile fail:" + file, e.toString());
+//                    log.info("compile fail:" + file, e.toString());
                 } finally {
                     semaphore.release();
                     countDownLatch.countDown();

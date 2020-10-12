@@ -1,4 +1,4 @@
-package network.platon.test.evm.v0_4_26.complexcontracts.erc20_v_0_4_12;
+package network.platon.test.evm.v0_4_26.complexcontracts.erc;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.contracts.evm.v0_4_26.ERC200412Token;

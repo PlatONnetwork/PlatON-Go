@@ -1,4 +1,4 @@
-package network.platon.test.evm.v0_4_26.function.functionVisibilityAndDecarations;
+package network.platon.test.evm.v0_4_26.function;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.contracts.evm.v0_4_26.ConstantViewPure;
