@@ -58,7 +58,7 @@ interface InterfaceContractStruct {
         string title;
         string describe;
    }
-   function getDefaultBookID() external virtual returns (int);
+   function getDefaultBookID() external virtual view returns (int);
 }
 
 contract  InterfaceContractStructTest is InterfaceContractStruct {
@@ -72,7 +72,7 @@ contract  InterfaceContractStructTest is InterfaceContractStruct {
           return book.bookID;
     }
 
-    function getDefaultBookID() external override returns (int) {
+    function getDefaultBookID() external override view returns (int) {
        if(book.bookID == 0){
            return 0;
        }
