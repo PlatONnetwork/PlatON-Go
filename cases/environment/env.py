@@ -96,7 +96,7 @@ class TestEnvironment:
 
     @property
     def version(self):
-        return "0.13.0"
+        return "0.13.2"
 
     @property
     def running(self) -> bool:

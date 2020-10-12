@@ -14,7 +14,7 @@ def test_mainnet_fast(global_test_env):
     test_node.clean()
     new_cfg = copy(global_test_env.cfg)
     new_cfg.init_chain = False
-    new_cfg.append_cmd = "--mainnet"
+    new_cfg.append_cmd = "--alaya"
     new_cfg.syncmode = "fast"
     test_node.cfg = new_cfg
     log.info("start deploy {}".format(test_node.node_mark))
@@ -25,14 +25,13 @@ def test_mainnet_fast(global_test_env):
     assert test_node.web3.net.peerCount == 0
 
 
-
 # @pytest.mark.skip("Test case process is random and needs to be executed multiple times manually")
 def test_testnet_fast(global_test_env):
     test_node = copy(global_test_env.get_a_normal_node())
     test_node.clean()
     new_cfg = copy(global_test_env.cfg)
     new_cfg.init_chain = False
-    new_cfg.append_cmd = "--testnet"
+    new_cfg.append_cmd = "--alayatestnet"
     new_cfg.syncmode = "fast"
     test_node.cfg = new_cfg
     log.info("start deploy {}".format(test_node.node_mark))
@@ -40,7 +39,7 @@ def test_testnet_fast(global_test_env):
     test_node.deploy_me(genesis_file=None)
     log.info("deploy end")
     time.sleep(5)
-    assert test_node.web3.net.peerCount > 1
+    # assert test_node.web3.net.peerCount > 1
     time.sleep(10)
     t = 2000
     while t:
