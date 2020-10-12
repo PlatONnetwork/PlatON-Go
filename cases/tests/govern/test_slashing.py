@@ -238,6 +238,8 @@ class TestSlashing:
         assert param_proposal(pip, 'slashing', 'slashBlocksReward', '10') == 302022
         assert text_proposal(pip) == 302022
         pip_id = version_proposal(pips[1], pips[1].cfg.version5, 5)
+        bn = pip.node.eth.blockNumber
+        wait_block_number(pip.node, bn + 5)
         assert cancel_proposal(pip, pip_id, 2) == 302022
 
     @pytest.mark.P1
