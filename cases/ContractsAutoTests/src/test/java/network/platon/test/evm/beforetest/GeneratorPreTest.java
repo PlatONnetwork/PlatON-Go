@@ -1,5 +1,4 @@
 package network.platon.test.evm.beforetest;
-
 import com.alaya.bech32.Bech32;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -11,7 +10,6 @@ import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
 import org.junit.Before;
 import org.junit.Test;
-
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -89,22 +87,13 @@ public class GeneratorPreTest extends ContractPrepareTest {
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
         int size = files.size();
 //        log.info("size: " + size);
-
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
         final Semaphore semaphore = new Semaphore(20);
         // 请求总数与文件数定义一致size
         CountDownLatch countDownLatch = new CountDownLatch(size);
         CompileUtil compileUtil = new CompileUtil();
-
         for (String file : files) {
-            //collector.logStepPass("staring compile:" + file);
-//            try{
-//                compileUtil.evmCompile(file);
-//                log.info("compile success:" + file);
-//            }catch (Exception e){
-//                log.info("compile fail:" + file, e.toString());
-//            }
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
