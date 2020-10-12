@@ -3,6 +3,7 @@ package network.platon.test.evm.v0_7_1.function.specialVariablesAndFunctions;
 import com.alaya.bech32.Bech32;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.parameters.NetworkParameters;
+import network.platon.contracts.evm.v0_7_1.MathAndCryptographicFunctions;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
