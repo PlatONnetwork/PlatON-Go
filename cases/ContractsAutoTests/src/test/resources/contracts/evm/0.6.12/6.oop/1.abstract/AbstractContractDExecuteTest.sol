@@ -27,7 +27,7 @@ import "./BaseAbstractParentInterface.sol";
          age = v;
      }
 
-     function aInterAge() external override returns (int){
+     function aInterAge() external override view returns (int){
          return age;
      }
  }

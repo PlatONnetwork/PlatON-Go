@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_6_12.data_type.ReferenceData;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tuples.generated.Tuple4;
+import network.platon.contracts.evm.v0_6_12.ReferenceDataTypeStructContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -24,7 +25,7 @@ public class ReferenceDataTypeStructContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructContractTest.结构体定义、赋值及取值",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructContractTest.结构体定义、赋值及取值",sourcePrefix = "evm/0.6.12")
     public void testReferenceDataTypeStructTest() {
 
         ReferenceDataTypeStructContract referenceDataTypeStructContract = null;

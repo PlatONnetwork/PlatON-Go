@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.data_type.structs;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.RecursiveStorageMemoryComplex;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -23,7 +24,7 @@ public class RecursiveStorageMemoryComplexTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls",sheetName = "structs", author = "hudenian", showName = "StructDataTypeTest.结构体数据类型",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls",sheetName = "structs", author = "hudenian", showName = "StructDataTypeTest.结构体数据类型",sourcePrefix = "evm/0.6.12")
     public void testRecursiveStorageMemoryComplex() {
 
         RecursiveStorageMemoryComplex recursiveStorageMemoryComplex = null;

@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.controlstruct;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.ShortCircuitError;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -23,7 +24,7 @@ public class ShortCircuitErrorTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ShortCircuitErrorTest-短路语法", sourcePrefix = "evm")
+            author = "hudenian", showName = "ShortCircuitErrorTest-短路语法", sourcePrefix = "evm/0.6.12")
     public void shortCircuitStruct() {
         try {
 

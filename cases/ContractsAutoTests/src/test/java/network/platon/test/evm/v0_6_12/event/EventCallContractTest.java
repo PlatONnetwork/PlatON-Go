@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.event;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.EventCallContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -20,7 +21,7 @@ import java.util.List;
 public class EventCallContractTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "emitEvent",
-            author = "albedo", showName = "event.EventCallContractTest-event关键字声明事件", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventCallContractTest-event关键字声明事件", sourcePrefix = "evm/0.6.12")
     public void testEmitEvent() {
         try {
             prepare();

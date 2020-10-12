@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_6_12.function.functioncalls;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tuples.generated.Tuple2;
+import network.platon.contracts.evm.v0_6_12.NamedCall;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -28,7 +29,7 @@ public class NamedCallTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.NamedCallTest-函数具名调用测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.NamedCallTest-函数具名调用测试", sourcePrefix = "evm/0.6.12")
     public void namedcall() {
         try {
             NamedCall namedcall = NamedCall.deploy(web3j, transactionManager, provider, chainId).send();

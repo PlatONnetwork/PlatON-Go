@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.function.contractRelatedAndFallback;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.FallBack;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -25,7 +26,7 @@ public class FallbackTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.FallbackTest-this和回退函数测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.FallbackTest-this和回退函数测试", sourcePrefix = "evm/0.6.12")
     public void fallback() {
         try {
             FallBack fallback = FallBack.deploy(web3j, transactionManager, provider, chainId).send();

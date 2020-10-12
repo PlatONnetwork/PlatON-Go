@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.function.functionVisibilityAndDecarations;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.Inter;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -26,7 +27,7 @@ public class InterTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.InterTest-函数可见性继承合约调用内部方法测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.InterTest-函数可见性继承合约调用内部方法测试", sourcePrefix = "evm/0.6.12")
     public void inter() {
         try {
             Inter intercall = Inter.deploy(web3j, transactionManager, provider, chainId).send();

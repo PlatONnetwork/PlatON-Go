@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.controlstruct;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.Control;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -40,7 +41,7 @@ public class ControlTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ControlTest-控制结构测试", sourcePrefix = "evm")
+            author = "hudenian", showName = "ControlTest-控制结构测试", sourcePrefix = "evm/0.6.12")
     public void controlStructCheck() {
         try {
 

@@ -1,5 +1,6 @@
 package network.platon.test.evm.v0_6_12.exec_efficiency;
 
+import network.platon.contracts.evm.v0_6_12.LoopCallOfView;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -25,7 +26,7 @@ public class LoopCallOfViewTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "exec_efficiency.LoopCallOfView-循环执行", sourcePrefix = "evm")
+            author = "qcxiao", showName = "exec_efficiency.LoopCallOfView-循环执行", sourcePrefix = "evm/0.6.12")
     public void test() {
         prepare();
         try {

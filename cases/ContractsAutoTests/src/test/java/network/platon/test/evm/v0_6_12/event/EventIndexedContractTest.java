@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.event;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.EventIndexedContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.annotations.DataSource;
@@ -21,7 +22,7 @@ public class EventIndexedContractTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testIntIndex",
-            author = "albedo", showName = "event.EventIndexedContractTest-有符号整型索引", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventIndexedContractTest-有符号整型索引", sourcePrefix = "evm/0.6.12")
     public void testIntIndex() {
         try {
             prepare();

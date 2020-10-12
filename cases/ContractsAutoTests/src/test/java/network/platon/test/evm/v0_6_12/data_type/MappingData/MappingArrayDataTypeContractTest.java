@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_6_12.data_type.MappingData;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tuples.generated.Tuple4;
+import network.platon.contracts.evm.v0_6_12.MappingArrayDataTypeContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -31,7 +32,7 @@ public class MappingArrayDataTypeContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "MappingDataTypeContract.mapping数组类型",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "MappingDataTypeContract.mapping数组类型",sourcePrefix = "evm/0.6.12")
     public void testMappingContract() {
 
         MappingArrayDataTypeContract mappingArrayDataTypeContract = null;

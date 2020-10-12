@@ -13,5 +13,5 @@ abstract contract AbstractContractDSubclass is AbstractContractParentClass {
          myName = name;
      }
 
-     function dSubClassName() public virtual returns (string memory dSubName);
+     function dSubClassName() public virtual view returns (string memory dSubName);
  }

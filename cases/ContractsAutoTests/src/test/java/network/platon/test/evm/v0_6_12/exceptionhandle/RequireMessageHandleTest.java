@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_6_12.exceptionhandle;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.protocol.exceptions.TransactionException;
+import network.platon.contracts.evm.v0_6_12.RequireMessageHandle;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -18,7 +19,7 @@ import java.math.BigInteger;
 public class RequireMessageHandleTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "albedo", showName = "exceptionhandle.RequireMessageHandle-require(bool condition, string message)函数", sourcePrefix = "evm")
+            author = "albedo", showName = "exceptionhandle.RequireMessageHandle-require(bool condition, string message)函数", sourcePrefix = "evm/0.6.12")
     public void testParamException() {
         try {
             prepare();

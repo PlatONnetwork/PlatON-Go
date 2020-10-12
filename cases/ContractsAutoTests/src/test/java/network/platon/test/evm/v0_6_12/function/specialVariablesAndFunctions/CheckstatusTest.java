@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.function.specialVariablesAndFunctions;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.SelfdestructFunctions;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -24,7 +25,7 @@ public class CheckstatusTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "function.CheckstatusTest-两个合约间是否会相互影响", sourcePrefix = "evm")
+            author = "hudenian", showName = "function.CheckstatusTest-两个合约间是否会相互影响", sourcePrefix = "evm/0.6.12")
     public void Selfdestructfunction() {
         try {
             //第一次部署合约

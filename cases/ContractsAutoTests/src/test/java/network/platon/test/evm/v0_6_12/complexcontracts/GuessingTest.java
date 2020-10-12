@@ -4,6 +4,7 @@ import com.alaya.protocol.core.DefaultBlockParameterName;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tx.Transfer;
 import com.alaya.utils.Convert;
+import network.platon.contracts.evm.v0_6_12.Guessing;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -29,7 +30,7 @@ public class GuessingTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "function.GuessingTest-竞猜合约测试", sourcePrefix = "evm")
+            author = "hudenian", showName = "function.GuessingTest-竞猜合约测试", sourcePrefix = "evm/0.6.12")
     public void guessingTest() {
 
         try {

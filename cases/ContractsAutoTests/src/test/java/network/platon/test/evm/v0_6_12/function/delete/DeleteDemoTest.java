@@ -4,6 +4,7 @@ import com.alaya.bech32.Bech32;
 import com.alaya.parameters.NetworkParameters;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tuples.generated.Tuple2;
+import network.platon.contracts.evm.v0_6_12.DeleteDemo;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -34,7 +35,7 @@ public class DeleteDemoTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.DeleteDemoTest-delete操作测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.DeleteDemoTest-delete操作测试", sourcePrefix = "evm/0.6.12")
     public void Deletedemo() {
         try {
             DeleteDemo deletedemo = DeleteDemo.deploy(web3j, transactionManager, provider, chainId).send();

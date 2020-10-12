@@ -1,6 +1,9 @@
 package network.platon.test.evm.v0_6_12.crossContractCall;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.CallerOne;
+import network.platon.contracts.evm.v0_6_12.CallerThree;
+import network.platon.contracts.evm.v0_6_12.CallerTwo;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -24,7 +27,7 @@ public class ThreeContractCallTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ThreeContractCallTest-三个合约间跨合约调用者", sourcePrefix = "evm")
+            author = "hudenian", showName = "ThreeContractCallTest-三个合约间跨合约调用者", sourcePrefix = "evm/0.6.12")
     public void threeContractCaller() {
         try {
             //第一个合约

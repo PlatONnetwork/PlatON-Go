@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_6_12.event;
 
 import com.alaya.abi.solidity.datatypes.generated.Uint256;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.EventTypeContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -20,7 +21,7 @@ import java.util.List;
 public class EventTypeContractTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "testOneDimensionalArray",
-            author = "albedo", showName = "event.EventTypeContractTest-一维数组类型", sourcePrefix = "evm")
+            author = "albedo", showName = "event.EventTypeContractTest-一维数组类型", sourcePrefix = "evm/0.6.12")
     public void testOneDimensionalArray() {
         try {
             prepare();

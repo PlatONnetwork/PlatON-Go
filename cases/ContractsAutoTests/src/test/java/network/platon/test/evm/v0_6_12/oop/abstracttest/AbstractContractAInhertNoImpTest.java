@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.oop.abstracttest;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.AbstractContractSon;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -20,7 +21,7 @@ public class AbstractContractAInhertNoImpTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约被继承未实现执行情况",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约被继承未实现执行情况",sourcePrefix = "evm/0.6.12")
     public void testAbstractContract() {
 
         AbstractContractSon sonAbstractContract = null;

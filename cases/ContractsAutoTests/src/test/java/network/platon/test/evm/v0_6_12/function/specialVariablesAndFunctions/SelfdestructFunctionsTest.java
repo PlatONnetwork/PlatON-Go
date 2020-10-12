@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_6_12.function.specialVariablesAndFunctions;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.SelfdestructFunctions;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -24,7 +25,7 @@ public class SelfdestructFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.SelfdestructFunctionsTest-合约相关函数测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.SelfdestructFunctionsTest-合约相关函数测试", sourcePrefix = "evm/0.6.12")
     public void Selfdestructfunction() {
         try {
             SelfdestructFunctions selfdestructFunctions = SelfdestructFunctions.deploy(web3j, transactionManager, provider, chainId).send();

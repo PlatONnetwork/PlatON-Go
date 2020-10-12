@@ -3,6 +3,7 @@ package network.platon.test.evm.v0_6_12.function.functionVisibilityAndDecaration
 import com.alaya.bech32.Bech32;
 import com.alaya.parameters.NetworkParameters;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_6_12.Payable;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -28,7 +29,7 @@ public class PayableTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.PayableTest-函数声明方式Payable测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.PayableTest-函数声明方式Payable测试", sourcePrefix = "evm/0.6.12")
     public void payable() {
         try {
             Payable payable = Payable.deploy(web3j, transactionManager, provider, chainId).send();

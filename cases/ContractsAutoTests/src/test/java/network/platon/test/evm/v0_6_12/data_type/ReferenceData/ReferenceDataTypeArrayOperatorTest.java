@@ -3,6 +3,7 @@ package network.platon.test.evm.v0_6_12.data_type.ReferenceData;
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tuples.generated.Tuple2;
 import com.alaya.tuples.generated.Tuple5;
+import network.platon.contracts.evm.v0_6_12.ReferenceDataTypeArrayOperatorContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -25,7 +26,7 @@ public class ReferenceDataTypeArrayOperatorTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeArray.数组支持的运算符",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeArray.数组支持的运算符",sourcePrefix = "evm/0.6.12")
     public void testReferenceDataTypeArrayTest() {
 
         ReferenceDataTypeArrayOperatorContract referenceDataTypeArrayOperator = null;

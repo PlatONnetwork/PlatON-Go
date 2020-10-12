@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_6_12.data_type.TypeConversion;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tuples.generated.Tuple2;
+import network.platon.contracts.evm.v0_6_12.TypeConversionContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -25,7 +26,7 @@ public class TypeConversionContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "TypeConversionContract.基本类型转换",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "TypeConversionContract.基本类型转换",sourcePrefix = "evm/0.6.12")
     public void testTypeConversionContract() {
 
         TypeConversionContract typeConversionContractTest = null;

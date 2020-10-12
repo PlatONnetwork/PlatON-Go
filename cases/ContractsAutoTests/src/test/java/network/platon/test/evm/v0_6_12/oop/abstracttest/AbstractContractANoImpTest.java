@@ -10,6 +10,7 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
 import network.platon.autotest.junit.rules.DriverService;
+import network.platon.contracts.evm.v0_6_12.AbstractContractGrandpa;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,7 +40,7 @@ public class AbstractContractANoImpTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约未实现执行情况",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "AbstractContract.抽象合约未实现执行情况",sourcePrefix = "evm/0.6.12")
     public void testAbstractContract() {
         Web3j web3j = null;
         Credentials credentials = null;
