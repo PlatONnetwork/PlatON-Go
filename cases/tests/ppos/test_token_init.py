@@ -34,16 +34,16 @@ def test_IT_IA_002_to_007(new_genesis_env):
     """
     # Initialization genesis file Initial amount
     node_count = len(new_genesis_env.consensus_node_list)
-    default_pledge_amount = Web3.toWei(node_count * 20000, 'ether')
+    default_pledge_amount = Web3.toWei(node_count * 10500, 'ether')
     node = new_genesis_env.get_rand_node()
-    community_amount = Web3.toWei(4000000, 'ether')
+    community_amount = Web3.toWei(2000000, 'ether')
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     print(genesis)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
     surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - Web3.toWei(1000000, 'ether'))
     genesis.alloc = {
         "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf": {
-            "balance": "1000000000000000000000000"
+            "balance": "2000000000000000000000000"
         },
         "atx1zkrxx6rf358jcvr7nruhyvr9hxpwv9unj58er9": {
             "balance": surplus_amount
