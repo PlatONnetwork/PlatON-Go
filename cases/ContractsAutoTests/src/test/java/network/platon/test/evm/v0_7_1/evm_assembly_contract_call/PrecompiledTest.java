@@ -27,7 +27,7 @@ public class PrecompiledTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "evm_assembly_contract_call.AssemblyAddTest-evm合约调用系统合约", sourcePrefix = "evm")
+            author = "hudenian", showName = "evm_assembly_contract_call.AssemblyAddTest-evm合约调用系统合约", sourcePrefix = "evm/0.7.1")
     public void precompiledTest() {
         try {
             Precompiled precompiled = Precompiled.deploy(web3j, transactionManager, provider, chainId).send();

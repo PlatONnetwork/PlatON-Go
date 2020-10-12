@@ -24,7 +24,7 @@ public class ReferenceDataTypeStructContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructContractTest.结构体定义、赋值及取值",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructContractTest.结构体定义、赋值及取值",sourcePrefix = "evm/0.7.1")
     public void testReferenceDataTypeStructTest() {
 
         ReferenceDataTypeStructContract referenceDataTypeStructContract = null;

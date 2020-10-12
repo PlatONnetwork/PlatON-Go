@@ -23,7 +23,7 @@ public class ReferenceDataTypeStructDeleteContractTest extends ContractPrepareTe
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructDelete.结构体嵌套delete操作",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructDelete.结构体嵌套delete操作",sourcePrefix = "evm/0.7.1")
     public void testReferenceDataTypeStructRecursive() {
 
         ReferenceDataTypeStructDeleteContract referenceDataTypeStructDelete = null;

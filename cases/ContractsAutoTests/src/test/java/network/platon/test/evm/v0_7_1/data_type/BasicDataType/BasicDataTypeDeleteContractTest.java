@@ -25,7 +25,7 @@ public class BasicDataTypeDeleteContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "BasicDataTypeDelete.数据类型操作符delete",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "BasicDataTypeDelete.数据类型操作符delete",sourcePrefix = "evm/0.7.1")
     public void testBasicDataTypeContract() {
         BasicDataTypeDeleteContract basicDataTypeDeleteContract = null;
         try {

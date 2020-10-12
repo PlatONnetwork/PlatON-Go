@@ -26,7 +26,7 @@ public class Caller0425Test extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "Caller0425Test-0.4.25跨合约调用CALL", sourcePrefix = "evm")
+            author = "hudenian", showName = "Caller0425Test-0.4.25跨合约调用CALL", sourcePrefix = "evm/0.7.1")
     public void caller0425CallTest() {
         try {
             //调用者合约地址
@@ -74,7 +74,7 @@ public class Caller0425Test extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test1.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "Caller0425Test-0.4.25跨合约调用CALLCODE", sourcePrefix = "evm")
+            author = "hudenian", showName = "Caller0425Test-0.4.25跨合约调用CALLCODE", sourcePrefix = "evm/0.7.1")
     public void caller0425CallCodeTest() {
         try {
             //调用者合约地址
@@ -120,7 +120,7 @@ public class Caller0425Test extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test2.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "Caller0425Test-0.4.25跨合约调用DELEGATECALL", sourcePrefix = "evm")
+            author = "hudenian", showName = "Caller0425Test-0.4.25跨合约调用DELEGATECALL", sourcePrefix = "evm/0.7.1")
     public void caller0425DelegateCallTest() {
         try {
             //调用者合约地址

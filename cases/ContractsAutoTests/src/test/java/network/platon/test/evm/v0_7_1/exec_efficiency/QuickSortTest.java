@@ -30,7 +30,7 @@ public class QuickSortTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "zjsunzone", showName = "exec_efficiency.QuickSort-快速排序", sourcePrefix = "evm")
+            author = "zjsunzone", showName = "exec_efficiency.QuickSort-快速排序", sourcePrefix = "evm/0.7.1")
     public void test() {
         prepare();
         try {

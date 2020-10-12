@@ -24,7 +24,7 @@ public class CheckstatusTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "function.CheckstatusTest-两个合约间是否会相互影响", sourcePrefix = "evm")
+            author = "hudenian", showName = "function.CheckstatusTest-两个合约间是否会相互影响", sourcePrefix = "evm/0.7.1")
     public void Selfdestructfunction() {
         try {
             //第一次部署合约

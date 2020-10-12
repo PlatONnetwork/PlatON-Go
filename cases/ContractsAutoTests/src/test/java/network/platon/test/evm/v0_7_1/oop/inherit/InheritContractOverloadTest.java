@@ -22,7 +22,7 @@ public class InheritContractOverloadTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InheritContract.多重继承函数重载",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InheritContract.多重继承函数重载",sourcePrefix = "evm/0.7.1")
     public void testInheritContractMutipleTest1() {
 
         InheritContractOverload inheritContractOverload = null;

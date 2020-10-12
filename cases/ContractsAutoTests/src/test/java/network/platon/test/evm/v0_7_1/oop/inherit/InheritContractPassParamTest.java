@@ -22,7 +22,7 @@ public class InheritContractPassParamTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InheritContract.合约继承支持传参",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "InheritContract.合约继承支持传参",sourcePrefix = "evm/0.7.1")
     public void testInheritContractMutipleTest1() {
 
         InheritContractASub inheritContractSub1 = null;

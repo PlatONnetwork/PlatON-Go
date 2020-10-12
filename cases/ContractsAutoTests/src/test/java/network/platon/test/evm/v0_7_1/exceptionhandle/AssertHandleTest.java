@@ -26,7 +26,7 @@ import java.math.BigInteger;
 public class AssertHandleTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "intChangeException",
-            author = "albedo", showName = "exceptionhandle.AssertHandle-整数显式转换为枚举", sourcePrefix = "evm")
+            author = "albedo", showName = "exceptionhandle.AssertHandle-整数显式转换为枚举", sourcePrefix = "evm/0.7.1")
     public void testIntChangeException() {
         try {
             prepare();
@@ -55,7 +55,7 @@ public class AssertHandleTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "paramException",
-            author = "albedo", showName = "exceptionhandle.AssertHandle-调用assert的参数为false", sourcePrefix = "evm")
+            author = "albedo", showName = "exceptionhandle.AssertHandle-调用assert的参数为false", sourcePrefix = "evm/0.7.1")
     public void testParamException() {
         try {
             prepare();

@@ -23,7 +23,7 @@ public class BlockhashTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.BlockhashTest-验证以blockhash函数", sourcePrefix = "evm")
+            author = "liweic", showName = "function.BlockhashTest-验证以blockhash函数", sourcePrefix = "evm/0.7.1")
     public void blockhashTest() {
         try {
             Blockhash blockhash = Blockhash.deploy(web3j, transactionManager, provider, chainId).send();

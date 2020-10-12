@@ -48,7 +48,7 @@ public class PlatonInnerTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "evm_assembly_contract_call.PlatonInnerTest-evm合约调用PPOS合约", sourcePrefix = "evm")
+            author = "hudenian", showName = "evm_assembly_contract_call.PlatonInnerTest-evm合约调用PPOS合约", sourcePrefix = "evm/0.7.1")
     public void platonInner() {
         try {
             PlatonInner platonInner = PlatonInner.deploy(web3j, transactionManager, provider, chainId).send();

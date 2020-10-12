@@ -28,7 +28,7 @@ public class InheritanceModifierTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.InheritanceModifierTest-单修饰器函数测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.InheritanceModifierTest-单修饰器函数测试", sourcePrefix = "evm/0.7.1")
     public void inheritancemodifier() {
         try {
             InheritanceModifier inheritanceModifier = InheritanceModifier.deploy(web3j, transactionManager, provider, chainId).send();

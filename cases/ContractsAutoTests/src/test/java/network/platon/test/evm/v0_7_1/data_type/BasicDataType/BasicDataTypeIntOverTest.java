@@ -29,7 +29,7 @@ public class BasicDataTypeIntOverTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "BasicDataTypeUintOverTest.有符号8位整数数据溢出",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "BasicDataTypeUintOverTest.有符号8位整数数据溢出",sourcePrefix = "evm/0.7.1")
     public void testBasicDataTypeContract() {
 
         BasicDataTypeContract basicDataTypeContract = null;

@@ -24,7 +24,7 @@ public class SelfdestructFunctionsTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.SelfdestructFunctionsTest-合约相关函数测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.SelfdestructFunctionsTest-合约相关函数测试", sourcePrefix = "evm/0.7.1")
     public void Selfdestructfunction() {
         try {
             SelfdestructFunctions selfdestructFunctions = SelfdestructFunctions.deploy(web3j, transactionManager, provider, chainId).send();

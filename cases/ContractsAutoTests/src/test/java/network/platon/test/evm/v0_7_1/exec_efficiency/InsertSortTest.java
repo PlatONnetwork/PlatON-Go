@@ -30,7 +30,7 @@ public class InsertSortTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "exec_efficiency.InsertSortTest-插入排序", sourcePrefix = "evm")
+            author = "liweic", showName = "exec_efficiency.InsertSortTest-插入排序", sourcePrefix = "evm/0.7.1")
     public void test() {
         prepare();
         try {

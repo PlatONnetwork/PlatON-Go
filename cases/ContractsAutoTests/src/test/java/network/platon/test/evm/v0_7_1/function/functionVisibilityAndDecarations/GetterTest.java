@@ -27,7 +27,7 @@ public class GetterTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.GetterTest-getter函数测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.GetterTest-getter函数测试", sourcePrefix = "evm/0.7.1")
     public void getter() {
         try {
             Getter getter = Getter.deploy(web3j, transactionManager, provider, chainId).send();

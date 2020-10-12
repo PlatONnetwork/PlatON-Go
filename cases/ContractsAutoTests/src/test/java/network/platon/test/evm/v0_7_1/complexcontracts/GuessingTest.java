@@ -29,7 +29,7 @@ public class GuessingTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "function.GuessingTest-竞猜合约测试", sourcePrefix = "evm")
+            author = "hudenian", showName = "function.GuessingTest-竞猜合约测试", sourcePrefix = "evm/0.7.1")
     public void guessingTest() {
 
         try {

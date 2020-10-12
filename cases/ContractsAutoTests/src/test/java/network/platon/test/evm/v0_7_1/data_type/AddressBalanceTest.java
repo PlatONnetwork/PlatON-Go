@@ -17,7 +17,7 @@ public class AddressBalanceTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1", author = "qcxiao",
-            showName = "AddressBalanceTest.查询某地址余额",sourcePrefix = "evm")
+            showName = "AddressBalanceTest.查询某地址余额",sourcePrefix = "evm/0.7.1")
     public void test() {
 
 //        String useAddress = "lax10eycqggu2yawpadtmn7d2zdw0vnmscklynzq8x";

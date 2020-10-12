@@ -27,7 +27,7 @@ public class CallExternalTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.CallExternalTest-函数外部调用测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.CallExternalTest-函数外部调用测试", sourcePrefix = "evm/0.7.1")
     public void callexternal() {
         try {
             CallExternal callexternal = CallExternal.deploy(web3j, transactionManager, provider, chainId).send();

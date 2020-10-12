@@ -1,6 +1,7 @@
 package network.platon.test.evm.v0_7_1.complexcontracts.erc20_0513;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import network.platon.contracts.evm.v0_7_1.ERC200513Token;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
@@ -61,7 +62,7 @@ public class ERC200513TokenTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ERC200513TokenTest-测试0.5.13版本ERC20", sourcePrefix = "evm")
+            author = "hudenian", showName = "ERC200513TokenTest-测试0.5.13版本ERC20", sourcePrefix = "evm/0.7.1")
     public void erc20Test() {
         try {
 

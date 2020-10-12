@@ -17,7 +17,7 @@ import java.math.BigInteger;
 public class LibraryUsingForAllTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "albedo", showName = "lib.LibraryUsingForAllTest-using A for all type", sourcePrefix = "evm")
+            author = "albedo", showName = "lib.LibraryUsingForAllTest-using A for all type", sourcePrefix = "evm/0.7.1")
     public void testReplace() {
         try {
             prepare();

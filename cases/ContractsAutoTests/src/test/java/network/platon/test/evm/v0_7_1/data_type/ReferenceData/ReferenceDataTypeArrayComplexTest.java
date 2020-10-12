@@ -35,7 +35,7 @@ public class ReferenceDataTypeArrayComplexTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeArrayComplex.含数组（Array）运算逻辑合约",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeArrayComplex.含数组（Array）运算逻辑合约",sourcePrefix = "evm/0.7.1")
     public void testReferenceDataTypeArrayTest() {
         try{
             ReferenceDataTypeArrayComplexContract referenceDataTypeArrayComplex = null;

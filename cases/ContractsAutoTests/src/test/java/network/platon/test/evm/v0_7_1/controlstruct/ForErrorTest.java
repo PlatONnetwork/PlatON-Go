@@ -25,7 +25,7 @@ public class ForErrorTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "ForErrorTest-for控制结构测试", sourcePrefix = "evm")
+            author = "hudenian", showName = "ForErrorTest-for控制结构测试", sourcePrefix = "evm/0.7.1")
     public void forStruct() {
         try {
 

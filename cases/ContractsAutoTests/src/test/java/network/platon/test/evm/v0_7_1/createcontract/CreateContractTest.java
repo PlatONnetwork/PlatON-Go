@@ -17,7 +17,7 @@ import java.math.BigInteger;
 public class CreateContractTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "albedo", showName = "createcontract.CreateContractTest-new创建合约", sourcePrefix = "evm")
+            author = "albedo", showName = "createcontract.CreateContractTest-new创建合约", sourcePrefix = "evm/0.7.1")
     public void testNewContract() {
         try {
             prepare();

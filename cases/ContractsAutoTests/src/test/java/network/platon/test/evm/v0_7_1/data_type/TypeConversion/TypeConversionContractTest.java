@@ -25,7 +25,7 @@ public class TypeConversionContractTest extends ContractPrepareTest {
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "TypeConversionContract.基本类型转换",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "TypeConversionContract.基本类型转换",sourcePrefix = "evm/0.7.1")
     public void testTypeConversionContract() {
 
         TypeConversionContract typeConversionContractTest = null;

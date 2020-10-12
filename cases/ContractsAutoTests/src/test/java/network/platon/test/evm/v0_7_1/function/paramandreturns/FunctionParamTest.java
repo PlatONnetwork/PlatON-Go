@@ -26,7 +26,7 @@ public class FunctionParamTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.FunctionParamTest-参数是函数的类型测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.FunctionParamTest-参数是函数的类型测试", sourcePrefix = "evm/0.7.1")
     public void Functionparam() {
         try {
 

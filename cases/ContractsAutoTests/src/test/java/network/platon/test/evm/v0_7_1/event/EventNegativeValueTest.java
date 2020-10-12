@@ -21,7 +21,7 @@ public class EventNegativeValueTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "event.EventNegativeValueTest-事件负值调用", sourcePrefix = "evm")
+            author = "qcxiao", showName = "event.EventNegativeValueTest-事件负值调用", sourcePrefix = "evm/0.7.1")
     public void test() {
         prepare();
         try {

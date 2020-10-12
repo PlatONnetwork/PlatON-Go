@@ -28,7 +28,7 @@ public class PayableTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.PayableTest-函数声明方式Payable测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.PayableTest-函数声明方式Payable测试", sourcePrefix = "evm/0.7.1")
     public void payable() {
         try {
             Payable payable = Payable.deploy(web3j, transactionManager, provider, chainId).send();

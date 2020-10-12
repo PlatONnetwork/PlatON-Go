@@ -33,7 +33,7 @@ public class NewSecPledgeApplyManagerTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "hudenian", showName = "NewSecPledgeApplyManagerTest-结算复杂合约测试验证", sourcePrefix = "evm")
+            author = "hudenian", showName = "NewSecPledgeApplyManagerTest-结算复杂合约测试验证", sourcePrefix = "evm/0.7.1")
     public void createPledgeApplyCommonTest() {
         try {
 

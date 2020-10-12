@@ -19,7 +19,7 @@ import java.util.List;
 public class LibraryUsingForTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "albedo", showName = "lib.LibraryUsingForTest-using A for B", sourcePrefix = "evm")
+            author = "albedo", showName = "lib.LibraryUsingForTest-using A for B", sourcePrefix = "evm/0.7.1")
     public void testRegister() {
         try {
             prepare();

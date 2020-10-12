@@ -42,7 +42,7 @@ public class BlockTransactionPropertiesFunctionsTest extends ContractPrepareTest
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "function.BlockTransactionPropertiesFunctionsTest-区块和交易函数测试", sourcePrefix = "evm")
+            author = "liweic", showName = "function.BlockTransactionPropertiesFunctionsTest-区块和交易函数测试", sourcePrefix = "evm/0.7.1")
     public void BlockTransactionPropertiesfunction() {
         try {
             BlockTransactionPropertiesFunctions blockTransactionPropertiesFunctions = BlockTransactionPropertiesFunctions.deploy(web3j, transactionManager, provider, chainId).send();

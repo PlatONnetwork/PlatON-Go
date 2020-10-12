@@ -27,7 +27,7 @@ public class LoopCallTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "exec_efficiency.LoopCallTest-循环执行", sourcePrefix = "evm")
+            author = "qcxiao", showName = "exec_efficiency.LoopCallTest-循环执行", sourcePrefix = "evm/0.7.1")
     public void test() {
         prepare();
         try {

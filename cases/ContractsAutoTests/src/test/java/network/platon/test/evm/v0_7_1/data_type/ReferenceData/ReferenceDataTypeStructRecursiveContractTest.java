@@ -24,7 +24,7 @@ public class ReferenceDataTypeStructRecursiveContractTest extends ContractPrepar
     }
 
     @Test
-    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructRecursive.结构体嵌套递归",sourcePrefix = "evm")
+    @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qudong", showName = "ReferenceDataTypeStructRecursive.结构体嵌套递归",sourcePrefix = "evm/0.7.1")
     public void testReferenceDataTypeStructRecursive() {
 
         ReferenceDataTypeStructRecursiveContract referenceDataTypeStructRecursive = null;

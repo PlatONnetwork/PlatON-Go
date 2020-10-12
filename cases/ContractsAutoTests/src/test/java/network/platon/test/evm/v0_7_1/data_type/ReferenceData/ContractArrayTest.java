@@ -27,7 +27,7 @@ public class ContractArrayTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "liweic", showName = "data_type.ContractArrayTest-合约数组测试",sourcePrefix = "evm")
+            author = "liweic", showName = "data_type.ContractArrayTest-合约数组测试",sourcePrefix = "evm/0.7.1")
     public void Contractarray() {
         try {
             ContractArray contractarray = ContractArray.deploy(web3j, transactionManager, provider, chainId).send();

@@ -38,7 +38,7 @@ public class BallotTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", author = "qcxiao"
-            , showName = "complexcontracts.BallotTest-投票功能合约", sourcePrefix = "evm")
+            , showName = "complexcontracts.BallotTest-投票功能合约", sourcePrefix = "evm/0.7.1")
     public void testBallot() {
         Web3j web3j = null;
         Credentials credentials = null;

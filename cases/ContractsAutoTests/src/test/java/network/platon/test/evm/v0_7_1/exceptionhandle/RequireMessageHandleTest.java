@@ -18,7 +18,7 @@ import java.math.BigInteger;
 public class RequireMessageHandleTest extends ContractPrepareTest {
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "albedo", showName = "exceptionhandle.RequireMessageHandle-require(bool condition, string message)函数", sourcePrefix = "evm")
+            author = "albedo", showName = "exceptionhandle.RequireMessageHandle-require(bool condition, string message)函数", sourcePrefix = "evm/0.7.1")
     public void testParamException() {
         try {
             prepare();

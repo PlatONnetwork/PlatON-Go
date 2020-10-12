@@ -20,7 +20,7 @@ public class AtomicSwapTest extends ContractPrepareTest {
 
     @Test
     @DataSource(type = DataSourceType.EXCEL, file = "test.xls", sheetName = "Sheet1",
-            author = "qcxiao", showName = "complexcontracts.AtomicSwapTest", sourcePrefix = "evm")
+            author = "qcxiao", showName = "complexcontracts.AtomicSwapTest", sourcePrefix = "evm/0.7.1")
     public void test() {
         try {
             AtomicSwap atomicSwap = AtomicSwap.deploy(web3j, transactionManager, provider, chainId).send();
