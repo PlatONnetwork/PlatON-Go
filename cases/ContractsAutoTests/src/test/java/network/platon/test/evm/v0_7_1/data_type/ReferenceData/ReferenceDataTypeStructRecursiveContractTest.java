@@ -2,6 +2,7 @@ package network.platon.test.evm.v0_7_1.data_type.ReferenceData;
 
 import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import com.alaya.tuples.generated.Tuple3;
+import network.platon.contracts.evm.v0_7_1.ReferenceDataTypeStructRecursiveContract;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
