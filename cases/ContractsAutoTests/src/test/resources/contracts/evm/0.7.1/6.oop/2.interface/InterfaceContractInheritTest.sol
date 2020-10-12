@@ -12,11 +12,11 @@ pragma solidity ^0.7.1;
  *3)、 接口无法继承其他合约(在抽象函数已经验证过此问题，估此处不再验证)
  */
 interface InterfaceContractInheritOne {
-      function sum(uint a, uint b) external virtual returns (uint);
+      function sum(uint a, uint b) external virtual view returns (uint);
 }
 
 interface InterfaceContractInheritTwo {
-      function reduce(uint c, uint d) external virtual returns (uint);
+      function reduce(uint c, uint d) external virtual view returns (uint);
 }
 
 /**
@@ -27,11 +27,11 @@ interface InterfaceContractInheritTwo {
 contract InterfaceContractInheritMultipleTest is InterfaceContractInheritOne,
                                                    InterfaceContractInheritTwo {
 
-    function sum(uint a, uint b) external override returns (uint) {
+    function sum(uint a, uint b) external override view returns (uint) {
          return a + b;
     }
 
-    function reduce(uint c, uint d) external override returns (uint) {
+    function reduce(uint c, uint d) external override view returns (uint) {
          return c - d;
     }
 
@@ -47,7 +47,7 @@ contract InterfaceContractInheritMultipleTest is InterfaceContractInheritOne,
 
 /* interface InterfaceContractInheritTest is InterfaceContractInheritOne {
 
-    function multiply(uint e, uint f) external returns (uint); 
+    function multiply(uint e, uint f) external view returns (uint);
  }*/
 
 

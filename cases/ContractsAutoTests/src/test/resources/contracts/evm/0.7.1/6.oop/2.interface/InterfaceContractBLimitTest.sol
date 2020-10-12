@@ -24,7 +24,7 @@ interface InterfaceContractEnum {
         LARGE 
    }
 
-   function getDefaultChoice() external virtual returns (uint);
+   function getDefaultChoice() external virtual view returns (uint);
 }
 
 contract  InterfaceContractEnumTest is InterfaceContractEnum {
@@ -41,7 +41,7 @@ contract  InterfaceContractEnumTest is InterfaceContractEnum {
       return choice;
    }
    
-   function getDefaultChoice() external override returns (uint) {
+   function getDefaultChoice() external override view returns (uint) {
       return uint(defaultChoice);
    }
 }
@@ -58,7 +58,7 @@ interface InterfaceContractStruct {
         string title;
         string describe;
    }
-   function getDefaultBookID() external virtual returns (int);
+   function getDefaultBookID() external virtual view returns (int);
 }
 
 contract  InterfaceContractStructTest is InterfaceContractStruct {
@@ -68,11 +68,11 @@ contract  InterfaceContractStructTest is InterfaceContractStruct {
          book = Book(1,"PlatON","PlatON Describe");
     }
 
-    function getBookID() public view  returns (int) {
+    function getBookID() public view returns (int) {
           return book.bookID;
     }
 
-    function getDefaultBookID() external override returns (int) {
+    function getDefaultBookID() external override view returns (int) {
        if(book.bookID == 0){
            return 0;
        }

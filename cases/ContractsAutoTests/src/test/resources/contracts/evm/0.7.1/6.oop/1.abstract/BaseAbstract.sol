@@ -8,7 +8,7 @@ pragma solidity ^0.7.1;
 abstract contract AbstractContractParentClass {
 
     string myName =  "";
-    function parentName() public virtual returns (string memory v);
+    function parentName() public virtual view returns (string memory v);
 
     function setParentName(string memory name) public {
         myName = name;
@@ -18,7 +18,7 @@ abstract contract AbstractContractParentClass {
 abstract contract AbstractContractASubclass {
 
     string subName =  "";
-    function aSubName() public virtual returns (string memory v);
+    function aSubName() public virtual view returns (string memory v);
     function aSubAge() public view returns (int v) {
         int age = 20;
         return age;
