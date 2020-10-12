@@ -500,7 +500,7 @@ func DefaultGenesisBlock() *Genesis {
 	generalAddr := common.MustBech32ToAddress("atp1dl93r6fr022ca5yjqe6cgkg06er9pyqfhqckj8")
 	generalBalance, _ := new(big.Int).SetString("100000000000000000000000000", 10)
 
-	rewardMgrPoolIssue, _ := new(big.Int).SetString("1000000000000000000000000", 10)
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("2000000000000000000000000", 10)
 
 	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
@@ -525,7 +525,7 @@ func DefaultAlayaGenesisBlock() *Genesis {
 	generalAddr := common.MustBech32ToAddress("atp1dl93r6fr022ca5yjqe6cgkg06er9pyqfhqckj8")
 	generalBalance, _ := new(big.Int).SetString("100000000000000000000000000", 10)
 
-	rewardMgrPoolIssue, _ := new(big.Int).SetString("1000000000000000000000000", 10)
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("2000000000000000000000000", 10)
 
 	genesis := Genesis{
 		Config:    params.AlayaChainConfig,
@@ -550,7 +550,7 @@ func DefaultAlayaTestGenesisBlock() *Genesis {
 	generalAddr := common.MustBech32ToAddress("atx1dl93r6fr022ca5yjqe6cgkg06er9pyqfaxyupd")
 	generalBalance, _ := new(big.Int).SetString("100000000000000000000000000", 10)
 
-	rewardMgrPoolIssue, _ := new(big.Int).SetString("1000000000000000000000000", 10)
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("2000000000000000000000000", 10)
 
 	genesis := Genesis{
 		Config:    params.AlayaTestChainConfig,

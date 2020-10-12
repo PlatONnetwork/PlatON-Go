@@ -403,8 +403,7 @@ func TestCDFAccountOneYearIncreaseIssuance(t *testing.T) {
 	currIssue := new(big.Int).Sub(newIssue, lastIssue)
 
 	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.CDFAccount()), CDFAccountBalance)
-	rewardpoolIncr := percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate))
-	assert.Equal(t, currCDFAccountBalance, new(big.Int).Sub(currIssue, rewardpoolIncr))
+	assert.Equal(t, currCDFAccountBalance, percentageCalculation(currIssue, uint64(AfterFoundationYearDeveloperRewardRate)))
 
 }
 
@@ -437,9 +436,8 @@ func TestCDFAccountTenYearIncreaseIssuance(t *testing.T) {
 	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.CDFAccount()), CDFAccountBalance)
 	currPlatONFundAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.PlatONFundAccount()), PlatONFundAccountBalance)
 
-	lessBalance := new(big.Int).Sub(currIssue, percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate)))
-	assert.Equal(t, currCDFAccountBalance, percentageCalculation(lessBalance, uint64(AfterFoundationYearDeveloperRewardRate)))
-	assert.Equal(t, currPlatONFundAccountBalance, percentageCalculation(lessBalance, uint64(AfterFoundationYearFoundRewardRate)))
+	assert.Equal(t, currCDFAccountBalance, percentageCalculation(currIssue, uint64(AfterFoundationYearDeveloperRewardRate)))
+	assert.Equal(t, currPlatONFundAccountBalance, percentageCalculation(currIssue, uint64(AfterFoundationYearFoundRewardRate)))
 
 }
 

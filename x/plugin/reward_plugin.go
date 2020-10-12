@@ -54,9 +54,9 @@ type RewardMgrPlugin struct {
 
 const (
 	LessThanFoundationYearDeveloperRate    = 100
-	AfterFoundationYearDeveloperRewardRate = 85
-	AfterFoundationYearFoundRewardRate     = 15
-	RewardPoolIncreaseRate                 = 20 // 20% of fixed-issued tokens are allocated to reward pool each year
+	AfterFoundationYearDeveloperRewardRate = 20
+	AfterFoundationYearFoundRewardRate     = 40
+	RewardPoolIncreaseRate                 = 40 // 40% of fixed-issued tokens are allocated to reward pool each year
 
 )
 
@@ -198,16 +198,13 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 
 	}
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
+	foundationIncr := percentageCalculation(currIssuance, uint64(AfterFoundationYearFoundRewardRate))
+	developerFoundationIncr := percentageCalculation(currIssuance, uint64(AfterFoundationYearDeveloperRewardRate))
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
-	lessBalance := new(big.Int).Sub(currIssuance, rewardpoolIncr)
-	if rmp.isLessThanFoundationYear(thisYear) {
-		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer", "thisYear", thisYear, "developBalance", lessBalance)
-		rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
-	} else {
-		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "develop and platon Balance", lessBalance)
-		rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
-		rmp.addPlatONFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
-	}
+	state.AddBalance(xcom.CDFAccount(), developerFoundationIncr)
+	state.AddBalance(xcom.PlatONFundAccount(), foundationIncr)
+	log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "rewardpoolIncr", rewardpoolIncr,
+		"foundationIncr", foundationIncr, "developerFoundationIncr", developerFoundationIncr)
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)
 	return nil
