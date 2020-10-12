@@ -58,7 +58,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     log.info("contractAndLibrarysArr[i] is:" + contractAndLibrarysArr[i]);
                     try{
                         String[] singleContractLib = contractAndLibrarysArr[i].split("&");
-                        deployLibrary(singleContractLib[0], singleContractLib[1]);
+                        deployLibrary(singleContractLib[0], singleContractLib[1],singleContractLib[2]);
                     }catch (Exception e){
                         e.printStackTrace();
                     }
@@ -127,7 +127,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
     }
 
 
-    public void deployLibrary(String contractName, String librarys) {
+    public void deployLibrary(String contractName, String librarys,String version) {
         String libraryAddressNoPre = "";
         //key值为library库名称，value为library库对应的地址
         Map<String, String> libraryAddressNoPreMap = new HashMap<String, String>();
@@ -138,7 +138,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
         BufferedReader bufferedReader = null;
         try {
-            String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
+            String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build",version).toUri().getPath());
 
             String[] libraryArr = librarys.split("\\|\\|");
 
