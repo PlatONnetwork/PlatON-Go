@@ -1,5 +1,6 @@
 package network.platon.test.evm.v0_7_1.exec_efficiency;
 
+import network.platon.contracts.evm.v0_7_1.LoopCallOfView;
 import network.platon.test.evm.beforetest.ContractPrepareTest;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
