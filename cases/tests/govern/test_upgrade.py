@@ -405,8 +405,8 @@ class TestUpgradeVP:
         new_genesis_env.deploy_all()
         pip = clients_consensus[0].pip
         pip_test = client_noconsensus.pip
-        address, _ = pip_test.economic.account.generate_account(pip_test.node.web3, 10 ** 18 * 10000000)
-        result = client_noconsensus.staking.create_staking(0, address, address, amount=10 ** 18 * 2000000,
+        address, _ = pip_test.economic.account.generate_account(pip_test.node.web3, pip.economic.create_staking_limit * 3)
+        result = client_noconsensus.staking.create_staking(0, address, address, amount=pip.economic.create_staking_limit * 2,
                                                            transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
         programversion = client_noconsensus.staking.get_version()

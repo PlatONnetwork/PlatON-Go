@@ -265,16 +265,16 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
     """
     # Initialization genesis file Initial amount
     node_count = len(new_genesis_env.consensus_node_list)
-    default_pledge_amount = Web3.toWei(node_count * 1500000, 'ether')
-    community_amount = default_pledge_amount + 259096239000000000000000000 + 62215742000000000000000000
+    default_pledge_amount = Web3.toWei(node_count * 20000, 'ether')
+    community_amount = Web3.toWei(4000000, 'ether')
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
-    surplus_amount = str(EconomicConfig.TOKEN_TOTAL - community_amount - 200000000000000000000000000)
+    surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - Web3.toWei(1000000, 'ether'))
     genesis.alloc = {
-        "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrzpqayr": {
-            "balance": "200000000000000000000000000"
+        "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf": {
+            "balance": "1000000000000000000000000"
         },
-        "lax196278ns22j23awdfj9f2d4vz0pedld8au6xelj": {
+        "atx1zkrxx6rf358jcvr7nruhyvr9hxpwv9unj58er9": {
             "balance": surplus_amount
         }
     }
