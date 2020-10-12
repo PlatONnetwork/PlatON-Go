@@ -4,7 +4,7 @@ import allure
 import rlp
 from alaya.utils.transactions import send_obj_transaction
 from dacite import from_dict
-from platon_account.internal.transactions import bech32_address_bytes
+from alaya.packages.platon_account.internal.transactions import bech32_address_bytes
 
 from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
@@ -460,6 +460,7 @@ def test_LS_RV_006(client_new_node):
     # create restricting plan2
     restricting_info = create_restricting_plan(client_new_node, plan, address1, address2)
     # assert restricting plan1
+    time.sleep(1)
     assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][

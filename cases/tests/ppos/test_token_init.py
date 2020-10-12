@@ -6,7 +6,7 @@ import allure
 import pytest
 from alaya import Web3
 from dacite import from_dict
-from platon_account.internal.transactions import bech32_address_bytes
+from alaya.packages.platon_account.internal.transactions import bech32_address_bytes
 
 from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
@@ -34,7 +34,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
     """
     # Initialization genesis file Initial amount
     node_count = len(new_genesis_env.consensus_node_list)
-    default_pledge_amount = Web3.toWei(node_count * 10000, 'ether')
+    default_pledge_amount = Web3.toWei(node_count * 20000, 'ether')
     node = new_genesis_env.get_rand_node()
     community_amount = Web3.toWei(4000000, 'ether')
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
@@ -55,7 +55,8 @@ def test_IT_IA_002_to_007(new_genesis_env):
 
     # Verify the amount of each built-in account
     foundation_louckup = node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS, 0)
-    log.info('Initial lock up contract address： {} amount：{}'.format(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS,foundation_louckup))
+    log.info('Initial lock up contract address： {} amount：{}'.format(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS,
+                                                                     foundation_louckup))
     incentive_pool = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, 0)
     log.info('Incentive pool address：{} amount：{}'.format(EconomicConfig.INCENTIVEPOOL_ADDRESS, incentive_pool))
     staking = node.eth.getBalance(EconomicConfig.STAKING_ADDRESS, 0)
@@ -65,7 +66,8 @@ def test_IT_IA_002_to_007(new_genesis_env):
     remain = node.eth.getBalance(EconomicConfig.REMAIN_ACCOUNT_ADDRESS, 0)
     log.info('Remaining total account address：{} amount：{}'.format(EconomicConfig.REMAIN_ACCOUNT_ADDRESS, remain))
     develop = node.eth.getBalance(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS, 0)
-    log.info('Community developer foundation address：{} amount：{}'.format(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,develop))
+    log.info('Community developer foundation address：{} amount：{}'.format(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
+                                                                          develop))
     reality_total = foundation_louckup + incentive_pool + staking + foundation + remain + develop
     log.info("Total issuance of Chuangshi block：{}".format(reality_total))
     log.info("--------------Dividing line---------------")
@@ -76,7 +78,8 @@ def test_IT_IA_002_to_007(new_genesis_env):
     assert incentive_pool == Web3.toWei(1000000, 'ether'), "ErrMsg:Initial amount of incentive pool {}".format(
         incentive_pool)
     assert remain == int(surplus_amount), "ErrMsg:Initial amount of remaining total account {}".format(remain)
-    assert develop == community_amount - default_pledge_amount, "ErrMsg:Community developer foundation account amount {}".format(develop)
+    assert develop == community_amount - default_pledge_amount, "ErrMsg:Community developer foundation account amount {}".format(
+        develop)
     assert reality_total == Web3.toWei(105000000, 'ether'), "ErrMsg:Initialize release value {}".format(reality_total)
 
 
@@ -1380,7 +1383,7 @@ def AL_FI_006(client_consensus):
         actual_incentive_pool_amount)
 
 
-def AL_FI_007(client_consensus):
+def test_AL_FI_007(client_consensus):
     """
     验证增发第一年出块奖励和质押奖励
     :param client_consensus:
@@ -2032,6 +2035,14 @@ def RO_T_001(new_genesis_env, client_noconsensus):
 
 
 def test2223(client_consensus):
+    """
+    调试脚本使用
+    """
     client = client_consensus
     print(1)
+    # print(client.node.ppos.getCandidateList())
+    # hx = '0xd7d479481b480b149339908d2e267a03b02396d9a84d6774c7d5d76f3434cf80'
+    # result = client.node.eth.analyzeReceiptByHash(hx)
+    # result = client.ppos.getCandidateList()
+    # print(result)
     # client.economic.env.deploy_all()

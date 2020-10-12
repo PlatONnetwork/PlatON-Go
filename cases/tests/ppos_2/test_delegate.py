@@ -240,16 +240,16 @@ def test_DI_015_016(client_new_node, client_consensus):
     node = client.node
     other_node = client_consensus.node
     economic = client.economic
-    address, _ = economic.account.generate_account(client_new_node.node.web3, 10 ** 18 * 2000000)
-    address_delegate, _ = economic.account.generate_account(client_new_node.node.web3, 10 ** 18 * 10000000)
+    address, _ = economic.account.generate_account(client_new_node.node.web3, economic.create_staking_limit * 2)
+    address_delegate, _ = economic.account.generate_account(client_new_node.node.web3, economic.delegate_limit * 10)
     value = economic.create_staking_limit
-    result = client.staking.create_staking(0, address, address, amount=value)
+    result = client.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    economic.wait_consensus(other_node, 4)
-    validator_list = get_pledge_list(other_node.ppos.getValidatorList)
-    assert node.node_id in validator_list
+    economic.wait_settlement(node)
+    # validator_list = get_pledge_list(other_node.ppos.getValidatorList)
+    # assert node.node_id in validator_list
     candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
-    log.info(candidate_info)
+    log.info('candidate_info: {}', candidate_info)
     log.info("Close one node")
     node.stop()
     for i in range(4):
