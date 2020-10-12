@@ -3,6 +3,7 @@ package network.platon.contracts.evm.v0_6_12;
 import com.alaya.abi.solidity.TypeReference;
 import com.alaya.abi.solidity.datatypes.Function;
 import com.alaya.abi.solidity.datatypes.Type;
+import com.alaya.abi.solidity.datatypes.generated.Int256;
 import com.alaya.crypto.Credentials;
 import com.alaya.protocol.Web3j;
 import com.alaya.protocol.core.RemoteCall;
@@ -38,18 +39,17 @@ public class AbstractContractESubclass extends Contract {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider, chainId);
     }
 
-    public RemoteCall<TransactionReceipt> aInterAge() {
-        final Function function = new Function(
-                FUNC_AINTERAGE, 
+    public RemoteCall<BigInteger> aInterAge() {
+        final Function function = new Function(FUNC_AINTERAGE, 
                 Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
+                Arrays.<TypeReference<?>>asList(new TypeReference<Int256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteCall<TransactionReceipt> setInterAge(BigInteger v) {
         final Function function = new Function(
                 FUNC_SETINTERAGE, 
-                Arrays.<Type>asList(new com.alaya.abi.solidity.datatypes.generated.Int256(v)), 
+                Arrays.<Type>asList(new Int256(v)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
