@@ -11,11 +11,11 @@
     <description>智能合约自动化测试代码</description>
 
     <dependencies>
-        <dependency>
-            <groupId>network.platon.autotest</groupId>
-            <artifactId>AutoPlatON</artifactId>
-            <version>0.0.3</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>network.platon.autotest</groupId>-->
+<!--            <artifactId>AutoPlatON</artifactId>-->
+<!--            <version>0.0.3</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.alaya.client</groupId>
             <artifactId>alaya-core</artifactId>
