@@ -142,7 +142,8 @@ public class DriverService implements TestRule {
                                     errors.add(new Throwable(error, e));
                                 } catch (RuntimeException e) {
                                     String error = "测试用例（ " + param.get("caseName") + " ）执行失败! \n";
-                                    LogModule.logStepFail(StepType.CUSTOM, errorMessage(e) + "语句执行错误", RunResult.FAIL, "出错原因为" + e.getClass().getSimpleName() + ":" + e.getMessage() + "!");
+//                                    LogModule.logStepFail(StepType.CUSTOM, errorMessage(e) + "语句执行错误", RunResult.FAIL, "出错原因为" + e.getClass().getSimpleName() + ":" + e.getMessage() + "!");
+                                    LogModule.logStepFail(StepType.CUSTOM, errorMessage(e) + "语句执行错误", RunResult.FAIL, "出错原因为" + e.getClass().getName() + ":" + e.getMessage() + "!");
                                     errors.add(new Throwable(error, e));
                                 } finally {
                                     // 后期如有需求，才对数据销毁做处理
