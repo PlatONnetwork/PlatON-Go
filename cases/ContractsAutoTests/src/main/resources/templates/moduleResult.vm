@@ -131,9 +131,9 @@
             <tr valign="top">
                 <td>
                     #if($caseInfo.caseResult=="PASS")
-                        <a href=测试模块_${moduleInfo.moduleName}/测试用例_${caseInfo.caseName}.html target="_self">$caseInfo.caseName</a>
+                        <a href=${moduleInfo.moduleName}/测试用例_${caseInfo.caseName}.html target="_self">$caseInfo.caseName</a>
                     #else
-                        <a href=测试模块_${moduleInfo.moduleName}/测试用例_${caseInfo.caseName}.html target="_self" style="color:red">$caseInfo.caseName</a>
+                        <a href=${moduleInfo.moduleName}/测试用例_${caseInfo.caseName}.html target="_self" style="color:red">$caseInfo.caseName</a>
                     #end
                 </td>
                 <td>$caseInfo.caseDesc</td>
