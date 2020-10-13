@@ -163,6 +163,7 @@ public class DriverModule implements Observer {
 		File file = new File(filePath);
 		// 测试类的数据源目录下
 		if (!file.exists()) {
+			//此处getSimpleName不要改成getName
 			filePath = System.getProperty("user.dir") + "/" + sourcesDir + DriverService.DESCRIPTION.getTestClass().getSimpleName() + "/" + fileName;
 			file = new File(filePath);
 		}

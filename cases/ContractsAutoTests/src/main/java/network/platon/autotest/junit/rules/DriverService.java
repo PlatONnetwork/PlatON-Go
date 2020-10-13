@@ -77,7 +77,8 @@ public class DriverService implements TestRule {
                  * 2、不合并报告：suiteName就为上次运行的类名
                  * ；判断是否初始进入本项目，如果是则执行，如果当前执行类与上次执行类不一致时也执行；
                  */
-                if (LogModule.SUITE_INFO.getSuiteName() == null || !(SUITE_MERGED || des.getTestClass().getSimpleName().equals(LogModule.SUITE_INFO.getSuiteName()))) {
+//                if (LogModule.SUITE_INFO.getSuiteName() == null || !(SUITE_MERGED || des.getTestClass().getSimpleName().equals(LogModule.SUITE_INFO.getSuiteName()))) {
+                if (LogModule.SUITE_INFO.getSuiteName() == null || !(SUITE_MERGED || des.getTestClass().getName().equals(LogModule.SUITE_INFO.getSuiteName()))) {
                     // 后续可以传入suite集合的上一层
                     Properties props = System.getProperties();
                     if (System.getProperty("website") == null || System.getProperty("website").trim().equals("")) {

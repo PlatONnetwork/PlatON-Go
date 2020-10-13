@@ -89,7 +89,8 @@ public class SuiteObserver implements Observer {
 			suiteInfo.setSuiteName(properties.getProperty("project"));
 		} else {
 			// 单个类执行或者 mvn test 或者 mvn test -Dreport.merged=false
-			suiteInfo.setSuiteName(DriverService.DESCRIPTION.getTestClass().getSimpleName());
+//			suiteInfo.setSuiteName(DriverService.DESCRIPTION.getTestClass().getSimpleName());
+			suiteInfo.setSuiteName(DriverService.DESCRIPTION.getTestClass().getName());
 		}
 		String runId = DriverService.PROPERTIES.getProperty("runId");
 		if (runId == null || runId.trim().equals("") || "$runId".equals(runId)) {
@@ -696,7 +697,8 @@ public class SuiteObserver implements Observer {
 			if (method.isAnnotationPresent(org.junit.Test.class) && method.getAnnotation(Ignore.class) == null) {
 				moduleInfo.setModuleName(methodName);
 				if(null != dataSource){
-					moduleInfo.setModuleShowName(dataSource.showName());
+//					moduleInfo.setModuleShowName(dataSource.showName());
+					moduleInfo.setModuleShowName(Clazz.getName() + "." + dataSource.showName());
 					moduleInfo.setModuleAuthor(dataSource.author());
 					moduleInfo.setModuleExpert(dataSource.expert());
 				}
@@ -716,9 +718,11 @@ public class SuiteObserver implements Observer {
 			return datas;
 		}
 		String fileName = ((DataSource) des.getAnnotation(DataSource.class)).file().toString().trim();
+		//此处des.getTestClass().getSimpleName()不要改成des.getTestClass().getName()
 		String filePath = sourcesDir + des.getTestClass().getSimpleName() + "/" + fileName;
 		String sourcePrefix = ((DataSource)des.getAnnotation(DataSource.class)).sourcePrefix();
 		if (!sourcePrefix.trim().equals("")) {
+			//此处des.getTestClass().getSimpleName()不要改成des.getTestClass().getName()
 			filePath = sourcesDir  + "/" +  sourcePrefix.trim()  + "/" +  des.getTestClass().getSimpleName() + "/" + fileName;
 		}
 		switch (type) {
@@ -750,6 +754,7 @@ public class SuiteObserver implements Observer {
 		for (Method method : methods) {
 			String methodName = method.getName();
 			if (method.isAnnotationPresent(org.junit.BeforeClass.class) || method.isAnnotationPresent(org.junit.AfterClass.class)) {
+				//此处getSimpleName()不要改成getName()
 				map.put(method.getAnnotations()[0].annotationType().getSimpleName(), methodName);
 			} else if (method.isAnnotationPresent(org.junit.Test.class)) {
 				map.put(String.valueOf(i), methodName);
