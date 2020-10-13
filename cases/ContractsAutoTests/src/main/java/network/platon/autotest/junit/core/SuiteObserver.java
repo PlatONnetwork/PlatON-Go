@@ -231,7 +231,7 @@ public class SuiteObserver implements Observer {
 			if (moduleInfo.getModuleStatus() != RunStatus.COMPLETED) {
 				suiteInfo.setSuiteStatus(RunStatus.RUNNING);
 				suiteInfo.setSuiteResult(RunResult.RUNNING);
-				log.info("-----------" + moduleInfo.getModuleName());
+//				log.info("-----------" + moduleInfo.getModuleName());
 				break;
 			}
 		}

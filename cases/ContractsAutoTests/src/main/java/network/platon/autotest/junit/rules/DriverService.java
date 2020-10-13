@@ -174,8 +174,8 @@ public class DriverService implements TestRule {
                         for (ModuleInfo moduleInfo : LogModule.SUITE_INFO.getModuleInfoList()) {
                             if (moduleInfo.getModuleStatus() != RunStatus.COMPLETED) {
                                 suiteRunCompleted = false;
-                                log.info("-----------" + moduleInfo.getModuleName());
-                                log.info("-----------" + moduleInfo.getModuleStatus());
+//                                log.info("-----------" + moduleInfo.getModuleName());
+//                                log.info("-----------" + moduleInfo.getModuleStatus());
                                 break;
                             }
                         }
