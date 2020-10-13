@@ -108,7 +108,7 @@ public class LocalFileLog implements Observer {
 //			return;
 //		}
 		// moduleInfo = LogModule.moduleInfo;
-		moduleDir = LogModule.SUITE_PATH + "Link/测试模块_" + moduleInfo.getModuleName() + "/";
+		moduleDir = LogModule.SUITE_PATH + "Link/" + moduleInfo.getModuleName() + "/";
 		File directory = new File(moduleDir);
 		if (!directory.exists()) {
 			directory.mkdirs();
@@ -133,7 +133,7 @@ public class LocalFileLog implements Observer {
 		template.merge(context, writer);
 		PrintWriter filewriter;
 		try {
-			filewriter = new PrintWriter(new FileOutputStream(LogModule.SUITE_PATH + "Link/测试模块_" + moduleInfo.getModuleName() + ".html"), true);
+			filewriter = new PrintWriter(new FileOutputStream(LogModule.SUITE_PATH + "Link/" + moduleInfo.getModuleName() + ".html"), true);
 			filewriter.println(writer.toString());
 			filewriter.close();
 		} catch (FileNotFoundException e) {
