@@ -186,7 +186,8 @@ public class SuiteObserver implements Observer {
 			List<ModuleInfo> moduleNameList = getSuiteModuleNameList(cls);
 			for (ModuleInfo moduleInfo : moduleNameList) {
 				moduleInfo.setSuiteInfo(suiteInfo);
-				moduleInfo.setModuleName(cls.getSimpleName() + "." + moduleInfo.getModuleName());
+//				moduleInfo.setModuleName(cls.getSimpleName() + "." + moduleInfo.getModuleName());
+				moduleInfo.setModuleName(cls.getName() + "." + moduleInfo.getModuleName());
 				moduleInfo.setModuleRun(true);
 				moduleInfo.setModuleStatus(RunStatus.WAITING);
 				moduleInfo.setModuleResult(RunResult.WAITING);
@@ -201,7 +202,8 @@ public class SuiteObserver implements Observer {
 	@Override
 	public void moduleRunStart(ModuleInfo moduleInfo) {
 		// 由于此处无法遍历suiteInfo中的module信息，只能根据方法名来做
-		moduleInfo.setModuleName(DriverService.DESCRIPTION.getTestClass().getSimpleName() + "." + DriverService.DESCRIPTION.getMethodName());
+//		moduleInfo.setModuleName(DriverService.DESCRIPTION.getTestClass().getSimpleName() + "." + DriverService.DESCRIPTION.getMethodName());
+		moduleInfo.setModuleName(DriverService.DESCRIPTION.getTestClass().getName() + "." + DriverService.DESCRIPTION.getMethodName());
 		moduleInfo.setModuleStatus(RunStatus.RUNNING);
 		moduleInfo.setModuleResult(RunResult.RUNNING);
 		moduleInfo.setModuleRun(true);

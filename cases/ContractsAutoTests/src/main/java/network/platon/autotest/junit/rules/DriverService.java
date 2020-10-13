@@ -107,7 +107,8 @@ public class DriverService implements TestRule {
                     driverModule.suiteRunStart(LogModule.SUITE_INFO);
                 }
                 for (ModuleInfo planedModuleInfo : LogModule.SUITE_INFO.getModuleInfoList()) {
-                    if (planedModuleInfo.getModuleName().equals(des.getTestClass().getSimpleName() + "." + des.getMethodName())) {
+//                    if (planedModuleInfo.getModuleName().equals(des.getTestClass().getSimpleName() + "." + des.getMethodName())) {
+                    if (planedModuleInfo.getModuleName().equals(des.getTestClass().getName() + "." + des.getMethodName())) {
                         LogModule.MODULE_INFO = new ModuleInfo();
                         driverModule.moduleRunStart(LogModule.MODULE_INFO);
                         List<CaseInfo> caseInfoList = LogModule.MODULE_INFO.getCaseInfoList();
@@ -173,6 +174,7 @@ public class DriverService implements TestRule {
                             if (moduleInfo.getModuleStatus() != RunStatus.COMPLETED) {
                                 suiteRunCompleted = false;
                                 log.info("-----------" + moduleInfo.getModuleName());
+                                log.info("-----------" + moduleInfo.getModuleStatus());
                                 break;
                             }
                         }
