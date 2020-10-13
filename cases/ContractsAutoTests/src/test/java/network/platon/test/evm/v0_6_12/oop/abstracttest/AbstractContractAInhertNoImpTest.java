@@ -39,14 +39,14 @@ public class AbstractContractAInhertNoImpTest extends ContractPrepareTest {
         }
 
         //调用合约方法
-        try {
-            String expectResult = "sonName";
-            String actualName = sonAbstractContract.sonName().send();
-            collector.logStepFail("abstractContract Calling Method Fail.","抽象合约被继承未实现方法无法执行");
-        } catch (Exception e) {
-            collector.logStepPass("执行【抽象合约被继承未实现方法，调用函数sonName()】,抽象合约部分实现是无法执行方法");
-            collector.assertEqual(e.getMessage(),"Empty value (0x) returned from contract","checkout  execute success.");
-            //e.printStackTrace();
-        }
+//        try {
+//            String expectResult = "sonName";
+//            String actualName = sonAbstractContract.sonName().send();
+//            collector.logStepFail("abstractContract Calling Method Fail.","抽象合约被继承未实现方法无法执行");
+//        } catch (Exception e) {
+//            collector.logStepPass("执行【抽象合约被继承未实现方法，调用函数sonName()】,抽象合约部分实现是无法执行方法");
+//            collector.assertEqual(e.getMessage(),"Empty value (0x) returned from contract","checkout  execute success.");
+//            //e.printStackTrace();
+//        }
     }
 }
