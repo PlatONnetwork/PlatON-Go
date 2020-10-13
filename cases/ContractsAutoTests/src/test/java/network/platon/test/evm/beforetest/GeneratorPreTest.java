@@ -30,7 +30,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
     @Before
     public void before() {
         this.prepare();
-        contractAndLibrarys = driverService.param.get("contractAndLibrarys") == null ? "" : driverService.param.get("contractAndLibrarys").toString();
+        contractAndLibrarys = driverService.param.get("contractAndLibrarys") == null ? "" : driverService.param.get("contractAndLibrarys");
     }
 
 
