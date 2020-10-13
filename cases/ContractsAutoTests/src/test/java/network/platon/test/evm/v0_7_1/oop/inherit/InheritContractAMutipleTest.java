@@ -40,7 +40,7 @@ public class InheritContractAMutipleTest extends ContractPrepareTest {
             collector.logStepPass("deployFinishCurrentBlockNumber:" + tx.getBlockNumber());
 
 
-            //合约部署(InheritContractMutipleTest1)
+            //合约部署(InheritContractMutipleTest2)
             inheritContractMutipleTest2 = InheritContractBMutipleClass.deploy(web3j, transactionManager, provider, chainId).send();
             String contractAddress2 = inheritContractMutipleTest2.getContractAddress();
             TransactionReceipt tx2 =  inheritContractMutipleTest2.getTransactionReceipt().get();
@@ -56,7 +56,7 @@ public class InheritContractAMutipleTest extends ContractPrepareTest {
         //调用合约方法
         //1、执行callGetDate1()
         try {
-            BigInteger expectBookResult = new BigInteger("1");
+            BigInteger expectBookResult = new BigInteger("2");
             BigInteger actualBigInteger = inheritContractMutipleTest1.callGetDateA().send();
             collector.logStepPass("调用合约callGetDateA()方法完毕 successful actualValue:" + actualBigInteger);
             collector.assertEqual(actualBigInteger,expectBookResult, "checkout  execute success.");
@@ -67,7 +67,7 @@ public class InheritContractAMutipleTest extends ContractPrepareTest {
 
         //2、执行callGetDate2()
         try {
-            BigInteger expectBookResult = new BigInteger("2");
+            BigInteger expectBookResult = new BigInteger("1");
             BigInteger actualBigInteger = inheritContractMutipleTest2.callGetDateB().send();
             collector.logStepPass("调用合约callGetDateB()方法完毕 successful actualValue:" + actualBigInteger);
             collector.assertEqual(actualBigInteger,expectBookResult, "checkout  execute success.");

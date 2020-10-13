@@ -49,9 +49,9 @@ public class StructDataTypeTest extends ContractPrepareTest {
             collector.assertEqual("2",tuple6.getValue1().toString());
             collector.assertEqual("2",tuple6.getValue2().toString());
             collector.assertEqual("2",tuple6.getValue3().toString());
-            collector.assertEqual("6",tuple6.getValue4().toString());
+            collector.assertEqual("0",tuple6.getValue4().toString());
             collector.assertEqual("9",tuple6.getValue5().toString());
-            collector.assertEqual("7",tuple6.getValue6().toString());
+            collector.assertEqual("0",tuple6.getValue6().toString());
 
         } catch (Exception e) {
             collector.logStepFail("StructDataTypeTest process fail.", e.toString());
