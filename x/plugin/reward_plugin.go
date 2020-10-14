@@ -170,6 +170,8 @@ func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId discover.NodeID) {
 	rmp.nodeADD = add
 }
 
+//platonFoundationYear这个配置值，表示从这次增发开始，需要分配一部分给PlatONFundation
+//创世块已经发现了1次；所以第一年增发时(year=1)，实际上时第二次增发了；所以判断条件需要 - 1
 func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
 	if thisYear < xcom.PlatONFoundationYear()-1 {
 		return true

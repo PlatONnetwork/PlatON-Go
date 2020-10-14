@@ -141,6 +141,8 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	receipt.GasUsed = gas
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
+		//refer to vm/vm.go#Create()。那中间也有计算合约地址的方法，
+		//todo: 可以考虑从 core/state_transition.go#TransitionDb() 返回新合约地址。这样这里就不用重新计算了。
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
