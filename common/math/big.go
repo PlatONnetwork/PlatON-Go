@@ -24,13 +24,13 @@ import (
 
 // Various big integer limit values.
 var (
-	tt63      = BigPow(2, 63)
-	tt104     = BigPow(2, 104)
-	tt255     = BigPow(2, 255)
-	tt256     = BigPow(2, 256)
+	tt63  = BigPow(2, 63)
+	tt104 = BigPow(2, 104)
+	tt255 = BigPow(2, 255)
+	tt256 = BigPow(2, 256)
 
-	tt104m1   = new(big.Int).Sub(tt104, big.NewInt(1))
-	tt256m1   = new(big.Int).Sub(tt256, big.NewInt(1))
+	tt104m1 = new(big.Int).Sub(tt104, big.NewInt(1))
+	tt256m1 = new(big.Int).Sub(tt256, big.NewInt(1))
 
 	MaxBig256 = new(big.Int).Set(tt256m1)
 	MaxBig63  = new(big.Int).Sub(tt63, big.NewInt(1))
@@ -180,6 +180,12 @@ func ReadBits(bigint *big.Int, buf []byte) {
 // U256 encodes as a 256 bit two's complement number. This operation is destructive.
 func U256(x *big.Int) *big.Int {
 	return x.And(x, tt256m1)
+}
+
+// U256Bytes converts a big Int into a 256bit EVM number.
+// This operation is destructive.
+func U256Bytes(n *big.Int) []byte {
+	return PaddedBigBytes(U256(n), 32)
 }
 
 // S256 interprets x as a two's complement number.
