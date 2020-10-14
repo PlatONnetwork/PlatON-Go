@@ -26,7 +26,6 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.2.1-0.20181128192352-1d3f30b51784
 	github.com/golang/snappy v0.0.1
-	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/herumi/bls v0.0.0-20200610053137-1f4204f8b9be
 	github.com/huin/goupnp v0.0.0-20161224104101-679507af18f3
@@ -58,8 +57,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
-	golang.org/x/text v0.3.1-0.20171227012246-e19ae1496984 // indirect
-	golang.org/x/tools v0.0.0-20170215214335-be0fcc31ae23
+	golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
