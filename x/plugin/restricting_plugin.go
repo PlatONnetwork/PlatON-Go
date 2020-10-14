@@ -549,6 +549,9 @@ func (rp *RestrictingPlugin) releaseRestricting(blockNumber uint64, epoch uint64
 				//锁仓可用金额>0
 				restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, releaseAmount)
 			}
+
+			//stats: 增加释放列表，此时不会释放金额到账户，但是需要修改欠释放到账户的钱
+			common.CollectRestrictingReleaseItem(blockNumber, account, common.Big0, restrictInfo.NeedRelease)
 		} else {
 			canRelease := new(big.Int).Sub(restrictInfo.CachePlanAmount, restrictInfo.StakingAmount)
 			if canRelease.Cmp(releaseAmount) >= 0 {

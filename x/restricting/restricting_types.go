@@ -23,10 +23,11 @@ import (
 )
 
 // for genesis and plugin test
+//每个锁仓账户，都只有一个这样的对象，记录当前最新的状态。
 type RestrictingInfo struct {
 	NeedRelease     *big.Int //欠释放金额，到了结算周期需要释放却因为质押而无法释放的金额
 	StakingAmount   *big.Int //质押的金额
-	CachePlanAmount *big.Int //可用的锁仓金额= 锁仓总额 - 已释放的 - 用于质押的 - 被惩罚的
+	CachePlanAmount *big.Int //最新可用的锁仓金额 = 当前可用锁仓金额 - 以前已释放的（这次需要释放的） - 被惩罚的
 	ReleaseList     []uint64 // ReleaseList representation which epoch will release restricting
 }
 
