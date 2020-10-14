@@ -529,7 +529,7 @@ func DefaultAlayaGenesisBlock() *Genesis {
 	genesis := Genesis{
 		Config:    params.AlayaChainConfig,
 		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
-		Timestamp: 0,
+		Timestamp: 1602973620000,
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  params.GenesisGasLimit,
 		Alloc: map[common.Address]GenesisAccount{
@@ -554,7 +554,7 @@ func DefaultAlayaTestGenesisBlock() *Genesis {
 	genesis := Genesis{
 		Config:    params.AlayaTestChainConfig,
 		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
-		Timestamp: 0,
+		Timestamp: 1602973620000,
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  params.GenesisGasLimit,
 		Alloc: map[common.Address]GenesisAccount{
