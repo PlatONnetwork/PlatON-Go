@@ -53,15 +53,15 @@
         },
         "innerAcc": {
             "platonFundAccount": "atx1m6n2wj6cmnnqnmhhaytyf6x75607t7rhszeuhk",
-            "platonFundBalance": 0,
+            "platonFundBalance": 2000000000000000000000000,
             "cdfAccount": "atx1ur2hg0u9wt5qenmkcxlp7ysvaw6yupt4xerq62",
-            "cdfBalance": 4000000000000000000000000
+            "cdfBalance": 1000000000000000000000000
         }
     },
     "nonce": "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
     "timestamp": "0x5bc94a8a",
     "extraData": "0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-    "gasLimit": "4712388",
+    "gasLimit": "9424776",
     "alloc": {
 
     },
