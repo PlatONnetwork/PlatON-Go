@@ -873,7 +873,10 @@ class TestSlashing:
         shares = clients_noconsensus[0].staking.get_staking_amount()
         log.info('Node staking amount : {}'.format(shares))
         pip.node.stop()
-        self.verify_amount_block(pip_test, address, shares, value=5)
+        block_reward, _ = pip_test.economic.get_current_year_reward(pip_test.node, 5)
+        slashing_amount = block_reward * genesis.economicModel.slashing.slashBlocksReward
+        amount = shares - slashing_amount
+        self.verify_amount_block(pip_test, address, amount, value=5)
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')

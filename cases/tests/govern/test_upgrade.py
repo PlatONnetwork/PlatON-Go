@@ -416,7 +416,7 @@ class TestUpgradeVP:
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id in verifier_list
 
-        submitvpandvote(clients_consensus)
+        submitvpandvote(clients_consensus, 5)
         programversion = clients_consensus[0].staking.get_version()
         assert_code(programversion, pip.cfg.version0)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
