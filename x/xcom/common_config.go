@@ -178,10 +178,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		platonFundBalance *big.Int
 	)
 
-	if cdfundBalance, ok = new(big.Int).SetString("1000000000000000000000000", 10); !ok {
+	if cdfundBalance, ok = new(big.Int).SetString("500000000000000000000000", 10); !ok {
 		return nil
 	}
-	if platonFundBalance, ok = new(big.Int).SetString("2000000000000000000000000", 10); !ok {
+	if platonFundBalance, ok = new(big.Int).SetString("2500000000000000000000000", 10); !ok {
 		return nil
 	}
 
