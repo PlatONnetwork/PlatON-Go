@@ -136,7 +136,7 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
             incentive_pool_additional_amount = int(Decimal(str(additional_amount)) * Decimal(str((40 / 100))))
             log.info("Additional quota for the current annual incentive pool: {}".format(incentive_pool_additional_amount))
             # developer foundation s additional amount
-            developer_foundation_s_additional_amount = int(Decimal(str(additional_amount)) * Decimal(str((20 / 100))))
+            developer_foundation_s_additional_amount = int(Decimal(str(additional_amount)) * Decimal(str((10 / 100))))
             log.info("Current annual developer foundation additional quota: {}".format(developer_foundation_s_additional_amount))
 
             foundation_additional_amount = additional_amount - incentive_pool_additional_amount - developer_foundation_s_additional_amount
@@ -268,20 +268,23 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
     """
     # Initialization genesis file Initial amount
     node_count = len(new_genesis_env.consensus_node_list)
-    default_pledge_amount = Web3.toWei(node_count * 20000, 'ether')
-    community_amount = Web3.toWei(4000000, 'ether')
+    default_pledge_amount = Web3.toWei(node_count * 10500, 'ether')
+    # node = new_genesis_env.get_rand_node()
+    community_amount = Web3.toWei(1000000, 'ether')
+    platon_fund = Web3.toWei(2000000, 'ether')
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    print(genesis)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
-    surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - Web3.toWei(1000000, 'ether'))
+    surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - platon_fund - Web3.toWei(2000000, 'ether'))
     genesis.alloc = {
         "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf": {
-            "balance": "1000000000000000000000000"
+            "balance": "2000000000000000000000000"
         },
         "atx1zkrxx6rf358jcvr7nruhyvr9hxpwv9unj58er9": {
             "balance": surplus_amount
         }
     }
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/alaya_genesis_0.13.2.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 

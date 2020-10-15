@@ -39,9 +39,8 @@ def test_IT_IA_002_to_007(new_genesis_env):
     community_amount = Web3.toWei(1000000, 'ether')
     platon_fund = Web3.toWei(2000000, 'ether')
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    print(genesis)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
-    surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - platon_fund -  Web3.toWei(2000000, 'ether'))
+    surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - platon_fund - Web3.toWei(2000000, 'ether'))
     genesis.alloc = {
         "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr75cqxf": {
             "balance": "2000000000000000000000000"
@@ -1326,7 +1325,7 @@ def test_AL_NBI_020(client_consensus):
         average_interval)
 
 
-def AL_FI_006(client_consensus):
+def test_AL_FI_006(client_consensus):
     """
     增发周期动态调整
     :param client_consensus:
@@ -2035,14 +2034,16 @@ def RO_T_001(new_genesis_env, client_noconsensus):
     economic.wait_settlement(node, 1)
 
 
-def test2223(client_consensus):
+def test2223(client_new_node):
     """
     调试脚本使用
     """
-    client = client_consensus
-    print(1)
-    # print(client.node.ppos.getCandidateList())
-    # hx = '0xd7d479481b480b149339908d2e267a03b02396d9a84d6774c7d5d76f3434cf80'
+    client = client_new_node
+    economic = client.economic
+    node = client.node
+    staking_addres, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # client.staking.create_staking(0,staking_addres,staking_addres,transaction_cfg=)
+# hx = '0xd7d479481b480b149339908d2e267a03b02396d9a84d6774c7d5d76f3434cf80'
     # result = client.node.eth.analyzeReceiptByHash(hx)
     # result = client.ppos.getCandidateList()
     # print(result)

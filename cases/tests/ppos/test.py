@@ -8,7 +8,7 @@ from alaya.middleware import geth_poa_middleware
 from alaya.ppos import Ppos
 from hexbytes import HexBytes
 from ruamel import yaml
-
+from alaya.contract import ContractConstructor
 import conf
 from common.load_file import LoadFile
 # from conf.settings import TMP_ADDRES, ACCOUNT_FILE, BASE_DIR
