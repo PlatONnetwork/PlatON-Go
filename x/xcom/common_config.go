@@ -250,7 +250,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(8), // freezing 28 epoch
+				UnStakeFreezeDuration:   uint64(168), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
@@ -301,7 +301,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(8), // freezing 28 epoch
+				UnStakeFreezeDuration:   uint64(168), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
