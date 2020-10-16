@@ -521,7 +521,7 @@ func DefaultGenesisBlock() *Genesis {
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultAlayaGenesisBlock() *Genesis {
 
-	generalAddr := common.MustBech32ToAddress("atp1dl93r6fr022ca5yjqe6cgkg06er9pyqfhqckj8")
+	generalAddr := common.MustBech32ToAddress("atp1hzqghmjtzcggxa0clhaxddz0asdtkpmj23lv6j")
 	generalBalance, _ := new(big.Int).SetString("100000000000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("2000000000000000000000000", 10)
@@ -546,7 +546,7 @@ func DefaultAlayaGenesisBlock() *Genesis {
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultAlayaTestGenesisBlock() *Genesis {
 
-	generalAddr := common.MustBech32ToAddress("atp1hzqghmjtzcggxa0clhaxddz0asdtkpmj23lv6j")
+	generalAddr := common.MustBech32ToAddress("atx1dl93r6fr022ca5yjqe6cgkg06er9pyqfaxyupd")
 	generalBalance, _ := new(big.Int).SetString("100000000000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("2000000000000000000000000", 10)
