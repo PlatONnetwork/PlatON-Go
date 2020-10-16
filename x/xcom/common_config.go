@@ -49,7 +49,7 @@ const (
 	FloorMaxConsensusVals     = 4
 	CeilMaxConsensusVals      = 25
 	PositiveInfinity          = "+∞"
-	CeilUnStakeFreezeDuration = 28 * 4
+	CeilUnStakeFreezeDuration = 168 * 2
 	CeilMaxEvidenceAge        = CeilUnStakeFreezeDuration - 1
 
 	RewardPerMaxChangeRangeUpperLimit = 2000
