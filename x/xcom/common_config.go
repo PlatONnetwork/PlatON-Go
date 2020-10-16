@@ -250,7 +250,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(8), // freezing 28 epoch
+				UnStakeFreezeDuration:   uint64(168), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
@@ -261,7 +261,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(250),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
-				ZeroProduceFreezeDuration:  uint64(7),
+				ZeroProduceFreezeDuration:  uint64(56),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -282,9 +282,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
+				PlatONFundAccount: common.MustBech32ToAddress("atp147txew2paj3y8kqthzelslxyyjmkzt0gwe99cr"),
 				PlatONFundBalance: platonFundBalance,
-				CDFAccount:        common.MustBech32ToAddress("atp17tfkaghs4vded6mz6k53xyv5cvqsl63h7wu5ty"),
+				CDFAccount:        common.MustBech32ToAddress("atp14cl7nrys9xlfcx6clpy4fs4rsasc2htdjz9unu"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -301,7 +301,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(8), // freezing 28 epoch
+				UnStakeFreezeDuration:   uint64(168), // freezing 28 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
@@ -312,7 +312,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(250),
 				ZeroProduceCumulativeTime:  uint16(30),
 				ZeroProduceNumberThreshold: uint16(1),
-				ZeroProduceFreezeDuration:  uint64(7),
+				ZeroProduceFreezeDuration:  uint64(56),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
