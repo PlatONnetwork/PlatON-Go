@@ -36,8 +36,8 @@ def test_IT_IA_002_to_007(new_genesis_env):
     node_count = len(new_genesis_env.consensus_node_list)
     default_pledge_amount = Web3.toWei(node_count * 10500, 'ether')
     node = new_genesis_env.get_rand_node()
-    community_amount = Web3.toWei(1000000, 'ether')
-    platon_fund = Web3.toWei(2000000, 'ether')
+    community_amount = Web3.toWei(500000, 'ether')
+    platon_fund = Web3.toWei(2500000, 'ether')
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
     surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - platon_fund - Web3.toWei(2000000, 'ether'))
@@ -71,7 +71,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
     reality_total = foundation_louckup + incentive_pool + staking + foundation + remain + develop
     log.info("Total issuance of Chuangshi block：{}".format(reality_total))
     log.info("--------------Dividing line---------------")
-    assert foundation == Web3.toWei(2000000, 'ether'), "ErrMsg:Initial amount of foundation {}".format(foundation)
+    assert foundation == Web3.toWei(2500000, 'ether'), "ErrMsg:Initial amount of foundation {}".format(foundation)
     assert foundation_louckup == 0, "ErrMsg:Initial lock up amount of foundation {}".format(
         foundation_louckup)
     assert staking == default_pledge_amount, "ErrMsg:Amount of initial pledge account: {}".format(staking)
@@ -2041,7 +2041,8 @@ def test2223(client_new_node):
     client = client_new_node
     economic = client.economic
     node = client.node
-    staking_addres, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    print(client.node.web3.toWei(500000, 'ether'))
+    # staking_addres, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # client.staking.create_staking(0,staking_addres,staking_addres,transaction_cfg=)
 # hx = '0xd7d479481b480b149339908d2e267a03b02396d9a84d6774c7d5d76f3434cf80'
     # result = client.node.eth.analyzeReceiptByHash(hx)
