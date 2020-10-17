@@ -89,11 +89,11 @@ func parseCallData(calldata []byte, abidata string) (*decodedCallData, error) {
 		return nil, err
 	}
 
-	decoded := decodedCallData{signature: method.Sig(), name: method.Name}
+	decoded := decodedCallData{signature: method.Sig, name: method.Name}
 
 	for n, argument := range method.Inputs {
 		if err != nil {
-			return nil, fmt.Errorf("Failed to decode argument %d (signature %v): %v", n, method.Sig(), err)
+			return nil, fmt.Errorf("Failed to decode argument %d (signature %v): %v", n, method.Sig, err)
 		}
 		decodedArg := decodedArgument{
 			soltype: argument,
@@ -118,7 +118,7 @@ func parseCallData(calldata []byte, abidata string) (*decodedCallData, error) {
 	if !bytes.Equal(encoded, argdata) {
 		was := common.Bytes2Hex(encoded)
 		exp := common.Bytes2Hex(argdata)
-		return nil, fmt.Errorf("WARNING: Supplied data is stuffed with extra data. \nWant %s\nHave %s\nfor method %v", exp, was, method.Sig())
+		return nil, fmt.Errorf("WARNING: Supplied data is stuffed with extra data. \nWant %s\nHave %s\nfor method %v", exp, was, method.Sig)
 	}
 	return &decoded, nil
 }
@@ -253,4 +253,3 @@ func (db *AbiDb) AddSignature(selector string, data []byte) error {
 	sig := common.ToHex(data[:4])
 	return db.saveCustomAbi(selector, sig)
 }
-

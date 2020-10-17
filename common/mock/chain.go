@@ -208,6 +208,10 @@ func NewChain() *Chain {
 
 func NewMockStateDB() *MockStateDB {
 	db := new(MockStateDB)
+	db.Code = make(map[common.Address][]byte)
+	db.CodeHash = make(map[common.Address][]byte)
+	db.Nonce = make(map[common.Address]uint64)
+	db.Suicided = make(map[common.Address]bool)
 	db.State = make(map[common.Address]map[string][]byte)
 	db.Balance = make(map[common.Address]*big.Int)
 	db.Logs = make(map[common.Hash][]*types.Log)

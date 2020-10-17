@@ -27,25 +27,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/cespare/cp"
 	"github.com/davecgh/go-spew/spew"
+
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 var (
 	cachetestDir, _   = filepath.Abs(filepath.Join("testdata", "keystore"))
 	cachetestAccounts = []accounts.Account{
 		{
-			Address: common.MustBech32ToAddress("lax10m66vy6lrlt2qfvnamwgd8rdg8vnfthczm8wl9"),
+			Address: common.MustBech32ToAddress("atx10m66vy6lrlt2qfvnamwgd8rdg8vnfthc7wlna0"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(cachetestDir, "UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8")},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax173ngt84dryedws7kyt9hflq93zpwsey252u004"),
+			Address: common.MustBech32ToAddress("atx173ngt84dryedws7kyt9hflq93zpwsey2glyjdl"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(cachetestDir, "aaa")},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax19zw5shvhw9c5en536vun6ajwzvgeq7kvcm3048"),
+			Address: common.MustBech32ToAddress("atx19zw5shvhw9c5en536vun6ajwzvgeq7kvywfjhd"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(cachetestDir, "zzz")},
 		},
 	}
@@ -146,31 +147,31 @@ func TestCacheAddDeleteOrder(t *testing.T) {
 
 	accs := []accounts.Account{
 		{
-			Address: common.MustBech32ToAddress("lax1p908ht4x5mrufsklawtha7kry6h42tv8sxxrdc"),
+			Address: common.MustBech32ToAddress("atx1p908ht4x5mrufsklawtha7kry6h42tv8vn770j"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "-309830980"},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax19jkp4h4p2qsswqa6whksjlwluf8pfusnn2pmq3"),
+			Address: common.MustBech32ToAddress("atx19jkp4h4p2qsswqa6whksjlwluf8pfusn0lexzm"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "ggg"},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax130d8svcuj94qsjq59rjtqlyk6053d5t9wsgpsh"),
+			Address: common.MustBech32ToAddress("atx130d8svcuj94qsjq59rjtqlyk6053d5t9j9suja"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "zzzzzz-the-very-last-one.keyXXX"},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax16j0lfm4skf5xakyuplq09dh22v7ah027dpmy9u"),
+			Address: common.MustBech32ToAddress("atx16j0lfm4skf5xakyuplq09dh22v7ah02735re8k"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "SOMETHING.key"},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax10m66vy6lrlt2qfvnamwgd8rdg8vnfthczm8wl9"),
+			Address: common.MustBech32ToAddress("atx10m66vy6lrlt2qfvnamwgd8rdg8vnfthc7wlna0"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8"},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax173ngt84dryedws7kyt9hflq93zpwsey252u004"),
+			Address: common.MustBech32ToAddress("atx173ngt84dryedws7kyt9hflq93zpwsey2glyjdl"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "aaa"},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax19zw5shvhw9c5en536vun6ajwzvgeq7kvcm3048"),
+			Address: common.MustBech32ToAddress("atx19zw5shvhw9c5en536vun6ajwzvgeq7kvywfjhd"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "zzz"},
 		},
 	}
@@ -194,15 +195,15 @@ func TestCacheAddDeleteOrder(t *testing.T) {
 			t.Errorf("expected hasAccount(%x) to return true", a.Address)
 		}
 	}
-	if cache.hasAddress(common.MustBech32ToAddress("lax1lkdax58s3m3upsvmsk5wzcg55ydxp2jwqpvpf2")) {
-		t.Errorf("expected hasAccount(%x) to return false", common.MustBech32ToAddress("lax1lkdax58s3m3upsvmsk5wzcg55ydxp2jwqpvpf2"))
+	if cache.hasAddress(common.MustBech32ToAddress("atx1lkdax58s3m3upsvmsk5wzcg55ydxp2jwu55utq")) {
+		t.Errorf("expected hasAccount(%x) to return false", common.MustBech32ToAddress("atx1lkdax58s3m3upsvmsk5wzcg55ydxp2jwu55utq"))
 	}
 
 	// Delete a few keys from the cache.
 	for i := 0; i < len(accs); i += 2 {
 		cache.delete(wantAccounts[i])
 	}
-	cache.delete(accounts.Account{Address: common.MustBech32ToAddress("lax1lkdax58s3m3upsvmsk5wzcg55ydxp2jwqpvpf2"), URL: accounts.URL{Scheme: KeyStoreScheme, Path: "something"}})
+	cache.delete(accounts.Account{Address: common.MustBech32ToAddress("atx1lkdax58s3m3upsvmsk5wzcg55ydxp2jwu55utq"), URL: accounts.URL{Scheme: KeyStoreScheme, Path: "something"}})
 
 	// Check content again after deletion.
 	wantAccountsAfterDelete := []accounts.Account{
@@ -231,19 +232,19 @@ func TestCacheFind(t *testing.T) {
 
 	accs := []accounts.Account{
 		{
-			Address: common.MustBech32ToAddress("lax1p908ht4x5mrufsklawtha7kry6h42tv8sxxrdc"),
+			Address: common.MustBech32ToAddress("atx1p908ht4x5mrufsklawtha7kry6h42tv8vn770j"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(dir, "a.key")},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax19jkp4h4p2qsswqa6whksjlwluf8pfusnn2pmq3"),
+			Address: common.MustBech32ToAddress("atx19jkp4h4p2qsswqa6whksjlwluf8pfusn0lexzm"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(dir, "b.key")},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax16j0lfm4skf5xakyuplq09dh22v7ah027dpmy9u"),
+			Address: common.MustBech32ToAddress("atx16j0lfm4skf5xakyuplq09dh22v7ah02735re8k"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(dir, "c.key")},
 		},
 		{
-			Address: common.MustBech32ToAddress("lax16j0lfm4skf5xakyuplq09dh22v7ah027dpmy9u"),
+			Address: common.MustBech32ToAddress("atx16j0lfm4skf5xakyuplq09dh22v7ah02735re8k"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(dir, "c2.key")},
 		},
 	}
@@ -252,7 +253,7 @@ func TestCacheFind(t *testing.T) {
 	}
 
 	nomatchAccount := accounts.Account{
-		Address: common.MustBech32ToAddress("lax173ngt84dryedws7kyt9hflq93zpwsey252u004"),
+		Address: common.MustBech32ToAddress("atx173ngt84dryedws7kyt9hflq93zpwsey2glyjdl"),
 		URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(dir, "something")},
 	}
 	tests := []struct {

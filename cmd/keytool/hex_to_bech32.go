@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/btcsuite/btcutil/bech32"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/bech32util"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
@@ -13,7 +17,7 @@ import (
 
 var HexAccountFileFlag = cli.StringFlag{
 	Name:  "hexAddressFile",
-	Usage: "file hex accounts want to update to bech32 address,file like  [hex,hex...]",
+	Usage: "file bech32/hex accounts want to update to mainnet/testnet bech32 address,file like  [hex,hex...]",
 }
 
 type addressPair struct {
@@ -23,10 +27,10 @@ type addressPair struct {
 
 var commandAddressHexToBech32 = cli.Command{
 	Name:      "updateaddress",
-	Usage:     "update hex address to bech32 address",
-	ArgsUsage: "[<hex_address> <hex_address>...]",
+	Usage:     "update hex/bech32 address to mainnet/testnet bech32 address",
+	ArgsUsage: "[<address> <address>...]",
 	Description: `
-update hex address to bech32 address.
+update hex/bech32 address to mainnet/testnet bech32 address.
 `,
 	Flags: []cli.Flag{
 		jsonFlag,
@@ -53,12 +57,27 @@ update hex address to bech32 address.
 		}
 		var outAddress []addressPair
 		for _, account := range accounts {
-			address := common.HexToAddress(account)
-			out := addressPair{
-				Address:       common.NewAddressOutput(address),
-				OriginAddress: account,
+			_, _, err := bech32.Decode(account)
+			if err != nil {
+				address := common.HexToAddress(account)
+				out := addressPair{
+					Address:       common.NewAddressOutput(address),
+					OriginAddress: account,
+				}
+				outAddress = append(outAddress, out)
+			} else {
+				_, converted, err := bech32util.DecodeAndConvert(account)
+				if err != nil {
+					return err
+				}
+				var a common.Address
+				a.SetBytes(converted)
+				out := addressPair{
+					Address:       common.NewAddressOutput(a),
+					OriginAddress: account,
+				}
+				outAddress = append(outAddress, out)
 			}
-			outAddress = append(outAddress, out)
 		}
 
 		if ctx.Bool(jsonFlag.Name) {

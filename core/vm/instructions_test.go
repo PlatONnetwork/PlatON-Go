@@ -17,109 +17,123 @@
 package vm
 
 import (
-	"context"
-	"math/big"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/holiman/uint256"
+	"io/ioutil"
 	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
-type twoOperandTest struct {
-	x        string
-	y        string
-	expected string
+type TwoOperandTestcase struct {
+	X        string
+	Y        string
+	Expected string
 }
 
-func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error)) {
-	var (
-		env            = NewEVM(Context{Ctx: context.TODO()}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
+type twoOperandParams struct {
+	x string
+	y string
+}
 
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	for i, test := range tests {
-		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
-		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
-		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
-		stack.push(x)
-		stack.push(shift)
-		opFn(&pc, evmInterpreter, nil, nil, stack)
-		actual := stack.pop()
-		if actual.Cmp(expected) != 0 {
-			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
-		}
-		// Check pool usage
-		// 1.pool is not allowed to contain anything on the stack
-		// 2.pool is not allowed to contain the same pointers twice
-		if evmInterpreter.intPool.pool.len() > 0 {
+var commonParams []*twoOperandParams
+var twoOpMethods map[string]executionFunc
 
-			poolvals := make(map[*big.Int]struct{})
-			poolvals[actual] = struct{}{}
+func init() {
 
-			for evmInterpreter.intPool.pool.len() > 0 {
-				key := evmInterpreter.intPool.get()
-				if _, exist := poolvals[key]; exist {
-					t.Errorf("Testcase %d, pool contains double-entry", i)
-				}
-				poolvals[key] = struct{}{}
-			}
+	// Params is a list of common edgecases that should be used for some common tests
+	params := []string{
+		"0000000000000000000000000000000000000000000000000000000000000000", // 0
+		"0000000000000000000000000000000000000000000000000000000000000001", // +1
+		"0000000000000000000000000000000000000000000000000000000000000005", // +5
+		"7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe", // + max -1
+		"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", // + max
+		"8000000000000000000000000000000000000000000000000000000000000000", // - max
+		"8000000000000000000000000000000000000000000000000000000000000001", // - max+1
+		"fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb", // - 5
+		"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", // - 1
+	}
+	// Params are combined so each param is used on each 'side'
+	commonParams = make([]*twoOperandParams, len(params)*len(params))
+	for i, x := range params {
+		for j, y := range params {
+			commonParams[i*len(params)+j] = &twoOperandParams{x, y}
 		}
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
+	twoOpMethods = map[string]executionFunc{
+		"add":     opAdd,
+		"sub":     opSub,
+		"mul":     opMul,
+		"div":     opDiv,
+		"sdiv":    opSdiv,
+		"mod":     opMod,
+		"smod":    opSmod,
+		"exp":     opExp,
+		"signext": opSignExtend,
+		"lt":      opLt,
+		"gt":      opGt,
+		"slt":     opSlt,
+		"sgt":     opSgt,
+		"eq":      opEq,
+		"and":     opAnd,
+		"or":      opOr,
+		"xor":     opXor,
+		"byte":    opByte,
+		"shl":     opSHL,
+		"shr":     opSHR,
+		"sar":     opSAR,
+	}
+}
+
+func testTwoOperandOp(t *testing.T, tests []TwoOperandTestcase, opFn executionFunc, name string) {
+
+	var (
+		env            = NewEVM(Context{}, nil, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		rstack         = newReturnStack()
+		pc             = uint64(0)
+		evmInterpreter = env.interpreter.(*EVMInterpreter)
+	)
+
+	for i, test := range tests {
+		x := new(uint256.Int).SetBytes(common.Hex2Bytes(test.X))
+		y := new(uint256.Int).SetBytes(common.Hex2Bytes(test.Y))
+		expected := new(uint256.Int).SetBytes(common.Hex2Bytes(test.Expected))
+		stack.push(x)
+		stack.push(y)
+		opFn(&pc, evmInterpreter, &callCtx{nil, stack, rstack, nil})
+		if len(stack.data) != 1 {
+			t.Errorf("Expected one item on stack after %v, got %d: ", name, len(stack.data))
+		}
+		actual := stack.pop()
+
+		if actual.Cmp(expected) != 0 {
+			t.Errorf("Testcase %v %d, %v(%x, %x): expected  %x, got %x", name, i, name, x, y, expected, actual)
+		}
+	}
 }
 
 func TestByteOp(t *testing.T) {
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	tests := []struct {
-		v        string
-		th       uint64
-		expected *big.Int
-	}{
-		{"ABCDEF0908070605040302010000000000000000000000000000000000000000", 0, big.NewInt(0xAB)},
-		{"ABCDEF0908070605040302010000000000000000000000000000000000000000", 1, big.NewInt(0xCD)},
-		{"00CDEF090807060504030201ffffffffffffffffffffffffffffffffffffffff", 0, big.NewInt(0x00)},
-		{"00CDEF090807060504030201ffffffffffffffffffffffffffffffffffffffff", 1, big.NewInt(0xCD)},
-		{"0000000000000000000000000000000000000000000000000000000000102030", 31, big.NewInt(0x30)},
-		{"0000000000000000000000000000000000000000000000000000000000102030", 30, big.NewInt(0x20)},
-		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 32, big.NewInt(0x0)},
-		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 0xFFFFFFFFFFFFFFFF, big.NewInt(0x0)},
+	tests := []TwoOperandTestcase{
+		{"ABCDEF0908070605040302010000000000000000000000000000000000000000", "00", "AB"},
+		{"ABCDEF0908070605040302010000000000000000000000000000000000000000", "01", "CD"},
+		{"00CDEF090807060504030201ffffffffffffffffffffffffffffffffffffffff", "00", "00"},
+		{"00CDEF090807060504030201ffffffffffffffffffffffffffffffffffffffff", "01", "CD"},
+		{"0000000000000000000000000000000000000000000000000000000000102030", "1F", "30"},
+		{"0000000000000000000000000000000000000000000000000000000000102030", "1E", "20"},
+		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "20", "00"},
+		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "FFFFFFFFFFFFFFFF", "00"},
 	}
-	pc := uint64(0)
-	for _, test := range tests {
-		val := new(big.Int).SetBytes(common.Hex2Bytes(test.v))
-		th := new(big.Int).SetUint64(test.th)
-		stack.push(val)
-		stack.push(th)
-		opByte(&pc, evmInterpreter, nil, nil, stack)
-		actual := stack.pop()
-		if actual.Cmp(test.expected) != 0 {
-			t.Fatalf("Expected  [%v] %v:th byte to be %v, was %v.", test.v, test.th, test.expected, actual)
-		}
-	}
-	poolOfIntPools.put(evmInterpreter.intPool)
+	testTwoOperandOp(t, tests, opByte, "byte")
 }
 
 func TestSHL(t *testing.T) {
 	// Testcases from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#shl-shift-left
-	tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000001", "00", "0000000000000000000000000000000000000000000000000000000000000001"},
+	tests := []TwoOperandTestcase{
 		{"0000000000000000000000000000000000000000000000000000000000000001", "01", "0000000000000000000000000000000000000000000000000000000000000002"},
 		{"0000000000000000000000000000000000000000000000000000000000000001", "ff", "8000000000000000000000000000000000000000000000000000000000000000"},
 		{"0000000000000000000000000000000000000000000000000000000000000001", "0100", "0000000000000000000000000000000000000000000000000000000000000000"},
@@ -131,12 +145,12 @@ func TestSHL(t *testing.T) {
 		{"0000000000000000000000000000000000000000000000000000000000000000", "01", "0000000000000000000000000000000000000000000000000000000000000000"},
 		{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "01", "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"},
 	}
-	testTwoOperandOp(t, tests, opSHL)
+	testTwoOperandOp(t, tests, opSHL, "shl")
 }
 
 func TestSHR(t *testing.T) {
 	// Testcases from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#shr-logical-shift-right
-	tests := []twoOperandTest{
+	tests := []TwoOperandTestcase{
 		{"0000000000000000000000000000000000000000000000000000000000000001", "00", "0000000000000000000000000000000000000000000000000000000000000001"},
 		{"0000000000000000000000000000000000000000000000000000000000000001", "01", "0000000000000000000000000000000000000000000000000000000000000000"},
 		{"8000000000000000000000000000000000000000000000000000000000000000", "01", "4000000000000000000000000000000000000000000000000000000000000000"},
@@ -149,12 +163,12 @@ func TestSHR(t *testing.T) {
 		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0100", "0000000000000000000000000000000000000000000000000000000000000000"},
 		{"0000000000000000000000000000000000000000000000000000000000000000", "01", "0000000000000000000000000000000000000000000000000000000000000000"},
 	}
-	testTwoOperandOp(t, tests, opSHR)
+	testTwoOperandOp(t, tests, opSHR, "shr")
 }
 
 func TestSAR(t *testing.T) {
 	// Testcases from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#sar-arithmetic-shift-right
-	tests := []twoOperandTest{
+	tests := []TwoOperandTestcase{
 		{"0000000000000000000000000000000000000000000000000000000000000001", "00", "0000000000000000000000000000000000000000000000000000000000000001"},
 		{"0000000000000000000000000000000000000000000000000000000000000001", "01", "0000000000000000000000000000000000000000000000000000000000000000"},
 		{"8000000000000000000000000000000000000000000000000000000000000000", "01", "c000000000000000000000000000000000000000000000000000000000000000"},
@@ -173,1381 +187,106 @@ func TestSAR(t *testing.T) {
 		{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0100", "0000000000000000000000000000000000000000000000000000000000000000"},
 	}
 
-	testTwoOperandOp(t, tests, opSAR)
+	testTwoOperandOp(t, tests, opSAR, "sar")
 }
 
-func TestSGT(t *testing.T) {
-	tests := []twoOperandTest{
-
-		{"0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000001", "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000001", "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"8000000000000000000000000000000000000000000000000000000000000001", "8000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"8000000000000000000000000000000000000000000000000000000000000001", "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "8000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb", "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd", "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb", "0000000000000000000000000000000000000000000000000000000000000000"},
-	}
-	testTwoOperandOp(t, tests, opSgt)
-}
-
-func TestSLT(t *testing.T) {
-	tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000001", "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000001", "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"8000000000000000000000000000000000000000000000000000000000000001", "8000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"8000000000000000000000000000000000000000000000000000000000000001", "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "8000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb", "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd", "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb", "0000000000000000000000000000000000000000000000000000000000000001"},
-	}
-	testTwoOperandOp(t, tests, opSlt)
-}
-
-func TestOpAdd(t *testing.T) {
-	tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000008", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000009"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000002"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000003"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "000000000000000000000000000000000000000000000000000000000000000a", "000000000000000000000000000000000000000000000000000000000000000c"},
-		{"0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000000"},
-	}
-	testTwoOperandOp(t, tests, opAdd)
-}
-
-func TestOpSub(t *testing.T) {
-	tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		//{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000002"},
-		//{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001"},
-		//{"0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000000"},
-	}
-	testTwoOperandOp(t, tests, opSub)
-}
-
-func TestOpMul(t *testing.T) {
-	tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000002"},
-		{"0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000000"},
-	}
-	testTwoOperandOp(t, tests, opMul)
-}
-
-func TestOpDiv(t *testing.T) {
-	tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-	}
-	testTwoOperandOp(t, tests, opDiv)
-}
-
-func TestOpSDiv(t *testing.T) {
-	tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-	}
-	testTwoOperandOp(t, tests, opSdiv)
-}
-
-func TestOpMod(t *testing.T) {
-	tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-	}
-	testTwoOperandOp(t, tests, opMod)
-}
-
-func TestOpSmod(t *testing.T) {
-	tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000000"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000"},
-	}
-	testTwoOperandOp(t, tests, opSmod)
-}
-
-func TestOpExp(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(10), v(100)},
-		{v(10), v(2), v(1024)},
-		{v(100), v(1), v(1)},
-		{v(2), v(0), v(0)},
-	}
-	testTwoOperandOp(t, tests, opExp)
-}
-
-func TestOpNot(t *testing.T) {
-	/*v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}*/
-	/*tests := []twoOperandTest{
-		{"0000000000000000000000000000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000002", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000001"},
-		{"0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000001"},
-	}
-	testTwoOperandOp(t, tests, opNot)*/
-}
-
-func TestOpLt(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(1), v(1)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(0)},
-		{v(-2), v(0), v(1)},
-	}
-	testTwoOperandOp(t, tests, opLt)
-}
-
-func TestOpGt(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(1), v(0)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(1)},
-		{v(-2), v(0), v(0)},
-	}
-	testTwoOperandOp(t, tests, opGt)
-}
-
-func TestOpSlt(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(1), v(1)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(0)},
-		{v(-2), v(0), v(1)},
-	}
-	testTwoOperandOp(t, tests, opSlt)
-}
-
-func TestOpSgt(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(-1), v(0)},
-		{v(2), v(1), v(0)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(1)},
-		{v(-2), v(0), v(0)},
-		{common.Bytes2Hex(math.BigPow(2, 256).Bytes()), v(1), v(1)},
-		{v(1), common.Bytes2Hex(math.BigPow(2, 256).Bytes()), v(0)},
-	}
-	testTwoOperandOp(t, tests, opSgt)
-}
-
-func TestOpEq(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(2), v(1)},
-		{v(0), v(0), v(1)},
-		{v(1), v(2), v(0)},
-		{v(2), v(1), v(0)},
-		{v(-2), v(0), v(0)},
-		{common.Bytes2Hex(math.BigPow(2, 256).Bytes()), v(1), v(0)},
-		{v(1), common.Bytes2Hex(math.BigPow(2, 256).Bytes()), v(0)},
-	}
-	testTwoOperandOp(t, tests, opEq)
-}
-
-func TestOpOr(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(2), v(2)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(3)},
-		{v(2), v(1), v(3)},
-		{v(-2), v(0), v(2)},
-	}
-	testTwoOperandOp(t, tests, opOr)
-}
-
-func TestOpXor(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(2), v(0)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(3)},
-		{v(2), v(1), v(3)},
-		{v(-2), v(0), v(2)},
-	}
-	testTwoOperandOp(t, tests, opXor)
-}
-
-func TestOpByte(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(2), v(0)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(0)},
-		{v(200), v(35), v(0)},
-		{v(-2), v(0), v(0)},
-	}
-	testTwoOperandOp(t, tests, opByte)
-}
-
-func TestOpAddmod(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
+func TestAddMod(t *testing.T) {
+	var (
+		env            = NewEVM(Context{}, nil, nil, params.TestChainConfig, Config{})
+		stack          = newstack()
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		pc             = uint64(0)
+	)
 	tests := []struct {
 		x        string
 		y        string
 		z        string
 		expected string
 	}{
-		{v(2), v(2), v(2), v(0)},
-		{v(0), v(0), v(2), v(0)},
-		{v(1), v(2), v(2), v(0)},
-		{v(200), v(35), v(2), v(37)},
-		{v(-2), v(0), v(2), v(0)},
+		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			"fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
+			"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			"fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
+		},
 	}
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
+	// x + y = 0x1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd
+	// in 256 bit repr, fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd
 
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
 	for i, test := range tests {
-		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
-		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
-		z := new(big.Int).SetBytes(common.Hex2Bytes(test.z))
-		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
-		stack.push(x)
-		stack.push(shift)
+		x := new(uint256.Int).SetBytes(common.Hex2Bytes(test.x))
+		y := new(uint256.Int).SetBytes(common.Hex2Bytes(test.y))
+		z := new(uint256.Int).SetBytes(common.Hex2Bytes(test.z))
+		expected := new(uint256.Int).SetBytes(common.Hex2Bytes(test.expected))
 		stack.push(z)
-		opAddmod(&pc, evmInterpreter, nil, nil, stack)
+		stack.push(y)
+		stack.push(x)
+		opAddmod(&pc, evmInterpreter, &callCtx{nil, stack, nil, nil})
 		actual := stack.pop()
 		if actual.Cmp(expected) != 0 {
-			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
-		}
-		// Check pool usage
-		// 1.pool is not allowed to contain anything on the stack
-		// 2.pool is not allowed to contain the same pointers twice
-		if evmInterpreter.intPool.pool.len() > 0 {
-
-			poolvals := make(map[*big.Int]struct{})
-			poolvals[actual] = struct{}{}
-
-			for evmInterpreter.intPool.pool.len() > 0 {
-				key := evmInterpreter.intPool.get()
-				if _, exist := poolvals[key]; exist {
-					t.Errorf("Testcase %d, pool contains double-entry", i)
-				}
-				poolvals[key] = struct{}{}
-			}
+			t.Errorf("Testcase %d, expected  %x, got %x", i, expected, actual)
 		}
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
 }
 
-func TestOpMulmod(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []struct {
-		x        string
-		y        string
-		z        string
-		expected string
-	}{
-		{v(2), v(2), v(2), v(0)},
-		{v(0), v(0), v(2), v(0)},
-		{v(1), v(2), v(2), v(0)},
-		{v(200), v(35), v(2), v(70)},
-		{v(-2), v(0), v(2), v(0)},
-	}
+// getResult is a convenience function to generate the expected values
+func getResult(args []*twoOperandParams, opFn executionFunc) []TwoOperandTestcase {
 	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		env           = NewEVM(Context{}, nil, nil, params.TestChainConfig, Config{})
+		stack, rstack = newstack(), newReturnStack()
+		pc            = uint64(0)
+		interpreter   = env.interpreter.(*EVMInterpreter)
 	)
-
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	for i, test := range tests {
-		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
-		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
-		z := new(big.Int).SetBytes(common.Hex2Bytes(test.z))
-		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
+	result := make([]TwoOperandTestcase, len(args))
+	for i, param := range args {
+		x := new(uint256.Int).SetBytes(common.Hex2Bytes(param.x))
+		y := new(uint256.Int).SetBytes(common.Hex2Bytes(param.y))
 		stack.push(x)
-		stack.push(shift)
-		stack.push(z)
-		opMulmod(&pc, evmInterpreter, nil, nil, stack)
+		stack.push(y)
+		opFn(&pc, interpreter, &callCtx{nil, stack, rstack, nil})
 		actual := stack.pop()
-		if actual.Cmp(expected) != 0 {
-			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
+		result[i] = TwoOperandTestcase{param.x, param.y, fmt.Sprintf("%064x", actual)}
+	}
+	return result
+}
+
+// utility function to fill the json-file with testcases
+// Enable this test to generate the 'testcases_xx.json' files
+func TestWriteExpectedValues(t *testing.T) {
+	t.Skip("Enable this test to create json test cases.")
+
+	for name, method := range twoOpMethods {
+		data, err := json.Marshal(getResult(commonParams, method))
+		if err != nil {
+			t.Fatal(err)
 		}
-		// Check pool usage
-		// 1.pool is not allowed to contain anything on the stack
-		// 2.pool is not allowed to contain the same pointers twice
-		if evmInterpreter.intPool.pool.len() > 0 {
-
-			poolvals := make(map[*big.Int]struct{})
-			poolvals[actual] = struct{}{}
-
-			for evmInterpreter.intPool.pool.len() > 0 {
-				key := evmInterpreter.intPool.get()
-				if _, exist := poolvals[key]; exist {
-					t.Errorf("Testcase %d, pool contains double-entry", i)
-				}
-				poolvals[key] = struct{}{}
-			}
-		}
-	}
-	poolOfIntPools.put(evmInterpreter.intPool)
-}
-
-func TestOpSHL(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(2), v(8)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(4)},
-		{v(10), v(10), v(10240)},
-		{v(-2), v(0), v(2)},
-	}
-	testTwoOperandOp(t, tests, opSHL)
-}
-
-func TestOpSHR(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(2), v(0)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(0)},
-		{v(266), v(257), v(0)},
-		{v(-2), v(0), v(2)},
-	}
-	testTwoOperandOp(t, tests, opSHR)
-}
-
-func TestOpSAR(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(2), v(2), v(0)},
-		{v(0), v(0), v(0)},
-		{v(1), v(2), v(0)},
-		{v(266), v(257), v(0)},
-		{v(-2), v(0), v(2)},
-	}
-	testTwoOperandOp(t, tests, opSAR)
-}
-
-// Contains memory data.
-func testGlobalOperandOp(t *testing.T, stateDB StateDB, memory *Memory, contract *Contract, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error)) {
-	var (
-		env            = NewEVM(Context{}, nil, stateDB, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	for i, test := range tests {
-		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
-		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
-		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
-		stack.push(x)
-		stack.push(shift)
-		opFn(&pc, evmInterpreter, contract, memory, stack)
-		actual := stack.pop()
-		if actual.Cmp(expected) != 0 {
-			t.Errorf("Testcase %d, expected  %v, got %v(%v)", i, expected, actual, common.Bytes2Hex(actual.Bytes()))
-		}
-		// Check pool usage
-		// 1.pool is not allowed to contain anything on the stack
-		// 2.pool is not allowed to contain the same pointers twice
-		if evmInterpreter.intPool.pool.len() > 0 {
-
-			poolvals := make(map[*big.Int]struct{})
-			poolvals[actual] = struct{}{}
-
-			for evmInterpreter.intPool.pool.len() > 0 {
-				key := evmInterpreter.intPool.get()
-				if _, exist := poolvals[key]; exist {
-					t.Errorf("Testcase %d, pool contains double-entry", i)
-				}
-				poolvals[key] = struct{}{}
-			}
-		}
-	}
-	poolOfIntPools.put(evmInterpreter.intPool)
-}
-
-func TestOpSha3(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(0), v(8), "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"},
-		{v(2), v(1), "4535a04e923af75e64a9f6cdfb922004b40beec0649d36cf6ea095b7c4975cae"},
-		{v(3), v(2), "7ad37e9ae69046be83354f8de5e8b4814d21075a11ce84f5e52f89733145e87c"},
-		{v(4), v(3), "9edfefee6a285de13826a2f33d0056539b801642d4955a202c46835bfcad0c02"},
-	}
-	memory := NewMemory()
-	memory.Resize(8)
-	memory.Set(0, 8, []byte{
-		0x01, 0x01, 0x01, 0x01,
-		0x01, 0x01, 0x01, 0x01,
-	})
-	testGlobalOperandOp(t, &mock.MockStateDB{}, memory, nil, tests, opSha3)
-}
-
-func TestOpAddress(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(0), v(0), common.Bytes2Hex([]byte("aaa"))},
-	}
-	c := &Contract{
-		self: &MockAddressRef{},
-	}
-	testGlobalOperandOp(t, &mock.MockStateDB{}, nil, c, tests, opAddress)
-}
-
-func TestOpOrigin(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(0), v(0), v(0)},
-	}
-	c := &Contract{
-		self: &MockAddressRef{},
-	}
-	testGlobalOperandOp(t, &mock.MockStateDB{}, nil, c, tests, opOrigin)
-}
-
-func TestOpCaller(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(0), v(0), common.Bytes2Hex([]byte("aaa"))},
-	}
-	c := &Contract{
-		self:          &MockAddressRef{},
-		CallerAddress: common.BytesToAddress([]byte("aaa")),
-	}
-	testGlobalOperandOp(t, &mock.MockStateDB{}, nil, c, tests, opCaller)
-}
-
-func TestOpCallValue(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(0), v(0), v(10)},
-	}
-	c := &Contract{
-		self:          &MockAddressRef{},
-		CallerAddress: common.BytesToAddress([]byte("aaa")),
-		value:         new(big.Int).SetUint64(10),
-	}
-	testGlobalOperandOp(t, &mock.MockStateDB{}, nil, c, tests, opCallValue)
-}
-
-func TestOpCallDataLoad(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(0), v(0), "0102030400000000000000000000000000000000000000000000000000000000"},
-	}
-	c := &Contract{
-		self:          &MockAddressRef{},
-		CallerAddress: common.BytesToAddress([]byte("aaa")),
-		value:         new(big.Int).SetUint64(10),
-		Input:         []byte{0x01, 0x02, 0x03, 0x04},
-	}
-	testGlobalOperandOp(t, &mock.MockStateDB{}, nil, c, tests, opCallDataLoad)
-}
-
-func TestOpCallDataSize(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []twoOperandTest{
-		{v(0), v(0), v(4)},
-	}
-	c := &Contract{
-		self:          &MockAddressRef{},
-		CallerAddress: common.BytesToAddress([]byte("aaa")),
-		value:         new(big.Int).SetUint64(10),
-		Input:         []byte{0x01, 0x02, 0x03, 0x04},
-	}
-	testGlobalOperandOp(t, &mock.MockStateDB{}, nil, c, tests, opCallDataSize)
-}
-
-func TestOpCallDataCopy(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []struct {
-		x        string
-		y        string
-		z        string
-		expected string
-	}{
-		{v(4), v(0), v(0), "01020304"},
-	}
-	contract := &Contract{
-		self:          &MockAddressRef{},
-		CallerAddress: common.BytesToAddress([]byte("aaa")),
-		value:         new(big.Int).SetUint64(10),
-		Input:         []byte{0x01, 0x02, 0x03, 0x04},
-	}
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	memory := NewMemory()
-	memory.Resize(4)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	for i, test := range tests {
-		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
-		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
-		z := new(big.Int).SetBytes(common.Hex2Bytes(test.z))
-		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
-		stack.push(x)
-		stack.push(shift)
-		stack.push(z)
-		opCallDataCopy(&pc, evmInterpreter, contract, memory, stack)
-		actual := common.Bytes2Hex(memory.Get(0, 4))
-		//actual := stack.pop()
-		if actual != common.Bytes2Hex(expected.Bytes()) {
-			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
+		_ = ioutil.WriteFile(fmt.Sprintf("testdata/testcases_%v.json", name), data, 0644)
+		if err != nil {
+			t.Fatal(err)
 		}
 	}
 }
 
-func TestOpReturnDataSize(t *testing.T) {
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	evmInterpreter.returnData = []byte{0x01, 0x02, 0x03, 0x04}
-	opReturnDataSize(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.pop()
-	if actual.Int64() != 4 {
-		t.Errorf("Expected 4, got %d", actual.Int64())
-	}
-}
-
-func TestOpCodeSize(t *testing.T) {
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	contract := &Contract{
-		self:          &MockAddressRef{},
-		CallerAddress: common.BytesToAddress([]byte("aaa")),
-		value:         new(big.Int).SetUint64(10),
-		Input:         []byte{0x01, 0x02, 0x03, 0x04},
-		Code:          []byte{0x01, 0x02, 0x03, 0x04},
-	}
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	evmInterpreter.returnData = []byte{0x01, 0x02, 0x03, 0x04}
-	opCodeSize(&pc, evmInterpreter, contract, nil, stack)
-	actual := stack.pop()
-	if actual.Int64() != 4 {
-		t.Errorf("Expected 4, got %d", actual.Int64())
-	}
-}
-
-func TestOpReturnDataCopy(t *testing.T) {
-	v := func(v int64) string {
-		b := new(big.Int).SetInt64(v)
-		return common.Bytes2Hex(b.Bytes())
-	}
-	tests := []struct {
-		x        string
-		y        string
-		z        string
-		expected string
-	}{
-		{v(4), v(0), v(0), "01020304"},
-	}
-	contract := &Contract{
-		self:          &MockAddressRef{},
-		CallerAddress: common.BytesToAddress([]byte("aaa")),
-		value:         new(big.Int).SetUint64(10),
-		Input:         []byte{0x01, 0x02, 0x03, 0x04},
-	}
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	memory := NewMemory()
-	memory.Resize(4)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	evmInterpreter.returnData = []byte{0x01, 0x02, 0x03, 0x04}
-	for i, test := range tests {
-		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
-		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
-		z := new(big.Int).SetBytes(common.Hex2Bytes(test.z))
-		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
-		stack.push(x)
-		stack.push(shift)
-		stack.push(z)
-		opReturnDataCopy(&pc, evmInterpreter, contract, memory, stack)
-		actual := common.Bytes2Hex(memory.Get(0, 4))
-		//actual := stack.pop()
-		if actual != common.Bytes2Hex(expected.Bytes()) {
-			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
+// TestJsonTestcases runs through all the testcases defined as json-files
+func TestJsonTestcases(t *testing.T) {
+	for name := range twoOpMethods {
+		data, err := ioutil.ReadFile(fmt.Sprintf("testdata/testcases_%v.json", name))
+		if err != nil {
+			t.Fatal("Failed to read file", err)
 		}
+		var testcases []TwoOperandTestcase
+		json.Unmarshal(data, &testcases)
+		testTwoOperandOp(t, testcases, twoOpMethods[name], name)
 	}
 }
 
-func createMockState() StateDB {
-	return &mock.MockStateDB{
-		Nonce: map[common.Address]uint64{
-			common.BytesToAddress([]byte("a")): 1,
-			common.BytesToAddress([]byte("b")): 1,
-			common.BytesToAddress([]byte("c")): 1,
-			common.BytesToAddress([]byte("d")): 1,
-			common.BytesToAddress([]byte("e")): 1,
-			common.BytesToAddress([]byte("f")): 1,
-		},
-		Balance: map[common.Address]*big.Int{
-			common.BytesToAddress([]byte("a")): new(big.Int).SetUint64(100),
-			common.BytesToAddress([]byte("b")): new(big.Int).SetUint64(200),
-			common.BytesToAddress([]byte("c")): new(big.Int).SetUint64(300),
-			common.BytesToAddress([]byte("d")): new(big.Int).SetUint64(400),
-			common.BytesToAddress([]byte("e")): new(big.Int).SetUint64(500),
-			common.BytesToAddress([]byte("f")): new(big.Int).SetUint64(600),
-		},
-		State: map[common.Address]map[string][]byte{
-			common.BytesToAddress([]byte("a")): map[string][]byte{
-				"1": []byte{0x01, 0x02, 0x03},
-				"2": []byte{0x01, 0x02, 0x03},
-				"3": []byte{0x01, 0x02, 0x03},
-			},
-			common.BytesToAddress([]byte("b")): map[string][]byte{
-				"1": []byte{0x01, 0x02, 0x03},
-				"2": []byte{0x01, 0x02, 0x03},
-				"3": []byte{0x01, 0x02, 0x03},
-			},
-			common.BytesToAddress([]byte("c")): map[string][]byte{
-				"1": []byte{0x01, 0x02, 0x03},
-				"2": []byte{0x01, 0x02, 0x03},
-				"3": []byte{0x01, 0x02, 0x03},
-			},
-			common.BytesToAddress([]byte("d")): map[string][]byte{
-				"1": []byte{0x01, 0x02, 0x03},
-				"2": []byte{0x01, 0x02, 0x03},
-				"3": []byte{0x01, 0x02, 0x03},
-			},
-			common.BytesToAddress([]byte("e")): map[string][]byte{
-				"1": []byte{0x01, 0x02, 0x03},
-				"2": []byte{0x01, 0x02, 0x03},
-				"3": []byte{0x01, 0x02, 0x03},
-			},
-			common.BytesToAddress([]byte("f")): map[string][]byte{
-				"1": []byte{0x01, 0x02, 0x03},
-				"2": []byte{0x01, 0x02, 0x03},
-				"3": []byte{0x01, 0x02, 0x03},
-			},
-		},
-		Journal: mock.NewJournal(),
-	}
-}
-
-func TestOpExtCodeSize(t *testing.T) {
-	statedb := createMockState()
+func opBenchmark(bench *testing.B, op executionFunc, args ...string) {
 	var (
-		env            = NewEVM(Context{}, nil, statedb, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	contract := &Contract{
-		self:          &MockAddressRef{},
-		CallerAddress: common.BytesToAddress([]byte("aaa")),
-		value:         new(big.Int).SetUint64(10),
-		Input:         []byte{0x01, 0x02, 0x03, 0x04},
-		Code:          []byte{0x01, 0x02, 0x03, 0x04},
-	}
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	evmInterpreter.returnData = []byte{0x01, 0x02, 0x03, 0x04}
-	stack.push(new(big.Int).SetInt64(1))
-	opExtCodeSize(&pc, evmInterpreter, contract, nil, stack)
-	actual := stack.pop()
-	if actual.Int64() != 0 {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func TestOpCodeCopy(t *testing.T) {
-	statedb := createMockState()
-	var (
-		env            = NewEVM(Context{}, nil, statedb, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-		memory         = NewMemory()
-	)
-	contract := &Contract{
-		Code: []byte{0x01, 0x02, 0x03, 0x04},
-	}
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	stack.push(new(big.Int).SetInt64(4))
-	stack.push(new(big.Int).SetInt64(0))
-	stack.push(new(big.Int).SetInt64(0))
-	memory.Resize(4)
-	opCodeCopy(&pc, evmInterpreter, contract, memory, stack)
-	actual := memory.Get(0, 4)
-	if common.Bytes2Hex(actual) != "01020304" {
-		t.Errorf("Expected 0, got %v", common.Bytes2Hex(actual))
-	}
-}
-
-func TestOpExtCodeCopy(t *testing.T) {
-	statedb := createMockState()
-	var (
-		env            = NewEVM(Context{}, nil, statedb, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-		memory         = NewMemory()
-	)
-	contract := &Contract{
-		Code: []byte{0x01, 0x02, 0x03, 0x04},
-	}
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	stack.push(new(big.Int).SetInt64(4))
-	stack.push(new(big.Int).SetInt64(0))
-	stack.push(new(big.Int).SetInt64(0))
-	stack.push(byteutil.BytesToBigInt([]byte("a")))
-	memory.Resize(4)
-	opExtCodeCopy(&pc, evmInterpreter, contract, memory, stack)
-	actual := memory.Get(0, 4)
-	if common.Bytes2Hex(actual) != "00000000" {
-		t.Errorf("Expected 0, got %v", common.Bytes2Hex(actual))
-	}
-}
-
-func TestOpExtCodeHash(t *testing.T) {
-	statedb := createMockState()
-	var (
-		env            = NewEVM(Context{}, nil, statedb, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	stack.push(byteutil.BytesToBigInt([]byte("a")))
-	opExtCodeHash(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.peek()
-	if actual.Cmp(new(big.Int).SetInt64(0)) != 0 {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func TestOpGasprice(t *testing.T) {
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	env.GasPrice = new(big.Int).SetUint64(1000000)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opGasprice(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.peek()
-	if actual.Cmp(new(big.Int).SetInt64(1000000)) != 0 {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func TestOpBlockhash(t *testing.T) {
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	thash := common.BytesToHash([]byte("a"))
-	env.GetHash = func(u uint64) common.Hash {
-		return thash
-	}
-	env.BlockNumber = new(big.Int).SetUint64(1)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	stack.push(new(big.Int).SetUint64(1))
-	opBlockhash(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.peek()
-	if actual.Cmp(new(big.Int).SetUint64(0)) != 0 {
-		t.Errorf("Expected 0, got %v", actual.Int64())
-	}
-
-	stack.push(new(big.Int).SetUint64(0))
-	opBlockhash(&pc, evmInterpreter, nil, nil, stack)
-	actual = stack.peek()
-	if common.Bytes2Hex(actual.Bytes()) != "61" {
-		t.Errorf("Expected 61, got %v", common.Bytes2Hex(actual.Bytes()))
-	}
-
-}
-
-func TestOpCoinbase(t *testing.T) {
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	env.Coinbase = common.BytesToAddress([]byte("a"))
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opCoinbase(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.peek()
-	if common.Bytes2Hex(actual.Bytes()) != common.Bytes2Hex([]byte("a")) {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func buildEnv(statedb StateDB) (*EVM, *Stack, uint64, *EVMInterpreter) {
-	var (
-		env            = NewEVM(Context{Ctx: context.TODO()}, nil, statedb, params.TestChainConfig, Config{})
-		stack          = newstack()
-		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	return env, stack, pc, evmInterpreter
-}
-
-func TestOpTimestamp(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	env.Time = new(big.Int).SetUint64(1577793650186)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opTimestamp(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.peek()
-	if common.Bytes2Hex(actual.Bytes()) != common.Bytes2Hex(new(big.Int).SetUint64(1577793650186).Bytes()) {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func TestOpNumber(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	env.BlockNumber = new(big.Int).SetUint64(1577793)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opNumber(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.peek()
-	if common.Bytes2Hex(actual.Bytes()) != common.Bytes2Hex(new(big.Int).SetUint64(1577793).Bytes()) {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func TestOpDifficulty(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	env.Difficulty = new(big.Int).SetUint64(0)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opDifficulty(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.peek()
-	if env.Difficulty.Cmp(actual) != 0 {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func TestOpGasLimit(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	env.GasLimit = uint64(1000000)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opGasLimit(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.peek()
-	if env.GasLimit != actual.Uint64() {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func TestOpPop(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	stack.push(new(big.Int).SetUint64(1000000))
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opPop(&pc, evmInterpreter, nil, nil, stack)
-	actual := evmInterpreter.intPool.get()
-	if uint64(1000000) != actual.Uint64() {
-		t.Errorf("Expected 1000000, got %d", actual.Int64())
-	}
-}
-
-func TestOpMload(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	memory := &Memory{}
-	memory.Resize(32)
-	memory.Set32(0, new(big.Int).SetUint64(1000))
-	self := new(big.Int).SetUint64(0)
-	stack.push(self)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opMload(&pc, evmInterpreter, nil, memory, stack)
-	actual := self
-	if uint64(1000) != actual.Uint64() {
-		t.Errorf("Expected 1000, got %d", actual.Int64())
-	}
-}
-
-func TestOpMstore8(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	memory := &Memory{}
-	memory.Resize(32)
-	stack.push(new(big.Int).SetUint64(10000000))
-	stack.push(new(big.Int).SetUint64(0))
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opMstore8(&pc, evmInterpreter, nil, memory, stack)
-	actual := new(big.Int).SetBytes(memory.Data())
-	if uint64(0) != actual.Uint64() {
-		t.Errorf("Expected 1000, got %d", actual.Int64())
-	}
-}
-
-func TestOpSload(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(createMockState())
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	contract := &Contract{
-		self: &MockAddressRef{},
-	}
-	stack.push(new(big.Int).SetUint64(10000000))
-	stack.push(new(big.Int).SetUint64(0))
-	opSload(&pc, evmInterpreter, contract, nil, stack)
-	actual := evmInterpreter.intPool.get()
-	if uint64(0) != actual.Uint64() {
-		t.Errorf("Expected 1000, got %d", actual.Int64())
-	}
-}
-
-func TestOpSstore(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(createMockState())
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	contract := &Contract{
-		self: &MockAddressRef{},
-	}
-	stack.push(new(big.Int).SetUint64(10000000))
-	stack.push(new(big.Int).SetUint64(0))
-	opSstore(&pc, evmInterpreter, contract, nil, stack)
-	actual := evmInterpreter.intPool.get()
-	if uint64(10000000) != actual.Uint64() {
-		t.Errorf("Expected 10000000, got %d", actual.Int64())
-	}
-}
-
-func TestOpJump(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(createMockState())
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
-	contract.Code = []byte{0x01, 0x02, 0x03, 0x04}
-	stack.push(new(big.Int).SetUint64(80))
-	opJump(&pc, evmInterpreter, contract, nil, stack)
-	actual := evmInterpreter.intPool.get()
-	if uint64(0) != actual.Uint64() {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetUint64(80))
-	opJumpi(&pc, evmInterpreter, contract, nil, stack)
-	actual = evmInterpreter.intPool.get()
-	if uint64(0) != actual.Uint64() {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-
-	stack.push(new(big.Int).SetUint64(80))
-	stack.push(new(big.Int).SetUint64(80))
-	opJumpi(&pc, evmInterpreter, contract, nil, stack)
-	actual = evmInterpreter.intPool.get()
-	if uint64(80) != actual.Uint64() {
-		t.Errorf("Expected 80, got %d", actual.Int64())
-	}
-
-	// empty test.
-	opJumpdest(&pc, evmInterpreter, contract, nil, stack)
-}
-
-func TestOpPc(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	pc = 100
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opPc(&pc, evmInterpreter, nil, nil, stack)
-	actual := stack.peek()
-	if uint64(pc) != actual.Uint64() {
-		t.Errorf("Expected 100, got %d", actual.Int64())
-	}
-}
-
-func TestOpMsize(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	memory := &Memory{}
-	memory.Resize(4)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opMsize(&pc, evmInterpreter, nil, memory, stack)
-	actual := stack.peek()
-	if uint64(4) != actual.Uint64() {
-		t.Errorf("Expected 4, got %d", actual.Int64())
-	}
-}
-
-func TestOpGas(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	contract := &Contract{}
-	contract.Gas = uint64(100)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	opGas(&pc, evmInterpreter, contract, nil, stack)
-	actual := stack.peek()
-	if uint64(100) != actual.Uint64() {
-		t.Errorf("Expected 100, got %d", actual.Int64())
-	}
-}
-
-func TestOpCreate(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(createMockState())
-	evmInterpreter.evm.Ctx = context.TODO()
-	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
-	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
-		return true
-	}
-	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
-
-	}
-
-	memory := &Memory{}
-	memory.Resize(4)
-	memory.Set(0, 4, []byte{
-		0x01, 0x02, 0x03, 0x04,
-	})
-
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	// push ele.
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetUint64(0))
-	//
-	opCreate(&pc, evmInterpreter, contract, memory, stack)
-	actual := stack.peek()
-	if uint64(0) != actual.Uint64() {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func TestOpCreate2(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(createMockState())
-	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
-	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
-		return true
-	}
-	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
-	}
-
-	memory := &Memory{}
-	memory.Resize(4)
-	memory.Set(0, 4, []byte{
-		0x01, 0x02, 0x03, 0x04,
-	})
-
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	// push ele.
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetUint64(0))
-	//
-	opCreate2(&pc, evmInterpreter, contract, memory, stack)
-	actual := stack.peek()
-	if uint64(0) != actual.Uint64() {
-		t.Errorf("Expected 0, got %d", actual.Int64())
-	}
-}
-
-func TestOpReturn(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-
-	memory := &Memory{}
-	memory.Resize(4)
-	memory.Set(0, 4, []byte{
-		0x01, 0x02, 0x03, 0x04,
-	})
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(0))
-
-	opReturn(&pc, evmInterpreter, nil, memory, stack)
-	actual := evmInterpreter.intPool.get()
-	if uint64(4) != actual.Uint64() {
-		t.Errorf("Expected 4, got %d", actual.Int64())
-	}
-}
-
-func TestOpCall(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(createMockState())
-	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
-	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
-		return true
-	}
-	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
-	}
-
-	memory := &Memory{}
-	memory.Resize(8)
-	memory.Set(0, 4, []byte{
-		0x01, 0x02, 0x03, 0x04,
-	})
-
-	evmInterpreter.evm.callGasTemp = uint64(1000)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	// push ele.
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
-	stack.push(new(big.Int).SetUint64(100))
-	//
-	opCall(&pc, evmInterpreter, contract, memory, stack)
-	actual := stack.peek()
-	if uint64(1) != actual.Uint64() {
-		t.Errorf("Expected 1, got %d", actual.Int64())
-	}
-}
-
-func TestOpCallCode(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(createMockState())
-	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
-	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
-		return true
-	}
-	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
-	}
-
-	memory := &Memory{}
-	memory.Resize(8)
-	memory.Set(0, 4, []byte{
-		0x01, 0x02, 0x03, 0x04,
-	})
-
-	evmInterpreter.evm.callGasTemp = uint64(1000)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	// push ele.
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
-	stack.push(new(big.Int).SetUint64(100))
-	//
-	opCallCode(&pc, evmInterpreter, contract, memory, stack)
-	actual := stack.peek()
-	if uint64(1) != actual.Uint64() {
-		t.Errorf("Expected 1, got %d", actual.Int64())
-	}
-}
-
-func TestOpDelegateCall(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(createMockState())
-	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
-	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
-		return true
-	}
-	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
-	}
-
-	memory := &Memory{}
-	memory.Resize(8)
-	memory.Set(0, 4, []byte{
-		0x01, 0x02, 0x03, 0x04,
-	})
-
-	evmInterpreter.evm.callGasTemp = uint64(1000)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	// push ele.
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
-	stack.push(new(big.Int).SetUint64(100))
-	//
-	opDelegateCall(&pc, evmInterpreter, contract, memory, stack)
-	actual := stack.peek()
-	if uint64(1) != actual.Uint64() {
-		t.Errorf("Expected 1, got %d", actual.Int64())
-	}
-}
-
-func TestOpStaticCall(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(createMockState())
-	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
-	env.CanTransfer = func(db StateDB, addresses common.Address, i *big.Int) bool {
-		return true
-	}
-	env.Transfer = func(db StateDB, from common.Address, to common.Address, i *big.Int) {
-	}
-
-	memory := &Memory{}
-	memory.Resize(8)
-	memory.Set(0, 4, []byte{
-		0x01, 0x02, 0x03, 0x04,
-	})
-
-	evmInterpreter.evm.callGasTemp = uint64(1000)
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-	// push ele.
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetUint64(0))
-	stack.push(new(big.Int).SetBytes(common.BytesToAddress([]byte("a")).Bytes()))
-	stack.push(new(big.Int).SetUint64(100))
-	//
-	opStaticCall(&pc, evmInterpreter, contract, memory, stack)
-	actual := stack.peek()
-	if uint64(1) != actual.Uint64() {
-		t.Errorf("Expected 1, got %d", actual.Int64())
-	}
-}
-
-func TestOpRevert(t *testing.T) {
-	env, stack, pc, evmInterpreter := buildEnv(&mock.MockStateDB{})
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
-
-	memory := &Memory{}
-	memory.Resize(4)
-	memory.Set(0, 4, []byte{
-		0x01, 0x02, 0x03, 0x04,
-	})
-	stack.push(new(big.Int).SetUint64(4))
-	stack.push(new(big.Int).SetUint64(0))
-
-	opRevert(&pc, evmInterpreter, nil, memory, stack)
-	actual := evmInterpreter.intPool.get()
-	if uint64(4) != actual.Uint64() {
-		t.Errorf("Expected 4, got %d", actual.Int64())
-	}
-}
-
-func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
+		env            = NewEVM(Context{}, nil, nil, params.TestChainConfig, Config{})
+		stack, rstack  = newstack(), newReturnStack()
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
 
 	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
 	// convert args
 	byteArgs := make([][]byte, len(args))
 	for i, arg := range args {
@@ -1557,13 +296,13 @@ func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpret
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
 		for _, arg := range byteArgs {
-			a := new(big.Int).SetBytes(arg)
+			a := new(uint256.Int)
+			a.SetBytes(arg)
 			stack.push(a)
 		}
-		op(&pc, evmInterpreter, nil, nil, stack)
+		op(&pc, evmInterpreter, &callCtx{nil, stack, rstack, nil})
 		stack.pop()
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
 }
 
 func BenchmarkOpAdd64(b *testing.B) {
@@ -1776,49 +515,138 @@ func BenchmarkOpIsZero(b *testing.B) {
 
 func TestOpMstore(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
+		env            = NewEVM(Context{}, nil, nil, params.TestChainConfig, Config{})
+		stack, rstack  = newstack(), newReturnStack()
 		mem            = NewMemory()
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
 
 	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
 	mem.Resize(64)
 	pc := uint64(0)
 	v := "abcdef00000000000000abba000000000deaf000000c0de00100000000133700"
-	stack.pushN(new(big.Int).SetBytes(common.Hex2Bytes(v)), big.NewInt(0))
-	opMstore(&pc, evmInterpreter, nil, mem, stack)
-	if got := common.Bytes2Hex(mem.Get(0, 32)); got != v {
+	stack.pushN(*new(uint256.Int).SetBytes(common.Hex2Bytes(v)), *new(uint256.Int))
+	opMstore(&pc, evmInterpreter, &callCtx{mem, stack, rstack, nil})
+	if got := common.Bytes2Hex(mem.GetCopy(0, 32)); got != v {
 		t.Fatalf("Mstore fail, got %v, expected %v", got, v)
 	}
-	stack.pushN(big.NewInt(0x1), big.NewInt(0))
-	opMstore(&pc, evmInterpreter, nil, mem, stack)
-	if common.Bytes2Hex(mem.Get(0, 32)) != "0000000000000000000000000000000000000000000000000000000000000001" {
+	stack.pushN(*new(uint256.Int).SetUint64(0x1), *new(uint256.Int))
+	opMstore(&pc, evmInterpreter, &callCtx{mem, stack, rstack, nil})
+	if common.Bytes2Hex(mem.GetCopy(0, 32)) != "0000000000000000000000000000000000000000000000000000000000000001" {
 		t.Fatalf("Mstore failed to overwrite previous value")
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
 }
 
 func BenchmarkOpMstore(bench *testing.B) {
 	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		stack          = newstack()
+		env            = NewEVM(Context{}, nil, nil, params.TestChainConfig, Config{})
+		stack, rstack  = newstack(), newReturnStack()
 		mem            = NewMemory()
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
 
 	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
 	mem.Resize(64)
 	pc := uint64(0)
-	memStart := big.NewInt(0)
-	value := big.NewInt(0x1337)
+	memStart := new(uint256.Int)
+	value := new(uint256.Int).SetUint64(0x1337)
 
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
-		stack.pushN(value, memStart)
-		opMstore(&pc, evmInterpreter, nil, mem, stack)
+		stack.pushN(*value, *memStart)
+		opMstore(&pc, evmInterpreter, &callCtx{mem, stack, rstack, nil})
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
+}
+
+func BenchmarkOpSHA3(bench *testing.B) {
+	var (
+		env            = NewEVM(Context{}, nil, nil, params.TestChainConfig, Config{})
+		stack, rstack  = newstack(), newReturnStack()
+		mem            = NewMemory()
+		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+	)
+	env.interpreter = evmInterpreter
+	mem.Resize(32)
+	pc := uint64(0)
+	start := uint256.NewInt()
+
+	bench.ResetTimer()
+	for i := 0; i < bench.N; i++ {
+		stack.pushN(*uint256.NewInt().SetUint64(32), *start)
+		opSha3(&pc, evmInterpreter, &callCtx{mem, stack, rstack, nil})
+	}
+}
+
+func TestCreate2Addreses(t *testing.T) {
+	type testcase struct {
+		origin   string
+		salt     string
+		code     string
+		expected string
+	}
+
+	for i, tt := range []testcase{
+		{
+			origin:   "0x0000000000000000000000000000000000000000",
+			salt:     "0x0000000000000000000000000000000000000000",
+			code:     "0x00",
+			expected: "0x4d1a2e2bb4f88f0250f26ffff098b0b30b26bf38",
+		},
+		{
+			origin:   "0xdeadbeef00000000000000000000000000000000",
+			salt:     "0x0000000000000000000000000000000000000000",
+			code:     "0x00",
+			expected: "0xB928f69Bb1D91Cd65274e3c79d8986362984fDA3",
+		},
+		{
+			origin:   "0xdeadbeef00000000000000000000000000000000",
+			salt:     "0xfeed000000000000000000000000000000000000",
+			code:     "0x00",
+			expected: "0xD04116cDd17beBE565EB2422F2497E06cC1C9833",
+		},
+		{
+			origin:   "0x0000000000000000000000000000000000000000",
+			salt:     "0x0000000000000000000000000000000000000000",
+			code:     "0xdeadbeef",
+			expected: "0x70f2b2914A2a4b783FaEFb75f459A580616Fcb5e",
+		},
+		{
+			origin:   "0x00000000000000000000000000000000deadbeef",
+			salt:     "0xcafebabe",
+			code:     "0xdeadbeef",
+			expected: "0x60f3f640a8508fC6a86d45DF051962668E1e8AC7",
+		},
+		{
+			origin:   "0x00000000000000000000000000000000deadbeef",
+			salt:     "0xcafebabe",
+			code:     "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+			expected: "0x1d8bfDC5D46DC4f61D6b6115972536eBE6A8854C",
+		},
+		{
+			origin:   "0x0000000000000000000000000000000000000000",
+			salt:     "0x0000000000000000000000000000000000000000",
+			code:     "0x",
+			expected: "0xE33C0C7F7df4809055C3ebA6c09CFe4BaF1BD9e0",
+		},
+	} {
+
+		origin := common.BytesToAddress(common.FromHex(tt.origin))
+		salt := common.BytesToHash(common.FromHex(tt.salt))
+		code := common.FromHex(tt.code)
+		codeHash := crypto.Keccak256(code)
+		address := crypto.CreateAddress2(origin, salt, codeHash)
+		/*
+			stack          := newstack()
+			// salt, but we don't need that for this test
+			stack.push(big.NewInt(int64(len(code)))) //size
+			stack.push(big.NewInt(0)) // memstart
+			stack.push(big.NewInt(0)) // value
+			gas, _ := gasCreate2(params.GasTable{}, nil, nil, stack, nil, 0)
+			fmt.Printf("Example %d\n* address `0x%x`\n* salt `0x%x`\n* init_code `0x%x`\n* gas (assuming no mem expansion): `%v`\n* result: `%s`\n\n", i,origin, salt, code, gas, address.String())
+		*/
+		expected := common.BytesToAddress(common.FromHex(tt.expected))
+		if !bytes.Equal(expected.Bytes(), address.Bytes()) {
+			t.Errorf("test %d: expected %s, got %s", i, expected.String(), address.String())
+		}
+	}
 }

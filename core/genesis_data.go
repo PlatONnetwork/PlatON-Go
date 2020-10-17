@@ -85,9 +85,9 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 			StakingBlockNum: uint64(0),
 			Description: staking.Description{
 				ExternalId: "",
-				NodeName:   "platon.node." + fmt.Sprint(index+1),
-				Website:    "www.platon.network",
-				Details:    "The PlatON Node",
+				NodeName:   "alaya.node." + fmt.Sprint(index+1),
+				Website:    "alaya.network",
+				Details:    "The Alaya Node",
 			},
 		}
 
@@ -291,7 +291,7 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.Ba
 
 	// Store genesis yearEnd reward balance item
 
-	// Store genesis Issue for LAT
+	// Store genesis Issue for ATP
 	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
 
 	log.Info("Write genesis version into genesis block", "genesis version", fmt.Sprintf("%d/%s", g.Config.GenesisVersion, params.FormatVersion(g.Config.GenesisVersion)))
@@ -303,9 +303,11 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.Ba
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
 
-	err := plugin.NewRestrictingPlugin(nil).InitGenesisRestrictingPlans(statedb)
-	if err != nil {
-		return fmt.Errorf("Failed to init genesis restricting plans, err:%s", err.Error())
+	if !(g.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 || g.Config.ChainID.Cmp(params.AlayaTestChainConfig.ChainID) == 0) {
+		err := plugin.NewRestrictingPlugin(nil).InitGenesisRestrictingPlans(statedb)
+		if err != nil {
+			return fmt.Errorf("Failed to init genesis restricting plans, err:%s", err.Error())
+		}
 	}
 	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
 	plugin.SetYearEndBalance(statedb, 0, genesisReward)
