@@ -22,11 +22,10 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
     # Initialization genesis file Initial amount
     node_count = len(new_genesis_env.consensus_node_list)
     default_pledge_amount = Web3.toWei(node_count * 10500, 'ether')
-    # node = new_genesis_env.get_rand_node()
-    community_amount = Web3.toWei(1000000, 'ether')
-    platon_fund = Web3.toWei(2000000, 'ether')
+    node = new_genesis_env.get_rand_node()
+    community_amount = Web3.toWei(500000, 'ether')
+    platon_fund = Web3.toWei(2500000, 'ether')
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    print(genesis)
     genesis.economicModel.innerAcc.cdfBalance = community_amount
     surplus_amount = str(Web3.toWei(105000000, 'ether') - community_amount - platon_fund - Web3.toWei(2000000, 'ether'))
     genesis.alloc = {
@@ -53,7 +52,7 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
     # Query developer foundation initial amount
     developer_foundation = community_amount - default_pledge_amount
     # Query the initial amount of the foundation
-    foundation_balance = Web3.toWei(2000000, 'ether')
+    foundation_balance = Web3.toWei(2500000, 'ether')
     # Additional amount
     total_amount_of_issuance = 0
     remaining_settlement_cycle = 0

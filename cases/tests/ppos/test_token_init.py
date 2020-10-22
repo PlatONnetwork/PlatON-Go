@@ -2041,7 +2041,23 @@ def test2223(client_new_node):
     client = client_new_node
     economic = client.economic
     node = client.node
-    print(client.node.web3.toWei(500000, 'ether'))
+    address = 'atx1r8pvmt7hk6lk8uk7dtnfyrpcy9l8rfjry34uq9'
+    node_id = '6cda52721a11a5034ae0dfc03ebe0a60a797e0240f9bba427957abeeb2e367c09ed099c6871bf17158c5d694c4d5ccad363b38055e345898ff02a88e17d66149'
+
+# print(client.node.ppos.getCandidateList())
+    # # create account
+    # address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # address2, _ = economic.account.generate_account(node.web3, 0)
+    # # create pledge
+    # result = client.staking.create_staking(0, address1, address1)
+    # assert_code(result, 0)
+    # economic.wait_settlement(node)
+    # result = client.staking.increase_staking(0, address, node_id=node_id)
+    # assert_code(result, 0)
+    print("getCandidateList", client.ppos.getCandidateList())
+    print("getVerifierList", client.ppos.getVerifierList())
+    print("getValidatorList", client.ppos.getValidatorList())
+    # print(client.node.web3.toWei(500000, 'ether'))
     # staking_addres, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # client.staking.create_staking(0,staking_addres,staking_addres,transaction_cfg=)
 # hx = '0xd7d479481b480b149339908d2e267a03b02396d9a84d6774c7d5d76f3434cf80'
