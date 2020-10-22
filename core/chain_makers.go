@@ -109,6 +109,15 @@ func (b *BlockGen) Number() *big.Int {
 	return new(big.Int).Set(b.header.Number)
 }
 
+// AddUncheckedTx forcefully adds a transaction to the block without any
+// validation.
+//
+// AddUncheckedTx will cause consensus failures when used during real
+// chain processing. This is best used in conjunction with raw block insertion.
+func (b *BlockGen) AddUncheckedTx(tx *types.Transaction) {
+	b.txs = append(b.txs, tx)
+}
+
 // AddUncheckedReceipt forcefully adds a receipts to the block without a
 // backing transaction.
 //
