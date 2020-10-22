@@ -337,8 +337,7 @@ func (db *Database) resetFreshNode() {
 // size tracking.
 func (db *Database) insert(hash common.Hash, blob []byte, node node) {
 	// If the node's already cached, skip
-	if n, ok := db.dirties[hash]; ok {
-		n.version = db.nodeVersion
+	if _, ok := db.dirties[hash]; ok {
 		return
 	}
 	// Create the cached entry for this node
@@ -346,12 +345,11 @@ func (db *Database) insert(hash common.Hash, blob []byte, node node) {
 		node:      simplifyNode(node),
 		size:      uint16(len(blob)),
 		flushPrev: db.newest,
-		version:   db.nodeVersion,
+		version:   db.NodeVersion(),
 	}
 	entry.forChilds(func(child common.Hash) {
 		if c := db.dirties[child]; c != nil {
-			//c.parents++
-			c.version = db.nodeVersion
+			c.parents++
 		}
 	})
 	db.dirties[hash] = entry
@@ -496,6 +494,23 @@ func (db *Database) Reference(child common.Hash, parent common.Hash) {
 	db.reference(child, parent)
 }
 
+// Reference adds a new reference from a parent node to a child node.
+func (db *Database) ReferenceVersion(root common.Hash) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	node, ok := db.dirties[root]
+	if !ok {
+		return
+	}
+	node.version = db.NodeVersion()
+	node.forChilds(func(child common.Hash) {
+		if c := db.dirties[child]; c != nil {
+			c.version = db.NodeVersion()
+		}
+	})
+}
+
 // reference is the private locked version of Reference.
 func (db *Database) reference(child common.Hash, parent common.Hash) {
 	// If the node does not exist, it's a node pulled from disk, skip
@@ -518,7 +533,7 @@ func (db *Database) reference(child common.Hash, parent common.Hash) {
 }
 
 // Dereference removes an existing reference from a root node.
-func (db *Database) DereferenceDB(root common.Hash, nodeVersion uint64) {
+func (db *Database) DereferenceDB(root common.Hash) {
 	// Sanity check to ensure that the meta-root is not removed
 	if root == (common.Hash{}) {
 		log.Error("Attempted to dereference the trie cache meta root")
@@ -536,7 +551,7 @@ func (db *Database) DereferenceDB(root common.Hash, nodeVersion uint64) {
 		}
 	}
 
-	db.dereference(root, clearFn, nodeVersion)
+	db.dereference(root, clearFn)
 
 	db.useless = append(db.useless, useless)
 	db.gcnodes += uint64(nodes - len(db.dirties))
@@ -606,7 +621,7 @@ func (db *Database) UselessGC(num int) {
 }
 
 // Dereference removes an existing reference from a root node.
-func (db *Database) Dereference(root common.Hash, currentVersion uint64) {
+func (db *Database) Dereference(root common.Hash) {
 	// Sanity check to ensure that the meta-root is not removed
 	if root == (common.Hash{}) {
 		log.Error("Attempted to dereference the trie cache meta root")
@@ -622,7 +637,7 @@ func (db *Database) Dereference(root common.Hash, currentVersion uint64) {
 	}
 
 	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
-	db.dereference(root, cleanFn, currentVersion)
+	db.dereference(root, cleanFn)
 
 	db.gcnodes += uint64(nodes - len(db.dirties))
 	db.gcsize += storage - db.dirtiesSize
@@ -637,7 +652,7 @@ func (db *Database) Dereference(root common.Hash, currentVersion uint64) {
 }
 
 // dereference is the private locked version of Dereference.
-func (db *Database) dereference(hash common.Hash, clearFn func([]byte), nodeVersion uint64) {
+func (db *Database) dereference(hash common.Hash, clearFn func([]byte)) {
 	if _, ok := db.freshNodes[hash]; ok {
 		return
 	}
@@ -656,7 +671,7 @@ func (db *Database) dereference(hash common.Hash, clearFn func([]byte), nodeVers
 	if !ok {
 		return
 	}
-	if node.version <= nodeVersion {
+	if node.version < db.NodeVersion() {
 		// Remove the node from the flush-list
 		switch hash {
 		case db.oldest:
@@ -671,7 +686,7 @@ func (db *Database) dereference(hash common.Hash, clearFn func([]byte), nodeVers
 		}
 		// Dereference all children and delete the node
 		node.forChilds(func(h common.Hash) {
-			db.dereference(h, clearFn, nodeVersion)
+			db.dereference(h, clearFn)
 		})
 		delete(db.dirties, hash)
 

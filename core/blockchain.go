@@ -729,7 +729,7 @@ func (bc *BlockChain) Stop() {
 			}
 		}
 		for !bc.triegc.Empty() {
-			triedb.Dereference(bc.triegc.PopItem().(common.Hash), bc.stateCache.TrieDB().NodeVersion())
+			triedb.Dereference(bc.triegc.PopItem().(common.Hash))
 		}
 		if size, _ := triedb.Size(); size != 0 {
 			log.Error("Dangling trie nodes after full cleanup")
@@ -950,7 +950,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	rawdb.WriteBlock(bc.db, block)
 
 	triedb := bc.stateCache.TrieDB()
-	currentVersion := triedb.NodeVersion()
 	root, err := state.Commit(true)
 
 	if err != nil {
@@ -963,17 +962,17 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		limit := common.StorageSize(bc.cacheConfig.TrieNodeLimit) * 1024 * 1024
 		oversize := false
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
-			//triedb.Reference(root, common.Hash{})
+			triedb.ReferenceVersion(root)
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
-			triedb.Dereference(currentBlock.Root(), currentVersion)
+			triedb.Dereference(currentBlock.Root())
 			nodes, _ := triedb.Size()
 			oversize = nodes > limit
 		} else {
-			//triedb.Reference(root, common.Hash{})
-			triedb.DereferenceDB(currentBlock.Root(), currentVersion)
+			triedb.ReferenceVersion(root)
+			triedb.DereferenceDB(currentBlock.Root())
 
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
@@ -1036,7 +1035,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 					bc.triegc.Push(root, number)
 					break
 				}
-				triedb.Dereference(root.(common.Hash), bc.stateCache.TrieDB().NodeVersion())
+				triedb.Dereference(root.(common.Hash))
 			}
 		}
 	}

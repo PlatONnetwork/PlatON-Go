@@ -79,9 +79,6 @@ func (h *hasher) hash(n node, db *Database, force bool) (node, node, error) {
 			return hash, n, nil
 		}
 		if !dirty {
-			if n, ok := db.dirties[common.BytesToHash(hash)]; ok {
-				n.version = db.nodeVersion
-			}
 			switch n.(type) {
 			case *fullNode, *shortNode:
 				return hash, hash, nil
