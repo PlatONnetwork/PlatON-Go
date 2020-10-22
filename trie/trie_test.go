@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"math/rand"
 	"os"
@@ -786,7 +787,7 @@ func TestDeepCopy(t *testing.T) {
 	root, _ = tr2.Commit(leafCB)
 	triedb.Reference(root, common.Hash{})
 	assert.Nil(t, triedb.Commit(root, false, false))
-	triedb.DereferenceDB(parent)
+	triedb.DereferenceDB(parent, 0)
 	cpyRoot, _ := cpy.Commit(leafCB)
 	if root != cpyRoot {
 		t.Fatal("cpyroot failed")
@@ -794,7 +795,7 @@ func TestDeepCopy(t *testing.T) {
 	triedb.Reference(cpyRoot, common.Hash{})
 
 	assert.Nil(t, triedb.Commit(cpyRoot, false, false))
-	triedb.DereferenceDB(cpyRoot)
+	triedb.DereferenceDB(cpyRoot, 0)
 }
 
 type Case struct {
@@ -847,7 +848,7 @@ func TestOneTrieCollision(t *testing.T) {
 	reopenRoot, _ = reopenTrie.Commit(nil)
 	reopenMemdb.Commit(reopenRoot, false, false)
 	reopenMemdb.Reference(reopenRoot, common.Hash{})
-	reopenMemdb.DereferenceDB(root)
+	reopenMemdb.DereferenceDB(root, 0)
 	reopenMemdb.UselessGC(1)
 
 	assert.NotNil(t, checkTrie(reopenTrie))

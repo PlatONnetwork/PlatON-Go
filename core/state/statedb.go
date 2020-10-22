@@ -957,6 +957,9 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 
 	defer s.clearJournalAndRefund()
 
+	// Increasing node version in memory database
+	s.db.TrieDB().IncrVersion()
+
 	for addr := range s.journal.dirties {
 		s.stateObjectsDirty[addr] = struct{}{}
 	}
