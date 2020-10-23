@@ -140,6 +140,16 @@ func (self *StateDB) NewStateDB() *StateDB {
 	return stateDB
 }
 
+// TxIndex returns the current transaction index set by Prepare.
+func (self *StateDB) TxIndex() int {
+	return self.txIndex
+}
+
+// BlockHash returns the current block hash set by Prepare.
+func (self *StateDB) BlockHash() common.Hash {
+	return self.bhash
+}
+
 func (self *StateDB) HadParent() bool {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()

@@ -115,7 +115,7 @@ func (b *EthAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.
 
 func (b *EthAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
 	if number := rawdb.ReadHeaderNumber(b.eth.chainDb, hash); number != nil {
-		return rawdb.ReadReceipts(b.eth.chainDb, hash, *number), nil
+		return rawdb.ReadReceipts(b.eth.chainDb, hash, *number, b.ChainConfig()), nil
 	}
 	return nil, nil
 }
@@ -125,7 +125,7 @@ func (b *EthAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*typ
 	if number == nil {
 		return nil, nil
 	}
-	receipts := rawdb.ReadReceipts(b.eth.chainDb, hash, *number)
+	receipts := rawdb.ReadReceipts(b.eth.chainDb, hash, *number, b.ChainConfig())
 	if receipts == nil {
 		return nil, nil
 	}
