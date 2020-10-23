@@ -972,12 +972,12 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			oversize = nodes > limit
 		} else {
 			triedb.Reference(root, common.Hash{})
+			triedb.DereferenceDB(currentBlock.Root())
+
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
-
-			triedb.DereferenceDB(currentBlock.Root())
 
 			if triedb.UselessSize() > bc.cacheConfig.DBGCBlock {
 				triedb.UselessGC(1)
@@ -1109,6 +1109,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if !bc.cacheConfig.DBDisabledGC.IsSet() && bc.cleaner.NeedCleanup() {
 		bc.cleaner.Cleanup()
 	}
+	bc.BlockFeed.Send(block)
+
 	return status, nil
 }
 
@@ -1240,7 +1242,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	if logs != nil {
 		bc.logsFeed.Send(logs)
 	}
-	bc.BlockFeed.Send(block)
+	//bc.BlockFeed.Send(block)
 
 	return receipts, nil
 }

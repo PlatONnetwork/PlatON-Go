@@ -80,7 +80,7 @@ func CanMutableKeyBySuffix(addr []byte) []byte {
 }
 
 // the candidate power key
-func TallyPowerKey(programVersion uint32, shares *big.Int, nodeID discover.NodeID, stakeBlockNum uint64, stakeTxIndex uint32) []byte {
+func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, nodeID discover.NodeID) []byte {
 
 	// Only sort Major and Minor
 	// eg. 1.1.x => 1.1.0
@@ -100,19 +100,18 @@ func TallyPowerKey(programVersion uint32, shares *big.Int, nodeID discover.NodeI
 	indexPre := len(CanPowerKeyPrefix)
 	indexVersion := indexPre + len(sortVersion)
 	indexPrio := indexVersion + len(prio)
-	indexNodeID := indexPrio + len(id)
-	indexNum := indexNodeID + len(num)
-	size := indexNum + len(txIndex)
+	indexNum := indexPrio + len(num)
+	indexTxIndex := indexNum + len(txIndex)
+	size := indexTxIndex + len(id)
 
 	// construct key
 	key := make([]byte, size)
 	copy(key[:len(CanPowerKeyPrefix)], CanPowerKeyPrefix)
 	copy(key[indexPre:indexVersion], sortVersion)
 	copy(key[indexVersion:indexPrio], prio)
-	copy(key[indexPrio:indexNodeID], id)
-	copy(key[indexNodeID:indexNum], num)
-	copy(key[indexNum:], txIndex)
-
+	copy(key[indexPrio:indexNum], num)
+	copy(key[indexNum:indexTxIndex], txIndex)
+	copy(key[indexTxIndex:], id)
 	return key
 }
 

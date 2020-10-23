@@ -32,8 +32,6 @@ import (
 )
 
 const (
-	cacheTtfSize = 36000
-
 	reportTime             = time.Second * 10
 	waitBLockTime          = time.Second * 10
 	waitAccountReceiptTime = time.Second * 20
@@ -44,18 +42,49 @@ func NewTxGenAPI(eth *Ethereum) *TxGenAPI {
 }
 
 type Ttf struct {
-	TxLength int
-	TimeUse  time.Duration
+	BlockProduceTime time.Time     `json:"id_time"`
+	Block            int64         `json:"block"`
+	TxLength         int           `json:"tx_length"`
+	TimeUse          time.Duration `json:"time_use"`
+}
+
+type ttfs []Ttf
+
+func (t ttfs) Len() int {
+	return len(t)
+}
+
+func (t ttfs) Less(i, j int) bool {
+	if t[i].BlockProduceTime.Before(t[j].BlockProduceTime) {
+		return true
+	}
+	return false
+}
+
+func (t ttfs) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
+}
+
+type Tps struct {
+	BlockProduceTime time.Time `json:"id_time"`
+	Block            int64     `json:"block"`
+	TxLength         int       `json:"tx_length"`
+}
+
+type TxGenResData struct {
+	Ttf         []Ttf  `json:"ttf"`
+	Tps         []Tps  `json:"tps"`
+	TotalTxSend uint64 `json:"total_tx_send"`
 }
 
 type TxGenAPI struct {
-	eth         *Ethereum
-	txGenExitCh chan struct{}
-	start       bool
-	blockfeed   event.Subscription
-	ttfInfo     sync.Map
+	eth           *Ethereum
+	txGenExitCh   chan struct{}
+	txGenStopTxCh chan struct{}
+	start         bool
+	blockfeed     event.Subscription
 
-	totalTxSend uint64
+	res *TxGenResData
 }
 
 // Start, begin make tx ,Broadcast transactions directly through p2p, without entering the transactin pool
@@ -80,7 +109,11 @@ func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer
 	blockch := make(chan *types.Block, 20)
 	txg.blockfeed = txg.eth.blockchain.SubscribeBlocksEvent(blockch)
 	txg.txGenExitCh = make(chan struct{})
-	txg.totalTxSend = 0
+	txg.txGenStopTxCh = make(chan struct{})
+	txg.res = new(TxGenResData)
+	txg.res.TotalTxSend = 0
+	txg.res.Tps = make([]Tps, 0)
+	txg.res.Ttf = make([]Ttf, 0)
 	if err := txg.makeTransaction(normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockch); err != nil {
 		return err
 	}
@@ -134,13 +167,13 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 							}
 						}
 					}
+					if currentLength > 0 {
+						txg.res.Ttf = append(txg.res.Ttf, Ttf{txm.blockProduceTime, res.Number().Int64(), currentLength, timeUse})
+					}
+					txg.res.Tps = append(txg.res.Tps, Tps{txm.blockProduceTime, res.Number().Int64(), txLength})
 				}
-				txg.ttfInfo.Store(res.Number().Uint64(), Ttf{currentLength, timeUse})
+
 				log.Debug("makeTransaction receive block", "num", res.Number(), "timeUse", timeUse.Milliseconds(), "txLength", txLength)
-				//cache latest 3600 block ttfinfo
-				if res.Number().Uint64() > cacheTtfSize {
-					txg.ttfInfo.Delete(res.Number().Uint64() - cacheTtfSize)
-				}
 			}
 		}
 	}()
@@ -179,7 +212,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					if err != nil {
 						log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
 					}
-					txg.totalTxSend++
+					txg.res.TotalTxSend++
 					txs = append(txs, newTx)
 					txm.sendDone(account)
 				}
@@ -191,7 +224,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 			case <-shouldReport.C:
 				sleepAccountsLength := len(txm.sleepAccounts)
 				log.Debug("MakeTx info", "sleepAccount", sleepAccountsLength, "perTx", txm.totalSenderTxPer)
-			case <-txg.txGenExitCh:
+			case <-txg.txGenStopTxCh:
 				shouldmake.Stop()
 				shouldReport.Stop()
 				log.Debug("MakeTransaction exit")
@@ -202,20 +235,28 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 	return nil
 }
 
-func (txg *TxGenAPI) GetTTF(begin, end uint64) map[uint64]Ttf {
-	res := make(map[uint64]Ttf)
-	for i := begin; i <= end; i++ {
-		v, ok := txg.ttfInfo.Load(i)
-		if !ok {
-			return res
-		}
-		res[i] = v.(Ttf)
+func (txg *TxGenAPI) GetTTF(latest uint64) ([]Ttf, error) {
+	if latest == 0 {
+		return txg.res.Ttf, nil
 	}
-	return res
+	if int(latest) > len(txg.res.Ttf) {
+		return nil, fmt.Errorf("the ttf res Length %v less than %v", len(txg.res.Ttf), latest)
+	}
+	return txg.res.Ttf[len(txg.res.Ttf)-1-int(latest) : len(txg.res.Ttf)-1], nil
+}
+
+func (txg *TxGenAPI) GetTPS(latest uint64) ([]Tps, error) {
+	if latest == 0 {
+		return txg.res.Tps, nil
+	}
+	if int(latest) > len(txg.res.Tps) {
+		return nil, fmt.Errorf("the Tps res Length %v less than %v", len(txg.res.Tps), latest)
+	}
+	return txg.res.Tps[len(txg.res.Tps)-1-int(latest) : len(txg.res.Tps)-1], nil
 }
 
 func (txg *TxGenAPI) GetTotalSend() uint64 {
-	return txg.totalTxSend
+	return txg.res.TotalTxSend
 }
 
 func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
@@ -236,6 +277,9 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 
 		for _, input := range [][]*TxGenContractConfig{txgenInput.Wasm, txgenInput.Evm} {
 			for _, config := range input {
+				if config.CallWeights == 0 {
+					continue
+				}
 				tx := types.NewContractCreation(nonce, nil, config.DeployGasLimit, gasPrice, common.Hex2Bytes(config.ContractsCode))
 				newTx, err := types.SignTx(tx, singine, pri)
 				if err != nil {
@@ -256,6 +300,9 @@ func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 	return handelTxGenConfig(configPath, func(txgenInput *TxGenInput) error {
 		for _, input := range [][]*TxGenContractConfig{txgenInput.Wasm, txgenInput.Evm} {
 			for _, config := range input {
+				if config.CallWeights == 0 {
+					continue
+				}
 				hash := common.HexToHash(config.DeployTxHash)
 				tx, blockHash, _, index := rawdb.ReadTransaction(txg.eth.ChainDb(), hash)
 				if tx == nil {
@@ -281,7 +328,7 @@ func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 func handelTxGenConfig(configPath string, handle func(*TxGenInput) error) error {
 	file, err := os.OpenFile(configPath, os.O_RDWR, 0666)
 	if err != nil {
-		return fmt.Errorf("Failed to read genesis file:%v", err)
+		return fmt.Errorf("Failed to open config file:%v", err)
 	}
 	defer file.Close()
 	var txgenInput TxGenInput
@@ -313,18 +360,44 @@ func handelTxGenConfig(configPath string, handle func(*TxGenInput) error) error 
 	return nil
 }
 
-func (txg *TxGenAPI) Stop() error {
+func (txg *TxGenAPI) Stop(resPath string) error {
 	if !txg.start {
 		return errors.New("the tx maker has been closed")
 	}
+	if resPath == "" {
+		return errors.New("the res to save  path should not empty")
+	}
+	file, err := os.Create(resPath)
+	if err != nil {
+		return fmt.Errorf("Failed to open config file:%v", err)
+	}
+	defer file.Close()
+
+	close(txg.txGenStopTxCh)
+	time.Sleep(time.Second * 6)
+
+	output, err := json.Marshal(txg.res)
+	if err != nil {
+		return err
+	}
+
+	if err := file.Truncate(0); err != nil {
+		return err
+	}
+	if _, err := file.Seek(0, 0); err != nil {
+		return err
+	}
+	if _, err := file.Write(output); err != nil {
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+
 	close(txg.txGenExitCh)
 	txg.start = false
 	txg.blockfeed.Unsubscribe()
-	//erase ttfInfo
-	txg.ttfInfo.Range(func(key interface{}, value interface{}) bool {
-		txg.ttfInfo.Delete(key)
-		return true
-	})
+
 	atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 0)
 
 	return nil
@@ -346,6 +419,7 @@ type TxGenContractConfig struct {
 	DeployTxHash     string `json:"deploy_contract_tx_hash"`
 	DeployGasLimit   uint64 `json:"deploy_gas_limit"`
 	Type             string `json:"contracts_type"`
+	Name             string `json:"name"`
 	ContractsCode    string `json:"contracts_code"`
 	ContractsAddress string `json:"contracts_address"`
 
@@ -514,6 +588,11 @@ type WasmKeyValueInfo struct {
 	Count  uint32
 }
 
+type WasmKeyValueAddrInfo struct {
+	Method []byte
+	Val    uint32
+}
+
 var one = common.Uint16ToBytes(1)
 
 func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Address, uint64, *big.Int) {
@@ -531,6 +610,9 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 			} else if account.Type == "kv" {
 				key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
 				return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(key))), common.Uint32ToBytes(count)), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			} else if account.Type == "kv_addr" {
+				val := int32(account.CallInputs[0].Parameters[0].(float64))
+				return BuildEVMInput(evmKVHash, common.Uint32ToBytes(uint32(rand.Int31n(val)))), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 			}
 		}
 	case s.sendState < s.sendWasm:
@@ -544,6 +626,9 @@ func (s *TxMakeManger) generateTxParams(add common.Address) ([]byte, common.Addr
 			} else if account.Type == "kv" {
 				key, count := int32(account.CallInputs[0].Parameters[0].(float64)), uint32(account.CallInputs[0].Parameters[1].(float64))
 				return BuildWASMInput(WasmKeyValueInfo{wasmkVHash, uint32(rand.Int31n(key)), count}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
+			} else if account.Type == "kv_addr" {
+				val := int32(account.CallInputs[0].Parameters[0].(float64))
+				return BuildWASMInput(WasmKeyValueAddrInfo{wasmkVHash, uint32(rand.Int31n(val))}), account.ContractsAddress, account.CallInputs[0].GasLimit, nil
 			}
 		}
 	}

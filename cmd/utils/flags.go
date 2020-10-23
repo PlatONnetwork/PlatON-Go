@@ -141,10 +141,6 @@ var (
 		Name:  "testnet",
 		Usage: "Testnet network: pre-configured test network",
 	}
-	DemonetFlag = cli.BoolFlag{
-		Name:  "demonet",
-		Usage: "Demonet network: pre-configured demo network",
-	}
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",
 		Usage: "Block period to use in developer mode (0 = mine only if transaction pending)",
@@ -630,8 +626,6 @@ func MakeDataDir(ctx *cli.Context) string {
 
 		if ctx.GlobalBool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
-		} else if ctx.GlobalBool(DemonetFlag.Name) {
-			return filepath.Join(path, "demonet")
 		}
 		return path
 	}
@@ -686,8 +680,6 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		}
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(DemonetFlag.Name):
-		urls = params.DemonetBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -955,8 +947,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(DemonetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "demonet")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
@@ -1193,12 +1183,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 2000
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
-	// Demo NetWork
-	case ctx.GlobalBool(DemonetFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 5000
-		}
-		cfg.Genesis = core.DefaultDemonetGenesisBlock()
 	}
 
 	if ctx.GlobalIsSet(DBNoGCFlag.Name) {
@@ -1363,8 +1347,6 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		genesis = core.DefaultTestnetGenesisBlock()
-	case ctx.GlobalBool(DemonetFlag.Name):
-		genesis = core.DefaultDemonetGenesisBlock()
 	}
 	return genesis
 }

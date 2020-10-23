@@ -985,15 +985,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		Time:       big.NewInt(timestamp),
 	}
 
-	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
-	if w.isRunning() {
-		//todo: Notes, need update.
-		//todo: Merge confirmation.
-		if b, ok := w.engine.(consensus.Bft); ok {
-			core.GetReactorInstance().SetWorkerCoinBase(header, b.NodeID())
-		}
-	}
-
 	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
 	// Initialize the header extra in Prepare function of engine
 	if err := w.engine.Prepare(w.chain, header); err != nil {
@@ -1015,6 +1006,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
 		log.Error("Failed to GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
 		return err
+	}
+
+	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
+	if w.isRunning() {
+		if b, ok := w.engine.(consensus.Bft); ok {
+			core.GetReactorInstance().SetWorkerCoinBase(header, b.NodeID())
+		}
 	}
 
 	if !noempty && "on" == w.EmptyBlock {

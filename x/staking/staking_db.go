@@ -331,14 +331,14 @@ func (db *StakingDB) DelCanMutableStore(blockHash common.Hash, addr common.NodeA
 
 func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
 
-	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.NodeId, can.StakingBlockNum, can.StakingTxIndex)
+	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
 
 	return db.put(blockHash, key, addr.Bytes())
 }
 
 func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
 
-	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.NodeId, can.StakingBlockNum, can.StakingTxIndex)
+	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
 	return db.del(blockHash, key)
 }
 
