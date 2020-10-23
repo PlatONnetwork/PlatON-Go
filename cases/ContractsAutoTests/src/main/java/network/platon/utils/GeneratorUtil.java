@@ -37,7 +37,7 @@ public class GeneratorUtil {
             String abiPath = filePath + contractName + ".abi";
 
             String outputPath = FileUtil.pathOptimization(System.getProperty("user.dir") + "/src/main/java");
-            String packagePath = "network.platon.contracts";
+            String packagePath = "network.platon.contracts.evm";
 
             String os = System.getProperty("os.name");
             String[] args = null;

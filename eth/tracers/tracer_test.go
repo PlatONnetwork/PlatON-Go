@@ -17,14 +17,14 @@
 package tracers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"math/big"
 	"testing"
 	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -45,8 +45,14 @@ func (account) ReturnGas(*big.Int)                                         {}
 func (account) SetCode(common.Hash, []byte)                                {}
 func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
+type dummyStatedb struct {
+	state.StateDB
+}
+
+func (*dummyStatedb) GetRefund() uint64 { return 1337 }
+
 func runTrace(tracer *Tracer) (json.RawMessage, error) {
-	env := vm.NewEVM(vm.Context{Ctx: context.TODO(), BlockNumber: big.NewInt(1)}, nil, &mock.MockStateDB{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
+	env := vm.NewEVM(vm.Context{BlockNumber: big.NewInt(1), Ctx: context.Background()}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
 
 	contract := vm.NewContract(account{}, account{}, big.NewInt(0), 10000)
 	contract.Code = []byte{byte(vm.PUSH1), 0x1, byte(vm.PUSH1), 0x1, 0x0}
@@ -58,9 +64,41 @@ func runTrace(tracer *Tracer) (json.RawMessage, error) {
 	return tracer.GetResult()
 }
 
+// TestRegressionPanicSlice tests that we don't panic on bad arguments to memory access
+func TestRegressionPanicSlice(t *testing.T) {
+	tracer, err := New("{depths: [], step: function(log) { this.depths.push(log.memory.slice(-1,-2)); }, fault: function() {}, result: function() { return this.depths; }}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = runTrace(tracer); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestRegressionPanicSlice tests that we don't panic on bad arguments to stack peeks
+func TestRegressionPanicPeek(t *testing.T) {
+	tracer, err := New("{depths: [], step: function(log) { this.depths.push(log.stack.peek(-1)); }, fault: function() {}, result: function() { return this.depths; }}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = runTrace(tracer); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestRegressionPanicSlice tests that we don't panic on bad arguments to memory getUint
+func TestRegressionPanicGetUint(t *testing.T) {
+	tracer, err := New("{ depths: [], step: function(log, db) { this.depths.push(log.memory.getUint(-64));}, fault: function() {}, result: function() { return this.depths; }}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = runTrace(tracer); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestTracing(t *testing.T) {
-	// TODO test
-	/*tracer, err := New("{count: 0, step: function() { this.count += 1; }, fault: function() {}, result: function() { return this.count; }}")
+	tracer, err := New("{count: 0, step: function() { this.count += 1; }, fault: function() {}, result: function() { return this.count; }}")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,12 +109,11 @@ func TestTracing(t *testing.T) {
 	}
 	if !bytes.Equal(ret, []byte("3")) {
 		t.Errorf("Expected return value to be 3, got %s", string(ret))
-	}*/
+	}
 }
 
 func TestStack(t *testing.T) {
-	// TODO test
-	/*tracer, err := New("{depths: [], step: function(log) { this.depths.push(log.stack.length()); }, fault: function() {}, result: function() { return this.depths; }}")
+	tracer, err := New("{depths: [], step: function(log) { this.depths.push(log.stack.length()); }, fault: function() {}, result: function() { return this.depths; }}")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,12 +124,11 @@ func TestStack(t *testing.T) {
 	}
 	if !bytes.Equal(ret, []byte("[0,1,2]")) {
 		t.Errorf("Expected return value to be [0,1,2], got %s", string(ret))
-	}*/
+	}
 }
 
 func TestOpcodes(t *testing.T) {
-	// TODO test
-	/*tracer, err := New("{opcodes: [], step: function(log) { this.opcodes.push(log.op.toString()); }, fault: function() {}, result: function() { return this.opcodes; }}")
+	tracer, err := New("{opcodes: [], step: function(log) { this.opcodes.push(log.op.toString()); }, fault: function() {}, result: function() { return this.opcodes; }}")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +139,7 @@ func TestOpcodes(t *testing.T) {
 	}
 	if !bytes.Equal(ret, []byte("[\"PUSH1\",\"PUSH1\",\"STOP\"]")) {
 		t.Errorf("Expected return value to be [\"PUSH1\",\"PUSH1\",\"STOP\"], got %s", string(ret))
-	}*/
+	}
 }
 
 func TestHalt(t *testing.T) {
@@ -131,13 +167,13 @@ func TestHaltBetweenSteps(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	env := vm.NewEVM(vm.Context{BlockNumber: big.NewInt(1)}, nil, &mock.MockStateDB{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
+	env := vm.NewEVM(vm.Context{BlockNumber: big.NewInt(1), Ctx: context.Background()}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
 	contract := vm.NewContract(&account{}, &account{}, big.NewInt(0), 0)
 
-	tracer.CaptureState(env, 0, 0, 0, 0, nil, nil, contract, 0, nil)
+	tracer.CaptureState(env, 0, 0, 0, 0, nil, nil, nil, nil, contract, 0, nil)
 	timeout := errors.New("stahp")
 	tracer.Stop(timeout)
-	tracer.CaptureState(env, 0, 0, 0, 0, nil, nil, contract, 0, nil)
+	tracer.CaptureState(env, 0, 0, 0, 0, nil, nil, nil, nil, contract, 0, nil)
 
 	if _, err := tracer.GetResult(); err.Error() != timeout.Error() {
 		t.Errorf("Expected timeout error, got %v", err)

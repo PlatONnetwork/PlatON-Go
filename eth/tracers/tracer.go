@@ -93,18 +93,27 @@ type memoryWrapper struct {
 
 // slice returns the requested range of memory as a byte slice.
 func (mw *memoryWrapper) slice(begin, end int64) []byte {
+	if end == begin {
+		return []byte{}
+	}
+	if end < begin || begin < 0 {
+		// TODO(karalabe): We can't js-throw from Go inside duktape inside Go. The Go
+		// runtime goes belly up https://github.com/golang/go/issues/15639.
+		log.Warn("Tracer accessed out of bound memory", "offset", begin, "end", end)
+		return nil
+	}
 	if mw.memory.Len() < int(end) {
 		// TODO(karalabe): We can't js-throw from Go inside duktape inside Go. The Go
 		// runtime goes belly up https://github.com/golang/go/issues/15639.
 		log.Warn("Tracer accessed out of bound memory", "available", mw.memory.Len(), "offset", begin, "size", end-begin)
 		return nil
 	}
-	return mw.memory.Get(begin, end-begin)
+	return mw.memory.GetCopy(begin, end-begin)
 }
 
 // getUint returns the 32 bytes at the specified address interpreted as a uint.
 func (mw *memoryWrapper) getUint(addr int64) *big.Int {
-	if mw.memory.Len() < int(addr)+32 {
+	if mw.memory.Len() < int(addr)+32 || addr < 0 {
 		// TODO(karalabe): We can't js-throw from Go inside duktape inside Go. The Go
 		// runtime goes belly up https://github.com/golang/go/issues/15639.
 		log.Warn("Tracer accessed out of bound memory", "available", mw.memory.Len(), "offset", addr, "size", 32)
@@ -147,13 +156,13 @@ type stackWrapper struct {
 
 // peek returns the nth-from-the-top element of the stack.
 func (sw *stackWrapper) peek(idx int) *big.Int {
-	if len(sw.stack.Data()) <= idx {
+	if len(sw.stack.Data()) <= idx || idx < 0 {
 		// TODO(karalabe): We can't js-throw from Go inside duktape inside Go. The Go
 		// runtime goes belly up https://github.com/golang/go/issues/15639.
 		log.Warn("Tracer accessed out of bound stack", "size", len(sw.stack.Data()), "index", idx)
 		return new(big.Int)
 	}
-	return sw.stack.Data()[len(sw.stack.Data())-idx-1]
+	return sw.stack.Back(idx).ToBig()
 }
 
 // pushObject assembles a JSVM object wrapping a swappable stack and pushes it
@@ -290,11 +299,12 @@ type Tracer struct {
 	contractWrapper *contractWrapper // Wrapper around the contract object
 	dbWrapper       *dbWrapper       // Wrapper around the VM environment
 
-	pcValue    *uint   // Swappable pc value wrapped by a log accessor
-	gasValue   *uint   // Swappable gas value wrapped by a log accessor
-	costValue  *uint   // Swappable cost value wrapped by a log accessor
-	depthValue *uint   // Swappable depth value wrapped by a log accessor
-	errorValue *string // Swappable error value wrapped by a log accessor
+	pcValue     *uint   // Swappable pc value wrapped by a log accessor
+	gasValue    *uint   // Swappable gas value wrapped by a log accessor
+	costValue   *uint   // Swappable cost value wrapped by a log accessor
+	depthValue  *uint   // Swappable depth value wrapped by a log accessor
+	errorValue  *string // Swappable error value wrapped by a log accessor
+	refundValue *uint   // Swappable refund value wrapped by a log accessor
 
 	ctx map[string]interface{} // Transaction context gathered throughout execution
 	err error                  // Error, if one has occurred
@@ -323,6 +333,7 @@ func New(code string) (*Tracer, error) {
 		gasValue:        new(uint),
 		costValue:       new(uint),
 		depthValue:      new(uint),
+		refundValue:     new(uint),
 	}
 	// Set up builtins for this environment
 	tracer.vm.PushGlobalGoFunction("toHex", func(ctx *duktape.Context) int {
@@ -345,7 +356,7 @@ func New(code string) (*Tracer, error) {
 		if ptr, size := ctx.GetBuffer(-1); ptr != nil {
 			addr = common.BytesToAddress(makeSlice(ptr, size))
 		} else {
-			addr = common.MustBech32ToAddress(ctx.GetString(-1))
+			addr = common.HexToAddress(ctx.GetString(-1))
 		}
 		ctx.Pop()
 		copy(makeSlice(ctx.PushFixedBuffer(20), 20), addr[:])
@@ -356,12 +367,34 @@ func New(code string) (*Tracer, error) {
 		if ptr, size := ctx.GetBuffer(-2); ptr != nil {
 			from = common.BytesToAddress(makeSlice(ptr, size))
 		} else {
-			from = common.MustBech32ToAddress(ctx.GetString(-2))
+			from = common.HexToAddress(ctx.GetString(-2))
 		}
 		nonce := uint64(ctx.GetInt(-1))
 		ctx.Pop2()
 
 		contract := crypto.CreateAddress(from, nonce)
+		copy(makeSlice(ctx.PushFixedBuffer(20), 20), contract[:])
+		return 1
+	})
+	tracer.vm.PushGlobalGoFunction("toContract2", func(ctx *duktape.Context) int {
+		var from common.Address
+		if ptr, size := ctx.GetBuffer(-3); ptr != nil {
+			from = common.BytesToAddress(makeSlice(ptr, size))
+		} else {
+			from = common.HexToAddress(ctx.GetString(-3))
+		}
+		// Retrieve salt hex string from js stack
+		salt := common.HexToHash(ctx.GetString(-2))
+		// Retrieve code slice from js stack
+		var code []byte
+		if ptr, size := ctx.GetBuffer(-1); ptr != nil {
+			code = common.CopyBytes(makeSlice(ptr, size))
+		} else {
+			code = common.FromHex(ctx.GetString(-1))
+		}
+		codeHash := crypto.Keccak256(code)
+		ctx.Pop3()
+		contract := crypto.CreateAddress2(from, salt, codeHash)
 		copy(makeSlice(ctx.PushFixedBuffer(20), 20), contract[:])
 		return 1
 	})
@@ -442,6 +475,9 @@ func New(code string) (*Tracer, error) {
 	tracer.vm.PushGoFunction(func(ctx *duktape.Context) int { ctx.PushUint(*tracer.depthValue); return 1 })
 	tracer.vm.PutPropString(logObject, "getDepth")
 
+	tracer.vm.PushGoFunction(func(ctx *duktape.Context) int { ctx.PushUint(*tracer.refundValue); return 1 })
+	tracer.vm.PutPropString(logObject, "getRefund")
+
 	tracer.vm.PushGoFunction(func(ctx *duktape.Context) int {
 		if tracer.errorValue != nil {
 			ctx.PushString(*tracer.errorValue)
@@ -505,7 +541,7 @@ func (jst *Tracer) CaptureStart(from common.Address, to common.Address, create b
 }
 
 // CaptureState implements the Tracer interface to trace a single step of VM execution.
-func (jst *Tracer) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, contract *vm.Contract, depth int, err error) error {
+func (jst *Tracer) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, rStack *vm.ReturnStack, rdata []byte, contract *vm.Contract, depth int, err error) error {
 	if jst.err == nil {
 		// Initialize the context if it wasn't done yet
 		if !jst.inited {
@@ -527,6 +563,7 @@ func (jst *Tracer) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost 
 		*jst.gasValue = uint(gas)
 		*jst.costValue = uint(cost)
 		*jst.depthValue = uint(depth)
+		*jst.refundValue = uint(env.StateDB.GetRefund())
 
 		jst.errorValue = nil
 		if err != nil {
@@ -543,7 +580,7 @@ func (jst *Tracer) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost 
 
 // CaptureFault implements the Tracer interface to trace an execution fault
 // while running an opcode.
-func (jst *Tracer) CaptureFault(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, contract *vm.Contract, depth int, err error) error {
+func (jst *Tracer) CaptureFault(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, rStack *vm.ReturnStack, contract *vm.Contract, depth int, err error) error {
 	if jst.err == nil {
 		// Apart from the error, everything matches the previous invocation
 		jst.errorValue = new(string)

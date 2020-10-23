@@ -56,7 +56,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
@@ -141,9 +140,13 @@ var (
 		Name:  "testnet",
 		Usage: "Testnet network: pre-configured test network",
 	}
-	DemonetFlag = cli.BoolFlag{
-		Name:  "demonet",
-		Usage: "Demonet network: pre-configured demo network",
+	AlayaNetFlag = cli.BoolFlag{
+		Name:  "alaya",
+		Usage: "alaya network: pre-configured alaya network",
+	}
+	AlayaTestNetFlag = cli.BoolFlag{
+		Name:  "alayatestnet",
+		Usage: "alaya test network: pre-configured alaya test network",
 	}
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",
@@ -630,8 +633,10 @@ func MakeDataDir(ctx *cli.Context) string {
 
 		if ctx.GlobalBool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
-		} else if ctx.GlobalBool(DemonetFlag.Name) {
-			return filepath.Join(path, "demonet")
+		} else if ctx.GlobalBool(AlayaNetFlag.Name) {
+			return filepath.Join(path, "alayanet")
+		} else if ctx.GlobalBool(AlayaTestNetFlag.Name) {
+			return filepath.Join(path, "alayatestnet")
 		}
 		return path
 	}
@@ -684,10 +689,12 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
+	case ctx.GlobalBool(AlayaNetFlag.Name):
+		urls = params.AlayanetBootnodes
+	case ctx.GlobalBool(AlayaTestNetFlag.Name):
+		urls = params.AlayaTestnetBootnodes
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(DemonetFlag.Name):
-		urls = params.DemonetBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -955,8 +962,10 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(DemonetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "demonet")
+	case ctx.GlobalBool(AlayaNetFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "alayanet")
+	case ctx.GlobalBool(AlayaTestNetFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "alayatestnet")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
@@ -1119,7 +1128,7 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	checkExclusive(ctx, TestnetFlag)
+	checkExclusive(ctx, TestnetFlag, AlayaNetFlag, AlayaTestNetFlag)
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	setGPO(ctx, &cfg.GPO)
@@ -1187,23 +1196,28 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Override any default configs for hard coded networks.
 	switch {
 
+	case ctx.GlobalBool(AlayaNetFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 1
+		}
+		cfg.Genesis = core.DefaultAlayaGenesisBlock()
+	case ctx.GlobalBool(AlayaTestNetFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 1
+		}
+		cfg.Genesis = core.DefaultAlayaTestGenesisBlock()
 	// Test NetWork
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 2000
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
-	// Demo NetWork
-	case ctx.GlobalBool(DemonetFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 5000
-		}
-		cfg.Genesis = core.DefaultDemonetGenesisBlock()
 	}
 
-	if ctx.GlobalIsSet(DBNoGCFlag.Name) {
+	// Temporarily block
+	/*if ctx.GlobalIsSet(DBNoGCFlag.Name) {
 		cfg.DBDisabledGC = ctx.GlobalBool(DBNoGCFlag.Name)
-	}
+	}*/
 	if ctx.GlobalIsSet(DBGCIntervalFlag.Name) {
 		cfg.DBGCInterval = ctx.GlobalUint64(DBGCIntervalFlag.Name)
 	}
@@ -1363,8 +1377,10 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		genesis = core.DefaultTestnetGenesisBlock()
-	case ctx.GlobalBool(DemonetFlag.Name):
-		genesis = core.DefaultDemonetGenesisBlock()
+	case ctx.GlobalBool(AlayaNetFlag.Name):
+		genesis = core.DefaultAlayaGenesisBlock()
+	case ctx.GlobalBool(AlayaTestNetFlag.Name):
+		genesis = core.DefaultAlayaTestGenesisBlock()
 	}
 	return genesis
 }
@@ -1493,20 +1509,43 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 	}
 }
 
-func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
-	var networkId int8
+// CheckExclusive verifies that only a single instance of the provided flags was
+// set by the user. Each flag might optionally be followed by a string type to
+// specialize it further.
+func CheckExclusive(ctx *cli.Context, args ...interface{}) {
+	set := make([]string, 0, 1)
+	for i := 0; i < len(args); i++ {
+		// Make sure the next argument is a flag and skip if not set
+		flag, ok := args[i].(cli.Flag)
+		if !ok {
+			panic(fmt.Sprintf("invalid argument, not cli.Flag type: %T", args[i]))
+		}
+		// Check if next arg extends current and expand its name if so
+		name := flag.GetName()
 
-	// Override any default Economic configs for hard coded networks.
-	switch {
-	case ctx.GlobalBool(TestnetFlag.Name):
-		networkId = xcom.DefaultTestNet // Test Net: --testnet
-	default:
-		networkId = xcom.DefaultMainNet // main net
+		if i+1 < len(args) {
+			switch option := args[i+1].(type) {
+			case string:
+				// Extended flag check, make sure value set doesn't conflict with passed in option
+				if ctx.GlobalString(flag.GetName()) == option {
+					name += "=" + option
+					set = append(set, "--"+name)
+				}
+				// shift arguments and continue
+				i++
+				continue
+
+			case cli.Flag:
+			default:
+				panic(fmt.Sprintf("invalid argument, not cli.Flag or string extension: %T", args[i+1]))
+			}
+		}
+		// Mark the flag if it's set
+		if ctx.GlobalIsSet(flag.GetName()) {
+			set = append(set, "--"+name)
+		}
 	}
-
-	if model := xcom.GetEc(networkId); model == nil {
-		panic("get economic model failed")
-	} else {
-		return model
+	if len(set) > 1 {
+		Fatalf("Flags %v can't be used at the same time", strings.Join(set, ", "))
 	}
 }

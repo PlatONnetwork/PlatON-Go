@@ -27,8 +27,11 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
-	TestnetGenesisHash = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
+	MainnetGenesisHash  = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
+	TestnetGenesisHash  = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
+	AlayanetGenesisHash = common.HexToHash("0xfb787fede6752e1a5ad85d2c6fc140454759be5e69d86d2425ceac22c23bd419")
+	//todo need update
+	AlayaTestnetGenesisHash = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
 )
 
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
@@ -99,7 +102,43 @@ var (
 		},
 	}
 
-	initialDemoNetConsensusNodes = []initNode{}
+	initialAlayaConsensusNodes = []initNode{
+		{
+			"enode://ba0f7995ee0cf98e18e82daf9560f2007eb46a510be0b3bcc6ec7ab6f4e7f611ce783036916aa0a0af95ddc1ad691df1fe84cfab926f358aec1a786e79d9eb7b@fdn1.92fd.alaya.network:16789",
+			"ccb421751a3ae082df3c134cbcc0f9e36c0ef2ddb641b1cfa4f647abe522bc5db1c432eb94368c7624a340a9021980084c0247240830f7da28d5a290c6b1e018d2f7f1b4c4a72b0dca4503f7fc6d43b63bee3534d2fb592d20f97be3e3a6048e",
+		},
+		{
+			"enode://b273bd13e4d82793ff5a874ef514934db333bcb3b12330ecf91e831ef6e536db61b4179bea8886095e931c1c0e749367eaf84266e083fa55c48c9fe1d50e26df@fdn2.7edb.alaya.network:16789",
+			"c7e05f20d53715719bd22b5e4cec453157ae5e81b3edf737e33c37b0839c630a77129e12550ae1571d1bec399b12a619ed987307435304d4b169e460929516be8d298a7493afc7449359ce76731938bb57b550578843c3ae6ba41e3d63ffd88a",
+		},
+		{
+			"enode://45cc53b5279503b6476bb2e5bcc8f0d3f1e7f6526ade9f27f9fea528f9bda9f5c6b8a5379235363b158188add776d14a5baebe55e8e8d57cdaefcea05307aa95@fdn3.3ef0.alaya.network:16789",
+			"2d317f94fa7583de8cd0d72069f3b104bcd6d8c1bc24265d5e66218d31eb4db19a2ddef75b74090fc34b951bfe4dac1535f91c5819569997131d1de688c1d3a2b7ae4ec3bfccf5a7d6af0412e01e1c6937311232ecc0a1c5bce951e84d425900",
+		},
+		{
+			"enode://695055cfccec7536b3f1e12208af7742a8aa30f0d7ed916e557a7cd50f3bedc9044e3916ce6d4d43aff4ae09e1df0e06842f7eb9dfd226fe49f4e0a6c1ad7a0a@fdn4.550d.alaya.network:16789",
+			"8f8d77b2e4d2e2e36000f56a26562fa5a3780b3263ca0e1f0533b9a14a3530d55da4dd84fe0a8713639f54cf0e7564141f1ce2779feee022e25a29bc20f2eed9c2367bba535e92f1057a1601b368a3cd2366a929e2c5f74d5e5bf45096063d18",
+		},
+		{
+			"enode://bc93ef4c138c4e010a57ba7c4565faaf07f5cdbe4bff58f92f7aa3e9a10e830dcb4a6f63fe04e61872c5ea1f98a302cfb6cb0004538db0cf3c7c8d697dc5bfee@fdn5.b1d5.alaya.network:16789",
+			"dd2be8a4a50cda5c8cbe6cc8d38aff0e18991749fff68018f86c4c46fe7d48f301a216648136fae5d27c6db128761910488f2ae886390384fffed9068fc18132c60e2874d210a1ad890eca1f99051e3aa9d7ef748df57ed9a2b93bb370e9fd80",
+		},
+		{
+			"enode://a860a56adaa9d3bd66494973d44b54bdfdadaeabdf0377b40e9dd99235a1d764dfc6791a19e744bef1d5e1962cc8de8afbf6202b922e2a411783a3ed9d622c2b@fdn6.5hj4.alaya.network:16789",
+			"ce809302eb36897b937874ad84bc1e506c543252510f1ee20ab6578457b321667f8faf18fb1143b7e1af418e56033603062dc809705e220a39032e86f3b49ada23224e28798d4b50b82b80f03d609c555acce12ddb7b3f7259d23c769b708506",
+		},
+		{
+			"enode://25af23c768bb57bbb5b72e349cf23bbb371e7359a3c0436cc3c22f28edbfa3429a511cd1f05783f4b385f84cd0649884fd36b8d3018b0a108ed7e7b189f41566@fdn7.5wf6.alaya.network:16789",
+			"05fee124fdb890a4c795142228c8812308138640fb3a173324af4e8e2df13a6b5a93af19edeb730ec884104e5dd4f70e60e578470a730fe5b3a99dd52590304603df7bc189bdac4d556e736d5659ad2ffd20a14cd5fbf567952fb4b9a678118d",
+		},
+	}
+
+	initialAlayaTestNetConsensusNodes = []initNode{
+		{
+			"enode://b7f1f7757a900cce7ce4caf8663ecf871205763ac201c65f9551d5b841731a9cd9550bc05f3a16fbc2ef589c9faeef74d4500b60d76047939e2ba7fa4a5915aa@tf1.8e1f.platon.network:16789",
+			"f1735bac863706b49809a4e635fe0c2e224aef5ad549f18ba3f2f6b61c0c9d0005f12d497a301ba26a8aaf009c90e4198301875002984c5cd9bd614cd2fbcb81c57f6355a8400d56c20804e1dfb34782c1f2eadda82c8b226aa4a71bfa60be8c",
+		},
+	}
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
@@ -108,6 +147,34 @@ var (
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialMainNetConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        20000,
+		},
+		GenesisVersion: GenesisVersion,
+	}
+
+	// AlayaChainConfig is the chain parameters to run a node on the main network.
+	AlayaChainConfig = &ChainConfig{
+		ChainID:     big.NewInt(201018),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(1),
+		Cbft: &CbftConfig{
+			InitialNodes:  ConvertNodeUrl(initialAlayaConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        20000,
+		},
+		GenesisVersion: GenesisVersion,
+	}
+
+	// AlayaTestChainConfig is the chain parameters to run a node on the main network.
+	AlayaTestChainConfig = &ChainConfig{
+		ChainID:     big.NewInt(201030),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(1),
+		Cbft: &CbftConfig{
+			InitialNodes:  ConvertNodeUrl(initialAlayaTestNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
 			Period:        20000,
@@ -131,20 +198,6 @@ var (
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
-			Amount:        10,
-			ValidatorMode: "ppos",
-			Period:        20000,
-		},
-		GenesisVersion: GenesisVersion,
-	}
-
-	// DemonetChainConfig is the chain parameters to run a node on the demo network.
-	DemonetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(399),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
-		Cbft: &CbftConfig{
-			InitialNodes:  ConvertNodeUrl(initialDemoNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
 			Period:        20000,
@@ -354,28 +407,6 @@ func newCompatError(what string, storedblock, newblock *big.Int) *ConfigCompatEr
 
 func (err *ConfigCompatError) Error() string {
 	return fmt.Sprintf("mismatching %s in database (have %d, want %d, rewindto %d)", err.What, err.StoredConfig, err.NewConfig, err.RewindTo)
-}
-
-// Rules wraps ChainConfig and is merely syntactic sugar or can be used for functions
-// that do not have or require information about the block.
-//
-// Rules is a one time interface meaning that it shouldn't be used in between transition
-// phases.
-type Rules struct {
-	ChainID  *big.Int
-	IsEIP155 bool
-}
-
-// Rules ensures c's ChainID is not nil.
-func (c *ChainConfig) Rules(num *big.Int) Rules {
-	chainID := c.ChainID
-	if chainID == nil {
-		chainID = new(big.Int)
-	}
-	return Rules{
-		ChainID:  new(big.Int).Set(chainID),
-		IsEIP155: c.IsEIP155(num),
-	}
 }
 
 func ConvertNodeUrl(initialNodes []initNode) []CbftNode {

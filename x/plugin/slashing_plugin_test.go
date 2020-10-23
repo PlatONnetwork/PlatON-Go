@@ -38,6 +38,8 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -46,7 +48,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"github.com/stretchr/testify/assert"
 )
 
 func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
@@ -72,7 +73,7 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.PrivateKey, blsKey bls.SecretKey, t *testing.T, stateDb xcom.StateDB) {
 	stakingDB := staking.NewStakingDB()
 
-	sender := common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
+	sender := common.MustBech32ToAddress("atx1pmhjxvfqeccm87kzpkkr08djgvpp5535gxm6s5")
 
 	buildDbRestrictingPlan(sender, t, stateDb)
 
@@ -490,7 +491,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
           }
          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
-	stakingAddr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
+	stakingAddr := common.MustBech32ToAddress("atx1r9tx0n00etv5c5smmlctlpg8jas7p78nmnfw8v")
 	stakingNodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)

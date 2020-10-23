@@ -29,7 +29,7 @@ const (
 var (
 	ErrParamEpochInvalid                 = common.NewBizError(304001, "param epoch can't be zero")
 	ErrCountRestrictPlansInvalid         = common.NewBizError(304002, fmt.Sprintf("the number of the restricting plan can't be zero or more than %d", RestrictTxPlanSize))
-	ErrLockedAmountTooLess               = common.NewBizError(304003, "total restricting amount need more than 1 LAT")
+	ErrLockedAmountTooLess               = common.NewBizError(304003, "total restricting amount need more than 1 ATP")
 	ErrBalanceNotEnough                  = common.NewBizError(304004, "create plan,the sender balance is not enough in restrict")
 	ErrAccountNotFound                   = common.NewBizError(304005, "account is not found on restricting contract")
 	ErrSlashingTooMuch                   = common.NewBizError(304006, "slashing amount is larger than staking amount")

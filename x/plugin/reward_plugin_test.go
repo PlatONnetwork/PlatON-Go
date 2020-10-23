@@ -18,19 +18,21 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -401,8 +403,7 @@ func TestCDFAccountOneYearIncreaseIssuance(t *testing.T) {
 	currIssue := new(big.Int).Sub(newIssue, lastIssue)
 
 	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.CDFAccount()), CDFAccountBalance)
-	rewardpoolIncr := percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate))
-	assert.Equal(t, currCDFAccountBalance, new(big.Int).Sub(currIssue, rewardpoolIncr))
+	assert.Equal(t, currCDFAccountBalance, percentageCalculation(currIssue, uint64(AfterFoundationYearDeveloperRewardRate)))
 
 }
 
@@ -435,9 +436,8 @@ func TestCDFAccountTenYearIncreaseIssuance(t *testing.T) {
 	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.CDFAccount()), CDFAccountBalance)
 	currPlatONFundAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.PlatONFundAccount()), PlatONFundAccountBalance)
 
-	lessBalance := new(big.Int).Sub(currIssue, percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate)))
-	assert.Equal(t, currCDFAccountBalance, percentageCalculation(lessBalance, uint64(AfterFoundationYearDeveloperRewardRate)))
-	assert.Equal(t, currPlatONFundAccountBalance, percentageCalculation(lessBalance, uint64(AfterFoundationYearFoundRewardRate)))
+	assert.Equal(t, currCDFAccountBalance, percentageCalculation(currIssue, uint64(AfterFoundationYearDeveloperRewardRate)))
+	assert.Equal(t, currPlatONFundAccountBalance, percentageCalculation(currIssue, uint64(AfterFoundationYearFoundRewardRate)))
 
 }
 
@@ -561,7 +561,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 	defer chain.SnapDB.Clear()
 
 	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
-	index, queue, can, delegate := generateStk(1000, big.NewInt(params.LAT*3), 10)
+	index, queue, can, delegate := generateStk(1000, big.NewInt(params.ATP*3), 10)
 	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		if err := stkDB.SetEpochValIndex(hash, index); err != nil {
 			return err
@@ -738,7 +738,7 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 	defer chain.SnapDB.Clear()
 
 	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
-	index, queue, can, delegate := generateStk(1000, big.NewInt(params.LAT*3), 10)
+	index, queue, can, delegate := generateStk(1000, big.NewInt(params.ATP*3), 10)
 	chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		if err := stkDB.SetEpochValIndex(hash, index); err != nil {
 			return err
