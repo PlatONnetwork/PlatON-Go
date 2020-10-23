@@ -19,14 +19,31 @@ package xcom
 import "testing"
 
 func TestGetDefaultEMConfig(t *testing.T) {
-	if getDefaultEMConfig(DefaultMainNet) == nil {
+
+	if ec = getDefaultEMConfig(DefaultMainNet); ec == nil {
 		t.Error("DefaultMainNet can't be nil config")
+		return
+	} else {
+		if err := CheckEconomicModel(); err != nil {
+			t.Error(err)
+			return
+		}
 	}
-	if getDefaultEMConfig(DefaultTestNet) == nil {
+	if ec = getDefaultEMConfig(DefaultTestNet); ec == nil {
 		t.Error("DefaultTestNet can't be nil config")
+	} else {
+		if err := CheckEconomicModel(); err != nil {
+			t.Error(err)
+			return
+		}
 	}
-	if getDefaultEMConfig(DefaultDemoNet) == nil {
+	if ec = getDefaultEMConfig(DefaultDemoNet); ec == nil {
 		t.Error("DefaultDemoNet can't be nil config")
+	} else {
+		if err := CheckEconomicModel(); err != nil {
+			t.Error(err)
+			return
+		}
 	}
 	if getDefaultEMConfig(10) != nil {
 		t.Error("the chain config not support")
