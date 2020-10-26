@@ -18,18 +18,22 @@ package main
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/ctool/core"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"gopkg.in/urfave/cli.v1"
 	"os"
 	"sort"
+
+	"github.com/PlatONnetwork/PlatON-Go/cmd/ctool/core"
+
+	"gopkg.in/urfave/cli.v1"
+
+	"github.com/PlatONnetwork/PlatON-Go/cmd/ctool/ppos"
 )
 
 var (
-	app = utils.NewApp("", "the wasm command line interface")
+	app *cli.App
 )
 
 func init() {
+	app = cli.NewApp()
 
 	// Initialize the CLI app
 	app.Commands = []cli.Command{
@@ -40,7 +44,16 @@ func init() {
 		core.GetTxReceiptCmd,
 		core.StabilityCmd,
 		core.StabPrepareCmd,
+		ppos.GovCmd,
+		ppos.SlashingCmd,
+		ppos.StakingCmd,
+		ppos.RestrictingCmd,
+		ppos.RewardCmd,
 	}
+
+	app.Name = "ctool"
+	app.Version = "1.0.0"
+
 	sort.Sort(cli.CommandsByName(app.Commands))
 	app.After = func(ctx *cli.Context) error {
 		return nil
