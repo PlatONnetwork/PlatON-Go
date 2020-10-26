@@ -494,21 +494,28 @@ func (db *Database) Reference(child common.Hash, parent common.Hash) {
 	db.reference(child, parent)
 }
 
-// Reference adds a new reference from a parent node to a child node.
+// ReferenceVersion traverses down from the root node, with a version number for each node.
 func (db *Database) ReferenceVersion(root common.Hash) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	node, ok := db.dirties[root]
+	start := time.Now()
+	db.referenceVersion(root)
+	if start.Add(400 * time.Millisecond).Before(time.Now()) {
+		log.Warn("ReferenceVersion overtime", "root", root.String(), "duration", time.Since(start))
+	}
+}
+
+// referenceVersion is the private locked version of referenceVersion.
+func (db *Database) referenceVersion(hash common.Hash) {
+	node, ok := db.dirties[hash]
 	if !ok {
 		return
 	}
-	node.version = db.NodeVersion()
-	node.forChilds(func(child common.Hash) {
-		if c := db.dirties[child]; c != nil {
-			c.version = db.NodeVersion()
-		}
+	node.forChilds(func(h common.Hash) {
+		db.referenceVersion(h)
 	})
+	node.version = db.NodeVersion()
 }
 
 // reference is the private locked version of Reference.
@@ -552,6 +559,9 @@ func (db *Database) DereferenceDB(root common.Hash) {
 	}
 
 	db.dereference(root, clearFn)
+	if start.Add(400 * time.Millisecond).Before(time.Now()) {
+		log.Warn("DereferenceDB overtime", "root", root.String(), "duration", time.Since(start))
+	}
 
 	db.useless = append(db.useless, useless)
 	db.gcnodes += uint64(nodes - len(db.dirties))
