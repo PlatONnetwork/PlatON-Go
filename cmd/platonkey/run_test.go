@@ -29,17 +29,17 @@ type testKeytool struct {
 	*cmdtest.TestCmd
 }
 
-// spawns keytool with the given command line args.
+// spawns platonkey with the given command line args.
 func runKeytool(t *testing.T, args ...string) *testKeytool {
 	tt := new(testKeytool)
 	tt.TestCmd = cmdtest.NewTestCmd(t, tt)
-	tt.Run("keytool-test", args...)
+	tt.Run("platonkey-test", args...)
 	return tt
 }
 
 func TestMain(m *testing.M) {
-	// Run the app if we've been exec'd as "keytool-test" in runKeytool.
-	reexec.Register("keytool-test", func() {
+	// Run the app if we've been exec'd as "platonkey-test" in runKeytool.
+	reexec.Register("platonkey-test", func() {
 		if err := app.Run(os.Args); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
