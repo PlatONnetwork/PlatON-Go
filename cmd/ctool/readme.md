@@ -21,7 +21,7 @@ eg： ./ctool deploy -abi "D:\\resource\\temp\\contractc.cpp.abi.json" -code "D:
 -abi      abi json file path (must)
 -type     transaction type ,default 2 (optional)
 
-eg: ./ctool invoke -addr "0xFC43e7f481b9d3F75CcfFc8D23eAC522E96dE570" -func "transfer("a",b,c) " -abi "D:\\resource\\temp\\contractc.cpp.abi.json" -type
+eg: ./ctool invoke -addr "atp1l3p70ayph8flwhx0ljxj86k9yt5kmets9xjvaq" -func "transfer("a",b,c) " -abi "D:\\resource\\temp\\contractc.cpp.abi.json" -type
 ```
 ##### 3.Send transaction
 ```
@@ -80,7 +80,7 @@ The config.json file is as follows：
   "url":"http://192.168.9.73:6789",
   "gas": "0x76c0",
   "gasPrice": "0x9184e72a000",
-  "from":"0xfb8c2fa47e84fbde43c97a0859557a36a5fb285b"
+  "from":"atp1lwxzlfr7snaaus7f0gy9j4t6x6jlk2zmtge3y0"
 }
 ```
 
