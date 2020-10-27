@@ -24,12 +24,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -83,7 +83,7 @@ func sendTransactionCmd(c *cli.Context) error {
 
 	hash, err := SendTransaction(from, to, value)
 	if err != nil {
-		utils.Fatalf("Send transaction error: %v", err)
+		return fmt.Errorf("Send transaction error: %v", err)
 	}
 
 	fmt.Printf("tx hash: %s", hash)
@@ -100,7 +100,7 @@ func sendRawTransactionCmd(c *cli.Context) error {
 
 	hash, err := SendRawTransaction(from, to, value, pkFile)
 	if err != nil {
-		utils.Fatalf("Send transaction error: %v", err)
+		return fmt.Errorf("Send transaction error: %v", err)
 	}
 
 	fmt.Printf("tx hash: %s", hash)
