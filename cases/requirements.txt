@@ -10,7 +10,7 @@ pytest-xdist==1.24.0
 requests==2.20.0
 client_sdk_python==0.4.7
 PyYAML==4.2b4
-cryptography==2.4.2
+cryptography==3.2
 paramiko==2.4.2
 allure-pytest==2.8.6
 allure-python-commons==2.8.6
