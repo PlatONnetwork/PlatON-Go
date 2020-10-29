@@ -142,7 +142,7 @@ OPTIONS:
    --address value  account address
    --json           print raw transaction
 
-eg:  ./ctool.exe restricting  getRestrictingInfo  --rpcurl 'http://127.0.0.1:6771' -testnet --address 'atx17tfkaghs4vded6mz6k53xyv5cvqsl63h5gq7cw'
+eg:  ./ctool.exe restricting  getRestrictingInfo  --rpcurl 'http://127.0.0.1:6771' -testnet --address 'lat17tfkaghs4vded6mz6k53xyv5cvqsl63h8c2v5t'
 ```
 
 
