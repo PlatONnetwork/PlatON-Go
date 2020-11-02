@@ -970,7 +970,7 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'unStakeFreezeDuration',
-                                     '113', pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                                     '1113', pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
@@ -1087,12 +1087,12 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '4712388.5',
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '9424776.5',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '-4712388',
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '-9424776',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
@@ -1102,7 +1102,7 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', 4712388,
+        result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', 9424776,
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
@@ -1123,8 +1123,8 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client, 'maxBlockGasLimit')) != 4712388:
-            result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '4712388',
+        if int(get_governable_parameter_value(client, 'maxBlockGasLimit')) != 9424776:
+            result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '9424776',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
             assert_code(result, 0)

@@ -299,16 +299,19 @@ class TestgetAccuVerifiersCount:
     @pytest.mark.P0
     @allure.title('Interface getAccuVerifiersCount function verification')
     def test_AC_IN_001_002_004_to_006_012_to_014(self, new_genesis_env, clients_consensus):
+        # genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        # genesis.economicModel.slashing.maxEvidenceAge = 1
+        # new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip = clients_consensus[-1].pip
-        result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 5, pip.node.staking_address,
+        result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 12, pip.node.staking_address,
                                    transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_version = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo_version))
 
-        result = pip.submitCancel(pip.node.node_id, str(time.time()), 4, proposalinfo_version.get('ProposalID'),
+        result = pip.submitCancel(pip.node.node_id, str(time.time()), 10, proposalinfo_version.get('ProposalID'),
                                   pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
@@ -316,6 +319,7 @@ class TestgetAccuVerifiersCount:
         log.info('Get cancel proposal information : {}'.format(proposalinfo_version))
 
         for index in range(3):
+            log.info(f'index == {index}')
             client = clients_consensus[index]
             result = version_proposal_vote(client.pip)
             assert_code(result, 0)
@@ -323,7 +327,8 @@ class TestgetAccuVerifiersCount:
                                      client.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Node {} vote cancel proposal result : {}'.format(client.node.node_id, result))
             assert_code(result, 0)
-
+        log.info(f'blocknumber0000 == {pip.node.block_number}')
+        log.info(f'getCandidateList == {pip.node.ppos.getCandidateList()}')
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 3, 0, 0]
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 1]
         log.info('Stop the node {}'.format(clients_consensus[0].node.node_id))
@@ -335,6 +340,7 @@ class TestgetAccuVerifiersCount:
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 3, 0, 0]
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 1]
 
+        log.info(f'blocknumber1111 == {pip.node.block_number}')
         report_information = mock_duplicate_sign(1, clients_consensus[1].node.nodekey,
                                                  clients_consensus[1].node.blsprikey, 41)
         log.info("Report information: {}".format(report_information))
@@ -342,6 +348,7 @@ class TestgetAccuVerifiersCount:
         result = clients_consensus[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
+        log.info(f'blocknumber2222 == {pip.node.block_number}')
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 2, 0, 0]
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 0, 1]
 

@@ -365,7 +365,7 @@ class TestUpgradeVP:
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id in verifier_list
 
-        submitvpandvote(clients_consensus)
+        submitvpandvote(clients_consensus, 3)
         programversion = clients_consensus[0].staking.get_version()
         assert_code(programversion, pip.cfg.version0)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
@@ -392,6 +392,8 @@ class TestUpgradeVP:
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id not in verifier_list
 
+        block_reward, staking_reward = pip.economic.get_current_year_reward(pip.node, 5)
+        log.info(f'block_reward == {block_reward}, staking_reward == {staking_reward}')
         balance_before = pip.node.eth.getBalance(address, 2 * pip.economic.settlement_size - 1)
         log.info('Block number {} address balace {}'.format(2 * pip.economic.settlement_size - 1, balance_before))
         pip.economic.wait_consensus(pip.node)
