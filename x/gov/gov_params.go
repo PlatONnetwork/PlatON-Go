@@ -365,6 +365,19 @@ func initParam() []*GovernParam {
 				return nil
 			},
 		},
+		{
+
+			ParamItem: &ParamItem{ModuleRestricting, KeyRestrictingMinimumAmount,
+				fmt.Sprintf(" minimum restricting   amount to be added  in every epoch")},
+			ParamValue: &ParamValue{"", new(big.Int).SetInt64(int64(params.LAT)).String(), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+				_, ok := new(big.Int).SetString(value, 10)
+				if !ok {
+					return fmt.Errorf("parsed KeyRestrictingMinimumAmount is failed")
+				}
+				return nil
+			},
+		},
 	}
 }
 
