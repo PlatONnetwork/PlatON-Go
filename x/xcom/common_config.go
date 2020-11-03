@@ -122,9 +122,10 @@ type governanceConfig struct {
 }
 
 type rewardConfig struct {
-	NewBlockRate          uint64 `json:"newBlockRate"`          // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
-	PlatONFoundationYear  uint32 `json:"platonFoundationYear"`  // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
-	IncreaseIssuanceRatio uint16 `json:"increaseIssuanceRatio"` // According to the total amount issued in the previous year, increase the proportion of issuance
+	NewBlockRate                 uint64 `json:"newBlockRate"`                 // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
+	PlatONFoundationYear         uint32 `json:"platonFoundationYear"`         // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
+	IncreaseIssuanceRatio        uint16 `json:"increaseIssuanceRatio"`        // According to the total amount issued in the previous year, increase the proportion of issuance
+	TheNumberOfDelegationsReward uint16 `json:"TheNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
 }
 
 type innerAccount struct {
@@ -226,9 +227,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  2,
-				IncreaseIssuanceRatio: 500,
+				NewBlockRate:                 50,
+				PlatONFoundationYear:         2,
+				IncreaseIssuanceRatio:        500,
+				TheNumberOfDelegationsReward: 20,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
@@ -277,9 +279,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  2,
-				IncreaseIssuanceRatio: 500,
+				NewBlockRate:                 50,
+				PlatONFoundationYear:         2,
+				IncreaseIssuanceRatio:        500,
+				TheNumberOfDelegationsReward: 20,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atp147txew2paj3y8kqthzelslxyyjmkzt0gwe99cr"),
@@ -328,9 +331,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  2,
-				IncreaseIssuanceRatio: 500,
+				NewBlockRate:                 50,
+				PlatONFoundationYear:         2,
+				IncreaseIssuanceRatio:        500,
+				TheNumberOfDelegationsReward: 20,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atx10spacq8cz76y2n60pl7sg5yazncmjuus7n6hw2"),
@@ -379,9 +383,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				NewBlockRate:                 50,
+				PlatONFoundationYear:         10,
+				IncreaseIssuanceRatio:        250,
+				TheNumberOfDelegationsReward: 20,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atx1q8r3em9wlamt0qe92alx5a9ff5j2s6lzlxrsxg"),
@@ -430,9 +435,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				NewBlockRate:                 50,
+				PlatONFoundationYear:         10,
+				IncreaseIssuanceRatio:        250,
+				TheNumberOfDelegationsReward: 2,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atx1fyeszufxwxk62p46djncj86rd553skpph926ws"),
@@ -793,6 +799,10 @@ func PlatONFoundationYear() uint32 {
 
 func IncreaseIssuanceRatio() uint16 {
 	return ec.Reward.IncreaseIssuanceRatio
+}
+
+func TheNumberOfDelegationsReward() uint16 {
+	return ec.Reward.TheNumberOfDelegationsReward
 }
 
 /******
