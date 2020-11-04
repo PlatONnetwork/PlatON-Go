@@ -33,6 +33,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
+const (
+	DereferenceTimeLimit = 300 * time.Millisecond
+)
+
 var (
 	memcacheCleanHitMeter   = metrics.NewRegisteredMeter("trie/memcache/clean/hit", nil)
 	memcacheCleanMissMeter  = metrics.NewRegisteredMeter("trie/memcache/clean/miss", nil)
@@ -347,11 +351,11 @@ func (db *Database) insert(hash common.Hash, blob []byte, node node) {
 		flushPrev: db.newest,
 		version:   db.NodeVersion(),
 	}
-	entry.forChilds(func(child common.Hash) {
-		if c := db.dirties[child]; c != nil {
-			c.parents++
-		}
-	})
+	//entry.forChilds(func(child common.Hash) {
+	//	if c := db.dirties[child]; c != nil {
+	//		c.parents++
+	//	}
+	//})
 	db.dirties[hash] = entry
 	// Update the flush-list endpoints
 	if db.oldest == (common.Hash{}) {
@@ -496,8 +500,8 @@ func (db *Database) Reference(child common.Hash, parent common.Hash) {
 
 // ReferenceVersion traverses down from the root node, with a version number for each node.
 func (db *Database) ReferenceVersion(root common.Hash) {
-	db.lock.Lock()
-	defer db.lock.Unlock()
+	db.lock.RLock()
+	defer db.lock.RUnlock()
 
 	start := time.Now()
 	db.referenceVersion(root)
@@ -546,8 +550,6 @@ func (db *Database) DereferenceDB(root common.Hash) {
 		log.Error("Attempted to dereference the trie cache meta root")
 		return
 	}
-	db.lock.Lock()
-	defer db.lock.Unlock()
 
 	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
 	useless := make(map[string]struct{})
@@ -558,10 +560,13 @@ func (db *Database) DereferenceDB(root common.Hash) {
 		}
 	}
 
-	db.dereference(root, clearFn)
-	if start.Add(400 * time.Millisecond).Before(time.Now()) {
-		log.Warn("DereferenceDB overtime", "root", root.String(), "duration", time.Since(start))
-	}
+	db.lock.Lock()
+	db.dereference(root, clearFn, start)
+	db.lock.Unlock()
+
+	//if start.Add(400 * time.Millisecond).Before(time.Now()) {
+	//	log.Warn("DereferenceDB overtime", "root", root.String(), "duration", time.Since(start))
+	//}
 
 	db.useless = append(db.useless, useless)
 	db.gcnodes += uint64(nodes - len(db.dirties))
@@ -647,7 +652,7 @@ func (db *Database) Dereference(root common.Hash) {
 	}
 
 	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
-	db.dereference(root, cleanFn)
+	db.dereference(root, cleanFn, start)
 
 	db.gcnodes += uint64(nodes - len(db.dirties))
 	db.gcsize += storage - db.dirtiesSize
@@ -662,7 +667,7 @@ func (db *Database) Dereference(root common.Hash) {
 }
 
 // dereference is the private locked version of Dereference.
-func (db *Database) dereference(hash common.Hash, clearFn func([]byte)) {
+func (db *Database) dereference(hash common.Hash, clearFn func([]byte), start time.Time) {
 	if _, ok := db.freshNodes[hash]; ok {
 		return
 	}
@@ -681,6 +686,10 @@ func (db *Database) dereference(hash common.Hash, clearFn func([]byte)) {
 	if !ok {
 		return
 	}
+	if start.Add(DereferenceTimeLimit).Before(time.Now()) {
+		log.Warn("DereferenceDB overtime, Interrupt the dereference", "duration", time.Since(start))
+		return
+	}
 	if node.version < db.NodeVersion() {
 		// Remove the node from the flush-list
 		switch hash {
@@ -696,7 +705,7 @@ func (db *Database) dereference(hash common.Hash, clearFn func([]byte)) {
 		}
 		// Dereference all children and delete the node
 		node.forChilds(func(h common.Hash) {
-			db.dereference(h, clearFn)
+			db.dereference(h, clearFn, start)
 		})
 		delete(db.dirties, hash)
 
