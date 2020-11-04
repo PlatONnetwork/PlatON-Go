@@ -216,12 +216,15 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 
 	// Get the existing EconomicModel configuration.
 	ecCfg := rawdb.ReadEconomicModel(db, stored)
+	eceCfg := rawdb.ReadEconomicModelExtend(db, stored)
 	if nil == ecCfg {
 		log.Warn("Found genesis block without EconomicModel config")
 		ecCfg = xcom.GetEc(xcom.DefaultMainNet)
 		rawdb.WriteEconomicModel(db, stored, ecCfg)
+		rawdb.WriteEconomicModelExtend(db, stored, xcom.GetEce())
 	}
 	xcom.ResetEconomicDefaultConfig(ecCfg)
+	xcom.ResetEconomicExtendConfig(eceCfg)
 
 	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
@@ -258,6 +261,18 @@ func (g *Genesis) UnmarshalChainID(r io.Reader) (*big.Int, error) {
 	return genesisChaind.Config.ChainID, nil
 }
 
+func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
+	var genesisEcConfig struct {
+		EconomicModel *xcom.EconomicModelExtend `json:"economicModel"`
+	}
+	genesisEcConfig.EconomicModel = xcom.GetEce()
+	if err := json.NewDecoder(r).Decode(&genesisEcConfig); err != nil {
+		return fmt.Errorf("invalid genesis file economicModel: %v", err)
+	}
+	xcom.ResetEconomicExtendConfig(genesisEcConfig.EconomicModel)
+	return nil
+}
+
 //this is only use to private chain
 func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	file, err := os.Open(path)
@@ -275,9 +290,14 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		common.SetAddressPrefix(common.TestNetAddressPrefix)
 	}
 
-	file.Seek(0, io.SeekStart)
-
 	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
+
+	file.Seek(0, io.SeekStart)
+	if err := g.UnmarshalEconomicConfigExtend(file); nil != err {
+		return err
+	}
+
+	file.Seek(0, io.SeekStart)
 	if err := json.NewDecoder(file).Decode(g); err != nil {
 		return fmt.Errorf("invalid genesis file: %v", err)
 	}
@@ -474,6 +494,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
+	rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
 	return block, nil
 }
 

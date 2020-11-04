@@ -122,10 +122,9 @@ type governanceConfig struct {
 }
 
 type rewardConfig struct {
-	NewBlockRate                 uint64 `json:"newBlockRate"`                 // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
-	PlatONFoundationYear         uint32 `json:"platonFoundationYear"`         // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
-	IncreaseIssuanceRatio        uint16 `json:"increaseIssuanceRatio"`        // According to the total amount issued in the previous year, increase the proportion of issuance
-	TheNumberOfDelegationsReward uint16 `json:"TheNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
+	NewBlockRate          uint64 `json:"newBlockRate"`          // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
+	PlatONFoundationYear  uint32 `json:"platonFoundationYear"`  // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
+	IncreaseIssuanceRatio uint16 `json:"increaseIssuanceRatio"` // According to the total amount issued in the previous year, increase the proportion of issuance
 }
 
 type innerAccount struct {
@@ -147,9 +146,18 @@ type EconomicModel struct {
 	InnerAcc innerAccount     `json:"innerAcc"`
 }
 
+type EconomicModelExtend struct {
+	Reward rewardConfigExtend `json:"reward"`
+}
+
+type rewardConfigExtend struct {
+	TheNumberOfDelegationsReward uint16 `json:"theNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
+}
+
 var (
 	modelOnce sync.Once
 	ec        *EconomicModel
+	ece       *EconomicModelExtend
 )
 
 // Getting the global EconomicModel single instance
@@ -160,8 +168,16 @@ func GetEc(netId int8) *EconomicModel {
 	return ec
 }
 
+func GetEce() *EconomicModelExtend {
+	return ece
+}
+
 func ResetEconomicDefaultConfig(newEc *EconomicModel) {
 	ec = newEc
+}
+
+func ResetEconomicExtendConfig(newEc *EconomicModelExtend) {
+	ece = newEc
 }
 
 const (
@@ -227,16 +243,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:                 50,
-				PlatONFoundationYear:         2,
-				IncreaseIssuanceRatio:        500,
-				TheNumberOfDelegationsReward: 20,
+				NewBlockRate:          50,
+				PlatONFoundationYear:  2,
+				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
 				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atp17tfkaghs4vded6mz6k53xyv5cvqsl63h7wu5ty"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 20,
 			},
 		}
 	case DefaultAlayaNet:
@@ -279,16 +299,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:                 50,
-				PlatONFoundationYear:         2,
-				IncreaseIssuanceRatio:        500,
-				TheNumberOfDelegationsReward: 20,
+				NewBlockRate:          50,
+				PlatONFoundationYear:  2,
+				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atp147txew2paj3y8kqthzelslxyyjmkzt0gwe99cr"),
 				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atp14cl7nrys9xlfcx6clpy4fs4rsasc2htdjz9unu"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 20,
 			},
 		}
 	case DefaultAlayaTestNet:
@@ -331,16 +355,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:                 50,
-				PlatONFoundationYear:         2,
-				IncreaseIssuanceRatio:        500,
-				TheNumberOfDelegationsReward: 20,
+				NewBlockRate:          50,
+				PlatONFoundationYear:  2,
+				IncreaseIssuanceRatio: 500,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atx10spacq8cz76y2n60pl7sg5yazncmjuus7n6hw2"),
 				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atx17tfkaghs4vded6mz6k53xyv5cvqsl63h5gq7cw"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 20,
 			},
 		}
 	case DefaultTestNet:
@@ -383,16 +411,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:                 50,
-				PlatONFoundationYear:         10,
-				IncreaseIssuanceRatio:        250,
-				TheNumberOfDelegationsReward: 20,
+				NewBlockRate:          50,
+				PlatONFoundationYear:  10,
+				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atx1q8r3em9wlamt0qe92alx5a9ff5j2s6lzlxrsxg"),
 				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atx1qtxa5d3defggwzdx2877z5fmytfu9f89d2ue2g"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 20,
 			},
 		}
 	case DefaultUnitTestNet:
@@ -435,10 +467,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:                 50,
-				PlatONFoundationYear:         10,
-				IncreaseIssuanceRatio:        250,
-				TheNumberOfDelegationsReward: 2,
+				NewBlockRate:          50,
+				PlatONFoundationYear:  10,
+				IncreaseIssuanceRatio: 250,
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("atx1fyeszufxwxk62p46djncj86rd553skpph926ws"),
@@ -447,7 +478,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(new(big.Int).Mul(cdfundBalance, new(big.Int).SetUint64(1000))),
 			},
 		}
-	default: // DefaultTestNet
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 2,
+			},
+		}
+	default:
 		log.Error("not support chainID", "netId", netId)
 		return nil
 	}
@@ -802,7 +838,7 @@ func IncreaseIssuanceRatio() uint16 {
 }
 
 func TheNumberOfDelegationsReward() uint16 {
-	return ec.Reward.TheNumberOfDelegationsReward
+	return ece.Reward.TheNumberOfDelegationsReward
 }
 
 /******
