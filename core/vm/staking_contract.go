@@ -409,11 +409,10 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 			TxEditorCandidate, int(staking.ErrDescriptionLen.Code)), nil
 	}
 
-	curVersion := gov.GetCurrentActiveVersion(state)
 	currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
 
 	canOld.Description = *desc
-	if curVersion >= params.FORKVERSION_0_14_0 {
+	if gov.Gte0140Version(state) {
 		if currentEpoch > canOld.RewardPerChangeEpoch {
 			canOld.RewardPer = canOld.NextRewardPer
 		}

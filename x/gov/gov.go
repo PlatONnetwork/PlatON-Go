@@ -18,6 +18,7 @@ package gov
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"strconv"
 
@@ -67,6 +68,11 @@ const (
 	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
 	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
 )
+
+func Gte0140Version(state xcom.StateDB) bool {
+	curVersion := GetCurrentActiveVersion(state)
+	return curVersion >= params.FORKVERSION_0_14_0
+}
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
 	preActiveVersion := GetPreActiveVersion(blockHash)
