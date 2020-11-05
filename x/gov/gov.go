@@ -17,7 +17,9 @@
 package gov
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"strconv"
@@ -69,9 +71,29 @@ const (
 	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
 )
 
-func Gte0140Version(state xcom.StateDB) bool {
-	curVersion := GetCurrentActiveVersion(state)
-	return curVersion >= params.FORKVERSION_0_14_0
+func Gte0140VersionState(state xcom.StateDB) bool {
+	return Gte0140Version(GetCurrentActiveVersion(state))
+}
+
+func Gte0140Version(version uint32) bool {
+	return version >= params.FORKVERSION_0_14_0
+}
+
+func WriteEcHash0140(state xcom.StateDB) error {
+	if data, err := xcom.EcParams0140(); nil != err {
+		return err
+	} else {
+		SetEcParametersHash(state, data)
+	}
+	return nil
+}
+
+func SetEcParametersHash(state xcom.StateDB, rlpData []byte) {
+	pposHash := state.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	var buf bytes.Buffer
+	buf.Write(rlpData)
+	buf.Write(pposHash)
+	state.SetState(vm.StakingContractAddr, staking.GetPPOSHASHKey(), common.RlpHash(buf.Bytes()).Bytes())
 }
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {

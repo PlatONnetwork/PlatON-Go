@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"io"
 	"math/big"
 	"os"
@@ -419,6 +420,13 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		// Store genesis staking data
 		if _, err := genesisStakingData(initDataStateHash, sdb, g, statedb); nil != err {
 			panic("Failed Store staking: " + err.Error())
+		}
+
+		// 0.14.0
+		if gov.Gte0140Version(genesisVersion) {
+			if err := gov.WriteEcHash0140(statedb); nil != err {
+				panic("Failed Store EcHash0140: " + err.Error())
+			}
 		}
 	}
 

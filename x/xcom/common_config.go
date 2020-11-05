@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
 
@@ -136,7 +137,8 @@ type innerAccount struct {
 	CDFBalance *big.Int       `json:"cdfBalance"`
 }
 
-// total
+// Genesis parameters, once the chain is started, the structure and value cannot be changed
+// This will change the hash of the genesis block
 type EconomicModel struct {
 	Common   commonConfig     `json:"common"`
 	Staking  stakingConfig    `json:"staking"`
@@ -146,12 +148,26 @@ type EconomicModel struct {
 	InnerAcc innerAccount     `json:"innerAcc"`
 }
 
+// When the chain is started, if new parameters are added, add them to this structure
 type EconomicModelExtend struct {
 	Reward rewardConfigExtend `json:"reward"`
 }
 
 type rewardConfigExtend struct {
 	TheNumberOfDelegationsReward uint16 `json:"theNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
+}
+
+// New parameters added in version 0.14.0 need to be saved on the chain.
+// Calculate the rlp of the new parameter and return it to the upper storage.
+func EcParams0140() ([]byte, error) {
+	params := map[string]interface{}{
+		"theNumberOfDelegationsReward": ece.Reward.TheNumberOfDelegationsReward,
+	}
+	bytes, err := rlp.EncodeToBytes(params)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }
 
 var (
