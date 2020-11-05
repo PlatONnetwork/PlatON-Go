@@ -380,8 +380,12 @@ func init0140VersionParam() []*GovernParam {
 				if !ok {
 					return fmt.Errorf("parsed KeyRestrictingMinimumAmount is failed")
 				}
-				if v.Cmp(big.NewInt(0)) <= 0 {
-					return fmt.Errorf("restricting minimum release amount must greater than 0")
+				base := new(big.Int).SetInt64(params.ATP)
+				if v.Cmp(new(big.Int).Mul(base, new(big.Int).SetInt64(80))) < 0 {
+					return fmt.Errorf("restricting minimum release amount must greater than 80 atp")
+				}
+				if v.Cmp(new(big.Int).Mul(base, new(big.Int).SetInt64(100000))) > 0 {
+					return fmt.Errorf("restricting minimum release amount must less than 100000 atp")
 				}
 				return nil
 			},

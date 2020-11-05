@@ -20,9 +20,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -167,6 +168,7 @@ type restrictingConfigExtend struct {
 func EcParams0140() ([]byte, error) {
 	params := map[string]interface{}{
 		"theNumberOfDelegationsReward": ece.Reward.TheNumberOfDelegationsReward,
+		"restrictingMinimumRelease":    ece.Restricting.MinimumRelease,
 	}
 	bytes, err := rlp.EncodeToBytes(params)
 	if err != nil {

@@ -98,7 +98,7 @@ func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, blockNum uint64, bl
 	totalAmount := new(big.Int)
 
 	planMap := make(map[uint64]*big.Int, restricting.RestrictTxPlanSize)
-	version0140 := gov.Gte0140Version(state)
+	version0140 := gov.Gte0140VersionState(state)
 	minimumAmount := new(big.Int)
 	if version0140 {
 		var err error
