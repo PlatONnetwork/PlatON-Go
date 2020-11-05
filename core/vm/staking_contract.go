@@ -412,7 +412,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
 
 	canOld.Description = *desc
-	if gov.Gte0140Version(state) {
+	if gov.Gte0140VersionState(state) {
 		if currentEpoch > canOld.RewardPerChangeEpoch {
 			canOld.RewardPer = canOld.NextRewardPer
 		}

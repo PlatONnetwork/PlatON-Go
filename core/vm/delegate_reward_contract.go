@@ -107,7 +107,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, reward.ErrDelegationNotFound.Msg, TxWithdrawDelegateReward, int(reward.ErrDelegationNotFound.Code)), nil
 	}
 
-	if gov.Gte0140Version(state) {
+	if gov.Gte0140VersionState(state) {
 		if len(list) > int(xcom.TheNumberOfDelegationsReward()) {
 			sort.Sort(staking.DelByDelegateEpoch(list))
 			list = list[:xcom.TheNumberOfDelegationsReward()]
