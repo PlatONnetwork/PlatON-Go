@@ -368,12 +368,37 @@ func initParam() []*GovernParam {
 	}
 }
 
+func init0140VersionParam() []*GovernParam {
+	return []*GovernParam{
+		{
+
+			ParamItem: &ParamItem{ModuleRestricting, KeyRestrictingMinimumAmount,
+				fmt.Sprintf(" minimum restricting   amount to be release  in every epoch")},
+			ParamValue: &ParamValue{"", xcom.RestrictingMinimumRelease().String(), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+				v, ok := new(big.Int).SetString(value, 10)
+				if !ok {
+					return fmt.Errorf("parsed KeyRestrictingMinimumAmount is failed")
+				}
+				if v.Cmp(big.NewInt(0)) <= 0 {
+					return fmt.Errorf("restricting minimum release amount must greater than 0")
+				}
+				return nil
+			},
+		},
+	}
+}
+
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
 func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, genesisVersion uint32) (common.Hash, error) {
 	var paramItemList []*ParamItem
 
 	initParamList := queryInitParam()
+
+	if genesisVersion >= params.FORKVERSION_0_14_0 {
+		initParamList = append(initParamList, init0140VersionParam()...)
+	}
 
 	putBasedb_genKVHash_Fn := func(key, val []byte, hash common.Hash) (common.Hash, error) {
 		if err := snapDB.PutBaseDB(key, val); nil != err {
@@ -410,6 +435,11 @@ func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, gene
 func RegisterGovernParamVerifiers() {
 	for _, param := range queryInitParam() {
 		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
+	}
+	if uint32(params.VersionMajor<<16|params.VersionMinor<<8|params.VersionPatch) >= params.FORKVERSION_0_14_0 {
+		for _, param := range init0140VersionParam() {
+			RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
+		}
 	}
 }
 

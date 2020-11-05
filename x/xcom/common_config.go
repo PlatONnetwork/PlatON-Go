@@ -147,11 +147,16 @@ type EconomicModel struct {
 }
 
 type EconomicModelExtend struct {
-	Reward rewardConfigExtend `json:"reward"`
+	Reward      rewardConfigExtend      `json:"reward"`
+	Restricting restrictingConfigExtend `json:"restricting"`
 }
 
 type rewardConfigExtend struct {
 	TheNumberOfDelegationsReward uint16 `json:"theNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
+}
+
+type restrictingConfigExtend struct {
+	MinimumRelease *big.Int `json:"minimum_release"` //The minimum number of Restricting release in one epoch
 }
 
 var (
@@ -201,6 +206,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	if platonFundBalance, ok = new(big.Int).SetString("2500000000000000000000000", 10); !ok {
 		return nil
 	}
+
+	oneAtp, _ := new(big.Int).SetString("1000000000000000000", 10)
 
 	switch netId {
 	case DefaultMainNet:
@@ -258,6 +265,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Reward: rewardConfigExtend{
 				TheNumberOfDelegationsReward: 20,
 			},
+			Restricting: restrictingConfigExtend{
+				MinimumRelease: new(big.Int).Mul(oneAtp, new(big.Int).SetInt64(500)),
+			},
 		}
 	case DefaultAlayaNet:
 		ec = &EconomicModel{
@@ -313,6 +323,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		ece = &EconomicModelExtend{
 			Reward: rewardConfigExtend{
 				TheNumberOfDelegationsReward: 20,
+			},
+			Restricting: restrictingConfigExtend{
+				MinimumRelease: new(big.Int).Mul(oneAtp, new(big.Int).SetInt64(80)),
 			},
 		}
 	case DefaultAlayaTestNet:
@@ -370,6 +383,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Reward: rewardConfigExtend{
 				TheNumberOfDelegationsReward: 20,
 			},
+			Restricting: restrictingConfigExtend{
+				MinimumRelease: new(big.Int).SetInt64(1),
+			},
 		}
 	case DefaultTestNet:
 		ec = &EconomicModel{
@@ -426,6 +442,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Reward: rewardConfigExtend{
 				TheNumberOfDelegationsReward: 20,
 			},
+			Restricting: restrictingConfigExtend{
+				MinimumRelease: new(big.Int).SetInt64(1),
+			},
 		}
 	case DefaultUnitTestNet:
 		ec = &EconomicModel{
@@ -481,6 +500,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		ece = &EconomicModelExtend{
 			Reward: rewardConfigExtend{
 				TheNumberOfDelegationsReward: 2,
+			},
+			Restricting: restrictingConfigExtend{
+				MinimumRelease: new(big.Int).SetInt64(1),
 			},
 		}
 	default:
@@ -839,6 +861,14 @@ func IncreaseIssuanceRatio() uint16 {
 
 func TheNumberOfDelegationsReward() uint16 {
 	return ece.Reward.TheNumberOfDelegationsReward
+}
+
+/******
+ * Restricting config
+ ******/
+
+func RestrictingMinimumRelease() *big.Int {
+	return ece.Restricting.MinimumRelease
 }
 
 /******

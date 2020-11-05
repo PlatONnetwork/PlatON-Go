@@ -90,7 +90,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 		return nil, nil
 	}
 
-	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), plans, state)
+	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), blockHash, plans, state)
 	switch err.(type) {
 	case nil:
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "",
