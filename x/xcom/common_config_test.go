@@ -17,6 +17,7 @@
 package xcom
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -47,5 +48,14 @@ func TestGetDefaultEMConfig(t *testing.T) {
 	})
 	if getDefaultEMConfig(10) != nil {
 		t.Error("the chain config not support")
+	}
+}
+
+func TestEcParams0140(t *testing.T) {
+	GetEc(DefaultAlayaNet)
+	if bytes, err := EcParams0140(); nil != err {
+		t.Fatal(err)
+	} else {
+		assert.True(t, bytes != nil)
 	}
 }

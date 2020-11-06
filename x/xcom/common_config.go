@@ -160,8 +160,10 @@ type rewardConfigExtend struct {
 // New parameters added in version 0.14.0 need to be saved on the chain.
 // Calculate the rlp of the new parameter and return it to the upper storage.
 func EcParams0140() ([]byte, error) {
-	params := map[string]interface{}{
-		"theNumberOfDelegationsReward": ece.Reward.TheNumberOfDelegationsReward,
+	params := struct {
+		TheNumberOfDelegationsReward uint16
+	}{
+		TheNumberOfDelegationsReward: ece.Reward.TheNumberOfDelegationsReward,
 	}
 	bytes, err := rlp.EncodeToBytes(params)
 	if err != nil {
