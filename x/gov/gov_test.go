@@ -18,6 +18,7 @@ package gov
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"math/big"
 	"testing"
 
@@ -971,4 +972,28 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 	} else {
 		assert.Equal(t, 0, len(avList))
 	}
+}
+
+func TestFork0140EcHash(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	if Gte0140VersionState(chain.StateDB) {
+		if err := WriteEcHash0140(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash := chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash == nil)
+
+	if err := AddActiveVersion(params.FORKVERSION_0_14_0, 0, chain.StateDB); err != nil {
+		t.Error("AddActiveVersion, err", err)
+	}
+
+	if Gte0140VersionState(chain.StateDB) {
+		if err := WriteEcHash0140(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash = chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash != nil)
 }
