@@ -18,10 +18,12 @@ package vm
 
 import (
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
@@ -255,7 +257,7 @@ func TestWithdrawDelegateRewardWithEmptyReward(t *testing.T) {
 	contact := newRewardContact(add, chain, initGas)
 	txHash := common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")
 	chain.AddBlockWithTxHash(txHash)
-	if _, err := contact.withdrawDelegateReward(); err != nil {
+	if _, err := contact.withdrawDelegateReward(); err == nil {
 		t.Error(err)
 		return
 	}

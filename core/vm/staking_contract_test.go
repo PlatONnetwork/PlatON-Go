@@ -22,10 +22,11 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -34,8 +35,9 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -361,11 +363,11 @@ func TestStakingContract_editCandidate_updateRewardPer(t *testing.T) {
 	}
 
 	res, err := contract2.Run(buf.Bytes())
-	assert.True(t, nil == err)
-	var r uint32
+	assert.True(t, nil != err)
+	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, staking.ErrRewardPerInterval.Code, r)
+	assert.Equal(t, staking.ErrRewardPerInterval.Code, r.Code)
 
 }
 
@@ -446,11 +448,11 @@ func TestStakingContract_editCandidate_updateRewardPer2(t *testing.T) {
 	}
 
 	res, err := contract2.Run(buf.Bytes())
-	assert.True(t, nil == err)
-	var r uint32
+	assert.True(t, nil != err)
+	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, staking.ErrRewardPerChangeRange.Code, r)
+	assert.Equal(t, staking.ErrRewardPerChangeRange.Code, r.Code)
 
 }
 
@@ -531,11 +533,11 @@ func TestStakingContract_editCandidate_updateRewardPer3(t *testing.T) {
 	}
 
 	res, err := contract2.Run(buf.Bytes())
-	assert.True(t, nil == err)
-	var r uint32
+	assert.True(t, nil != err)
+	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, staking.ErrRewardPerChangeRange.Code, r)
+	assert.Equal(t, staking.ErrRewardPerChangeRange.Code, r.Code)
 
 }
 

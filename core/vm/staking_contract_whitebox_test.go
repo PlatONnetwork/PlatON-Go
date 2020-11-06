@@ -443,12 +443,12 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 
 	res, err := contract.Run(buf2.Bytes())
 
-	assert.True(t, nil == err)
+	assert.True(t, nil != err)
 
-	var r2 uint32
+	var r2 xcom.Result
 	err = json.Unmarshal(res, &r2)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r2)
+	assert.NotEqual(t, common.OkCode, r2.Code)
 
 }
 
@@ -548,12 +548,12 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 
 	res, err := contract.Run(buf.Bytes())
 
-	assert.True(t, nil == err)
+	assert.True(t, nil != err)
 
-	var r uint32
+	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r)
+	assert.NotEqual(t, common.OkCode, r.Code)
 
 }
 
@@ -744,13 +744,12 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
+	assert.True(t, nil != err)
 
-	assert.True(t, nil == err)
-
-	var r uint32
+	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r)
+	assert.NotEqual(t, common.OkCode, r.Code)
 
 }
 
@@ -848,12 +847,12 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 
 	res, err := contract.Run(buf.Bytes())
 
-	assert.True(t, nil == err)
+	assert.True(t, nil != err)
 
-	var r uint32
+	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r)
+	assert.NotEqual(t, common.OkCode, r.Code)
 
 }
 
@@ -953,12 +952,12 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 
 	res, err := contract.Run(buf.Bytes())
 
-	assert.True(t, nil == err)
+	assert.True(t, nil != err)
 
-	var r uint32
+	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r)
+	assert.NotEqual(t, common.OkCode, r.Code)
 
 }
 
@@ -1052,12 +1051,12 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 
 	res, err := contract.Run(buf.Bytes())
 
-	assert.True(t, nil == err)
+	assert.True(t, nil != err)
 
-	var r uint32
+	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r)
+	assert.NotEqual(t, common.OkCode, r.Code)
 
 }
 
@@ -1154,12 +1153,12 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 
 	res, err := contract.Run(buf.Bytes())
 
-	assert.True(t, nil == err)
+	assert.True(t, nil != err)
 
-	var r uint32
+	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r)
+	assert.NotEqual(t, common.OkCode, r.Code)
 
 }
 
