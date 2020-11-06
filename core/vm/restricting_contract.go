@@ -94,11 +94,11 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	switch err.(type) {
 	case nil:
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "",
-			"", TxCreateRestrictingPlan, int(common.NoErr.Code)), nil
+			"", TxCreateRestrictingPlan, common.NoErr)
 	case *common.BizError:
 		bizErr := err.(*common.BizError)
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "createRestrictingPlan",
-			bizErr.Error(), TxCreateRestrictingPlan, int(bizErr.Code)), nil
+			bizErr.Error(), TxCreateRestrictingPlan, bizErr)
 	default:
 		log.Error("Failed to cal addRestrictingRecord on createRestrictingPlan", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "error", err)

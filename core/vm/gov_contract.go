@@ -474,14 +474,14 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.GovContractAddr, gc.Evm, funcName+" of GovContract",
-				bizErr.Error(), int(fcode), int(bizErr.Code)), nil
+				bizErr.Error(), int(fcode), bizErr)
 		} else {
 			log.Error("Execute GovContract failed.(System error)", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
 				"txHash", gc.Evm.StateDB.TxHash(), "err", err)
 			return nil, err
 		}
 	} else {
-		return txResultHandler(vm.GovContractAddr, gc.Evm, "", "", int(fcode), int(common.NoErr.Code)), nil
+		return txResultHandler(vm.GovContractAddr, gc.Evm, "", "", int(fcode), common.NoErr)
 	}
 }
 

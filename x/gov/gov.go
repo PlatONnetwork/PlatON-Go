@@ -72,7 +72,7 @@ const (
 	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
 	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
 	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
-	KeyRestrictingMinimumAmount   = "restrictingMinimumRelease"
+	KeyRestrictingMinimumAmount   = "minimumRelease"
 )
 
 func Gte0140VersionState(state xcom.StateDB) bool {
