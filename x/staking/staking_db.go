@@ -468,6 +468,14 @@ type DelegationInfo struct {
 	Delegation       *Delegation
 }
 
+type DelByDelegateEpoch []*DelegationInfo
+
+func (d DelByDelegateEpoch) Len() int { return len(d) }
+func (d DelByDelegateEpoch) Less(i, j int) bool {
+	return d[i].Delegation.DelegateEpoch < d[j].Delegation.DelegateEpoch
+}
+func (d DelByDelegateEpoch) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
+
 func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Address) ([]*DelegationInfo, error) {
 	key := GetDelegateKeyBySuffix(delAddr.Bytes())
 	itr := db.ranking(blockHash, key, 0)
