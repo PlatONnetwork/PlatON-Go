@@ -23,12 +23,15 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -642,14 +645,9 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	res, err := contract.Run(buf.Bytes())
+	_, err = contract.Run(buf.Bytes())
 
-	assert.True(t, nil == err)
-
-	var r uint32
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r)
+	assert.True(t, staking.ErrStakeVonTooLow == err)
 
 }
 
