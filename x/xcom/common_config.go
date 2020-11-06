@@ -130,6 +130,10 @@ type rewardConfig struct {
 	TheNumberOfDelegationsReward uint16 `json:"TheNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
 }
 
+type restrictingConfig struct {
+	MinimumRelease *big.Int `json:"minimum_release"` //The minimum number of Restricting release in one epoch
+}
+
 type innerAccount struct {
 	// Account of PlatONFoundation
 	PlatONFundAccount common.Address `json:"platonFundAccount"`
@@ -141,12 +145,13 @@ type innerAccount struct {
 
 // total
 type EconomicModel struct {
-	Common   commonConfig     `json:"common"`
-	Staking  stakingConfig    `json:"staking"`
-	Slashing slashingConfig   `json:"slashing"`
-	Gov      governanceConfig `json:"gov"`
-	Reward   rewardConfig     `json:"reward"`
-	InnerAcc innerAccount     `json:"innerAcc"`
+	Common      commonConfig      `json:"common"`
+	Staking     stakingConfig     `json:"staking"`
+	Slashing    slashingConfig    `json:"slashing"`
+	Gov         governanceConfig  `json:"gov"`
+	Reward      rewardConfig      `json:"reward"`
+	Restricting restrictingConfig `json:"restricting"`
+	InnerAcc    innerAccount      `json:"innerAcc"`
 }
 
 var (
@@ -182,6 +187,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	if cdfundBalance, ok = new(big.Int).SetString("331811981000000000000000000", 10); !ok {
 		return nil
 	}
+
+	one, _ := new(big.Int).SetString("1000000000000000000", 10)
 
 	switch netId {
 	case DefaultMainNet:
@@ -228,6 +235,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFoundationYear:         10,
 				IncreaseIssuanceRatio:        250,
 				TheNumberOfDelegationsReward: 20,
+			},
+			Restricting: restrictingConfig{
+				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(500)),
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("lat10spacq8cz76y2n60pl7sg5yazncmjuusdrs9z0"),
@@ -281,6 +291,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				IncreaseIssuanceRatio:        250,
 				TheNumberOfDelegationsReward: 20,
 			},
+			Restricting: restrictingConfig{
+				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(1)),
+			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("lax1q8r3em9wlamt0qe92alx5a9ff5j2s6lzrnmdyz"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
@@ -332,6 +345,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFoundationYear:         10,
 				IncreaseIssuanceRatio:        250,
 				TheNumberOfDelegationsReward: 2,
+			},
+			Restricting: restrictingConfig{
+				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(1)),
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.MustBech32ToAddress("lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6"),
@@ -646,6 +662,14 @@ func RewardPerMaxChangeRange() uint16 {
 
 func RewardPerChangeInterval() uint16 {
 	return ec.Staking.RewardPerChangeInterval
+}
+
+/******
+ * Restricting config
+ ******/
+
+func RestrictingMinimumRelease() *big.Int {
+	return ec.Restricting.MinimumRelease
 }
 
 /******

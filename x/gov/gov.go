@@ -68,7 +68,7 @@ const (
 	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
 	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
 	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
-	KeyRestrictingMinimumAmount   = "restrictingMinimumAmount"
+	KeyRestrictingMinimumAmount   = "minimumRelease"
 )
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
