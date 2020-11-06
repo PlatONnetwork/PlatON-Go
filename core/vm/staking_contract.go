@@ -339,6 +339,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 	from := stkc.Contract.CallerAddress
+	state := stkc.Evm.StateDB
 
 	log.Debug("Call editCandidate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
@@ -408,7 +409,14 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 			TxEditorCandidate, int(staking.ErrDescriptionLen.Code)), nil
 	}
 
+	currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
+
 	canOld.Description = *desc
+	if gov.Gte0140VersionState(state) {
+		if currentEpoch > canOld.RewardPerChangeEpoch {
+			canOld.RewardPer = canOld.NextRewardPer
+		}
+	}
 	canOld.NextRewardPer = rewardPer
 
 	if canOld.NextRewardPer != canOld.RewardPer {
@@ -424,7 +432,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 				"err", err)
 			return nil, err
 		}
-		currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
+
 		if uint32(rewardPerChangeInterval) > currentEpoch-canOld.RewardPerChangeEpoch {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 				fmt.Sprintf("needs interval [%d] epoch to modify", rewardPerChangeInterval),

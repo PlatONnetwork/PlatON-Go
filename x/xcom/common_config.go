@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
 
@@ -136,7 +137,8 @@ type innerAccount struct {
 	CDFBalance *big.Int       `json:"cdfBalance"`
 }
 
-// total
+// Genesis parameters, once the chain is started, the structure and value cannot be changed
+// This will change the hash of the genesis block
 type EconomicModel struct {
 	Common   commonConfig     `json:"common"`
 	Staking  stakingConfig    `json:"staking"`
@@ -146,9 +148,34 @@ type EconomicModel struct {
 	InnerAcc innerAccount     `json:"innerAcc"`
 }
 
+// When the chain is started, if new parameters are added, add them to this structure
+type EconomicModelExtend struct {
+	Reward rewardConfigExtend `json:"reward"`
+}
+
+type rewardConfigExtend struct {
+	TheNumberOfDelegationsReward uint16 `json:"theNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
+}
+
+// New parameters added in version 0.14.0 need to be saved on the chain.
+// Calculate the rlp of the new parameter and return it to the upper storage.
+func EcParams0140() ([]byte, error) {
+	params := struct {
+		TheNumberOfDelegationsReward uint16
+	}{
+		TheNumberOfDelegationsReward: ece.Reward.TheNumberOfDelegationsReward,
+	}
+	bytes, err := rlp.EncodeToBytes(params)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
 var (
 	modelOnce sync.Once
 	ec        *EconomicModel
+	ece       *EconomicModelExtend
 )
 
 // Getting the global EconomicModel single instance
@@ -159,8 +186,16 @@ func GetEc(netId int8) *EconomicModel {
 	return ec
 }
 
+func GetEce() *EconomicModelExtend {
+	return ece
+}
+
 func ResetEconomicDefaultConfig(newEc *EconomicModel) {
 	ec = newEc
+}
+
+func ResetEconomicExtendConfig(newEc *EconomicModelExtend) {
+	ece = newEc
 }
 
 const (
@@ -237,6 +272,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 20,
+			},
+		}
 	case DefaultAlayaNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
@@ -286,6 +326,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atp14cl7nrys9xlfcx6clpy4fs4rsasc2htdjz9unu"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 20,
 			},
 		}
 	case DefaultAlayaTestNet:
@@ -339,6 +384,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 20,
+			},
+		}
 	case DefaultTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
@@ -388,6 +438,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFundBalance: platonFundBalance,
 				CDFAccount:        common.MustBech32ToAddress("atx1qtxa5d3defggwzdx2877z5fmytfu9f89d2ue2g"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 20,
 			},
 		}
 	case DefaultUnitTestNet:
@@ -441,7 +496,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(new(big.Int).Mul(cdfundBalance, new(big.Int).SetUint64(1000))),
 			},
 		}
-	default: // DefaultTestNet
+		ece = &EconomicModelExtend{
+			Reward: rewardConfigExtend{
+				TheNumberOfDelegationsReward: 2,
+			},
+		}
+	default:
 		log.Error("not support chainID", "netId", netId)
 		return nil
 	}
@@ -793,6 +853,10 @@ func PlatONFoundationYear() uint32 {
 
 func IncreaseIssuanceRatio() uint16 {
 	return ec.Reward.IncreaseIssuanceRatio
+}
+
+func TheNumberOfDelegationsReward() uint16 {
+	return ece.Reward.TheNumberOfDelegationsReward
 }
 
 /******

@@ -18,6 +18,9 @@ package plugin
 
 import (
 	"encoding/hex"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -183,7 +186,7 @@ func submitCancel(t *testing.T, pid, tobeCanceled common.Hash) {
 	}
 }
 
-func allVote(t *testing.T, pid common.Hash) {
+func allVote(t *testing.T, pid common.Hash, newVersion uint32) {
 	//for _, nodeID := range nodeIdArr {
 	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
 	voteCount := len(currentValidatorList)
@@ -198,9 +201,9 @@ func allVote(t *testing.T, pid common.Hash) {
 
 		chandler.SetPrivateKey(priKeyArr[i])
 		versionSign := common.VersionSign{}
-		versionSign.SetBytes(chandler.MustSign(promoteVersion))
+		versionSign.SetBytes(chandler.MustSign(newVersion))
 
-		err := gov.Vote(sender, vote, lastBlockHash, 1, promoteVersion, versionSign, stk, stateDB)
+		err := gov.Vote(sender, vote, lastBlockHash, 1, newVersion, versionSign, stk, stateDB)
 		if err != nil {
 			t.Fatalf("vote err: %s.", err)
 		}
@@ -971,7 +974,7 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 
 	buildBlockNoCommit(2)
 
-	allVote(t, txHashArr[0])
+	allVote(t, txHashArr[0], promoteVersion)
 	sndb.Commit(lastBlockHash) //commit
 	sndb.Compaction()          //write to level db
 
@@ -1088,8 +1091,8 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 
 	buildBlockNoCommit(2)
 
-	allVote(t, txHashArr[0])
-	allVote(t, txHashArr[1])
+	allVote(t, txHashArr[0], promoteVersion)
+	allVote(t, txHashArr[1], promoteVersion)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
@@ -1185,7 +1188,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 
 	buildBlockNoCommit(2)
 	//voting
-	allVote(t, txHashArr[0])
+	allVote(t, txHashArr[0], promoteVersion)
 
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -1303,6 +1306,57 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		chandler.SetPrivateKey(priKeyArr[i])
 		t.Log("0x" + hex.EncodeToString(chandler.MustSign(ver)))
+	}
+
+}
+
+func TestGovPlugin_ForkVersion0140Proposal(t *testing.T) {
+	defer setup(t)()
+
+	beginBlock(t)
+	pposHash := stateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash == nil)
+
+	proposal := &gov.VersionProposal{
+		ProposalID:      common.Hash{0x99},
+		ProposalType:    gov.Version,
+		PIPID:           "em2",
+		SubmitBlock:     uint64(1000),
+		EndVotingRounds: uint64(8),
+		Proposer:        discover.NodeID{},
+		NewVersion:      params.FORKVERSION_0_14_0,
+		ActiveBlock:     1,
+	}
+	if err := gov.SetProposal(proposal, stateDB); err != nil {
+		t.Fatalf("set proposal error,%s", err)
+	}
+	if err := gov.AddVotingProposalID(lastBlockHash, proposal.ProposalID); err != nil {
+		t.Fatalf("add voting proposal ID error,%s", err)
+	}
+	if err := gov.MoveVotingProposalIDToPreActive(lastBlockHash, proposal.ProposalID, proposal.NewVersion); err != nil {
+		t.Fatalf("move voting ID to pre-active ID error,%s", err)
+	}
+	tallyResult := gov.TallyResult{
+		ProposalID:    proposal.ProposalID,
+		Yeas:          15,
+		Nays:          0,
+		Abstentions:   0,
+		AccuVerifiers: 1000,
+		Status:        gov.Pass,
+	}
+
+	if err := gov.SetTallyResult(tallyResult, stateDB); err != nil {
+		t.Fatalf("set vote result error")
+	}
+	if existing, err := gov.GetExistProposal(proposal.ProposalID, stateDB); err != nil {
+		t.Fatalf("get exist proposal error,%s", err)
+	} else {
+		if existing.GetPIPID() != proposal.GetPIPID() {
+			t.Fatalf("get exist proposal error,expect %s,get %s", proposal.GetPIPID(), existing.GetPIPID())
+		}
+		beginBlock(t)
+		pposHash := stateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+		assert.True(t, pposHash != nil)
 	}
 
 }

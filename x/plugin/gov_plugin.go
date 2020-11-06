@@ -17,6 +17,7 @@
 package plugin
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math"
 	"math/big"
 	"sync"
@@ -119,6 +120,14 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 			if err = gov.AddActiveVersion(versionProposal.NewVersion, blockNumber, state); err != nil {
 				log.Error("save active version to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 				return err
+			}
+
+			if versionProposal.NewVersion == params.FORKVERSION_0_14_0 {
+				if err := gov.WriteEcHash0140(state); nil != err {
+					log.Error("save EcHash0140 to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+					return err
+				}
+				log.Info("Successfully upgraded the new version 0.14.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 			}
 
 			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))

@@ -18,7 +18,11 @@ package vm
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
+	"sort"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
@@ -101,6 +105,13 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 		log.Debug("Call withdrawDelegateReward of DelegateRewardContract，the delegates info list is empty", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String())
 		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, reward.ErrDelegationNotFound.Msg, TxWithdrawDelegateReward, int(reward.ErrDelegationNotFound.Code)), nil
+	}
+
+	if gov.Gte0140VersionState(state) {
+		if len(list) > int(xcom.TheNumberOfDelegationsReward()) {
+			sort.Sort(staking.DelByDelegateEpoch(list))
+			list = list[:xcom.TheNumberOfDelegationsReward()]
+		}
 	}
 
 	if !rc.Contract.UseGas(params.WithdrawDelegateNodeGas * uint64(len(list))) {
