@@ -152,7 +152,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	}
 	// Set the receipt logs and create a bloom for filtering
 
-	if gov.Gte0140VersionState(statedb) && vmerr != nil {
+	if gov.Gte0140VersionState(statedb) && failed && vmerr != nil {
 		if bizError, ok := vmerr.(*common.BizError); ok {
 			buf := new(bytes.Buffer)
 			res := strconv.Itoa(int(bizError.Code))
