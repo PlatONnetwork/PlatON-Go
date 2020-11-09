@@ -18,8 +18,9 @@ package vm
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 
@@ -96,18 +97,18 @@ func (sc *SlashingContract) reportDuplicateSign(dupType uint8, data string) ([]b
 	if nil != err {
 		return txResultHandler(vm.SlashingContractAddr, sc.Evm, "reportDuplicateSign",
 			common.InvalidParameter.Wrap(err.Error()).Error(),
-			TxReportDuplicateSign, int(common.InvalidParameter.Code)), nil
+			TxReportDuplicateSign, common.InvalidParameter)
 	}
 	if err := sc.Plugin.Slash(evidence, blockHash, blockNumber.Uint64(), sc.Evm.StateDB, from); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.SlashingContractAddr, sc.Evm, "reportDuplicateSign",
-				bizErr.Error(), TxReportDuplicateSign, int(bizErr.Code)), nil
+				bizErr.Error(), TxReportDuplicateSign, bizErr)
 		} else {
 			return nil, err
 		}
 	}
 	return txResultHandler(vm.SlashingContractAddr, sc.Evm, "",
-		"", TxReportDuplicateSign, int(common.NoErr.Code)), nil
+		"", TxReportDuplicateSign, common.NoErr)
 }
 
 // Check if the node has double sign behavior at a certain block height
