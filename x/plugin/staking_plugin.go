@@ -338,7 +338,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 }
 
 /// This method may only be called when creatStaking
-/*func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
+func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	addr common.NodeAddress, typ uint16) error {
 
 	log.Debug("Call RollBackStaking", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeAddr", addr.Hex())
@@ -397,7 +397,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 	}
 
 	return nil
-}*/
+}
 
 func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.Int, canAddr common.NodeAddress, can *staking.Candidate) error {
 	if err := sk.db.SetCanBaseStore(blockHash, canAddr, can.CandidateBase); nil != err {

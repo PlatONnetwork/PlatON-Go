@@ -299,12 +299,13 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 			log.Error("Failed to CreateCandidate with govplugin DelareVersion failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 
-			// the snapshot db can roll back ,so rollBack here no need
-			/*if er := stkc.Plugin.RollBackStaking(state, blockHash, blockNumber, canAddr, typ); nil != er {
-				log.Error("Failed to createStaking by RollBackStaking", "txHash", txHash,
-					"blockNumber", blockNumber, "err", er)
-			}*/
-
+			if !gov.Gte0140VersionState(state) {
+				// the snapshot db can roll back ,so rollBack here no need
+				if er := stkc.Plugin.RollBackStaking(state, blockHash, blockNumber, canAddr, typ); nil != er {
+					log.Error("Failed to createStaking by RollBackStaking", "txHash", txHash,
+						"blockNumber", blockNumber, "err", er)
+				}
+			}
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 				err.Error(), TxCreateStaking, staking.ErrDeclVsFialedCreateCan)
 		}
