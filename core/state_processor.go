@@ -148,7 +148,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	if msg.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
-	if vmerr != nil {
+	if failed && vmerr != nil {
 		if bizError, ok := vmerr.(*common.BizError); ok {
 			buf := new(bytes.Buffer)
 			res := strconv.Itoa(int(bizError.Code))
