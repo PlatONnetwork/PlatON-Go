@@ -365,6 +365,26 @@ func initParam() []*GovernParam {
 				return nil
 			},
 		},
+		{
+
+			ParamItem: &ParamItem{ModuleRestricting, KeyRestrictingMinimumAmount,
+				fmt.Sprintf(" minimum restricting   amount to be release  in every epoch")},
+			ParamValue: &ParamValue{"", xcom.RestrictingMinimumRelease().String(), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+				v, ok := new(big.Int).SetString(value, 10)
+				if !ok {
+					return fmt.Errorf("parsed KeyRestrictingMinimumAmount is failed")
+				}
+				base := new(big.Int).SetInt64(params.LAT)
+				if v.Cmp(new(big.Int).Mul(base, new(big.Int).SetInt64(500))) < 0 {
+					return fmt.Errorf("restricting minimum release amount must greater than 80 atp")
+				}
+				if v.Cmp(new(big.Int).Mul(base, new(big.Int).SetInt64(10000000))) > 0 {
+					return fmt.Errorf("restricting minimum release amount must less than 100000 atp")
+				}
+				return nil
+			},
+		},
 	}
 }
 

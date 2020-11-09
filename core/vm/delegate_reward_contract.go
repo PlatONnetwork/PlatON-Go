@@ -18,10 +18,11 @@ package vm
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"sort"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
@@ -98,12 +99,12 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	list, err := rc.stkPlugin.GetDelegatesInfo(blockHash, from)
 	if err != nil {
 		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, "withdrawDelegateReward", "",
-			TxWithdrawDelegateReward, int(common.InternalError.Code)), err
+			TxWithdrawDelegateReward, common.InternalError)
 	}
 	if len(list) == 0 {
 		log.Debug("Call withdrawDelegateReward of DelegateRewardContract，the delegates info list is empty", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String())
-		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, reward.ErrDelegationNotFound.Msg, TxWithdrawDelegateReward, int(reward.ErrDelegationNotFound.Code)), nil
+		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, reward.ErrDelegationNotFound.Msg, TxWithdrawDelegateReward, reward.ErrDelegationNotFound)
 	}
 	if len(list) > int(xcom.TheNumberOfDelegationsReward()) {
 		sort.Sort(staking.DelByDelegateEpoch(list))
@@ -146,7 +147,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward,
-				bizErr.Error(), TxWithdrawDelegateReward, int(bizErr.Code)), nil
+				bizErr.Error(), TxWithdrawDelegateReward, bizErr)
 		} else {
 			log.Error("Failed to withdraw delegateReward ", "txHash", txHash,
 				"blockNumber", blockNum, "err", err, "account", from)

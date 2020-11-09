@@ -20,10 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"os"
 	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	//"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -1222,7 +1219,7 @@ func TestGovContract_SubmitText_passed_PIPID_exist(t *testing.T) {
 
 	prepair_sndb(chain, txHashArr[3])
 
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
 }
 
@@ -1604,17 +1601,26 @@ func TestGovContract_getAccuVerifiersCount_wrongProposalID(t *testing.T) {
 
 func runGovContract(callType bool, contract *GovContract, buf []byte, t *testing.T, expectedErrors ...error) {
 	res, err := contract.Run(buf)
-	assert.True(t, nil == err)
+	//assert.True(t, nil == err)
 
 	var result xcom.Result
-	if callType {
-		err = json.Unmarshal(res, &result)
-		assert.True(t, nil == err)
+	if err == nil {
+		if callType {
+			err = json.Unmarshal(res, &result)
+			assert.True(t, nil == err)
+		} else {
+			var retCode uint32
+			err = json.Unmarshal(res, &retCode)
+			result.Code = retCode
+		}
 	} else {
-		var retCode uint32
-		err = json.Unmarshal(res, &retCode)
-		assert.True(t, nil == err)
-		result.Code = retCode
+		if callType {
+			err = json.Unmarshal(res, &result)
+			assert.True(t, nil == err)
+		} else {
+			err = json.Unmarshal(res, &result)
+			assert.True(t, nil == err)
+		}
 	}
 
 	if expectedErrors != nil {
