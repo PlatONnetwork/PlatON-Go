@@ -220,9 +220,14 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	eceCfg := rawdb.ReadEconomicModelExtend(db, stored)
 	if nil == ecCfg {
 		log.Warn("Found genesis block without EconomicModel config")
-		ecCfg = xcom.GetEc(xcom.DefaultMainNet)
+		ecCfg = xcom.GetEc(xcom.DefaultAlayaNet)
 		rawdb.WriteEconomicModel(db, stored, ecCfg)
-		rawdb.WriteEconomicModelExtend(db, stored, xcom.GetEce())
+	}
+	if nil == eceCfg {
+		log.Warn("Found genesis block without EconomicModelExtend config")
+		xcom.GetEc(xcom.DefaultAlayaNet)
+		eceCfg = xcom.GetEce()
+		rawdb.WriteEconomicModelExtend(db, stored, eceCfg)
 	}
 	xcom.ResetEconomicDefaultConfig(ecCfg)
 	xcom.ResetEconomicExtendConfig(eceCfg)
@@ -502,7 +507,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
-	rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
+	//rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
 	return block, nil
 }
 
