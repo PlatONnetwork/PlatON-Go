@@ -18,11 +18,13 @@ package gov
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
@@ -45,11 +47,12 @@ type Staking interface {
 }
 
 const (
-	ModuleStaking  = "staking"
-	ModuleSlashing = "slashing"
-	ModuleBlock    = "block"
-	ModuleTxPool   = "txPool"
-	ModuleReward   = "reward"
+	ModuleStaking     = "staking"
+	ModuleSlashing    = "slashing"
+	ModuleBlock       = "block"
+	ModuleTxPool      = "txPool"
+	ModuleReward      = "reward"
+	ModuleRestricting = "restricting"
 )
 
 const (
@@ -69,6 +72,7 @@ const (
 	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
 	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
 	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
+	KeyRestrictingMinimumAmount   = "minimumRelease"
 )
 
 func Gte0140VersionState(state xcom.StateDB) bool {
@@ -905,4 +909,17 @@ func GovernZeroProduceFreezeDuration(blockNumber uint64, blockHash common.Hash) 
 	}
 
 	return uint64(value), nil
+}
+
+func GovernRestrictingMinimumAmount(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
+	valueStr, err := GetGovernParamValue(ModuleRestricting, KeyRestrictingMinimumAmount, blockNumber, blockHash)
+	if nil != err {
+		return nil, err
+	}
+	value, ok := new(big.Int).SetString(valueStr, 10)
+	if !ok {
+		return nil, errors.New("set KeyRestrictingMinimumAmount to big int fail")
+	}
+
+	return value, nil
 }

@@ -22,6 +22,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -89,13 +91,22 @@ func (rp *RestrictingPlugin) Confirmed(nodeId discover.NodeID, block *types.Bloc
 	return nil
 }
 
-func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, blockNum uint64, plans []restricting.RestrictingPlan) (*big.Int, map[uint64]*big.Int, error) {
+func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, blockNum uint64, blockHash common.Hash, plans []restricting.RestrictingPlan) (*big.Int, map[uint64]*big.Int, error) {
 	// latest is the epoch of a settlement block closest to current block
 	latestEpoch := xutil.CalculateEpoch(blockNum)
 
 	totalAmount := new(big.Int)
 
 	planMap := make(map[uint64]*big.Int, restricting.RestrictTxPlanSize)
+	version0140 := gov.Gte0140VersionState(state)
+	minimumAmount := new(big.Int)
+	if version0140 {
+		var err error
+		minimumAmount, err = gov.GovernRestrictingMinimumAmount(blockNum, blockHash)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 	for _, plan := range plans {
 		epoch, amount := plan.Epoch, new(big.Int).Set(plan.Amount)
 		if epoch == 0 {
@@ -105,6 +116,11 @@ func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, blockNum uint64, pl
 		if amount.Cmp(common.Big0) <= 0 {
 			rp.log.Error("Failed to mergeAmount for plans on restricting RestrictingPlugin: the amount must be more than zero", "epoch", epoch, "amount", amount)
 			return nil, nil, restricting.ErrCreatePlanAmountLessThanZero
+		}
+
+		if version0140 && amount.Cmp(minimumAmount) < 0 {
+			rp.log.Error("Failed to mergeAmount for plans on restricting RestrictingPlugin: the amount must be more than minimumAmount", "epoch", epoch, "amount", amount, "mini", minimumAmount)
+			return nil, nil, restricting.ErrCreatePlanAmountLessThanMiniAmount
 		}
 		totalAmount.Add(totalAmount, amount)
 		newEpoch := epoch + latestEpoch - 1
@@ -216,7 +232,7 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 // ReleaseEpoch:   the number of accounts to be released on the epoch corresponding to the target block height
 // ReleaseAccount: the account on the index on the target epoch
 // ReleaseAmount: the amount of the account to be released on the target epoch
-func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, blockNum uint64, plans []restricting.RestrictingPlan, state xcom.StateDB) error {
+func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, blockNum uint64, blockHash common.Hash, plans []restricting.RestrictingPlan, state xcom.StateDB) error {
 
 	rp.log.Debug("Call AddRestrictingRecord begin", "sender", from, "account", account, "plans", plans)
 
@@ -226,7 +242,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 		return restricting.ErrCountRestrictPlansInvalid
 	}
 	// totalAmount is total restricting amount
-	totalAmount, totalPlans, err := rp.mergeAmount(state, blockNum, plans)
+	totalAmount, totalPlans, err := rp.mergeAmount(state, blockNum, blockHash, plans)
 	if err != nil {
 		return err
 	}

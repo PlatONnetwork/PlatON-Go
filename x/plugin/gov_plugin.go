@@ -17,10 +17,13 @@
 package plugin
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
@@ -121,7 +124,10 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				log.Error("save active version to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 				return err
 			}
-
+			if err = gov.Set0140Param(blockHash, versionProposal.NewVersion, snapshotdb.Instance()); err != nil {
+				log.Error("save  version 0140 Param failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID, "err", err)
+				return err
+			}
 			if versionProposal.NewVersion == params.FORKVERSION_0_14_0 {
 				if err := gov.WriteEcHash0140(state); nil != err {
 					log.Error("save EcHash0140 to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
