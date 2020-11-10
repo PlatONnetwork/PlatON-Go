@@ -51,6 +51,9 @@
             "platONFoundationYear": 2,
             "increaseIssuanceRatio": 500
         },
+        "restricting":{
+            "minimum_release":80000000000000000000
+        },
         "innerAcc": {
             "platonFundAccount": "atx1m6n2wj6cmnnqnmhhaytyf6x75607t7rhszeuhk",
             "platonFundBalance": 2500000000000000000000000,

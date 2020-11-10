@@ -2383,3 +2383,22 @@ def test_LS_CSV_016(client_new_node):
     # Free amount Additional pledge
     result = client.staking.increase_staking(0, address1)
     assert_code(result, 301102)
+
+
+@pytest.mark.P1
+@pytest.mark.parametrize('amount', [79, 80, 100000])
+def test_LS_UPV_020(client_new_node, amount):
+    """
+    锁仓参数的有效性验证:epoch 1, amount 80
+    :param client_new_node:
+    :return:
+    """
+    clinet = client_new_node
+    economic = clinet.economic
+    node = clinet.economic
+    minimum_release = economic.genesis.economicModel.restricting.minimum_release
+    result, address, benifit_address = create_restrictingplan(client_new_node, 1, amount)
+    if amount < minimum_release:
+        assert_code(result, 304014)
+    else:
+        assert_code(result, 0)

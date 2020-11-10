@@ -70,6 +70,11 @@ class Reward:
 
 
 @dataclass
+class Restricting:
+    minimum_release: int
+
+
+@dataclass
 class InnerAcc:
     platonFundAccount: str
     platonFundBalance: int
@@ -84,6 +89,7 @@ class EconomicModel:
     slashing: Slashing
     gov: Gov
     reward: Reward
+    restricting: Restricting
     innerAcc: InnerAcc
 
 
