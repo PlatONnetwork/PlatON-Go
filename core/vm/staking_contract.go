@@ -330,7 +330,7 @@ func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {
 }
 
 func verifyRewardPer(rewardPer uint16) bool {
-	return rewardPer >= 0 && rewardPer <= 10000 //	1BP(BasePoint)=0.01%
+	return rewardPer <= 10000 //	1BP(BasePoint)=0.01%
 }
 
 func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId discover.NodeID, rewardPer uint16,

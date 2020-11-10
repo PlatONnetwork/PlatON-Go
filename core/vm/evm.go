@@ -18,10 +18,11 @@ package vm
 
 import (
 	"context"
-	"github.com/holiman/uint256"
 	"math/big"
 	"sync/atomic"
 	"time"
+
+	"github.com/holiman/uint256"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
