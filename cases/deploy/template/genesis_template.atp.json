@@ -22,7 +22,7 @@
             "operatingThreshold": 1000000000000000000,
             "maxValidators": 5,
             "unStakeFreezeDuration": 2,
-            "rewardPerMaxChangeRange": 1000,
+            "rewardPerMaxChangeRange": 500,
             "rewardPerChangeInterval": 2
         },
         "slashing": {

@@ -3575,51 +3575,71 @@ def test_EI_BC_086(client_new_node, reset_environment):
     assert_code(result, 305001)
 
 
-def test_sss(client_new_node):
-    """
+# def test_sss(client_new_node):
+#     """
+#
+#     """
+#     client = client_new_node
+#     economic = client.economic
+#     node = client.node
+#     address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 3)
+#     benifit_address, _ = economic.account.generate_account(node.web3, 0)
+#     delegate_address, _ = economic.account.generate_account(node.web3, von_amount(economic.delegate_limit, 2))
+#     result = client.staking.create_staking(0, benifit_address, address, amount=economic.create_staking_limit * 2,
+#                                            reward_per=1000)
+#     assert_code(result, 0)
+#     result = client.delegate.delegate(0, delegate_address)
+#     assert_code(result, 0)
+#     economic.wait_settlement(node)
+#     economic.wait_consensus(node)
+#     result = client.staking.withdrew_staking(address)
+#     assert_code(result, 0)
+#     block_reward, staking_reward = economic.get_current_year_reward(node)
+#     print(block_reward, staking_reward)
+#     economic.wait_settlement(node)
+#     settlement_block = economic.get_switchpoint_by_settlement(node) - economic.settlement_size
+#     blocknum = economic.get_block_count_number(node, settlement_block, 10)
+#     block_reward_total = math.ceil(Decimal(str(block_reward)) * blocknum)
+#     delegate_block_reward = 0
+#     for i in range(blocknum):
+#         delegate_block = int(Decimal(str(block_reward)) * Decimal(str(10 / 100)))
+#         delegate_block_reward = delegate_block_reward + delegate_block
+#     node_block_reward = block_reward_total - delegate_block_reward
+#     print('node_block_reward', node_block_reward)
+#     reward_total = block_reward_total + staking_reward
+#     # delegate_block_reward = int(Decimal(str(block_reward_total)) * Decimal(str(10 / 100)))
+#     delegate_staking_reward = int(Decimal(str(staking_reward)) * Decimal(str(10 / 100)))
+#     delegate_reward_total = delegate_block_reward + delegate_staking_reward
+#     # node_block_reward = int(Decimal(str(block_reward_total)) * Decimal(str(90 / 100)))
+#     node_staking_reward = math.ceil(Decimal(str(staking_reward)) * Decimal(str(90 / 100)))
+#     print('node_staking_reward ', node_staking_reward)
+#     node_reward_total = node_staking_reward + node_block_reward
+#     log.info("reward_total {}".format(reward_total))
+#     log.info("delegate_reward {}".format(delegate_reward_total))
+#     log.info("node_reward {}".format(node_reward_total))
+#     print(delegate_reward_total + node_reward_total)
+#     result = node.ppos.getDelegateReward(delegate_address)
+#     print("getDelegateReward", result)
+#     balance = node.eth.getBalance(benifit_address, settlement_block)
+#     print("benifit_balance", balance)
 
+
+def test_EI_BC_088(clients_noconsensus):
     """
-    client = client_new_node
+    委托节点数>20，则只领取前20个节点的委托收益
+    """
+    client = clients_noconsensus[0]
     economic = client.economic
     node = client.node
-    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 3)
-    benifit_address, _ = economic.account.generate_account(node.web3, 0)
+    node_length = len(economic.env.noconsensus_node_config_list)
     delegate_address, _ = economic.account.generate_account(node.web3, von_amount(economic.delegate_limit, 2))
-    result = client.staking.create_staking(0, benifit_address, address, amount=economic.create_staking_limit * 2,
-                                           reward_per=1000)
-    assert_code(result, 0)
-    result = client.delegate.delegate(0, delegate_address)
-    assert_code(result, 0)
-    economic.wait_settlement(node)
-    economic.wait_consensus(node)
-    result = client.staking.withdrew_staking(address)
-    assert_code(result, 0)
-    block_reward, staking_reward = economic.get_current_year_reward(node)
-    print(block_reward, staking_reward)
-    economic.wait_settlement(node)
-    settlement_block = economic.get_switchpoint_by_settlement(node) - economic.settlement_size
-    blocknum = economic.get_block_count_number(node, settlement_block, 10)
-    block_reward_total = math.ceil(Decimal(str(block_reward)) * blocknum)
-    delegate_block_reward = 0
-    for i in range(blocknum):
-        delegate_block = int(Decimal(str(block_reward)) * Decimal(str(10 / 100)))
-        delegate_block_reward = delegate_block_reward + delegate_block
-    node_block_reward = block_reward_total - delegate_block_reward
-    print('node_block_reward', node_block_reward)
-    reward_total = block_reward_total + staking_reward
-    # delegate_block_reward = int(Decimal(str(block_reward_total)) * Decimal(str(10 / 100)))
-    delegate_staking_reward = int(Decimal(str(staking_reward)) * Decimal(str(10 / 100)))
-    delegate_reward_total = delegate_block_reward + delegate_staking_reward
-    # node_block_reward = int(Decimal(str(block_reward_total)) * Decimal(str(90 / 100)))
-    node_staking_reward = math.ceil(Decimal(str(staking_reward)) * Decimal(str(90 / 100)))
-    print('node_staking_reward ', node_staking_reward)
-    node_reward_total = node_staking_reward + node_block_reward
-    log.info("reward_total {}".format(reward_total))
-    log.info("delegate_reward {}".format(delegate_reward_total))
-    log.info("node_reward {}".format(node_reward_total))
-    print(delegate_reward_total + node_reward_total)
-    result = node.ppos.getDelegateReward(delegate_address)
-    print("getDelegateReward", result)
-    balance = node.eth.getBalance(benifit_address, settlement_block)
-    print("benifit_balance", balance)
+    for i in range(node_length):
+        address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
+        result = client.staking.create_staking(0, address, address, amount=economic.create_staking_limit, reward_per=1000)
+        assert_code(result, 0)
+    
+
+
+
+
 

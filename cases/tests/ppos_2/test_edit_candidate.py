@@ -341,3 +341,101 @@ def test_MPI_017(client_new_node):
                                                 external_id, node_name, website, details, pri_key, reward_per=0)
     log.info(result)
     assert_code(result, 301102)
+
+
+@allure.title("Non-validating nodes modify the commissioned dividend reward")
+@pytest.mark.P1
+def test_MPI_018(clients_noconsensus):
+    """
+    非验证人修改委托分红奖励
+    """
+    client1 = clients_noconsensus[0]
+    client2 = clients_noconsensus[1]
+    economic = client1.economic
+    node = client1.node
+    address1, pri_key = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
+    address2, pri_key = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
+
+    result = client1.staking.create_staking(0, address1, address1, reward_per=80)
+    assert_code(result, 0)
+    time.sleep(1)
+    result = client2.staking.create_staking(0, address2, address2, reward_per=80)
+    assert_code(result, 0)
+
+    economic.wait_settlement(node, 1)
+    time.sleep(1)
+    print(client1.node.ppos.getVerifierList())
+    result = check_node_in_list(client1.node.node_id, client1.ppos.getVerifierList)
+    assert result
+    result = check_node_in_list(client2.node.node_id, client1.ppos.getVerifierList)
+    assert not result
+
+    result = client1.staking.edit_candidate(address1, address1, reward_per=580)
+    assert_code(result, 0)
+    candidate_info = node.ppos.getCandidateInfo(node.node_id)['Ret']
+    assert candidate_info['RewardPer'] == 80
+    assert candidate_info['NextRewardPer'] == 580
+    result = client2.staking.edit_candidate(address2, address2, reward_per=580)
+    assert_code(result, 0)
+    candidate_info = node.ppos.getCandidateInfo(node.node_id)['Ret']
+    assert candidate_info['RewardPer'] == 80
+    assert candidate_info['NextRewardPer'] == 580
+
+    economic.wait_settlement(node)
+
+    candidate_info = node.ppos.getCandidateInfo(node.node_id)['Ret']
+    assert candidate_info['RewardPer'] == 580
+    assert candidate_info['NextRewardPer'] == 580
+
+    candidate_info = node.ppos.getCandidateInfo(node.node_id)['Ret']
+    assert candidate_info['RewardPer'] == 580
+    assert candidate_info['NextRewardPer'] == 580
+
+
+@pytest.mark.P1
+def test_MPI_019(clients_noconsensus):
+    """
+    非验证人连续修改委托分红奖励
+    """
+    client1 = clients_noconsensus[0]
+    client2 = clients_noconsensus[1]
+    economic = client1.economic
+    node = client1.node
+    address1, pri_key = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
+    address2, pri_key = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
+
+    result = client1.staking.create_staking(0, address1, address1, reward_per=80)
+    assert_code(result, 0)
+    time.sleep(1)
+    result = client2.staking.create_staking(0, address2, address2, reward_per=80)
+    assert_code(result, 0)
+
+    economic.wait_settlement(node)
+    time.sleep(1)
+    result = check_node_in_list(client1.node.node_id, client1.ppos.getVerifierList)
+    assert result
+    result = check_node_in_list(client2.node.node_id, client1.ppos.getVerifierList)
+    assert not result
+
+    result = client2.staking.edit_candidate(address2, address2, reward_per=10001)
+    assert_code(result, 3010010)
+
+    result = client2.staking.edit_candidate(address2, address2, reward_per=590)
+    assert_code(result, 3010010)
+
+    result = client2.staking.edit_candidate(address2, address2, reward_per=580)
+    assert_code(result, 0)
+    result = client2.staking.edit_candidate(address2, address2, reward_per=1080)
+    assert_code(result, 0)
+    candidate_info = node.ppos.getCandidateInfo(node.node_id)['Ret']
+    assert candidate_info['RewardPer'] == 80
+    assert candidate_info['NextRewardPer'] == 580
+    economic.wait_settlement(node)
+    candidate_info = node.ppos.getCandidateInfo(node.node_id)['Ret']
+    assert candidate_info['RewardPer'] == 580
+    assert candidate_info['NextRewardPer'] == 580
+    result = client2.staking.edit_candidate(address2, address2, reward_per=1080)
+    assert_code(result, 301009)
+
+
+

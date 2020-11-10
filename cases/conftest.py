@@ -86,7 +86,7 @@ def global_test_env(request, worker_id):
     #     download.download_platon(platon_url)
     env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor, can_deploy=not cant_deploy)
     # Must choose one, don't use both
-    # env.deploy_all()
+    env.deploy_all()
     # env.prepare_all()
     yield env
 

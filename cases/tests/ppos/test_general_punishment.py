@@ -727,6 +727,8 @@ def test_VP_GPFV_007(client_new_node_obj_list_reset):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    result = first_client.staking.withdrew_staking(address)
+    assert_code(result, 0)
     verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
     log.info("Check amount completed")
 
