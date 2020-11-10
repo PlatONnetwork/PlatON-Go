@@ -507,7 +507,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
-	//rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
+	rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
 	return block, nil
 }
 
