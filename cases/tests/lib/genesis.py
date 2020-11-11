@@ -117,6 +117,7 @@ class Genesis:
         data["economicModel"]["slashing"] = copy(self.economicModel.slashing.__dict__)
         data["economicModel"]["gov"] = copy(self.economicModel.gov.__dict__)
         data["economicModel"]["reward"] = copy(self.economicModel.reward.__dict__)
+        data["economicModel"]["restricting"] = copy(self.economicModel.restricting.__dict__)
         data["economicModel"]["innerAcc"] = copy(self.economicModel.innerAcc.__dict__)
         return data
 
