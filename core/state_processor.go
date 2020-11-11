@@ -148,6 +148,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	if msg.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
+	// Set the receipt logs
 	if failed && vmerr != nil {
 		if bizError, ok := vmerr.(*common.BizError); ok {
 			buf := new(bytes.Buffer)
@@ -170,7 +171,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	} else {
 		receipt.Logs = statedb.GetLogs(tx.Hash())
 	}
-	// Set the receipt logs and create a bloom for filtering
+	//create a bloom for filtering
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = header.Number
