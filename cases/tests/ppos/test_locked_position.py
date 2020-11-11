@@ -45,7 +45,7 @@ def create_restrictingplan(client, epoch, amount, multiple=2):
     address, _ = client.economic.account.generate_account(client.node.web3,
                                                           client.economic.create_staking_limit * multiple)
     benifit_address, _ = client.economic.account.generate_account(client.node.web3,
-                                                                  client.node.web3.toWei(1000,
+                                                                  client.node.web3.toWei(1000000,
                                                                                          'ether'))
     plan = [{'Epoch': epoch, 'Amount': client.node.web3.toWei(amount, 'ether')}]
     result = client.restricting.createRestrictingPlan(benifit_address, plan, address)
@@ -179,7 +179,7 @@ def test_LS_UPV_004_1(client_new_node):
     # number 1, amount 0.1
     result, address, benifit_address = create_restrictingplan(client_new_node, 1, 0.1)
     log.info('result: {}'.format(result))
-    assert_code(result, 304003)
+    assert_code(result, 304014)
     # number 0.1, amount 10
     try:
         result = create_restrictingplan(client_new_node, 0.1, 10)
@@ -236,7 +236,7 @@ def test_LS_UPV_006(client_new_node, number):
                                                                    client_new_node.economic.create_staking_limit)
     plan = []
     for i in range(number):
-        plan.append({'Epoch': i + 1, 'Amount': client_new_node.node.web3.toWei(10, 'ether')})
+        plan.append({'Epoch': i + 1, 'Amount': client_new_node.economic.delegate_limit * 100})
     log.info("Create lock plan parameters：{}".format(plan))
     result = client_new_node.restricting.createRestrictingPlan(address, plan, address)
     assert_code(result, 0)
@@ -618,7 +618,7 @@ def create_restricting_plan_and_entrust(client, node, economic):
     amount2 = client.node.web3.toWei(1000, 'ether')
     address1, address2 = create_lock_release_amount(client, amount1, amount2)
     # create Restricting Plan
-    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 1)}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit * 100}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     # create staking
@@ -659,7 +659,7 @@ def test_LS_RV_011(client_new_node):
     node = client.node
     address1, address2 = create_restricting_plan_and_entrust(client, node, economic)
     # create Restricting Plan again
-    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 2)}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit * 100}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     # view Restricting Plan
@@ -680,7 +680,7 @@ def test_LS_RV_012(new_genesis_env, clients_new_node):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.slashing.slashBlocksReward = 60
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.2.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.14.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -809,13 +809,13 @@ def test_LS_RV_013(client_new_node):
     address2, _ = economic.account.generate_account(node.web3, 0)
     address3, _ = economic.account.generate_account(node.web3, 0)
     # create Restricting Plan1
-    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit * 100}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     restricting_info = client.ppos.getRestrictingInfo(address2)
     assert_code(restricting_info, 0)
     # create Restricting Plan1
-    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit * 100}]
     result = client.restricting.createRestrictingPlan(address3, plan, address1)
     assert_code(result, 0)
     restricting_info = client.ppos.getRestrictingInfo(address3)
@@ -1283,7 +1283,7 @@ def create_free_pledge(client, economic):
     amount2 = client.node.web3.toWei(1000, 'ether')
     address1, address2 = create_lock_release_amount(client, amount1, amount2)
     # create Restricting Plan
-    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit * 100}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     # view Restricting Plan informtion
@@ -1375,7 +1375,7 @@ def test_LS_EV_004(client_new_node):
     # Waiting for the end of the settlement
     economic.wait_settlement(node)
     # create Restricting Plan
-    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit * 100}]
     result = client.restricting.createRestrictingPlan(lock_address, plan, pledge_address)
     assert_code(result, 0)
     # Application for Commission
@@ -1420,7 +1420,7 @@ def test_LS_EV_006(client_new_node):
     amount1 = von_amount(economic.create_staking_limit, 2)
     address1, address2 = create_lock_release_amount(client, amount1, 0)
     # create Restricting Plan
-    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit * 100}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     # create staking
@@ -1645,7 +1645,7 @@ def test_LS_EV_015(client_new_node):
     amount1 = von_amount(economic.create_staking_limit, 2)
     address1, address2 = create_lock_release_amount(client, amount1, 0)
     # create Restricting Plan
-    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit * 100}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     # create staking
@@ -1826,7 +1826,7 @@ def test_LS_EV_022(client_new_node):
     amount2 = node.web3.toWei(0.000006, 'ether')
     address1, address2 = create_lock_release_amount(client, amount1, amount2)
     # create Restricting Plan
-    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit * 100}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     # create staking
@@ -1853,8 +1853,8 @@ def create_restricting_increase_staking(client, economic, node):
     address1, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
     address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # create Restricting Plan1
-    add_staking_amount = von_amount(economic.add_staking_limit, 10)
-    plan = [{'Epoch': 1, 'Amount': add_staking_amount}]
+    # add_staking_amount = von_amount(economic.add_staking_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': economic.add_staking_limit * 100}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     restricting_info = client.ppos.getRestrictingInfo(address2)
@@ -1897,8 +1897,8 @@ def test_LS_IV_002(client_new_node):
     address2, _ = economic.account.generate_account(node.web3,
                                                     economic.create_staking_limit + node.web3.toWei(0.000009, 'ether'))
     # create Restricting Plan
-    add_staking_amount = von_amount(economic.add_staking_limit, 10)
-    plan = [{'Epoch': 1, 'Amount': add_staking_amount}]
+    # add_staking_amount = von_amount(economic.add_staking_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': economic.add_staking_limit * 100}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     restricting_info = client.ppos.getRestrictingInfo(address2)
@@ -2386,7 +2386,7 @@ def test_LS_CSV_016(client_new_node):
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('amount', [79, 80, 100000])
+@pytest.mark.parametrize('amount', [79, 80, 100])
 def test_LS_UPV_020(client_new_node, amount):
     """
     锁仓参数的有效性验证:epoch 1, amount 80
@@ -2397,8 +2397,9 @@ def test_LS_UPV_020(client_new_node, amount):
     economic = clinet.economic
     node = clinet.economic
     minimum_release = economic.genesis.economicModel.restricting.minimum_release
+    lock_amount = Web3.toWei(amount, 'ether')
     result, address, benifit_address = create_restrictingplan(client_new_node, 1, amount)
-    if amount < minimum_release:
+    if lock_amount < minimum_release:
         assert_code(result, 304014)
     else:
         assert_code(result, 0)

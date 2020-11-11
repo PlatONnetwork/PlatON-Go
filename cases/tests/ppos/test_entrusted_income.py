@@ -2831,7 +2831,7 @@ def test_EI_BC_076(client_new_node, reset_environment):
     economic.wait_settlement(node, 1)
     log.info("Current settlement block height：{}".format(node.eth.blockNumber))
     log.info("staking_address {} balance: {}".format(staking_address, node.eth.getBalance(staking_address)))
-    result = client.staking.edit_candidate(staking_address, staking_address, reward_per=2000)
+    result = client.staking.edit_candidate(staking_address, staking_address, reward_per=1500)
     assert_code(result, 0)
     block_reward, staking_reward = economic.get_current_year_reward(node)
     log.info("block_reward: {}  staking_reward: {}".format(block_reward, staking_reward))

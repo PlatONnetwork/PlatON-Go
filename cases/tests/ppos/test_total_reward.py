@@ -55,7 +55,7 @@ def test_DG_TR_001(client_consensus, reset_environment):
     :param client_consensus:
     :return:
     """
-    reward = 1000
+    reward = 500
     economic = client_consensus.economic
     node = client_consensus.node
     candidate_info = client_consensus.ppos.getCandidateInfo(node.node_id)
@@ -83,7 +83,7 @@ def test_DG_TR_002(client_consensus, reset_environment):
     :param client_consensus:
     :return:
     """
-    reward = 1000
+    reward = 500
     economic = client_consensus.economic
     node = client_consensus.node
     candidate_info = client_consensus.ppos.getCandidateInfo(node.node_id)
@@ -180,7 +180,7 @@ def test_DG_TR_003_01(client_noconsensus, value):
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('value', [0, 999, 1000])
+@pytest.mark.parametrize('value', [0, 499, 500])
 def test_DG_TR_003_02(staking_node_client, value):
     """
     减少非内置节点分红比例<rewardPerMaxChangeRange值
@@ -774,7 +774,7 @@ def test_DG_TR_016(client_new_node, reset_environment):
     """
     delegate_node_client = client_new_node
     reward = 1000
-    update_reward = 2000
+    update_reward = 1500
     node = delegate_node_client.node
     economic = delegate_node_client.economic
     staking_address, delegate_address, ben_address = create_staking_dif_ben(delegate_node_client, reward=reward)
