@@ -755,14 +755,14 @@ def test_UP_FV_018(client_new_node):
     info = candidate_info['Ret']
     staking_blocknum = info['StakingBlockNum']
     # withdrew delegate
-    withdrew_amount = von_amount(economic.delegate_limit, 15)
+    withdrew_amount = von_amount(economic.delegate_limit, 150)
     result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=withdrew_amount)
     assert_code(result, 0)
     # view restricting plan
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting plan informtion: {}".format(restricting_info))
     info = restricting_info['Ret']
-    assert info['debt'] == von_amount(economic.delegate_limit, 5), 'ErrMsg: restricting debt amount {}'.format(info['debt'])
+    assert info['debt'] == von_amount(economic.delegate_limit, 50), 'ErrMsg: restricting debt amount {}'.format(info['debt'])
 
 
 @pytest.mark.P1

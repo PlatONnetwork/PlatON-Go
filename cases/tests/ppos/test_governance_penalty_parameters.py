@@ -775,7 +775,7 @@ def test_PIP_MG_001_002(client_consensus, mark, reset_environment):
     # view Parameter value before treatment
     first_max_gas_limit = get_governable_parameter_value(first_client, 'maxBlockGasLimit')
     # create Parametric proposal
-    block = param_governance_verify_before_endblock(first_client, 'block', 'maxBlockGasLimit', '4712389', mark)
+    block = param_governance_verify_before_endblock(first_client, 'block', 'maxBlockGasLimit', '9424776', mark)
     # view Parameter value after treatment
     second_max_gas_limit = get_governable_parameter_value(first_client, 'maxBlockGasLimit')
     # wait block
@@ -794,7 +794,7 @@ def test_PIP_MG_003(client_consensus, reset_environment):
     first_client = client_consensus
     log.info("Current connection non-consensus first node：{}".format(first_client.node.node_mark))
     node = first_client.node
-    change_parameter_value = '4712389'
+    change_parameter_value = '10000000'
     # view Parameter value before treatment
     first_max_gas_limit = get_governable_parameter_value(first_client, 'maxBlockGasLimit')
     # create Parametric proposal

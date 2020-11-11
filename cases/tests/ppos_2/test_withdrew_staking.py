@@ -170,7 +170,7 @@ def test_RV_004(staking_client):
     node = client.node
     economic = client.economic
     log.info("Create a lockout plan")
-    lockup_amount = economic.add_staking_limit * 2
+    lockup_amount = economic.add_staking_limit * 100
     plan = [{'Epoch': 1, 'Amount': lockup_amount}]
     msg = client.restricting.createRestrictingPlan(staking_address, plan,
                                                    economic.account.account_with_money["address"])
@@ -214,7 +214,7 @@ def test_RV_005(staking_client):
     staking_address = client.staking_address
     economic = client.economic
     log.info("Create a lockout plan")
-    lockup_amount = economic.add_staking_limit * 2
+    lockup_amount = economic.add_staking_limit * 100
     plan = [{'Epoch': 1, 'Amount': lockup_amount}]
     msg = client.restricting.createRestrictingPlan(staking_address, plan,
                                                    economic.account.account_with_money["address"])
@@ -269,7 +269,7 @@ def test_RV_006(staking_client):
     node = client.node
     economic = client.economic
     log.info("Create a lockout plan")
-    lockup_amount = economic.add_staking_limit * 5
+    lockup_amount = economic.add_staking_limit * 100
     plan = [{'Epoch': 3, 'Amount': lockup_amount}]
     msg = client.restricting.createRestrictingPlan(staking_address, plan,
                                                    economic.account.account_with_money["address"])

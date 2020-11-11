@@ -180,7 +180,7 @@ def test_DG_TR_003_01(client_noconsensus, value):
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('value', [0, 499, 500])
+@pytest.mark.parametrize('value', [0, 999, 1000])
 def test_DG_TR_003_02(staking_node_client, value):
     """
     减少非内置节点分红比例<rewardPerMaxChangeRange值
