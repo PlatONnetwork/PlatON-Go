@@ -31,8 +31,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/rs/cors"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 const (

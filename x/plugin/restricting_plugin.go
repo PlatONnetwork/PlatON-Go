@@ -232,7 +232,7 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 // ReleaseEpoch:   the number of accounts to be released on the epoch corresponding to the target block height
 // ReleaseAccount: the account on the index on the target epoch
 // ReleaseAmount: the amount of the account to be released on the target epoch
-func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, blockNum uint64, blockHash common.Hash, plans []restricting.RestrictingPlan, state xcom.StateDB) error {
+func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, blockNum uint64, blockHash common.Hash, plans []restricting.RestrictingPlan, state xcom.StateDB, txhash common.Hash) error {
 
 	rp.log.Debug("Call AddRestrictingRecord begin", "sender", from, "account", account, "plans", plans)
 
@@ -261,7 +261,9 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 			return restricting.ErrBalanceNotEnough
 		}
 	}
-
+	if txhash == common.ZeroHash {
+		return nil
+	}
 	var (
 		epochArr     []uint64
 		restrictInfo restricting.RestrictingInfo

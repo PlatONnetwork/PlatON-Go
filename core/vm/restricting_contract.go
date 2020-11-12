@@ -86,11 +86,8 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	if !rc.Contract.UseGas(params.ReleasePlanGas * uint64(len(plans))) {
 		return nil, ErrOutOfGas
 	}
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
 
-	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), blockHash, plans, state)
+	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), blockHash, plans, state, txHash)
 	switch err.(type) {
 	case nil:
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "",
