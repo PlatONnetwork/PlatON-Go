@@ -199,8 +199,8 @@ func odrContractCall(ctx context.Context, db ethdb.Database, bc *core.BlockChain
 		context := core.NewEVMContext(msg, header, chain)
 		vmenv := vm.NewEVM(context, nil, st, config, vm.Config{})
 		gp := new(core.GasPool).AddGas(math.MaxUint64)
-		ret, _, _, _, _ := core.ApplyMessage(vmenv, msg, gp)
-		res = append(res, ret...)
+		ret, _ := core.ApplyMessage(vmenv, msg, gp)
+		res = append(res, ret.Return()...)
 		if st.Error() != nil {
 			return res, st.Error()
 		}
