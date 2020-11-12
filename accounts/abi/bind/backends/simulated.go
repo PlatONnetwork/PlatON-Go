@@ -189,8 +189,11 @@ func (b *SimulatedBackend) CallContract(ctx context.Context, call ethereum.CallM
 	if err != nil {
 		return nil, err
 	}
-	rval, _, _, err := b.callContract(ctx, call, b.blockchain.CurrentBlock(), state)
-	return rval, err
+	rval, err := b.callContract(ctx, call, b.blockchain.CurrentBlock(), state)
+	if err != nil {
+		return nil, err
+	}
+	return rval.Return(), nil
 }
 
 // PendingCallContract executes a contract call on the pending state.
@@ -199,8 +202,11 @@ func (b *SimulatedBackend) PendingCallContract(ctx context.Context, call ethereu
 	defer b.mu.Unlock()
 	defer b.pendingState.RevertToSnapshot(b.pendingState.Snapshot())
 
-	rval, _, _, err := b.callContract(ctx, call, b.pendingBlock, b.pendingState)
-	return rval, err
+	rval, err := b.callContract(ctx, call, b.pendingBlock, b.pendingState)
+	if err != nil {
+		return nil, err
+	}
+	return rval.Return(), nil
 }
 
 // PendingNonceAt implements PendingStateReader.PendingNonceAt, retrieving
@@ -242,10 +248,10 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 		call.Gas = gas
 
 		snapshot := b.pendingState.Snapshot()
-		_, _, failed, err := b.callContract(ctx, call, b.pendingBlock, b.pendingState)
+		res, err := b.callContract(ctx, call, b.pendingBlock, b.pendingState)
 		b.pendingState.RevertToSnapshot(snapshot)
 
-		if err != nil || failed {
+		if err != nil || res.Failed() {
 			return false
 		}
 		return true
@@ -270,7 +276,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 
 // callContract implements common code between normal and pending contract calls.
 // state is modified during execution, make sure to copy it if necessary.
-func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallMsg, block *types.Block, statedb *state.StateDB) ([]byte, uint64, bool, error) {
+func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallMsg, block *types.Block, statedb *state.StateDB) (*core.ExecutionResult, error) {
 	// Ensure message is initialized properly.
 	if call.GasPrice == nil {
 		call.GasPrice = big.NewInt(1)
@@ -292,8 +298,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallM
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(evmContext, snapshotdb.Instance(), statedb, b.config, vm.Config{})
 	gaspool := new(core.GasPool).AddGas(math.MaxUint64)
-	ret, usedGas, failed, err, _ := core.NewStateTransition(vmenv, msg, gaspool).TransitionDb()
-	return ret, usedGas, failed, err
+	return core.NewStateTransition(vmenv, msg, gaspool).TransitionDb()
 }
 
 // SendTransaction updates the pending block to include the given transaction.
