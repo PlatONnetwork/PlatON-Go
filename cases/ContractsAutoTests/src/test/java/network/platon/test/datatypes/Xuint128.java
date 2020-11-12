@@ -1,13 +1,14 @@
 package network.platon.test.datatypes;
 
-import com.platon.rlp.datatypes.Uint128;
+import com.alaya.rlp.wasm.datatypes.Uint128;
+//import com.platon.rlp.datatypes.Uint128;
 
 import java.math.BigInteger;
 
 /**
  * @author wuyang
  */
-public class Xuint128 extends Uint128{
+public class Xuint128 extends Uint128 {
 
     public Xuint128(String stringValue){
         super(new BigInteger(stringValue));

@@ -1,14 +1,14 @@
 package network.platon.test.wasm.contract_docs;
 
-import com.platon.rlp.datatypes.Uint64;
-import com.platon.rlp.datatypes.Uint8;
-import com.platon.rlp.datatypes.WasmAddress;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
+import com.alaya.rlp.wasm.datatypes.Uint8;
+import com.alaya.rlp.wasm.datatypes.WasmAddress;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.LATToken;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.util.List;
@@ -61,7 +61,8 @@ public class ContractLATTokenTest extends WASMContractPrepareTest {
             collector.logStepPass("Call balanceOf of LATToken, balance: " + balance.getValue());
 
             // transfer
-            WasmAddress receiver = new WasmAddress("lax19xdjrg06xz9te85c839zqtelmaj2tgt047fh5q");
+//            WasmAddress receiver = new WasmAddress("lax19xdjrg06xz9te85c839zqtelmaj2tgt047fh5q");
+            WasmAddress receiver = new WasmAddress("atx19xdjrg06xz9te85c839zqtelmaj2tgt0ft32k2");
             balance = contract.balanceOf(receiver).send();
             collector.logStepPass("Call balanceOf of LATToken, token before balance: " + balance.getValue());
             TransactionReceipt trasferTR = contract.transfer(receiver, Uint64.of(100000000)).send();

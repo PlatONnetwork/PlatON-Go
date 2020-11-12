@@ -1,5 +1,6 @@
 package network.platon.utils;
 
+import lombok.extern.slf4j.Slf4j;
 import network.platon.autotest.utils.FileUtil;
 
 import java.io.*;
@@ -7,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 public class OneselfFileUtil {
     /*
      *收集所有evm和wasm的源文件
@@ -44,22 +46,39 @@ public class OneselfFileUtil {
      * @author qcxiao
      * @updateTime 2019/12/27 14:24
      */
-    public static List<String> getBinFileName() {
-        List<String> files = new ArrayList<>();
+    public static List<File> getBinFiles() {
+        List<File> files = new ArrayList<>();
         String filePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
         File file = new File(filePath);
         File[] tempList = file.listFiles();
 
         for (int i = 0; i < tempList.length; i++) {
-            if (tempList[i].isFile()) {
-                String fileName = tempList[i].getName();
-                if (fileName.substring(fileName.lastIndexOf(".") + 1).equals("bin")) {
-                    fileName = fileName.substring(0, fileName.lastIndexOf("."));
-                    files.add(fileName);
-                }
-            }
+            File f = tempList[i];
+            getFile(files, f);
+//            if (tempList[i].isFile()) {
+//                String fileName = tempList[i].getName();
+//                if (fileName.substring(fileName.lastIndexOf(".") + 1).equals("bin")) {
+//                    fileName = fileName.substring(0, fileName.lastIndexOf("."));
+//                    files.add(fileName);
+//                }
+//            }
         }
         return files;
+    }
+
+    public static void getFile(List<File> files, File file){
+        if (file.isFile()) {
+            String fileName = file.getName();
+            if (fileName.substring(fileName.lastIndexOf(".") + 1).equals("bin")) {
+                files.add(file);
+            }
+        }else {
+            File[] subFiles = file.listFiles();
+            for (int i = 0; i < subFiles.length; i++){
+                File f = subFiles[i];
+                getFile(files, f);
+            }
+        }
     }
 
     public List<String> getWasmResourcesFile(String path, int deep) {
@@ -87,7 +106,7 @@ public class OneselfFileUtil {
 
         File[] tempList = file.listFiles();
         if (null == tempList || 0 == tempList.length) {
-            System.out.println("src/test/resources/contracts/wasm/build路径下无wasm和abi文件，因此请查看编译步骤.");
+            log.info("src/test/resources/contracts/wasm/build路径下无wasm和abi文件，因此请查看编译步骤.");
             throw new Exception("src/test/resources/contracts/wasm/build路径下无wasm和abi文件");
         }
         for (int i = 0; i < tempList.length; i++) {

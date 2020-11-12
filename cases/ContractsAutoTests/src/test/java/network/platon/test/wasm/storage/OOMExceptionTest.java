@@ -1,10 +1,10 @@
 package network.platon.test.wasm.storage;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.OOMException;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**

@@ -1,9 +1,14 @@
 package network.platon.test.wasm.contract_func;
 
-import com.platon.rlp.datatypes.Uint64;
-import com.platon.rlp.datatypes.WasmAddress;
-import com.platon.sdk.utlis.Bech32;
-import com.platon.sdk.utlis.NetworkParameters;
+import com.alaya.bech32.Bech32;
+import com.alaya.parameters.NetworkParameters;
+import com.alaya.protocol.core.DefaultBlockParameterName;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
+import com.alaya.rlp.wasm.datatypes.WasmAddress;
+import com.alaya.tx.Transfer;
+import com.alaya.utils.Convert;
+import com.alaya.utils.Numeric;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.InnerFunction;
@@ -12,11 +17,6 @@ import network.platon.contracts.wasm.InnerFunction_2;
 import network.platon.utils.PlatonAddressChangeUtil;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigDecimal;
@@ -130,7 +130,7 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             collector.logStepPass("To invoke origin success. origin string: " + origin.toString());
             collector.logStepPass("To invoke origin success. origin: " + origin.getAddress());
             //如果java-sdk没有转换地址就在此处转换
-            String laxAddress = origin.getAddress().startsWith("la") ? origin.getAddress() : PlatonAddressChangeUtil.encode("lax", convertBits(Numeric.hexStringToByteArray(origin.getAddress()), 8, 5, true));
+            String laxAddress = origin.getAddress().startsWith("at") ? origin.getAddress() : PlatonAddressChangeUtil.encode("lax", convertBits(Numeric.hexStringToByteArray(origin.getAddress()), 8, 5, true));
             collector.assertEqual(credentials.getAddress(chainId), laxAddress);
 
             // test: transfer
@@ -138,7 +138,7 @@ public class ContractInnerFunctionTest extends WASMContractPrepareTest {
             toAddress = Bech32.addressEncode(NetworkParameters.TestNetParams.getHrp(), toAddress);
             long amount = 1;
             Transfer t = new Transfer(web3j, transactionManager);
-            t.sendFunds(contractAddress, new BigDecimal(amount), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            t.sendFunds(contractAddress, new BigDecimal(amount), Convert.Unit.ATP, provider.getGasPrice(), provider.getGasLimit()).send();
             BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
             TransactionReceipt transferTr = innerFunction.transfer(toAddress, Uint64.of(BigInteger.valueOf(amount))).send();

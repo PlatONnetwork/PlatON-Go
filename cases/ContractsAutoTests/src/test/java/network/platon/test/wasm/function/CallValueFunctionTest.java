@@ -1,6 +1,6 @@
 package network.platon.test.wasm.function;
 
-import com.platon.rlp.datatypes.Uint8;
+import com.alaya.rlp.wasm.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.CallValueFunction;

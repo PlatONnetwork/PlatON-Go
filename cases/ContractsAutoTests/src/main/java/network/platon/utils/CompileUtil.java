@@ -1,10 +1,12 @@
 package network.platon.utils;
 
-import com.example.contract.Solc;
+import lombok.extern.slf4j.Slf4j;
+import network.platon.autotest.utils.FileUtil;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
-import java.util.concurrent.Semaphore;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -13,11 +15,35 @@ import java.util.concurrent.TimeUnit;
  * @author qcxiao
  * @updateTime 2019/12/27 14:39
  */
+@Slf4j
 public class CompileUtil {
 
-    public void evmCompile(String file, String buildPath) throws Exception {
+    public void evmCompile(String filename) throws Exception {
+        File file = new File(filename);
+        String compilerVersion = file.getPath().replaceAll("(.*)(0\\..\\d*\\.\\d*)(.*$)", "$2");
+        String buildPath = file.getPath().replaceAll("(.*)(0\\.\\d*\\.\\d*)(.*$)", "$1");
+        if(System.getProperty("os.name").toLowerCase().startsWith("windows")){
+            buildPath += "build\\" + compilerVersion + "\\";
+        }else {
+            buildPath += "build/" + compilerVersion + "/";
+        }
+        String contractName = file.getName().replaceAll("\\.sol", "");
+        log.info(compilerVersion);
+        log.info(buildPath);
+        File buildPathFile = new File(buildPath);
+        if (!buildPathFile.exists() || !buildPathFile.isDirectory()) {
+            buildPathFile.mkdirs();
+        }
+        File[] list = new File(buildPath).listFiles();
+        if (null != list) {
+            for (File f : list) {
+                if(f.getName().equals(contractName + ".abi") || f.getName().equals(contractName + ".bin")){
+                    f.delete();
+                }
+            }
+        }
         try {
-            Solc.compile(file, buildPath);
+            Solc.compile(filename, buildPath);
         } catch (Exception e) {
             e.printStackTrace();
             throw new Exception(e);
@@ -48,9 +74,7 @@ public class CompileUtil {
             while ((line = br.readLine()) != null) {
                 sb.append(line).append("\n");
             }
-
             String result = sb.toString();
-            System.out.println(result);
         } catch (Exception e) {
             throw new Exception();
         } finally {

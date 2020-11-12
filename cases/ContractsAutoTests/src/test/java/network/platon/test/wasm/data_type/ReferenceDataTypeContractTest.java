@@ -1,13 +1,13 @@
 package network.platon.test.wasm.data_type;
 
-import com.platon.rlp.datatypes.Uint64;
-import com.platon.rlp.datatypes.Uint8;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
+import com.alaya.rlp.wasm.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeContract;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -43,7 +43,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
             // test: map
             String expectKey1 = "name";
 //            WasmAddress expectValue11 = new WasmAddress("lax1uqug1zq7rcxddndleq4ux2ft3tv6dqljphydrl");
-            String expectValue11 = "lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl";
+//            String expectValue11 = "lax1uqug0zq7rcxddndleq4ux2ft3tv6dqljphydrl";
+            String expectValue11 = "atx1uqug0zq7rcxddndleq4ux2ft3tv6dqljazusp4";
 //            String expectValue11 = "lax1uqug1zq7rcxddndleq4ux2ft3tv6dqljphydrl";
 //            String expectValue11 = "lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2";
             TransactionReceipt mapTr = contract.setAddressMap(expectKey1, expectValue11).send();
@@ -54,7 +55,8 @@ public class ReferenceDataTypeContractTest extends WASMContractPrepareTest {
 
             String expectKey2 = "name2";
 //            String expectValue2 = "lax1uqug2zq7rcxddndleq4ux2ft3tv6dqljphydrl";
-            String expectValue2 = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
+//            String expectValue2 = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
+            String expectValue2 = "atx1fyeszufxwxk62p46djncj86rd553skpph926ws";
             TransactionReceipt mapTr2 = contract.setAddressMap(expectKey2, expectValue2).send();
             collector.logStepPass("To invoke setAddressMap success, txHash2: " + mapTr2.getTransactionHash());
 

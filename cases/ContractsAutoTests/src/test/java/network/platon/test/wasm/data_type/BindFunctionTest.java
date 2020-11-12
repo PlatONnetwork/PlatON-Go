@@ -1,12 +1,12 @@
 package network.platon.test.wasm.data_type;
 
-import com.platon.rlp.datatypes.Uint32;
-import com.platon.rlp.datatypes.Uint8;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint32;
+import com.alaya.rlp.wasm.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.BindFunctionContract;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -40,7 +40,7 @@ public class BindFunctionTest extends WASMContractPrepareTest {
         //调用合约方法
         try {
             //1、验证：bind绑定普通函数
-            Uint8  actualIntValue = bindFunctionContract.get_bind_function().send();
+            Uint8 actualIntValue = bindFunctionContract.get_bind_function().send();
             collector.logStepPass("bindFunctionContract 【验证bind绑定普通函数】 执行get_bind_function() successfully actualIntValue:" + actualIntValue);
             collector.assertEqual(actualIntValue,Uint8.of(6), "checkout  execute success.");
 

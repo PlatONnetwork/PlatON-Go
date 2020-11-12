@@ -1,12 +1,12 @@
 package network.platon.test.wasm.data_type;
 
-import com.platon.rlp.datatypes.Int32;
-import com.platon.rlp.datatypes.Uint8;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Int32;
+import com.alaya.rlp.wasm.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.AutoTypeContract;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -41,7 +41,7 @@ public class AutoTypeTest extends WASMContractPrepareTest {
         //调用合约方法
         try {
             //1、验证:自动匹配int类型
-            Int32  actualIntValue = autoTypeContract.get_anto_int().send();
+            Int32 actualIntValue = autoTypeContract.get_anto_int().send();
             collector.logStepPass("autoTypeContract 【验证自动匹配int类型】 执行get_anto_int() successfully actualIntValue:" + actualIntValue);
             collector.assertEqual(actualIntValue,Int32.of(5), "checkout  execute success.");
             //2、验证:自动匹配int类型负数值
@@ -59,7 +59,7 @@ public class AutoTypeTest extends WASMContractPrepareTest {
             collector.logStepPass("autoTypeContract 【验证自动匹配多个值类型】 get_anto_multiple() successfully actualmultipleValue:" + actualmultipleValue);
             collector.assertEqual(actualmultipleValue,Int32.of(30), "checkout  execute success.");
             //4、验证:自动匹配uint8类型
-            Uint8  actualUint8Value = autoTypeContract.get_anto_uint8_t().send();
+            Uint8 actualUint8Value = autoTypeContract.get_anto_uint8_t().send();
             collector.logStepPass("autoTypeContract 【验证自动匹配uint8类型】 get_anto_uint8_t() successfully actualUint8Value:" + actualUint8Value);
             collector.assertEqual(actualUint8Value,Uint8.of(10), "checkout  execute success.");
 

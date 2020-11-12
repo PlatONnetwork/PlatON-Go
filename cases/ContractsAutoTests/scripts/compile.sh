@@ -25,7 +25,7 @@ for(( i=0;i<$len;i++))
 do
     let sum+=$[10**($len-i)*${array[i]}]
 done;
-if [ "$sum" -ge "630" ]; then
+if [ "$sum" -ge "670" ]; then
   ./solc-${VERSION} -o ${TARGET} --evm-version istanbul --bin --abi --overwrite ${CONTRACT}
 else
   ./solc-${VERSION} -o ${TARGET} --bin --abi --overwrite ${CONTRACT}

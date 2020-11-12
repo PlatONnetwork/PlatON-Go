@@ -1,12 +1,12 @@
 package network.platon.test.wasm.contract_event;
 
-import com.platon.rlp.datatypes.Int8;
-import com.platon.rlp.datatypes.Uint8;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Int8;
+import com.alaya.rlp.wasm.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractEmitEventWithArray;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ public class ContractEmitEventWithArrayTest extends WASMContractPrepareTest {
             _argsSix.add(Uint8.of(7));
             _argsSix.add(Uint8.of(8));
 
-            List<com.platon.rlp.datatypes.Int8> _argsSeven = new ArrayList<>();
+            List<Int8> _argsSeven = new ArrayList<>();
             _argsSeven.add(Int8.of(9));
             _argsSeven.add(Int8.of(10));
             _argsSeven.add(Int8.of(11));
@@ -98,7 +98,7 @@ public class ContractEmitEventWithArrayTest extends WASMContractPrepareTest {
             prepare();
             ContractEmitEventWithArray contractEmitEventWithAddr = ContractEmitEventWithArray.deploy(web3j, transactionManager, provider, chainId).send();
 
-            List<com.platon.rlp.datatypes.Int8> _topicOne = new ArrayList<>();
+            List<Int8> _topicOne = new ArrayList<>();
             _topicOne.add(Int8.of(9));
             _topicOne.add(Int8.of(10));
             _topicOne.add(Int8.of(11));
@@ -192,7 +192,7 @@ public class ContractEmitEventWithArrayTest extends WASMContractPrepareTest {
             _argsThree[6] = Uint8.of(9);
             _argsThree[7] = Uint8.of(10);
 
-            List<com.platon.rlp.datatypes.Int8> _argsFour = new ArrayList<>();
+            List<Int8> _argsFour = new ArrayList<>();
             _argsFour.add(Int8.of(9));
             _argsFour.add(Int8.of(10));
             _argsFour.add(Int8.of(11));
@@ -263,7 +263,7 @@ public class ContractEmitEventWithArrayTest extends WASMContractPrepareTest {
 
             byte[] _argsTwo = "def".getBytes();
 
-            List<com.platon.rlp.datatypes.Int8> _argsThree = new ArrayList<>();
+            List<Int8> _argsThree = new ArrayList<>();
             _argsThree.add(Int8.of(9));
             _argsThree.add(Int8.of(10));
             _argsThree.add(Int8.of(11));

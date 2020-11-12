@@ -1,19 +1,20 @@
 package network.platon.test.wasm.complex_contract;
 
-import com.platon.rlp.datatypes.Uint128;
+import com.alaya.crypto.Credentials;
+import com.alaya.protocol.core.DefaultBlockParameterName;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint128;
+import com.alaya.tx.RawTransactionManager;
+import com.alaya.tx.TransactionManager;
+import com.alaya.tx.Transfer;
+import com.alaya.utils.Convert;
+import com.alibaba.fastjson.JSONObject;
 import network.platon.test.datatypes.Xuint128;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.VIDToken;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.RawTransactionManager;
-import org.web3j.tx.TransactionManager;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigDecimal;
@@ -45,12 +46,16 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
 
             // transfer to contract
             Transfer t = new Transfer(web3j, transactionManager);
-            t.sendFunds(contractAddress, new BigDecimal(100), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            t.sendFunds(contractAddress, new BigDecimal(1000), Convert.Unit.ATP, provider.getGasPrice(), provider.getGasLimit()).send();
             BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Transfer to contract , address: " + contractAddress + " cbalance: " + cbalance);
 
+
             // transfer in contract
-            String to = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
+//            String to = "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6";
+            String toPrivateKey = this.generatePrivateKey();
+//            String to = "atx1fyeszufxwxk62p46djncj86rd553skpph926ws";
+            String to = Credentials.create(toPrivateKey).getAddress(chainId);
             Xuint128 value = new Xuint128("100000");
             TransactionReceipt transferTr = contract.Transfer(to, value).send();
             collector.logStepPass("Send Transfer, hash:  " + transferTr.getTransactionHash()
@@ -63,6 +68,7 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
 
             // approve
             TransactionReceipt approveTR = contract.Approve(to, value).send();
+            collector.logStepPass(JSONObject.toJSONString(approveTR));
             collector.logStepPass("Send Approve, hash:  " + approveTR.getTransactionHash()
                     + " gasUsed: " + approveTR.getGasUsed());
 
@@ -95,10 +101,17 @@ public class ContractVIDTokenTest extends WASMContractPrepareTest {
             // spender: a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7
             // 0x493301712671Ada506ba6Ca7891F436D29185821
             // to: 0x1E1ae3407377F7897470FEf31a80873B4FD75cA1
-            Credentials spendCredentials = Credentials.create("a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7");
-            t.sendFunds(spendCredentials.getAddress(chainId), new BigDecimal(10), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
-            TransactionManager spenderTM = transactionManager = new RawTransactionManager(web3j, spendCredentials, chainId);
-            String to2 = "lax1rcdwxsrnwlmcjarslme34qy88d8awh9pnjpmz9";
+//            Credentials spendCredentials = Credentials.create("a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7");
+            Credentials spendCredentials = Credentials.create(toPrivateKey);
+            t.sendFunds(spendCredentials.getAddress(chainId), new BigDecimal(100000), Convert.Unit.ATP, provider.getGasPrice(), provider.getGasLimit()).send();
+            BigInteger spendBalance = web3j.platonGetBalance(spendCredentials.getAddress(chainId), DefaultBlockParameterName.LATEST).send().getBalance();
+            collector.logStepPass("Transfer to contract , address: " + spendCredentials.getAddress(chainId) + " spendBalance: " + spendBalance);
+
+            TransactionManager spenderTM = new RawTransactionManager(web3j, spendCredentials, chainId);
+//            String to2 = "lax1rcdwxsrnwlmcjarslme34qy88d8awh9pnjpmz9";
+//            String to2 = "atx1rcdwxsrnwlmcjarslme34qy88d8awh9p08exq0";
+            //to2 address random generate
+            String to2 = Credentials.create(this.generatePrivateKey()).getAddress(chainId);
             Xuint128 valule2 = new Xuint128("10000");
             VIDToken v = VIDToken.load(contractAddress, web3j, spenderTM, provider, chainId);
             TransactionReceipt transferFromTr = v.TransferFrom(credentials.getAddress(chainId), to2, valule2).send();

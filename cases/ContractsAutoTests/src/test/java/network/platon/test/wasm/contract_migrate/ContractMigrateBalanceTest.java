@@ -1,16 +1,16 @@
 package network.platon.test.wasm.contract_migrate;
 
-import com.platon.rlp.datatypes.Uint64;
+import com.alaya.abi.wasm.WasmFunctionEncoder;
+import com.alaya.protocol.core.DefaultBlockParameterName;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
+import com.alaya.tx.Transfer;
+import com.alaya.utils.Convert;
+import com.alaya.utils.Numeric;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractMigrate_v1;
 import org.junit.Test;
-import org.web3j.abi.WasmFunctionEncoder;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigDecimal;

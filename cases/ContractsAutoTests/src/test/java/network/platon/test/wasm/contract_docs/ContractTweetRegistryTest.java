@@ -1,17 +1,17 @@
 package network.platon.test.wasm.contract_docs;
 
-import com.platon.rlp.datatypes.Uint128;
-import com.platon.rlp.datatypes.WasmAddress;
+import com.alaya.protocol.core.DefaultBlockParameterName;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint128;
+import com.alaya.rlp.wasm.datatypes.WasmAddress;
+import com.alaya.tx.Transfer;
+import com.alaya.utils.Convert;
 import network.platon.test.datatypes.Xuint128;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.TweetRegistry;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 import java.math.BigDecimal;
@@ -44,7 +44,8 @@ public class ContractTweetRegistryTest extends WASMContractPrepareTest {
 
             // registry
             String addr = credentials.getAddress(chainId);
-            addr = "lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2";
+//            addr = "lax1w2kjkufl4g2v93xd94a0lewc75ufdr66rnzuw2";
+            addr = "atx1w2kjkufl4g2v93xd94a0lewc75ufdr66lx6pvq";
             TransactionReceipt registrTr = contract.registry("bob", new WasmAddress(addr)).send();
             collector.logStepPass("Send registry, hash: " + registrTr.getTransactionHash() + " gasUsed: " + registrTr.getGasUsed());
 
@@ -94,7 +95,7 @@ public class ContractTweetRegistryTest extends WASMContractPrepareTest {
 
             // transfer to contract
             Transfer t = new Transfer(web3j, transactionManager);
-            t.sendFunds(contractAddress, new BigDecimal(1), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            t.sendFunds(contractAddress, new BigDecimal(1), Convert.Unit.ATP, provider.getGasPrice(), provider.getGasLimit()).send();
             BigInteger cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("Transfer to contract , before balance: " + cbalance);
 
@@ -109,7 +110,7 @@ public class ContractTweetRegistryTest extends WASMContractPrepareTest {
 
             //
             // transfer to contract
-            t.sendFunds(contractAddress, new BigDecimal(1), Convert.Unit.LAT, provider.getGasPrice(), provider.getGasLimit()).send();
+            t.sendFunds(contractAddress, new BigDecimal(1), Convert.Unit.ATP, provider.getGasPrice(), provider.getGasLimit()).send();
             cbalance = web3j.platonGetBalance(contractAddress, DefaultBlockParameterName.LATEST).send().getBalance();
             collector.logStepPass("02-Transfer to contract , before balance: " + cbalance);
 
