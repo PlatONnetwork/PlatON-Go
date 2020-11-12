@@ -22,6 +22,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
+	"sort"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -358,6 +359,11 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 		}
 		if len(dls) == 0 {
 			return nil, reward.ErrDelegationNotFound
+		}
+	} else {
+		if len(dls) > int(xcom.TheNumberOfDelegationsReward()) {
+			sort.Sort(staking.DelByDelegateEpoch(dls))
+			dls = dls[:xcom.TheNumberOfDelegationsReward()]
 		}
 	}
 
