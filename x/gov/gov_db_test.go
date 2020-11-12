@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -1048,4 +1048,38 @@ func rlpHash(x interface{}) (h common.Hash) {
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h
+}
+
+func TestSet0140Param(t *testing.T) {
+	c := mock.NewChain()
+	defer snapshotdb.Instance().Clear()
+
+	var paramItemList []*ParamItem
+
+	initParamList := queryInitParam()
+
+	var err error
+	for _, param := range initParamList {
+		paramItemList = append(paramItemList, param.ParamItem)
+	}
+	v2, err := rlp.EncodeToBytes(paramItemList)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	c.AddBlock()
+
+	if err := snapshotdb.Instance().NewBlock(c.CurrentHeader().Number, common.ZeroHash, c.CurrentHeader().Hash()); err != nil {
+		t.Error(err)
+	}
+	if err := snapshotdb.Instance().Put(c.CurrentHeader().Hash(), KeyParamItems(), v2); err != nil {
+		t.Error(err)
+	}
+
+	if err := Set0140Param(c.CurrentHeader().Hash(), params.FORKVERSION_0_14_0, snapshotdb.Instance()); err != nil {
+		t.Error(err)
+	}
+	if _, err := snapshotdb.Instance().Get(c.CurrentHeader().Hash(), KeyParamValue(ModuleRestricting, KeyRestrictingMinimumAmount)); err != nil {
+		t.Error(err)
+	}
 }

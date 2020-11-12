@@ -1,8 +1,29 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package vm
 
 import (
 	"fmt"
 	"math/big"
+	"sort"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
@@ -35,14 +56,14 @@ type DelegateRewardContract struct {
 }
 
 func (rc *DelegateRewardContract) RequiredGas(input []byte) uint64 {
-	if checkForkPIP0_11_0(rc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return 0
 	}
 	return params.DelegateRewardGas
 }
 
 func (rc *DelegateRewardContract) Run(input []byte) ([]byte, error) {
-	if checkForkPIP0_11_0(rc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return nil, nil
 	}
 	return execPlatonContract(input, rc.FnSigns())
@@ -79,12 +100,19 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	list, err := rc.stkPlugin.GetDelegatesInfo(blockHash, from)
 	if err != nil {
 		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, "withdrawDelegateReward", "",
-			TxWithdrawDelegateReward, int(common.InternalError.Code)), err
+			TxWithdrawDelegateReward, common.InternalError)
 	}
 	if len(list) == 0 {
 		log.Debug("Call withdrawDelegateReward of DelegateRewardContract，the delegates info list is empty", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String())
-		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, reward.ErrDelegationNotFound.Msg, TxWithdrawDelegateReward, int(reward.ErrDelegationNotFound.Code)), nil
+		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, reward.ErrDelegationNotFound.Msg, TxWithdrawDelegateReward, reward.ErrDelegationNotFound)
+	}
+
+	if gov.Gte0140VersionState(state) {
+		if len(list) > int(xcom.TheNumberOfDelegationsReward()) {
+			sort.Sort(staking.DelByDelegateEpoch(list))
+			list = list[:xcom.TheNumberOfDelegationsReward()]
+		}
 	}
 
 	if !rc.Contract.UseGas(params.WithdrawDelegateNodeGas * uint64(len(list))) {
@@ -123,7 +151,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward,
-				bizErr.Error(), TxWithdrawDelegateReward, int(bizErr.Code)), nil
+				bizErr.Error(), TxWithdrawDelegateReward, bizErr)
 		} else {
 			log.Error("Failed to withdraw delegateReward ", "txHash", txHash,
 				"blockNumber", blockNum, "err", err, "account", from)

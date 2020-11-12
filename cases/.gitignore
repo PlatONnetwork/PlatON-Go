@@ -20,3 +20,4 @@ deploy/bin
 **/*.egg
 **/*.egg-info
 **/*.code-workspace
+**/*.bak

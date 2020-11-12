@@ -1,10 +1,12 @@
 package network.platon.utils;
 
-import com.example.contract.Solc;
+import lombok.extern.slf4j.Slf4j;
+import network.platon.autotest.utils.FileUtil;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
-import java.util.concurrent.Semaphore;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -13,45 +15,69 @@ import java.util.concurrent.TimeUnit;
  * @author qcxiao
  * @updateTime 2019/12/27 14:39
  */
+@Slf4j
 public class CompileUtil {
-    private final Semaphore permit = new Semaphore(100, true);
 
-    public void evmCompile(String file, String buildPath) throws Exception {
+    public void evmCompile(String filename) throws Exception {
+        File file = new File(filename);
+        String compilerVersion = file.getPath().replaceAll("(.*)(0\\..\\d*\\.\\d*)(.*$)", "$2");
+        String buildPath = file.getPath().replaceAll("(.*)(0\\.\\d*\\.\\d*)(.*$)", "$1");
+        if(System.getProperty("os.name").toLowerCase().startsWith("windows")){
+            buildPath += "build\\" + compilerVersion + "\\";
+        }else {
+            buildPath += "build/" + compilerVersion + "/";
+        }
+        String contractName = file.getName().replaceAll("\\.sol", "");
+        log.info(compilerVersion);
+        log.info(buildPath);
+        File buildPathFile = new File(buildPath);
+        if (!buildPathFile.exists() || !buildPathFile.isDirectory()) {
+            buildPathFile.mkdirs();
+        }
+        File[] list = new File(buildPath).listFiles();
+        if (null != list) {
+            for (File f : list) {
+                if(f.getName().equals(contractName + ".abi") || f.getName().equals(contractName + ".bin")){
+                    f.delete();
+                }
+            }
+        }
         try {
-            permit.acquire();
-            Solc.compile(file, buildPath);
+            Solc.compile(filename, buildPath);
         } catch (Exception e) {
             e.printStackTrace();
             throw new Exception(e);
-        } finally {
-            permit.release();
         }
     }
 
     public void wasmCompile(String file, String buildPath) throws Exception {
-        Process ps = null;
-        BufferedReader br = null;
         try {
-            permit.acquire();
-            // /usr/local/bin/platon-cpp
             String[] args = new String[]{"/bin/bash", "-c", "/usr/local/bin/platon-cpp" + " " + file + " " + "-o" + " " + buildPath};
-            ps = Runtime.getRuntime().exec(args);
-            ps.waitFor(2, TimeUnit.SECONDS);
-            br = new BufferedReader(new InputStreamReader(ps.getInputStream()));
-            StringBuffer sb = new StringBuffer();
-
-            String line;
-            while((line = br.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-
-            String result = sb.toString();
-            System.out.println(result);
+            execGenerate(args);
         } catch (Exception e) {
             e.printStackTrace();
             throw new Exception(e);
+        }
+    }
+
+    public static void execGenerate(String[] args) throws Exception {
+        Process ps = null;
+        StringBuffer sb = null;
+        BufferedReader br = null;
+        try {
+            ps = Runtime.getRuntime().exec(args);
+            ps.waitFor(2, TimeUnit.SECONDS);
+            br = new BufferedReader(new InputStreamReader(ps.getInputStream()));
+            sb = new StringBuffer();
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+            String result = sb.toString();
+        } catch (Exception e) {
+            throw new Exception();
         } finally {
-            permit.release();
             br.close();
             ps.destroy();
         }

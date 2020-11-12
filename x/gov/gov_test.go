@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@ package gov
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"math/big"
 	"testing"
 
@@ -28,16 +29,17 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 )
 
 var (
-	sender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	sender = common.MustBech32ToAddress("atx1pmhjxvfqeccm87kzpkkr08djgvpp5535gxm6s5")
 	nodeID = discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384")
 
 	priKey = crypto.HexMustToECDSA("0c6ccec28e36dc5581ea3d8af1303c774b51523da397f55cdc4acd9d2b988132")
@@ -51,7 +53,7 @@ var (
 	vpPIPID           = "vpPIPID"
 	vpEndVotingRounds = uint64(2)
 
-	tempActiveVersion = uint32(0<<16 | 9<<8 | 4)
+	tempActiveVersion = params.GenesisVersion + uint32(0<<16|1<<8|0)
 
 	chainID = big.NewInt(100)
 )
@@ -85,19 +87,19 @@ func (stk *MockStaking) GetCanBaseList(blockHash common.Hash, blockNumber uint64
 	return []*staking.CandidateBase{candidate}, nil
 }
 
-func (stk *MockStaking) GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error) {
+func (stk *MockStaking) GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error) {
 	return nil, nil
 }
 
-func (stk *MockStaking) GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error) {
+func (stk *MockStaking) GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error) {
 	return nil, nil
 }
 
-func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error) {
+func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error) {
 	can := &staking.CandidateMutable{Status: staking.Valided}
 	return can, nil
 }
-func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32, state xcom.StateDB) error {
+func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error {
 	if stk.DeclaeredVodes == nil {
 		stk.DeclaeredVodes = make(map[discover.NodeID]uint32)
 	}
@@ -180,9 +182,10 @@ func setup(t *testing.T) *mock.Chain {
 		fmt.Println("newBlock, %", err)
 	}
 
-	if err := InitGenesisGovernParam(chain.SnapDB, 2048); err != nil {
+	if _, err := InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, 2048); err != nil {
 		t.Error("InitGenesisGovernParam, error", err)
 	}
+
 	RegisterGovernParamVerifiers()
 
 	if err := AddActiveVersion(params.GenesisVersion, 0, chain.StateDB); err != nil {
@@ -969,4 +972,28 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 	} else {
 		assert.Equal(t, 0, len(avList))
 	}
+}
+
+func TestFork0140EcHash(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	if Gte0140VersionState(chain.StateDB) {
+		if err := WriteEcHash0140(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash := chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash == nil)
+
+	if err := AddActiveVersion(params.FORKVERSION_0_14_0, 0, chain.StateDB); err != nil {
+		t.Error("AddActiveVersion, err", err)
+	}
+
+	if Gte0140VersionState(chain.StateDB) {
+		if err := WriteEcHash0140(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash = chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash != nil)
 }

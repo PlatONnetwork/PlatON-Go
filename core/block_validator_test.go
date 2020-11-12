@@ -17,15 +17,16 @@
 package core
 
 import (
+	"log"
 	"runtime"
 	"testing"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -33,7 +34,7 @@ import (
 func TestHeaderVerification(t *testing.T) {
 	// Create a simple chain to verify
 	var (
-		testdb    = ethdb.NewMemDatabase()
+		testdb    = rawdb.NewMemoryDatabase()
 		gspec     = &Genesis{Config: params.TestChainConfig}
 		genesis   = gspec.MustCommit(testdb)
 		blocks, _ = GenerateChain(params.TestChainConfig, genesis, consensus.NewFaker(), testdb, 8, nil)
@@ -85,7 +86,7 @@ func TestHeaderConcurrentVerification32(t *testing.T) { testHeaderConcurrentVeri
 func testHeaderConcurrentVerification(t *testing.T, threads int) {
 	// Create a simple chain to verify
 	var (
-		testdb    = ethdb.NewMemDatabase()
+		testdb    = rawdb.NewMemoryDatabase()
 		gspec     = &Genesis{Config: params.TestChainConfig}
 		genesis   = gspec.MustCommit(testdb)
 		blocks, _ = GenerateChain(params.TestChainConfig, genesis, consensus.NewFaker(), testdb, 8, nil)
@@ -157,7 +158,7 @@ func TestHeaderConcurrentAbortion32(t *testing.T) { testHeaderConcurrentAbortion
 func testHeaderConcurrentAbortion(t *testing.T, threads int) {
 	// Create a simple chain to verify
 	var (
-		testdb    = ethdb.NewMemDatabase()
+		testdb    = rawdb.NewMemoryDatabase()
 		gspec     = &Genesis{Config: params.TestChainConfig}
 		genesis   = gspec.MustCommit(testdb)
 		blocks, _ = GenerateChain(params.TestChainConfig, genesis, consensus.NewFaker(), testdb, 1024, nil)
@@ -197,4 +198,15 @@ func testHeaderConcurrentAbortion(t *testing.T, threads int) {
 	if verified != len(blocks) {
 		t.Errorf("verification count too large: have %d, want below %d", verified, len(blocks))
 	}
+}
+
+func TestCalcGasLimit(t *testing.T) {
+	block := types.NewBlockWithHeader(&types.Header{GasLimit: 101009067, GasUsed: 100989000})
+
+	limit := CalcGasLimit(block, 0)
+
+	//101009067
+	//101603137
+	log.Println(limit)
+
 }

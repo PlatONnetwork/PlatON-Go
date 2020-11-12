@@ -1,3 +1,4 @@
+#define TESTNET
 #include <platon/platon.hpp>
 #include <vector>
 #include <string>
@@ -27,23 +28,27 @@ CONTRACT call_precompile : public platon::Contract {
 
                     platon::bytes input = msgh;
 
-                    std::string addr = "0x0000000000000000000000000000000000000001";
+//                    std::string addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpxxvxfq";
+                    std::string addr = "atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp6n5mt2";
+                    auto address_info = make_address(addr);
+                    if(address_info.second){
+                        if (platon_call(address_info.first, input, value, gas)) {
+                            DEBUG("cross call contract ecrecover success", "address", addr);
 
-                    if (platon_call(Address(addr), input, value, gas)) {
-                        DEBUG("cross call contract ecrecover success", "address", addr);
+                           platon::bytes ret;
+                           size_t len = platon_get_call_output_length();
 
-                       platon::bytes ret;
-                       size_t len = platon_get_call_output_length();
+                           ret.resize(len);
+                           platon_get_call_output(ret.data());
 
-                       ret.resize(len);
-                       platon_get_call_output(ret.data());
+                          std::string str = toHex(ret);
 
-                      std::string str = toHex(ret);
+                          DEBUG("cross call contract ecrecover success", "acc", str);
 
-                      DEBUG("cross call contract ecrecover success", "acc", str);
-
-                      return str;
+                          return str;
+                        }
                     }
+
 
                     DEBUG("cross call contract ecrecover fail", "address", addr);
                     return "";
@@ -56,21 +61,27 @@ CONTRACT call_precompile : public platon::Contract {
 
                     platon::bytes  input = fromHex(in);
 
-                    std::string addr = "0x0000000000000000000000000000000000000002";
+//                    std::string addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzg4es8l";
+                    std::string addr = "atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz5qpd94";
 
-                    if (platon_call(Address(addr), input, value, gas)) {
-                        DEBUG("cross call contract sha256hash success", "address", addr);
+                     auto address_info = make_address(addr);
+                     if(address_info.second){
+                        if (platon_call(address_info.first, input, value, gas)) {
+                             DEBUG("cross call contract sha256hash success", "address", addr);
 
-                      platon::bytes ret;
-                      size_t len = platon_get_call_output_length();
+                           platon::bytes ret;
+                           size_t len = platon_get_call_output_length();
 
-                      ret.resize(len);
-                      platon_get_call_output(ret.data());
+                           ret.resize(len);
+                           platon_get_call_output(ret.data());
 
-                      std::string str = toHex(ret);
-                      DEBUG("cross call contract sha256hash success", "hash", str);
-                      return str;
-                    }
+                           std::string str = toHex(ret);
+                           DEBUG("cross call contract sha256hash success", "hash", str);
+                           return str;
+                         }
+                     }
+
+
                     DEBUG("cross call contract sha256hash fail", "address", addr);
                     return "";
                 }
@@ -81,21 +92,27 @@ CONTRACT call_precompile : public platon::Contract {
 
                      platon::bytes  input = fromHex(in);
 
-                     std::string addr = "0x0000000000000000000000000000000000000003";
+//                     std::string addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr4rd96d";
+                     std::string addr = "atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrfk4cc8";
 
-                     if (platon_call(Address(addr), input, value, gas)) {
-                         DEBUG("cross call contract ripemd160hash success", "address", addr);
+                      auto address_info = make_address(addr);
+                      if(address_info.second){
+                         if (platon_call(address_info.first, input, value, gas)) {
+                             DEBUG("cross call contract ripemd160hash success", "address", addr);
 
-                       platon::bytes ret;
-                       size_t len = platon_get_call_output_length();
+                           platon::bytes ret;
+                           size_t len = platon_get_call_output_length();
 
-                       ret.resize(len);
-                       platon_get_call_output(ret.data());
+                           ret.resize(len);
+                           platon_get_call_output(ret.data());
 
-                       std::string str = toHex(ret);
-                       DEBUG("cross call contract ripemd160hash success", "hash", str);
-                       return str;
-                     }
+                           std::string str = toHex(ret);
+                           DEBUG("cross call contract ripemd160hash success", "hash", str);
+                           return str;
+                         }
+                      }
+
+
                      DEBUG("cross call contract ripemd160hash fail", "address", addr);
                      return "";
                  }
@@ -106,21 +123,26 @@ CONTRACT call_precompile : public platon::Contract {
 
                      platon::bytes  input = fromHex(in);
 
-                     std::string addr = "0x0000000000000000000000000000000000000004";
+//                     std::string addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqy5664mg";
+                     std::string addr = "atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyg0zgez";
 
-                     if (platon_call(Address(addr), input, value, gas)) {
-                         DEBUG("cross call contract dataCopy success", "address", addr);
+                     auto address_info = make_address(addr);
+                     if(address_info.second){
+                         if (platon_call(address_info.first, input, value, gas)) {
+                             DEBUG("cross call contract dataCopy success", "address", addr);
 
-                       platon::bytes ret;
-                       size_t len = platon_get_call_output_length();
+                           platon::bytes ret;
+                           size_t len = platon_get_call_output_length();
 
-                       ret.resize(len);
-                       platon_get_call_output(ret.data());
+                           ret.resize(len);
+                           platon_get_call_output(ret.data());
 
-                       std::string str = toHex(ret);
-                       DEBUG("cross call contract dataCopy success", "hash", str);
-                       return str;
+                           std::string str = toHex(ret);
+                           DEBUG("cross call contract dataCopy success", "hash", str);
+                           return str;
+                         }
                      }
+
                      DEBUG("cross call contract dataCopy fail", "address", addr);
                      return "";
                  }
@@ -150,21 +172,26 @@ CONTRACT call_precompile : public platon::Contract {
                       // append modulus
                       std::copy(modulus.begin(), modulus.end(), std::back_inserter(input));
 
-                     std::string addr = "0x0000000000000000000000000000000000000005";
+//                     std::string addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9fvwqx6";
+                     std::string addr = "atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq94ekays";
 
-                     if (platon_call(Address(addr), input, value, gas)) {
-                         DEBUG("cross call contract bigModExp success", "address", addr);
+                     auto address_info = make_address(addr);
+                     if(address_info.second){
+                          if (platon_call(address_info.first, input, value, gas)) {
+                              DEBUG("cross call contract bigModExp success", "address", addr);
 
-                       platon::bytes ret;
-                       size_t len = platon_get_call_output_length();
+                              platon::bytes ret;
+                              size_t len = platon_get_call_output_length();
 
-                       ret.resize(len);
-                       platon_get_call_output(ret.data());
+                              ret.resize(len);
+                              platon_get_call_output(ret.data());
 
-                       std::string str = toHex(ret);
-                       DEBUG("cross call contract bigModExp success", "hash", str);
-                       return str;
+                              std::string str = toHex(ret);
+                              DEBUG("cross call contract bigModExp success", "hash", str);
+                              return str;
+                          }
                      }
+
                      DEBUG("cross call contract bigModExp fail", "address", addr);
                      return "";
                  }
@@ -180,21 +207,25 @@ CONTRACT call_precompile : public platon::Contract {
                      std::copy(bx.begin(), bx.end(), std::back_inserter(input));
                      std::copy(by.begin(), by.end(), std::back_inserter(input));
 
-                     std::string addr = "0x0000000000000000000000000000000000000006";
+//                     std::string addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx8lmkg9";
+                     std::string addr = "atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxm2rt20";
+                     auto address_info = make_address(addr);
+                     if(address_info.second){
+                         if (platon_call(address_info.first, input, value, gas)) {
+                             DEBUG("cross call contract bn256Add success", "address", addr);
 
-                     if (platon_call(Address(addr), input, value, gas)) {
-                         DEBUG("cross call contract bn256Add success", "address", addr);
+                           platon::bytes ret;
+                           size_t len = platon_get_call_output_length();
 
-                       platon::bytes ret;
-                       size_t len = platon_get_call_output_length();
+                           ret.resize(len);
+                           platon_get_call_output(ret.data());
 
-                       ret.resize(len);
-                       platon_get_call_output(ret.data());
-
-                       std::string str = toHex(ret);
-                       DEBUG("cross call contract bn256Add success", "hash", str);
-                       return str;
+                           std::string str = toHex(ret);
+                           DEBUG("cross call contract bn256Add success", "hash", str);
+                           return str;
+                         }
                      }
+
                      DEBUG("cross call contract bn256Add fail", "address", addr);
                      return "";
                  }
@@ -211,21 +242,27 @@ CONTRACT call_precompile : public platon::Contract {
                      std::copy(y.begin(), y.end(), std::back_inserter(input));
                      std::copy(scalar.begin(), scalar.end(), std::back_inserter(input));
 
-                     std::string addr = "0x0000000000000000000000000000000000000007";
+//                     std::string addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq86f0r4h";
+                     std::string addr = "atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8xuh7ha";
 
-                     if (platon_call(Address(addr), input, value, gas)) {
-                         DEBUG("cross call contract bn256ScalarMul success", "address", addr);
+                     auto address_info = make_address(addr);
+                     if(address_info.second){
+                         if (platon_call(address_info.first, input, value, gas)) {
+                             DEBUG("cross call contract bn256ScalarMul success", "address", addr);
 
-                       platon::bytes ret;
-                       size_t len = platon_get_call_output_length();
+                           platon::bytes ret;
+                           size_t len = platon_get_call_output_length();
 
-                       ret.resize(len);
-                       platon_get_call_output(ret.data());
+                           ret.resize(len);
+                           platon_get_call_output(ret.data());
 
-                       std::string str = toHex(ret);
-                       DEBUG("cross call contract bn256ScalarMul success", "hash", str);
-                       return str;
+                           std::string str = toHex(ret);
+                           DEBUG("cross call contract bn256ScalarMul success", "hash", str);
+                           return str;
+                         }
                      }
+
+
                      DEBUG("cross call contract bn256ScalarMul fail", "address", addr);
                      return "";
                  }
@@ -235,21 +272,26 @@ CONTRACT call_precompile : public platon::Contract {
 
                      platon::bytes  input = fromHex(in);
 
-                     std::string addr = "0x0000000000000000000000000000000000000008";
+//                     std::string addr = "lax1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqg9yul20";
+                     std::string addr = "atx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqge3yzg9";
 
-                     if (platon_call(Address(addr), input, value, gas)) {
-                         DEBUG("cross call contract bn256Pairing success", "address", addr);
+                     auto address_info = make_address(addr);
+                     if(address_info.second){
+                         if (platon_call(address_info.first, input, value, gas)) {
+                             DEBUG("cross call contract bn256Pairing success", "address", addr);
 
-                       platon::bytes ret;
-                       size_t len = platon_get_call_output_length();
+                           platon::bytes ret;
+                           size_t len = platon_get_call_output_length();
 
-                       ret.resize(len);
-                       platon_get_call_output(ret.data());
+                           ret.resize(len);
+                           platon_get_call_output(ret.data());
 
-                       std::string str = toHex(ret);
-                       DEBUG("cross call contract bn256Pairing success", "hash", str);
-                       return str;
+                           std::string str = toHex(ret);
+                           DEBUG("cross call contract bn256Pairing success", "hash", str);
+                           return str;
+                         }
                      }
+
                      DEBUG("cross call contract bn256Pairing fail", "address", addr);
                      return "";
                  }

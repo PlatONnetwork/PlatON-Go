@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -40,14 +40,14 @@ type RestrictingContract struct {
 }
 
 func (rc *RestrictingContract) RequiredGas(input []byte) uint64 {
-	if checkForkPIP0_11_0(rc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return 0
 	}
 	return params.RestrictingPlanGas
 }
 
 func (rc *RestrictingContract) Run(input []byte) ([]byte, error) {
-	if checkForkPIP0_11_0(rc.Evm.StateDB, input) {
+	if checkInputEmpty(input) {
 		return nil, nil
 	}
 	return execPlatonContract(input, rc.FnSigns())
@@ -90,15 +90,15 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 		return nil, nil
 	}
 
-	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), plans, state)
+	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), blockHash, plans, state)
 	switch err.(type) {
 	case nil:
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "",
-			"", TxCreateRestrictingPlan, int(common.NoErr.Code)), nil
+			"", TxCreateRestrictingPlan, common.NoErr)
 	case *common.BizError:
 		bizErr := err.(*common.BizError)
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "createRestrictingPlan",
-			bizErr.Error(), TxCreateRestrictingPlan, int(bizErr.Code)), nil
+			bizErr.Error(), TxCreateRestrictingPlan, bizErr)
 	default:
 		log.Error("Failed to cal addRestrictingRecord on createRestrictingPlan", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "error", err)

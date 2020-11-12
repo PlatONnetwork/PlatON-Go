@@ -88,7 +88,7 @@ func TestNewUnpacker(t *testing.T) {
 			`[{"type":"function","name":"compareAndApprove","inputs":[{"type":"address"},{"type":"uint256"},{"type":"uint256"}]}]`,
 			"751e107900000000000000000000000000000133700000deadbeef00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
 			[]interface{}{
-				common.HexToAddress("0x00000133700000deadbeef000000000000000000"),
+				common.MustBech32ToAddress("atx1qqqqzvmsqqqdatd7auqqqqqqqqqqqqqqxwns4s"),
 				new(big.Int).SetBytes([]byte{0x00}),
 				big.NewInt(0x1),
 			},
@@ -193,8 +193,8 @@ func TestSelectorUnmarshalling(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		if m.Sig() != selector {
-			t.Errorf("Expected equality: %v != %v", m.Sig(), selector)
+		if m.Sig != selector {
+			t.Errorf("Expected equality: %v != %v", m.Sig, selector)
 		}
 	}
 

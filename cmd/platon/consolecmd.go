@@ -24,11 +24,12 @@ import (
 	"strings"
 	"syscall"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/console"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -125,8 +126,10 @@ func remoteConsole(ctx *cli.Context) error {
 		if path != "" {
 			if ctx.GlobalBool(utils.TestnetFlag.Name) {
 				path = filepath.Join(path, "testnet")
-			} else if ctx.GlobalBool(utils.DemonetFlag.Name) {
-				path = filepath.Join(path, "demonet")
+			} else if ctx.GlobalBool(utils.AlayaNetFlag.Name) {
+				path = filepath.Join(path, "alayanet")
+			} else if ctx.GlobalBool(utils.AlayaTestNetFlag.Name) {
+				path = filepath.Join(path, "alayatestnet")
 			}
 		}
 		endpoint = fmt.Sprintf("%s/platon.ipc", path)

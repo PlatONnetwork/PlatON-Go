@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -301,6 +302,7 @@ func TestViewChangeBySwitchPoint(t *testing.T) {
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < 4; i++ {
 		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+		node.agency = validator.NewMockAgency(cbftnodes, 10)
 		assert.Nil(t, node.Start())
 		node.engine.validatorPool.MockSwitchPoint(10)
 		nodes = append(nodes, node)

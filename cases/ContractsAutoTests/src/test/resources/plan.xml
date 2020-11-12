@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="GBK"?>
+<suite name="AutoSky">
+<module  run="true" name="TestJunit.testExists">
+<case  run="true" name="用例二"> 
+</case>
+ </module>
+<module  run="true" name="TestJunit2.testExists">
+<case  run="true" name="用例一"> 
+</case>
+<case  run="false" name="用例二"> 
+</case>
+<case  run="false" name="用例三"> 
+</case>
+ </module>
+</suite>

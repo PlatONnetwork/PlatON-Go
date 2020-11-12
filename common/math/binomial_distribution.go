@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package math
 
 import (
@@ -7,8 +23,8 @@ import (
 )
 
 var (
-	DELTA         = [...]float64{0.08333333333333333, -2.777777777777778E-5, 7.936507936507937E-8, -5.952380952380953E-10, 8.417508417508329E-12, -1.917526917518546E-13, 6.410256405103255E-15, -2.955065141253382E-16, 1.7964371635940225E-17, -1.3922896466162779E-18, 1.338028550140209E-19, -1.542460098679661E-20, 1.9770199298095743E-21, -2.3406566479399704E-22, 1.713480149663986E-23}
-	LANCZOS       = [...]float64{0.9999999999999971, 57.15623566586292, -59.59796035547549, 14.136097974741746, -0.4919138160976202, 3.399464998481189E-5, 4.652362892704858E-5, -9.837447530487956E-5, 1.580887032249125E-4, -2.1026444172410488E-4, 2.1743961811521265E-4, -1.643181065367639E-4, 8.441822398385275E-5, -2.6190838401581408E-5, 3.6899182659531625E-6}
+	DELTA         = [...]float64{0.08333333333333333, -2.777777777777778e-5, 7.936507936507937e-8, -5.952380952380953e-10, 8.417508417508329e-12, -1.917526917518546e-13, 6.410256405103255e-15, -2.955065141253382e-16, 1.7964371635940225e-17, -1.3922896466162779e-18, 1.338028550140209e-19, -1.542460098679661e-20, 1.9770199298095743e-21, -2.3406566479399704e-22, 1.713480149663986e-23}
+	LANCZOS       = [...]float64{0.9999999999999971, 57.15623566586292, -59.59796035547549, 14.136097974741746, -0.4919138160976202, 3.399464998481189e-5, 4.652362892704858e-5, -9.837447530487956e-5, 1.580887032249125e-4, -2.1026444172410488e-4, 2.1743961811521265e-4, -1.643181065367639e-4, 8.441822398385275e-5, -2.6190838401581408e-5, 3.6899182659531625e-6}
 	HALF_LOG_2_PI = 0.5 * math.Log(6.283185307179586)
 )
 
@@ -22,7 +38,7 @@ func NewBinomialDistribution(n int64, p float64) *BinomialDistribution {
 	continuedFraction := &ContinuedFraction{}
 	gamma := &Gamma{}
 	beta := &Beta{
-		defaultEpsilon: 1.0E-14,
+		defaultEpsilon: 1.0e-14,
 		cf:             continuedFraction,
 		gamma:          gamma,
 	}
@@ -141,12 +157,14 @@ func (bd *BinomialDistribution) checkedCumulativeProbability(argument int64) (fl
 }
 
 func (bd *BinomialDistribution) getNumericalMean() float64 {
-	return float64(float64(bd.trials) * bd.probability)
+	//return float64(float64(bd.trials) * bd.probability)
+	return float64(bd.trials) * bd.probability
 }
 
 func (bd *BinomialDistribution) getNumericalVariance() float64 {
 	p := bd.probability
-	return float64(float64(bd.trials) * p * (1.0 - p))
+	//return float64(float64(bd.trials) * p * (1.0 - p))
+	return float64(bd.trials) * p * (1.0 - p)
 }
 
 type Beta struct {
@@ -156,7 +174,7 @@ type Beta struct {
 }
 
 func (beta *Beta) SimpleRegularizedBeta(x float64, a float64, b float64) (float64, error) {
-	return beta.RegularizedBeta(x, a, b, 1.0E-14, 9223372036854775807)
+	return beta.RegularizedBeta(x, a, b, 1.0e-14, 9223372036854775807)
 }
 
 func (beta *Beta) RegularizedBeta(x float64, a float64, b float64, epsilon float64, maxIterations int64) (float64, error) {
@@ -265,7 +283,8 @@ func (beta *Beta) deltaMinusDeltaSum(a float64, b float64) (float64, error) {
 				w = float64(t)*w + DELTA[i]*s[i]
 			}
 
-			return float64(w) * float64(p) / float64(b), nil
+			//return float64(w) * float64(p) / float64(b), nil
+			return float64(w) * p / b, nil
 		}
 	} else {
 		return 0, fmt.Errorf("%v out of [%v, %v] range", a, 0, b)
@@ -482,8 +501,8 @@ func (cf *ContinuedFraction) getB(a float64, b float64, n int64, x float64) (ret
 
 func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon float64, maxIterations int64) (float64, error) {
 	hPrev := cf.getA(0, x)
-	if precisionEq(hPrev, 0.0, 1.0E-50) {
-		hPrev = 1.0E-50
+	if precisionEq(hPrev, 0.0, 1.0e-50) {
+		hPrev = 1.0e-50
 	}
 
 	var n int64 = 1
@@ -496,13 +515,13 @@ func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon
 			a := cf.getA(n, x)
 			b := cf.getB(av, bv, n, x)
 			dN := a + b*dPrev
-			if precisionEq(dN, 0.0, 1.0E-50) {
-				dN = 1.0E-50
+			if precisionEq(dN, 0.0, 1.0e-50) {
+				dN = 1.0e-50
 			}
 
 			cN := a + b/cPrev
-			if precisionEq(cN, 0.0, 1.0E-50) {
-				cN = 1.0E-50
+			if precisionEq(cN, 0.0, 1.0e-50) {
+				cN = 1.0e-50
 			}
 
 			dN = 1.0 / dN
@@ -634,22 +653,22 @@ func (g *Gamma) invGamma1pm1(x float64) (float64, error) {
 		var b float64
 		var c float64
 		if t < 0.0 {
-			a = 6.116095104481416E-9 + t*6.247308301164655E-9
-			b = 1.9575583661463974E-10
-			b = -6.077618957228252E-8 + t*b
-			b = 9.926418406727737E-7 + t*b
-			b = -6.4304548177935305E-6 + t*b
-			b = -8.514194324403149E-6 + t*b
-			b = 4.939449793824468E-4 + t*b
+			a = 6.116095104481416e-9 + t*6.247308301164655e-9
+			b = 1.9575583661463974e-10
+			b = -6.077618957228252e-8 + t*b
+			b = 9.926418406727737e-7 + t*b
+			b = -6.4304548177935305e-6 + t*b
+			b = -8.514194324403149e-6 + t*b
+			b = 4.939449793824468e-4 + t*b
 			b = 0.026620534842894922 + t*b
 			b = 0.203610414066807 + t*b
 			b = 1.0 + t*b
-			c = -2.056338416977607E-7 + t*(a/b)
-			c = 1.133027231981696E-6 + t*c
-			c = -1.2504934821426706E-6 + t*c
-			c = -2.013485478078824E-5 + t*c
-			c = 1.280502823881162E-4 + t*c
-			c = -2.1524167411495098E-4 + t*c
+			c = -2.056338416977607e-7 + t*(a/b)
+			c = 1.133027231981696e-6 + t*c
+			c = -1.2504934821426706e-6 + t*c
+			c = -2.013485478078824e-5 + t*c
+			c = 1.280502823881162e-4 + t*c
+			c = -2.1524167411495098e-4 + t*c
 			c = -0.0011651675918590652 + t*c
 			c = 0.0072189432466631 + t*c
 			c = -0.009621971527876973 + t*c
@@ -664,24 +683,24 @@ func (g *Gamma) invGamma1pm1(x float64) (float64, error) {
 				ret = x * (c + 0.5 + 0.5)
 			}
 		} else {
-			a = 4.343529937408594E-15
-			a = -1.2494415722763663E-13 + t*a
-			a = 1.5728330277104463E-12 + t*a
-			a = 4.686843322948848E-11 + t*a
-			a = 6.820161668496171E-10 + t*a
-			a = 6.8716741130671986E-9 + t*a
-			a = 6.116095104481416E-9 + t*a
-			b = 2.6923694661863613E-4
+			a = 4.343529937408594e-15
+			a = -1.2494415722763663e-13 + t*a
+			a = 1.5728330277104463e-12 + t*a
+			a = 4.686843322948848e-11 + t*a
+			a = 6.820161668496171e-10 + t*a
+			a = 6.8716741130671986e-9 + t*a
+			a = 6.116095104481416e-9 + t*a
+			b = 2.6923694661863613e-4
 			b = 0.004956830093825887 + t*b
 			b = 0.054642130860422966 + t*b
 			b = 0.3056961078365221 + t*b
 			b = 1.0 + t*b
-			c = -2.056338416977607E-7 + a/b*t
-			c = 1.133027231981696E-6 + t*c
-			c = -1.2504934821426706E-6 + t*c
-			c = -2.013485478078824E-5 + t*c
-			c = 1.280502823881162E-4 + t*c
-			c = -2.1524167411495098E-4 + t*c
+			c = -2.056338416977607e-7 + a/b*t
+			c = 1.133027231981696e-6 + t*c
+			c = -1.2504934821426706e-6 + t*c
+			c = -2.013485478078824e-5 + t*c
+			c = 1.280502823881162e-4 + t*c
+			c = -2.1524167411495098e-4 + t*c
 			c = -0.0011651675918590652 + t*c
 			c = 0.0072189432466631 + t*c
 			c = -0.009621971527876973 + t*c

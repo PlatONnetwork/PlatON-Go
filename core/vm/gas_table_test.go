@@ -17,661 +17,94 @@
 package vm
 
 import (
+	"context"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMemoryGasCost(t *testing.T) {
-	//size := uint64(math.MaxUint64 - 64)
-	size := uint64(0xffffffffe0)
-	v, err := memoryGasCost(&Memory{}, size)
-	if err != nil {
-		t.Error("didn't expect error:", err)
-	}
-	if v != 36028899963961341 {
-		t.Errorf("Expected: 36028899963961341, got %d", v)
-	}
-
-	_, err = memoryGasCost(&Memory{}, size+1)
-	if err == nil {
-		t.Error("expected error")
-	}
-}
-
-func TestConstGasFunc(t *testing.T) {
-	gas := uint64(100)
-	gasFunc := constGasFunc(gas)
-	gasRes, err := gasFunc(params.GasTableHomestead, &EVM{}, &Contract{}, &Stack{}, &Memory{}, 10)
-	assert.Nil(t, err)
-	assert.Equal(t, gas, gasRes)
-}
-
-func TestGasCallDataCopy(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
+	tests := []struct {
+		size     uint64
+		cost     uint64
+		overflow bool
 	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 15, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 113, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
+		{0x1fffffffe0, 36028809887088637, false},
+		{0x1fffffffe1, 0, true},
 	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasCallDataCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
+	for i, tt := range tests {
+		v, err := memoryGasCost(&Memory{}, tt.size)
+		if (err == ErrGasUintOverflow) != tt.overflow {
+			t.Errorf("test %d: overflow mismatch: have %v, want %v", i, err == ErrGasUintOverflow, tt.overflow)
 		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-
-}
-
-func overUint64() *big.Int {
-	data1 := new(big.Int).SetUint64(math.MaxUint64)
-	data2 := new(big.Int).SetUint64(math.MaxUint64)
-	res := new(big.Int)
-	res.Mul(data1, data2)
-	return res
-}
-
-func TestGasReturnDataCopy(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 15, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 113, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasReturnDataCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-
-}
-
-func TestGasSStore(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	contract := newContract(new(big.Int).SetUint64(0), common.BytesToAddress([]byte("a")))
-	evm := &EVM{
-		StateDB: createMockState(),
-	}
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 20000, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(0), uint2BigInt(1)}, expected: 5000, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 20000, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 20000, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 20000, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasSStore(gasTable, evm, contract, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
+		if v != tt.cost {
+			t.Errorf("test %d: gas cost mismatch: have %v, want %v", i, v, tt.cost)
 		}
 	}
 }
 
-func uint2BigInt(u uint64) *big.Int {
-	return new(big.Int).SetUint64(u)
+var eip2200Tests = []struct {
+	original byte
+	gaspool  uint64
+	input    string
+	used     uint64
+	refund   uint64
+	failure  error
+}{
+	{0, math.MaxUint64, "0x60006000556000600055", 1612, 0, nil},                // 0 -> 0 -> 0
+	{0, math.MaxUint64, "0x60006000556001600055", 20812, 0, nil},               // 0 -> 0 -> 1
+	{0, math.MaxUint64, "0x60016000556000600055", 20812, 19200, nil},           // 0 -> 1 -> 0
+	{0, math.MaxUint64, "0x60016000556002600055", 20812, 0, nil},               // 0 -> 1 -> 2
+	{0, math.MaxUint64, "0x60016000556001600055", 20812, 0, nil},               // 0 -> 1 -> 1
+	{1, math.MaxUint64, "0x60006000556000600055", 5812, 15000, nil},            // 1 -> 0 -> 0
+	{1, math.MaxUint64, "0x60006000556001600055", 5812, 4200, nil},             // 1 -> 0 -> 1
+	{1, math.MaxUint64, "0x60006000556002600055", 5812, 0, nil},                // 1 -> 0 -> 2
+	{1, math.MaxUint64, "0x60026000556000600055", 5812, 15000, nil},            // 1 -> 2 -> 0
+	{1, math.MaxUint64, "0x60026000556003600055", 5812, 0, nil},                // 1 -> 2 -> 3
+	{1, math.MaxUint64, "0x60026000556001600055", 5812, 4200, nil},             // 1 -> 2 -> 1
+	{1, math.MaxUint64, "0x60026000556002600055", 5812, 0, nil},                // 1 -> 2 -> 2
+	{1, math.MaxUint64, "0x60016000556000600055", 5812, 15000, nil},            // 1 -> 1 -> 0
+	{1, math.MaxUint64, "0x60016000556002600055", 5812, 0, nil},                // 1 -> 1 -> 2
+	{1, math.MaxUint64, "0x60016000556001600055", 1612, 0, nil},                // 1 -> 1 -> 1
+	{0, math.MaxUint64, "0x600160005560006000556001600055", 40818, 19200, nil}, // 0 -> 1 -> 0 -> 1
+	{1, math.MaxUint64, "0x600060005560016000556000600055", 10818, 19200, nil}, // 1 -> 0 -> 1 -> 0
+	{1, 2306, "0x6001600055", 2306, 0, ErrOutOfGas},                            // 1 -> 1 (2300 sentry + 2xPUSH)
+	{1, 2307, "0x6001600055", 806, 0, nil},                                     // 1 -> 1 (2301 sentry + 2xPUSH)
 }
 
-func mockStack(b ...*big.Int) *Stack {
-	stack := newstack()
-	for _, v := range b {
-		stack.push(v)
-	}
-	return stack
-}
+func TestEIP2200(t *testing.T) {
+	for i, tt := range eip2200Tests {
+		address := common.BytesToAddress([]byte("contract"))
 
-func TestMakeGasLog(t *testing.T) {
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
+		statedb.CreateAccount(address)
+		statedb.SetCode(address, hexutil.MustDecode(tt.input))
+		statedb.SetState(address, common.Hash{}.Bytes(), common.BytesToHash([]byte{tt.original}).Bytes())
+		statedb.Finalise(true) // Push the state into the "original" slot
 
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 2675, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 2773, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), uint2BigInt(3), overUint, uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
-	}
-	gasLogFunc := makeGasLog(4)
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		//gas, err := gasReturnDataCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		gas, err := gasLogFunc(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("TestCase %d - Expected: %d, got %d", i, v.expected, gas)
+		vmctx := Context{
+			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
+			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
+			Ctx:         context.Background(),
 		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
+		vmenv := NewEVM(vmctx, nil, statedb, params.AllEthashProtocolChanges, Config{})
+
+		_, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
+		if err != tt.failure {
+			t.Errorf("test %d: failure mismatch: have %v, want %v", i, err, tt.failure)
 		}
-	}
-}
-
-func TestGasSha3(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 54, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 152, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), uint2BigInt(3), overUint, uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasSha3(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
+		if used := tt.gaspool - gas; used != tt.used {
+			t.Errorf("test %d: gas used mismatch: have %v, want %v", i, used, tt.used)
 		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
+		if refund := vmenv.StateDB.GetRefund(); refund != tt.refund {
+			t.Errorf("test %d: gas refund mismatch: have %v, want %v", i, refund, tt.refund)
 		}
-	}
-}
-
-func TestGasCodeCopy(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 15, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 113, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasCodeCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-}
-
-func TestGasExtCodeCopy(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 712, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 810, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{overUint, uint2BigInt(2), uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasExtCodeCopy(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-
-}
-
-func TestGasMLoad(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 3, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 101, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 101, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasMLoad(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-}
-
-func TestGasMStore8(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 3, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 101, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 101, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasMStore8(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-
-}
-
-func TestGasMStore(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 3, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 101, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 101, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasMStore(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-}
-
-func TestGasCreate(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32000, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32098, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 32098, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasCreate(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-}
-
-func TestGasCreate2(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32024, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 32122, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 0, memorySize: 1024, isNil: false},
-	}
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasCreate2(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-}
-
-func TestGasBalance(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasBalance(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
-	if gas != 400 {
-		t.Errorf("Expected: 400, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-}
-
-func TestGasExtCodeSize(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasExtCodeSize(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
-	if gas != 700 {
-		t.Errorf("Expected: 700, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-}
-
-func TestGasSLoad(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasSLoad(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
-	if gas != 200 {
-		t.Errorf("Expected: 200, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-}
-
-func TestGasExp(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasExp(gasTable, &EVM{}, &Contract{}, stack, NewMemory(), 1024)
-	if gas != 60 {
-		t.Errorf("Expected: 60, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-}
-
-func TestGasCall(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 34800, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 34898, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 34802, memorySize: 1024, isNil: false},
-	}
-	stateDB, _, _ := newChainState()
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasCall(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-}
-
-func TestGasCallCode(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 9800, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 9898, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 9802, memorySize: 1024, isNil: false},
-	}
-	stateDB, _, _ := newChainState()
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasCallCode(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-
-}
-
-func TestGasReturn(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stateDB, _, _ := newChainState()
-
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasReturn(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), 1024)
-	if gas != 98 {
-		t.Errorf("Expected: 98, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-}
-
-func TestGasRevert(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stateDB, _, _ := newChainState()
-
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasRevert(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), 1024)
-	if gas != 98 {
-		t.Errorf("Expected: 98, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-}
-
-type MockAddressRef struct{}
-
-func (ref *MockAddressRef) Address() common.Address {
-	return common.BytesToAddress([]byte("aaa"))
-}
-
-func TestGasSuicide(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stateDB, _, _ := newChainState()
-
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasSuicide(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000, self: &MockAddressRef{}}, stack, NewMemory(), 1024)
-	if gas != 5000 {
-		t.Errorf("Expected: 5000, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-}
-
-func TestGasDelegateCall(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 800, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 898, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 802, memorySize: 1024, isNil: false},
-	}
-	stateDB, _, _ := newChainState()
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasDelegateCall(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-
-}
-
-func TestGasStaticCall(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	overUint := overUint64()
-	testCases := []struct {
-		elements   []*big.Int
-		memorySize uint64
-		expected   uint64
-		isNil      bool
-	}{
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 800, memorySize: 0, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 898, memorySize: 1024, isNil: true},
-		{elements: []*big.Int{uint2BigInt(100), uint2BigInt(100), uint2BigInt(100), uint2BigInt(100)}, expected: 0, memorySize: 0xffffffffe1, isNil: false},
-		{elements: []*big.Int{uint2BigInt(2), overUint, uint2BigInt(3), uint2BigInt(4)}, expected: 802, memorySize: 1024, isNil: false},
-	}
-	stateDB, _, _ := newChainState()
-	for i, v := range testCases {
-		stack := mockStack(v.elements...)
-		gas, err := gasStaticCall(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), v.memorySize)
-		if gas != v.expected {
-			t.Errorf("Testcase %d - Expected: %d, got %d", i, v.expected, gas)
-		}
-		if v.isNil && err != nil {
-			t.Error("not expected error")
-		}
-	}
-}
-
-func TestGasPush(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stateDB, _, _ := newChainState()
-
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasPush(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), 1024)
-	if gas != 3 {
-		t.Errorf("Expected: 3, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-}
-
-func TestGasSwap(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stateDB, _, _ := newChainState()
-
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasSwap(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), 1024)
-	if gas != 3 {
-		t.Errorf("Expected: 3, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
-	}
-}
-
-func TestGasDup(t *testing.T) {
-	gasTable := params.GasTableConstantinople
-	stack := newstack()
-	stateDB, _, _ := newChainState()
-
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	stack.push(new(big.Int).SetUint64(100))
-	gas, err := gasDup(gasTable, &EVM{StateDB: stateDB}, &Contract{Gas: 1000}, stack, NewMemory(), 1024)
-	if gas != 3 {
-		t.Errorf("Expected: 3, got %d", gas)
-	}
-	if err != nil {
-		t.Error("not expected error")
 	}
 }

@@ -23,10 +23,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -88,9 +84,8 @@ func IntrinsicGas(data []byte, contractCreation bool, state vm.StateDB) (uint64,
 		gas = params.TxGas
 	}
 
-	currVersion := gov.GetCurrentActiveVersion(state)
 	var noZeroGas, zeroGas uint64
-	if contractCreation && vm.CanUseWASMInterp(data) && currVersion >= params.FORKVERSION_0_11_0 {
+	if contractCreation && vm.CanUseWASMInterp(data) {
 		noZeroGas = params.TxDataNonZeroWasmDeployGas
 		zeroGas = params.TxDataZeroWasmDeployGas
 	} else {
@@ -142,7 +137,7 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, error) {
+func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, error, error) {
 	return NewStateTransition(evm, msg, gp).TransitionDb()
 }
 
@@ -194,7 +189,7 @@ func (st *StateTransition) preCheck() error {
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
+func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err, vmError error) {
 
 	// init initialGas value = txMsg.gas
 	if err = st.preCheck(); err != nil {
@@ -207,11 +202,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	// Pay intrinsic gas
 	gas, err := IntrinsicGas(st.data, contractCreation, st.state)
 	if err != nil {
-		return nil, 0, false, err
+		return nil, 0, false, err, nil
 	}
 
 	if err = st.useGas(gas); err != nil {
-		return nil, 0, false, err
+		return nil, 0, false, err, nil
 	}
 
 	var (
@@ -243,20 +238,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-
-		var needSkipExec bool
-		to := *(msg.To())
-		currVersion := gov.GetCurrentActiveVersion(st.state)
-		if currVersion >= params.FORKVERSION_0_11_0 && state.IsBadContract(to) {
-			needSkipExec = true
-		}
-
-		if needSkipExec {
-			vmerr = vm.ErrExecBadContract
-			log.Debug("execute bad contract", "blockNumber", evm.BlockNumber, "txHash", evm.StateDB.TxHash().TerminalString(), "contractAddr", to.String())
-		} else {
-			ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
-		}
+		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 
 	if vmerr != nil {
@@ -266,7 +248,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		// balance transfer may never fail.
 		// And vm was aborted.
 		if vmerr == vm.ErrInsufficientBalance || vmerr == vm.ErrAbort || vmerr == vm.ErrWASMUndefinedPanic {
-			return nil, 0, false, vmerr
+			return nil, 0, false, vmerr, nil
 		}
 	}
 
@@ -274,7 +256,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
-	return ret, st.gasUsed(), vmerr != nil, err
+	return ret, st.gasUsed(), vmerr != nil, err, vmerr
 }
 
 func (st *StateTransition) refundGas() {

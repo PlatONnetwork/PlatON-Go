@@ -87,7 +87,7 @@ func (b *testBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*type
 
 func (b *testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
 	if number := rawdb.ReadHeaderNumber(b.db, hash); number != nil {
-		return rawdb.ReadReceipts(b.db, hash, *number), nil
+		return rawdb.ReadReceipts(b.db, hash, *number, params.TestChainConfig), nil
 	}
 	return nil, nil
 }
@@ -97,7 +97,7 @@ func (b *testBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types
 	if number == nil {
 		return nil, nil
 	}
-	receipts := rawdb.ReadReceipts(b.db, hash, *number)
+	receipts := rawdb.ReadReceipts(b.db, hash, *number, params.TestChainConfig)
 
 	logs := make([][]*types.Log, len(receipts))
 	for i, receipt := range receipts {
@@ -163,7 +163,7 @@ func TestBlockSubscription(t *testing.T) {
 
 	var (
 		mux        = new(event.TypeMux)
-		db         = ethdb.NewMemDatabase()
+		db         = rawdb.NewMemoryDatabase()
 		txFeed     = new(event.Feed)
 		rmLogsFeed = new(event.Feed)
 		logsFeed   = new(event.Feed)
@@ -223,7 +223,7 @@ func TestPendingTxFilter(t *testing.T) {
 
 	var (
 		mux        = new(event.TypeMux)
-		db         = ethdb.NewMemDatabase()
+		db         = rawdb.NewMemoryDatabase()
 		txFeed     = new(event.Feed)
 		rmLogsFeed = new(event.Feed)
 		logsFeed   = new(event.Feed)
@@ -232,11 +232,11 @@ func TestPendingTxFilter(t *testing.T) {
 		api        = NewPublicFilterAPI(backend, false)
 
 		transactions = []*types.Transaction{
-			types.NewTransaction(0, common.HexToAddress("0xb794f5ea0ba39494ce83a213fffba74279579268"), new(big.Int), 0, new(big.Int), nil),
-			types.NewTransaction(1, common.HexToAddress("0xb794f5ea0ba39494ce83a213fffba74279579268"), new(big.Int), 0, new(big.Int), nil),
-			types.NewTransaction(2, common.HexToAddress("0xb794f5ea0ba39494ce83a213fffba74279579268"), new(big.Int), 0, new(big.Int), nil),
-			types.NewTransaction(3, common.HexToAddress("0xb794f5ea0ba39494ce83a213fffba74279579268"), new(big.Int), 0, new(big.Int), nil),
-			types.NewTransaction(4, common.HexToAddress("0xb794f5ea0ba39494ce83a213fffba74279579268"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(0, common.MustBech32ToAddress("atx1k720t6st5w2ffn5r5gfll7a8gfu40yngcemcxx"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(1, common.MustBech32ToAddress("atx1k720t6st5w2ffn5r5gfll7a8gfu40yngcemcxx"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(2, common.MustBech32ToAddress("atx1k720t6st5w2ffn5r5gfll7a8gfu40yngcemcxx"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(3, common.MustBech32ToAddress("atx1k720t6st5w2ffn5r5gfll7a8gfu40yngcemcxx"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(4, common.MustBech32ToAddress("atx1k720t6st5w2ffn5r5gfll7a8gfu40yngcemcxx"), new(big.Int), 0, new(big.Int), nil),
 		}
 
 		hashes []common.Hash
@@ -283,7 +283,7 @@ func TestPendingTxFilter(t *testing.T) {
 func TestLogFilterCreation(t *testing.T) {
 	var (
 		mux        = new(event.TypeMux)
-		db         = ethdb.NewMemDatabase()
+		db         = rawdb.NewMemoryDatabase()
 		txFeed     = new(event.Feed)
 		rmLogsFeed = new(event.Feed)
 		logsFeed   = new(event.Feed)
@@ -332,7 +332,7 @@ func TestInvalidLogFilterCreation(t *testing.T) {
 
 	var (
 		mux        = new(event.TypeMux)
-		db         = ethdb.NewMemDatabase()
+		db         = rawdb.NewMemoryDatabase()
 		txFeed     = new(event.Feed)
 		rmLogsFeed = new(event.Feed)
 		logsFeed   = new(event.Feed)
@@ -359,7 +359,7 @@ func TestInvalidLogFilterCreation(t *testing.T) {
 func TestInvalidGetLogsRequest(t *testing.T) {
 	var (
 		mux        = new(event.TypeMux)
-		db         = ethdb.NewMemDatabase()
+		db         = rawdb.NewMemoryDatabase()
 		txFeed     = new(event.Feed)
 		rmLogsFeed = new(event.Feed)
 		logsFeed   = new(event.Feed)
@@ -389,7 +389,7 @@ func TestLogFilter(t *testing.T) {
 
 	var (
 		mux        = new(event.TypeMux)
-		db         = ethdb.NewMemDatabase()
+		db         = rawdb.NewMemoryDatabase()
 		txFeed     = new(event.Feed)
 		rmLogsFeed = new(event.Feed)
 		logsFeed   = new(event.Feed)
@@ -397,10 +397,10 @@ func TestLogFilter(t *testing.T) {
 		backend    = &testBackend{mux, db, 0, txFeed, rmLogsFeed, logsFeed, chainFeed}
 		api        = NewPublicFilterAPI(backend, false)
 
-		firstAddr      = common.HexToAddress("0x1111111111111111111111111111111111111111")
-		secondAddr     = common.HexToAddress("0x2222222222222222222222222222222222222222")
-		thirdAddress   = common.HexToAddress("0x3333333333333333333333333333333333333333")
-		notUsedAddress = common.HexToAddress("0x9999999999999999999999999999999999999999")
+		firstAddr      = common.MustBech32ToAddress("atx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg34mhnr2")
+		secondAddr     = common.MustBech32ToAddress("atx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z6xj4ta")
+		thirdAddress   = common.MustBech32ToAddress("atx1xvenxvenxvenxvenxvenxvenxvenxvengc9g70")
+		notUsedAddress = common.MustBech32ToAddress("atx1nxvenxvenxvenxvenxvenxvenxvenxvex97rzw")
 		firstTopic     = common.HexToHash("0x1111111111111111111111111111111111111111111111111111111111111111")
 		secondTopic    = common.HexToHash("0x2222222222222222222222222222222222222222222222222222222222222222")
 		notUsedTopic   = common.HexToHash("0x9999999999999999999999999999999999999999999999999999999999999999")
@@ -508,7 +508,7 @@ func TestPendingLogsSubscription(t *testing.T) {
 
 	var (
 		mux        = new(event.TypeMux)
-		db         = ethdb.NewMemDatabase()
+		db         = rawdb.NewMemoryDatabase()
 		txFeed     = new(event.Feed)
 		rmLogsFeed = new(event.Feed)
 		logsFeed   = new(event.Feed)
@@ -516,10 +516,10 @@ func TestPendingLogsSubscription(t *testing.T) {
 		backend    = &testBackend{mux, db, 0, txFeed, rmLogsFeed, logsFeed, chainFeed}
 		api        = NewPublicFilterAPI(backend, false)
 
-		firstAddr      = common.HexToAddress("0x1111111111111111111111111111111111111111")
-		secondAddr     = common.HexToAddress("0x2222222222222222222222222222222222222222")
-		thirdAddress   = common.HexToAddress("0x3333333333333333333333333333333333333333")
-		notUsedAddress = common.HexToAddress("0x9999999999999999999999999999999999999999")
+		firstAddr      = common.MustBech32ToAddress("atx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg34mhnr2")
+		secondAddr     = common.MustBech32ToAddress("atx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z6xj4ta")
+		thirdAddress   = common.MustBech32ToAddress("atx1xvenxvenxvenxvenxvenxvenxvenxvengc9g70")
+		notUsedAddress = common.MustBech32ToAddress("atx1nxvenxvenxvenxvenxvenxvenxvenxvex97rzw")
 		firstTopic     = common.HexToHash("0x1111111111111111111111111111111111111111111111111111111111111111")
 		secondTopic    = common.HexToHash("0x2222222222222222222222222222222222222222222222222222222222222222")
 		thirdTopic     = common.HexToHash("0x3333333333333333333333333333333333333333333333333333333333333333")

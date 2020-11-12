@@ -26,7 +26,6 @@ import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
 import network.platon.autotest.junit.rules.DriverService;
-import network.platon.contracts.HumanStandardToken;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -100,7 +99,7 @@ public class TokenTransferTest {
             collector.assertEqual(tokenName, token.name().send(), "checkout tokenName");
             collector.logStepPass("5次循环调用...");
             for (int i = 1; i < 6; i++) {
-                TransactionReceipt transactionReceipt = HumanStandardToken.load(contractAddress, web3j, transactionManager, provider)
+                TransactionReceipt transactionReceipt = HumanStandardToken.load(contractAddress, web3j, transactionManager, provider, chainId)
                         .transfer(transferTo, new BigInteger(transferAmount)).send();
                 BigInteger toBalance = token.balanceOf(transferTo).send();
                 BigInteger fromBalance = token.balanceOf(transferFrom).send();

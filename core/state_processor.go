@@ -17,13 +17,21 @@
 package core
 
 import (
+	"bytes"
+	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -73,12 +81,15 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
+		//preUsedGas := uint64(0)
+
 		receipt, _, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			log.Error("Failed to execute tx on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash().TerminalString(), "txHash", tx.Hash().String(), "err", err)
 			return nil, nil, 0, err
 		}
+		//log.Debug("tx process success", "txHash", tx.Hash().Hex(), "txTo", tx.To().Hex(), "dataLength", len(tx.Data()), "toCodeSize", statedb.GetCodeSize(*tx.To()), "txUsedGas", *usedGas-preUsedGas)
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
@@ -115,12 +126,12 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	context := NewEVMContext(msg, header, bc)
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
-	vmenv := vm.NewEVM(context, statedb, config, cfg)
+	vmenv := vm.NewEVM(context, snapshotdb.Instance(), statedb, config, cfg)
 
 	log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
 
 	// Apply the transaction to the current state (included in the env)
-	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
+	_, gas, failed, err, vmerr := ApplyMessage(vmenv, msg, gp)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -140,8 +151,32 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
-	receipt.Logs = statedb.GetLogs(tx.Hash())
-	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 
+	if gov.Gte0140VersionState(statedb) && failed && vmerr != nil {
+		if bizError, ok := vmerr.(*common.BizError); ok {
+			buf := new(bytes.Buffer)
+			res := strconv.Itoa(int(bizError.Code))
+			if err := rlp.Encode(buf, [][]byte{[]byte(res)}); nil != err {
+				log.Error("Cannot RlpEncode the log data", "data", bizError.Code, "err", err)
+				return nil, 0, err
+			}
+			receipt.Logs = []*types.Log{
+				&types.Log{
+					Address:     *msg.To(),
+					Topics:      nil,
+					Data:        buf.Bytes(),
+					BlockNumber: header.Number.Uint64(),
+				},
+			}
+		} else {
+			receipt.Logs = statedb.GetLogs(tx.Hash())
+		}
+	} else {
+		receipt.Logs = statedb.GetLogs(tx.Hash())
+	}
+	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	receipt.BlockHash = statedb.BlockHash()
+	receipt.BlockNumber = header.Number
+	receipt.TransactionIndex = uint(statedb.TxIndex())
 	return receipt, gas, err
 }

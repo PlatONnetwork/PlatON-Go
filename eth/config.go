@@ -50,7 +50,7 @@ var DefaultConfig = Config{
 	TrieDBCache:   512,
 	MinerGasFloor: params.GenesisGasLimit,
 	//MinerGasCeil:  4000 * 21000 * 1.2,
-	DBDisabledGC:      false,
+	DBDisabledGC:      true,
 	DBGCInterval:      86400,
 	DBGCTimeout:       time.Minute,
 	DBGCMpt:           true,

@@ -22,9 +22,12 @@ import (
 	"io"
 	"math/big"
 	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -80,6 +83,7 @@ type Header struct {
 
 	// caches
 	sealHash atomic.Value `json:"-" rlp:"-"`
+	hash     atomic.Value `json:"-" rlp:"-"`
 }
 
 // field type overrides for gencodec
@@ -96,6 +100,15 @@ type headerMarshaling struct {
 // RLP encoding.
 func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
+}
+
+func (h *Header) CacheHash() common.Hash {
+	if hash := h.hash.Load(); hash != nil {
+		return hash.(common.Hash)
+	}
+	v := rlpHash(h)
+	h.hash.Store(v)
+	return v
 }
 
 // SealHash returns the keccak256 seal hash of b's header.
@@ -149,10 +162,19 @@ func (h *Header) Signature() []byte {
 	return h.Extra[32:]
 }
 
+// hasherPool holds Keccak hashers.
+var hasherPool = sync.Pool{
+	New: func() interface{} {
+		return sha3.NewKeccak256()
+	},
+}
+
 func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
-	rlp.Encode(hw, x)
-	hw.Sum(h[:0])
+	sha := hasherPool.Get().(crypto.KeccakState)
+	defer hasherPool.Put(sha)
+	sha.Reset()
+	rlp.Encode(sha, x)
+	sha.Read(h[:])
 	return h
 }
 
@@ -177,6 +199,8 @@ type Block struct {
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
 	extraData    []byte
+
+	CalTxFromCH chan int
 }
 
 // [deprecated by eth/63]
@@ -233,6 +257,16 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 // will not affect the block.
 func NewBlockWithHeader(header *Header) *Block {
 	return &Block{header: CopyHeader(header)}
+}
+
+// NewSimplifiedBlock creates a block with the given number and hash data.
+func NewSimplifiedBlock(number uint64, hash common.Hash) *Block {
+	header := &Header{
+		Number: big.NewInt(int64(number)),
+	}
+	block := NewBlockWithHeader(header)
+	block.hash.Store(hash)
+	return block
 }
 
 // CopyHeader creates a deep copy of a block header to prevent side effects from

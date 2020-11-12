@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -182,16 +182,14 @@ func (ev *EvidenceView) Verify() error {
 
 // EvidenceNode mainly used to save node BlsPubKey
 type EvidenceNode struct {
-	Index     uint32          `json:"index"`
-	Address   common.Address  `json:"address"`
-	NodeID    discover.NodeID `json:"nodeId"`
-	BlsPubKey *bls.PublicKey  `json:"blsPubKey"`
+	Index     uint32             `json:"index"`
+	NodeID    discover.NodeID    `json:"nodeId"`
+	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
 }
 
 func NewEvidenceNode(node *cbfttypes.ValidateNode) *EvidenceNode {
 	return &EvidenceNode{
 		Index:     node.Index,
-		Address:   node.Address,
 		NodeID:    node.NodeID,
 		BlsPubKey: node.BlsPubKey,
 	}

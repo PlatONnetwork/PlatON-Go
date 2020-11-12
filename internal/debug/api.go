@@ -39,6 +39,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
+func GetLogVerbosity() log.Lvl {
+	return glogger.GetVerbosity()
+}
+
 // Handler is the global debugging handler.
 var Handler = new(HandlerT)
 

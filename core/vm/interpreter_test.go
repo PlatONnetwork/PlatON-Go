@@ -2,9 +2,10 @@ package vm
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -12,30 +13,30 @@ import (
 
 type account struct{}
 
-func (account) SubBalance(amount *big.Int)                          {}
-func (account) AddBalance(amount *big.Int)                          {}
-func (account) SetAddress(common.Address)                           {}
-func (account) Value() *big.Int                                     { return nil }
-func (account) SetBalance(*big.Int)                                 {}
-func (account) SetNonce(uint64)                                     {}
-func (account) Balance() *big.Int                                   { return nil }
-func (account) Address() common.Address                             { return common.Address{} }
-func (account) ReturnGas(*big.Int)                                  {}
-func (account) SetCode(common.Hash, []byte)                         {}
-func (account) ForEachStorage(cb func(key, value common.Hash) bool) {}
+func (account) SubBalance(amount *big.Int)                                 {}
+func (account) AddBalance(amount *big.Int)                                 {}
+func (account) SetAddress(common.Address)                                  {}
+func (account) Value() *big.Int                                            { return nil }
+func (account) SetBalance(*big.Int)                                        {}
+func (account) SetNonce(uint64)                                            {}
+func (account) Balance() *big.Int                                          { return nil }
+func (account) Address() common.Address                                    { return common.Address{} }
+func (account) ReturnGas(*big.Int)                                         {}
+func (account) SetCode(common.Hash, []byte)                                {}
+func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
 func TestEnforceRestrictions(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
 	evmInterpreter.readOnly = true
 	varstore := operation{
-		execute:       opSstore,
-		gasCost:       gasSStore,
-		validateStack: makeStackFunc(2, 0),
-		valid:         true,
-		writes:        true,
+		execute:    opSstore,
+		dynamicGas: gasSStore,
+		minStack:   minStack(2, 0),
+		maxStack:   maxStack(2, 0),
+		writes:     true,
 	}
 	err := evmInterpreter.enforceRestrictions(SSTORE, varstore, nil)
 	if err == nil {
@@ -45,7 +46,7 @@ func TestEnforceRestrictions(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	var (
-		env            = NewEVM(Context{Ctx: context.TODO()}, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(Context{Ctx: context.TODO()}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
 	contract := NewContract(account{}, account{}, big.NewInt(0), 1)

@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -18,9 +18,10 @@ package plugin
 
 import (
 	"encoding/hex"
-	"testing"
-
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 
@@ -82,7 +83,7 @@ func setup(t *testing.T) func() {
 	snapdb = snapshotdb.Instance()
 
 	// init data
-	if err := gov.InitGenesisGovernParam(snapdb, 2048); err != nil {
+	if _, err := gov.InitGenesisGovernParam(common.ZeroHash, snapdb, 2048); err != nil {
 		t.Fatalf("cannot init genesis govern param...")
 	}
 
@@ -185,7 +186,7 @@ func submitCancel(t *testing.T, pid, tobeCanceled common.Hash) {
 	}
 }
 
-func allVote(t *testing.T, pid common.Hash) {
+func allVote(t *testing.T, pid common.Hash, newVersion uint32) {
 	//for _, nodeID := range nodeIdArr {
 	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
 	voteCount := len(currentValidatorList)
@@ -200,9 +201,9 @@ func allVote(t *testing.T, pid common.Hash) {
 
 		chandler.SetPrivateKey(priKeyArr[i])
 		versionSign := common.VersionSign{}
-		versionSign.SetBytes(chandler.MustSign(promoteVersion))
+		versionSign.SetBytes(chandler.MustSign(newVersion))
 
-		err := gov.Vote(sender, vote, lastBlockHash, 1, promoteVersion, versionSign, stk, stateDB)
+		err := gov.Vote(sender, vote, lastBlockHash, 1, newVersion, versionSign, stk, stateDB)
 		if err != nil {
 			t.Fatalf("vote err: %s.", err)
 		}
@@ -973,7 +974,7 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 
 	buildBlockNoCommit(2)
 
-	allVote(t, txHashArr[0])
+	allVote(t, txHashArr[0], promoteVersion)
 	sndb.Commit(lastBlockHash) //commit
 	sndb.Compaction()          //write to level db
 
@@ -1090,8 +1091,8 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 
 	buildBlockNoCommit(2)
 
-	allVote(t, txHashArr[0])
-	allVote(t, txHashArr[1])
+	allVote(t, txHashArr[0], promoteVersion)
+	allVote(t, txHashArr[1], promoteVersion)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
@@ -1187,7 +1188,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 
 	buildBlockNoCommit(2)
 	//voting
-	allVote(t, txHashArr[0])
+	allVote(t, txHashArr[0], promoteVersion)
 
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -1224,184 +1225,6 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	} else {
 		t.Fatalf("active FALSE, %d", activeVersion)
 	}
-}
-
-func TestGovPlugin_versionProposalActive_ver0_11_0(t *testing.T) {
-
-	defer setup(t)()
-
-	chainID = big.NewInt(101)
-	GovPluginInstance().SetChainID(chainID)
-	promoteVersion = params.FORKVERSION_0_11_0
-
-	//submit version proposal
-	submitVersion(t, txHashArr[0])
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction() //flush to LevelDB
-
-	endVotingBlock := xutil.CalEndVotingBlock(1, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()))
-	actvieBlock := xutil.CalActiveBlock(endVotingBlock)
-
-	buildBlockNoCommit(2)
-	//voting
-	allVote(t, txHashArr[0])
-
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction()
-
-	lastBlockNumber = uint64(endVotingBlock - 1)
-	lastHeader = types.Header{
-		Number: big.NewInt(int64(lastBlockNumber)),
-	}
-	lastBlockHash = lastHeader.Hash()
-	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
-
-	build_staking_data_more(endVotingBlock)
-
-	//tally result
-	endBlock(t)
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction()
-	lastBlockNumber = uint64(actvieBlock - 1)
-	lastHeader = types.Header{
-		Number: big.NewInt(int64(lastBlockNumber)),
-	}
-	lastBlockHash = lastHeader.Hash()
-	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
-
-	//buildBlockNoCommit(23480)
-	build_staking_data_more(actvieBlock)
-
-	_, err := gov.GetGovernParamValue(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, lastBlockNumber, lastBlockHash)
-	assert.Equal(t, gov.UnsupportedGovernParam, err)
-	_, err = gov.GetGovernParamValue(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, lastBlockNumber, lastBlockHash)
-	assert.Equal(t, gov.UnsupportedGovernParam, err)
-
-	//active
-	beginBlock(t)
-
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction()
-
-	activeVersion := gov.GetCurrentActiveVersion(stateDB)
-	if activeVersion == promoteVersion {
-		t.Logf("active SUCCESS, %d", activeVersion)
-	} else {
-		t.Fatalf("active FALSE, %d", activeVersion)
-	}
-
-	var newZeroProduceCumulativeTime uint16
-	if cumulativeTime, err := gov.GovernZeroProduceCumulativeTime(lastBlockNumber, lastBlockHash); err != nil {
-		t.Fatalf("cannot find new gov param (newZeroProduceCumulativeTime)")
-	} else {
-		newZeroProduceCumulativeTime = cumulativeTime
-	}
-
-	var newZeroProduceNumberThreshold uint16
-	if numberThreshold, err := gov.GovernZeroProduceNumberThreshold(lastBlockNumber, lastBlockHash); err != nil {
-		t.Fatalf("cannot find new gov param(newZeroProduceNumberThreshold)")
-	} else {
-		newZeroProduceNumberThreshold = numberThreshold
-	}
-
-	assert.Equal(t, uint16(8), newZeroProduceCumulativeTime)
-	assert.Equal(t, uint16(2), newZeroProduceNumberThreshold)
-}
-
-func TestGovPlugin_versionProposalActive_ver0_10_0(t *testing.T) {
-
-	defer setup(t)()
-
-	chainID = big.NewInt(101)
-	GovPluginInstance().SetChainID(chainID)
-	promoteVersion = params.FORKVERSION_0_10_0
-
-	//submit version proposal
-	submitVersion(t, txHashArr[0])
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction() //flush to LevelDB
-
-	endVotingBlock := xutil.CalEndVotingBlock(1, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()))
-	actvieBlock := xutil.CalActiveBlock(endVotingBlock)
-
-	buildBlockNoCommit(2)
-	//voting
-	allVote(t, txHashArr[0])
-
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction()
-
-	lastBlockNumber = uint64(endVotingBlock - 1)
-	lastHeader = types.Header{
-		Number: big.NewInt(int64(lastBlockNumber)),
-	}
-	lastBlockHash = lastHeader.Hash()
-	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
-
-	build_staking_data_more(endVotingBlock)
-
-	//tally result
-	endBlock(t)
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction()
-	lastBlockNumber = uint64(actvieBlock - 1)
-	lastHeader = types.Header{
-		Number: big.NewInt(int64(lastBlockNumber)),
-	}
-	lastBlockHash = lastHeader.Hash()
-	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
-
-	//buildBlockNoCommit(23480)
-	build_staking_data_more(actvieBlock)
-
-	gov.UpdateGovernParamValue(gov.ModuleStaking, gov.KeyUnStakeFreezeDuration, "22", 0, lastBlockHash)
-	gov.UpdateGovernParamValue(gov.ModuleSlashing, gov.KeyMaxEvidenceAge, "21", 0, lastBlockHash)
-
-	var originFreezeDuration uint64
-	if freezeDuration, err := gov.GovernUnStakeFreezeDuration(lastBlockNumber, lastBlockHash); err != nil {
-		t.Fatalf("cannot find init gov param (FreezeDuration)")
-	} else {
-		originFreezeDuration = freezeDuration
-	}
-
-	var originMaxEvidenceAge uint32
-	if maxEvidenceAge, err := gov.GovernMaxEvidenceAge(lastBlockNumber, lastBlockHash); err != nil {
-		t.Fatalf("cannot find init gov param(EvidenceAge)")
-	} else {
-		originMaxEvidenceAge = maxEvidenceAge
-	}
-
-	//active
-	beginBlock(t)
-
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction()
-
-	activeVersion := gov.GetCurrentActiveVersion(stateDB)
-	if activeVersion == promoteVersion {
-		t.Logf("active SUCCESS, %d", activeVersion)
-	} else {
-		t.Fatalf("active FALSE, %d", activeVersion)
-	}
-
-	var newFreezeDuration uint64
-	if duration, err := gov.GovernUnStakeFreezeDuration(lastBlockNumber, lastBlockHash); err != nil {
-		t.Fatalf("cannot find new gov param (FreezeDuration)")
-	} else {
-		newFreezeDuration = duration
-	}
-
-	var newMaxEvidenceAge uint32
-	if evidenceAge, err := gov.GovernMaxEvidenceAge(lastBlockNumber, lastBlockHash); err != nil {
-		t.Fatalf("cannot find new gov param(EvidenceAge)")
-	} else {
-		newMaxEvidenceAge = evidenceAge
-	}
-	assert.Equal(t, uint64(22), originFreezeDuration)
-	assert.Equal(t, uint32(21), originMaxEvidenceAge)
-
-	assert.Equal(t, uint64(2), newFreezeDuration)
-	assert.Equal(t, uint32(1), newMaxEvidenceAge)
 }
 
 func TestGovPlugin_printVersion(t *testing.T) {
@@ -1483,6 +1306,57 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		chandler.SetPrivateKey(priKeyArr[i])
 		t.Log("0x" + hex.EncodeToString(chandler.MustSign(ver)))
+	}
+
+}
+
+func TestGovPlugin_ForkVersion0140Proposal(t *testing.T) {
+	defer setup(t)()
+
+	beginBlock(t)
+	pposHash := stateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash == nil)
+
+	proposal := &gov.VersionProposal{
+		ProposalID:      common.Hash{0x99},
+		ProposalType:    gov.Version,
+		PIPID:           "em2",
+		SubmitBlock:     uint64(1000),
+		EndVotingRounds: uint64(8),
+		Proposer:        discover.NodeID{},
+		NewVersion:      params.FORKVERSION_0_14_0,
+		ActiveBlock:     1,
+	}
+	if err := gov.SetProposal(proposal, stateDB); err != nil {
+		t.Fatalf("set proposal error,%s", err)
+	}
+	if err := gov.AddVotingProposalID(lastBlockHash, proposal.ProposalID); err != nil {
+		t.Fatalf("add voting proposal ID error,%s", err)
+	}
+	if err := gov.MoveVotingProposalIDToPreActive(lastBlockHash, proposal.ProposalID, proposal.NewVersion); err != nil {
+		t.Fatalf("move voting ID to pre-active ID error,%s", err)
+	}
+	tallyResult := gov.TallyResult{
+		ProposalID:    proposal.ProposalID,
+		Yeas:          15,
+		Nays:          0,
+		Abstentions:   0,
+		AccuVerifiers: 1000,
+		Status:        gov.Pass,
+	}
+
+	if err := gov.SetTallyResult(tallyResult, stateDB); err != nil {
+		t.Fatalf("set vote result error")
+	}
+	if existing, err := gov.GetExistProposal(proposal.ProposalID, stateDB); err != nil {
+		t.Fatalf("get exist proposal error,%s", err)
+	} else {
+		if existing.GetPIPID() != proposal.GetPIPID() {
+			t.Fatalf("get exist proposal error,expect %s,get %s", proposal.GetPIPID(), existing.GetPIPID())
+		}
+		beginBlock(t)
+		pposHash := stateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+		assert.True(t, pposHash != nil)
 	}
 
 }

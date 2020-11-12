@@ -1,3 +1,4 @@
+#define TESTNET
 #include <platon/platon.hpp>
 #include <string>
 //#include <Contract_hello.hpp>
@@ -46,7 +47,8 @@ CONTRACT origin_type : public platon::Contract{
             vect_info.push_back(one_message);
             RLPStream stream;
             stream << vect_info;
-            std::vector<byte> result = stream.out();
+            platon::bytesRef result = stream.out();
+//            std::vector<byte> result = stream.out();
             platon_set_state((uint8_t *)key.data(), key_len, result.data(), result.size());
             return vect_info;
       }
