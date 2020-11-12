@@ -63,8 +63,8 @@ def upload_platon(node: Node, platon_bin):
     node.run_ssh("rm -rf {}".format(node.remote_bin_file))
     node.upload_file(platon_bin, node.remote_bin_file)
     node.run_ssh("chmod +x {}".format(node.remote_bin_file))
-    node.run_ssh("mkdir zlp")
 
+    node.restart()
 
 def get_blockhash(node, blocknumber=None):
     """

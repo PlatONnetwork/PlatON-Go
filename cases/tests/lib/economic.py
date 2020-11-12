@@ -74,11 +74,12 @@ class Economic:
     def account(self):
         return self.env.account
 
-    def get_block_count_number(self, node: Node, roundnum=1):
+    def get_block_count_number(self, node: Node, current_block=None, roundnum=1):
         """
         Get the number of blocks out of the verification node
         """
-        current_block = node.eth.blockNumber
+        if current_block is None:
+            current_block = node.eth.blockNumber
         block_namber = self.consensus_size * roundnum
         count = 0
         for i in range(block_namber):
@@ -90,7 +91,6 @@ class Economic:
                     count = count + 1
             else:
                 break
-        print(current_block)
         return count
 
     def get_number_blocks_in_interval(self, node: Node, roundnum=1):
@@ -166,7 +166,7 @@ class Economic:
         staking_reward = int(Decimal(str(result['Ret'])) / Decimal(str(verifier_num)))
         return block_reward, staking_reward
 
-    def get_settlement_switchpoint(self, node: Node, number=0):
+    def get_switchpoint_by_settlement(self, node: Node, number=0):
         """
         Get the last block of the current billing cycle
         :param node: node object
@@ -178,6 +178,11 @@ class Economic:
         current_end_block = math.ceil(tmp_current_block / self.settlement_size) * self.settlement_size + block_number
         return current_end_block
 
+    def get_settlement_switchpoint(self, block_number: int):
+        if block_number == 0:
+            return 1 * self.settlement_size
+        return math.ceil(block_number / self.settlement_size) * self.settlement_size
+
     def get_front_settlement_switchpoint(self, node: Node, number=0):
         """
         Get a block height before the current billing cycle
@@ -186,21 +191,21 @@ class Economic:
         :return:
         """
         block_num = self.settlement_size * (number + 1)
-        current_end_block = self.get_settlement_switchpoint(node)
+        current_end_block = self.get_switchpoint_by_settlement(node)
         history_block = current_end_block - block_num + 1
         return history_block
 
-    def wait_settlement_blocknum(self, node: Node, number=0):
+    def wait_settlement(self, node: Node, settlement=0):
         """
         Waiting for a billing cycle to settle
         :param node:
         :param number: number of billing cycles
         :return:
         """
-        end_block = self.get_settlement_switchpoint(node, number)
+        end_block = self.get_switchpoint_by_settlement(node, settlement)
         wait_block_number(node, end_block, self.interval)
 
-    def get_annual_switchpoint(self, node: Node):
+    def get_switchpoint_by_annual(self, node: Node):
         """
         Get the number of annual settlement cycles
         """
@@ -210,31 +215,41 @@ class Economic:
         current_end_block = math.ceil(current_block / annualsize) * annualsize
         return annual_cycle, annualsize, current_end_block
 
-    def wait_annual_blocknum(self, node: Node):
+    def get_annual_switchpoint(self, block_number: int):
+        annual_cycle = (self.additional_cycle_time * 60) // self.settlement_size
+        annual_size = annual_cycle * self.settlement_size
+        return math.ceil(block_number / annual_size) * annual_size
+
+    def wait_annual(self, node: Node):
         """
         Waiting for the end of the annual block high
         """
-        annualcycle, annualsize, current_end_block = self.get_annual_switchpoint(node)
+        annualcycle, annualsize, current_end_block = self.get_switchpoint_by_annual(node)
         current_block = node.eth.blockNumber
         differ_block = annualsize - (current_block % annualsize)
         annual_end_block = current_block + differ_block
         wait_block_number(node, annual_end_block, self.interval)
 
-    def wait_consensus_blocknum(self, node: Node, number=0):
+    def wait_consensus(self, node: Node, consensus=0):
         """
         Waiting for a consensus round to end
         """
-        end_block = self.get_consensus_switchpoint(node, number)
+        end_block = self.get_switchpoint_by_consensus(node, consensus)
         wait_block_number(node, end_block, self.interval)
 
-    def get_consensus_switchpoint(self, node: Node, number=0):
+    def get_switchpoint_by_consensus(self, node: Node, consensus=0):
         """
         Get the specified consensus round high
         """
-        block_number = self.consensus_size * number
+        block_number = self.consensus_size * consensus
         current_block = node.eth.blockNumber
         current_end_block = math.ceil(current_block / self.consensus_size) * self.consensus_size + block_number
         return current_end_block
+
+    def get_consensus_switchpoint(self, block_number):
+        if block_number == 0:
+            return 1 * self.consensus_size
+        return math.ceil(block_number / self.consensus_size) * self.consensus_size
 
     def get_report_reward(self, amount, penalty_ratio=None, proportion_ratio=None):
         """

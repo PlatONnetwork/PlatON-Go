@@ -858,7 +858,7 @@ class TestPreactiveProposalVE:
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
-        assert_code(result, 302028)
+        assert_code(result, 302024)
 
     @pytest.mark.P2
     @allure.title('There is a preactive proposal, verifier declare version')
@@ -890,7 +890,7 @@ class TestPreactiveProposalVE:
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
-        assert_code(result, 302028)
+        assert_code(result, 302024)
 
     @pytest.mark.P2
     @allure.title('There is a preactive proposal, verifier declare version')
@@ -1565,7 +1565,7 @@ class TestVotedCADV:
         new_genesis_env.deploy_all()
         submitvpandvote(clients_consensus, votingrounds=40)
         createstaking(clients_noconsensus)
-        clients_consensus[0].economic.wait_settlement_blocknum(clients_consensus[0].node)
+        clients_consensus[0].economic.wait_settlement(clients_consensus[0].node)
         client = self.get_candidate_no_verifier(all_clients)
         pip = client.pip
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN1, pip.cfg.version1)
@@ -1634,7 +1634,7 @@ class TestVotedCADV:
             new_genesis_env.deploy_all()
             submitvpandvote(clients_consensus, votingrounds=40, version=clients_noconsensus[0].pip.cfg.version8)
             createstaking(clients_noconsensus)
-            clients_consensus[0].economic.wait_settlement_blocknum(clients_consensus[0].node)
+            clients_consensus[0].economic.wait_settlement(clients_consensus[0].node)
             client = self.get_candidate_no_verifier(all_clients)
             pip = client.pip
             result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)

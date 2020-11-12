@@ -21,9 +21,9 @@ def test_CS_CL_001(clients_new_node):
     result = client.staking.create_staking(0, address, address, amount=pledge_amount)
     assert_code(result, 0)
     log.info("Next settlement period")
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     log.info("The next consensus cycle")
-    client.economic.wait_consensus_blocknum(client.node)
+    client.economic.wait_consensus(client.node)
     validatorlist1 = get_pledge_list(client.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist1))
 
@@ -37,7 +37,7 @@ def test_CS_CL_001(clients_new_node):
 
     # The next consensus cycle
     log.info("The next consensus cycle")
-    client.economic.wait_consensus_blocknum(client.node)
+    client.economic.wait_consensus(client.node)
 
     validatorlist2 = get_pledge_list(client.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist2))
@@ -52,7 +52,7 @@ def test_CS_CL_001(clients_new_node):
 
     # The next consensus cycle
     log.info("The next consensus cycle")
-    client.economic.wait_consensus_blocknum(client.node)
+    client.economic.wait_consensus(client.node)
 
     validatorlist3 = get_pledge_list(client.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist3))
@@ -83,9 +83,9 @@ def test_CS_CL_002(clients_new_node):
     result = client.staking.create_staking(0, address, address, amount=pledge_amount)
     assert_code(result, 0)
     # Next settlement period
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     # The next consensus cycle
-    client.economic.wait_consensus_blocknum(client.node)
+    client.economic.wait_consensus(client.node)
     validatorlist = get_pledge_list(client.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist))
     assert node not in validatorlist
@@ -109,7 +109,7 @@ def test_CS_CL_003(clients_new_node, clients_consensus):
     log.info("validatorlist:{}".format(validatorlist))
 
     log.info("The next consensus cycle")
-    client_consensus1.economic.wait_consensus_blocknum(client_consensus1.node, number=1)
+    client_consensus1.economic.wait_consensus(client_consensus1.node, 1)
     blocknumber = client_consensus1.node.eth.blockNumber
     log.info("To report the double sign")
     report_information1 = mock_duplicate_sign(1, client_consensus1.node.nodekey,
@@ -140,7 +140,7 @@ def test_CS_CL_003(clients_new_node, clients_consensus):
     result = client_consensus3.duplicatesign.reportDuplicateSign(1, report_information3, address_3)
     log.info(result)
     log.info("The next  periods")
-    client_noconsensus3.economic.wait_settlement_blocknum(client_noconsensus3.node)
+    client_noconsensus3.economic.wait_settlement(client_noconsensus3.node)
     validatorlist = get_pledge_list(client_consensus1.ppos.getValidatorList)
     log.info("After being reported validatorlist:{}".format(validatorlist))
 
@@ -163,23 +163,23 @@ def test_CS_CL_003(clients_new_node, clients_consensus):
     result = client_noconsensus4.staking.create_staking(0, staking_address4, staking_address4, amount=pledge_amount)
     assert_code(result, 0)
     log.info("Next settlement period")
-    client_noconsensus4.economic.wait_settlement_blocknum(client_noconsensus4.node)
+    client_noconsensus4.economic.wait_settlement(client_noconsensus4.node)
     log.info("The next consensus cycle")
-    client_noconsensus4.economic.wait_consensus_blocknum(client_noconsensus4.node)
+    client_noconsensus4.economic.wait_consensus(client_noconsensus4.node)
     verifierList = get_pledge_list(client_noconsensus4.ppos.getVerifierList)
     log.info("verifierList:{}".format(verifierList))
     validatorlist1 = get_pledge_list(client_noconsensus4.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist1))
     assert client_noconsensus1.node.node_id in validatorlist1
 
-    client_noconsensus4.economic.wait_consensus_blocknum(client_noconsensus4.node)
+    client_noconsensus4.economic.wait_consensus(client_noconsensus4.node)
     verifierList = get_pledge_list(client_noconsensus4.ppos.getVerifierList)
     log.info("verifierList:{}".format(verifierList))
     validatorlist2 = get_pledge_list(client_noconsensus4.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist2))
     assert client_noconsensus1.node.node_id in validatorlist2
 
-    client_noconsensus4.economic.wait_consensus_blocknum(client_noconsensus4.node)
+    client_noconsensus4.economic.wait_consensus(client_noconsensus4.node)
     verifierList = get_pledge_list(client_noconsensus4.ppos.getVerifierList)
     log.info("verifierList:{}".format(verifierList))
     validatorlist3 = get_pledge_list(client_noconsensus4.ppos.getValidatorList)
@@ -209,9 +209,9 @@ def test_CS_CL_004(clients_new_node, client_consensus):
     assert_code(result, 0)
     log.info(client.node.node_id)
     log.info("Next settlement period")
-    client_consensus.economic.wait_settlement_blocknum(client_consensus.node)
+    client_consensus.economic.wait_settlement(client_consensus.node)
     log.info("The next consensus cycle")
-    client_consensus.economic.wait_consensus_blocknum(client_consensus.node)
+    client_consensus.economic.wait_consensus(client_consensus.node)
     validatorlist1 = get_pledge_list(client_consensus.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist1))
 
@@ -219,7 +219,7 @@ def test_CS_CL_004(clients_new_node, client_consensus):
     log.info("Consensus validates the person's situation{}".format(msg))
     assert client_consensus.node.node_id in validatorlist1
 
-    client.economic.wait_consensus_blocknum(client.node)
+    client.economic.wait_consensus(client.node)
     validatorlist2 = get_pledge_list(client_consensus.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist2))
     msg = client_consensus.ppos.getValidatorList()
@@ -249,7 +249,7 @@ def test_CS_CL_005_006_008(clients_new_node):
     assert_code(result, 0)
 
     # Next settlement period
-    client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+    client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
 
     verifierlist = get_pledge_list(client_noconsensus2.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
@@ -270,7 +270,7 @@ def test_CS_CL_005_006_008(clients_new_node):
     log.info(result)
 
     # Next settlement period
-    client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+    client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
     msg = client_noconsensus1.ppos.getCandidateInfo(client_noconsensus1.node.node_id)
     log.info(msg)
     msg = client_noconsensus2.ppos.getCandidateInfo(client_noconsensus2.node.node_id)
@@ -299,8 +299,8 @@ def test_CS_CL_007(clients_new_node):
     result = client_noconsensus2.staking.create_staking(0, address2, address2, amount=value)
     assert_code(result, 0)
     # Next settlement period
-    client_noconsensus1.economic.wait_settlement_blocknum(client_noconsensus2.node)
-
+    client_noconsensus1.economic.wait_settlement(client_noconsensus2.node)
+    print(client_noconsensus2.node.ppos.getVerifierList())
     verifierlist = get_pledge_list(client_noconsensus2.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
     log.info("node:{}".format(client_noconsensus1.node.node_id))
@@ -321,9 +321,9 @@ def test_CS_CL_010_030(clients_new_node):
     result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     log.info("The next  periods")
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     log.info("The next consensus cycle")
-    client.economic.wait_consensus_blocknum(client.node)
+    client.economic.wait_consensus(client.node)
     number = client.node.eth.blockNumber
     log.info("To report the double sign")
     report_information = mock_duplicate_sign(1, client.node.nodekey, client.node.blsprikey,
@@ -336,7 +336,7 @@ def test_CS_CL_010_030(clients_new_node):
     log.info(result)
 
     log.info("The next  periods")
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     verifierlist = get_pledge_list(client.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
     assert client.node.node_id not in verifierlist
@@ -355,7 +355,7 @@ def test_CS_CL_012_032(clients_new_node):
     result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     log.info("The next  periods")
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     verifierlist = get_pledge_list(client.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
 
@@ -365,14 +365,14 @@ def test_CS_CL_012_032(clients_new_node):
     assert_code(result, 0)
 
     log.info("The next  periods")
-    client.economic.wait_settlement_blocknum(client.node, number=1)
+    client.economic.wait_settlement(client.node, 1)
     verifierlist = get_pledge_list(client.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
 
     assert client.node.node_id not in verifierlist
 
     log.info("The next consensus cycle")
-    client.economic.wait_consensus_blocknum(client.node)
+    client.economic.wait_consensus(client.node)
 
     validatorlist = get_pledge_list(client.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist))
@@ -395,7 +395,7 @@ def test_CS_CL_013_031(clients_new_node, client_consensus):
     result = client.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     # Next settlement period
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     verifierlist = get_pledge_list(client.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
     assert client.node.node_id in verifierlist
@@ -404,7 +404,7 @@ def test_CS_CL_013_031(clients_new_node, client_consensus):
     client.node.stop()
     node = client_consensus.node
     log.info("The next  periods")
-    client.economic.wait_settlement_blocknum(node)
+    client.economic.wait_settlement(node)
     verifierlist = get_pledge_list(client_consensus.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
     assert client.node.node_id not in verifierlist
@@ -430,7 +430,7 @@ def test_CS_CL_014_015_016_029(status, clients_new_node, clients_consensus):
     client_consensus4 = clients_consensus[3]
 
     log.info("The next consensus cycle")
-    client_consensus1.economic.wait_consensus_blocknum(client_consensus1.node, number=1)
+    client_consensus1.economic.wait_consensus(client_consensus1.node, 1)
     blocknumber = client_consensus1.node.eth.blockNumber
 
     log.info("To report the double sign")
@@ -462,7 +462,7 @@ def test_CS_CL_014_015_016_029(status, clients_new_node, clients_consensus):
     result = client_consensus3.duplicatesign.reportDuplicateSign(1, report_information3, address_3)
     log.info(result)
     log.info("The next  periods")
-    client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+    client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
     validatorlist = get_pledge_list(client_consensus1.ppos.getValidatorList)
     log.info("After being reported validatorlist:{}".format(validatorlist))
 
@@ -480,10 +480,10 @@ def test_CS_CL_014_015_016_029(status, clients_new_node, clients_consensus):
         assert_code(result, 0)
 
         log.info("The next  periods")
-        client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
 
         log.info("The next consensus cycle")
-        client_noconsensus2.economic.wait_consensus_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_consensus(client_noconsensus2.node)
 
         validatorlist = get_pledge_list(client_noconsensus2.ppos.getValidatorList)
         log.info("validatorlist:{}".format(validatorlist))
@@ -513,10 +513,10 @@ def test_CS_CL_014_015_016_029(status, clients_new_node, clients_consensus):
         result = client_noconsensus3.staking.create_staking(0, address3, address3, amount=value)
         assert_code(result, 0)
         log.info("The next  periods")
-        client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
 
         log.info("The next consensus cycle")
-        client_noconsensus2.economic.wait_consensus_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_consensus(client_noconsensus2.node)
 
         validatorlist = get_pledge_list(client_noconsensus2.ppos.getValidatorList)
         log.info("validatorlist:{}".format(validatorlist))
@@ -555,10 +555,10 @@ def test_CS_CL_014_015_016_029(status, clients_new_node, clients_consensus):
         assert_code(result, 0)
 
         log.info("The next  periods")
-        client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
 
         log.info("The next consensus cycle")
-        client_noconsensus2.economic.wait_consensus_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_consensus(client_noconsensus2.node)
 
         validatorlist = get_pledge_list(client_noconsensus2.ppos.getValidatorList)
         log.info("validatorlist:{}".format(validatorlist))
@@ -584,7 +584,7 @@ def test_CS_CL_017_018_019(status, clients_new_node, clients_consensus):
     client_consensus4 = clients_consensus[3]
 
     log.info("The next consensus cycle")
-    client_consensus1.economic.wait_consensus_blocknum(client_consensus1.node, number=1)
+    client_consensus1.economic.wait_consensus(client_consensus1.node, 1)
 
     validatorlist = get_pledge_list(client_consensus1.ppos.getValidatorList)
     log.info("initial validatorlist:{}".format(validatorlist))
@@ -602,7 +602,7 @@ def test_CS_CL_017_018_019(status, clients_new_node, clients_consensus):
     result = client_consensus1.duplicatesign.reportDuplicateSign(1, report_information1, address)
     log.info(result)
     log.info("The next  periods")
-    client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+    client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
     validatorlist = get_pledge_list(client_consensus1.ppos.getValidatorList)
     log.info("After being reported validatorlist:{}".format(validatorlist))
 
@@ -613,9 +613,9 @@ def test_CS_CL_017_018_019(status, clients_new_node, clients_consensus):
         result = client_noconsensus1.staking.create_staking(0, address1, address1, amount=value)
         assert_code(result, 0)
         log.info("The next  periods")
-        client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
         log.info("The next consensus cycle")
-        client_noconsensus2.economic.wait_consensus_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_consensus(client_noconsensus2.node)
         validatorlist = get_pledge_list(client_noconsensus2.ppos.getValidatorList)
         log.info("validatorlist:{}".format(validatorlist))
         assert client_consensus2.node.node_id in validatorlist
@@ -637,9 +637,9 @@ def test_CS_CL_017_018_019(status, clients_new_node, clients_consensus):
         assert_code(result, 0)
 
         log.info("The next  periods")
-        client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
         log.info("The next consensus cycle")
-        client_noconsensus2.economic.wait_consensus_blocknum(client_noconsensus2.node)
+        client_noconsensus2.economic.wait_consensus(client_noconsensus2.node)
 
         validatorlist = get_pledge_list(client_noconsensus2.ppos.getValidatorList)
         log.info("validatorlist:{}".format(validatorlist))
@@ -667,7 +667,7 @@ def test_CS_CL_027_028(clients_new_node):
     assert_code(result, 0)
 
     log.info("Next settlement period")
-    client_noconsensus2.economic.wait_settlement_blocknum(client_noconsensus2.node)
+    client_noconsensus2.economic.wait_settlement(client_noconsensus2.node)
     msg = client_noconsensus2.ppos.getVerifierList()
     log.info(msg)
     verifierlist = get_pledge_list(client_noconsensus2.ppos.getVerifierList)
@@ -687,9 +687,9 @@ def test_CS_CL_033(clients_new_node):
     assert_code(result, 0)
 
     # Next settlement period
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     # Next consensus period
-    client.economic.wait_consensus_blocknum(client.node)
+    client.economic.wait_consensus(client.node)
     verifierlist = get_pledge_list(client.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
     assert client.node.node_id in verifierlist

@@ -366,7 +366,7 @@ def test_LS_RV_003(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_switchpoint_by_settlement(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
@@ -393,7 +393,7 @@ def test_LS_RV_004(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_switchpoint_by_settlement(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
@@ -426,7 +426,7 @@ def test_LS_RV_005(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_switchpoint_by_settlement(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
@@ -463,7 +463,7 @@ def test_LS_RV_006(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_switchpoint_by_settlement(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
@@ -496,7 +496,7 @@ def test_LS_RV_007(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+        'blockNumber'] == client_new_node.economic.get_switchpoint_by_settlement(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
@@ -530,7 +530,7 @@ def create_restricting_plan_and_staking(client, economic, node):
     assert info['Pledge'] == economic.create_staking_limit, 'ErrMsg: restricting Pledge amount {}'.format(
         info['Pledge'])
     # wait settlement block
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     restricting_info2 = client.ppos.getRestrictingInfo(address2)
     log.info("current block: {}".format(node.block_number))
     log.info("restricting info: {}".format(restricting_info2))
@@ -634,7 +634,7 @@ def create_restricting_plan_and_entrust(client, node, economic):
     assert info['Pledge'] == economic.delegate_limit, 'ErrMsg: restricting Pledge amount {}'.format(
         info['Pledge'])
     # wait settlement block
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     log.info("current block: {}".format(node.block_number))
     # view Restricting Plan
     restricting_info = client.ppos.getRestrictingInfo(address2)
@@ -704,7 +704,7 @@ def test_LS_RV_012(new_genesis_env, clients_new_node):
     # stop node
     node.stop()
     # Waiting 2 consensus block
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
+    client2.economic.wait_consensus(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -753,7 +753,7 @@ def test_LS_RV_019(new_genesis_env, clients_noconsensus):
     # stop node
     node.stop()
     # Waiting 2 consensus block
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
+    client2.economic.wait_consensus(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -786,7 +786,7 @@ def test_LS_RV_019(new_genesis_env, clients_noconsensus):
         info2['plans'][0]['amount'])
     assert info2['Pledge'] == info['Pledge'], "rrMsg: restricting Pledge amount {}".format(info['Pledge'])
     # Waiting for the end of the 2 settlement
-    client2.economic.wait_settlement_blocknum(client2.node, 2)
+    client2.economic.wait_settlement(client2.node, 2)
     # view Restricting Plan
     restricting_info3 = client2.ppos.getRestrictingInfo(address2)
     log.info("restricting info: {}".format(restricting_info3))
@@ -925,11 +925,11 @@ def test_LS_RV_018(clients_new_node, reset_environment):
     result = client1.staking.create_staking(0, address1, address1)
     assert_code(result, 0)
     # Waiting settlement block
-    client1.economic.wait_settlement_blocknum(client1.node)
+    client1.economic.wait_settlement(client1.node)
     # stop node
     client1.node.stop()
     # Waiting 2 consensus block
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus(client2.node, 2)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # create Restricting Plan1
     plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
@@ -1158,7 +1158,7 @@ def test_LS_PV_009(client_new_node):
     result = client1.staking.create_staking(1, address2, address2)
     assert_code(result, 0)
     # wait settlement block
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # view restricting info
     restricting_info = client1.ppos.getRestrictingInfo(address2)
     info = restricting_info['Ret']
@@ -1264,12 +1264,12 @@ def test_LS_PV_013(client_new_node):
     result = client.staking.create_staking(1, address2, address2)
     assert_code(result, 0)
     # wait settlement block
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # withdrew staking
     result = client.staking.withdrew_staking(address2)
     assert_code(result, 0)
     # wait settlement block
-    economic.wait_settlement_blocknum(node, 2)
+    economic.wait_settlement(node, 2)
     # view restricting info
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting info: {}".format(restricting_info))
@@ -1372,7 +1372,7 @@ def test_LS_EV_004(client_new_node):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Waiting for the end of the settlement
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # create Restricting Plan
     plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
     result = client.restricting.createRestrictingPlan(lock_address, plan, pledge_address)
@@ -1549,7 +1549,7 @@ def test_LS_EV_011(client_new_node):
     # create delegation information
     address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
     # Waiting for the end of the settlement cycle
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # withdrew delegate
     redemption_amount = von_amount(economic.delegate_limit, 10)
     client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
@@ -1624,7 +1624,7 @@ def test_LS_EV_014(clients_new_node, reset_environment):
     # stop pledge node
     node.stop()
     # Wait for the consensus round to end
-    client2.economic.wait_consensus_blocknum(client2.node)
+    client2.economic.wait_consensus(client2.node)
     # Application for Commission
     result = client2.delegate.delegate(1, address2, node_id=node.node_id)
     assert_code(result, 0)
@@ -1728,7 +1728,7 @@ def test_LS_EV_019(client_new_node):
     node = client.node
     address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
     # Waiting for the end of the settlement cycle
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # view restricting plan informtion
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting plan informtion: {}".format(restricting_info))
@@ -1759,7 +1759,7 @@ def test_LS_EV_020(client_new_node):
     node = client.node
     address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
     # Waiting for the end of the settlement cycle
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # view restricting plan informtion
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting plan informtion: {}".format(restricting_info))
@@ -1788,7 +1788,7 @@ def test_LS_EV_021(client_new_node):
     node = client.node
     address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 5)
     # Waiting for the end of the settlement cycle
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # view restricting plan informtion
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting plan informtion: {}".format(restricting_info))
@@ -1933,7 +1933,7 @@ def test_LS_IV_003(clients_new_node, reset_environment):
     # stop pledge node
     node.stop()
     # Wait for the consensus round to end
-    client2.economic.wait_consensus_blocknum(client2.node)
+    client2.economic.wait_consensus(client2.node)
     # Create pledge of increasing holding
     result = client2.staking.increase_staking(1, address2, node_id=node.node_id)
     assert_code(result, 0)
@@ -2207,7 +2207,7 @@ def test_LS_CSV_011(client_new_node):
     result = client.staking.create_staking(1, address1, address1)
     assert_code(result, 0)
     # Waiting for the end of the settlement period
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # Additional pledge
     result = client.staking.increase_staking(1, address1)
     assert_code(result, 0)
@@ -2219,7 +2219,7 @@ def test_LS_CSV_011(client_new_node):
     balance1 = node.eth.getBalance(address1)
     log.info("Account address: {} balance: {}".format(address1, balance1))
     # Waiting for the end of the 2 settlement period
-    economic.wait_settlement_blocknum(node, 2)
+    economic.wait_settlement(node, 2)
     balance2 = node.eth.getBalance(address1)
     log.info("Account address: {} balance: {}".format(address1, balance2))
     assert balance2 - balance1 > economic.create_staking_limit, "errMsg: Account address: {} balance: {}".format(
@@ -2244,7 +2244,7 @@ def test_LS_CSV_012(client_new_node):
     # create account
     address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Waiting for the end of the settlement period
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # Application for return of pledge
     result = client.staking.withdrew_staking(address1)
     assert_code(result, 0)
@@ -2274,7 +2274,7 @@ def test_LS_CSV_013(client_new_node):
     # create restricting plan staking
     address1 = restricting_plan_verification_add_staking(client, economic, node)
     # Waiting for the end of the settlement period
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # Application for return of pledge
     result = client.staking.withdrew_staking(address1)
     assert_code(result, 0)
@@ -2300,12 +2300,12 @@ def steps_of_returning_pledge(client, economic, node):
     # create account
     address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Waiting for the end of the settlement period
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # Application for return of pledge
     result = client.staking.withdrew_staking(address1)
     assert_code(result, 0)
     # Waiting for the end of the 2 settlement period
-    economic.wait_settlement_blocknum(node, 2)
+    economic.wait_settlement(node, 2)
     log.info("Pledge node information: {}".format(client.ppos.getCandidateInfo(node.node_id)))
     return address1, address2
 
