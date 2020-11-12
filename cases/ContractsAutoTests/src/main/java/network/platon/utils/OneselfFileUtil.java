@@ -2,13 +2,17 @@ package network.platon.utils;
 
 import network.platon.autotest.utils.FileUtil;
 
-import java.io.File;
+import java.io.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 public class OneselfFileUtil {
-    private static List<String> list = new ArrayList<>();
+    /*
+     *收集所有evm和wasm的源文件
+     */
+    private List<String> evmSourceFileList = new ArrayList<>();
+    private List<String> wasmSourceFileList = new ArrayList<>();
 
     /**
      * @title OneselfFileUtil
@@ -16,7 +20,7 @@ public class OneselfFileUtil {
      * @author qcxiao
      * @updateTime 2019/12/27 14:22
      */
-    public static List<String> getResourcesFile(String path, int deep) {
+    public List<String> getResourcesFile(String path, int deep) {
         // 获得指定文件对象
         File file = new File(path);
         // 获得该文件夹内的所有文件
@@ -24,14 +28,14 @@ public class OneselfFileUtil {
         for (int i = 0; i < files.length; i++) {
             if (files[i].isFile()) {
                 if (files[i].getName().substring(files[i].getName().lastIndexOf(".") + 1).equals("sol")) {
-                    list.add(files[i].getPath());
+                    evmSourceFileList.add(files[i].getPath());
                 }
             } else if (files[i].isDirectory()) {
                 //文件夹需要调用递归 ，深度+1
                 getResourcesFile(files[i].getPath(), deep + 1);
             }
         }
-        return list;
+        return evmSourceFileList;
     }
 
     /**
@@ -66,14 +70,14 @@ public class OneselfFileUtil {
         for (int i = 0; i < files.length; i++) {
             if (files[i].isFile()) {
                 if (files[i].getName().substring(files[i].getName().lastIndexOf(".") + 1).equals("cpp")) {
-                    list.add(files[i].getPath());
+                    wasmSourceFileList.add(files[i].getPath());
                 }
             } else if (files[i].isDirectory()) {
                 //文件夹需要调用递归 ，深度+1
                 getWasmResourcesFile(files[i].getPath(), deep + 1);
             }
         }
-        return list;
+        return wasmSourceFileList;
     }
 
     public List<String> getWasmFileName() throws Exception {
@@ -96,5 +100,31 @@ public class OneselfFileUtil {
             }
         }
         return files;
+    }
+
+    public static String readFile(String Path){
+        BufferedReader reader = null;
+        String laststr = "";
+        try{
+            FileInputStream fileInputStream = new FileInputStream(Path);
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+            reader = new BufferedReader(inputStreamReader);
+            String tempString = null;
+            while((tempString = reader.readLine()) != null){
+                laststr += tempString;
+            }
+            reader.close();
+        }catch(IOException e){
+            e.printStackTrace();
+        }finally{
+            if(reader != null){
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return laststr;
     }
 }

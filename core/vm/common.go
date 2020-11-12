@@ -21,15 +21,34 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/holiman/uint256"
 )
 
-// calculates the memory size required for a step
-func calcMemSize(off, l *big.Int) *big.Int {
-	if l.Sign() == 0 {
-		return common.Big0
+// calcMemSize64 calculates the required memory size, and returns
+// the size and whether the result overflowed uint64
+func calcMemSize64(off, l *uint256.Int) (uint64, bool) {
+	if !l.IsUint64() {
+		return 0, true
 	}
+	return calcMemSize64WithUint(off, l.Uint64())
+}
 
-	return new(big.Int).Add(off, l)
+// calcMemSize64WithUint calculates the required memory size, and returns
+// the size and whether the result overflowed uint64
+// Identical to calcMemSize64, but length is a uint64
+func calcMemSize64WithUint(off *uint256.Int, length64 uint64) (uint64, bool) {
+	// if length is zero, memsize is always zero, regardless of offset
+	if length64 == 0 {
+		return 0, false
+	}
+	// Check that offset doesn't overflow
+	offset64, overflow := off.Uint64WithOverflow()
+	if overflow {
+		return 0, true
+	}
+	val := offset64 + length64
+	// if value < either of it's parts, then it overflowed
+	return val, val < offset64
 }
 
 // getData returns a slice from the data based on the start and size and pads

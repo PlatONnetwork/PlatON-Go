@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package core
 
 import (
@@ -8,12 +24,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -67,7 +83,7 @@ func sendTransactionCmd(c *cli.Context) error {
 
 	hash, err := SendTransaction(from, to, value)
 	if err != nil {
-		utils.Fatalf("Send transaction error: %v", err)
+		return fmt.Errorf("Send transaction error: %v", err)
 	}
 
 	fmt.Printf("tx hash: %s", hash)
@@ -84,7 +100,7 @@ func sendRawTransactionCmd(c *cli.Context) error {
 
 	hash, err := SendRawTransaction(from, to, value, pkFile)
 	if err != nil {
-		utils.Fatalf("Send transaction error: %v", err)
+		return fmt.Errorf("Send transaction error: %v", err)
 	}
 
 	fmt.Printf("tx hash: %s", hash)
@@ -101,6 +117,7 @@ func SendTransaction(from, to, value string) (string, error) {
 	tx.Gas = config.Gas
 	tx.GasPrice = config.GasPrice
 
+	//todo
 	if !strings.HasPrefix(value, "0x") {
 		intValue, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
@@ -142,7 +159,7 @@ func SendRawTransaction(from, to, value string, pkFilePath string) (string, erro
 	//	fmt.Println("value", fmt.Sprintf("%+v", v))
 	//}
 
-	acc, ok := accountPool[common.HexToAddress(from)]
+	acc, ok := accountPool[common.MustBech32ToAddress(from)]
 	if !ok {
 		return "", fmt.Errorf("private key not found in private key file,addr:%s", from)
 	}
@@ -190,7 +207,7 @@ func sendRawTransaction(transaction *types.Transaction) (string, error) {
 func getSignedTransaction(from, to string, value int64, priv *ecdsa.PrivateKey, nonce uint64) *types.Transaction {
 	gas, _ := strconv.Atoi(config.Gas)
 	gasPrice, _ := new(big.Int).SetString(config.GasPrice, 10)
-	newTx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress(to), big.NewInt(value), uint64(gas), gasPrice, []byte{}), types.NewEIP155Signer(new(big.Int).SetInt64(100)), priv)
+	newTx, err := types.SignTx(types.NewTransaction(nonce, common.MustBech32ToAddress(to), big.NewInt(value), uint64(gas), gasPrice, []byte{}), types.NewEIP155Signer(new(big.Int).SetInt64(100)), priv)
 	if err != nil {
 		panic(fmt.Errorf("sign error,%s", err.Error()))
 	}

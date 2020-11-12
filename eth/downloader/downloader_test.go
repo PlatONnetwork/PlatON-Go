@@ -243,7 +243,7 @@ func (dl *downloadTester) CurrentFastBlock() *types.Block {
 func (dl *downloadTester) FastSyncCommitHead(hash common.Hash) error {
 	// For now only check that the state trie is correct
 	if block := dl.GetBlockByHash(hash); block != nil {
-		_, err := trie.NewSecure(block.Root(), trie.NewDatabase(dl.stateDb), 0)
+		_, err := trie.NewSecure(block.Root(), trie.NewDatabase(dl.stateDb))
 		return err
 	}
 	return fmt.Errorf("non existent block: %x", hash[:4])
@@ -564,7 +564,7 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 // binary searching.
 func TestCanonicalSynchronisation63Full(t *testing.T) { testCanonicalSynchronisation(t, 63, FullSync) }
 
-//func TestCanonicalSynchronisation63Fast(t *testing.T) { testCanonicalSynchronisation(t, 63, FastSync) }
+func TestCanonicalSynchronisation63Fast(t *testing.T) { testCanonicalSynchronisation(t, 63, FastSync) }
 
 func TestCanonicalSynchronisation64Full(t *testing.T) { testCanonicalSynchronisation(t, 64, FullSync) }
 func TestCanonicalSynchronisation64Fast(t *testing.T) { testCanonicalSynchronisation(t, 64, FastSync) }
@@ -595,11 +595,11 @@ func TestThrottling62(t *testing.T) { testThrottling(t, 62, FullSync) }
 
 func TestThrottling63Full(t *testing.T) { testThrottling(t, 63, FullSync) }
 
-//func TestThrottling63Fast(t *testing.T) { testThrottling(t, 63, FastSync) }
+func TestThrottling63Fast(t *testing.T) { testThrottling(t, 63, FastSync) }
 
 func TestThrottling64Full(t *testing.T) { testThrottling(t, 64, FullSync) }
 
-//func TestThrottling64Fast(t *testing.T) { testThrottling(t, 64, FastSync) }
+func TestThrottling64Fast(t *testing.T) { testThrottling(t, 64, FastSync) }
 
 func testThrottling(t *testing.T, protocol int, mode SyncMode) {
 	t.Parallel()
@@ -637,13 +637,14 @@ func testThrottling(t *testing.T, protocol int, mode SyncMode) {
 			tester.lock.Lock()
 			tester.downloader.queue.lock.Lock()
 			cached = len(tester.downloader.queue.blockDonePool)
-			if mode == FastSync {
-				if receipts := len(tester.downloader.queue.receiptDonePool); receipts < cached {
-					//if tester.downloader.queue.resultCache[receipts].Header.Number.Uint64() < tester.downloader.queue.fastSyncPivot {
-					cached = receipts
-					//}
-				}
-			}
+			// optimization storage remove receipts, so receipts syncing is removed in FastSync
+			//if mode == FastSync {
+			//	if receipts := len(tester.downloader.queue.receiptDonePool); receipts < cached {
+			//		if tester.downloader.queue.resultCache[receipts].Header.Number.Uint64() < tester.downloader.queue.fastSyncPivot {
+			//			cached = receipts
+			//		}
+			//	}
+			//}
 			frozen = int(atomic.LoadUint32(&blocked))
 			retrieved = len(tester.ownBlocks)
 			tester.downloader.queue.lock.Unlock()

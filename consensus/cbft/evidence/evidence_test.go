@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -442,20 +442,4 @@ func TestDuplicateViewChangeEvidence_Validate(t *testing.T) {
 		ViewB: evidenceViewB,
 	}
 	assert.Nil(t, d.Validate())
-}
-
-func TestDuplicateViewChangeEvidence_Address(t *testing.T) {
-	validateNodes, secretKeys := createValidateNode(1)
-
-	vcA := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
-	evidenceViewA, _ := NewEvidenceView(vcA, validateNodes[0])
-
-	vcB := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
-	evidenceViewB, _ := NewEvidenceView(vcB, validateNodes[0])
-
-	d := &DuplicateViewChangeEvidence{
-		ViewA: evidenceViewA,
-		ViewB: evidenceViewB,
-	}
-	assert.Equal(t, validateNodes[0].Address, d.Address())
 }

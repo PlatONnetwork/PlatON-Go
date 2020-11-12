@@ -1,3 +1,4 @@
+#define TESTNET
 // Author: zjsunzone
 // 斐波拉契合约验证
 #include <platon/platon.hpp>

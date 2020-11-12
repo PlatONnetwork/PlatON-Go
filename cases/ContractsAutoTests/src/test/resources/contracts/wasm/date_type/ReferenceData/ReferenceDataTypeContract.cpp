@@ -1,3 +1,4 @@
+#define TESTNET
 // Author: zjsunzone
 // Desc: 针对引用类型的相关测试
 #include <platon/platon.hpp>
@@ -11,14 +12,23 @@ CONTRACT ReferenceDataTypeContract: public platon::Contract{
        platon::StorageType<"maddress"_n, std::map<std::string, Address>> tmaddress;
        platon::StorageType<"mu255"_n, std::map<std::string, u128>> tmu256;
        platon::StorageType<"mh255"_n, std::map<std::string, h256>> tmh256;
+       platon::StorageType<"entr"_n, uint8_t> num;
 
     public:
-        ACTION void init(){}
+        ACTION void init(){
+            num.self() = 0;
+        }
 		
 		// 针对address类型的map进行设置
 		ACTION void setAddressMap(const std::string& key, const std::string& addr)
 		{
-			tmaddress.self()[key] = Address(addr);
+		    auto address_info = make_address(addr);
+            if(address_info.second){
+                num.self() += 1;
+                Address address = address_info.first;
+                tmaddress.self()[key] = address;
+            }
+
 			//tmaddress.self()[key] = "compile error"; // expect: compile error.
 			//tmaddress.self()[key] = 111;			   // expect: compile error.
 		}
@@ -26,7 +36,16 @@ CONTRACT ReferenceDataTypeContract: public platon::Contract{
 		// get value from map of address type.
 		CONST std::string getAddrFromMap(const std::string& key) 		
 		{
-			return tmaddress.self()[key].toString();
+		    auto iter = tmaddress.self().find(key);
+		    if (iter != tmaddress.self().end()) {
+			    return iter->second.toString().c_str();
+			} else {
+			    return "";
+			}
+		}
+
+		CONST uint8_t getNum() {
+		    return num.self();
 		}
 		
 		// get the length of map.
@@ -80,7 +99,7 @@ CONTRACT ReferenceDataTypeContract: public platon::Contract{
 };
 
 PLATON_DISPATCH(ReferenceDataTypeContract, (init)
-(setAddressMap)(getAddrFromMap)(sizeOfAddrMap)
+(setAddressMap)(getAddrFromMap)(getNum)(sizeOfAddrMap)
 (setU256Map)(getU256FromMap)(sizeOfU256Map)
 (setH256Map)(getH256FromMap)(sizeOfH256Map))
 

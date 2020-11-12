@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -19,9 +19,6 @@ package vm
 import (
 	"reflect"
 	"strconv"
-
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -111,9 +108,8 @@ func IsBlank(i interface{}) bool {
 	return val.IsNil()
 }
 
-func checkForkPIP0_11_0(state StateDB, input []byte) bool {
-	currentVersion := gov.GetCurrentActiveVersion(state)
-	if currentVersion >= params.FORKVERSION_0_11_0 && len(input) == 0 {
+func checkInputEmpty(input []byte) bool {
+	if len(input) == 0 {
 		return true
 	} else {
 		return false

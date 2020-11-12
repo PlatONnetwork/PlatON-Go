@@ -1,3 +1,4 @@
+#define TESTNET
 #include <platon/platon.hpp>
 #include <vector>
 #include <string>
@@ -14,12 +15,16 @@ CONTRACT delegate_call_storage_str : public platon::Contract {
          
          DEBUG("Delegate call contract start", "address", target_address, "name", name);
          platon::bytes params = platon::cross_call_args("set_string", name);
-         
-         if (platon_delegate_call(Address(target_address), params, gas)) {
-              DEBUG("Delegate call contract success", "address", target_address, "name", name);
-         } else {
-             DEBUG("Delegate call contract fail", "address", target_address, "name", name);
+
+         auto address_info = make_address(target_address);
+         if(address_info.second){
+             if (platon_delegate_call(address_info.first, params, gas)) {
+                  DEBUG("Delegate call contract success", "address", target_address, "name", name);
+             } else {
+                  DEBUG("Delegate call contract fail", "address", target_address, "name", name);
+             }
          }
+
          return 0;
      }
 

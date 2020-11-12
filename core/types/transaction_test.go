@@ -34,14 +34,14 @@ import (
 var (
 	emptyTx = NewTransaction(
 		0,
-		common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87"),
+		common.MustBech32ToAddress("lax1p908ht4x5mrufsklawtha7kry6h42tv8sxxrdc"),
 		big.NewInt(0), 0, big.NewInt(0),
 		nil,
 	)
 
 	rightvrsTx, _ = NewTransaction(
 		3,
-		common.HexToAddress("b94f5374fce5edbc8e2a8697c15331677e6ebf0b"),
+		common.MustBech32ToAddress("lax1h984xa8uuhkmer32s6tuz5e3valxa0ctd9shx6"),
 		big.NewInt(10),
 		2000,
 		big.NewInt(1),
@@ -94,16 +94,16 @@ func EncodeRecipientEmpty() (string, error) {
 	tx, err := SignTx(emptyTx, signer, key)
 
 	if err != nil {
-		return "",err
+		return "", err
 	}
 	buffer := new(bytes.Buffer)
 	err = rlp.Encode(buffer, tx.data)
 	if err != nil {
 		fmt.Println("geninput fail.", err)
-		return "",err
+		return "", err
 	}
 	str := common.Bytes2Hex(buffer.Bytes())
-	return str,nil
+	return str, nil
 }
 
 func TestRecipientEmpty(t *testing.T) {
@@ -114,7 +114,7 @@ func TestRecipientEmpty(t *testing.T) {
 		t.Error(error)
 		t.FailNow()
 	}
-//	tx, err := decodeTx(common.Hex2Bytes("f8498080808080011ca09b16de9d5bdee2cf56c28d16275a4da68cd30273e2525f3959f5d62557489921a0372ebd8fb3345f7db7b5a86d42e24d36e983e259b0664ceb8c227ec9af572f3d"))
+	//	tx, err := decodeTx(common.Hex2Bytes("f8498080808080011ca09b16de9d5bdee2cf56c28d16275a4da68cd30273e2525f3959f5d62557489921a0372ebd8fb3345f7db7b5a86d42e24d36e983e259b0664ceb8c227ec9af572f3d"))
 	tx, err := decodeTx(common.Hex2Bytes(strTxRlpData))
 	if err != nil {
 		t.Error(err)
@@ -138,11 +138,11 @@ func TestRecipientNormal(t *testing.T) {
 	key, _ := crypto.HexToECDSA("45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")
 	newtx := NewTransaction(
 		3,
-		common.HexToAddress("b94f5374fce5edbc8e2a8697c15331677e6ebf0b"),
+		common.MustBech32ToAddress("lax1h984xa8uuhkmer32s6tuz5e3valxa0ctd9shx6"),
 		big.NewInt(10),
 		2000,
 		big.NewInt(1),
-		common.FromHex("5544") )
+		common.FromHex("5544"))
 
 	signer := NewEIP155Signer(new(big.Int))
 
@@ -158,7 +158,7 @@ func TestRecipientNormal(t *testing.T) {
 		fmt.Println("geninput fail.", err)
 	}
 	str := common.Bytes2Hex(buffer.Bytes())
-//	log.Info(str)
+	//	log.Info(str)
 
 	tx, err := decodeTx(common.Hex2Bytes(str))
 

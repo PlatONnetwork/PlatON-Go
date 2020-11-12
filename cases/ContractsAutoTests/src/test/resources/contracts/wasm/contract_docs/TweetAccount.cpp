@@ -1,3 +1,4 @@
+#define TESTNET
 // Author: zjsunzone
 #include <platon/platon.hpp>
 #include <string>

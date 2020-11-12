@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -29,24 +29,6 @@ import (
 
 func buildBigInt(v int64) *big.Int {
 	return new(big.Int).SetInt64(v)
-}
-
-func TestCalcMemSize(t *testing.T) {
-	testCases := []struct {
-		off  *big.Int
-		l    *big.Int
-		want *big.Int
-	}{
-		{off: buildBigInt(10), l: buildBigInt(10), want: buildBigInt(20)},
-		{off: buildBigInt(0), l: buildBigInt(0), want: buildBigInt(0)},
-		{off: buildBigInt(1), l: buildBigInt(-1), want: buildBigInt(0)},
-		{off: buildBigInt(10), l: buildBigInt(-10), want: buildBigInt(0)},
-		{off: buildBigInt(3), l: buildBigInt(4), want: buildBigInt(7)},
-	}
-	for _, v := range testCases {
-		res := calcMemSize(v.off, v.l)
-		assert.Equal(t, v.want.Uint64(), res.Uint64())
-	}
 }
 
 func TestGetData(t *testing.T) {

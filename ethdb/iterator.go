@@ -1,3 +1,19 @@
+// Copyright 2018 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package ethdb
 
 // Iterator iterates over a database's key/value pairs in ascending key order.
@@ -31,4 +47,15 @@ type Iterator interface {
 	// Release releases associated resources. Release should always succeed and can
 	// be called multiple times without causing error.
 	Release()
+}
+
+// Iteratee wraps the NewIterator methods of a backing data store.
+type Iteratee interface {
+	// NewIterator creates a binary-alphabetical iterator over the entire keyspace
+	// contained within the key-value database.
+	NewIterator() Iterator
+
+	// NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
+	// of database content with a particular key prefix.
+	NewIteratorWithPrefix(prefix []byte) Iterator
 }

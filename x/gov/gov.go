@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -35,10 +35,10 @@ type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
 	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error)
 	GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error)
-	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
-	GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error)
-	GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error)
-	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32, state xcom.StateDB) error
+	GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error)
+	GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error)
+	GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error)
+	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
 }
 
 const (
@@ -46,6 +46,7 @@ const (
 	ModuleSlashing = "slashing"
 	ModuleBlock    = "block"
 	ModuleTxPool   = "txPool"
+	ModuleReward   = "reward"
 )
 
 const (
@@ -61,6 +62,10 @@ const (
 	KeyMaxTxDataLimit             = "maxTxDataLimit"
 	KeyZeroProduceNumberThreshold = "zeroProduceNumberThreshold"
 	KeyZeroProduceCumulativeTime  = "zeroProduceCumulativeTime"
+	KeyRewardPerMaxChangeRange    = "rewardPerMaxChangeRange"
+	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
+	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
+	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
 )
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
@@ -223,15 +228,6 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	return nil
 }
 
-var NodeDeclaredVersionsCounter map[discover.NodeID]uint32 = make(map[discover.NodeID]uint32)
-var EnableCounter bool
-
-func countNodeDeclaredVersions(declaredNodeID discover.NodeID, declaredVersion uint32) {
-	if EnableCounter {
-		NodeDeclaredVersionsCounter[declaredNodeID] = declaredVersion
-	}
-}
-
 // node declares it's version
 func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
@@ -275,7 +271,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		} else if declaredVersion>>8 == activeVersion>>8 {
 			//there's a voting-version-proposal, if the declared version equals the current active version, notify staking immediately
 			log.Debug("call stk.DeclarePromoteNotify(not voted, declaredVersion==activeVersion)", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion, state); err != nil {
+			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
 				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 				return NotifyStakingDeclaredVersionError
 			}
@@ -297,7 +293,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			log.Debug("there is no version proposal at pre-active stage")
 			if declaredVersion>>8 == activeVersion>>8 {
 				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion, state); err != nil {
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
 					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 					return NotifyStakingDeclaredVersionError
 				}
@@ -309,7 +305,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			log.Debug("there is a version proposal at pre-active stage", "preActiveVersion", preActiveVersion)
 			if declaredVersion>>8 == preActiveVersion>>8 {
 				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion, state); err != nil {
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
 					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 					return NotifyStakingDeclaredVersionError
 				}
@@ -319,7 +315,6 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			}
 		}
 	}
-	countNodeDeclaredVersions(declaredNodeID, declaredVersion)
 	return nil
 }
 
@@ -826,4 +821,60 @@ func GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) 
 	}
 
 	return uint16(value), nil
+}
+
+func GovernRewardPerMaxChangeRange(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerMaxChangeRange, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerChangeInterval, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernIncreaseIssuanceRatio(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleReward, KeyIncreaseIssuanceRatio, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernZeroProduceFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceFreezeDuration, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint64(value), nil
 }

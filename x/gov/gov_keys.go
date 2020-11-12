@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -37,6 +37,7 @@ var (
 	keyPrefixPIPIDs            = []byte("PIPIDs")
 	keyPrefixParamItems        = []byte("ParamItems")
 	keyPrefixParamValue        = []byte("ParamValue")
+	keyGovernHASHKey           = []byte("GovernHASH")
 )
 
 func KeyProposal(proposalID common.Hash) []byte {
@@ -107,4 +108,8 @@ func KeyParamValue(module, name string) []byte {
 		keyPrefixParamValue,
 		[]byte(module + "/" + name),
 	}, KeyDelimiter)
+}
+
+func KeyGovernHASHKey() []byte {
+	return keyGovernHASHKey
 }

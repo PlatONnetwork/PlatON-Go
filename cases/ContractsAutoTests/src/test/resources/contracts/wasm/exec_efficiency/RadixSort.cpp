@@ -1,4 +1,4 @@
-
+#define TESTNET
 #include <platon/platon.hpp>
 #include <string>
 #include<list>
