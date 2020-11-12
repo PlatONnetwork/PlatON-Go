@@ -56,7 +56,7 @@ def set_slashing(initial_validator_list, contain_slashing_list, node, economic, 
     status = str(status)
     for state in status:
         assert_set_validator_list(node, do[state])
-        economic.wait_consensus_blocknum(node)
+        economic.wait_consensus(node)
 
 
 @pytest.fixture()
@@ -81,7 +81,7 @@ def new_validator_client(update_zero_produce_env, client_noconsensus):
     staking_address, _ = create_staking(client_noconsensus, 10)
     log.info("use node: {} node id: {}".format(client_noconsensus.node.url, client_noconsensus.node.node_id))
     setattr(client_noconsensus, "staking_address", staking_address)
-    client_noconsensus.economic.wait_settlement_blocknum(client_noconsensus.node)
+    client_noconsensus.economic.wait_settlement(client_noconsensus.node)
     yield client_noconsensus
 
 
@@ -99,10 +99,10 @@ def new_validator_client(update_zero_produce_env, client_noconsensus):
 #     for i in range(1000):
 #         if i/2 == 0 and not new_validator_client.node.running:
 #             new_validator_client.node.start(False)
-#             economic.wait_consensus_blocknum(node)
+#             economic.wait_consensus(node)
 #             new_validator_client.node.stop()
 #         else:
-#             economic.wait_consensus_blocknum(node)
+#             economic.wait_consensus(node)
 #         print(i, get_slash_count(node.debug.getWaitSlashingNodeList(), new_validator_client.node.node_id))
 #         if slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id)):
 #             print("slashing")
@@ -120,12 +120,12 @@ def test_ZB_NP_11(new_validator_client):
     initial_validator, slashing_node_list = gen_validator_list(economic.env.consensus_node_id_list(), new_validator_client.node.node_id)
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "111")
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(111)
 
     log.info("current validator: {}".format(get_pledge_list(node.ppos.getValidatorList)))
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -142,7 +142,7 @@ def test_ZB_NP_12(new_validator_client):
     initial_validator, slashing_node_list = gen_validator_list(economic.env.consensus_node_id_list(), new_validator_client.node.node_id)
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "1")
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
@@ -157,14 +157,14 @@ def test_ZB_NP_13(new_validator_client):
     initial_validator, slashing_node_list = gen_validator_list(economic.env.consensus_node_id_list(), new_validator_client.node.node_id)
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "111")
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(111)
     pri = economic.env.account.find_pri_key(new_validator_client.staking_address)
     node.ppos.withdrewStaking(new_validator_client.node.node_id, pri)
     log.info("current validator: {}".format(get_pledge_list(node.ppos.getValidatorList)))
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -180,36 +180,36 @@ def test_ZB_NP_14_15(new_validator_client):
     assert_set_validator_list(node, slashing_node_list)
     current_validator = get_pledge_list(node.ppos.getValidatorList)
     log.info("current validator: {}".format(current_validator))
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_set_validator_list(node, initial_validator)
     current_validator = get_pledge_list(node.ppos.getValidatorList)
     log.info("current validator: {}".format(current_validator))
     assert new_validator_client.node.node_id in current_validator
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # 需要在等一个共识轮才能查看到待处罚信息
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
 
     assert_set_validator_list(node, initial_validator)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
 
     assert_set_validator_list(node, initial_validator)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(101)
 
     assert_set_validator_list(node, initial_validator)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(101)
 
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
     assert_not_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -223,7 +223,7 @@ def test_ZB_NP_16(new_validator_client):
     initial_validator, slashing_node_list = gen_validator_list(economic.env.consensus_node_id_list(), new_validator_client.node.node_id)
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "111")
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(111)
@@ -240,12 +240,12 @@ def test_ZB_NP_17_20(new_validator_client):
     set_slashing(initial_validator, slashing_node_list, node, economic, "1000")
 
     assert_set_validator_list(node, initial_validator)
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
 
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_not_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -260,12 +260,12 @@ def test_ZB_NP_18(new_validator_client):
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "1000")
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
 
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
     assert_not_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -280,14 +280,14 @@ def test_ZB_NP_19(new_validator_client):
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "1000")
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     new_validator_client.node.start(False)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
 
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_not_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -302,12 +302,12 @@ def test_ZB_NP_21_22(new_validator_client):
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "1001")
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1001)
 
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(11)
     assert_not_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -322,14 +322,14 @@ def test_ZB_NP_23(new_validator_client):
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "1001")
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     new_validator_client.node.start(False)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1001)
 
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     print(new_validator_client.node.block_number)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
@@ -345,12 +345,12 @@ def test_ZB_NP_24(new_validator_client):
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "1001")
     assert_set_validator_list(node, initial_validator)
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1001)
 
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(1)
     assert_not_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -365,12 +365,12 @@ def test_ZB_NP_25(new_validator_client):
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "111")
     assert_set_validator_list(node, economic.env.consensus_node_id_list())
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(111)
 
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -385,11 +385,11 @@ def test_ZB_NP_26(new_validator_client):
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "111")
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(111)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -404,11 +404,11 @@ def test_ZB_NP_27(new_validator_client):
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "101")
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(101)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -423,12 +423,12 @@ def test_ZB_NP_28(new_validator_client):
 
     set_slashing(initial_validator, slashing_node_list, node, economic, "110")
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
 
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, new_validator_client.node.node_id) == to_int(11)
 
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_slashing(node.ppos.getCandidateInfo(new_validator_client.node.node_id), new_validator_client.staking_amount)
@@ -444,7 +444,7 @@ def test_ZB_NP_29(update_zero_produce_env, clients_noconsensus):
     result = client_a.staking.create_staking(0, staking_address, staking_address, amount=staking_amount_a, reward_per=10)
     assert_code(result, 0)
     economic = client_b.economic
-    economic.wait_settlement_blocknum(client_b.node)
+    economic.wait_settlement(client_b.node)
     client_a.node.stop()
 
     economic = client_b.economic
@@ -455,18 +455,18 @@ def test_ZB_NP_29(update_zero_produce_env, clients_noconsensus):
     assert_set_validator_list(node, initial_validator)
     current_validator = get_pledge_list(node.ppos.getValidatorList)
     log.info("current validator: {}".format(current_validator))
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
     result = client_b.staking.create_staking(0, staking_address, staking_address, amount=staking_amount_b, reward_per=10)
     assert_code(result, 0)
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     assert_set_validator_list(node, initial_validator)
-    economic.wait_consensus_blocknum(node)
-    economic.wait_consensus_blocknum(node, 3)
+    economic.wait_consensus(node)
+    economic.wait_consensus(node, 3)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert get_slash_count(wait_slashing_list, client_a.node.node_id) == to_int(1)
 
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     wait_slashing_list = node.debug.getWaitSlashingNodeList()
     assert len(wait_slashing_list) == 0
     assert_not_slashing(node.ppos.getCandidateInfo(client_a.node.node_id), staking_amount_a)
@@ -482,11 +482,11 @@ def test_ZB_NP_30(new_validator_client):
     assert_set_validator_list(node, slashing_node_list)
     current_validator = get_pledge_list(node.ppos.getValidatorList)
     log.info("current validator: {}".format(current_validator))
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
 
     assert_set_validator_list(node, slashing_node_list)
-    economic.wait_consensus_blocknum(node)
-    num = economic.get_consensus_switchpoint(node, 1)
+    economic.wait_consensus(node)
+    num = economic.get_switchpoint_by_consensus(node, 1)
     while node.block_number < num:
         new_validator_client.node.start(False)
         time.sleep(4)

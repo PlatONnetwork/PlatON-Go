@@ -6,11 +6,14 @@ import time
 
 import allure
 import pytest
-from client_sdk_python import Web3
-from client_sdk_python.eth import Eth
+from alaya import Web3
+from alaya.eth import Eth
 from hexbytes import HexBytes
+
+from common.log import log
+
 password = "88888888"
-to_address = "lax1zy3rg32u8ge06yfrp3pw00xdf2zwqgqshrlnax"
+to_address = "atx1nssezvh4cljl5emq3a244j53xeg0kery423jja"
 g_txHash = None
 
 
@@ -204,6 +207,8 @@ def test_platon_GetBlock(global_running_env):
     address = account.account_with_money["address"]
     nCount = platon.getTransactionCount(Web3.toChecksumAddress(address))
     nonce = hex(nCount)
+
+    log.info(f'node: {node.host} {node.p2p_port}, address: {address}')
 
     gasprice = node.eth.gasPrice
     # send transaction

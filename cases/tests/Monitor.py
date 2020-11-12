@@ -3,9 +3,9 @@ import time
 import rlp
 import json
 import os
-from client_sdk_python import HTTPProvider, Web3, WebsocketProvider
-from client_sdk_python.eth import Eth
-from client_sdk_python.middleware import geth_poa_middleware
+from alaya import HTTPProvider, Web3, WebsocketProvider
+from alaya.eth import Eth
+from alaya.middleware import geth_poa_middleware
 from hexbytes import HexBytes
 from smtplib import SMTP_SSL
 from email.mime.text import MIMEText

@@ -46,11 +46,9 @@ def staking_delegate_client(client_new_node):
 @pytest.fixture()
 def free_locked_delegate_client(client_new_node):
     staking_amount = client_new_node.economic.create_staking_limit
-    delegate_amount = client_new_node.economic.add_staking_limit
-    staking_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                           staking_amount * 2)
-    delegate_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                            staking_amount * 2)
+    delegate_amount = client_new_node.economic.delegate_limit
+    staking_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3, staking_amount * 2)
+    delegate_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3, staking_amount)
     result = client_new_node.staking.create_staking(0, staking_address, staking_address)
     assert_code(result, 0)
     result = client_new_node.delegate.delegate(0, delegate_address, amount=delegate_amount * 2)

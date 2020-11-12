@@ -2,12 +2,12 @@ import time
 
 import allure
 import pytest
-from client_sdk_python.eth import Eth
+from alaya.eth import Eth
 from eth_utils import is_integer
 
 from common.log import log
 from common.connect import run_ssh_cmd
-from client_sdk_python.admin import Admin
+from alaya.admin import Admin
 
 from conf.settings import NODE_FILE
 # from environment import t1est_env_impl
@@ -27,13 +27,13 @@ def account_env(global_test_env) -> (Node, AccountEnv):
 
     env = global_test_env
     node = env.get_rand_node()
-    log.info("Node::::::::::::::::::::::::::::::{}".format(node))
+    log.info("Node::::::::::::::::::::::::::::::{}:{}".format(node.host, node.p2p_port))
 
     remote_pwd_file = node.remote_node_path + "/password.txt"
     node.upload_file("./deploy/keystore/password.txt", remote_pwd_file)
 
-    remote_account_file = node.remote_keystore_dir + "/UTC--2019-10-15T10-27-31.520865283Z--c198603d3793c11e5362c8564a65d3880bae341b"
-    node.upload_file("./deploy/keystore/UTC--2019-10-15T10-27-31.520865283Z--c198603d3793c11e5362c8564a65d3880bae341b", remote_account_file)
+    remote_account_file = node.remote_keystore_dir + "/UTC--2019-08-23T12-33-18.192329788Z--2e95e3ce0a54951eb9a99152a6d5827872dfb4fd"
+    # node.upload_file("./deploy/keystore/UTC--2019-10-15T10-27-31.520865283Z--c198603d3793c11e5362c8564a65d3880bae341b", remote_account_file)
 
     remote_key_file = node.remote_keystore_dir + "/key.pri"
     node.upload_file("./deploy/key.pri", remote_key_file)
@@ -42,7 +42,7 @@ def account_env(global_test_env) -> (Node, AccountEnv):
     account_env.remote_pwd_file = remote_pwd_file
     account_env.remote_account_file = remote_account_file
     account_env.remote_key_file = remote_key_file
-    account_env.remote_account_address = "lax1785psd0qs0g8p79j54mnewh0ndwcvqq6g23h8h"
+    account_env.remote_account_address = "atx1zkrxx6rf358jcvr7nruhyvr9hxpwv9unj58er9"
 
     yield node, account_env
 
@@ -153,7 +153,7 @@ def test_CMD_004_2(account_env):
 def test_CMD_005(account_env):
     node, env = account_env
     returnList = run_ssh_cmd(node.ssh, "{} account update {} --datadir {}".format(node.remote_bin_file, env.remote_account_address, node.remote_data_dir), "88888888", "88888888", "88888888")
-
+    log.info(f'returnList is {returnList}')
     assert len(returnList) == 6
     assert returnList[5].strip() == "Repeat passphrase:"
 

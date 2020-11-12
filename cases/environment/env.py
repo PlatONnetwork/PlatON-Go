@@ -96,7 +96,7 @@ class TestEnvironment:
 
     @property
     def version(self):
-        return "0.13.0"
+        return "0.13.2"
 
     @property
     def running(self) -> bool:
@@ -333,6 +333,7 @@ class TestEnvironment:
     def clean_supervisor_confs(self):
         def clean(server: Server):
             return server.clean_supervisor_conf()
+
         return self.executor(clean, self.server_list)
 
     def start_nodes(self, node_list: List[Node], init_chain=True):
@@ -341,6 +342,7 @@ class TestEnvironment:
         :param node_list:
         :param init_chain:
         """
+
         def start(node: Node, need_init_chain):
             return node.start(need_init_chain)
 
@@ -349,8 +351,8 @@ class TestEnvironment:
     def deploy_nodes(self, node_list: List[Node], genesis_file):
         """
         Deployment node
-        Choose whether to empty the environment depending on whether initialization is required
-        Upload all node files
+        Choose whether to empty the environment depending on whether initialization is required
+        Upload all node files
         :param node_list:
         :param genesis_file:
         """
@@ -367,6 +369,7 @@ class TestEnvironment:
         :param node_list:
         :param genesis_file:
         """
+
         def prepare(node: Node):
             return node.put_all_file(genesis_file)
 
@@ -377,6 +380,7 @@ class TestEnvironment:
         Close node
         :param node_list:
         """
+
         def stop(node: Node):
             return node.stop()
 
@@ -387,6 +391,7 @@ class TestEnvironment:
         Restart node
         :param node_list:
         """
+
         def restart(node: Node):
             return node.restart()
 
@@ -398,6 +403,7 @@ class TestEnvironment:
         :param node_list:
         :return:
         """
+
         def clean(node: Node):
             return node.clean()
 
@@ -408,6 +414,7 @@ class TestEnvironment:
         Close the node and clear the node database
         :param node_list:
         """
+
         def clean_db(node: Node):
             return node.clean_db()
 
@@ -417,6 +424,7 @@ class TestEnvironment:
         """
         Instantiate all nodes
         """
+
         def init(node_config):
             return Node(node_config, self.cfg, self.chain_id)
 
@@ -579,6 +587,8 @@ class TestEnvironment:
         # self.genesis_config['alloc'][account] = {"balance": str(99999999999999999999999999)}
         accounts = self.account.get_all_accounts()
         for account in accounts:
+            if account.get('id') == 3:
+                continue
             self.genesis_config['alloc'][account['address']] = {"balance": str(account['balance'])}
         with open(self.cfg.genesis_tmp, 'w', encoding='utf-8') as f:
             f.write(json.dumps(self.genesis_config, indent=4))
@@ -673,7 +683,8 @@ def create_env(conf_tmp=None, node_file=None, account_file=None, init_chain=True
         conf_tmp = DEFAULT_CONF_TMP_DIR
     else:
         conf_tmp = ConfTmpDir(conf_tmp)
-    cfg = TestConfig(conf_tmp=conf_tmp, install_supervisor=install_supervisor, install_dependency=install_dependency, init_chain=init_chain, can_deploy=can_deploy)
+    cfg = TestConfig(conf_tmp=conf_tmp, install_supervisor=install_supervisor, install_dependency=install_dependency, init_chain=init_chain,
+                     can_deploy=can_deploy)
     if node_file:
         cfg.node_file = node_file
     if account_file:
@@ -683,6 +694,7 @@ def create_env(conf_tmp=None, node_file=None, account_file=None, init_chain=True
 
 if __name__ == "__main__":
     from tests.lib import get_no_pledge_node, get_no_pledge_node_list, get_pledge_list, check_node_in_list
+
     node_filename = abspath("deploy/node/debug_4_4.yml")
     env = create_env(node_file=node_filename)
     env.shutdown()
@@ -695,7 +707,8 @@ if __name__ == "__main__":
     env.cfg.syncmode = "fast"
     # env.deploy_all(abspath("deploy/tmp/genesis_0.8.0.json"))
     for node in env.get_all_nodes():
-        node.admin.addPeer("enode://d203e37d86f1757ee4bbeafd7a0b0b6f7d4f22afaad3c63337e92d9056251dcca95515cb23d5a040e3416e1ebbb303aa52ea535103b9b8c8c2adc98ea3b41c01@10.10.8.195:16789")
+        node.admin.addPeer(
+            "enode://d203e37d86f1757ee4bbeafd7a0b0b6f7d4f22afaad3c63337e92d9056251dcca95515cb23d5a040e3416e1ebbb303aa52ea535103b9b8c8c2adc98ea3b41c01@10.10.8.195:16789")
         print(node.web3.net.peerCount)
     print(node.ppos.getCandidateList())
     # env.deploy_all(abspath("deploy/tmp/genesis_0.8.0.json"))

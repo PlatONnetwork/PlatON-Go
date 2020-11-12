@@ -27,7 +27,7 @@ def test_UP_RE_005_012_013(new_genesis_env, client_noconsensus, client_consensus
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 301008)
 
-    client.economic.wait_settlement_blocknum(client.node, 1)
+    client.economic.wait_settlement(client.node, 1)
     result = client.staking.edit_candidate(client.node.staking_address, address, reward_per=109)
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 0)
@@ -35,7 +35,7 @@ def test_UP_RE_005_012_013(new_genesis_env, client_noconsensus, client_consensus
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 0)
 
-    client.economic.wait_settlement_blocknum(client.node, 1)
+    client.economic.wait_settlement(client.node, 1)
     result = client.staking.edit_candidate(client.node.staking_address, address, reward_per=100)
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 0)
@@ -62,7 +62,7 @@ def test_UP_RE_002_004(new_genesis_env, clients_consensus, client_noconsensus):
     assert_code(result, 0)
 
     param_governance_verify_before_endblock(client_2, 'staking', 'rewardPerMaxChangeRange', '11')
-    client_2.economic.wait_settlement_blocknum(client_2.node, 1)
+    client_2.economic.wait_settlement(client_2.node, 1)
     assert '11' == get_governable_parameter_value(client_2, 'rewardPerMaxChangeRange')
     result = client_2.staking.edit_candidate(client_2.node.staking_address, address, reward_per=12)
     log.info('edit nodeinfo result : {}'.format(result))
@@ -81,7 +81,7 @@ def test_UP_RE_002_004(new_genesis_env, clients_consensus, client_noconsensus):
     assert_code(result, 0)
 
     param_governance_verify_before_endblock(client_2, 'staking', 'rewardPerMaxChangeRange', '10')
-    client_2.economic.wait_settlement_blocknum(client_2.node, 1)
+    client_2.economic.wait_settlement(client_2.node, 1)
     assert '10' == get_governable_parameter_value(client_2, 'rewardPerMaxChangeRange')
     result = client_2.staking.edit_candidate(client_2.node.staking_address, address, reward_per=22)
     log.info('edit nodeinfo result : {}'.format(result))
@@ -119,7 +119,7 @@ def test_UP_RE_007_009(new_genesis_env, client_noconsensus, client_consensus):
     assert_code(result, 301008)
 
     param_governance_verify_before_endblock(client_2, 'staking', 'rewardPerChangeInterval', '3')
-    client_2.economic.wait_settlement_blocknum(client_2.node)
+    client_2.economic.wait_settlement(client_2.node)
     assert 3 == int(get_governable_parameter_value(client_2, 'rewardPerChangeInterval'))
 
     result = client_2.staking.edit_candidate(client_2.node.staking_address, address, reward_per=2)
@@ -128,7 +128,7 @@ def test_UP_RE_007_009(new_genesis_env, client_noconsensus, client_consensus):
     result = client.staking.edit_candidate(client.node.staking_address, address, reward_per=99)
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 301008)
-    client_2.economic.wait_settlement_blocknum(client_2.node)
+    client_2.economic.wait_settlement(client_2.node)
     result = client_2.staking.edit_candidate(client_2.node.staking_address, address, reward_per=2)
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 0)
@@ -136,19 +136,19 @@ def test_UP_RE_007_009(new_genesis_env, client_noconsensus, client_consensus):
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 301008)
 
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     result = client.staking.edit_candidate(client.node.staking_address, address, reward_per=99)
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 0)
 
     param_governance_verify_before_endblock(client_2, 'staking', 'rewardPerChangeInterval', '2')
-    client_2.economic.wait_settlement_blocknum(client_2.node)
+    client_2.economic.wait_settlement(client_2.node)
     assert 2 == int(get_governable_parameter_value(client_2, 'rewardPerChangeInterval'))
     result = client.staking.edit_candidate(client.node.staking_address, address, reward_per=98)
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 301008)
 
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     result = client.staking.edit_candidate(client.node.staking_address, address, reward_per=98)
     log.info('edit nodeinfo result : {}'.format(result))
     assert_code(result, 0)

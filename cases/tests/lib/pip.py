@@ -1,3 +1,5 @@
+from loguru import logger
+
 from environment.env import TestEnvironment
 from environment.node import Node
 from .config import PipConfig
@@ -178,6 +180,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
+        logger.info(f'getTallyResult result == {result}')
         data = result.get('Ret')
         # data = json.loads(data)
         if not data:
@@ -306,6 +309,7 @@ class Pip:
         :return:
         """
         result = self.pip.listProposal().get('Ret')
+        logger.info(f'result == {result}')
         # result = json.loads(result)
         for pid_list in result:
             if pid_list.get('ProposalType') == 2:
@@ -331,6 +335,7 @@ class Pip:
             return None
 
         proposal_info = self.pip.listProposal().get('Ret')
+        logger.info(f'proposal_info ==== {proposal_info}')
         # proposal_info = json.loads(proposal_info)
         proposal_list_text = []
         proposal_list_version = []
