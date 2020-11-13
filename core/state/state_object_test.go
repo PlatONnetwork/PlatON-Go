@@ -27,7 +27,7 @@ func TestStateObjectValuePrefix(t *testing.T) {
 		StorageKeyPrefix: addr.Bytes(),
 	})
 
-	dbValue := x2.getPrefixValue(key, value)
+	dbValue := x2.getPrefixValue(hash.Bytes(), key, value)
 	if !bytes.Equal(value, x2.removePrefixValue(dbValue)) {
 		t.Fatal("prefix error")
 	}
