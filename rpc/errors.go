@@ -24,6 +24,8 @@ type methodNotFoundError struct {
 	method  string
 }
 
+const defaultErrorCode = -32000
+
 func (e *methodNotFoundError) ErrorCode() int { return -32601 }
 
 func (e *methodNotFoundError) Error() string {
