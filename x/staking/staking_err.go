@@ -55,4 +55,5 @@ var (
 	ErrGetDelegateRelated        = common.NewBizError(301203, "Getting related of delegate is failed")
 	ErrQueryCandidateInfo        = common.NewBizError(301204, "Query candidate info failed")
 	ErrQueryDelegateInfo         = common.NewBizError(301205, "Query delegate info failed")
+	ErrNodeID2Addr               = common.NewBizError(301206, "nodeID to address fail")
 )

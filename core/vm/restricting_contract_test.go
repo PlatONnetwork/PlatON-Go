@@ -38,7 +38,7 @@ func buildRestrictingPlanData() ([]byte, error) {
 	for index := 0; index < len(plans); index++ {
 		epoch = uint64(index + 1)
 		plan.Epoch = uint64(epoch)
-		plan.Amount = big.NewInt(1E18)
+		plan.Amount = big.NewInt(1e18)
 		plans[index] = plan
 	}
 
@@ -60,7 +60,7 @@ func buildErrorRestrictingPlanData() ([]byte, error) {
 	var plans = make([]restricting.RestrictingPlan, 1)
 
 	plan.Epoch = uint64(0)
-	plan.Amount = big.NewInt(1E18)
+	plan.Amount = big.NewInt(1e18)
 	plans[0] = plan
 
 	var params [][]byte
@@ -107,8 +107,8 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 			t.Log("rlp encode restricting input: ", hexutil.Encode(input))
 		}
 
-		if result, err := contract.Run(input); err != nil {
-			t.Fatal("create restricting input failed, error:", err.Error())
+		if result, err := contract.Run(input); err == nil {
+			t.Error("the restricting plan must failed")
 		} else {
 			t.Log(string(result))
 		}

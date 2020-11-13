@@ -225,7 +225,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	if nil != err {
 		log.Error("Failed to createStaking by parse nodeId", "txHash", txHash,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return nil, err
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("nodeid %s to address fail: %s",
+				nodeId.String(), err.Error()),
+			TxCreateStaking, staking.ErrNodeID2Addr)
 	}
 
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
@@ -358,7 +361,10 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	if nil != err {
 		log.Error("Failed to editCandidate by parse nodeId", "txHash", txHash,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return nil, err
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("nodeid %s to address fail: %s",
+				nodeId.String(), err.Error()),
+			TxCreateStaking, staking.ErrNodeID2Addr)
 	}
 
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
@@ -482,7 +488,10 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	if nil != err {
 		log.Error("Failed to increaseStaking by parse nodeId", "txHash", txHash,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return nil, err
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("nodeid %s to address fail: %s",
+				nodeId.String(), err.Error()),
+			TxCreateStaking, staking.ErrNodeID2Addr)
 	}
 
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
@@ -549,7 +558,10 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	if nil != err {
 		log.Error("Failed to withdrewStaking by parse nodeId", "txHash", txHash,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return nil, err
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("nodeid %s to address fail: %s",
+				nodeId.String(), err.Error()),
+			TxCreateStaking, staking.ErrNodeID2Addr)
 	}
 
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
@@ -615,7 +627,10 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	if nil != err {
 		log.Error("Failed to delegate by parse nodeId", "txHash", txHash, "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return nil, err
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("nodeid %s to address fail: %s",
+				nodeId.String(), err.Error()),
+			TxCreateStaking, staking.ErrNodeID2Addr)
 	}
 
 	canMutable, err := stkc.Plugin.GetCanMutable(blockHash, canAddr)
