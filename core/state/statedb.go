@@ -18,8 +18,12 @@
 package state
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"sort"
 	"sync"
@@ -45,6 +49,9 @@ var (
 	emptyCode = crypto.Keccak256Hash(nil)
 
 	emptyStorage = crypto.Keccak256Hash(nil)
+
+	// Is the current version greater than 0.14.0
+	GovGte0140Version = false
 )
 
 // StateDBs within the ethereum protocol are used to store anything
@@ -96,6 +103,8 @@ type StateDB struct {
 
 	// The index in clearReferenceFunc of parent StateDB
 	referenceFuncIndex int
+	// statedb is created based on this root
+	originRoot common.Hash
 }
 
 // Create a new state from a given trie.
@@ -113,6 +122,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		preimages:          make(map[common.Hash][]byte),
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
+		originRoot:         root,
 	}
 	return state, nil
 }
@@ -129,6 +139,7 @@ func (self *StateDB) NewStateDB() *StateDB {
 		journal:            newJournal(),
 		parent:             self,
 		clearReferenceFunc: make([]func(), 0),
+		originRoot:         self.Root(),
 	}
 
 	index := self.AddReferenceFunc(stateDB.clearParentRef)
@@ -457,10 +468,59 @@ func (self *StateDB) SetState(address common.Address, key, value []byte) {
 	stateObject := self.GetOrNewStateObject(address)
 
 	if stateObject != nil {
-		//prefixKey := stateObject.getPrefixKey(key)
-		stateObject.SetState(self.db, key, stateObject.getPrefixValue(key, value))
+		if self.Gte0140VersionState() {
+			stateObject.SetState(self.db, key, stateObject.getPrefixValue(self.originRoot.Bytes(), key, value))
+		} else {
+			stateObject.SetState(self.db, key, stateObject.getPrefixValue(nil, key, value))
+		}
 	}
 	self.lock.Unlock()
+}
+
+func (self *StateDB) Gte0140VersionState() bool {
+	if !GovGte0140Version {
+		GovGte0140Version = Gte0140Version(self.GetCurrentActiveVersion())
+	}
+	return GovGte0140Version
+}
+
+func Gte0140Version(version uint32) bool {
+	return version >= params.FORKVERSION_0_14_0
+}
+
+func (self *StateDB) GetCurrentActiveVersion() uint32 {
+	avList, err := self.ListActiveVersion()
+	if err != nil {
+		log.Error("Cannot find active version list", "err", err)
+		return 0
+	}
+
+	var version uint32
+	if len(avList) == 0 {
+		log.Warn("cannot find current active version, The ActiveVersion List is nil")
+		return 0
+	} else {
+		version = avList[0].ActiveVersion
+	}
+	return version
+}
+
+func (self *StateDB) ListActiveVersion() ([]gov.ActiveVersionValue, error) {
+	//avListBytes := self.GetState(vm.GovContractAddr, gov.KeyActiveVersions())
+	var avListBytes []byte
+	stateObject := self.getStateObject(vm.GovContractAddr)
+	if stateObject != nil {
+		avListBytes = stateObject.removePrefixValue(stateObject.GetState(self.db, gov.KeyActiveVersions()))
+	}
+
+	if len(avListBytes) == 0 {
+		return nil, nil
+	}
+	var avList []gov.ActiveVersionValue
+	if err := json.Unmarshal(avListBytes, &avList); err != nil {
+		return nil, err
+	}
+	return avList, nil
 }
 
 //func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
@@ -813,6 +873,7 @@ func (self *StateDB) Copy() *StateDB {
 		preimages:          make(map[common.Hash][]byte),
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
+		originRoot:         self.originRoot,
 	}
 
 	// Copy the dirty states, logs, and preimages
@@ -966,6 +1027,9 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	defer s.lock.Unlock()
 
 	defer s.clearJournalAndRefund()
+
+	// Increasing node version in memory database
+	s.db.TrieDB().IncrVersion()
 
 	for addr := range s.journal.dirties {
 		s.stateObjectsDirty[addr] = struct{}{}

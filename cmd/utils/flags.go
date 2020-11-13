@@ -1213,11 +1213,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
 	}
-
-	// Temporarily block
-	/*if ctx.GlobalIsSet(DBNoGCFlag.Name) {
+	if ctx.GlobalIsSet(DBNoGCFlag.Name) {
 		cfg.DBDisabledGC = ctx.GlobalBool(DBNoGCFlag.Name)
-	}*/
+	}
 	if ctx.GlobalIsSet(DBGCIntervalFlag.Name) {
 		cfg.DBGCInterval = ctx.GlobalUint64(DBGCIntervalFlag.Name)
 	}
