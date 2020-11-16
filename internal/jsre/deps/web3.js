@@ -2539,11 +2539,11 @@ var isBech32Address = function (address) {
  * Transforms given string to bech32 addres
  *
  * @method toBech32Address
- * @param {String} address
  * @param {String} hrp
+ * @param {String} address
  * @return {String} formatted bech32 address
  */
-var toBech32Address = function (address, hrp) {
+var toBech32Address = function (hrp, address) {
     if (isStrictAddress(address) || isChecksumAddress(address)) {
         return segwit_addr.EncodeAddress(hrp, address);
     }
@@ -4143,9 +4143,6 @@ var outputBlockFormatter = function(block) {
     block.timestamp = utils.toDecimal(block.timestamp);
     if(block.number !== null)
         block.number = utils.toDecimal(block.number);
-
-    block.difficulty = utils.toBigNumber(block.difficulty);
-    block.totalDifficulty = utils.toBigNumber(block.totalDifficulty);
 
     if (utils.isArray(block.transactions)) {
         block.transactions.forEach(function(item){
