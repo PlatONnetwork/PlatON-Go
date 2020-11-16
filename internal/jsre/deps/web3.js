@@ -4126,9 +4126,6 @@ var outputBlockFormatter = function(block) {
     if(block.number !== null)
         block.number = utils.toDecimal(block.number);
 
-    block.difficulty = utils.toBigNumber(block.difficulty);
-    block.totalDifficulty = utils.toBigNumber(block.totalDifficulty);
-
     if (utils.isArray(block.transactions)) {
         block.transactions.forEach(function(item){
             if(!utils.isString(item))
