@@ -30,15 +30,17 @@ import (
 
 var Bytes2X_CMD = map[string]interface{}{
 	"string":   BytesToString,
+	"*string":  BytesToStringPoint,
 	"[8]byte":  BytesTo8Bytes,
 	"[16]byte": BytesTo16Bytes,
 	"[32]byte": BytesTo32Bytes,
 	"[64]byte": BytesTo64Bytes,
 
-	"uint8":  BytesToUint8,
-	"uint16": BytesToUint16,
-	"uint32": BytesToUint32,
-	"uint64": BytesToUint64,
+	"uint8":   BytesToUint8,
+	"uint16":  BytesToUint16,
+	"*uint16": BytesToUint16Point,
+	"uint32":  BytesToUint32,
+	"uint64":  BytesToUint64,
 
 	"*big.Int":              BytesToBigInt,
 	"[]*big.Int":            BytesToBigIntArr,
@@ -47,6 +49,7 @@ var Bytes2X_CMD = map[string]interface{}{
 	"common.Hash":           BytesToHash,
 	"[]common.Hash":         BytesToHashArr,
 	"common.Address":        BytesToAddress,
+	"*common.Address":       BytesToAddressPoint,
 	"[]common.Address":      BytesToAddressArr,
 	"common.VersionSign":    BytesToVersionSign,
 	"[]common.VersionSign":  BytesToVersionSignArr,
@@ -65,6 +68,17 @@ func BytesToString(curByte []byte) string {
 		panic("BytesToString:" + err.Error())
 	}
 	return str
+}
+
+func BytesToStringPoint(curByte []byte) *string {
+	if len(curByte) == 0 {
+		return nil
+	}
+	var str string
+	if err := rlp.DecodeBytes(curByte, &str); nil != err {
+		panic("BytesToString:" + err.Error())
+	}
+	return &str
 }
 
 func BytesTo8Bytes(curByte []byte) [8]byte {
@@ -119,6 +133,17 @@ func BytesToUint16(b []byte) uint16 {
 	var x uint16
 	if err := rlp.DecodeBytes(b, &x); nil != err {
 		panic("BytesToUint16:" + err.Error())
+	}
+	return x
+}
+
+func BytesToUint16Point(b []byte) *uint16 {
+	if len(b) == 0 {
+		return nil
+	}
+	var x *uint16
+	if err := rlp.DecodeBytes(b, &x); nil != err {
+		panic("BytesToUint16Point:" + err.Error())
 	}
 	return x
 }
@@ -221,6 +246,19 @@ func BytesToAddress(curByte []byte) common.Address {
 		panic("BytesToAddress:" + err.Error())
 	}
 	return addr
+}
+
+func BytesToAddressPoint(curByte []byte) *common.Address {
+	//str := BytesToString(curByte)
+	//return common.HexToAddress(str)
+	if len(curByte) == 0 {
+		return nil
+	}
+	var addr common.Address
+	if err := rlp.DecodeBytes(curByte, &addr); nil != err {
+		panic("BytesToAddress:" + err.Error())
+	}
+	return &addr
 }
 
 func BytesToAddressArr(curByte []byte) []common.Address {

@@ -360,7 +360,6 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 	} else {
 		if len(dls) > int(xcom.TheNumberOfDelegationsReward()) {
 			sort.Sort(staking.DelByDelegateEpoch(dls))
-			dls = dls[:xcom.TheNumberOfDelegationsReward()]
 		}
 	}
 

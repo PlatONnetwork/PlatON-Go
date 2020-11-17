@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -331,8 +332,8 @@ func verifyRewardPer(rewardPer uint16) bool {
 	return rewardPer <= 10000 //	1BP(BasePoint)=0.01%
 }
 
-func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId discover.NodeID, rewardPer uint16,
-	externalId, nodeName, website, details string) ([]byte, error) {
+func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeId discover.NodeID, rewardPer *uint16,
+	externalId, nodeName, website, details *string) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
@@ -342,18 +343,12 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	log.Debug("Call editCandidate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "rewardPer", rewardPer,
+		"benefitAddress", benefitAddress, "nodeId", nodeId.String(), "rewardPer", rewardPer,
 		"externalId", externalId, "nodeName", nodeName, "website", website,
 		"details", details, "from", from)
 
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
 		return nil, ErrOutOfGas
-	}
-
-	if !verifyRewardPer(rewardPer) {
-		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-			fmt.Sprintf("invalid rewardPer: %d", rewardPer),
-			TxEditorCandidate, staking.ErrInvalidRewardPer)
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -387,60 +382,104 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 			TxEditorCandidate, staking.ErrNoSameStakingAddr)
 	}
 
-	if canOld.BenefitAddress != vm.RewardManagerPoolAddr {
-		canOld.BenefitAddress = benefitAddress
+	if benefitAddress == nil {
+		if !gov.Gte0140VersionState(state) {
+			return xcom.NewResult(common.InvalidParameter, nil), errors.New(common.InvalidParameter.Error())
+		}
+	} else {
+		if canOld.BenefitAddress != vm.RewardManagerPoolAddr {
+			canOld.BenefitAddress = *benefitAddress
+		}
 	}
 
-	// check Description length
-	desc := &staking.Description{
-		NodeName:   nodeName,
-		ExternalId: externalId,
-		Website:    website,
-		Details:    details,
+	currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
+
+	if gov.Gte0140VersionState(state) {
+		if nodeName != nil {
+			canOld.Description.NodeName = *nodeName
+		}
+		if externalId != nil {
+			canOld.Description.ExternalId = *externalId
+		}
+		if website != nil {
+			canOld.Description.Website = *website
+		}
+		if details != nil {
+			canOld.Description.Details = *details
+		}
+	} else {
+		if nodeName == nil || externalId == nil || website == nil || details == nil {
+			return xcom.NewResult(common.InvalidParameter, nil), errors.New(common.InvalidParameter.Error())
+		}
+		// check Description length
+		desc := &staking.Description{
+			NodeName:   *nodeName,
+			ExternalId: *externalId,
+			Website:    *website,
+			Details:    *details,
+		}
+		canOld.Description = *desc
 	}
-	if err := desc.CheckLength(); nil != err {
+	if err := canOld.Description.CheckLength(); nil != err {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 			staking.ErrDescriptionLen.Msg+":"+err.Error(),
 			TxEditorCandidate, staking.ErrDescriptionLen)
 	}
 
-	currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
-
-	canOld.Description = *desc
 	if gov.Gte0140VersionState(state) {
-		if currentEpoch > canOld.RewardPerChangeEpoch {
+		if currentEpoch > canOld.RewardPerChangeEpoch && canOld.NextRewardPer != canOld.RewardPer {
 			canOld.RewardPer = canOld.NextRewardPer
 		}
 	}
-	canOld.NextRewardPer = rewardPer
 
-	if canOld.NextRewardPer != canOld.RewardPer {
-		rewardPerMaxChangeRange, err := gov.GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
-		if nil != err {
-			log.Error("Failed to editCandidate, call GovernRewardPerMaxChangeRange is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-				"err", err)
-			return nil, err
-		}
-		rewardPerChangeInterval, err := gov.GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
-		if nil != err {
-			log.Error("Failed to editCandidate, call GovernRewardPerChangeInterval is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-				"err", err)
-			return nil, err
-		}
-
-		if uint32(rewardPerChangeInterval) > currentEpoch-canOld.RewardPerChangeEpoch {
+	if rewardPer != nil {
+		if !verifyRewardPer(*rewardPer) {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-				fmt.Sprintf("needs interval [%d] epoch to modify", rewardPerChangeInterval),
-				TxEditorCandidate, staking.ErrRewardPerInterval)
+				fmt.Sprintf("invalid rewardPer: %d", rewardPer),
+				TxEditorCandidate, staking.ErrInvalidRewardPer)
 		}
 
-		difference := uint16(math.Abs(float64(canOld.NextRewardPer) - float64(canOld.RewardPer)))
-		if difference > rewardPerMaxChangeRange {
-			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-				fmt.Sprintf("invalid rewardPer: %d, modified by more than: %d", rewardPer, rewardPerMaxChangeRange),
-				TxEditorCandidate, staking.ErrRewardPerChangeRange)
+		isChange := false
+		if gov.Gte0140VersionState(state) {
+			isChange = *rewardPer != canOld.NextRewardPer
+		} else {
+			canOld.NextRewardPer = *rewardPer
+			isChange = canOld.NextRewardPer != canOld.RewardPer
 		}
-		canOld.RewardPerChangeEpoch = currentEpoch
+
+		if isChange {
+			rewardPerMaxChangeRange, err := gov.GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
+			if nil != err {
+				log.Error("Failed to editCandidate, call GovernRewardPerMaxChangeRange is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+					"err", err)
+				return nil, err
+			}
+			rewardPerChangeInterval, err := gov.GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
+			if nil != err {
+				log.Error("Failed to editCandidate, call GovernRewardPerChangeInterval is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+					"err", err)
+				return nil, err
+			}
+
+			if uint32(rewardPerChangeInterval) > currentEpoch-canOld.RewardPerChangeEpoch {
+				return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+					fmt.Sprintf("needs interval [%d] epoch to modify", rewardPerChangeInterval),
+					TxEditorCandidate, staking.ErrRewardPerInterval)
+			}
+
+			difference := uint16(math.Abs(float64(canOld.NextRewardPer) - float64(canOld.RewardPer)))
+			if difference > rewardPerMaxChangeRange {
+				return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+					fmt.Sprintf("invalid rewardPer: %d, modified by more than: %d", rewardPer, rewardPerMaxChangeRange),
+					TxEditorCandidate, staking.ErrRewardPerChangeRange)
+			}
+			canOld.RewardPerChangeEpoch = currentEpoch
+			canOld.NextRewardPer = *rewardPer
+		}
+	} else {
+		if !gov.Gte0140VersionState(state) {
+			return xcom.NewResult(common.InvalidParameter, nil), errors.New(common.InvalidParameter.Error())
+		}
 	}
 	if txHash == common.ZeroHash {
 		return nil, nil
