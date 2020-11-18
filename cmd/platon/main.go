@@ -174,6 +174,8 @@ var (
 		utils.DBGCTimeoutFlag,
 		utils.DBGCMptFlag,
 		utils.DBGCBlockFlag,
+		utils.DBNoCacheFlag,
+		utils.DBCacheEpochFlag,
 	}
 
 	vmFlags = []cli.Flag{
