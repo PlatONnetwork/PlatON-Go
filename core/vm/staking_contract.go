@@ -333,8 +333,8 @@ func verifyRewardPer(rewardPer uint16) bool {
 	return rewardPer <= 10000 //	1BP(BasePoint)=0.01%
 }
 
-func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId discover.NodeID, rewardPer uint16,
-	externalId, nodeName, website, details string) ([]byte, error) {
+func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeId discover.NodeID, rewardPer *uint16,
+	externalId, nodeName, website, details *string) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
@@ -343,18 +343,12 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	log.Debug("Call editCandidate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "rewardPer", rewardPer,
+		"benefitAddress", benefitAddress, "nodeId", nodeId.String(), "rewardPer", rewardPer,
 		"externalId", externalId, "nodeName", nodeName, "website", website,
 		"details", details, "from", from)
 
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
 		return nil, ErrOutOfGas
-	}
-
-	if !verifyRewardPer(rewardPer) {
-		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-			fmt.Sprintf("invalid rewardPer: %d", rewardPer),
-			TxEditorCandidate, staking.ErrInvalidRewardPer)
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -391,31 +385,40 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 			TxEditorCandidate, staking.ErrNoSameStakingAddr)
 	}
 
-	if canOld.BenefitAddress != vm.RewardManagerPoolAddr {
-		canOld.BenefitAddress = benefitAddress
+	if benefitAddress != nil && canOld.BenefitAddress != vm.RewardManagerPoolAddr {
+		canOld.BenefitAddress = *benefitAddress
 	}
 
-	// check Description length
-	desc := &staking.Description{
-		NodeName:   nodeName,
-		ExternalId: externalId,
-		Website:    website,
-		Details:    details,
+	if nodeName != nil {
+		canOld.Description.NodeName = *nodeName
 	}
-	if err := desc.CheckLength(); nil != err {
+	if externalId != nil {
+		canOld.Description.ExternalId = *externalId
+	}
+	if website != nil {
+		canOld.Description.Website = *website
+	}
+	if details != nil {
+		canOld.Description.Details = *details
+	}
+	if err := canOld.Description.CheckLength(); nil != err {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 			staking.ErrDescriptionLen.Msg+":"+err.Error(),
 			TxEditorCandidate, staking.ErrDescriptionLen)
 	}
 
 	currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
-	canOld.Description = *desc
-	if currentEpoch > canOld.RewardPerChangeEpoch {
+	if currentEpoch > canOld.RewardPerChangeEpoch && canOld.NextRewardPer != canOld.RewardPer {
 		canOld.RewardPer = canOld.NextRewardPer
 	}
-	canOld.NextRewardPer = rewardPer
 
-	if canOld.NextRewardPer != canOld.RewardPer {
+	if rewardPer != nil && *rewardPer != canOld.NextRewardPer {
+		if !verifyRewardPer(*rewardPer) {
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+				fmt.Sprintf("invalid rewardPer: %d", rewardPer),
+				TxEditorCandidate, staking.ErrInvalidRewardPer)
+		}
+
 		rewardPerMaxChangeRange, err := gov.GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
 		if nil != err {
 			log.Error("Failed to editCandidate, call GovernRewardPerMaxChangeRange is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
@@ -442,7 +445,9 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 				TxEditorCandidate, staking.ErrRewardPerChangeRange)
 		}
 		canOld.RewardPerChangeEpoch = currentEpoch
+		canOld.NextRewardPer = *rewardPer
 	}
+
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
