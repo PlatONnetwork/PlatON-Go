@@ -467,6 +467,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 					TxEditorCandidate, staking.ErrRewardPerInterval)
 			}
 
+			canOld.NextRewardPer = *rewardPer
 			difference := uint16(math.Abs(float64(canOld.NextRewardPer) - float64(canOld.RewardPer)))
 			if difference > rewardPerMaxChangeRange {
 				return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
@@ -474,7 +475,6 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 					TxEditorCandidate, staking.ErrRewardPerChangeRange)
 			}
 			canOld.RewardPerChangeEpoch = currentEpoch
-			canOld.NextRewardPer = *rewardPer
 		}
 	} else {
 		if !gov.Gte0140VersionState(state) {
