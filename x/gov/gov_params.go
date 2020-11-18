@@ -373,7 +373,7 @@ func init0140VersionParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleRestricting, KeyRestrictingMinimumAmount,
-				fmt.Sprintf(" minimum restricting   amount to be release  in every epoch, range: (80, 100000)")},
+				fmt.Sprintf(" minimum restricting   amount to be release  in every epoch, range: [80, 100000]")},
 			ParamValue: &ParamValue{"", xcom.RestrictingMinimumRelease().String(), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 				v, ok := new(big.Int).SetString(value, 10)
