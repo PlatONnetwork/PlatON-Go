@@ -785,7 +785,7 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (h
 		if err != nil {
 			return 0, err
 		}
-		if !failed {
+		if failed {
 			lo = mid
 		} else {
 			hi = mid
