@@ -368,7 +368,8 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleRestricting, KeyRestrictingMinimumAmount,
-				fmt.Sprintf(" minimum restricting   amount to be release  in every epoch, range: [500, 10000000]")},
+				fmt.Sprintf("minimum restricting amount to be released in each epoch, range: [%d, %d]",
+					new(big.Int).Mul(new(big.Int).SetUint64(500), new(big.Int).SetInt64(params.LAT)), new(big.Int).Mul(new(big.Int).SetUint64(10000000), new(big.Int).SetInt64(params.LAT)))},
 			ParamValue: &ParamValue{"", xcom.RestrictingMinimumRelease().String(), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 				v, ok := new(big.Int).SetString(value, 10)
@@ -377,10 +378,10 @@ func initParam() []*GovernParam {
 				}
 				base := new(big.Int).SetInt64(params.LAT)
 				if v.Cmp(new(big.Int).Mul(base, new(big.Int).SetInt64(500))) < 0 {
-					return fmt.Errorf("restricting minimum release amount must greater than 500 lat")
+					return fmt.Errorf("the minimum number of restricting released must be greater than or equal to 500 lat")
 				}
 				if v.Cmp(new(big.Int).Mul(base, new(big.Int).SetInt64(10000000))) > 0 {
-					return fmt.Errorf("restricting minimum release amount must less than 10000000 lat")
+					return fmt.Errorf("the minimum number of restricting released must be less than or equal to 10000000 lat")
 				}
 				return nil
 			},
