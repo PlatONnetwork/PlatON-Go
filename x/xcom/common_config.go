@@ -160,7 +160,7 @@ type rewardConfigExtend struct {
 }
 
 type restrictingConfigExtend struct {
-	MinimumRelease *big.Int `json:"minimum_release"` //The minimum number of Restricting release in one epoch
+	MinimumRelease *big.Int `json:"minimumRelease"` //The minimum number of Restricting release in one epoch
 }
 
 // New parameters added in version 0.14.0 need to be saved on the chain.
