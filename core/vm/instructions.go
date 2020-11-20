@@ -17,15 +17,20 @@
 package vm
 
 import (
+	"encoding/hex"
 	"errors"
 	"github.com/holiman/uint256"
-	"math/big"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"golang.org/x/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"math/big"
+	"strconv"
 )
 
 var (
@@ -684,10 +689,12 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([
 
 func opCall(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]byte, error) {
 	stack := callContext.stack
+
 	// Pop gas. The actual gas in interpreter.evm.callGasTemp.
 	// We can use this as a temporary value
 	temp := stack.pop()
 	gas := interpreter.evm.callGasTemp
+
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.Address(addr.Bytes20())
@@ -915,4 +922,84 @@ func makeSwap(size int64) executionFunc {
 		callContext.stack.swap(int(size))
 		return nil, nil
 	}
+}
+
+func saveTransData(interpreter *EVMInterpreter, inputData , from , to  []byte , code string) {
+	blockNum := interpreter.evm.BlockNumber
+	txHash := interpreter.evm.StateDB.TxHash().String()
+	input := hex.EncodeToString(inputData)
+
+	blockNumberUint,_ := bigUint64(blockNum)
+	numStr := strconv.FormatUint(blockNumberUint, 10)
+	blockKey := plugin.TransBlockName + numStr
+	transKey := plugin.TransHashName + numStr + txHash
+	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(blockKey))
+	var transBlock staking.TransBlock
+	if nil != err {
+		log.Error("saveTransData rlp get transblock error ",err)
+	} else {
+		err = rlp.DecodeBytes(data, &transBlock)
+		if nil != err {
+			log.Error("saveTransData rlp decode transblock error ",err)
+			return
+		}
+	}
+
+	log.Debug("saveTransData" , "transBlock",transBlock)
+	transHash := transBlock.TransHashStr
+	flag := true
+	for _,v:= range transHash{
+		if v == txHash{
+			log.Info("saveTransBlock agagin ", "input", input)
+			flag = false
+			break
+		}
+	}
+	if flag {
+		transBlock = staking.TransBlock{
+			TransHashStr: append(transHash, txHash),
+		}
+		transBlockByte, err := rlp.EncodeToBytes(transBlock)
+		if nil != err {
+			log.Error("Failed to transBlock EncodeToBytes on saveTransData", "err", err)
+			return
+		}
+		plugin.STAKING_DB.HistoryDB.Put([]byte(blockKey), transBlockByte)
+	}
+
+	var transInput staking.TransInput
+	transData, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
+	if nil != err {
+		log.Debug("saveTransData rlp get transHash error ","err", err)
+	} else {
+		err = rlp.DecodeBytes(transData, &transInput)
+		if nil != err {
+			log.Error("saveTransData rlp decode transHash error ","err", err)
+			return
+		}
+	}
+	//for _,v:= range transHash.TransData{
+	//	if v.Input == input{
+	//		log.Info("saveTransData agagin ", "input", input)
+	//		return
+	//	}
+	//}
+	log.Debug("saveTransData" , "transHash",transHash)
+	transDataModule := staking.TransData{
+		Input: input,
+		Code: code,
+	}
+	transInput = staking.TransInput{
+		From: from,
+		To: to,
+		TransDatas: append(transInput.TransDatas, transDataModule) ,
+	}
+	transHashByte, err := rlp.EncodeToBytes(transInput)
+	if nil != err {
+		log.Error("Failed to transHashByte EncodeToBytes on saveTransData", "err", err)
+		return
+	}
+
+	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
+	log.Debug("saveTransData success" )
 }
