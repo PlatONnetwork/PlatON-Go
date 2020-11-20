@@ -131,7 +131,7 @@ type rewardConfig struct {
 }
 
 type restrictingConfig struct {
-	MinimumRelease *big.Int `json:"minimum_release"` //The minimum number of Restricting release in one epoch
+	MinimumRelease *big.Int `json:"minimumRelease"` //The minimum number of Restricting release in one epoch
 }
 
 type innerAccount struct {
