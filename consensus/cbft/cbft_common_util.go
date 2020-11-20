@@ -167,7 +167,6 @@ func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 // CreateBackend returns a new Backend for testing.
 func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
 
-	xcom.GetEc(xcom.DefaultUnitTestNet)
 	var db = rawdb.NewMemoryDatabase()
 	gspec, _ := CreateGenesis(db)
 
