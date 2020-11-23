@@ -1155,17 +1155,17 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 
 // GetTransactionByBlock returns the transaction receipt for the given block number.
 func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, blockNumber uint64) ([]map[string]interface{}, error) {
-	blockNr :=  rpc.BlockNumber(blockNumber);
+	blockNr := rpc.BlockNumber(blockNumber)
 	block, err := s.b.BlockByNumber(ctx, blockNr)
 	if block == nil {
-		return nil, err;
+		return nil, err
 	}
 
 	queue := make([]map[string]interface{}, len(block.Transactions()))
 
 	receipts, err := s.b.GetReceipts(ctx, block.Hash())
 	if err != nil {
-		log.Error("rpcGetTransactionByBlock, get receipt error","receipts:",receipts)
+		log.Error("rpcGetTransactionByBlock, get receipt error", "receipts:", receipts)
 	}
 
 	for key, value := range block.Transactions() {
@@ -1175,7 +1175,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 		//	continue
 		//}
 		if len(receipts) <= int(key) {
-			log.Error("rpcGetTransactionByBlock, get receipt length error","receipts:",receipts,"index:",key)
+			log.Error("rpcGetTransactionByBlock, get receipt length error", "receipts:", receipts, "index:", key)
 			continue
 		}
 		receipt := receipts[key]
@@ -1183,28 +1183,29 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 		//var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
 		//from, _ := types.Sender(signer, tx)
 		rb := types.ReceiptBlock{
-			Logs:make([]*types.LogBlock, len(receipt.Logs)),
+			Logs: make([]*types.LogBlock, len(receipt.Logs)),
 		}
 		for logIndex, logsValue := range receipt.Logs {
 			tb := &types.LogBlock{
-				Data : hexutil.Encode(logsValue.Data),
-				Index : logsValue.Index,
-				Removed : logsValue.Removed,
-				Topics:logsValue.Topics,
+				Address: logsValue.Address,
+				Data:    hexutil.Encode(logsValue.Data),
+				Index:   logsValue.Index,
+				Removed: logsValue.Removed,
+				Topics:  logsValue.Topics,
 			}
 			rb.Logs[logIndex] = tb
 		}
 		fields := map[string]interface{}{
 			//"blockHash":         blockHash,
 			//"blockNumber":       hexutil.Uint64(blockNumber),
-			"transactionHash":   value.Hash(),
-			"transactionIndex":  hexutil.Uint64(key),
+			"transactionHash":  value.Hash(),
+			"transactionIndex": hexutil.Uint64(key),
 			//"from":              from,
 			//"to":                tx.To(),
-			"gasUsed":           hexutil.Uint64(receipt.GasUsed),
+			"gasUsed": hexutil.Uint64(receipt.GasUsed),
 			//"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
-			"contractAddress":   nil,
-			"logs":              rb.Logs,
+			"contractAddress": nil,
+			"logs":            rb.Logs,
 			//"logsBloom":         receipt.Bloom,
 		}
 
@@ -1221,7 +1222,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 		if receipt.ContractAddress != (common.Address{}) {
 			fields["contractAddress"] = receipt.ContractAddress
 		}
-		queue[key] = fields;
+		queue[key] = fields
 	}
 	return queue, nil
 }
