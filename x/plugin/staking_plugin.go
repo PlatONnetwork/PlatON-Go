@@ -61,8 +61,9 @@ var (
 )
 
 const (
-	FreeVon     = uint16(0)
-	RestrictVon = uint16(1)
+	FreeVon            = uint16(0)
+	RestrictVon        = uint16(1)
+	RestrictAndFreeVon = uint16(2)
 
 	PreviousRound = uint(0)
 	CurrentRound  = uint(1)
@@ -305,6 +306,16 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 			return err
 		}
 		can.RestrictingPlanHes = amount
+	} else if typ == RestrictAndFreeVon { //  use Restricting and free von
+		restrictingPlanHes, releasedHes, err := rt.MixPledgeLockFunds(can.StakingAddress, amount, state)
+		if nil != err {
+			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting MixPledgeLockFunds() is failed",
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+				"stakeAddr", can.StakingAddress, "stakingVon", amount, "err", err)
+			return err
+		}
+		can.RestrictingPlanHes = restrictingPlanHes
+		can.ReleasedHes = releasedHes
 	} else {
 
 		log.Error("Failed to CreateCandidate on stakingPlugin", "err", staking.ErrWrongVonOptType,
@@ -446,6 +457,16 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 		}
 
 		can.RestrictingPlanHes = new(big.Int).Add(can.RestrictingPlanHes, amount)
+	} else if typ == RestrictAndFreeVon {
+		restrictingPlanHes, releasedHes, err := rt.MixPledgeLockFunds(can.StakingAddress, amount, state)
+		if nil != err {
+			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting MixPledgeLockFunds() is failed",
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+				"stakeAddr", can.StakingAddress, "stakingVon", amount, "err", err)
+			return err
+		}
+		can.RestrictingPlanHes = new(big.Int).Add(can.RestrictingPlanHes, restrictingPlanHes)
+		can.ReleasedHes = new(big.Int).Add(can.ReleasedHes, releasedHes)
 	} else {
 
 		log.Error("Failed to IncreaseStaking on stakingPlugin", "err", staking.ErrWrongVonOptType,
