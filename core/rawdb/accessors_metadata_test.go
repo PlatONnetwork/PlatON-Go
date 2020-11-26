@@ -59,7 +59,7 @@ func TestReadWritePreimages(t *testing.T) {
 
 	preimages := make(map[common.Hash][]byte)
 	preimages[hash] = common.CopyBytes(blob)
-	WritePreimages(chainDb, 0, preimages)
+	WritePreimages(chainDb, preimages)
 
 	preimage = ReadPreimage(chainDb, hash)
 	assert.NotEqual(t, 0, len(preimage), "the preimage is nil")

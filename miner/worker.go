@@ -966,8 +966,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		//timestamp = time.Now().UnixNano() / 1e6
 	} else {
 		parent = w.chain.CurrentBlock()
-		if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
-			timestamp = parent.Time().Int64() + 1
+		if parent.Time() >= uint64(timestamp) {
+			timestamp = int64(parent.Time() + 1)
 		}
 		// this will ensure we're not going off too far in the future
 		if now := time.Now().Unix(); timestamp > now+1 {
@@ -982,7 +982,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.gasFloor),
-		Time:       big.NewInt(timestamp),
+		Time:       uint64(timestamp),
 	}
 
 	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
