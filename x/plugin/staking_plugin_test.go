@@ -1657,7 +1657,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	assert.True(t, nil != can)
 	assert.True(t, can.DelegateTotalHes.Cmp(del.ReleasedHes) == 0)
 	assert.True(t, can.DelegateEpoch == del.DelegateEpoch)
-	assert.True(t, del.CumulativeIncome == nil)
+	assert.True(t, del.CumulativeIncome.Cmp(common.Big0) == 0)
 
 	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
 	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
