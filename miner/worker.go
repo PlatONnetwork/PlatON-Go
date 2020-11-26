@@ -1202,7 +1202,7 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 	currentBaseBlock := w.commitWorkEnv.getCurrentBaseBlock()
 	nextBaseBlock := w.engine.NextBaseBlock()
-	nextBaseBlockTime := common.MillisToTime(nextBaseBlock.Time().Int64())
+	nextBaseBlockTime := common.MillisToTime(int64(nextBaseBlock.Time()))
 
 	if timestamp.Before(nextBaseBlockTime) {
 		log.Warn("Invalid packing timestamp,current timestamp is lower than the parent timestamp", "parentBlockTime", common.Beautiful(nextBaseBlockTime), "currentBlockTime", common.Beautiful(timestamp))
@@ -1232,17 +1232,17 @@ func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 			log.Debug("Check if time's up in shouldCommit()", "result", shouldCommit,
 				"next.number", nextBaseBlock.Number(),
 				"next.hash", nextBaseBlock.Hash(),
-				"next.timestamp", common.MillisToString(nextBaseBlock.Time().Int64()),
+				"next.timestamp", common.MillisToString(int64(nextBaseBlock.Time())),
 				"nextBlockTime", nextBlockTime,
 				"timestamp", timestamp)
 		} else {
 			log.Debug("Check if time's up in shouldCommit()", "result", shouldCommit,
 				"current.number", currentBaseBlock.Number(),
 				"current.hash", currentBaseBlock.Hash(),
-				"current.timestamp", common.MillisToString(currentBaseBlock.Time().Int64()),
+				"current.timestamp", common.MillisToString(int64(currentBaseBlock.Time())),
 				"next.number", nextBaseBlock.Number(),
 				"next.hash", nextBaseBlock.Hash(),
-				"next.timestamp", common.MillisToString(nextBaseBlock.Time().Int64()),
+				"next.timestamp", common.MillisToString(int64(nextBaseBlock.Time())),
 				"nextBlockTime", nextBlockTime,
 				"timestamp", timestamp)
 		}
