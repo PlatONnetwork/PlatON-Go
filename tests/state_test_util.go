@@ -144,7 +144,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	gaspool := new(core.GasPool)
 	gaspool.AddGas(block.GasLimit())
 	snapForSnap, snapForState := evm.DBSnapshot()
-	if _, _, _, err := core.ApplyMessage(evm, msg, gaspool); err != nil {
+	if _, err := core.ApplyMessage(evm, msg, gaspool); err != nil {
 		evm.RevertToDBSnapshot(snapForSnap, snapForState)
 	}
 	if logs := rlpHash(statedb.Logs()); logs != common.Hash(post.Logs) {

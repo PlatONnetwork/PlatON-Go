@@ -22,11 +22,11 @@ def create_lockup_plan(client):
     log.info('CreateRestrictingPlan result : {}'.format(result))
     assert_code(result, 0)
     result = client.staking.create_staking(1, address, address,
-                                           amount=int(1.8 * client.economic.genesis.economicModel.staking.stakeThreshold),
+                                           amount=int(client.economic.genesis.economicModel.staking.stakeThreshold),
                                            transaction_cfg=client.pip.cfg.transaction_cfg)
     log.info('Create staking result : {}'.format(result))
     assert_code(result, 0)
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
 
 
 @pytest.fixture()
@@ -121,11 +121,16 @@ class TestPreactiveProposalStaking:
         client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
         pips = [client.pip for client in client_verifiers]
         result = pips[0].submitVersion(pips[0].node.node_id, str(time.time()),
-                                       pips[0].cfg.version5, 2, pips[0].node.staking_address,
+                                       pips[0].cfg.version5, 3, pips[0].node.staking_address,
                                        transaction_cfg=pips[0].cfg.transaction_cfg)
         log.info('submit version proposal, result : {}'.format(result))
         proposalinfo = pips[0].get_effect_proposal_info_of_vote()
         log.info('Version proposalinfo: {}'.format(proposalinfo))
+
+        # pip_id= proposalinfo['ProposalID']
+        # TallyResult = pips[0].pip.getTallyResult(pip_id)
+        # log.info(f'TallyResult == {TallyResult}')
+
         for pip in pips:
             result = version_proposal_vote(pip)
             assert_code(result, 0)
@@ -404,7 +409,7 @@ class TestUnstaking:
                                                                transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Create staking result : {}'.format(result))
         assert_code(result, 0)
-        pip_test.economic.wait_settlement_blocknum(pip_test.node)
+        pip_test.economic.wait_settlement(pip_test.node)
         result = pip_test.submitVersion(pip_test.node.node_id, str(time.time()), pip_test.cfg.version5,
                                         4, pip_test.node.staking_address, transaction_cfg=pip_test.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
@@ -473,7 +478,7 @@ class TestUnstaking:
                                                    transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Create staking result : {}'.format(result))
             assert_code(result, 0)
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
                                  '1116', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -592,6 +597,7 @@ class TestSlashing:
         pip = clients_consensus[0].pip
         pip_test = clients_consensus[1].pip
         address = pip.node.staking_address
+        balance_init = pip.node.eth.getBalance(address)
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 1,
                                    address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
@@ -613,10 +619,9 @@ class TestSlashing:
         log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size - 1,
                                                                      balance_before))
         balance_after = pip_test.node.eth.getBalance(address, 3 * pip_test.economic.settlement_size)
-
         log.info('Block bumber {} staking address balance {}'.format(3 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares
+        assert balance_after == balance_before
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -679,7 +684,7 @@ class TestSlashing:
 
         log.info('Block bumber {} staking address balance {}'.format(5 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares0
+        assert balance_after == balance_before
 
     @pytest.mark.P1
     @allure.title('Node be slashed, verify unstake function')
@@ -735,7 +740,7 @@ class TestSlashing:
 
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares0
+        assert balance_after == balance_before
 
     @pytest.mark.P1
     @allure.title('Node be slashed, verify unstake function')
@@ -782,7 +787,7 @@ class TestSlashing:
 
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares0
+        assert balance_after == balance_before
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -838,7 +843,7 @@ class TestSlashing:
         balance_after = pip_test.node.eth.getBalance(address, 8 * pip_test.economic.settlement_size + 1)
         log.info('Block bumber {} staking address balance {}'.format(8 * pip_test.economic.settlement_size,
                                                                      balance_after))
-        assert balance_after - balance_before == shares0
+        assert balance_after == balance_before
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -847,7 +852,7 @@ class TestSlashing:
         genesis.economicModel.staking.unStakeFreezeDuration = 2
         genesis.economicModel.slashing.maxEvidenceAge = 1
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 300
-        genesis.economicModel.slashing.slashBlocksReward = 0
+        genesis.economicModel.slashing.slashBlocksReward = 10
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip = clients_noconsensus[0].pip
@@ -855,7 +860,7 @@ class TestSlashing:
 
         create_lockup_plan(clients_noconsensus[0])
         address = pip.node.staking_address
-        submitvpandvote([clients_noconsensus[0]], votingrounds=1)
+        submitvpandvote([clients_noconsensus[0]], votingrounds=2)
         proposalinfo_version = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo_version))
         wait_block_number(pip.node, proposalinfo_version.get('EndVotingBlock'))
@@ -868,8 +873,10 @@ class TestSlashing:
         shares = clients_noconsensus[0].staking.get_staking_amount()
         log.info('Node staking amount : {}'.format(shares))
         pip.node.stop()
-
-        self.verify_amount_block(pip_test, address, shares, value=4)
+        block_reward, _ = pip_test.economic.get_current_year_reward(pip_test.node, 5)
+        slashing_amount = block_reward * genesis.economicModel.slashing.slashBlocksReward
+        amount = shares - slashing_amount
+        self.verify_amount_block(pip_test, address, amount, value=5)
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -878,7 +885,7 @@ class TestSlashing:
         genesis.economicModel.staking.unStakeFreezeDuration = 2
         genesis.economicModel.slashing.maxEvidenceAge = 1
         genesis.economicModel.gov.versionProposalVoteDurationSeconds = 2000
-        genesis.economicModel.slashing.slashBlocksReward = 0
+        genesis.economicModel.slashing.slashBlocksReward = 10
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip = clients_noconsensus[0].pip
@@ -886,11 +893,15 @@ class TestSlashing:
 
         create_lockup_plan(clients_noconsensus[0])
         address = pip.node.staking_address
-        submitvpandvote([clients_noconsensus[0]], votingrounds=14)
+        submitvpandvote([clients_noconsensus[0]], votingrounds=4)
         shares = clients_noconsensus[0].staking.get_staking_amount()
         log.info('Node staking amount : {}'.format(shares))
         pip.node.stop()
-        self.verify_amount(pip_test, address, shares)
+        log.info('Stop the node {} {}'.format(pip.node.host, pip.node.p2p_port))
+        block_reward, _ = pip_test.economic.get_current_year_reward(pip_test.node, 5)
+        slashing_amount = block_reward * genesis.economicModel.slashing.slashBlocksReward
+        amount = shares - slashing_amount
+        self.verify_amount_block(pip_test, address, amount, value=4, tag=True)
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -899,7 +910,7 @@ class TestSlashing:
         genesis.economicModel.staking.unStakeFreezeDuration = 2
         genesis.economicModel.slashing.maxEvidenceAge = 1
         genesis.economicModel.gov.textProposalVoteDurationSeconds = 480
-        genesis.economicModel.slashing.slashBlocksReward = 0
+        genesis.economicModel.slashing.slashBlocksReward = 10
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip = clients_noconsensus[0].pip
@@ -911,7 +922,10 @@ class TestSlashing:
         shares = clients_noconsensus[0].staking.get_staking_amount()
         log.info('Node staking amount : {}'.format(shares))
         pip.node.stop()
-        self.verify_amount(pip_test, address, shares)
+        block_reward, _ = pip_test.economic.get_current_year_reward(pip_test.node, 5)
+        slashing_amount = block_reward * genesis.economicModel.slashing.slashBlocksReward
+        amount = shares - slashing_amount
+        self.verify_amount_block(pip_test, address, amount, value=5)
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -920,7 +934,7 @@ class TestSlashing:
         genesis.economicModel.staking.unStakeFreezeDuration = 2
         genesis.economicModel.slashing.maxEvidenceAge = 1
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 640
-        genesis.economicModel.slashing.slashBlocksReward = 0
+        genesis.economicModel.slashing.slashBlocksReward = 10
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip = clients_noconsensus[0].pip
@@ -941,7 +955,10 @@ class TestSlashing:
         shares = clients_noconsensus[0].staking.get_staking_amount()
         log.info('Node staking amount : {}'.format(shares))
         pip.node.stop()
-        self.verify_amount(pip_test, address, shares)
+        block_reward, _ = pip_test.economic.get_current_year_reward(pip_test.node, 5)
+        slashing_amount = block_reward * genesis.economicModel.slashing.slashBlocksReward
+        amount = shares - slashing_amount
+        self.verify_amount_block(pip_test, address, amount, value=5, tag=True)
 
     @pytest.mark.P2
     @allure.title('Node be slashed, verify unstake function')
@@ -950,7 +967,7 @@ class TestSlashing:
         genesis.economicModel.staking.unStakeFreezeDuration = 2
         genesis.economicModel.slashing.maxEvidenceAge = 1
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 480
-        genesis.economicModel.slashing.slashBlocksReward = 0
+        genesis.economicModel.slashing.slashBlocksReward = 10
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip = clients_noconsensus[0].pip
@@ -962,7 +979,10 @@ class TestSlashing:
         shares = clients_noconsensus[0].staking.get_staking_amount()
         log.info('Node staking amount : {}'.format(shares))
         pip.node.stop()
-        self.verify_amount(pip_test, address, shares)
+        block_reward, _ = pip_test.economic.get_current_year_reward(pip_test.node, 5)
+        slashing_amount = block_reward * genesis.economicModel.slashing.slashBlocksReward
+        amount = shares - slashing_amount
+        self.verify_amount_block(pip_test, address, amount, value=5, tag=True)
 
     def verify_amount(self, pip, address, shares):
         self.verify_amount_block(pip, address, shares, value=4, tag=False)
@@ -990,39 +1010,39 @@ class TestSlashing:
         else:
             assert balance_after_lockup == balance_before_lockup
 
-def test_fixbug(new_genesis_env, clients_consensus):
-    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.economicModel.gov.versionProposalVoteDurationSeconds = 1000
-    new_genesis_env.set_genesis(genesis.to_dict())
-    new_genesis_env.deploy_all()
-    pip_stop = clients_consensus[0].pip
-    pip = clients_consensus[1].pip
-    submitvpandvote(clients_consensus, votingrounds=15)
-    proprosalinfo = pip.get_effect_proposal_info_of_vote()
-    log.info('Proposalinfo : {}'.format(proprosalinfo))
-    log.info('Stop node {}'.format(pip_stop.node.node_id))
-    log.info('stop node nodeid {}'.format(pip_stop.node.node_id))
-    pip_stop.node.stop()
-    pip.economic.wait_settlement_blocknum(pip.node)
-    pip.economic.wait_consensus_blocknum(pip.node, 1)
-    verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
-    log.info('Verifier list : {}'.format(verifier_list))
-    validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)
-    log.info('Validator list : {}'.format(validator_list))
-    assert pip_stop.node.node_id not in verifier_list
-    assert pip_stop.node.node_id not in validator_list
-    wait_block_number(pip.node, proprosalinfo.get('ActiveBlock'))
-    assert pip.chain_version == proprosalinfo.get('NewVersion')
-    verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
-    log.info('Verifier list : {}'.format(verifier_list))
-    validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)
-    log.info('Validator list : {}'.format(validator_list))
-    assert pip_stop.node.node_id not in verifier_list
-    assert pip_stop.node.node_id not in validator_list
-    result = clients_consensus[1].ppos.getCandidateInfo(pip_stop.node.node_id)
-    log.info('Get nodeid {} candidate infor {}'.format(pip_stop.node.node_id, result))
-    assert_code(result, 301204)
-    assert result.get('Ret') == 'Query candidate info failed:Candidate info is not found'
+# def test_fixbug(new_genesis_env, clients_consensus):
+#     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+#     genesis.economicModel.gov.versionProposalVoteDurationSeconds = 1000
+#     new_genesis_env.set_genesis(genesis.to_dict())
+#     new_genesis_env.deploy_all()
+#     pip_stop = clients_consensus[0].pip
+#     pip = clients_consensus[1].pip
+#     submitvpandvote(clients_consensus, votingrounds=15)
+#     proprosalinfo = pip.get_effect_proposal_info_of_vote()
+#     log.info('Proposalinfo : {}'.format(proprosalinfo))
+#     log.info('Stop node {}'.format(pip_stop.node.node_id))
+#     log.info('stop node nodeid {}'.format(pip_stop.node.node_id))
+#     pip_stop.node.stop()
+#     pip.economic.wait_settlement(pip.node)
+#     pip.economic.wait_consensus(pip.node, 1)
+#     verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
+#     log.info('Verifier list : {}'.format(verifier_list))
+#     validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)
+#     log.info('Validator list : {}'.format(validator_list))
+#     assert pip_stop.node.node_id not in verifier_list
+#     assert pip_stop.node.node_id not in validator_list
+#     wait_block_number(pip.node, proprosalinfo.get('ActiveBlock'))
+#     assert pip.chain_version == proprosalinfo.get('NewVersion')
+#     verifier_list = get_pledge_list(clients_consensus[1].ppos.getVerifierList)
+#     log.info('Verifier list : {}'.format(verifier_list))
+#     validator_list = get_pledge_list(clients_consensus[1].ppos.getValidatorList)
+#     log.info('Validator list : {}'.format(validator_list))
+#     assert pip_stop.node.node_id not in verifier_list
+#     assert pip_stop.node.node_id not in validator_list
+#     result = clients_consensus[1].ppos.getCandidateInfo(pip_stop.node.node_id)
+#     log.info('Get nodeid {} candidate infor {}'.format(pip_stop.node.node_id, result))
+#     assert_code(result, 301204)
+#     assert result.get('Ret') == 'Query candidate info failed:Candidate info is not found'
 
 
 

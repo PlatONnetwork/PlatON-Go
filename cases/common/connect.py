@@ -1,7 +1,7 @@
 import paramiko
-from client_sdk_python import HTTPProvider, Web3, WebsocketProvider
-from client_sdk_python.middleware import geth_poa_middleware
-from client_sdk_python.utils.threads import Timeout
+from alaya import HTTPProvider, Web3, WebsocketProvider
+from alaya.middleware import geth_poa_middleware
+from alaya.utils.threads import Timeout
 from common.log import log
 
 

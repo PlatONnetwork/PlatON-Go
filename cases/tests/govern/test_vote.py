@@ -82,6 +82,9 @@ class TestVoteVP:
         log.info('Node {} vote proposal result : {}'.format(clients_verifier[-1].node.node_id, result))
         assert_code(result, 0)
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        log.info('{}'.format(pip.pip.getTallyResult(proposalinfo.get('ProposalID'))))
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        
         pip = clients_verifier[-1].pip
         upload_platon(pip.node, pip.cfg.PLATON_NEW_BIN)
         pip.node.restart()
@@ -91,7 +94,11 @@ class TestVoteVP:
         log.info('Node {} vote proposal result : {}'.format(clients_verifier[-1].node.node_id, result))
         assert_code(result, 302026)
         log.info('{}'.format(pip.pip.getTallyResult(proposalinfo.get('ProposalID'))))
-        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+
+        if pip.node.eth.blockNumber < pip.get_status_of_proposal(proposalinfo.get('ProposalID')):
+            assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        assert pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 4 or 5
+
         result = pip.vote(pip.node.node_id, proposalinfo.get('ProposalID'), pip.cfg.vote_option_yeas,
                           pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Node {} vote proposal result : {}'.format(clients_verifier[-1].node.node_id, result))
@@ -268,7 +275,7 @@ class TestVoteNodeException:
         log.info('node {} vote cancel proposal result {}'.format(client_noconsensus.node.node_id, result))
         assert_code(result, 302022)
 
-        pip.economic.wait_settlement_blocknum(pip.node, pip.economic.unstaking_freeze_ratio)
+        pip.economic.wait_settlement(pip.node, pip.economic.unstaking_freeze_ratio)
         result = pip.vote(pip.node.node_id, proposalinfo_text.get('ProposalID'), pip.cfg.vote_option_nays,
                           address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Exited node vote text proposal result {}'.format(result))
@@ -334,7 +341,7 @@ class TestVoteNodeException:
         log.info('node {} vote cancel proposal result {}'.format(client_noconsensus.node.node_id, result))
         assert_code(result, 302022)
 
-        pip.economic.wait_settlement_blocknum(pip.node, pip.economic.unstaking_freeze_ratio)
+        pip.economic.wait_settlement(pip.node, pip.economic.unstaking_freeze_ratio)
         result = pip.vote(pip.node.node_id, proposalinfo_version.get('ProposalID'), pip.cfg.vote_option_yeas,
                           address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Exited node vote version proposal result {}'.format(result))
@@ -606,7 +613,7 @@ class TestVoteVPVerify:
     @allure.title('Version proposal voting function verification--platon version')
     def test_VO_VER_002_004_VO_SI_002(self, no_vp_proposal):
         pip = no_vp_proposal
-        result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version9, 4,
+        result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version9, 6,
                                    pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Node {} submit version proposal result : {}'.format(pip.node.node_id, result))
         assert_code(result, 0)

@@ -1,5 +1,6 @@
 package network.platon.test.wasm.beforetest;
 
+import lombok.extern.slf4j.Slf4j;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.junit.rules.AssertCollector;
@@ -26,6 +27,7 @@ import java.util.concurrent.Semaphore;
  * @author qcxiao
  * @updateTime 2020/2/6 12:11
  */
+@Slf4j
 public class WASMGeneratorPreTest extends BaseTest {
 
     @Test
@@ -96,6 +98,7 @@ public class WASMGeneratorPreTest extends BaseTest {
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
+                    log.info(buildPath + fileName);
                     compileUtil.wasmCompile(file, buildPath + fileName);
                     collector.logStepPass("compile success:" + file);
                 } catch (Exception e) {

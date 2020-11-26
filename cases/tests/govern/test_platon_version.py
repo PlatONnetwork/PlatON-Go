@@ -430,13 +430,13 @@ class TestInit:
             newBlockRate_blockhash))
         assert paramProposalSupportRate_blockhash != newBlockRate_blockhash
 
-        genesis.config.chainId = genesis.config.chainId + 1
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
-        chainId_blockhash = HexBytes(client_consensus.node.eth.getBlock(0).get('hash')).hex()
-        log.info('init block hash chainId_blockhash : {}'.format(
-            chainId_blockhash))
-        assert newBlockRate_blockhash == chainId_blockhash
+        # genesis.config.chainId = genesis.config.chainId + 1
+        # new_genesis_env.set_genesis(genesis.to_dict())
+        # new_genesis_env.deploy_all()
+        # chainId_blockhash = HexBytes(client_consensus.node.eth.getBlock(0).get('hash')).hex()
+        # log.info('init block hash chainId_blockhash : {}'.format(
+        #     chainId_blockhash))
+        # assert newBlockRate_blockhash == chainId_blockhash
 
 
 

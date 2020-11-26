@@ -66,7 +66,7 @@ def test_VP_PV_001_to_003(client_consensus, repor_type, reset_environment):
     incentive_pool_account1 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive pool account1 amount:{} ".format(incentive_pool_account1))
     # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
@@ -106,7 +106,7 @@ def initial_report(global_test_env):
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node, 2)
+    economic.wait_consensus(node, 2)
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
@@ -226,7 +226,7 @@ class TestMultipleReports:
 
 def obtaining_evidence_information(economic, node):
     # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
@@ -478,7 +478,7 @@ def test_VP_PV_025(client_consensus):
     # create nodekey
     privatekey, _ = generate_key()
     # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
@@ -503,7 +503,7 @@ def test_VP_PV_026(clients_consensus):
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
@@ -533,7 +533,7 @@ def test_VP_PV_027(client_new_node):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -546,7 +546,7 @@ def test_VP_PV_027(client_new_node):
             assert_code(result, 303009)
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P1
@@ -562,7 +562,7 @@ def test_VP_PV_028(client_consensus):
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Waiting for the end of the settlement cycle
-    economic.wait_settlement_blocknum(node, 1)
+    economic.wait_settlement(node, 1)
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
@@ -677,7 +677,7 @@ def test_VP_PR_003(client_new_node, reset_environment):
     candidate_info = client.ppos.getCandidateInfo(node.node_id)
     log.info("Pledge node information: {}".format(candidate_info))
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     # Obtain penalty proportion and income
     pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client)
     # view Amount of penalty
@@ -708,7 +708,7 @@ def test_VP_PR_003(client_new_node, reset_environment):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P1
@@ -729,7 +729,7 @@ def test_VP_PR_004(client_new_node):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -738,7 +738,7 @@ def test_VP_PR_004(client_new_node):
             result = client.staking.withdrew_staking(pledge_address)
             assert_code(result, 0)
             # Waiting for the end of the 2 settlement cycle
-            economic.wait_settlement_blocknum(node, 2)
+            economic.wait_settlement(node, 2)
             # Get current block height
             current_block = node.eth.blockNumber
             log.info("Current block height: {}".format(current_block))
@@ -748,7 +748,7 @@ def test_VP_PR_004(client_new_node):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P1
@@ -767,7 +767,7 @@ def test_VP_PR_005(client_new_node, reset_environment):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -784,7 +784,7 @@ def test_VP_PR_005(client_new_node, reset_environment):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P1
@@ -800,7 +800,7 @@ def test_VP_PVF_001(client_consensus, reset_environment):
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
@@ -829,7 +829,7 @@ def test_VP_PVF_002(client_consensus):
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node, 1)
+    economic.wait_consensus(node, 1)
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
@@ -866,7 +866,7 @@ def test_VP_PVF_003(client_new_node, reset_environment):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -881,14 +881,14 @@ def test_VP_PVF_003(client_new_node, reset_environment):
             log.info("Current node in consensus list status：{}".format(result))
             assert result, "ErrMsg:Node current status {}".format(result)
             # Wait for the settlement round to end
-            economic.wait_consensus_blocknum(node, 2)
+            economic.wait_consensus(node, 2)
             result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
             log.info("Current node in consensus list status：{}".format(result))
             assert not result, "ErrMsg:Node current status {}".format(result)
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P1
@@ -909,7 +909,7 @@ def test_VP_PVF_004(client_new_node, reset_environment):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     endtime = int(time.time()) + 120
     while int(time.time()) < endtime:
         time.sleep(1)
@@ -934,14 +934,14 @@ def test_VP_PVF_004(client_new_node, reset_environment):
             log.info("Current node in consensus list status：{}".format(result))
             assert result, "ErrMsg:Node current status {}".format(result)
             # Wait for the settlement round to end
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
             result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
             log.info("Current node in consensus list status：{}".format(result))
             assert not result, "ErrMsg:Node current status {}".format(result)
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P1
@@ -962,7 +962,7 @@ def test_VP_PVF_005(client_new_node, reset_environment):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     endtime = int(time.time()) + 120
     while int(time.time()) < endtime:
         time.sleep(1)
@@ -989,7 +989,7 @@ def test_VP_PVF_005(client_new_node, reset_environment):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P2
@@ -1010,7 +1010,7 @@ def test_VP_PVF_006(client_new_node, reset_environment):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -1027,7 +1027,7 @@ def test_VP_PVF_006(client_new_node, reset_environment):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P2
@@ -1048,7 +1048,7 @@ def test_VP_PVF_007(client_new_node, reset_environment):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -1065,7 +1065,7 @@ def test_VP_PVF_007(client_new_node, reset_environment):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P2
@@ -1086,7 +1086,7 @@ def test_VP_PVF_008(client_new_node, reset_environment):
     result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -1103,7 +1103,7 @@ def test_VP_PVF_008(client_new_node, reset_environment):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P2
@@ -1127,7 +1127,7 @@ def test_VP_PVF_009(client_new_node, reset_environment):
     result = client.delegate.delegate(0, report_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -1158,7 +1158,7 @@ def test_VP_PVF_009(client_new_node, reset_environment):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 def test_VP_PVF_010(client_consensus):
@@ -1180,7 +1180,7 @@ def test_VP_PVF_010(client_consensus):
     incentive_pool_account1 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive pool account1 amount:{} ".format(incentive_pool_account1))
     # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))

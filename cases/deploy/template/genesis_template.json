@@ -1,6 +1,6 @@
 {
     "config": {
-        "chainId": 101,
+        "chainId": 201030,
         "eip155Block": 3,
         "cbft": {
             "initialNodes": [
@@ -9,7 +9,7 @@
             "period": 10000,
             "validatorMode": "ppos"
         },
-        "genesisVersion": 3328
+        "genesisVersion": 3584
     },
     "economicModel": {
         "common": {
@@ -18,8 +18,8 @@
             "additionalCycleTime": 28
         },
         "staking": {
-            "stakeThreshold": 1000000000000000000000000,
-            "operatingThreshold": 10000000000000000000,
+            "stakeThreshold": 10000000000000000000000,
+            "operatingThreshold": 1000000000000000000,
             "maxValidators": 5,
             "unStakeFreezeDuration": 2,
             "rewardPerMaxChangeRange": 1000,
@@ -31,7 +31,8 @@
             "slashBlocksReward": 5,
             "maxEvidenceAge": 1,
             "zeroProduceCumulativeTime": 1,
-            "zeroProduceNumberThreshold": 1
+            "zeroProduceNumberThreshold": 1,
+            "zeroProduceFreezeDuration":1
         },
         "gov": {
             "versionProposalVoteDurationSeconds": 1600,
@@ -47,20 +48,23 @@
         },
         "reward": {
             "newBlockRate": 50,
-            "platONFoundationYear": 10,
-            "increaseIssuanceRatio": 250
+            "platONFoundationYear": 2,
+            "increaseIssuanceRatio": 500
+        },
+        "restricting": {
+            "minimum_release": 80000000000000000000
         },
         "innerAcc": {
-            "platonFundAccount": "lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6",
-            "platonFundBalance": 0,
-            "cdfAccount": "lax12jn6835z96ez93flwezrwu4xpv8e4zatc4kfru",
-            "cdfBalance": 431811981000000000000000000
+            "platonFundAccount": "atx1m6n2wj6cmnnqnmhhaytyf6x75607t7rhszeuhk",
+            "platonFundBalance": 2500000000000000000000000,
+            "cdfAccount": "atx1ur2hg0u9wt5qenmkcxlp7ysvaw6yupt4xerq62",
+            "cdfBalance": 500000000000000000000000
         }
     },
     "nonce": "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
-    "timestamp": "0x5bc94a8a",
+    "timestamp": "0x175301efa90",
     "extraData": "0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-    "gasLimit": "4712388",
+    "gasLimit": "9424776",
     "alloc": {
 
     },

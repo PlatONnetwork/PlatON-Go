@@ -1,13 +1,13 @@
 package network.platon.test.wasm.data_type;
 
-import com.platon.rlp.datatypes.Uint32;
-import com.platon.rlp.datatypes.Uint64;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint32;
+import com.alaya.rlp.wasm.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeStructMultipleContract;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -57,7 +57,7 @@ public class ReferenceDataTypeStructMultipleTest extends WASMContractPrepareTest
         try {
 
             //1、包含(引用类型及基本类型)struct类型赋值
-            TransactionReceipt  transactionReceipt = referenceDataTypeStructMultipleContract.setGroupValue(myGroupName,Uint64.of(myGroupId)).send();
+            TransactionReceipt  transactionReceipt = referenceDataTypeStructMultipleContract.setGroupValue(myGroupName, Uint64.of(myGroupId)).send();
             collector.logStepPass("referenceDataTypeStructMultipleContract 【验证struct类型包含引用类型及基本类型赋值】 successfully hash:" + transactionReceipt.getTransactionHash());
             //2、验证：验证struct结构体 groupName取值
             String actualGroupName = referenceDataTypeStructMultipleContract.getGroupName().send();

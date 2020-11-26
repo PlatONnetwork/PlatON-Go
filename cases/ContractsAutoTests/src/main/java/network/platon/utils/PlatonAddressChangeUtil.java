@@ -16,9 +16,6 @@
 
 package network.platon.utils;
 
-import com.platon.sdk.utlis.Bech32;
-import org.web3j.utils.Numeric;
-
 import java.io.ByteArrayOutputStream;
 import java.util.*;
 
@@ -182,26 +179,26 @@ public class PlatonAddressChangeUtil {
      * 合约前缀转换
      * @param args
      */
-    public static void main(String[] args) {
-        String addr = "0x000000000000000000000000e03887881e1e0cd6cdbfc82bc3292b8ad9a683f2";
-        String laxAddr = PlatonAddressChangeUtil.encode("lax", convertBits(Numeric.hexStringToByteArray(addr),8,5,true));
-        System.out.println(DataChangeUtil.bytesToHex(Bech32.addressDecode(laxAddr)));
-
-
-        List<String> addrList = new ArrayList<String>();
-        addrList.add("0x1000000000000000000000000000000000000001");
-        addrList.add("0x1000000000000000000000000000000000000002");
-        addrList.add("0x1000000000000000000000000000000000000003");
-        addrList.add("0x1000000000000000000000000000000000000004");
-        addrList.add("0x1000000000000000000000000000000000000005");
-        addrList.add("0x1000000000000000000000000000000000000006");
-        addrList.add("0x1000000000000000000000000000000000000007");
-        addrList.add("0x1000000000000000000000000000000000000008");
-        addrList.add("0x1000000000000000000000000000000000000009");
-        addrList.add("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257");
-        addrList.add("0xda838210049594c9e1c2b330cf7e759f2493c5c754b34d98b07f93");
-        addrList.add("0x0000000000000000000000000000000000000001");
-        addrList.stream().forEach(a ->
-                System.out.println(a+"转换后的钱包地址>>>"+ PlatonAddressChangeUtil.encode("lax", convertBits(Numeric.hexStringToByteArray(a),8,5,true))));
-    }
+//    public static void main(String[] args) {
+//        String addr = "0x000000000000000000000000e03887881e1e0cd6cdbfc82bc3292b8ad9a683f2";
+//        String laxAddr = PlatonAddressChangeUtil.encode("lax", convertBits(Numeric.hexStringToByteArray(addr),8,5,true));
+//        System.out.println(DataChangeUtil.bytesToHex(Bech32.addressDecode(laxAddr)));
+//
+//
+//        List<String> addrList = new ArrayList<String>();
+//        addrList.add("0x1000000000000000000000000000000000000001");
+//        addrList.add("0x1000000000000000000000000000000000000002");
+//        addrList.add("0x1000000000000000000000000000000000000003");
+//        addrList.add("0x1000000000000000000000000000000000000004");
+//        addrList.add("0x1000000000000000000000000000000000000005");
+//        addrList.add("0x1000000000000000000000000000000000000006");
+//        addrList.add("0x1000000000000000000000000000000000000007");
+//        addrList.add("0x1000000000000000000000000000000000000008");
+//        addrList.add("0x1000000000000000000000000000000000000009");
+//        addrList.add("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257");
+//        addrList.add("0xda838210049594c9e1c2b330cf7e759f2493c5c754b34d98b07f93");
+//        addrList.add("0x0000000000000000000000000000000000000001");
+//        addrList.stream().forEach(a ->
+//                System.out.println(a+"转换后的钱包地址>>>"+ PlatonAddressChangeUtil.encode("lax", convertBits(Numeric.hexStringToByteArray(a),8,5,true))));
+//    }
 }

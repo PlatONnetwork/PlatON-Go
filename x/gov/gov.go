@@ -17,9 +17,14 @@
 package gov
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
@@ -42,11 +47,12 @@ type Staking interface {
 }
 
 const (
-	ModuleStaking  = "staking"
-	ModuleSlashing = "slashing"
-	ModuleBlock    = "block"
-	ModuleTxPool   = "txPool"
-	ModuleReward   = "reward"
+	ModuleStaking     = "staking"
+	ModuleSlashing    = "slashing"
+	ModuleBlock       = "block"
+	ModuleTxPool      = "txPool"
+	ModuleReward      = "reward"
+	ModuleRestricting = "restricting"
 )
 
 const (
@@ -66,7 +72,33 @@ const (
 	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
 	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
 	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
+	KeyRestrictingMinimumAmount   = "minimumRelease"
 )
+
+func Gte0140VersionState(state xcom.StateDB) bool {
+	return Gte0140Version(GetCurrentActiveVersion(state))
+}
+
+func Gte0140Version(version uint32) bool {
+	return version >= params.FORKVERSION_0_14_0
+}
+
+func WriteEcHash0140(state xcom.StateDB) error {
+	if data, err := xcom.EcParams0140(); nil != err {
+		return err
+	} else {
+		SetEcParametersHash(state, data)
+	}
+	return nil
+}
+
+func SetEcParametersHash(state xcom.StateDB, rlpData []byte) {
+	pposHash := state.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	var buf bytes.Buffer
+	buf.Write(rlpData)
+	buf.Write(pposHash)
+	state.SetState(vm.StakingContractAddr, staking.GetPPOSHASHKey(), common.RlpHash(buf.Bytes()).Bytes())
+}
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
 	preActiveVersion := GetPreActiveVersion(blockHash)
@@ -877,4 +909,17 @@ func GovernZeroProduceFreezeDuration(blockNumber uint64, blockHash common.Hash) 
 	}
 
 	return uint64(value), nil
+}
+
+func GovernRestrictingMinimumAmount(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
+	valueStr, err := GetGovernParamValue(ModuleRestricting, KeyRestrictingMinimumAmount, blockNumber, blockHash)
+	if nil != err {
+		return nil, err
+	}
+	value, ok := new(big.Int).SetString(valueStr, 10)
+	if !ok {
+		return nil, errors.New("set KeyRestrictingMinimumAmount to big int fail")
+	}
+
+	return value, nil
 }

@@ -1,13 +1,13 @@
 package network.platon.test.wasm.data_type;
 
-import com.platon.rlp.datatypes.Uint64;
-import com.platon.rlp.datatypes.Uint8;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
+import com.alaya.rlp.wasm.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeTupleContract;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -77,7 +77,7 @@ public class ReferenceDataTypeTupleTest extends WASMContractPrepareTest {
             collector.assertEqual(actualValue3,a, "checkout execute success.");
 
             //4、验证:定义包含引用类型
-            TransactionReceipt  transactionReceipt2 = referenceDataTypeTupleContract.setInitTupleModeThree(name,Uint64.of(age)).send();
+            TransactionReceipt  transactionReceipt2 = referenceDataTypeTupleContract.setInitTupleModeThree(name, Uint64.of(age)).send();
             collector.logStepPass("referenceDataTypeTupleContract 【验证元组定义包含引用类型】 successfully hash:" + transactionReceipt2.getTransactionHash());
             ReferenceDataTypeTupleContract.Person person = referenceDataTypeTupleContract.getTupleValueIndex4().send();
             String actualValueName = person.name;

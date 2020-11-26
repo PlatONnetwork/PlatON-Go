@@ -63,8 +63,8 @@ def upload_platon(node: Node, platon_bin):
     node.run_ssh("rm -rf {}".format(node.remote_bin_file))
     node.upload_file(platon_bin, node.remote_bin_file)
     node.run_ssh("chmod +x {}".format(node.remote_bin_file))
-    node.run_ssh("mkdir zlp")
 
+    node.restart()
 
 def get_blockhash(node, blocknumber=None):
     """
@@ -395,7 +395,7 @@ def get_the_dynamic_parameter_gas_fee(data):
         if i == 0:
             zero_number = zero_number + 1
     non_zero_number = byte_group_length - zero_number
-    dynamic_gas = non_zero_number * 68 + zero_number * 4
+    dynamic_gas = non_zero_number * 16 + zero_number * 4
     return dynamic_gas
 
 

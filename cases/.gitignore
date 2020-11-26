@@ -1,3 +1,5 @@
+./ContractsAutoTests
+
 # MATCH
 **/*cache*
 **/*debug*
@@ -17,3 +19,5 @@ deploy/bin
 **/*.so
 **/*.egg
 **/*.egg-info
+**/*.code-workspace
+**/*.bak

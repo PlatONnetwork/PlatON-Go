@@ -45,6 +45,7 @@ class Slashing:
     maxEvidenceAge: int
     zeroProduceCumulativeTime: int
     zeroProduceNumberThreshold: int
+    zeroProduceFreezeDuration: int
 
 
 @dataclass
@@ -69,6 +70,11 @@ class Reward:
 
 
 @dataclass
+class Restricting:
+    minimum_release: int
+
+
+@dataclass
 class InnerAcc:
     platonFundAccount: str
     platonFundBalance: int
@@ -83,6 +89,7 @@ class EconomicModel:
     slashing: Slashing
     gov: Gov
     reward: Reward
+    restricting: Restricting
     innerAcc: InnerAcc
 
 
@@ -110,6 +117,7 @@ class Genesis:
         data["economicModel"]["slashing"] = copy(self.economicModel.slashing.__dict__)
         data["economicModel"]["gov"] = copy(self.economicModel.gov.__dict__)
         data["economicModel"]["reward"] = copy(self.economicModel.reward.__dict__)
+        data["economicModel"]["restricting"] = copy(self.economicModel.restricting.__dict__)
         data["economicModel"]["innerAcc"] = copy(self.economicModel.innerAcc.__dict__)
         return data
 

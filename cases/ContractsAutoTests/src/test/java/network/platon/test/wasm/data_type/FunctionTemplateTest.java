@@ -1,11 +1,11 @@
 package network.platon.test.wasm.data_type;
 
-import com.platon.rlp.datatypes.Uint8;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.FunctionTemplateContract;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -40,7 +40,7 @@ public class FunctionTemplateTest extends WASMContractPrepareTest {
         //调用合约方法
         try {
             //1、验证:调用lambda表达式
-            Uint8  actualValue = functionTemplateContract.get_lambda_function().send();
+            Uint8 actualValue = functionTemplateContract.get_lambda_function().send();
             collector.logStepPass("functionTemplateContract 【验证调用lambda表达式】 执行get_lambda_function() successfully actualValue:" + actualValue);
             collector.assertEqual(actualValue,Uint8.of(6), "checkout  execute success.");
 

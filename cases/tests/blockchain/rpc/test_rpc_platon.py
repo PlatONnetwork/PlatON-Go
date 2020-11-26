@@ -7,8 +7,8 @@ import json
 import allure
 import pytest
 import rlp
-from client_sdk_python import Web3
-from client_sdk_python.eth import Eth
+from alaya import Web3
+from alaya.eth import Eth
 
 
 @allure.title("Check if the version of the protocol is 63")

@@ -27,7 +27,7 @@ def pledge_punishment(clients):
     # stop node
     first_client.node.stop()
     # Waiting for a settlement round
-    second_client.economic.wait_consensus_blocknum(second_client.node, 4)
+    second_client.economic.wait_consensus(second_client.node, 4)
     log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
     # view verifier list
     verifier_list = second_client.ppos.getVerifierList()
@@ -140,7 +140,7 @@ def test_PIP_PVF_004(client_consensus, clients_noconsensus, reset_environment):
     result = first_client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     # wait settlement block
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     candidate_info = consensus_client.ppos.getCandidateInfo(first_client.node.node_id)
     first_pledge_amount = candidate_info['Ret']['Released']
     log.info("Current pledge node amount：{}".format(first_pledge_amount))
@@ -153,7 +153,7 @@ def test_PIP_PVF_004(client_consensus, clients_noconsensus, reset_environment):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 @pytest.mark.P1
@@ -192,7 +192,7 @@ def test_PIP_PVF_005(client_consensus, clients_noconsensus, reset_environment):
     result = first_client.staking.create_staking(1, address1, address1)
     assert_code(result, 0)
     # wait settlement block
-    economic.wait_settlement_blocknum(node)
+    economic.wait_settlement(node)
     candidate_info = consensus_client.ppos.getCandidateInfo(first_client.node.node_id)
     first_pledge_amount = candidate_info['Ret']['RestrictingPlan']
     log.info("Current pledge node amount：{}".format(first_pledge_amount))
@@ -205,7 +205,7 @@ def test_PIP_PVF_005(client_consensus, clients_noconsensus, reset_environment):
             break
         else:
             # wait consensus block
-            economic.wait_consensus_blocknum(node)
+            economic.wait_consensus(node)
 
 
 def adjust_initial_parameters(new_genesis_env):
@@ -213,7 +213,7 @@ def adjust_initial_parameters(new_genesis_env):
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.staking.unStakeFreezeDuration = 3
     genesis.economicModel.slashing.maxEvidenceAge = 2
-    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.14.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
@@ -242,7 +242,7 @@ def test_PIP_PVF_006_007(new_genesis_env, mark):
         second_slash_blocks)
     report_address, _ = first_client.economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # wait consensus block
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # Verify changed parameters
     effective_block = economic.get_front_settlement_switchpoint(node, 2)
     if effective_block < economic.consensus_size:
@@ -282,12 +282,12 @@ def test_PIP_PVF_008(new_genesis_env):
         second_slash_blocks)
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # wait consensus block
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # Verify changed parameters
     effective_block = economic.get_front_settlement_switchpoint(node, int(second_slash_blocks))
     log.info("effective_block block height: {}".format(effective_block))
     # wait consensus block
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # first Report prepareblock signature
     report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, economic.consensus_size + 1)
     log.info("Report information: {}".format(report_information))
@@ -332,7 +332,7 @@ def test_PIP_PVF_009(new_genesis_env):
         second_slash_blocks)
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # wait consensus block
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # Verify changed parameters
     first_effective_block = economic.get_front_settlement_switchpoint(node, int(first_slash_blocks))
     log.info("first effective block height: {}".format(first_effective_block))
@@ -376,7 +376,7 @@ def test_PIP_PVF_010(new_genesis_env, clients_consensus):
         second_slash_blocks)
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # wait consensus block
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # Verify changed parameters
     effective_block = economic.get_front_settlement_switchpoint(node, int(first_slash_blocks))
     log.info("Effective1 block height: {}".format(effective_block))
@@ -443,7 +443,7 @@ def test_PIP_PVF_011_012(clients_consensus, mark, reset_environment):
     assert second_penalty_ratio == first_penalty_ratio, "ErrMsg:Parameter value after treatment {}".format(
         second_penalty_ratio)
     # wait consensus block
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # create account
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Verify changed parameters
@@ -621,7 +621,7 @@ def test_PIP_PVF_016_017(clients_consensus, mark, reset_environment):
     second_report_reward = get_governable_parameter_value(first_client, 'duplicateSignReportReward')
     assert first_report_reward == second_report_reward, "ErrMsg:Parameter value after treatment {}".format(second_report_reward)
     # wait consensus block
-    economic.wait_consensus_blocknum(node)
+    economic.wait_consensus(node)
     # get account amount
     report_address, first_report_amount, first_incentive_pool_account = get_account_amount(first_client)
     # Verify changed parameters
@@ -775,7 +775,7 @@ def test_PIP_MG_001_002(client_consensus, mark, reset_environment):
     # view Parameter value before treatment
     first_max_gas_limit = get_governable_parameter_value(first_client, 'maxBlockGasLimit')
     # create Parametric proposal
-    block = param_governance_verify_before_endblock(first_client, 'block', 'maxBlockGasLimit', '4712389', mark)
+    block = param_governance_verify_before_endblock(first_client, 'block', 'maxBlockGasLimit', '9424776', mark)
     # view Parameter value after treatment
     second_max_gas_limit = get_governable_parameter_value(first_client, 'maxBlockGasLimit')
     # wait block
@@ -794,7 +794,7 @@ def test_PIP_MG_003(client_consensus, reset_environment):
     first_client = client_consensus
     log.info("Current connection non-consensus first node：{}".format(first_client.node.node_mark))
     node = first_client.node
-    change_parameter_value = '4712389'
+    change_parameter_value = '10000000'
     # view Parameter value before treatment
     first_max_gas_limit = get_governable_parameter_value(first_client, 'maxBlockGasLimit')
     # create Parametric proposal

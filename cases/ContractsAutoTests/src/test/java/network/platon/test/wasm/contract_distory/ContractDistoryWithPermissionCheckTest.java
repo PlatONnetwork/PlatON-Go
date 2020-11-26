@@ -1,10 +1,10 @@
 package network.platon.test.wasm.contract_distory;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractDistoryWithPermissionCheck;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**

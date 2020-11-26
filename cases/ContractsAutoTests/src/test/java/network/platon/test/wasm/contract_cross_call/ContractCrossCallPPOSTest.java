@@ -1,27 +1,32 @@
 package network.platon.test.wasm.contract_cross_call;
 
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
 import com.google.gson.Gson;
-import com.platon.rlp.datatypes.Uint64;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ContractCallPPOS;
 import network.platon.utils.DataChangeUtil;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 public class ContractCrossCallPPOSTest extends WASMContractPrepareTest {
 
     // 锁仓合约
-    private String restrictingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw";
+//    private String restrictingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp3yp7hw";
+    private String restrictingContractAddr = "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpd3er4y";
 
-    private String stakingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3";
+//    private String stakingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzlh5ge3";
+    private String stakingContractAddr = "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzrzv4mm";
 
-    private String slashingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x";
+//    private String slashingContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyrchd9x";
+    private String slashingContractAddr = "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyld0s8v";
 
-    private String govContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq97wrcc5";
+//    private String govContractAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq97wrcc5";
+    private String govContractAddr = "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9zmm967";
 
-    private String delegateRewardPoolAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxsakwkt";
+//    private String delegateRewardPoolAddr = "lax1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxsakwkt";
+    private String delegateRewardPoolAddr = "atx1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxvgwn5p";
 
 
     private Gson gson = new Gson();

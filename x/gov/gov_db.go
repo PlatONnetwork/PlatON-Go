@@ -18,6 +18,9 @@ package gov
 
 import (
 	"encoding/json"
+	"fmt"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
@@ -251,6 +254,32 @@ func AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.State
 
 	avListBytes, _ := json.Marshal(avList)
 	state.SetState(vm.GovContractAddr, KeyActiveVersions(), avListBytes)
+	return nil
+}
+
+func Set0140Param(hash common.Hash, curVersion uint32, db snapshotdb.DB) error {
+	if curVersion == params.FORKVERSION_0_14_0 {
+		list, err := db.Get(hash, KeyParamItems())
+		if err != nil {
+			return err
+		}
+		var paramItemList []*ParamItem
+		if err := rlp.DecodeBytes(list, &paramItemList); err != nil {
+			return err
+		}
+		for _, param := range init0140VersionParam() {
+			paramItemList = append(paramItemList, param.ParamItem)
+			value := common.MustRlpEncode(param.ParamValue)
+			if err := db.Put(hash, KeyParamValue(param.ParamItem.Module, param.ParamItem.Name), value); err != nil {
+				return fmt.Errorf("failed to Store govern 0140 parameter. error:%s", err.Error())
+			}
+			RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
+		}
+		value := common.MustRlpEncode(paramItemList)
+		if err := db.Put(hash, KeyParamItems(), value); err != nil {
+			return fmt.Errorf("failed to Store govern 0140 parameter list. error:%s", err.Error())
+		}
+	}
 	return nil
 }
 

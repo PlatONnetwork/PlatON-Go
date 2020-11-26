@@ -1,23 +1,12 @@
 package network.platon.test;
 
+import com.alaya.crypto.ECKeyPair;
+import com.alaya.crypto.Keys;
 import com.alibaba.fastjson.JSONObject;
 import network.platon.autotest.junit.rules.AssertCollector;
 import network.platon.autotest.junit.rules.DriverService;
 import org.junit.Rule;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.ECKeyPair;
-import org.web3j.crypto.Keys;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.protocol.http.HttpService;
-import org.web3j.tx.RawTransactionManager;
-import org.web3j.tx.Transfer;
-import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -49,23 +38,19 @@ public class BaseTest {
 //        return credentials.getAddress();
 //    }
 //
-//    public ECKeyPair generateEcKeyPair(){
-//        ECKeyPair ecKeyPair = null;
-//        try {
-//            if(this.getParam("secretType").equals("sm2")){
-//                ecKeyPair = Keys.createSm2EcKeyPair();
-//            }else {
-//                ecKeyPair = Keys.createEcKeyPair();
-//            }
-//        } catch (InvalidAlgorithmParameterException e) {
-//            e.printStackTrace();
-//        } catch (NoSuchAlgorithmException e) {
-//            e.printStackTrace();
-//        } catch (NoSuchProviderException e) {
-//            e.printStackTrace();
-//        }
-//        return ecKeyPair;
-//    }
+    public ECKeyPair generateEcKeyPair(){
+        ECKeyPair ecKeyPair = null;
+        try {
+            ecKeyPair = Keys.createEcKeyPair();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchProviderException e) {
+            e.printStackTrace();
+        }
+        return ecKeyPair;
+    }
 //
 //    public ECKeyPair generateEcKeyPair(byte[] privateKey){
 //        ECKeyPair ecKeyPair;
@@ -87,16 +72,16 @@ public class BaseTest {
 //        return getCredentialsAddress(credentials);
 //    }
 
-//    public String generatePrivateKey() {
-//        ECKeyPair ecKeyPair = this.generateEcKeyPair();
-//        //私钥长度不足64位时需要补0
-//        String privateKey = ecKeyPair.getPrivateKey().toString(16);
-//        int len = privateKey.length();
-//        for(int i=0;i<(64-len);i++){
-//            privateKey = "0" + privateKey;
-//        }
-//        return privateKey;
-//    }
+    public String generatePrivateKey() {
+        ECKeyPair ecKeyPair = this.generateEcKeyPair();
+        //私钥长度不足64位时需要补0
+        String privateKey = ecKeyPair.getPrivateKey().toString(16);
+        int len = privateKey.length();
+        for(int i=0;i<(64-len);i++){
+            privateKey = "0" + privateKey;
+        }
+        return privateKey;
+    }
 //
 //    public String generatePublicKeyFromPrivateKey(String privateKey){
 //        ECKeyPair ecKeyPair = this.generateEcKeyPair(privateKey);

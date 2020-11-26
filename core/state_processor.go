@@ -17,6 +17,12 @@
 package core
 
 import (
+	"bytes"
+	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -25,6 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -124,7 +131,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
 
 	// Apply the transaction to the current state (included in the env)
-	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
+	result, err := ApplyMessage(vmenv, msg, gp)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -132,22 +139,44 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	statedb.Finalise(true)
 
 	var root []byte
-	*usedGas += gas
+	*usedGas += result.UsedGas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
-	receipt := types.NewReceipt(root, failed, *usedGas)
+	receipt := types.NewReceipt(root, result.Failed(), *usedGas)
 	receipt.TxHash = tx.Hash()
-	receipt.GasUsed = gas
+	receipt.GasUsed = result.UsedGas
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
-	receipt.Logs = statedb.GetLogs(tx.Hash())
+
+	if gov.Gte0140VersionState(statedb) && result.Failed() {
+		if bizError, ok := result.Err.(*common.BizError); ok {
+			buf := new(bytes.Buffer)
+			res := strconv.Itoa(int(bizError.Code))
+			if err := rlp.Encode(buf, [][]byte{[]byte(res)}); nil != err {
+				log.Error("Cannot RlpEncode the log data", "data", bizError.Code, "err", err)
+				return nil, 0, err
+			}
+			receipt.Logs = []*types.Log{
+				&types.Log{
+					Address:     *msg.To(),
+					Topics:      nil,
+					Data:        buf.Bytes(),
+					BlockNumber: header.Number.Uint64(),
+				},
+			}
+		} else {
+			receipt.Logs = statedb.GetLogs(tx.Hash())
+		}
+	} else {
+		receipt.Logs = statedb.GetLogs(tx.Hash())
+	}
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = header.Number
 	receipt.TransactionIndex = uint(statedb.TxIndex())
-	return receipt, gas, err
+	return receipt, result.UsedGas, err
 }

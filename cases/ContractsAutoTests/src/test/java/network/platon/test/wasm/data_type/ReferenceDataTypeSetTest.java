@@ -1,13 +1,13 @@
 package network.platon.test.wasm.data_type;
 
-import com.platon.rlp.datatypes.Uint64;
-import com.platon.rlp.datatypes.Uint8;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
+import com.alaya.rlp.wasm.datatypes.Uint64;
+import com.alaya.rlp.wasm.datatypes.Uint8;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.contracts.wasm.ReferenceDataTypeSetContract;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import network.platon.test.wasm.beforetest.WASMContractPrepareTest;
 
 /**
@@ -100,7 +100,7 @@ public class ReferenceDataTypeSetTest extends WASMContractPrepareTest {
         try {
             Uint64 actualSetLength = referenceDataTypeSetContract.get_set_size().send();
             collector.logStepPass("referenceDataTypeSetContract 【验证set类型获取容器大小】 执行get_set_size() successfully actualSetLength:" + actualSetLength);
-            collector.assertEqual(actualSetLength,Uint64.of(setLength), "checkout execute success.");
+            collector.assertEqual(actualSetLength, Uint64.of(setLength), "checkout execute success.");
         } catch (Exception e) {
             e.printStackTrace();
             collector.logStepFail("referenceDataTypeSetContract Calling Method fail.", e.toString());

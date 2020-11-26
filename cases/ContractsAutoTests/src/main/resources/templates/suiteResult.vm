@@ -405,7 +405,7 @@
                         #foreach ($moduleInfo in $suiteInfo.moduleInfoList)
                         <tr>
                             <td class="graphItemLeft" nowrap="">
-                                <a href=Link/测试模块_$!{moduleInfo.moduleName}.html target="_self">
+                                <a href=Link/$!{moduleInfo.moduleName}.html target="_self">
                                     #if($!moduleInfo.moduleShowName != "")
                                         $!moduleInfo.moduleShowName
                                     #end

@@ -1,6 +1,6 @@
 package network.platon.test.evm.beforetest;
-
-import com.platon.sdk.utlis.Bech32;
+import com.alaya.bech32.Bech32;
+import com.alaya.protocol.core.methods.response.TransactionReceipt;
 import network.platon.autotest.junit.annotations.DataSource;
 import network.platon.autotest.junit.enums.DataSourceType;
 import network.platon.autotest.utils.FileUtil;
@@ -10,8 +10,6 @@ import network.platon.utils.GeneratorUtil;
 import network.platon.utils.OneselfFileUtil;
 import org.junit.Before;
 import org.junit.Test;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -32,7 +30,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
     @Before
     public void before() {
         this.prepare();
-        contractAndLibrarys = driverService.param.get("contractAndLibrarys") == null ? "" : driverService.param.get("contractAndLibrarys").toString();
+        contractAndLibrarys = driverService.param.get("contractAndLibrarys") == null ? "" : driverService.param.get("contractAndLibrarys");
     }
 
 
@@ -50,11 +48,17 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
             //2.将含有library库的合约中的引用替换为library库对对合约地址
             String[] contractAndLibrarysArr = contractAndLibrarys.split(";");
+//            log.info("" + contractAndLibrarysArr.length);
             if (contractAndLibrarysArr.length > 0) {
                 for (int i = 0; i < contractAndLibrarysArr.length; i++) {
-                    System.out.println("contractAndLibrarysArr[i] is:" + contractAndLibrarysArr[i]);
-                    String[] singleContractLib = contractAndLibrarysArr[i].split("&");
-                    deployLibrary(singleContractLib[0], singleContractLib[1]);
+//                    log.info("contractAndLibrarysArr[i] is:" + contractAndLibrarysArr[i]);
+                    try{
+                        String[] singleContractLib = contractAndLibrarysArr[i].split("&");
+                        deployLibrary(singleContractLib[0], singleContractLib[1],singleContractLib[2]);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
                 }
             }
 
@@ -79,39 +83,24 @@ public class GeneratorPreTest extends ContractPrepareTest {
      **/
     public void compile() throws InterruptedException {
         String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm").toUri().getPath());
-        String buildPath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
-
-        File buildPathFile = new File(buildPath);
-        if (!buildPathFile.exists() || !buildPathFile.isDirectory()) {
-            buildPathFile.mkdirs();
-        }
-
-        File[] list = new File(buildPath).listFiles();
-        if (null != list) {
-            for (File file : list) {
-                file.delete();
-            }
-        }
         // 获取所有sol源文件
         List<String> files = new OneselfFileUtil().getResourcesFile(resourcePath, 0);
         int size = files.size();
-
+//        log.info("size: " + size);
         ExecutorService executorService = Executors.newCachedThreadPool();
         // 同时并发执行的线程数
         final Semaphore semaphore = new Semaphore(20);
         // 请求总数与文件数定义一致size
         CountDownLatch countDownLatch = new CountDownLatch(size);
         CompileUtil compileUtil = new CompileUtil();
-
         for (String file : files) {
-            //collector.logStepPass("staring compile:" + file);
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
-                    compileUtil.evmCompile(file, buildPath);
-                    collector.logStepPass("compile success:" + file);
+                    compileUtil.evmCompile(file);
+//                    log.info("compile success:" + file);
                 } catch (Exception e) {
-                    collector.logStepFail("compile fail:" + file, e.toString());
+//                    log.info("compile fail:" + file, e.toString());
                 } finally {
                     semaphore.release();
                     countDownLatch.countDown();
@@ -125,7 +114,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
     }
 
 
-    public void deployLibrary(String contractName, String librarys) {
+    public void deployLibrary(String contractName, String librarys,String version) {
         String libraryAddressNoPre = "";
         //key值为library库名称，value为library库对应的地址
         Map<String, String> libraryAddressNoPreMap = new HashMap<String, String>();
@@ -136,7 +125,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
 
         BufferedReader bufferedReader = null;
         try {
-            String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build").toUri().getPath());
+            String resourcePath = FileUtil.pathOptimization(Paths.get("src", "test", "resources", "contracts", "evm", "build",version).toUri().getPath());
 
             String[] libraryArr = librarys.split("\\|\\|");
 
@@ -158,7 +147,8 @@ public class GeneratorPreTest extends ContractPrepareTest {
                     }
                     libraryAddressNoPre = receipt.getContractAddress();
                     collector.logStepPass("contract address >>>> " + libraryAddressNoPre);
-                    if (libraryAddressNoPre.startsWith("lax") || libraryAddressNoPre.startsWith("lat")) {
+                    if (libraryAddressNoPre.startsWith("atp") || libraryAddressNoPre.startsWith("atx")) {
+//                    if (libraryAddressNoPre.startsWith("lax") || libraryAddressNoPre.startsWith("lat")) {
                         libraryAddressNoPreMap.put(libraryArr[i].split("\\.")[0], DataChangeUtil.bytesToHex(Bech32.addressDecode(libraryAddressNoPre)));
                         break;
                     }
@@ -220,7 +210,7 @@ public class GeneratorPreTest extends ContractPrepareTest {
      **/
     public void generatorEVMWrapper() throws InterruptedException {
         // 获取已编译后的二进制文件
-        List<String> binFileName = new OneselfFileUtil().getBinFileName();
+        List<File> binFileName = new OneselfFileUtil().getBinFiles();
         // 获取合约文件数量
         int size = binFileName.size();
 
@@ -231,15 +221,15 @@ public class GeneratorPreTest extends ContractPrepareTest {
         GeneratorUtil generatorUtil = new GeneratorUtil();
         collector.logStepPass("staring generator, Total " + size + " contract, please wait...");
 
-        for (String fileName : binFileName) {
+        for (File file : binFileName) {
             //collector.logStepPass("staring compile:" + fileName);
             executorService.execute(() -> {
                 try {
                     semaphore.acquire();
-                    generatorUtil.generator(fileName);
-                    collector.logStepPass("generator success:" + fileName);
+                    generatorUtil.generator(file);
+                    collector.logStepPass("generator success:" + file);
                 } catch (Exception e) {
-                    collector.logStepFail("generator fail:" + fileName, e.toString());
+                    collector.logStepFail("generator fail:" + file.getName(), e.toString());
                 } finally {
                     semaphore.release();
                     countDownLatch.countDown();

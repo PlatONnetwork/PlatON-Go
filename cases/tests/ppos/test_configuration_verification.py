@@ -4,7 +4,7 @@ from copy import copy
 
 import pytest
 from dacite import from_dict
-from client_sdk_python import Web3
+from alaya import Web3
 from tests.lib.genesis import Genesis
 from environment.node import Node
 
@@ -107,7 +107,7 @@ def test_IP_PR_006_1(reset_cfg_env_node):
 
 
 @pytest.mark.P2
-@pytest.mark.parametrize('value', [9, 0])
+@pytest.mark.parametrize('value', [0.9, 0])
 def test_IP_PR_006_2(value, reset_cfg_env_node):
     """
     修改每次委托及赎回的最低Token数

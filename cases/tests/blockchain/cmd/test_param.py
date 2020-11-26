@@ -174,11 +174,3 @@ class TestStartParam(object):
         append_cmd_restart(global_test_env, "--cpuprofile {}/cpufile".format(test_node.remote_node_path), test_node)
         time.sleep(10)
         assert file_is_exist(test_node.ssh, test_node.remote_node_path, "cpufile")
-
-    @allure.title("Test open indicator monitoring function")
-    @pytest.mark.P3
-    def test_CMD_121(self, global_test_env):
-        test_node = append_cmd_restart(global_test_env, "--metrics")
-        time.sleep(10)
-        metrics = test_node.debug.web3.manager.request_blocking("debug_metrics", [True])
-        assert metrics.cbft.gauage.block.number > 0

@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -138,26 +139,22 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if !verifyRewardPer(rewardPer) {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("invalid param rewardPer: %d", rewardPer),
-			TxCreateStaking, int(staking.ErrInvalidRewardPer.Code)), nil
+			TxCreateStaking, staking.ErrInvalidRewardPer)
 	}
 
 	if len(blsPubKey) != BLSPUBKEYLEN {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("got blsKey length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN),
-			TxCreateStaking, int(staking.ErrWrongBlsPubKey.Code)), nil
+			TxCreateStaking, staking.ErrWrongBlsPubKey)
 	}
 
 	if len(blsProof) != BLSPROOFLEN {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("got blsProof length: %d, must be: %d", len(blsProof), BLSPROOFLEN),
-			TxCreateStaking, int(staking.ErrWrongBlsPubKeyProof.Code)), nil
+			TxCreateStaking, staking.ErrWrongBlsPubKeyProof)
 	}
 
 	// parse bls publickey
@@ -165,14 +162,14 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	if nil != err {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("failed to parse blspubkey: %s", err.Error()),
-			TxCreateStaking, int(staking.ErrWrongBlsPubKey.Code)), nil
+			TxCreateStaking, staking.ErrWrongBlsPubKey)
 	}
 
 	// verify bls proof
 	if err := verifyBlsProof(blsProof, blsPk); nil != err {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("failed to verify bls proof: %s", err.Error()),
-			TxCreateStaking, int(staking.ErrWrongBlsPubKeyProof.Code)), nil
+			TxCreateStaking, staking.ErrWrongBlsPubKeyProof)
 
 	}
 
@@ -180,13 +177,13 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	if !node.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			"call IsSignedByNodeID is failed",
-			TxCreateStaking, int(staking.ErrWrongProgramVersionSign.Code)), nil
+			TxCreateStaking, staking.ErrWrongProgramVersionSign)
 	}
 
 	if ok, threshold := plugin.CheckStakeThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("staking threshold: %d, deposit: %d", threshold, amount),
-			TxCreateStaking, int(staking.ErrStakeVonTooLow.Code)), nil
+			TxCreateStaking, staking.ErrStakeVonTooLow)
 	}
 
 	// check Description length
@@ -199,7 +196,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	if err := desc.CheckLength(); nil != err {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			staking.ErrDescriptionLen.Msg+":"+err.Error(),
-			TxCreateStaking, int(staking.ErrDescriptionLen.Code)), nil
+			TxCreateStaking, staking.ErrDescriptionLen)
 	}
 
 	// Query current active version
@@ -217,7 +214,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("input Version: %s, current valid Version: %s",
 				xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(originVersion)),
-			TxCreateStaking, int(staking.ErrProgramVersionTooLow.Code)), nil
+			TxCreateStaking, staking.ErrProgramVersionTooLow)
 
 	} else if inputVersion > currVersion {
 		isDeclareVersion = true
@@ -242,9 +239,11 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	if canOld.IsNotEmpty() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			"can is not nil",
-			TxCreateStaking, int(staking.ErrCanAlreadyExist.Code)), nil
+			TxCreateStaking, staking.ErrCanAlreadyExist)
 	}
-
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 	/**
 	init candidate info
 	*/
@@ -281,7 +280,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		if bizErr, ok := err.(*common.BizError); ok {
 
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
-				bizErr.Error(), TxCreateStaking, int(bizErr.Code)), nil
+				bizErr.Error(), TxCreateStaking, bizErr)
 
 		} else {
 			log.Error("Failed to createStaking by CreateCandidate", "txHash", txHash,
@@ -299,19 +298,20 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 			log.Error("Failed to CreateCandidate with govplugin DelareVersion failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 
-			if er := stkc.Plugin.RollBackStaking(state, blockHash, blockNumber, canAddr, typ); nil != er {
-				log.Error("Failed to createStaking by RollBackStaking", "txHash", txHash,
-					"blockNumber", blockNumber, "err", er)
+			if !gov.Gte0140VersionState(state) {
+				// the snapshot db can roll back ,so rollBack here no need
+				if er := stkc.Plugin.RollBackStaking(state, blockHash, blockNumber, canAddr, typ); nil != er {
+					log.Error("Failed to createStaking by RollBackStaking", "txHash", txHash,
+						"blockNumber", blockNumber, "err", er)
+				}
 			}
-
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
-				err.Error(), TxCreateStaking, int(staking.ErrDeclVsFialedCreateCan.Code)), nil
-
+				err.Error(), TxCreateStaking, staking.ErrDeclVsFialedCreateCan)
 		}
 	}
 
 	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
-		"", TxCreateStaking, int(common.NoErr.Code)), nil
+		"", TxCreateStaking, common.NoErr)
 }
 
 func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {
@@ -329,35 +329,26 @@ func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {
 }
 
 func verifyRewardPer(rewardPer uint16) bool {
-	return rewardPer >= 0 && rewardPer <= 10000 //	1BP(BasePoint)=0.01%
+	return rewardPer <= 10000 //	1BP(BasePoint)=0.01%
 }
 
-func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId discover.NodeID, rewardPer uint16,
-	externalId, nodeName, website, details string) ([]byte, error) {
+func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeId discover.NodeID, rewardPer *uint16,
+	externalId, nodeName, website, details *string) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 	from := stkc.Contract.CallerAddress
+	state := stkc.Evm.StateDB
 
 	log.Debug("Call editCandidate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "rewardPer", rewardPer,
+		"benefitAddress", benefitAddress, "nodeId", nodeId.String(), "rewardPer", rewardPer,
 		"externalId", externalId, "nodeName", nodeName, "website", website,
 		"details", details, "from", from)
 
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
 		return nil, ErrOutOfGas
-	}
-
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
-	if !verifyRewardPer(rewardPer) {
-		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-			fmt.Sprintf("invalid rewardPer: %d", rewardPer),
-			TxEditorCandidate, int(staking.ErrInvalidRewardPer.Code)), nil
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -376,75 +367,128 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	if canOld.IsEmpty() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-			"can is nil", TxEditorCandidate, int(staking.ErrCanNoExist.Code)), nil
+			"can is nil", TxEditorCandidate, staking.ErrCanNoExist)
 	}
 
 	if canOld.IsInvalid() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 			fmt.Sprintf("can status is: %d", canOld.Status),
-			TxEditorCandidate, int(staking.ErrCanStatusInvalid.Code)), nil
+			TxEditorCandidate, staking.ErrCanStatusInvalid)
 	}
 
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
-			TxEditorCandidate, int(staking.ErrNoSameStakingAddr.Code)), nil
+			TxEditorCandidate, staking.ErrNoSameStakingAddr)
 	}
 
-	if canOld.BenefitAddress != vm.RewardManagerPoolAddr {
-		canOld.BenefitAddress = benefitAddress
+	if benefitAddress == nil {
+		if !gov.Gte0140VersionState(state) {
+			return xcom.NewResult(common.InvalidParameter, nil), errors.New(common.InvalidParameter.Error())
+		}
+	} else {
+		if canOld.BenefitAddress != vm.RewardManagerPoolAddr {
+			canOld.BenefitAddress = *benefitAddress
+		}
 	}
 
-	// check Description length
-	desc := &staking.Description{
-		NodeName:   nodeName,
-		ExternalId: externalId,
-		Website:    website,
-		Details:    details,
+	currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
+
+	if gov.Gte0140VersionState(state) {
+		if nodeName != nil {
+			canOld.Description.NodeName = *nodeName
+		}
+		if externalId != nil {
+			canOld.Description.ExternalId = *externalId
+		}
+		if website != nil {
+			canOld.Description.Website = *website
+		}
+		if details != nil {
+			canOld.Description.Details = *details
+		}
+	} else {
+		if nodeName == nil || externalId == nil || website == nil || details == nil {
+			return xcom.NewResult(common.InvalidParameter, nil), errors.New(common.InvalidParameter.Error())
+		}
+		// check Description length
+		desc := &staking.Description{
+			NodeName:   *nodeName,
+			ExternalId: *externalId,
+			Website:    *website,
+			Details:    *details,
+		}
+		canOld.Description = *desc
 	}
-	if err := desc.CheckLength(); nil != err {
+	if err := canOld.Description.CheckLength(); nil != err {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 			staking.ErrDescriptionLen.Msg+":"+err.Error(),
-			TxEditorCandidate, int(staking.ErrDescriptionLen.Code)), nil
+			TxEditorCandidate, staking.ErrDescriptionLen)
 	}
 
-	canOld.Description = *desc
-	canOld.NextRewardPer = rewardPer
-
-	if canOld.NextRewardPer != canOld.RewardPer {
-		rewardPerMaxChangeRange, err := gov.GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
-		if nil != err {
-			log.Error("Failed to editCandidate, call GovernRewardPerMaxChangeRange is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-				"err", err)
-			return nil, err
+	if gov.Gte0140VersionState(state) {
+		if currentEpoch > canOld.RewardPerChangeEpoch && canOld.NextRewardPer != canOld.RewardPer {
+			canOld.RewardPer = canOld.NextRewardPer
 		}
-		rewardPerChangeInterval, err := gov.GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
-		if nil != err {
-			log.Error("Failed to editCandidate, call GovernRewardPerChangeInterval is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-				"err", err)
-			return nil, err
-		}
-		currentEpoch := uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
-		if uint32(rewardPerChangeInterval) > currentEpoch-canOld.RewardPerChangeEpoch {
-			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-				fmt.Sprintf("needs interval [%d] epoch to modify", rewardPerChangeInterval),
-				TxEditorCandidate, int(staking.ErrRewardPerInterval.Code)), nil
-		}
-
-		difference := uint16(math.Abs(float64(canOld.NextRewardPer) - float64(canOld.RewardPer)))
-		if difference > rewardPerMaxChangeRange {
-			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-				fmt.Sprintf("invalid rewardPer: %d, modified by more than: %d", rewardPer, rewardPerMaxChangeRange),
-				TxEditorCandidate, int(staking.ErrRewardPerChangeRange.Code)), nil
-		}
-		canOld.RewardPerChangeEpoch = currentEpoch
 	}
 
+	if rewardPer != nil {
+		if !verifyRewardPer(*rewardPer) {
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+				fmt.Sprintf("invalid rewardPer: %d", rewardPer),
+				TxEditorCandidate, staking.ErrInvalidRewardPer)
+		}
+
+		isChange := false
+		if gov.Gte0140VersionState(state) {
+			isChange = *rewardPer != canOld.NextRewardPer
+		} else {
+			canOld.NextRewardPer = *rewardPer
+			isChange = canOld.NextRewardPer != canOld.RewardPer
+		}
+
+		if isChange {
+			rewardPerMaxChangeRange, err := gov.GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
+			if nil != err {
+				log.Error("Failed to editCandidate, call GovernRewardPerMaxChangeRange is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+					"err", err)
+				return nil, err
+			}
+			rewardPerChangeInterval, err := gov.GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
+			if nil != err {
+				log.Error("Failed to editCandidate, call GovernRewardPerChangeInterval is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+					"err", err)
+				return nil, err
+			}
+
+			if uint32(rewardPerChangeInterval) > currentEpoch-canOld.RewardPerChangeEpoch {
+				return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+					fmt.Sprintf("needs interval [%d] epoch to modify", rewardPerChangeInterval),
+					TxEditorCandidate, staking.ErrRewardPerInterval)
+			}
+
+			canOld.NextRewardPer = *rewardPer
+			difference := uint16(math.Abs(float64(canOld.NextRewardPer) - float64(canOld.RewardPer)))
+			if difference > rewardPerMaxChangeRange {
+				return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+					fmt.Sprintf("invalid rewardPer: %d, modified by more than: %d", rewardPer, rewardPerMaxChangeRange),
+					TxEditorCandidate, staking.ErrRewardPerChangeRange)
+			}
+			canOld.RewardPerChangeEpoch = currentEpoch
+		}
+	} else {
+		if !gov.Gte0140VersionState(state) {
+			return xcom.NewResult(common.InvalidParameter, nil), errors.New(common.InvalidParameter.Error())
+		}
+	}
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 	err = stkc.Plugin.EditCandidate(blockHash, blockNumber, canAddr, canOld)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
-				bizErr.Error(), TxEditorCandidate, int(bizErr.Code)), nil
+				bizErr.Error(), TxEditorCandidate, bizErr)
 		} else {
 			log.Error("Failed to editCandidate by EditCandidate", "txHash", txHash,
 				"blockNumber", blockNumber, "err", err)
@@ -453,7 +497,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	}
 
 	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
-		"", TxEditorCandidate, int(common.NoErr.Code)), nil
+		"", TxEditorCandidate, common.NoErr)
 }
 
 func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16, amount *big.Int) ([]byte, error) {
@@ -472,14 +516,10 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
 			fmt.Sprintf("increase staking threshold: %d, deposit: %d", threshold, amount),
-			TxIncreaseStaking, int(staking.ErrIncreaseStakeVonTooLow.Code)), nil
+			TxIncreaseStaking, staking.ErrIncreaseStakeVonTooLow)
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -498,19 +538,22 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	if canOld.IsEmpty() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
-			"can is nil", TxIncreaseStaking, int(staking.ErrCanNoExist.Code)), nil
+			"can is nil", TxIncreaseStaking, staking.ErrCanNoExist)
 	}
 
 	if canOld.IsInvalid() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
 			fmt.Sprintf("can status is: %d", canOld.Status),
-			TxIncreaseStaking, int(staking.ErrCanStatusInvalid.Code)), nil
+			TxIncreaseStaking, staking.ErrCanStatusInvalid)
 	}
 
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
-			TxIncreaseStaking, int(staking.ErrNoSameStakingAddr.Code)), nil
+			TxIncreaseStaking, staking.ErrNoSameStakingAddr)
+	}
+	if txHash == common.ZeroHash {
+		return nil, nil
 	}
 
 	err = stkc.Plugin.IncreaseStaking(state, blockHash, blockNumber, amount, typ, canAddr, canOld)
@@ -518,7 +561,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
-				bizErr.Error(), TxIncreaseStaking, int(bizErr.Code)), nil
+				bizErr.Error(), TxIncreaseStaking, bizErr)
 
 		} else {
 			log.Error("Failed to increaseStaking by EditCandidate", "txHash", txHash,
@@ -528,7 +571,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	}
 	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
-		"", TxIncreaseStaking, int(common.NoErr.Code)), nil
+		"", TxIncreaseStaking, common.NoErr)
 }
 
 func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, error) {
@@ -544,10 +587,6 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 	if !stkc.Contract.UseGas(params.WithdrewStakeGas) {
 		return nil, ErrOutOfGas
-	}
-
-	if txHash == common.ZeroHash {
-		return nil, nil
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -566,26 +605,28 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 	if canOld.IsEmpty() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
-			"can is nil", TxWithdrewCandidate, int(staking.ErrCanNoExist.Code)), nil
+			"can is nil", TxWithdrewCandidate, staking.ErrCanNoExist)
 	}
 
 	if canOld.IsInvalid() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
 			fmt.Sprintf("can status is: %d", canOld.Status),
-			TxWithdrewCandidate, int(staking.ErrCanStatusInvalid.Code)), nil
+			TxWithdrewCandidate, staking.ErrCanStatusInvalid)
 	}
 
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
-			TxWithdrewCandidate, int(staking.ErrNoSameStakingAddr.Code)), nil
+			TxWithdrewCandidate, staking.ErrNoSameStakingAddr)
 	}
-
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 	err = stkc.Plugin.WithdrewStaking(state, blockHash, blockNumber, canAddr, canOld)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
-				bizErr.Error(), TxWithdrewCandidate, int(bizErr.Code)), nil
+				bizErr.Error(), TxWithdrewCandidate, bizErr)
 		} else {
 			log.Error("Failed to withdrewStaking by WithdrewStaking", "txHash", txHash,
 				"blockNumber", blockNumber, "err", err)
@@ -595,7 +636,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	}
 
 	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
-		"", TxWithdrewCandidate, int(common.NoErr.Code)), nil
+		"", TxWithdrewCandidate, common.NoErr)
 }
 
 func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
@@ -629,13 +670,13 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if canMutable.IsEmpty() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
-			"can is nil", TxDelegate, int(staking.ErrCanNoExist.Code)), nil
+			"can is nil", TxDelegate, staking.ErrCanNoExist)
 	}
 
 	if canMutable.IsInvalid() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
 			fmt.Sprintf("can status is: %d", canMutable.Status),
-			TxDelegate, int(staking.ErrCanStatusInvalid.Code)), nil
+			TxDelegate, staking.ErrCanStatusInvalid)
 	}
 
 	// the can base must exist if canMutable is exist,so no need check if canBase==nil
@@ -648,7 +689,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	if canBase.StakingBlockNum == blockNumber.Uint64() {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
 			fmt.Sprintf("delegate fail,can't not delgate in the staking block:%d", blockNumber.Uint64()),
-			TxDelegate, int(staking.ErrCanNoExist.Code)), nil
+			TxDelegate, staking.ErrCanNoExist)
 	}
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, canBase.StakingBlockNum)
@@ -679,14 +720,10 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		}
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
 			fmt.Sprintf("delegate threshold: %d, deposit: %d", threshold, amount),
-			TxDelegate, int(staking.ErrDelegateVonTooLow.Code)), nil
+			TxDelegate, staking.ErrDelegateVonTooLow)
 	}
 
 	// check account
@@ -698,14 +735,17 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	if hasStake {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
 			fmt.Sprintf("'%s' has staking, so don't allow to delegate", from),
-			TxDelegate, int(staking.ErrAccountNoAllowToDelegate.Code)), nil
+			TxDelegate, staking.ErrAccountNoAllowToDelegate)
 	}
 
 	// If the candidate’s benefitaAddress is the RewardManagerPoolAddr, no delegation is allowed
 	if canBase.BenefitAddress == vm.RewardManagerPoolAddr {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
 			"the can benefitAddr is reward addr",
-			TxDelegate, int(staking.ErrCanNoAllowDelegate.Code)), nil
+			TxDelegate, staking.ErrCanNoAllowDelegate)
+	}
+	if txHash == common.ZeroHash {
+		return nil, nil
 	}
 
 	can := &staking.Candidate{}
@@ -716,7 +756,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
-				bizErr.Error(), TxDelegate, int(bizErr.Code)), nil
+				bizErr.Error(), TxDelegate, bizErr)
 		} else {
 			log.Error("Failed to delegate by Delegate", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			return nil, err
@@ -724,7 +764,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	}
 
 	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
-		"", TxDelegate, int(common.NoErr.Code)), nil
+		"", TxDelegate, common.NoErr)
 }
 
 func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
@@ -755,7 +795,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 			return nil, nil
 		} else {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegate",
-				"del is nil", TxWithdrewDelegate, int(staking.ErrDelegateNoExist.Code)), nil
+				"del is nil", TxWithdrewDelegate, staking.ErrDelegateNoExist)
 		}
 	}
 
@@ -770,15 +810,15 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		return result, err
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegate",
 			fmt.Sprintf("withdrewDelegate threshold: %d, deposit: %d", threshold, amount),
-			TxWithdrewDelegate, int(staking.ErrWithdrewDelegateVonTooLow.Code)), nil
+			TxWithdrewDelegate, staking.ErrWithdrewDelegateVonTooLow)
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
 	}
 
 	issueIncome, err := stkc.Plugin.WithdrewDelegate(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del, delegateRewardPerList)
@@ -786,7 +826,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		if bizErr, ok := err.(*common.BizError); ok {
 
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegate",
-				bizErr.Error(), TxWithdrewDelegate, int(bizErr.Code)), nil
+				bizErr.Error(), TxWithdrewDelegate, bizErr)
 
 		} else {
 			log.Error("Failed to withdrewDelegate by WithdrewDelegate", "txHash", txHash, "blockNumber", blockNumber, "err", err)
