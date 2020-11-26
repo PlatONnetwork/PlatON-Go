@@ -138,6 +138,26 @@ func initParam() []*GovernParam {
 			},
 		},
 
+		{
+			ParamItem: &ParamItem{ModuleStaking, KeyUnDelegateFreezeDuration,
+				fmt.Sprintf("quantity of epoch for delegate withdrawal, range: (0, %d]", xcom.CeilUnStakeFreezeDuration)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.UnDelegateFreezeDuration())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				num, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("Parsed unDelegateFreezeDuration is failed: %v", err)
+				}
+
+				if err := xcom.CheckUnDelegateFreezeDuration(num); nil != err {
+					return err
+				}
+
+				return nil
+
+			},
+		},
+
 		/**
 		About Slashing module
 		*/

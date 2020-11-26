@@ -56,6 +56,7 @@ const (
 	KeyOperatingThreshold         = "operatingThreshold"
 	KeyMaxValidators              = "maxValidators"
 	KeyUnStakeFreezeDuration      = "unStakeFreezeDuration"
+	KeyUnDelegateFreezeDuration   = "unDelegateFreezeDuration"
 	KeySlashFractionDuplicateSign = "slashFractionDuplicateSign"
 	KeyDuplicateSignReportReward  = "duplicateSignReportReward"
 	KeyMaxEvidenceAge             = "maxEvidenceAge"
@@ -702,6 +703,20 @@ func GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, err
 
 func GovernUnStakeFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
 	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnStakeFreezeDuration, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	duration, err := strconv.Atoi(durationStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint64(duration), nil
+}
+
+func GovernUnDelegateFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnDelegateFreezeDuration, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}

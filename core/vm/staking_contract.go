@@ -46,21 +46,22 @@ import (
 )
 
 const (
-	TxCreateStaking     = 1000
-	TxEditorCandidate   = 1001
-	TxIncreaseStaking   = 1002
-	TxWithdrewCandidate = 1003
-	TxDelegate          = 1004
-	TxWithdrewDelegate  = 1005
-	QueryVerifierList   = 1100
-	QueryValidatorList  = 1101
-	QueryCandidateList  = 1102
-	QueryRelateList     = 1103
-	QueryDelegateInfo   = 1104
-	QueryCandidateInfo  = 1105
-	GetPackageReward    = 1200
-	GetStakingReward    = 1201
-	GetAvgPackTime      = 1202
+	TxCreateStaking      = 1000
+	TxEditorCandidate    = 1001
+	TxIncreaseStaking    = 1002
+	TxWithdrewCandidate  = 1003
+	TxDelegate           = 1004
+	TxWithdrewDelegation = 1005
+	TxRansomDelegation   = 1006
+	QueryVerifierList    = 1100
+	QueryValidatorList   = 1101
+	QueryCandidateList   = 1102
+	QueryRelateList      = 1103
+	QueryDelegateInfo    = 1104
+	QueryCandidateInfo   = 1105
+	GetPackageReward     = 1200
+	GetStakingReward     = 1201
+	GetAvgPackTime       = 1202
 )
 
 const (
@@ -95,12 +96,13 @@ func (stkc *StakingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) erro
 func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		TxCreateStaking:     stkc.createStaking,
-		TxEditorCandidate:   stkc.editCandidate,
-		TxIncreaseStaking:   stkc.increaseStaking,
-		TxWithdrewCandidate: stkc.withdrewStaking,
-		TxDelegate:          stkc.delegate,
-		TxWithdrewDelegate:  stkc.withdrewDelegate,
+		TxCreateStaking:      stkc.createStaking,
+		TxEditorCandidate:    stkc.editCandidate,
+		TxIncreaseStaking:    stkc.increaseStaking,
+		TxWithdrewCandidate:  stkc.withdrewStaking,
+		TxDelegate:           stkc.delegate,
+		TxWithdrewDelegation: stkc.withdrewDelegation,
+		TxRansomDelegation:   stkc.ransomDelegation,
 
 		// Get
 		QueryVerifierList:  stkc.getVerifierList,
@@ -261,15 +263,17 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	canMutable := &staking.CandidateMutable{
-		Shares:               amount,
-		Released:             new(big.Int).SetInt64(0),
-		ReleasedHes:          new(big.Int).SetInt64(0),
-		RestrictingPlan:      new(big.Int).SetInt64(0),
-		RestrictingPlanHes:   new(big.Int).SetInt64(0),
-		RewardPer:            rewardPer,
-		NextRewardPer:        rewardPer,
-		RewardPerChangeEpoch: uint32(xutil.CalculateEpoch(blockNumber.Uint64())),
-		DelegateRewardTotal:  new(big.Int).SetInt64(0),
+		Shares:                 amount,
+		Released:               new(big.Int).SetInt64(0),
+		ReleasedHes:            new(big.Int).SetInt64(0),
+		RestrictingPlan:        new(big.Int).SetInt64(0),
+		RestrictingPlanHes:     new(big.Int).SetInt64(0),
+		RewardPer:              rewardPer,
+		NextRewardPer:          rewardPer,
+		RewardPerChangeEpoch:   uint32(xutil.CalculateEpoch(blockNumber.Uint64())),
+		DelegateRewardTotal:    new(big.Int).SetInt64(0),
+		WithdrewDelegateEpoch:  0,
+		WithdrewDelegateAmount: new(big.Int).SetInt64(0),
 	}
 
 	can := &staking.Candidate{}
@@ -675,13 +679,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	}
 	if del.IsEmpty() {
 		// build delegate
-		del = new(staking.Delegation)
-		// Prevent null pointer initialization
-		del.Released = new(big.Int).SetInt64(0)
-		del.RestrictingPlan = new(big.Int).SetInt64(0)
-		del.ReleasedHes = new(big.Int).SetInt64(0)
-		del.RestrictingPlanHes = new(big.Int).SetInt64(0)
-		del.CumulativeIncome = new(big.Int).SetInt64(0)
+		del = staking.NewDelegation()
 	}
 	var delegateRewardPerList []*reward.DelegateRewardPer
 	if del.DelegateEpoch > 0 {
@@ -743,7 +741,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		"", TxDelegate, common.NoErr)
 }
 
-func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
+func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
@@ -751,7 +749,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	from := stkc.Contract.CallerAddress
 	state := stkc.Evm.StateDB
 
-	log.Debug("Call withdrewDelegate of stakingContract", "txHash", txHash.Hex(),
+	log.Debug("Call withdrewDelegation of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "delAddr", from, "nodeId", nodeId.String(),
 		"stakingNum", stakingBlockNum, "amount", amount)
 
@@ -761,7 +759,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, stakingBlockNum)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		log.Error("Failed to withdrewDelegate by GetDelegateInfo",
+		log.Error("Failed to withdrewDelegation by GetDelegateInfo",
 			"txHash", txHash.Hex(), "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
@@ -770,8 +768,8 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		if txHash == common.ZeroHash {
 			return nil, nil
 		} else {
-			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegate",
-				"del is nil", TxWithdrewDelegate, staking.ErrDelegateNoExist)
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegation",
+				"del is nil", TxWithdrewDelegation, staking.ErrDelegateNoExist)
 		}
 	}
 
@@ -787,31 +785,89 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	}
 
 	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegation",
+			fmt.Sprintf("withdrewDelegation threshold: %d, deposit: %d", threshold, amount),
+			TxWithdrewDelegation, staking.ErrWithdrewDelegateVonTooLow)
+	}
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 
-		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegate",
-			fmt.Sprintf("withdrewDelegate threshold: %d, deposit: %d", threshold, amount),
-			TxWithdrewDelegate, staking.ErrWithdrewDelegateVonTooLow)
+	err = stkc.Plugin.WithdrewDelegation(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del, delegateRewardPerList)
+	if nil != err {
+		if bizErr, ok := err.(*common.BizError); ok {
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegation",
+				bizErr.Error(), TxWithdrewDelegation, bizErr)
+		} else {
+			log.Error("Failed to withdrewDelegation by WithdrewDelegation", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+	}
+
+	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
+		"", TxWithdrewDelegation, common.NoErr)
+}
+
+func (stkc *StakingContract) ransomDelegation(stakingBlockNum uint64, nodeId discover.NodeID) ([]byte, error) {
+
+	txHash := stkc.Evm.StateDB.TxHash()
+	blockNumber := stkc.Evm.BlockNumber
+	blockHash := stkc.Evm.BlockHash
+	from := stkc.Contract.CallerAddress
+	state := stkc.Evm.StateDB
+
+	log.Debug("Call ransomDelegation of stakingContract", "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64(), "delAddr", from, "nodeId", nodeId.String(),
+		"stakingNum", stakingBlockNum)
+
+	if !stkc.Contract.UseGas(params.WithdrewDelegateGas) {
+		return nil, ErrOutOfGas
+	}
+
+	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, stakingBlockNum)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		log.Error("Failed to ransomDelegation by GetDelegateInfo",
+			"txHash", txHash.Hex(), "blockNumber", blockNumber, "err", err)
+		return nil, err
+	}
+
+	if del.IsEmpty() {
+		if txHash == common.ZeroHash {
+			return nil, nil
+		} else {
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "ransomDelegation",
+				"del is nil", TxRansomDelegation, staking.ErrDelegateNoExist)
+		}
+	}
+
+	delegateRewardPerList, err := plugin.RewardMgrInstance().GetDelegateRewardPerList(blockHash, nodeId, stakingBlockNum, uint64(del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		log.Error("Failed to delegate by GetDelegateRewardPerList", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+		return nil, err
+	}
+
+	result, err := stkc.calcRewardPerUseGas(delegateRewardPerList, del)
+	if nil != err {
+		return result, err
 	}
 
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
 
-	issueIncome, err := stkc.Plugin.WithdrewDelegate(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del, delegateRewardPerList)
+	issueIncome, err := stkc.Plugin.RansomDelegation(state, blockHash, blockNumber, from, nodeId, stakingBlockNum, del, delegateRewardPerList)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-
-			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegate",
-				bizErr.Error(), TxWithdrewDelegate, bizErr)
-
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "ransomDelegation",
+				bizErr.Error(), TxRansomDelegation, bizErr)
 		} else {
-			log.Error("Failed to withdrewDelegate by WithdrewDelegate", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			log.Error("Failed to ransomDelegation by RansomDelegation", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			return nil, err
 		}
 	}
 
 	return txResultHandlerWithRes(vm.StakingContractAddr, stkc.Evm, "",
-		"", TxWithdrewDelegate, int(common.NoErr.Code), issueIncome), nil
+		"", TxRansomDelegation, int(common.NoErr.Code), issueIncome), nil
 }
 
 func (stkc *StakingContract) calcRewardPerUseGas(delegateRewardPerList []*reward.DelegateRewardPer, del *staking.Delegation) ([]byte, error) {
