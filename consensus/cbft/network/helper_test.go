@@ -46,7 +46,7 @@ func newFakePrepareBlock() *protocols.PrepareBlock {
 		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
-		Time:     big.NewInt(1426516743),
+		Time:     uint64(1426516743),
 		Extra:    make([]byte, 100),
 	})
 	return &protocols.PrepareBlock{
@@ -169,7 +169,7 @@ func newFakeQCBlockList() *protocols.QCBlockList {
 		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
-		Time:     big.NewInt(1426516743),
+		Time:     uint64(1426516743),
 		Extra:    make([]byte, 100),
 	})
 	return &protocols.QCBlockList{

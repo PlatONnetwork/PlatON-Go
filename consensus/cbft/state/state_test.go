@@ -184,7 +184,7 @@ func newBlock(number uint64) *types.Block {
 	header := &types.Header{
 		Number:     big.NewInt(int64(number)),
 		ParentHash: common.Hash{},
-		Time:       big.NewInt(time.Now().UnixNano()),
+		Time:       uint64(time.Now().UnixNano()),
 		Extra:      nil,
 	}
 	block := types.NewBlockWithHeader(header)
