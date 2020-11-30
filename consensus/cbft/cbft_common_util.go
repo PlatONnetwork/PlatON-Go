@@ -65,7 +65,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
 		ParentHash:  parent,
-		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
+		Time:        uint64(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x0353e2f9065dd8d09ae0eb42a2e0776b07cd6915f53583d6ce0ad7b203e0be3c")),
@@ -82,7 +82,7 @@ func NewBlockWithSign(parent common.Hash, number uint64, node *TestCBFT) *types.
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
 		ParentHash:  parent,
-		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
+		Time:        uint64(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x0353e2f9065dd8d09ae0eb42a2e0776b07cd6915f53583d6ce0ad7b203e0be3c")),
