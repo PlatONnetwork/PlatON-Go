@@ -1199,9 +1199,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 
 	block, err := it.next()
 	switch {
-	// First block is pruned, insert as sidechain and reorg only if TD grows enough
-	case err == consensus.ErrPrunedAncestor:
-		return bc.insertSidechain(block, it)
 	// First block (and state) is known
 	//   1. We did a roll-back, and should now do a re-import
 	//   2. The block is stored as a sidechain, and is lying about it's stateroot, and passes a stateroot
@@ -1243,102 +1240,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 		events = append(events, ChainHeadEvent{lastCanon})
 	}
 	return it.index, events, coalescedLogs, nil
-}
-
-// insertSidechain is called when an import batch hits upon a pruned ancestor
-// error, which happens when a sidechain with a sufficiently old fork-block is
-// found.
-//
-// The method writes all (header-and-body-valid) blocks to disk, then tries to
-// switch over to the new chain if the TD exceeded the current chain.
-func (bc *BlockChain) insertSidechain(block *types.Block, it *insertIterator) (int, []interface{}, []*types.Log, error) {
-	var (
-		current  = bc.CurrentBlock()
-	)
-	// The first sidechain block error is already verified to be ErrPrunedAncestor.
-	// Since we don't import them here, we expect ErrUnknownAncestor for the remaining
-	// ones. Any other errors means that the block is invalid, and should not be written
-	// to disk.
-	err := consensus.ErrPrunedAncestor
-	for ; block != nil && (err == consensus.ErrPrunedAncestor); block, err = it.next() {
-		// Check the canonical state root for that number
-		if number := block.NumberU64(); current.NumberU64() >= number {
-			if canonical := bc.GetBlockByNumber(number); canonical != nil && canonical.Root() == block.Root() {
-				// This is most likely a shadow-state attack. When a fork is imported into the
-				// database, and it eventually reaches a block height which is not pruned, we
-				// just found that the state already exist! This means that the sidechain block
-				// refers to a state which already exists in our canon chain.
-				//
-				// If left unchecked, we would now proceed importing the blocks, without actually
-				// having verified the state of the previous blocks.
-				log.Warn("Sidechain ghost-state attack detected", "number", block.NumberU64(), "sideroot", block.Root(), "canonroot", canonical.Root())
-
-				// If someone legitimately side-mines blocks, they would still be imported as usual. However,
-				// we cannot risk writing unverified blocks to disk when they obviously target the pruning
-				// mechanism.
-				return it.index, nil, nil, errors.New("sidechain ghost-state attack")
-			}
-		}
-		if !bc.HasBlock(block.Hash(), block.NumberU64()) {
-			start := time.Now()
-			if err := bc.WriteBlockWithoutState(block); err != nil {
-				return it.index, nil, nil, err
-			}
-			log.Debug("Inserted sidechain block", "number", block.Number(), "hash", block.Hash(),
-				"elapsed", common.PrettyDuration(time.Since(start)),
-				"txs", len(block.Transactions()), "gas", block.GasUsed(),
-				"root", block.Root())
-		}
-	}
-	// Gather all the sidechain hashes (full blocks may be memory heavy)
-	var (
-		hashes  []common.Hash
-		numbers []uint64
-	)
-	parent := it.previous()
-	for parent != nil && !bc.HasState(parent.Root) {
-		hashes = append(hashes, parent.Hash())
-		numbers = append(numbers, parent.Number.Uint64())
-
-		parent = bc.GetHeader(parent.ParentHash, parent.Number.Uint64()-1)
-	}
-	if parent == nil {
-		return it.index, nil, nil, errors.New("missing parent")
-	}
-	// Import all the pruned blocks to make the state available
-	var (
-		blocks []*types.Block
-		memory common.StorageSize
-	)
-	for i := len(hashes) - 1; i >= 0; i-- {
-		// Append the next block to our batch
-		block := bc.GetBlock(hashes[i], numbers[i])
-
-		blocks = append(blocks, block)
-		memory += block.Size()
-
-		// If memory use grew too large, import and continue. Sadly we need to discard
-		// all raised events and logs from notifications since we're too heavy on the
-		// memory here.
-		if len(blocks) >= 2048 || memory > 64*1024*1024 {
-			log.Info("Importing heavy sidechain segment", "blocks", len(blocks), "start", blocks[0].NumberU64(), "end", block.NumberU64())
-			if _, _, _, err := bc.insertChain(blocks, false); err != nil {
-				return 0, nil, nil, err
-			}
-			blocks, memory = blocks[:0], 0
-
-			// If the chain is terminating, stop processing blocks
-			if atomic.LoadInt32(&bc.procInterrupt) == 1 {
-				log.Debug("Premature abort during blocks processing")
-				return 0, nil, nil, nil
-			}
-		}
-	}
-	if len(blocks) > 0 {
-		log.Info("Importing sidechain segment", "start", blocks[0].NumberU64(), "end", blocks[len(blocks)-1].NumberU64())
-		return bc.insertChain(blocks, false)
-	}
-	return 0, nil, nil, nil
 }
 
 //joey.lyu
