@@ -49,11 +49,11 @@ type Chain struct {
 	StateDB          *MockStateDB
 	SnapDB           snapshotdb.DB
 	h                []*types.Header
-	timeGenerate     func(*big.Int) *big.Int
+	timeGenerate     func(uint64) uint64
 	coinBaseGenerate func() common.Address
 }
 
-//notic AddBlock will not append snapshotdb
+//notice AddBlock will not append snapshotdb
 func (c *Chain) AddBlock() {
 	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash(), c.timeGenerate(c.CurrentHeader().Time), c.coinBaseGenerate())
 	c.h = append(c.h, header)
@@ -64,7 +64,7 @@ func (c *Chain) AddBlockWithTxHash(txHash common.Hash) {
 	c.StateDB.Prepare(txHash, c.CurrentHeader().Hash(), 1)
 }
 
-func (c *Chain) SetHeaderTimeGenerate(f func(*big.Int) *big.Int) {
+func (c *Chain) SetHeaderTimeGenerate(f func(uint64) uint64) {
 	c.timeGenerate = f
 }
 
@@ -173,8 +173,8 @@ func (c *Chain) GetHeaderByNumber(number uint64) *types.Header {
 func NewChain() *Chain {
 	c := new(Chain)
 
-	c.timeGenerate = func(b *big.Int) *big.Int {
-		return new(big.Int).SetInt64(time.Now().UnixNano() / 1e6)
+	c.timeGenerate = func(b uint64) uint64 {
+		return uint64(time.Now().UnixNano() / 1e6)
 	}
 	c.coinBaseGenerate = func() common.Address {
 		privateKey, err := crypto.GenerateKey()
@@ -184,7 +184,7 @@ func NewChain() *Chain {
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 		return addr
 	}
-	header := generateHeader(big.NewInt(0), common.ZeroHash, c.timeGenerate(nil), c.coinBaseGenerate())
+	header := generateHeader(big.NewInt(0), common.ZeroHash, c.timeGenerate(0), c.coinBaseGenerate())
 	block := new(types.Block).WithSeal(header)
 
 	c.Genesis = block
@@ -466,7 +466,7 @@ func (s *MockStateDB) TxIdx() uint32 {
 	return uint32(s.TxIndex)
 }
 
-func generateHeader(num *big.Int, parentHash common.Hash, htime *big.Int, coninbase common.Address) *types.Header {
+func generateHeader(num *big.Int, parentHash common.Hash, htime uint64, coninbase common.Address) *types.Header {
 	h := new(types.Header)
 	h.Number = num
 	h.ParentHash = parentHash

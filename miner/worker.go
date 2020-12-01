@@ -966,8 +966,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		//timestamp = time.Now().UnixNano() / 1e6
 	} else {
 		parent = w.chain.CurrentBlock()
-		if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
-			timestamp = parent.Time().Int64() + 1
+		if parent.Time() >= uint64(timestamp) {
+			timestamp = int64(parent.Time() + 1)
 		}
 		// this will ensure we're not going off too far in the future
 		if now := time.Now().Unix(); timestamp > now+1 {
@@ -982,7 +982,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.gasFloor),
-		Time:       big.NewInt(timestamp),
+		Time:       uint64(timestamp),
 	}
 
 	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
@@ -1202,7 +1202,7 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 	currentBaseBlock := w.commitWorkEnv.getCurrentBaseBlock()
 	nextBaseBlock := w.engine.NextBaseBlock()
-	nextBaseBlockTime := common.MillisToTime(nextBaseBlock.Time().Int64())
+	nextBaseBlockTime := common.MillisToTime(int64(nextBaseBlock.Time()))
 
 	if timestamp.Before(nextBaseBlockTime) {
 		log.Warn("Invalid packing timestamp,current timestamp is lower than the parent timestamp", "parentBlockTime", common.Beautiful(nextBaseBlockTime), "currentBlockTime", common.Beautiful(timestamp))
@@ -1232,17 +1232,17 @@ func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 			log.Debug("Check if time's up in shouldCommit()", "result", shouldCommit,
 				"next.number", nextBaseBlock.Number(),
 				"next.hash", nextBaseBlock.Hash(),
-				"next.timestamp", common.MillisToString(nextBaseBlock.Time().Int64()),
+				"next.timestamp", common.MillisToString(int64(nextBaseBlock.Time())),
 				"nextBlockTime", nextBlockTime,
 				"timestamp", timestamp)
 		} else {
 			log.Debug("Check if time's up in shouldCommit()", "result", shouldCommit,
 				"current.number", currentBaseBlock.Number(),
 				"current.hash", currentBaseBlock.Hash(),
-				"current.timestamp", common.MillisToString(currentBaseBlock.Time().Int64()),
+				"current.timestamp", common.MillisToString(int64(currentBaseBlock.Time())),
 				"next.number", nextBaseBlock.Number(),
 				"next.hash", nextBaseBlock.Hash(),
-				"next.timestamp", common.MillisToString(nextBaseBlock.Time().Int64()),
+				"next.timestamp", common.MillisToString(int64(nextBaseBlock.Time())),
 				"nextBlockTime", nextBlockTime,
 				"timestamp", timestamp)
 		}

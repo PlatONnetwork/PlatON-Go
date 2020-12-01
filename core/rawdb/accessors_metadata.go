@@ -112,9 +112,8 @@ func ReadPreimage(db ethdb.Reader, hash common.Hash) []byte {
 	return data
 }
 
-// WritePreimages writes the provided set of preimages to the database. `number` is the
-// current block number, and is used for debug messages only.
-func WritePreimages(db ethdb.Writer, number uint64, preimages map[common.Hash][]byte) {
+// WritePreimages writes the provided set of preimages to the database.
+func WritePreimages(db ethdb.Writer, preimages map[common.Hash][]byte) {
 	for hash, preimage := range preimages {
 		if err := db.Put(preimageKey(hash), preimage); err != nil {
 			log.Crit("Failed to store trie preimage", "err", err)

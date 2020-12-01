@@ -28,8 +28,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"gopkg.in/urfave/cli.v1"
+	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -510,16 +509,15 @@ var (
 		Usage: "Password to authorize access to the database",
 		Value: "test",
 	}
-	// The `host` tag is part of every measurement sent to InfluxDB. Queries on tags are faster in InfluxDB.
-	// It is used so that we can group all nodes and average a measurement across all of them, but also so
-	// that we can select a specific node and inspect its measurements.
-	// https://docs.influxdata.com/influxdb/v1.4/concepts/key_concepts/#tag-key
-	MetricsInfluxDBHostTagFlag = cli.StringFlag{
-		Name:  "metrics.influxdb.host.tag",
-		Usage: "InfluxDB `host` tag attached to all measurements",
-		Value: "localhost",
-	}
 
+	// Tags are part of every measurement sent to InfluxDB. Queries on tags are faster in InfluxDB.
+	// For example `host` tag could be used so that we can group all nodes and average a measurement
+	// across all of them, but also so that we can select a specific node and inspect its measurements.
+	MetricsInfluxDBTagsFlag = cli.StringFlag{
+		Name:  "metrics.influxdb.tags",
+		Usage: "Comma-separated InfluxDB tags (key/values) attached to all measurements",
+		Value: "host=localhost",
+	}
 	// mpc compute
 	//MPCIceFileFlag = cli.StringFlag{
 	//	Name:  "mpc.ice",
@@ -551,7 +549,7 @@ var (
 	//	Value: "",
 	//}
 
-	CbftPeerMsgQueueSize = cli.Uint64Flag{
+	CbftPeerMsgQueueSize = cli.Uint64Flag {
 		Name:  "cbft.msg_queue_size",
 		Usage: "Message queue size",
 		Value: 1024,
@@ -686,11 +684,13 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 
 	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
 	for _, url := range urls {
-		node, err := discover.ParseNode(url)
-		if err != nil {
-			log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+		if url != "" {
+			node, err := discover.ParseNode(url)
+			if err != nil {
+				log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+			}
+			cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 		}
-		cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 	}
 }
 
@@ -1313,18 +1313,31 @@ func SetupMetrics(ctx *cli.Context) {
 			database     = ctx.GlobalString(MetricsInfluxDBDatabaseFlag.Name)
 			username     = ctx.GlobalString(MetricsInfluxDBUsernameFlag.Name)
 			password     = ctx.GlobalString(MetricsInfluxDBPasswordFlag.Name)
-			hosttag      = ctx.GlobalString(MetricsInfluxDBHostTagFlag.Name)
 		)
 
 		if enableExport {
+		    tagsMap := SplitTagsFlag(ctx.GlobalString(MetricsInfluxDBTagsFlag.Name))
 			log.Info("Enabling metrics export to InfluxDB")
-			go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "platon.", map[string]string{
-				"host": hosttag,
-			})
+		    go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "platon.", tagsMap)
+		}
+	}
+}
+func SplitTagsFlag(tagsFlag string) map[string]string {
+	tags := strings.Split(tagsFlag, ",")
+	tagsMap := map[string]string{}
+
+	for _, t := range tags {
+		if t != "" {
+		kv := strings.Split(t, "=")
+
+		if len(kv) == 2 {
+			tagsMap[kv[0]] = kv[1]
 		}
 	}
 }
 
+return tagsMap
+}
 // MakeChainDatabase open an LevelDB using the flags passed to the client and will hard crash if it fails.
 func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ethdb.Database {
 	var (

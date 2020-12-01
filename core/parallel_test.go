@@ -197,7 +197,7 @@ func NewBlock(parentHash common.Hash, number uint64) (*types.Block, *types.Heade
 		ParentHash: parentHash,
 		Number:     big.NewInt(int64(number)),
 		GasLimit:   blockGasLimit,
-		Time:       big.NewInt(time.Now().UnixNano()),
+		Time:       uint64(time.Now().UnixNano()),
 		Coinbase:   nodeID,
 	}
 

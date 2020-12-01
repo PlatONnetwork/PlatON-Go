@@ -47,7 +47,7 @@ func TestBlockEncoding(t *testing.T) {
 	check("Root", block.Root(), common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"))
 	check("Hash", block.Hash(), common.HexToHash("499987a73fa100f582328c92c1239262edf5c0a3479face652c89f60314aa805"))
 	check("Nonce", block.Nonce(), EncodeNonce(hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23")).Bytes())
-	check("Time", block.Time(), big.NewInt(1426516743))
+	check("Time", block.Time(), uint64(1426516743))
 	check("Size", block.Size(), common.StorageSize(len(blockEnc)))
 
 	tx1 := NewTransaction(0, common.MustBech32ToAddress("lax1p908ht4x5mrufsklawtha7kry6h42tv8sxxrdc"), big.NewInt(10), 50000, big.NewInt(10), nil)

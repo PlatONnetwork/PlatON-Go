@@ -228,7 +228,7 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 	beginHeader := beginBlock.Header()
 	endHeader := endBlock.Header()
 
-	preTimestamp := beginHeader.Time.Uint64()
+	preTimestamp := beginHeader.Time
 	topArray := make([][]uint64, 0, 250)
 
 	viewCountMap[beginQC.ViewNumber] = 1
@@ -239,9 +239,9 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 	for i := beginNumber + 1; i <= endNumber; i++ {
 		block, _ := backend.BlockByNumber(ctx, rpc.BlockNumber(int64(i)))
 		header := block.Header()
-		diff := header.Time.Uint64() - preTimestamp
+		diff := header.Time - preTimestamp
 		topArray = append(topArray, []uint64{diff, uint64(len(block.Transactions()))})
-		preTimestamp = header.Time.Uint64()
+		preTimestamp = header.Time
 		txCount = txCount + uint64(len(block.Transactions()))
 
 		_, qc, err := ctypes.DecodeExtra(block.ExtraData())
@@ -256,10 +256,10 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 
 	}
 
-	diffTimestamp := endHeader.Time.Uint64() - beginHeader.Time.Uint64()
+	diffTimestamp := endHeader.Time - beginHeader.Time
 	diffNumber := endHeader.Number.Uint64() - beginHeader.Number.Uint64() + 1
 
-	tps := (txCount * 1000) / (endHeader.Time.Uint64() - beginHeader.Time.Uint64())
+	tps := (txCount * 1000) / (endHeader.Time - beginHeader.Time)
 
 	// missing view
 	for i := DefaultViewNumber; i <= endQC.ViewNumber; i++ {

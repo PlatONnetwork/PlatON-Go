@@ -193,19 +193,19 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 			return newCommonError(fmt.Sprintf("parentBlock does not exist(parentHash:%s, parentNum:%d, blockIndex:%d)", block.Block.ParentHash().String(), block.BlockNum()-1, block.BlockIndex))
 		}
 		// prepareBlock timestamp
-		blockTime := common.MillisToTime(block.Block.Time().Int64())
+		blockTime := common.MillisToTime(int64(block.Block.Time()))
 
 		// parent block time must before than prepareBlock time
-		if !common.MillisToTime(parentBlock.Time().Int64()).Before(blockTime) {
+		if !common.MillisToTime(int64(parentBlock.Time())).Before(blockTime) {
 			return newCommonError(fmt.Sprintf("prepareBlock time is before parent(parentHash:%s, parentNum:%d, parentTime:%d, blockHash:%s, blockNum:%d, blockTime:%d)",
-				parentBlock.Hash().String(), parentBlock.NumberU64(), parentBlock.Time().Int64(), block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64()))
+				parentBlock.Hash().String(), parentBlock.NumberU64(), parentBlock.Time(), block.Block.Hash().String(), block.BlockNum(), block.Block.Time()))
 		}
 
 		// prepareBlock time cannot exceed system time by 1000 ms(default)
 		sysTime := time.Now()
 		if !blockTime.Before(sysTime.Add(riseTimeLimit)) {
 			return newCommonError(fmt.Sprintf("prepareBlock time is advance(blockHash:%s, blockNum:%d, blockTime:%d, sysTime:%d)",
-				block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64(), common.Millis(sysTime)))
+				block.Block.Hash().String(), block.BlockNum(), block.Block.Time(), common.Millis(sysTime)))
 		}
 		return nil
 	}

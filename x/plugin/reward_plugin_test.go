@@ -130,9 +130,8 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 	}()
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
-	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
-		tmp := new(big.Int).Set(b)
-		return tmp.Add(tmp, big.NewInt(1000))
+	chain.SetHeaderTimeGenerate(func(b uint64) uint64 {
+		return b +1000
 	})
 	snapshotdb.SetDBBlockChain(chain)
 	xcom.GetEc(xcom.DefaultTestNet)
@@ -184,9 +183,8 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 	packTime := int64(xcom.Interval() * uint64(millisecond))
-	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
-		tmp := new(big.Int).Set(b)
-		return tmp.Add(tmp, big.NewInt(packTime))
+	chain.SetHeaderTimeGenerate(func(b uint64) uint64 {
+		return b + uint64(packTime)
 	})
 	mockDB := chain.StateDB
 	snapshotdb.SetDBBlockChain(chain)
@@ -226,11 +224,11 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 			currentHeader = header
 			if currentHeader.Number.Uint64() < xutil.CalcBlocksEachEpoch() {
-				currentHeader.Time.Add(currentHeader.Time, new(big.Int).SetInt64(packTime))
+				currentHeader.Time += uint64(packTime)
 			} else if currentHeader.Number.Uint64() < xutil.CalcBlocksEachEpoch()*2 {
-				currentHeader.Time.Sub(currentHeader.Time, new(big.Int).SetInt64(int64(rand.Int63n(packTime))))
+				currentHeader.Time -= uint64(rand.Int63n(packTime))
 			} else {
-				currentHeader.Time.Add(currentHeader.Time, new(big.Int).SetInt64(packTime))
+				currentHeader.Time += uint64(packTime)
 			}
 			if err := plugin.EndBlock(common.ZeroHash, currentHeader, mockDB); nil != err {
 				t.Fatalf("call endBlock fail, err：%v", err)
