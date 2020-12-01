@@ -981,10 +981,42 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 	return fields, nil
 }
 
+func RPCMarshalBlockTransaction(b *types.Block, inclTx bool, fullTx bool) ([]interface{}, error) {
+
+	formatTx := func(tx *types.Transaction) (interface{}, error) {
+		return tx.Hash(), nil
+	}
+	if fullTx {
+		formatTx = func(tx *types.Transaction) (interface{}, error) {
+			return newRPCTransactionFromBlockHash(b, tx.Hash()), nil
+		}
+	}
+	txs := b.Transactions()
+	transactions := make([]interface{}, len(txs))
+	var err error
+	for i, tx := range txs {
+		if transactions[i], err = formatTx(tx); err != nil {
+			return nil, err
+		}
+	}
+
+	return transactions, nil
+}
+
 // rpcOutputBlock uses the generalized output filler, then adds the total difficulty field, which requires
 // a `PublicBlockchainAPI`.
 func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
 	fields, err := RPCMarshalBlock(b, inclTx, fullTx)
+	if err != nil {
+		return nil, err
+	}
+	return fields, err
+}
+
+// rpcOutputBlock uses the generalized output filler, then adds the total difficulty field, which requires
+// a `PublicBlockchainAPI`.
+func (s *PublicTransactionPoolAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) ([]interface{}, error) {
+	fields, err := RPCMarshalBlockTransaction(b, inclTx, fullTx)
 	if err != nil {
 		return nil, err
 	}
@@ -1222,6 +1254,80 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		fields["contractAddress"] = receipt.ContractAddress
 	}
 	return fields, nil
+}
+
+// GetTransactionByBlock returns the transaction receipt for the given block number.
+func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, blockNumber uint64) ([]map[string]interface{}, error) {
+	blockNr := rpc.BlockNumber(blockNumber)
+	block, err := s.b.BlockByNumber(ctx, blockNr)
+	if block == nil {
+		return nil, err
+	}
+
+	queue := make([]map[string]interface{}, len(block.Transactions()))
+
+	receipts, err := s.b.GetReceipts(ctx, block.Hash())
+	if err != nil {
+		log.Error("rpcGetTransactionByBlock, get receipt error", "receipts:", receipts)
+	}
+
+	for key, value := range block.Transactions() {
+		//tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), value.Hash())
+		//if tx == nil {
+		//	log.Error("rpcGetTransactionByBlock, get tx error","blockHash:",blockHash,"blockNumber:",blockNumber,"index:",index)
+		//	continue
+		//}
+		if len(receipts) <= int(key) {
+			log.Error("rpcGetTransactionByBlock, get receipt length error", "receipts:", receipts, "index:", key)
+			continue
+		}
+		receipt := receipts[key]
+
+		//var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
+		//from, _ := types.Sender(signer, tx)
+		rb := types.ReceiptBlock{
+			Logs: make([]*types.LogBlock, len(receipt.Logs)),
+		}
+		for logIndex, logsValue := range receipt.Logs {
+			tb := &types.LogBlock{
+				Address: logsValue.Address,
+				Data:    hexutil.Encode(logsValue.Data),
+				Index:   logsValue.Index,
+				Removed: logsValue.Removed,
+				Topics:  logsValue.Topics,
+			}
+			rb.Logs[logIndex] = tb
+		}
+		fields := map[string]interface{}{
+			//"blockHash":         blockHash,
+			//"blockNumber":       hexutil.Uint64(blockNumber),
+			"transactionHash":  value.Hash(),
+			"transactionIndex": hexutil.Uint64(key),
+			//"from":              from,
+			//"to":                tx.To(),
+			"gasUsed": hexutil.Uint64(receipt.GasUsed),
+			//"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
+			"contractAddress": nil,
+			"logs":            rb.Logs,
+			//"logsBloom":         receipt.Bloom,
+		}
+
+		// Assign receipt status or post state.
+		if len(receipt.PostState) > 0 {
+			fields["root"] = hexutil.Bytes(receipt.PostState)
+		} else {
+			fields["status"] = hexutil.Uint(receipt.Status)
+		}
+		if receipt.Logs == nil {
+			fields["logs"] = [][]*types.Log{}
+		}
+		// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
+		if receipt.ContractAddress != (common.Address{}) {
+			fields["contractAddress"] = receipt.ContractAddress
+		}
+		queue[key] = fields
+	}
+	return queue, nil
 }
 
 // sign is a helper function that signs a transaction with the private key of the given address.
