@@ -30,9 +30,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/rs/cors"
 )
 
 const (
@@ -195,36 +192,6 @@ func (t *httpReadWriteNopCloser) Close() error {
 	return nil
 }
 
-// NewHTTPServer creates a new HTTP RPC server around an API provider.
-//
-// Deprecated: Server implements http.Handler
-func NewHTTPServer(cors []string, vhosts []string, timeouts HTTPTimeouts, srv *Server) *http.Server {
-	// Wrap the CORS-handler within a host-handler
-	handler := newCorsHandler(srv, cors)
-	handler = newVHostHandler(vhosts, handler)
-
-	// Make sure timeout values are meaningful
-	if timeouts.ReadTimeout < time.Second {
-		log.Warn("Sanitizing invalid HTTP read timeout", "provided", timeouts.ReadTimeout, "updated", DefaultHTTPTimeouts.ReadTimeout)
-		timeouts.ReadTimeout = DefaultHTTPTimeouts.ReadTimeout
-	}
-	if timeouts.WriteTimeout < time.Second {
-		log.Warn("Sanitizing invalid HTTP write timeout", "provided", timeouts.WriteTimeout, "updated", DefaultHTTPTimeouts.WriteTimeout)
-		timeouts.WriteTimeout = DefaultHTTPTimeouts.WriteTimeout
-	}
-	if timeouts.IdleTimeout < time.Second {
-		log.Warn("Sanitizing invalid HTTP idle timeout", "provided", timeouts.IdleTimeout, "updated", DefaultHTTPTimeouts.IdleTimeout)
-		timeouts.IdleTimeout = DefaultHTTPTimeouts.IdleTimeout
-	}
-	// Bundle and start the HTTP server
-	return &http.Server{
-		Handler:      handler,
-		ReadTimeout:  timeouts.ReadTimeout,
-		WriteTimeout: timeouts.WriteTimeout,
-		IdleTimeout:  timeouts.IdleTimeout,
-	}
-}
-
 // ServeHTTP serves JSON-RPC requests over HTTP.
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Permit dumb empty requests for remote health-checks (AWS)
@@ -276,20 +243,6 @@ func validateRequest(r *http.Request) (int, error) {
 	// Invalid content-type
 	err := fmt.Errorf("invalid content type, only %s is supported", contentType)
 	return http.StatusUnsupportedMediaType, err
-}
-
-func newCorsHandler(srv *Server, allowedOrigins []string) http.Handler {
-	// disable CORS support if user has not specified a custom CORS configuration
-	if len(allowedOrigins) == 0 {
-		return srv
-	}
-	c := cors.New(cors.Options{
-		AllowedOrigins: allowedOrigins,
-		AllowedMethods: []string{http.MethodPost, http.MethodGet},
-		MaxAge:         600,
-		AllowedHeaders: []string{"*"},
-	})
-	return c.Handler(srv)
 }
 
 // virtualHostHandler is a handler which validates the Host-header of incoming requests.

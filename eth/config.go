@@ -85,7 +85,7 @@ var DefaultConfig = Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
-
+	RPCGasCap: 25000000,
 	//MPCPool: core.DefaultMPCPoolConfig,
 	//VCPool:  core.DefaultVCPoolConfig,
 }
@@ -169,6 +169,9 @@ type Config struct {
 	//MPCPool core.MPCPoolConfig
 	//VCPool  core.VCPoolConfig
 	Debug bool
+
+	// RPCGasCap is the global gas cap for eth-call variants.
+	RPCGasCap uint64 `toml:",omitempty"`
 }
 
 type configMarshaling struct {
