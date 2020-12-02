@@ -108,8 +108,6 @@ var (
 		utils.MainFlag,
 		utils.TestnetFlag,
 		utils.NetworkIdFlag,
-		utils.RPCCORSDomainFlag,
-		utils.RPCVirtualHostsFlag,
 		//utils.EthStatsURLFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
@@ -121,6 +119,13 @@ var (
 		utils.RPCEnabledFlag,
 		utils.RPCListenAddrFlag,
 		utils.RPCPortFlag,
+		utils.RPCCORSDomainFlag,
+		utils.RPCVirtualHostsFlag,
+		utils.GraphQLEnabledFlag,
+		utils.GraphQLListenAddrFlag,
+		utils.GraphQLPortFlag,
+		utils.GraphQLCORSDomainFlag,
+		utils.GraphQLVirtualHostsFlag,
 		utils.RPCApiFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,
@@ -129,6 +134,7 @@ var (
 		utils.WSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
+		utils.RPCGlobalGasCapFlag,
 	}
 
 	//whisperFlags = []cli.Flag{

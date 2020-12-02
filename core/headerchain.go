@@ -468,3 +468,7 @@ func (hc *HeaderChain) GetBlock(hash common.Hash, number uint64) *types.Block {
 func (hc *HeaderChain) CurrentBlock() *types.Block {
 	return nil
 }
+
+func (hc *HeaderChain) GetCanonicalHash(number uint64) common.Hash {
+	return rawdb.ReadCanonicalHash(hc.chainDb, number)
+}

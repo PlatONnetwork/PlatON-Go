@@ -24,15 +24,12 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -53,25 +50,18 @@ func BenchmarkFilters(b *testing.B) {
 	defer os.RemoveAll(dir)
 
 	var (
-		db, _      = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
-		mux        = new(event.TypeMux)
-		txFeed     = new(event.Feed)
-		rmLogsFeed = new(event.Feed)
-		logsFeed   = new(event.Feed)
-		chainFeed  = new(event.Feed)
-		backend    = &testBackend{mux, db, 0, txFeed, rmLogsFeed, logsFeed, chainFeed}
-		key1, _    = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		addr1      = crypto.PubkeyToAddress(key1.PublicKey)
-		addr2      = common.BytesToAddress([]byte("jeff"))
-		addr3      = common.BytesToAddress([]byte("ethereum"))
-		addr4      = common.BytesToAddress([]byte("random addresses please"))
+		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
+		backend = &testBackend{db: db}
+		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2   = common.BytesToAddress([]byte("jeff"))
+		addr3   = common.BytesToAddress([]byte("ethereum"))
+		addr4   = common.BytesToAddress([]byte("random addresses please"))
 	)
 	defer db.Close()
 
 	genesis := core.GenesisBlockForTesting(db, addr1, big.NewInt(1000000))
-
-	ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
-	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), db, 100010, func(i int, gen *core.BlockGen) {
+	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, consensus.NewFaker(), db, 100010, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 2403:
 			receipt := makeReceipt(addr1)
@@ -114,15 +104,10 @@ func TestFilters(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	var (
-		db, _      = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
-		mux        = new(event.TypeMux)
-		txFeed     = new(event.Feed)
-		rmLogsFeed = new(event.Feed)
-		logsFeed   = new(event.Feed)
-		chainFeed  = new(event.Feed)
-		backend    = &testBackend{mux, db, 0, txFeed, rmLogsFeed, logsFeed, chainFeed}
-		key1, _    = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		addr       = crypto.PubkeyToAddress(key1.PublicKey)
+		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
+		backend = &testBackend{db: db}
+		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		addr    = crypto.PubkeyToAddress(key1.PublicKey)
 
 		hash1 = common.BytesToHash([]byte("topic1"))
 		hash2 = common.BytesToHash([]byte("topic2"))
@@ -132,9 +117,6 @@ func TestFilters(t *testing.T) {
 	defer db.Close()
 
 	genesis := core.GenesisBlockForTesting(db, addr, big.NewInt(1000000))
-
-	//ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
-	//chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), db, 1000, func(i int, gen *core.BlockGen) {
 	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, consensus.NewFaker(), db, 1000, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 1:
@@ -157,6 +139,7 @@ func TestFilters(t *testing.T) {
 			}
 			gen.AddUncheckedReceipt(receipt)
 			gen.AddUncheckedTx(types.NewTransaction(2, common.HexToAddress("0x2"), big.NewInt(2), 2, big.NewInt(2), nil))
+
 		case 998:
 			receipt := types.NewReceipt(nil, false, 0)
 			receipt.Logs = []*types.Log{
