@@ -1831,6 +1831,178 @@ func TestStakingPlugin_WithdrewDelegation(t *testing.T) {
 	t.Log("Get Candidate Info is:", can)
 }
 
+func TestStakingPlugin_WithdrewDelegation_AllHes(t *testing.T) {
+
+	state, genesis, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+		return
+	}
+	newPlugins()
+
+	build_gov_data(state)
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+
+	index := 1
+
+	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
+		t.Error("Failed to Create Staking", err)
+		return
+	}
+
+	// Get Candidate Info
+	can, err := getCandidate(blockHash, index)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
+		return
+	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
+
+	// Delegate
+	del, err := delegate(state, blockHash, blockNumber, can, 0, index, t)
+
+	delegateRewardPoolBalance, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
+	state.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Mul(new(big.Int).Set(delegateRewardPoolBalance), new(big.Int).Set(delegateRewardPoolBalance)))
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to delegate: %v", err)) {
+		return
+	}
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+		return
+	}
+
+	t.Log("Finish delegate ~~")
+	can, err = getCandidate(blockHash, index)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
+		return
+	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+		return
+	}
+
+	/**
+	Start Withdrew Delegate
+	*/
+	err = StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, can.DelegateTotalHes, addrArr[index+1],
+		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0))
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
+		return
+	}
+
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Error("Commit 2 err", err)
+	}
+	can, err = getCandidate(blockHash2, index)
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
+	assert.True(t, nil != can)
+	newDel := getDelegate(blockHash2, blockNumber.Uint64(), index, t)
+	assert.True(t, newDel == nil)
+}
+
+func TestStakingPlugin_WithdrewDelegation_SlashCandidates(t *testing.T) {
+
+	state, genesis, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+		return
+	}
+	newPlugins()
+
+	build_gov_data(state)
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+
+	index := 1
+
+	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
+		t.Error("Failed to Create Staking", err)
+		return
+	}
+
+	// Get Candidate Info
+	can, err := getCandidate(blockHash, index)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
+		return
+	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
+
+	// Delegate
+	del, err := delegate(state, blockHash, blockNumber, can, 0, index, t)
+
+	delegateRewardPoolBalance, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
+	state.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Mul(new(big.Int).Set(delegateRewardPoolBalance), new(big.Int).Set(delegateRewardPoolBalance)))
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to delegate: %v", err)) {
+		return
+	}
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+		return
+	}
+
+	can, err = getCandidate(blockHash, index)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
+		return
+	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
+
+	curBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch() * 2)
+	if err := sndb.NewBlock(curBlockNumber, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+		return
+	}
+	slashItem := &staking.SlashNodeItem{NodeId: can.NodeId, Amount: new(big.Int).Set(common.Big1), SlashType: staking.LowRatio, BenefitAddr: can.StakingAddress}
+	StakingInstance().SlashCandidates(state, blockHash2, curBlockNumber.Uint64(), slashItem)
+
+	/**
+	Start Withdrew Delegate
+	*/
+	err = StakingInstance().WithdrewDelegation(state, blockHash2, curBlockNumber, new(big.Int).Set(common.Big1), addrArr[index+1],
+		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0))
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
+		return
+	}
+
+	can, err = getCandidate(blockHash2, index)
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
+	assert.True(t, nil != can)
+	newDel := getDelegate(blockHash2, blockNumber.Uint64(), index, t)
+	assert.True(t, newDel != nil)
+	assert.True(t, new(big.Int).Sub(newDel.Released, common.Big1).Cmp(new(big.Int).Sub(can.Shares, can.Released)) == 0)
+	assert.True(t, can.DelegateTotal.Cmp(new(big.Int).Sub(newDel.Released, common.Big1)) == 0)
+	assert.True(t, can.WithdrewDelegateAmount.Cmp(del.WithdrewAmount) == 0)
+}
+
 func TestStakingPlugin_WithdrewDelegation_Repeat(t *testing.T) {
 
 	state, genesis, err := newChainState()
@@ -1913,6 +2085,8 @@ func TestStakingPlugin_WithdrewDelegation_Repeat(t *testing.T) {
 	t.Log("Finish WithdrewDelegate ~~", del)
 	can, err = getCandidate(blockHash2, index)
 
+	newDel := getDelegate(blockHash2, blockNumber.Uint64(), index, t)
+	assert.True(t, newDel != nil)
 	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
 	assert.True(t, nil != can)
 	assert.True(t, new(big.Int).Sub(delegateTotalHes, amount).Cmp(can.DelegateTotalHes) == 0)

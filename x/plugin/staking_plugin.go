@@ -1037,11 +1037,26 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 			del.UnLockEpoch = uint32(epoch) + uint32(duration)
 		}
 
-		if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del); nil != err {
-			log.Error("Failed to WithdrewDelegation on stakingPlugin: Store detegate is failed",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
-				"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
-			return err
+		// When there is only a hesitation period share in the delegate information,
+		// and all the delegation is cancelled and there is no delegation being locked, the delegate information will be deleted
+		if calcDelegateTotalAmount(del).Cmp(common.Big0) == 0 && del.WithdrewEpoch == 0 {
+			log.Debug("Successfully withdraw all delegation and delete delegate information", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+				"nodeId", nodeId.TerminalString(), "delAddr", delAddr, "stakingBlockNum", stakingBlockNum, "delegation", del)
+			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
+				log.Error("Failed to WithdrewDelegation on stakingPlugin: Delete delegation is failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
+					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
+				return err
+			}
+		} else {
+			log.Debug("Successfully WithdrewDelegation", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+				"nodeId", nodeId.TerminalString(), "delAddr", delAddr, "stakingBlockNum", stakingBlockNum, "delegation", del)
+			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del); nil != err {
+				log.Error("Failed to WithdrewDelegation on stakingPlugin: Store delegation is failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
+					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
+				return err
+			}
 		}
 	}
 
@@ -1084,6 +1099,8 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 				"stakingBlockNum", stakingBlockNum, "candidateMutable", can.CandidateMutable, "err", err)
 			return err
 		}
+		log.Debug("Successful UpdateCandidate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.TerminalString(),
+			"delAddr", delAddr, "stakingBlockNum", stakingBlockNum, "candidateIsValid", can.IsValid(), "canShare", can.Shares)
 	}
 	return nil
 }
@@ -1171,7 +1188,7 @@ func (sk *StakingPlugin) RedeemDelegation(state xcom.StateDB, blockHash common.H
 				return nil, common.InternalError
 			}
 			log.Debug("Successful ReturnDelegateReward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.TerminalString(),
-				"delAddr", delAddr, "cumulativeIncome", issueIncome)
+				"delAddr", delAddr, "stakingBlockNum", stakingBlockNum, "delegation", del)
 			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
 				log.Error("Failed to RedeemDelegation on stakingPlugin: Delete delegation is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
@@ -1188,6 +1205,8 @@ func (sk *StakingPlugin) RedeemDelegation(state xcom.StateDB, blockHash common.H
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
 				return nil, err
 			}
+			log.Debug("Successful RedeemDelegation", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.TerminalString(),
+				"delAddr", delAddr, "stakingBlockNum", stakingBlockNum, "delegation", del)
 		}
 	}
 	return issueIncome, nil
