@@ -52,7 +52,7 @@ const (
 	TxWithdrewCandidate  = 1003
 	TxDelegate           = 1004
 	TxWithdrewDelegation = 1005
-	TxRansomDelegation   = 1006
+	TxRedeemDelegation   = 1006
 	QueryVerifierList    = 1100
 	QueryValidatorList   = 1101
 	QueryCandidateList   = 1102
@@ -102,7 +102,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		TxWithdrewCandidate:  stkc.withdrewStaking,
 		TxDelegate:           stkc.delegate,
 		TxWithdrewDelegation: stkc.withdrewDelegation,
-		TxRansomDelegation:   stkc.ransomDelegation,
+		TxRedeemDelegation:   stkc.redeemDelegation,
 
 		// Get
 		QueryVerifierList:  stkc.getVerifierList,
@@ -808,7 +808,7 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId d
 		"", TxWithdrewDelegation, common.NoErr)
 }
 
-func (stkc *StakingContract) ransomDelegation(stakingBlockNum uint64, nodeId discover.NodeID) ([]byte, error) {
+func (stkc *StakingContract) redeemDelegation(stakingBlockNum uint64, nodeId discover.NodeID) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
@@ -816,7 +816,7 @@ func (stkc *StakingContract) ransomDelegation(stakingBlockNum uint64, nodeId dis
 	from := stkc.Contract.CallerAddress
 	state := stkc.Evm.StateDB
 
-	log.Debug("Call ransomDelegation of stakingContract", "txHash", txHash.Hex(),
+	log.Debug("Call redeemDelegation of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "delAddr", from, "nodeId", nodeId.String(),
 		"stakingNum", stakingBlockNum)
 
@@ -826,7 +826,7 @@ func (stkc *StakingContract) ransomDelegation(stakingBlockNum uint64, nodeId dis
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, stakingBlockNum)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		log.Error("Failed to ransomDelegation by GetDelegateInfo",
+		log.Error("Failed to redeemDelegation by GetDelegateInfo",
 			"txHash", txHash.Hex(), "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
@@ -835,8 +835,8 @@ func (stkc *StakingContract) ransomDelegation(stakingBlockNum uint64, nodeId dis
 		if txHash == common.ZeroHash {
 			return nil, nil
 		} else {
-			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "ransomDelegation",
-				"del is nil", TxRansomDelegation, staking.ErrDelegateNoExist)
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "redeemDelegation",
+				"del is nil", TxRedeemDelegation, staking.ErrDelegateNoExist)
 		}
 	}
 
@@ -855,19 +855,19 @@ func (stkc *StakingContract) ransomDelegation(stakingBlockNum uint64, nodeId dis
 		return nil, nil
 	}
 
-	issueIncome, err := stkc.Plugin.RansomDelegation(state, blockHash, blockNumber, from, nodeId, stakingBlockNum, del, delegateRewardPerList)
+	issueIncome, err := stkc.Plugin.RedeemDelegation(state, blockHash, blockNumber, from, nodeId, stakingBlockNum, del, delegateRewardPerList)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "ransomDelegation",
-				bizErr.Error(), TxRansomDelegation, bizErr)
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "redeemDelegation",
+				bizErr.Error(), TxRedeemDelegation, bizErr)
 		} else {
-			log.Error("Failed to ransomDelegation by RansomDelegation", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			log.Error("Failed to redeemDelegation by RedeemDelegation", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			return nil, err
 		}
 	}
 
 	return txResultHandlerWithRes(vm.StakingContractAddr, stkc.Evm, "",
-		"", TxRansomDelegation, int(common.NoErr.Code), issueIncome), nil
+		"", TxRedeemDelegation, int(common.NoErr.Code), issueIncome), nil
 }
 
 func (stkc *StakingContract) calcRewardPerUseGas(delegateRewardPerList []*reward.DelegateRewardPer, del *staking.Delegation) ([]byte, error) {

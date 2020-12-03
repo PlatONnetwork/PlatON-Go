@@ -1088,12 +1088,12 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 	return nil
 }
 
-func (sk *StakingPlugin) RansomDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int, delAddr common.Address,
+func (sk *StakingPlugin) RedeemDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int, delAddr common.Address,
 	nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer) (*big.Int, error) {
 	issueIncome := new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
-		log.Error("Failed to RansomDelegation on stakingPlugin: nodeId parse addr failed",
+		log.Error("Failed to RedeemDelegation on stakingPlugin: nodeId parse addr failed",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
 		return nil, err
@@ -1101,20 +1101,20 @@ func (sk *StakingPlugin) RansomDelegation(state xcom.StateDB, blockHash common.H
 
 	can, err := sk.db.GetCandidateStore(blockHash, canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		log.Error("Failed to RansomDelegation on stakingPlugin: Query candidate info failed",
+		log.Error("Failed to RedeemDelegation on stakingPlugin: Query candidate info failed",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
 		return nil, err
 	}
 
 	if del.WithdrewEpoch == 0 {
-		log.Error("Failed to RansomDelegation on stakingPlugin: No delegation waiting to be redeemed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		log.Error("Failed to RedeemDelegation on stakingPlugin: No delegation waiting to be redeemed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"delAddr", delAddr, "nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum)
-		return nil, staking.ErrNotRansomDelegation
+		return nil, staking.ErrNotRedeemDelegation
 	}
 
 	if uint32(xutil.CalculateEpoch(blockNumber.Uint64())) <= del.UnLockEpoch {
-		log.Error("Failed to RansomDelegation on stakingPlugin: The revoked delegation is locked", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		log.Error("Failed to RedeemDelegation on stakingPlugin: The revoked delegation is locked", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"delAddr", delAddr, "nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum)
 		return nil, staking.ErrWithdrewDelegationLocking
 	}
@@ -1132,20 +1132,20 @@ func (sk *StakingPlugin) RansomDelegation(state xcom.StateDB, blockHash common.H
 	switch {
 	// Illegal parameter
 	case can.IsNotEmpty() && stakingBlockNum > can.StakingBlockNum:
-		log.Error("Failed to RansomDelegation on stakingPlugin: the stakeBlockNum invalid",
+		log.Error("Failed to RedeemDelegation on stakingPlugin: the stakeBlockNum invalid",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "fn.stakeBlockNum", stakingBlockNum,
 			"can.stakeBlockNum", can.StakingBlockNum)
 		return nil, staking.ErrBlockNumberDisordered
 	default:
-		log.Debug("Call RansomDelegation", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		log.Debug("Call RedeemDelegation", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
-			"total", total, "ransomAmount", del.WithdrewAmount, "withdrewEpoch", del.WithdrewEpoch, "unLockEpoch", del.UnLockEpoch)
+			"total", total, "redeemAmount", del.WithdrewAmount, "withdrewEpoch", del.WithdrewEpoch, "unLockEpoch", del.UnLockEpoch)
 
 		// handle delegate on Effective period
 		surplus, rbalance, lbalance, err := rufundDelegateFn(del.WithdrewAmount, del.Released, del.RestrictingPlan, delAddr, state)
 		if nil != err {
-			log.Error("Failed  to RansomDelegation, refund the no hesitate balance is failed", "blockNumber", blockNumber,
+			log.Error("Failed  to RedeemDelegation, refund the no hesitate balance is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
 				"refundBalance", del.WithdrewAmount, "release", del.Released, "restrictingPlan", del.RestrictingPlan, "err", err)
 			return nil, err
@@ -1153,9 +1153,9 @@ func (sk *StakingPlugin) RansomDelegation(state xcom.StateDB, blockHash common.H
 		del.Released, del.RestrictingPlan = rbalance, lbalance
 
 		if surplus.Cmp(common.Big0) != 0 {
-			log.Error("Failed to RansomDelegation on stakingPlugin: the withdrew remain is not zero",
+			log.Error("Failed to RedeemDelegation on stakingPlugin: the withdrew remain is not zero",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
-				"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "total", total, "ransomAmount", del.WithdrewAmount)
+				"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "total", total, "redeemAmount", del.WithdrewAmount)
 			return nil, staking.ErrWrongWithdrewDelVonCalc
 		}
 
@@ -1165,7 +1165,7 @@ func (sk *StakingPlugin) RansomDelegation(state xcom.StateDB, blockHash common.H
 			// When the entrusted information is deleted, the entrusted proceeds need to be issued automatically
 			issueIncome = issueIncome.Add(issueIncome, del.CumulativeIncome)
 			if err := rm.ReturnDelegateReward(delAddr, del.CumulativeIncome, state); err != nil {
-				log.Error("Failed to RansomDelegation on stakingPlugin: return delegate reward is failed",
+				log.Error("Failed to RedeemDelegation on stakingPlugin: return delegate reward is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
 				return nil, common.InternalError
@@ -1173,7 +1173,7 @@ func (sk *StakingPlugin) RansomDelegation(state xcom.StateDB, blockHash common.H
 			log.Debug("Successful ReturnDelegateReward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.TerminalString(),
 				"delAddr", delAddr, "cumulativeIncome", issueIncome)
 			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
-				log.Error("Failed to RansomDelegation on stakingPlugin: Delete delegation is failed",
+				log.Error("Failed to RedeemDelegation on stakingPlugin: Delete delegation is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
 				return nil, err
@@ -1183,7 +1183,7 @@ func (sk *StakingPlugin) RansomDelegation(state xcom.StateDB, blockHash common.H
 			del.WithdrewAmount = new(big.Int).SetUint64(0)
 			del.UnLockEpoch = 0
 			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del); nil != err {
-				log.Error("Failed to RansomDelegation on stakingPlugin: Store delegation is failed",
+				log.Error("Failed to RedeemDelegation on stakingPlugin: Store delegation is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
 				return nil, err

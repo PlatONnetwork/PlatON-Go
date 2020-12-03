@@ -58,6 +58,6 @@ var (
 	ErrNodeID2Addr               = common.NewBizError(301206, "nodeID to address fail")
 	ErrHesNotEnough              = common.NewBizError(301207, "Revocable amount is not enough")
 	ErrAlreadyWithdrewDelegation = common.NewBizError(301208, "Revocation delegate already exists")
-	ErrNotRansomDelegation       = common.NewBizError(301209, "No delegation waiting to be redeemed")
+	ErrNotRedeemDelegation       = common.NewBizError(301209, "No delegation waiting to be redeemed")
 	ErrWithdrewDelegationLocking = common.NewBizError(301210, "The revoked delegation is locked")
 )

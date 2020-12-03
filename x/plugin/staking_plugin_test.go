@@ -1998,7 +1998,7 @@ func TestStakingPlugin_WithdrewDelegation_Repeat(t *testing.T) {
 	assert.True(t, berr.Code == staking.ErrHesNotEnough.Code)
 }
 
-func TestStakingPlugin_WithdrewDelegateAndRansomDelegationAll(t *testing.T) {
+func TestStakingPlugin_WithdrewDelegateAndRedeemDelegationAll(t *testing.T) {
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2132,10 +2132,10 @@ func TestStakingPlugin_WithdrewDelegateAndRansomDelegationAll(t *testing.T) {
 	assert.True(t, new(big.Int).Sub(del.Released, del.WithdrewAmount).Cmp(common.Big0) == 0)
 	t.Log("Get Candidate Info is:", can)
 
-	_, err = StakingInstance().RansomDelegation(state, blockHash3, curBlockNumber, addrArr[index+1],
+	_, err = StakingInstance().RedeemDelegation(state, blockHash3, curBlockNumber, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, nil)
 	if err == nil {
-		t.Fatal("Failed to execute Ransom Delegation")
+		t.Fatal("Failed to execute Redeem Delegation")
 	}
 	berr, _ := err.(*common.BizError)
 	assert.True(t, berr.Code == staking.ErrWithdrewDelegationLocking.Code)
@@ -2146,10 +2146,10 @@ func TestStakingPlugin_WithdrewDelegateAndRansomDelegationAll(t *testing.T) {
 	}
 	curBlockNumber = new(big.Int).Add(curBlockNumber, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*duration+1))
 
-	income, err := StakingInstance().RansomDelegation(state, blockHash3, curBlockNumber, addrArr[index+1],
+	income, err := StakingInstance().RedeemDelegation(state, blockHash3, curBlockNumber, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, nil)
 	if err != nil {
-		t.Fatal("Failed to execute Ransom Delegation")
+		t.Fatal("Failed to execute Redeem Delegation")
 	}
 
 	can, err = getCandidate(blockHash3, index)
@@ -2159,7 +2159,7 @@ func TestStakingPlugin_WithdrewDelegateAndRansomDelegationAll(t *testing.T) {
 	assert.True(t, newDel == nil)
 }
 
-func TestStakingPlugin_WithdrewDelegateAndRansomDelegationPart(t *testing.T) {
+func TestStakingPlugin_WithdrewDelegateAndRedeemDelegationPart(t *testing.T) {
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2255,13 +2255,13 @@ func TestStakingPlugin_WithdrewDelegateAndRansomDelegationPart(t *testing.T) {
 		t.Error("newBlock 3 err", err)
 		return
 	}
-	_, err = StakingInstance().RansomDelegation(state, blockHash3, curBlockNumber, addrArr[index+1],
+	_, err = StakingInstance().RedeemDelegation(state, blockHash3, curBlockNumber, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, nil)
 	if err == nil {
-		t.Fatal("Failed to execute Ransom Delegation")
+		t.Fatal("Failed to execute Redeem Delegation")
 	}
 	berr, _ := err.(*common.BizError)
-	assert.True(t, berr.Code == staking.ErrNotRansomDelegation.Code)
+	assert.True(t, berr.Code == staking.ErrNotRedeemDelegation.Code)
 
 	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
 	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
@@ -2337,10 +2337,10 @@ func TestStakingPlugin_WithdrewDelegateAndRansomDelegationPart(t *testing.T) {
 	expectedIssueIncome = new(big.Int).Add(expectedIssueIncome, delegateRewardPerList[1].CalDelegateReward(new(big.Int).Sub(del.Released, del.WithdrewAmount)))
 	expectedIssueIncome = new(big.Int).Add(expectedIssueIncome, delegateRewardPerList[2].CalDelegateReward(new(big.Int).Sub(del.Released, del.WithdrewAmount)))
 	oldReleased = new(big.Int).Set(del.Released)
-	income, err := StakingInstance().RansomDelegation(state, blockHash3, curBlockNumber, addrArr[index+1],
+	income, err := StakingInstance().RedeemDelegation(state, blockHash3, curBlockNumber, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList)
 	if err != nil {
-		t.Fatal("Failed to execute Ransom Delegation")
+		t.Fatal("Failed to execute Redeem Delegation")
 	}
 
 	can, err = getCandidate(blockHash3, index)

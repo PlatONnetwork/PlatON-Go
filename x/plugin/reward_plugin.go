@@ -253,17 +253,18 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 		if verifier.CurrentEpochDelegateReward.Cmp(common.Big0) == 0 {
 			continue
 		}
-		if verifier.EffectiveDelegateTotal(uint32(currentEpoch)).Cmp(common.Big0) == 0 {
+		effectiveDelegateTotal := verifier.EffectiveDelegateTotal(uint32(currentEpoch))
+		if effectiveDelegateTotal.Cmp(common.Big0) == 0 {
 			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
 			if err := rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state); err != nil {
 				log.Error("HandleDelegatePerReward ReturnDelegateReward fail", "err", err, "blockNumber", blockNumber)
 			}
 		} else {
 
-			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, verifier.EffectiveDelegateTotal(uint32(currentEpoch)))
+			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, effectiveDelegateTotal)
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
-				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-					"nodeId", verifier.NodeId.TerminalString(), "err", err, "CurrentEpochDelegateReward", verifier.CurrentEpochDelegateReward, "delegateTotal", verifier.DelegateTotal)
+				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", verifier.NodeId.TerminalString(),
+					"CurrentEpochDelegateReward", verifier.CurrentEpochDelegateReward, "delegateTotal", verifier.DelegateTotal, "effectiveDelegateTotal", effectiveDelegateTotal, "err", err)
 				return err
 			}
 			currentEpochDelegateReward := new(big.Int).Set(verifier.CurrentEpochDelegateReward)
@@ -282,7 +283,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 			}
 			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "blockNum", blockNumber, "node_id", verifier.NodeId.TerminalString(), "stakingNum", verifier.StakingBlockNum,
 				"cu_epoch_delegate_reward", currentEpochDelegateReward, "total_delegate_reward", verifier.DelegateRewardTotal, "total_delegate", verifier.DelegateTotal,
-				"epoch", currentEpoch)
+				"effectiveDelegateTotal", effectiveDelegateTotal, "epoch", currentEpoch)
 		}
 	}
 	return nil
