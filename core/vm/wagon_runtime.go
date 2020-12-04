@@ -2,6 +2,7 @@ package vm
 
 import (
 	"crypto/sha256"
+
 	"github.com/holiman/uint256"
 
 	"golang.org/x/crypto/ripemd160"
@@ -1273,9 +1274,17 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 	} else {
 		status = 0
 	}
+
 	if err == nil || err == errExecutionReverted {
 		ctx.CallOut = ret
 	}
+
+	if nil != err {
+		if _, ok := err.(*common.BizError); ok {
+			ctx.CallOut = ret
+		}
+	}
+
 	ctx.contract.Gas += returnGas
 
 	return status
@@ -1332,9 +1341,17 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 	} else {
 		status = 0
 	}
+
 	if err == nil || err == errExecutionReverted {
 		ctx.CallOut = ret
 	}
+
+	if nil != err {
+		if _, ok := err.(*common.BizError); ok {
+			ctx.CallOut = ret
+		}
+	}
+
 	ctx.contract.Gas += returnGas
 
 	return status
@@ -1392,9 +1409,17 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	} else {
 		status = 0
 	}
+
 	if err == nil || err == errExecutionReverted {
 		ctx.CallOut = ret
 	}
+
+	if nil != err {
+		if _, ok := err.(*common.BizError); ok {
+			ctx.CallOut = ret
+		}
+	}
+
 	ctx.contract.Gas += returnGas
 
 	return status
