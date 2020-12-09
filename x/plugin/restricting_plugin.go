@@ -347,7 +347,9 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 			_, val := rp.getReleaseAmount(state, releaseEpoch, account)
 			leftAmount.Add(leftAmount, val)
 		}
+		// handle the error restricting info,  the not release restricting amount should not less than CachePlanAmount
 		if leftAmount.Cmp(restrictInfo.CachePlanAmount) < 0 {
+			// cal the account's amount of can use staking ,use the not release restricting amount instead of  the error restricting CachePlanAmount to cal
 			canStaking := new(big.Int).Sub(leftAmount, restrictInfo.StakingAmount)
 			if canStaking.Cmp(amount) < 0 {
 				rp.log.Warn("Balance of restricting account not enough", "totalAmount",
@@ -405,18 +407,21 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	}
 
 	rp.transferAmount(state, vm.StakingContractAddr, vm.RestrictingContractAddr, amount)
+	//如果存在NeedRelease，意味着锁仓合约中有需要立即释放给用户的金额,我们需要优先把NeedRelease余额回退给用户
 	if restrictInfo.NeedRelease.Cmp(common.Big0) > 0 {
+		//如果NeedRelease大于等于此次回退的余额，因此将此次回退的余额全部回退到用户账户，并将锁仓信息中的NeedRelease与CachePlanAmount扣除相应金额
 		if restrictInfo.NeedRelease.Cmp(amount) >= 0 {
 			restrictInfo.NeedRelease.Sub(restrictInfo.NeedRelease, amount)
 			restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, amount)
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, amount)
 		} else {
+			//如果NeedRelease小于此次回退的余额,将NeedRelease全部退回给用户，CachePlanAmount减去回退给用户的钱
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, restrictInfo.NeedRelease)
-			if !gov.Gte0140VersionState(state) {
+			if gov.Gte0140VersionState(state) {
+				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, restrictInfo.NeedRelease)
+			} else {
 				tmp := new(big.Int).Sub(amount, restrictInfo.NeedRelease)
 				restrictInfo.CachePlanAmount.Add(restrictInfo.CachePlanAmount, tmp)
-			} else {
-				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, restrictInfo.NeedRelease)
 			}
 			restrictInfo.NeedRelease = big.NewInt(0)
 		}
