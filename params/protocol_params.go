@@ -168,8 +168,8 @@ var (
 	MinimumDifficulty      = big.NewInt(131072) // The minimum that the difficulty may ever be.
 	DurationLimit          = big.NewInt(13)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 
-	SubmitTextProposalGasPrice    = big.NewInt(1500000 * 1000000000) // Min gas price for submit a text proposal in Von
-	SubmitVersionProposalGasPrice = big.NewInt(2100000 * 1000000000) // Min gas price for submit a version proposal in Von
-	SubmitCancelProposalGasPrice  = big.NewInt(3000000 * 1000000000) // Min gas price for submit a cancel proposal in Von
-	SubmitParamProposalGasPrice   = big.NewInt(2000000 * 1000000000) // Min gas price for submit a cancel proposal in Von
+	SubmitTextProposalGasPrice    = big.NewInt(15000 * 1000000000) // Min gas price for submit a text proposal in Von
+	SubmitVersionProposalGasPrice = big.NewInt(21000 * 1000000000) // Min gas price for submit a version proposal in Von
+	SubmitCancelProposalGasPrice  = big.NewInt(30000 * 1000000000) // Min gas price for submit a cancel proposal in Von
+	SubmitParamProposalGasPrice   = big.NewInt(20000 * 1000000000) // Min gas price for submit a cancel proposal in Von
 )
