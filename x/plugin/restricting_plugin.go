@@ -426,8 +426,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, amount)
 		} else {
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, restrictInfo.NeedRelease)
-			tmp := new(big.Int).Sub(amount, restrictInfo.NeedRelease)
-			restrictInfo.CachePlanAmount.Add(restrictInfo.CachePlanAmount, tmp)
+			restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, restrictInfo.NeedRelease)
 			restrictInfo.NeedRelease = big.NewInt(0)
 		}
 	}
