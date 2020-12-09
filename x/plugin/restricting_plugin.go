@@ -341,12 +341,38 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	} else if amount.Cmp(common.Big0) == 0 {
 		return nil
 	}
+	if gov.Gte0140VersionState(state) {
+		leftAmount := new(big.Int)
+		for _, releaseEpoch := range restrictInfo.ReleaseList {
+			_, val := rp.getReleaseAmount(state, releaseEpoch, account)
+			leftAmount.Add(leftAmount, val)
+		}
+		if leftAmount.Cmp(restrictInfo.CachePlanAmount) < 0 {
+			canStaking := new(big.Int).Sub(leftAmount, restrictInfo.StakingAmount)
+			if canStaking.Cmp(amount) < 0 {
+				rp.log.Warn("Balance of restricting account not enough", "totalAmount",
+					leftAmount, "stankingAmount", restrictInfo.StakingAmount, "funds", amount)
+				return restricting.ErrRestrictBalanceNotEnough
+			}
+		} else {
+			canStaking := new(big.Int).Sub(restrictInfo.CachePlanAmount, restrictInfo.StakingAmount)
 
-	canStaking := new(big.Int).Sub(restrictInfo.CachePlanAmount, restrictInfo.StakingAmount)
-	if canStaking.Cmp(amount) < 0 {
-		rp.log.Warn("Balance of restricting account not enough", "totalAmount",
-			restrictInfo.CachePlanAmount, "stankingAmount", restrictInfo.StakingAmount, "funds", amount)
-		return restricting.ErrRestrictBalanceNotEnough
+			if canStaking.Cmp(amount) < 0 {
+				rp.log.Warn("Balance of restricting account not enough", "totalAmount",
+					restrictInfo.CachePlanAmount, "stankingAmount", restrictInfo.StakingAmount, "funds", amount)
+				return restricting.ErrRestrictBalanceNotEnough
+			}
+
+		}
+	} else {
+		canStaking := new(big.Int).Sub(restrictInfo.CachePlanAmount, restrictInfo.StakingAmount)
+
+		if canStaking.Cmp(amount) < 0 {
+			rp.log.Warn("Balance of restricting account not enough", "totalAmount",
+				restrictInfo.CachePlanAmount, "stankingAmount", restrictInfo.StakingAmount, "funds", amount)
+			return restricting.ErrRestrictBalanceNotEnough
+		}
+
 	}
 
 	// sub Balance
@@ -386,8 +412,12 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, amount)
 		} else {
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, restrictInfo.NeedRelease)
-			tmp := new(big.Int).Sub(amount, restrictInfo.NeedRelease)
-			restrictInfo.CachePlanAmount.Add(restrictInfo.CachePlanAmount, tmp)
+			if !gov.Gte0140VersionState(state) {
+				tmp := new(big.Int).Sub(amount, restrictInfo.NeedRelease)
+				restrictInfo.CachePlanAmount.Add(restrictInfo.CachePlanAmount, tmp)
+			} else {
+				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, restrictInfo.NeedRelease)
+			}
 			restrictInfo.NeedRelease = big.NewInt(0)
 		}
 	}
@@ -601,16 +631,26 @@ func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, 
 		plans  []restricting.ReleaseAmountInfo
 		result restricting.Result
 	)
-
+	totalLeft := new(big.Int)
 	for i := 0; i < len(info.ReleaseList); i++ {
 		epoch := info.ReleaseList[i]
 		_, bAmount := rp.getReleaseAmount(state, epoch, account)
 		plan.Height = GetBlockNumberByEpoch(epoch)
 		plan.Amount = (*hexutil.Big)(bAmount)
+		totalLeft.Add(totalLeft, bAmount)
 		plans = append(plans, plan)
 	}
 
-	result.Balance = (*hexutil.Big)(info.CachePlanAmount)
+	if gov.Gte0140VersionState(state) {
+		if totalLeft.Cmp(info.CachePlanAmount) < 0 {
+			result.Balance = (*hexutil.Big)(totalLeft)
+		} else {
+			result.Balance = (*hexutil.Big)(info.CachePlanAmount)
+		}
+	} else {
+		result.Balance = (*hexutil.Big)(info.CachePlanAmount)
+	}
+
 	result.Debt = (*hexutil.Big)(info.NeedRelease)
 	result.Entry = plans
 	result.Pledge = (*hexutil.Big)(info.StakingAmount)
