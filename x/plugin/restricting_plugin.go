@@ -695,8 +695,9 @@ func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state
 		if totalLeft.Cmp(info.CachePlanAmount) < 0 {
 			if totalLeft.Cmp(info.StakingAmount) < 0 {
 				result.LockBalance = (*hexutil.Big)(info.StakingAmount)
+			} else {
+				result.LockBalance = (*hexutil.Big)(totalLeft)
 			}
-			result.LockBalance = (*hexutil.Big)(totalLeft)
 		} else {
 			result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
 		}
