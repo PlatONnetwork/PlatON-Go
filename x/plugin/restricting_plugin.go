@@ -612,6 +612,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		if restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
 			if restrictInfo.NeedRelease.Cmp(common.Big0) == 0 || len(restrictInfo.ReleaseList) == 0 {
 				//if all is release,remove info
+				rp.log.Info("Call remove  releaseRestricting info", "account", account, "info", restrictInfo)
 				state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
 			} else {
 				rp.storeRestrictingInfo(state, restrictingKey, restrictInfo)
