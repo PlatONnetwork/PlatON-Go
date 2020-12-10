@@ -672,19 +672,38 @@ func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state
 	log.Debug("begin to GetRestrictingBalance", "account", account.String())
 
 	var (
-		result           restricting.BalanceResult
+		result restricting.BalanceResult
 	)
 	result.Account = account
 	result.FreeBalance = (*hexutil.Big)(state.GetBalance(account))
 	result.LockBalance = (*hexutil.Big)(big.NewInt(0))
 	result.PledgeBalance = (*hexutil.Big)(big.NewInt(0))
-		_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
+	_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		log.Error("failed to rlp encode the restricting account", "error", err.Error(), "info", info)
 		return result, nil
 	}
 
-	result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
+	totalLeft := new(big.Int)
+	for i := 0; i < len(info.ReleaseList); i++ {
+		epoch := info.ReleaseList[i]
+		_, bAmount := rp.getReleaseAmount(state, epoch, account)
+		totalLeft.Add(totalLeft, bAmount)
+	}
+
+	if gov.Gte0140VersionState(state) {
+		if totalLeft.Cmp(info.CachePlanAmount) < 0 {
+			if totalLeft.Cmp(info.StakingAmount) < 0 {
+				result.LockBalance = (*hexutil.Big)(info.StakingAmount)
+			}
+			result.LockBalance = (*hexutil.Big)(totalLeft)
+		} else {
+			result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
+		}
+	} else {
+		result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
+	}
+
 	result.PledgeBalance = (*hexutil.Big)(info.StakingAmount)
 
 	log.Trace("get restricting result", "account", account.String(), "result", result)
