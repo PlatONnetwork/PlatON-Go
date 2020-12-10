@@ -576,11 +576,15 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 			"restrictInfo", restrictInfo, "releaseAmount", releaseAmount)
 
 		if restrictInfo.NeedRelease.Cmp(common.Big0) > 0 {
-			//info.CachePlanAmount.Sub(info.CachePlanAmount, releaseAmount)
-			if restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
-				restrictInfo.NeedRelease.Sub(restrictInfo.NeedRelease, releaseAmount)
-			} else {
+			if gov.Gte0140VersionState(state) {
 				restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, releaseAmount)
+			} else {
+				//info.CachePlanAmount.Sub(info.CachePlanAmount, releaseAmount)
+				if restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
+					restrictInfo.NeedRelease.Sub(restrictInfo.NeedRelease, releaseAmount)
+				} else {
+					restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, releaseAmount)
+				}
 			}
 		} else {
 			canRelease := new(big.Int).Sub(restrictInfo.CachePlanAmount, restrictInfo.StakingAmount)
