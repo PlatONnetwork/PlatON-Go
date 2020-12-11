@@ -412,7 +412,7 @@ func (rp *RestrictingPlugin) MixPledgeLockFunds(account common.Address, amount *
 	if total.Cmp(amount) < 0 {
 		rp.log.Warn("Balance of restricting and free not enough", "totalAmount",
 			restrictInfo.CachePlanAmount, "stankingAmount", restrictInfo.StakingAmount, "free", canStakingFree, "funds", amount)
-		return nil, nil, restricting.ErrRestrictBalanceNotEnough
+		return nil, nil, restricting.ErrRestrictBalanceAndFreeNotEnough
 	}
 
 	forRestricting := new(big.Int).Set(amount)

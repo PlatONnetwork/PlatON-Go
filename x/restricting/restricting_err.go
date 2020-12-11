@@ -41,4 +41,5 @@ var (
 	ErrStakingAmountInvalid               = common.NewBizError(304012, "staking return amount is wrong")
 	ErrRestrictBalanceNotEnough           = common.NewBizError(304013, "the user restricting balance is not enough for pledge lock funds")
 	ErrCreatePlanAmountLessThanMiniAmount = common.NewBizError(304014, "restricting plan every epoch release  amount should greater than mini release amount")
+	ErrRestrictBalanceAndFreeNotEnough    = common.NewBizError(304015, "the user restricting  and free balance is not enough for pledge lock funds")
 )
