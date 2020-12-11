@@ -506,6 +506,53 @@ func TestRestrictingInstance(t *testing.T) {
 	assert.Equal(t, true, mockDB.GetBalance(vm.StakingContractAddr).Cmp(big.NewInt(0)) == 0)
 }
 
+func TestNewRestrictingPlugin_MixPledgeLockFunds(t *testing.T) {
+	sdb := snapshotdb.Instance()
+	defer sdb.Clear()
+	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
+	value := common.MustRlpEncode(&gov.ParamValue{"", new(big.Int).SetInt64(0).String(), 0})
+	if err := sdb.PutBaseDB(key, value); nil != err {
+		t.Error(err)
+		return
+	}
+
+	mockDB := buildStateDB(t)
+	plugin := new(RestrictingPlugin)
+	plugin.log = log.Root()
+	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	from, to := addrArr[0], addrArr[1]
+	mockDB.AddBalance(from, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(9e18)))
+	plans := make([]restricting.RestrictingPlan, 0)
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3e18)})
+	plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(4e18)})
+	plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(2e18)})
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, common.ZeroHash, plans, mockDB, RestrictingTxHash); err != nil {
+		t.Error(err)
+	}
+	mockDB.AddBalance(to, big.NewInt(2e18))
+
+	res, free, err := plugin.MixPledgeLockFunds(to, new(big.Int).Mul(big.NewInt(1e18), big.NewInt(10)), mockDB)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.Cmp(big.NewInt(9e18)) != 0 {
+		t.Errorf("restricting von cost wrong,%v", res)
+	}
+	if free.Cmp(big.NewInt(1e18)) != 0 {
+		t.Errorf("free von cost wrong,%v", free)
+	}
+
+	if mockDB.GetBalance(to).Cmp(big.NewInt(1e18)) != 0 {
+		t.Errorf("to balance von cost wrong")
+	}
+
+	if _, _, err := plugin.MixPledgeLockFunds(to, new(big.Int).Mul(big.NewInt(1e18), big.NewInt(10)), mockDB); err == nil {
+		t.Error("should not success")
+	}
+
+}
+
 func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	mockDB := buildStateDB(t)
 	plugin := new(RestrictingPlugin)
