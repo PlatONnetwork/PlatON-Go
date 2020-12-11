@@ -328,6 +328,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		beats:       make(map[common.Address]time.Time),
 		all:         newTxLookup(),
 
+		gasPrice:  new(big.Int),
 		resetHead: chain.CurrentBlock(),
 
 		exitCh:          make(chan struct{}),
