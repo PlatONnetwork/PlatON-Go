@@ -356,6 +356,50 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	return nil
 }
 
+// MixPledgeLockFunds transfer the money from the restricting contract account to the staking contract account,use restricting von first,if restricting not en
+func (rp *RestrictingPlugin) MixPledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) (*big.Int, *big.Int, error) {
+
+	restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
+	if err != nil {
+		return nil, nil, err
+	}
+	rp.log.Debug("Call MixPledgeLockFunds begin", "account", account, "amount", amount, "old info", restrictInfo)
+
+	if amount.Cmp(common.Big0) < 0 {
+		return nil, nil, restricting.ErrPledgeLockFundsAmountLessThanZero
+	} else if amount.Cmp(common.Big0) == 0 {
+		return amount, amount, nil
+	}
+
+	canStakingRestricting := new(big.Int).Sub(restrictInfo.CachePlanAmount, restrictInfo.StakingAmount)
+
+	canStakingFree := state.GetBalance(account)
+
+	total := new(big.Int).Add(canStakingRestricting, canStakingFree)
+
+	if total.Cmp(amount) < 0 {
+		rp.log.Warn("Balance of restricting and free not enough", "totalAmount",
+			restrictInfo.CachePlanAmount, "stankingAmount", restrictInfo.StakingAmount, "free", canStakingFree, "funds", amount)
+		return nil, nil, restricting.ErrRestrictBalanceNotEnough
+	}
+
+	forRestricting := new(big.Int).Set(amount)
+	forFree := new(big.Int)
+	if canStakingRestricting.Cmp(amount) < 0 {
+		forRestricting.Set(canStakingRestricting)
+		forFree = new(big.Int).Sub(amount, canStakingRestricting)
+		rp.transferAmount(state, account, vm.StakingContractAddr, forFree)
+	}
+
+	restrictInfo.StakingAmount.Add(restrictInfo.StakingAmount, forRestricting)
+	// save restricting account info
+	rp.storeRestrictingInfo(state, restrictingKey, restrictInfo)
+	rp.transferAmount(state, vm.RestrictingContractAddr, vm.StakingContractAddr, forRestricting)
+
+	rp.log.Debug("Call mixPledgeLockFunds finished", "RestrictingContractBalance", state.GetBalance(vm.RestrictingContractAddr), "StakingContractBalance", state.GetBalance(vm.StakingContractAddr), "new info", restrictInfo, "for free", forFree, "for restricting", forRestricting)
+	return forRestricting, forFree, nil
+}
+
 // ReturnLockFunds transfer the money from the staking contract account to the restricting contract account
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 	amountCompareWithZero := amount.Cmp(common.Big0)
@@ -382,8 +426,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, amount)
 		} else {
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, restrictInfo.NeedRelease)
-			tmp := new(big.Int).Sub(amount, restrictInfo.NeedRelease)
-			restrictInfo.CachePlanAmount.Add(restrictInfo.CachePlanAmount, tmp)
+			restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, restrictInfo.NeedRelease)
 			restrictInfo.NeedRelease = big.NewInt(0)
 		}
 	}
@@ -537,12 +580,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 			"restrictInfo", restrictInfo, "releaseAmount", releaseAmount)
 
 		if restrictInfo.NeedRelease.Cmp(common.Big0) > 0 {
-			//info.CachePlanAmount.Sub(info.CachePlanAmount, releaseAmount)
-			if restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
-				restrictInfo.NeedRelease.Sub(restrictInfo.NeedRelease, releaseAmount)
-			} else {
-				restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, releaseAmount)
-			}
+			restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, releaseAmount)
 		} else {
 			canRelease := new(big.Int).Sub(restrictInfo.CachePlanAmount, restrictInfo.StakingAmount)
 			if canRelease.Cmp(releaseAmount) >= 0 {
