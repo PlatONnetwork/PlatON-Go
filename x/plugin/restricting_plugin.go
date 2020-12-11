@@ -576,11 +576,15 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 			"restrictInfo", restrictInfo, "releaseAmount", releaseAmount)
 
 		if restrictInfo.NeedRelease.Cmp(common.Big0) > 0 {
-			//info.CachePlanAmount.Sub(info.CachePlanAmount, releaseAmount)
-			if restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
-				restrictInfo.NeedRelease.Sub(restrictInfo.NeedRelease, releaseAmount)
-			} else {
+			if gov.Gte0140VersionState(state) {
 				restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, releaseAmount)
+			} else {
+				//info.CachePlanAmount.Sub(info.CachePlanAmount, releaseAmount)
+				if restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
+					restrictInfo.NeedRelease.Sub(restrictInfo.NeedRelease, releaseAmount)
+				} else {
+					restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, releaseAmount)
+				}
 			}
 		} else {
 			canRelease := new(big.Int).Sub(restrictInfo.CachePlanAmount, restrictInfo.StakingAmount)
@@ -608,6 +612,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		if restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
 			if restrictInfo.NeedRelease.Cmp(common.Big0) == 0 || len(restrictInfo.ReleaseList) == 0 {
 				//if all is release,remove info
+				rp.log.Info("Call remove  releaseRestricting info", "account", account, "info", restrictInfo)
 				state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
 			} else {
 				rp.storeRestrictingInfo(state, restrictingKey, restrictInfo)
