@@ -27,6 +27,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"html/template"
 	"io/ioutil"
 	"math"
@@ -54,7 +55,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -255,8 +255,10 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 		return nil, err
 	}
 	for _, boot := range enodes {
-		old, _ := discover.ParseNode(boot.String())
-		stack.Server().AddPeer(old)
+		old, err := enode.Parse(enode.ValidSchemes, boot.String())
+		if err != nil {
+			stack.Server().AddPeer(old)
+		}
 	}
 	// Attach to the client and retrieve and interesting metadatas
 	api, err := stack.Attach()

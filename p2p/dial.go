@@ -17,22 +17,21 @@
 package p2p
 
 import (
-	"container/heap"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"net"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 )
 
 const (
-	// This is the amount of time spent waiting in between
-	// redialing a certain node.
-	dialHistoryExpiration = 30 * time.Second
+	// This is the amount of time spent waiting in between redialing a certain node. The
+	// limit is a bit higher than inboundThrottleTime to prevent failing dials in small
+	// private networks.
+	dialHistoryExpiration = inboundThrottleTime + 5*time.Second
 
 	// Discovery lookups are throttled and can only run
 	// once every few seconds.
@@ -47,12 +46,12 @@ const (
 	maxResolveDelay     = time.Hour
 )
 
-type removeConsensusPeerFn func(node *discover.Node)
+type removeConsensusPeerFn func(node *enode.Node)
 
 // NodeDialer is used to connect to nodes in the network, typically by using
 // an underlying net.Dialer but also using net.Pipe in tests
 type NodeDialer interface {
-	Dial(*discover.Node) (net.Conn, error)
+	Dial(*enode.Node) (net.Conn, error)
 }
 
 // TCPDialer implements the NodeDialer interface by using a net.Dialer to
@@ -62,8 +61,8 @@ type TCPDialer struct {
 }
 
 // Dial creates a TCP connection to the node
-func (t TCPDialer) Dial(dest *discover.Node) (net.Conn, error) {
-	addr := &net.TCPAddr{IP: dest.IP, Port: int(dest.TCP)}
+func (t TCPDialer) Dial(dest *enode.Node) (net.Conn, error) {
+	addr := &net.TCPAddr{IP: dest.IP(), Port: dest.TCP()}
 	return t.Dialer.Dial("tcp", addr.String())
 }
 
@@ -74,35 +73,27 @@ type dialstate struct {
 	maxDynDials int
 	ntab        discoverTable
 	netrestrict *netutil.Netlist
+	self        enode.ID
+	bootnodes   []*enode.Node // default dials when there are no peers
+	log         log.Logger
+
+	start         time.Time // time when the dialer was first used
 
 	lookupRunning bool
-	dialing       map[discover.NodeID]connFlag
-	lookupBuf     []*discover.Node // current discovery lookup results
-	randomNodes   []*discover.Node // filled from Table
-	static        map[discover.NodeID]*dialTask
-	//consensus     map[discover.NodeID]*dialTask
+	dialing       map[enode.ID]connFlag
+	lookupBuf     []*enode.Node // current discovery lookup results
+	randomNodes   []*enode.Node // filled from Table
+	static        map[enode.ID]*dialTask
+	//consensus     map[enode.ID]*dialTask
 	consensus	  *dialedTasks
-	hist          *dialHistory
-
-	start     time.Time        // time when the dialer was first used
-	bootnodes []*discover.Node // default dials when there are no peers
+	hist          expHeap
 }
 
 type discoverTable interface {
-	Self() *discover.Node
 	Close()
-	Resolve(target discover.NodeID) *discover.Node
-	Lookup(target discover.NodeID) []*discover.Node
-	ReadRandomNodes([]*discover.Node) int
-}
-
-// the dial history remembers recent dials.
-type dialHistory []pastDial
-
-// pastDial is an entry in the dial history.
-type pastDial struct {
-	id  discover.NodeID
-	exp time.Time
+	Resolve(*enode.Node) *enode.Node
+	LookupRandom() []*enode.Node
+	ReadRandomNodes([]*enode.Node) int
 }
 
 type task interface {
@@ -113,7 +104,7 @@ type task interface {
 // fields cannot be accessed while the task is running.
 type dialTask struct {
 	flags        connFlag
-	dest         *discover.Node
+	dest         *enode.Node
 	lastResolved time.Time
 	resolveDelay time.Duration
 }
@@ -122,7 +113,7 @@ type dialTask struct {
 // Only one discoverTask is active at any time.
 // discoverTask.Do performs a random lookup.
 type discoverTask struct {
-	results []*discover.Node
+	results []*enode.Node
 }
 
 // A waitExpireTask is generated if there are no other tasks
@@ -131,74 +122,73 @@ type waitExpireTask struct {
 	time.Duration
 }
 
-func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab discoverTable, maxdyn int, netrestrict *netutil.Netlist, maxConsensusPeers int) *dialstate {
+func newDialState(self enode.ID, ntab discoverTable, maxdyn int, cfg *Config, maxConsensusPeers int) *dialstate {
 	s := &dialstate{
 		maxDynDials: maxdyn,
 		ntab:        ntab,
-		netrestrict: netrestrict,
-		static:      make(map[discover.NodeID]*dialTask),
-		//consensus:	 make(map[discover.NodeID]*dialTask),
+		self:        self,
+		netrestrict: cfg.NetRestrict,
+		log:         cfg.Logger,
+		static:      make(map[enode.ID]*dialTask),
 		consensus:   NewDialedTasks(maxConsensusPeers, nil),
-		dialing:     make(map[discover.NodeID]connFlag),
-		bootnodes:   make([]*discover.Node, len(bootnodes)),
-		randomNodes: make([]*discover.Node, maxdyn/2),
-		hist:        new(dialHistory),
+		dialing:     make(map[enode.ID]connFlag),
+		bootnodes:   make([]*enode.Node, len(cfg.BootstrapNodes)),
+		randomNodes: make([]*enode.Node, maxdyn/2),
 	}
-	copy(s.bootnodes, bootnodes)
-	for _, n := range static {
+	copy(s.bootnodes, cfg.BootstrapNodes)
+	if s.log == nil {
+		s.log = log.Root()
+	}
+	for _, n := range cfg.StaticNodes {
 		s.addStatic(n)
 	}
 	return s
 }
 
-func (s *dialstate) addStatic(n *discover.Node) {
+func (s *dialstate) addStatic(n *enode.Node) {
 	// This overwrites the task instead of updating an existing
 	// entry, giving users the opportunity to force a resolve operation.
-	s.static[n.ID] = &dialTask{flags: staticDialedConn, dest: n}
+	s.static[n.ID()] = &dialTask{flags: staticDialedConn, dest: n}
 }
 
-func (s *dialstate) removeStatic(n *discover.Node) {
+func (s *dialstate) removeStatic(n *enode.Node) {
 	// This removes a task so future attempts to connect will not be made.
-	delete(s.static, n.ID)
-	// This removes a previous dial timestamp so that application
-	// can force a server to reconnect with chosen peer immediately.
-	s.hist.remove(n.ID)
+	delete(s.static, n.ID())
 }
 
-func (s *dialstate) addConsensus(n *discover.Node) {
+func (s *dialstate) addConsensus(n *enode.Node) {
 	log.Warn("dial adding consensus node", "node", n)
 	//s.consensus[n.ID] = &dialTask{flags: consensusDialedConn, dest: n}
 	s.consensus.AddTask(&dialTask{flags: consensusDialedConn, dest: n})
 }
 
-func (s *dialstate) removeConsensus(n *discover.Node) {
+func (s *dialstate) removeConsensus(n *enode.Node) {
 	//delete(s.consensus, n.ID)
 	s.consensus.RemoveTask(n.ID)
-	s.hist.remove(n.ID)
 }
 
-func (s *dialstate) removeConsensusFromQueue(n *discover.Node) {
+func (s *dialstate) removeConsensusFromQueue(n *enode.Node) {
 	//delete(s.consensus, n.ID)
 	//s.consensus.RemoveTask(n.ID)
-	s.hist.remove(n.ID)
+	//s.hist.remove(n.ID())
 }
 
 func (s *dialstate) initRemoveConsensusPeerFn(removeConsensusPeerFn removeConsensusPeerFn) {
 	s.consensus.InitRemoveConsensusPeerFn(removeConsensusPeerFn)
 }
 
-func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now time.Time) []task {
+func (s *dialstate) newTasks(nRunning int, peers map[enode.ID]*Peer, now time.Time) []task {
 	if s.start.IsZero() {
 		s.start = now
 	}
 
 	var newtasks []task
-	addDial := func(flag connFlag, n *discover.Node) bool {
+	addDial := func(flag connFlag, n *enode.Node) bool {
 		if err := s.checkDial(n, peers); err != nil {
-			log.Trace("Skipping dial candidate", "id", n.ID, "addr", &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}, "err", err)
+			s.log.Trace("Skipping dial candidate", "id", n.ID(), "addr", &net.TCPAddr{IP: n.IP(), Port: n.TCP()}, "err", err)
 			return false
 		}
-		s.dialing[n.ID] = flag
+		s.dialing[n.ID()] = flag
 		newtasks = append(newtasks, &dialTask{flags: flag, dest: n})
 		return true
 	}
@@ -224,8 +214,8 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 		err := s.checkDial(t.dest, peers)
 		switch err {
 		case errNotWhitelisted, errSelf:
-			log.Warn("Removing static dial candidate", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}, "err", err)
-			delete(s.static, t.dest.ID)
+			s.log.Warn("Removing static dial candidate", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP(), Port: t.dest.TCP()}, "err", err)
+			delete(s.static, t.dest.ID())
 		case nil:
 			s.dialing[id] = t.flags
 			newtasks = append(newtasks, t)
@@ -240,7 +230,7 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 			//delete(s.consensus, t.dest.ID)
 			s.consensus.RemoveTask(t.dest.ID)
 		case nil:
-			s.dialing[t.dest.ID] = t.flags
+			s.dialing[t.dest.ID()] = t.flags
 			newtasks = append(newtasks, t)
 		}
 	}
@@ -288,7 +278,7 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 	// This should prevent cases where the dialer logic is not ticked
 	// because there are no pending events.
 	if nRunning == 0 && len(newtasks) == 0 && s.hist.Len() > 0 {
-		t := &waitExpireTask{s.hist.min().exp.Sub(now)}
+		t := &waitExpireTask{s.hist.nextExpiry().Sub(now)}
 		newtasks = append(newtasks, t)
 	}
 	return newtasks
@@ -302,18 +292,18 @@ var (
 	errNotWhitelisted   = errors.New("not contained in netrestrict whitelist")
 )
 
-func (s *dialstate) checkDial(n *discover.Node, peers map[discover.NodeID]*Peer) error {
-	_, dialing := s.dialing[n.ID]
+func (s *dialstate) checkDial(n *enode.Node, peers map[enode.ID]*Peer) error {
+	_, dialing := s.dialing[n.ID()]
 	switch {
 	case dialing:
 		return errAlreadyDialing
-	case peers[n.ID] != nil:
+	case peers[n.ID()] != nil:
 		return errAlreadyConnected
-	case s.ntab != nil && n.ID == s.ntab.Self().ID:
+	case n.ID() == s.self:
 		return errSelf
-	case s.netrestrict != nil && !s.netrestrict.Contains(n.IP):
+	case s.netrestrict != nil && !s.netrestrict.Contains(n.IP()):
 		return errNotWhitelisted
-	case s.hist.contains(n.ID):
+	case s.hist.contains(string(n.ID().Bytes())):
 		return errRecentlyDialed
 	}
 	return nil
@@ -322,8 +312,8 @@ func (s *dialstate) checkDial(n *discover.Node, peers map[discover.NodeID]*Peer)
 func (s *dialstate) taskDone(t task, now time.Time) {
 	switch t := t.(type) {
 	case *dialTask:
-		s.hist.add(t.dest.ID, now.Add(dialHistoryExpiration))
-		delete(s.dialing, t.dest.ID)
+		s.hist.add(string(t.dest.ID().Bytes()), now.Add(dialHistoryExpiration))
+		delete(s.dialing, t.dest.ID())
 	case *discoverTask:
 		s.lookupRunning = false
 		s.lookupBuf = append(s.lookupBuf, t.results...)
@@ -338,7 +328,7 @@ func (t *dialTask) Do(srv *Server) {
 	}
 	err := t.dial(srv, t.dest)
 	if err != nil {
-		log.Trace("Dial error", "task", t, "err", err)
+		srv.log.Trace("Dial error", "task", t, "err", err)
 		// Try resolving the ID of static nodes if dialing failed.
 		if _, ok := err.(*dialError); ok && t.flags&staticDialedConn != 0 {
 			if t.resolve(srv) {
@@ -356,7 +346,7 @@ func (t *dialTask) Do(srv *Server) {
 // The backoff delay resets when the node is found.
 func (t *dialTask) resolve(srv *Server) bool {
 	if srv.ntab == nil {
-		log.Debug("Can't resolve node", "id", t.dest.ID, "err", "discovery is disabled")
+		srv.log.Debug("Can't resolve node", "id", t.dest.ID, "err", "discovery is disabled")
 		return false
 	}
 	if t.resolveDelay == 0 {
@@ -365,20 +355,20 @@ func (t *dialTask) resolve(srv *Server) bool {
 	if time.Since(t.lastResolved) < t.resolveDelay {
 		return false
 	}
-	resolved := srv.ntab.Resolve(t.dest.ID)
+	resolved := srv.ntab.Resolve(t.dest)
 	t.lastResolved = time.Now()
 	if resolved == nil {
 		t.resolveDelay *= 2
 		if t.resolveDelay > maxResolveDelay {
 			t.resolveDelay = maxResolveDelay
 		}
-		log.Debug("Resolving node failed", "id", t.dest.ID, "newdelay", t.resolveDelay)
+		srv.log.Debug("Resolving node failed", "id", t.dest.ID, "newdelay", t.resolveDelay)
 		return false
 	}
 	// The node was found.
 	t.resolveDelay = initialResolveDelay
 	t.dest = resolved
-	log.Debug("Resolved node", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)})
+	srv.log.Debug("Resolved node", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP(), Port: t.dest.TCP()})
 	return true
 }
 
@@ -387,17 +377,18 @@ type dialError struct {
 }
 
 // dial performs the actual connection attempt.
-func (t *dialTask) dial(srv *Server, dest *discover.Node) error {
+func (t *dialTask) dial(srv *Server, dest *enode.Node) error {
 	fd, err := srv.Dialer.Dial(dest)
 	if err != nil {
 		return &dialError{err}
 	}
-	mfd := newMeteredConn(fd, false)
+	mfd := newMeteredConn(fd, false, dest.IP())
 	return srv.SetupConn(mfd, t.flags, dest)
 }
 
 func (t *dialTask) String() string {
-	return fmt.Sprintf("%v %x %v:%d", t.flags, t.dest.ID[:8], t.dest.IP, t.dest.TCP)
+	id := t.dest.ID()
+	return fmt.Sprintf("%v %x %v:%d", t.flags, id[:8], t.dest.IP(), t.dest.TCP())
 }
 
 func (t *discoverTask) Do(srv *Server) {
@@ -409,9 +400,7 @@ func (t *discoverTask) Do(srv *Server) {
 		time.Sleep(next.Sub(now))
 	}
 	srv.lastLookup = time.Now()
-	var target discover.NodeID
-	rand.Read(target[:])
-	t.results = srv.ntab.Lookup(target)
+	t.results = srv.ntab.LookupRandom()
 }
 
 func (t *discoverTask) String() string {
@@ -427,50 +416,4 @@ func (t waitExpireTask) Do(*Server) {
 }
 func (t waitExpireTask) String() string {
 	return fmt.Sprintf("wait for dial hist expire (%v)", t.Duration)
-}
-
-// Use only these methods to access or modify dialHistory.
-func (h dialHistory) min() pastDial {
-	return h[0]
-}
-func (h *dialHistory) add(id discover.NodeID, exp time.Time) {
-	heap.Push(h, pastDial{id, exp})
-
-}
-func (h *dialHistory) remove(id discover.NodeID) bool {
-	for i, v := range *h {
-		if v.id == id {
-			heap.Remove(h, i)
-			return true
-		}
-	}
-	return false
-}
-func (h dialHistory) contains(id discover.NodeID) bool {
-	for _, v := range h {
-		if v.id == id {
-			return true
-		}
-	}
-	return false
-}
-func (h *dialHistory) expire(now time.Time) {
-	for h.Len() > 0 && h.min().exp.Before(now) {
-		heap.Pop(h)
-	}
-}
-
-// heap.Interface boilerplate
-func (h dialHistory) Len() int           { return len(h) }
-func (h dialHistory) Less(i, j int) bool { return h[i].exp.Before(h[j].exp) }
-func (h dialHistory) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-func (h *dialHistory) Push(x interface{}) {
-	*h = append(*h, x.(pastDial))
-}
-func (h *dialHistory) Pop() interface{} {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[0 : n-1]
-	return x
 }

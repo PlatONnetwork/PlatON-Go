@@ -298,7 +298,7 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 			NodeInfo: func() interface{} {
 				return h.NodeInfo()
 			},
-			PeerInfo: func(id discover.NodeID) interface{} {
+			PeerInfo: func(id enode.ID) interface{} {
 				if p, err := h.peers.get(fmt.Sprintf("%x", id[:8])); err == nil {
 					return p.Info()
 				}
@@ -334,7 +334,7 @@ func (h *EngineManager) Unregister(id string) error {
 }
 
 // ConsensusNodes returns a list of all consensus nodes.
-func (h *EngineManager) ConsensusNodes() ([]discover.NodeID, error) {
+func (h *EngineManager) ConsensusNodes() ([]enode.ID, error) {
 	return h.engine.ConsensusNodes()
 }
 

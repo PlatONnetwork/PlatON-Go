@@ -51,7 +51,7 @@ func (tasks *dialedTasks) AddTask(task *dialTask) error {
 	return nil
 }
 
-func (tasks *dialedTasks) RemoveTask(NodeID discover.NodeID) error {
+func (tasks *dialedTasks) RemoveTask(NodeID enode.ID) error {
 
 	log.Info("[before remove]Consensus dialed task list before RemoveTask operation", "task queue", tasks.description())
 	if !tasks.isEmpty() {

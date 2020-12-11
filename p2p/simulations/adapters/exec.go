@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"io"
 	"net"
 	"net/http"
@@ -38,7 +39,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/docker/docker/pkg/reexec"
 	"golang.org/x/net/websocket"
@@ -46,7 +46,7 @@ import (
 
 func init() {
 	// Register a reexec function to start a simulation node when the current binary is
-	// executed as "p2p-node" (rather than whataver the main() function would normally do).
+	// executed as "p2p-node" (rather than whatever the main() function would normally do).
 	reexec.Register("p2p-node", execP2PNode)
 }
 
@@ -57,7 +57,7 @@ type ExecAdapter struct {
 	// simulation node are created.
 	BaseDir string
 
-	nodes map[discover.NodeID]*ExecNode
+	nodes map[enode.ID]*ExecNode
 }
 
 // NewExecAdapter returns an ExecAdapter which stores node data in
@@ -65,7 +65,7 @@ type ExecAdapter struct {
 func NewExecAdapter(baseDir string) *ExecAdapter {
 	return &ExecAdapter{
 		BaseDir: baseDir,
-		nodes:   make(map[discover.NodeID]*ExecNode),
+		nodes:   make(map[enode.ID]*ExecNode),
 	}
 }
 
@@ -92,17 +92,28 @@ func (e *ExecAdapter) NewNode(config *NodeConfig) (Node, error) {
 		return nil, fmt.Errorf("error creating node directory: %s", err)
 	}
 
+	err := config.initDummyEnode()
+	if err != nil {
+		return nil, err
+	}
+
 	// generate the config
 	conf := &execNodeConfig{
 		Stack: node.DefaultConfig,
 		Node:  config,
 	}
-	conf.Stack.DataDir = filepath.Join(dir, "data")
+	if config.DataDir != "" {
+		conf.Stack.DataDir = config.DataDir
+	} else {
+		conf.Stack.DataDir = filepath.Join(dir, "data")
+	}
+
+	// these parameters are crucial for execadapter node to run correctly
 	conf.Stack.WSHost = "127.0.0.1"
 	conf.Stack.WSPort = 0
 	conf.Stack.WSOrigins = []string{"*"}
 	conf.Stack.WSExposeAll = true
-	conf.Stack.P2P.EnableMsgEvents = false
+	conf.Stack.P2P.EnableMsgEvents = config.EnableMsgEvents
 	conf.Stack.P2P.NoDiscovery = true
 	conf.Stack.P2P.NAT = nil
 	conf.Stack.NoUSB = true
@@ -125,7 +136,7 @@ func (e *ExecAdapter) NewNode(config *NodeConfig) (Node, error) {
 // ExecNode starts a simulation node by exec'ing the current binary and
 // running the configured services
 type ExecNode struct {
-	ID     discover.NodeID
+	ID     enode.ID
 	Dir    string
 	Config *execNodeConfig
 	Cmd    *exec.Cmd
@@ -152,6 +163,7 @@ func (n *ExecNode) Client() (*rpc.Client, error) {
 	return n.client, nil
 }
 
+// Start exec's the node passing the ID and service as command line arguments
 // and the node config encoded as JSON in an environment variable.
 func (n *ExecNode) Start(snapshots map[string][]byte) (err error) {
 	if n.Cmd != nil {
@@ -159,7 +171,6 @@ func (n *ExecNode) Start(snapshots map[string][]byte) (err error) {
 	}
 	defer func() {
 		if err != nil {
-			log.Error("node failed to start", "err", err)
 			n.Stop()
 		}
 	}()
@@ -199,11 +210,11 @@ func (n *ExecNode) Start(snapshots map[string][]byte) (err error) {
 	if status.Err != "" {
 		return errors.New(status.Err)
 	}
-
 	client, err := rpc.DialWebsocket(ctx, status.WSEndpoint, "http://localhost")
 	if err != nil {
 		return fmt.Errorf("can't connect to RPC server: %v", err)
 	}
+
 	// node ready :)
 	n.client = client
 	n.wsAddr = status.WSEndpoint
@@ -403,6 +414,13 @@ func startExecNodeStack() (*node.Node, error) {
 	if err := json.Unmarshal([]byte(confEnv), &conf); err != nil {
 		return nil, fmt.Errorf("error decoding %s: %v", envNodeConfig, err)
 	}
+
+	// create enode record
+	nodeTcpConn, err := net.ResolveTCPAddr("tcp", conf.Stack.P2P.ListenAddr)
+	if nodeTcpConn.IP == nil {
+		nodeTcpConn.IP = net.IPv4(127, 0, 0, 1)
+	}
+	conf.Node.initEnode(nodeTcpConn.IP, nodeTcpConn.Port, nodeTcpConn.Port)
 	conf.Stack.P2P.PrivateKey = conf.Node.PrivateKey
 	conf.Stack.Logger = log.New("node.id", conf.Node.ID.String())
 
@@ -521,7 +539,7 @@ type wsRPCDialer struct {
 
 // DialRPC implements the RPCDialer interface by creating a WebSocket RPC
 // client of the given node
-func (w *wsRPCDialer) DialRPC(id discover.NodeID) (*rpc.Client, error) {
+func (w *wsRPCDialer) DialRPC(id enode.ID) (*rpc.Client, error) {
 	addr, ok := w.addrs[id.String()]
 	if !ok {
 		return nil, fmt.Errorf("unknown node: %s", id)

@@ -114,7 +114,7 @@ func (gc *GovContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 	return nil
 }
 
-func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byte, error) {
+func (gc *GovContract) submitText(verifier enode.ID, pipID string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.BlockNumber.Uint64()
 	blockHash := gc.Evm.BlockHash
@@ -150,7 +150,7 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 	return gc.nonCallHandler("submitText", SubmitText, err)
 }
 
-func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, newVersion uint32, endVotingRounds uint64) ([]byte, error) {
+func (gc *GovContract) submitVersion(verifier enode.ID, pipID string, newVersion uint32, endVotingRounds uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 
 	blockNumber := gc.Evm.BlockNumber.Uint64()
@@ -192,7 +192,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 	return gc.nonCallHandler("submitVersion", SubmitVersion, err)
 }
 
-func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) ([]byte, error) {
+func (gc *GovContract) submitCancel(verifier enode.ID, pipID string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 
 	blockNumber := gc.Evm.BlockNumber.Uint64()
@@ -231,7 +231,7 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 	return gc.nonCallHandler("submitCancel", SubmitCancel, err)
 }
 
-func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, module, name, newValue string) ([]byte, error) {
+func (gc *GovContract) submitParam(verifier enode.ID, pipID string, module, name, newValue string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.BlockNumber.Uint64()
 	blockHash := gc.Evm.BlockHash
@@ -272,7 +272,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 	return gc.nonCallHandler("submitParam", SubmitParam, err)
 }
 
-func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
+func (gc *GovContract) vote(verifier enode.ID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.BlockNumber.Uint64()
 	blockHash := gc.Evm.BlockHash
@@ -308,7 +308,7 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	return gc.nonCallHandler("vote", Vote, err)
 }
 
-func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
+func (gc *GovContract) declareVersion(activeNode enode.ID, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.BlockNumber.Uint64()
 	blockHash := gc.Evm.BlockHash

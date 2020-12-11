@@ -149,7 +149,7 @@ func getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
 	return total, nil
 }
 
-func addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
+func addActiveNode(blockHash common.Hash, node enode.ID, proposalId common.Hash) error {
 	nodes, err := getActiveNodeList(blockHash, proposalId)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
@@ -164,12 +164,12 @@ func addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId commo
 	}
 }
 
-func getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
+func getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]enode.ID, error) {
 	value, err := get(blockHash, KeyActiveNodes(proposalId))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
-	var nodes []discover.NodeID
+	var nodes []enode.ID
 	if len(value) > 0 {
 		if err := rlp.DecodeBytes(value, &nodes); err != nil {
 			return nil, err
@@ -182,12 +182,12 @@ func deleteActiveNodeList(blockHash common.Hash, proposalId common.Hash) error {
 	return del(blockHash, KeyActiveNodes(proposalId))
 }
 
-func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []discover.NodeID) error {
+func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []enode.ID) error {
 	value, err := get(blockHash, KeyAccuVerifier(proposalId))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
-	var accuVerifiers []discover.NodeID
+	var accuVerifiers []enode.ID
 
 	if value != nil {
 		if err := rlp.DecodeBytes(value, &accuVerifiers); err != nil {
@@ -195,7 +195,7 @@ func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []dis
 		}
 	}
 
-	existMap := make(map[discover.NodeID]struct{}, len(accuVerifiers))
+	existMap := make(map[enode.ID]struct{}, len(accuVerifiers))
 	for _, nodeID := range accuVerifiers {
 		existMap[nodeID] = struct{}{}
 	}
@@ -214,14 +214,14 @@ func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []dis
 	return put(blockHash, KeyAccuVerifier(proposalId), accuVerifiers)
 }
 
-func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
+func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]enode.ID, error) {
 	value, err := get(blockHash, KeyAccuVerifier(proposalId))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 
 	if len(value) > 0 {
-		var verifiers []discover.NodeID
+		var verifiers []enode.ID
 		if err := rlp.DecodeBytes(value, &verifiers); err != nil {
 			return nil, err
 		} else {

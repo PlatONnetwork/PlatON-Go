@@ -606,7 +606,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 
 	validatorQueue := make(staking.ValidatorQueue, 0)
 	// The following uses multiple nodes to simulate a variety of different scenarios
-	validatorMap := make(map[discover.NodeID]bool)
+	validatorMap := make(map[enode.ID]bool)
 	// Blocks were produced in the last round; removed from pending list
 	// bits：1 -> delete
 	validatorMap[nodeIdArr[0]] = true
@@ -725,7 +725,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	}
 	// Third consensus round
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[0]] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
@@ -751,7 +751,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	}
 	// Fourth consensus round
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[0]] = true
 	validatorQueue = append(validatorQueue, &staking.Validator{
@@ -765,7 +765,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	}
 	// Fifth consensus round
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[2]] = false
 	validatorMap[nodeIdArr[3]] = false
@@ -797,7 +797,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		t.Fatal(err)
 	}
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[1]] = false
 	validatorMap[nodeIdArr[2]] = false
@@ -825,7 +825,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		t.Fatal(err)
 	}
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[5]] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
@@ -846,7 +846,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		t.Errorf("waitSlashingNodeList amount: have %v, want %v", len(waitSlashingNodeList), 0)
 		return
 	}
-	expectMap := make(map[discover.NodeID]*WaitSlashingNode)
+	expectMap := make(map[enode.ID]*WaitSlashingNode)
 	expectMap[nodeIdArr[1]] = &WaitSlashingNode{
 		CountBit: 1,
 		Round:    5,

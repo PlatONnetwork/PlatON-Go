@@ -18,12 +18,12 @@ package byteutil
 
 import (
 	"encoding/hex"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 )
@@ -44,8 +44,8 @@ var Bytes2X_CMD = map[string]interface{}{
 
 	"*big.Int":              BytesToBigInt,
 	"[]*big.Int":            BytesToBigIntArr,
-	"discover.NodeID":       BytesToNodeId,
-	"[]discover.NodeID":     BytesToNodeIdArr,
+	"enode.ID":       BytesToNodeId,
+	"[]enode.ID":     BytesToNodeIdArr,
 	"common.Hash":           BytesToHash,
 	"[]common.Hash":         BytesToHashArr,
 	"common.Address":        BytesToAddress,
@@ -185,27 +185,27 @@ func BytesToBigIntArr(curByte []byte) []*big.Int {
 	return arr
 }
 
-func BytesToNodeId(curByte []byte) discover.NodeID {
+func BytesToNodeId(curByte []byte) enode.ID {
 	//str := BytesToString(curByte)
 	//nodeId, _ := discover.HexID(str)
 	//return nodeId
-	var nodeId discover.NodeID
+	var nodeId enode.ID
 	if err := rlp.DecodeBytes(curByte, &nodeId); nil != err {
 		panic("BytesToNodeId:" + err.Error())
 	}
 	return nodeId
 }
 
-func BytesToNodeIdArr(curByte []byte) []discover.NodeID {
+func BytesToNodeIdArr(curByte []byte) []enode.ID {
 	/*str := BytesToString(curByte)
 	strArr := strings.Split(str, ":")
-	var ANodeID []discover.NodeID
+	var ANodeID []enode.ID
 	for i := 0; i < len(strArr); i++ {
 		nodeId, _ := discover.HexID(strArr[i])
 		ANodeID = append(ANodeID, nodeId)
 	}
 	return ANodeID*/
-	var nodeIdArr []discover.NodeID
+	var nodeIdArr []enode.ID
 	if err := rlp.DecodeBytes(curByte, &nodeIdArr); nil != err {
 		panic("BytesToNodeIdArr:" + err.Error())
 	}
@@ -327,7 +327,7 @@ func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
 	return planArr
 }
 
-func PrintNodeID(nodeID discover.NodeID) string {
+func PrintNodeID(nodeID enode.ID) string {
 	return hex.EncodeToString(nodeID.Bytes()[:8])
 }
 

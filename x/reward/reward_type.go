@@ -18,12 +18,12 @@ package reward
 
 import (
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 func NewDelegateRewardPer(epoch uint64, totalReward, totalDelegate *big.Int) *DelegateRewardPer {
@@ -106,13 +106,13 @@ func (d *DelegateRewardPerList) IsChange() bool {
 }
 
 type NodeDelegateReward struct {
-	NodeID     discover.NodeID `json:"nodeID"`
+	NodeID     enode.ID `json:"nodeID"`
 	StakingNum uint64          `json:"stakingNum"`
 	Reward     *big.Int        `json:"reward" rlp:"nil"`
 }
 
 type NodeDelegateRewardPresenter struct {
-	NodeID     discover.NodeID `json:"nodeID" `
+	NodeID     enode.ID `json:"nodeID" `
 	Reward     *hexutil.Big    `json:"reward" `
 	StakingNum uint64          `json:"stakingNum"`
 }

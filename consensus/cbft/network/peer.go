@@ -473,7 +473,7 @@ func (ps *PeerSet) Len() int {
 
 // peersWithConsensus retrieves a list of peers that exist with the PeerSet based
 // on the incoming consensus node ID array.
-func (ps *PeerSet) peersWithConsensus(consensusNodes []discover.NodeID) []*peer {
+func (ps *PeerSet) peersWithConsensus(consensusNodes []enode.ID) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -488,7 +488,7 @@ func (ps *PeerSet) peersWithConsensus(consensusNodes []discover.NodeID) []*peer 
 }
 
 // peersWithoutConsensus retrieves a list of peer that does not contain consensus nodes.
-func (ps *PeerSet) peersWithoutConsensus(consensusNodes []discover.NodeID) []*peer {
+func (ps *PeerSet) peersWithoutConsensus(consensusNodes []enode.ID) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 

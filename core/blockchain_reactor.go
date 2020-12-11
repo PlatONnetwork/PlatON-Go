@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"sync"
 
@@ -31,7 +32,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -51,7 +51,7 @@ type BlockChainReactor struct {
 	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
 	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
 	validatorMode string                    // mode: static, inner, ppos
-	NodeId        discover.NodeID           // The nodeId of current node
+	NodeId        enode.ID           // The nodeId of current node
 	exitCh        chan chan struct{}        // Used to receive an exit signal
 	exitOnce      sync.Once
 	chainID       *big.Int
@@ -184,7 +184,7 @@ func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 			bcr.vh.SetPrivateKey(privateKey)
 		}
 		plugin.SlashInstance().SetPrivateKey(privateKey)
-		bcr.NodeId = discover.PubkeyID(&privateKey.PublicKey)
+		bcr.NodeId = enode.PubkeyToIDV4(&privateKey.PublicKey)
 	}
 }
 
@@ -195,7 +195,7 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 	bcr.endRule = rule
 }
 
-func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId discover.NodeID) {
+func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId enode.ID) {
 
 	/**
 	this things about ppos
@@ -395,7 +395,7 @@ func (bcr *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Valid
 	return plugin.StakingInstance().GetValidator(blockNumber)
 }
 
-func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
+func (bcr *BlockChainReactor) IsCandidateNode(nodeID enode.ID) bool {
 	return plugin.StakingInstance().IsCandidateNode(nodeID)
 }
 

@@ -31,7 +31,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/julienschmidt/httprouter"
@@ -709,22 +709,24 @@ func (s *Server) wrapHandler(handler http.HandlerFunc) httprouter.Handle {
 		ctx := context.Background()
 
 		if id := params.ByName("nodeid"); id != "" {
-			var node *Node
-			if nodeID, err := discover.HexID(id); err == nil {
-				node = s.network.GetNode(nodeID)
+			var peerID enode.ID
+			var peer *Node
+			if peerID.UnmarshalText([]byte(id)) == nil {
+				peer = s.network.GetNode(peerID)
 			} else {
-				node = s.network.GetNodeByName(id)
+				peer = s.network.GetNodeByName(id)
 			}
-			if node == nil {
+			if peer == nil {
 				http.NotFound(w, req)
 				return
 			}
-			ctx = context.WithValue(ctx, "node", node)
+			ctx = context.WithValue(ctx, "peer", peer)
 		}
 
 		if id := params.ByName("peerid"); id != "" {
+			var peerID enode.ID
 			var peer *Node
-			if peerID, err := discover.HexID(id); err == nil {
+			if peerID.UnmarshalText([]byte(id)) == nil {
 				peer = s.network.GetNode(peerID)
 			} else {
 				peer = s.network.GetNodeByName(id)

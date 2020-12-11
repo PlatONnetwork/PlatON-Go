@@ -35,7 +35,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
@@ -378,18 +378,18 @@ func (c *Config) BlsKey() *bls.SecretKey {
 }
 
 // StaticNodes returns a list of node enode URLs configured as static nodes.
-func (c *Config) StaticNodes() []*discover.Node {
-	return c.parsePersistentNodes(&c.staticNodesWarning, c.ResolvePath(datadirStaticNodes))
+func (c *Config) StaticNodes() []*enode.Node {
+	return c.parsePersistentNodes(c.ResolvePath(datadirStaticNodes))
 }
 
 // TrustedNodes returns a list of node enode URLs configured as trusted nodes.
-func (c *Config) TrustedNodes() []*discover.Node {
-	return c.parsePersistentNodes(&c.trustedNodesWarning, c.ResolvePath(datadirTrustedNodes))
+func (c *Config) TrustedNodes() []*enode.Node {
+	return c.parsePersistentNodes(c.ResolvePath(datadirTrustedNodes))
 }
 
 // parsePersistentNodes parses a list of discovery node URLs loaded from a .json
 // file from within the data directory.
-func (c *Config) parsePersistentNodes(w *bool, path string) []*discover.Node {
+func (c *Config) parsePersistentNodes(path string) []*enode.Node {
 	// Short circuit if no node config is present
 	if c.DataDir == "" {
 		return nil
@@ -397,7 +397,6 @@ func (c *Config) parsePersistentNodes(w *bool, path string) []*discover.Node {
 	if _, err := os.Stat(path); err != nil {
 		return nil
 	}
-	c.warnOnce(w, "Found deprecated node list file %s, please use the TOML config file instead.", path)
 
 	// Load the nodes from the config file.
 	var nodelist []string
@@ -406,12 +405,12 @@ func (c *Config) parsePersistentNodes(w *bool, path string) []*discover.Node {
 		return nil
 	}
 	// Interpret the list as a discovery node array
-	var nodes []*discover.Node
+	var nodes []*enode.Node
 	for _, url := range nodelist {
 		if url == "" {
 			continue
 		}
-		node, err := discover.ParseNode(url)
+		node, err := enode.Parse(enode.ValidSchemes, url)
 		if err != nil {
 			log.Error(fmt.Sprintf("Node URL %s: %v\n", url, err))
 			continue

@@ -966,7 +966,7 @@ func getTxtProposal() *TextProposal {
 		ProposalType: Text,
 		PIPID:        "em1",
 		SubmitBlock:  uint64(1000),
-		Proposer:     discover.NodeID{},
+		Proposer:     enode.ID{},
 	}
 }
 
@@ -977,7 +977,7 @@ func getVerProposal(proposalId common.Hash) *VersionProposal {
 		PIPID:           "em2",
 		SubmitBlock:     uint64(1000),
 		EndVotingRounds: uint64(8),
-		Proposer:        discover.NodeID{},
+		Proposer:        enode.ID{},
 		NewVersion:      32,
 	}
 }
@@ -989,7 +989,7 @@ func getCancelProposal() *CancelProposal {
 		PIPID:           "em3",
 		SubmitBlock:     uint64(1000),
 		EndVotingRounds: uint64(5),
-		Proposer:        discover.NodeID{},
+		Proposer:        enode.ID{},
 		TobeCanceled:    common.Hash{0x02},
 	}
 }
@@ -1000,7 +1000,7 @@ func getParamProposal() *ParamProposal {
 		ProposalType: Param,
 		PIPID:        "em5",
 		SubmitBlock:  uint64(1000),
-		Proposer:     discover.NodeID{},
+		Proposer:     enode.ID{},
 		Module:       "PPOS",
 		Name:         "testName1",
 		NewValue:     "newValue1",
@@ -1030,7 +1030,7 @@ var voteValueList = []VoteValue{
 	},
 }
 
-var NodeIDList = []discover.NodeID{
+var NodeIDList = []enode.ID{
 	discover.MustHexID("5a942bc607d970259e203f5110887d6105cc787f7433c16ce28390fb39f1e67897b0fb445710cc836b89ed7f951c57a1f26a0940ca308d630448b5bd391a8aa6"),
 	discover.MustHexID("c453d29394e613e85999129b8fb93146d584d5a0be16f7d13fd1f44de2d01bae104878eba8e8f6b8d2c162b5a35d5939d38851f856e56186471dd7de57e9bfa9"),
 	discover.MustHexID("2c1733caf5c23086612a309f5ee8e76ca45455351f7cf069bcde59c07175607325cf2bf2485daa0fbf1f9cdee6eea246e5e00b9a0d0bfed0f02b37f3b0c70490"),

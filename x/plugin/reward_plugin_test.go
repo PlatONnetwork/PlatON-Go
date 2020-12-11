@@ -452,7 +452,7 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 	}, nil, nil)
 
 	type delegateInfo struct {
-		nodeID                                            discover.NodeID
+		nodeID                                            enode.ID
 		stakingNum                                        uint64
 		currentReward, totalDelegateReward, totalDelegate *big.Int
 	}

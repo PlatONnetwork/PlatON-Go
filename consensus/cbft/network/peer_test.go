@@ -141,7 +141,7 @@ func Test_PeerSet_Peers(t *testing.T) {
 	// Init the node of peerSet.
 	ps := NewPeerSet()
 	var peers []*peer
-	var ids []discover.NodeID
+	var ids []enode.ID
 	for i := 0; i < 11; i++ {
 		p, id := newTestPeer(1, fmt.Sprintf("%d", i))
 		peers = append(peers, p)
@@ -194,7 +194,7 @@ func Test_PeerSet_Peers(t *testing.T) {
 func Test_Peer_Handshake(t *testing.T) {
 	exec := func(close chan<- struct{}, inStatus, outStatus *protocols.CbftStatusData, wantErr error) {
 		in, out := p2p.MsgPipe()
-		var id discover.NodeID
+		var id enode.ID
 		rand.Read(id[:])
 		me := newPeer(1, p2p.NewPeer(id, "me", nil), in)
 		you := newPeer(1, p2p.NewPeer(id, "you", nil), out)

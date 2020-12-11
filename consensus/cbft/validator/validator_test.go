@@ -158,7 +158,7 @@ func TestValidators(t *testing.T) {
 	nl := vds.NodeList()
 	assert.True(t, len(nl) == vds.Len())
 
-	emptyNodeID := discover.NodeID{}
+	emptyNodeID := enode.ID{}
 	validator, err = vds.FindNodeByID(emptyNodeID)
 	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
@@ -433,7 +433,7 @@ func TestValidatorPool(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, node.NodeID, nodes[0].Node.ID)
 
-	_, err = validatorPool.GetValidatorByNodeID(0, discover.NodeID{})
+	_, err = validatorPool.GetValidatorByNodeID(0, enode.ID{})
 	assert.Equal(t, err, errors.New("not found the node"))
 
 	node, err = validatorPool.GetValidatorByIndex(0, 1)
@@ -453,7 +453,7 @@ func TestValidatorPool(t *testing.T) {
 	assert.Equal(t, err, errors.New("invalid address"))
 
 	nodeID := validatorPool.GetNodeIDByIndex(0, 4)
-	assert.Equal(t, nodeID, discover.NodeID{})
+	assert.Equal(t, nodeID, enode.ID{})
 
 	nodeID = validatorPool.GetNodeIDByIndex(0, 0)
 	assert.Equal(t, nodeID, nodes[0].Node.ID)
@@ -462,7 +462,7 @@ func TestValidatorPool(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, index, uint32(0))
 
-	index, err = validatorPool.GetIndexByNodeID(0, discover.NodeID{})
+	index, err = validatorPool.GetIndexByNodeID(0, enode.ID{})
 	assert.Equal(t, err, errors.New("not found the specified validator"))
 	assert.Equal(t, index, uint32(0xffffffff))
 
@@ -471,7 +471,7 @@ func TestValidatorPool(t *testing.T) {
 
 	assert.True(t, validatorPool.IsValidator(0, nodes[0].Node.ID))
 	assert.True(t, validatorPool.Len(0) == len(nodes))
-	assert.True(t, validatorPool.IsCandidateNode(discover.NodeID{}))
+	assert.True(t, validatorPool.IsCandidateNode(enode.ID{}))
 
 	eventMux := &event.TypeMux{}
 
@@ -578,13 +578,13 @@ func (m *mockAgency) GetValidator(blockNumber uint64) (*cbfttypes.Validators, er
 	}, nil
 }
 
-func (m *mockAgency) IsCandidateNode(discover.NodeID) bool { return false }
+func (m *mockAgency) IsCandidateNode(enode.ID) bool { return false }
 
 func (m *mockAgency) OnCommit(block *types.Block) error { return nil }
 
 func TestValidatorPoolReset(t *testing.T) {
 	agency := newMockAgency(100)
-	vp := NewValidatorPool(agency, 0, 0, discover.NodeID{})
+	vp := NewValidatorPool(agency, 0, 0, enode.ID{})
 
 	vp.Reset(100, 10)
 	assert.Equal(t, vp.switchPoint, uint64(100))

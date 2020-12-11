@@ -113,7 +113,7 @@ func (d DuplicatePrepareBlockEvidence) Validate() error {
 	return nil
 }
 
-func (d DuplicatePrepareBlockEvidence) NodeID() discover.NodeID {
+func (d DuplicatePrepareBlockEvidence) NodeID() enode.ID {
 	return d.PrepareA.ValidateNode.NodeID
 }
 
@@ -208,7 +208,7 @@ func (d DuplicatePrepareVoteEvidence) Validate() error {
 	return nil
 }
 
-func (d DuplicatePrepareVoteEvidence) NodeID() discover.NodeID {
+func (d DuplicatePrepareVoteEvidence) NodeID() enode.ID {
 	return d.VoteA.ValidateNode.NodeID
 }
 
@@ -300,7 +300,7 @@ func (d DuplicateViewChangeEvidence) Validate() error {
 	return nil
 }
 
-func (d DuplicateViewChangeEvidence) NodeID() discover.NodeID {
+func (d DuplicateViewChangeEvidence) NodeID() enode.ID {
 	return d.ViewA.ValidateNode.NodeID
 }
 

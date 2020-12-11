@@ -1,4 +1,4 @@
-// Copyright 2018 The go-ethereum Authors
+// Copyright 2017 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -14,23 +14,33 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package enr
+// Package testlog provides a log handler for unit tests.
+package testlog
 
 import (
-	"crypto/ecdsa"
-	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
-// Checks that failure to sign leaves the record unmodified.
-func TestSignError(t *testing.T) {
-	invalidKey := &ecdsa.PrivateKey{D: new(big.Int), PublicKey: *pubkey}
+// Logger returns a logger which logs to the unit test log of t.
+func Logger(t *testing.T, level log.Lvl) log.Logger {
+	l := log.New()
+	l.SetHandler(Handler(t, level))
+	return l
+}
 
-	var r Record
-	if err := SignV4(&r, invalidKey); err == nil {
-		t.Fatal("expected error from SignV4")
-	}
-	if len(r.pairs) > 0 {
-		t.Fatal("expected empty record, have", r.pairs)
-	}
+// Handler returns a log handler which logs to the unit test log of t.
+func Handler(t *testing.T, level log.Lvl) log.Handler {
+	return log.LvlFilterHandler(level, &handler{t, log.TerminalFormat(false)})
+}
+
+type handler struct {
+	t   *testing.T
+	fmt log.Format
+}
+
+func (h *handler) Log(r *log.Record) error {
+	h.t.Logf("%s", h.fmt.Format(r))
+	return nil
 }

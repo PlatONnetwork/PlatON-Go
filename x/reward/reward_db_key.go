@@ -48,7 +48,7 @@ func HistoryBalancePrefix(year uint32) []byte {
 	return append(LastYearEndBalancePrefix, common.Uint32ToBytes(year)...)
 }
 
-func DelegateRewardPerKey(nodeID discover.NodeID, stakingNum, epoch uint64) []byte {
+func DelegateRewardPerKey(nodeID enode.ID, stakingNum, epoch uint64) []byte {
 	index := uint32(epoch / DelegateRewardPerLength)
 	add, err := xutil.NodeId2Addr(nodeID)
 	if err != nil {
@@ -65,7 +65,7 @@ func DelegateRewardPerKey(nodeID discover.NodeID, stakingNum, epoch uint64) []by
 	return keyAdd
 }
 
-func DelegateRewardPerKeys(nodeID discover.NodeID, stakingNum, fromEpoch, toEpoch uint64) [][]byte {
+func DelegateRewardPerKeys(nodeID enode.ID, stakingNum, fromEpoch, toEpoch uint64) [][]byte {
 	indexFrom := uint32(fromEpoch / DelegateRewardPerLength)
 	indexTo := uint32(toEpoch / DelegateRewardPerLength)
 	add, err := xutil.NodeId2Addr(nodeID)

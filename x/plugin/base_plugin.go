@@ -35,7 +35,7 @@ import (
 type BasePlugin interface {
 	BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
 	EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
-	Confirmed(nodeId discover.NodeID, block *types.Block) error
+	Confirmed(nodeId enode.ID, block *types.Block) error
 }
 
 var (

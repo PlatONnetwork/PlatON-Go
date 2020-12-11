@@ -1232,7 +1232,7 @@ func TestGovPlugin_printVersion(t *testing.T) {
 }
 
 func TestGovPlugin_TestNodeID(t *testing.T) {
-	var nodeID discover.NodeID
+	var nodeID enode.ID
 	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
 
 	t.Logf("nodeID is empty, %t", nodeID == discover.ZeroNodeID)
@@ -1240,7 +1240,7 @@ func TestGovPlugin_TestNodeID(t *testing.T) {
 }
 
 /*func TestNodeID1(t *testing.T) {
-	var nodeID discover.NodeID
+	var nodeID enode.ID
 	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
 
 	t.Error("nodeID is empty", "nodeID", nodeID)

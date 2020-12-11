@@ -157,7 +157,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	return txResultHandlerWithRes(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code), reward), nil
 }
 
-func (rc *DelegateRewardContract) getDelegateReward(address common.Address, nodeIDs []discover.NodeID) ([]byte, error) {
+func (rc *DelegateRewardContract) getDelegateReward(address common.Address, nodeIDs []enode.ID) ([]byte, error) {
 	state := rc.Evm.StateDB
 
 	blockNum := rc.Evm.BlockNumber

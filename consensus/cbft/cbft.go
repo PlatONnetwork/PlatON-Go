@@ -183,7 +183,7 @@ type Cbft struct {
 	//test
 	insertBlockQCHook  func(block *types.Block, qc *ctypes.QuorumCert)
 	executeFinishHook  func(index uint32)
-	consensusNodesMock func() ([]discover.NodeID, error)
+	consensusNodesMock func() ([]enode.ID, error)
 }
 
 // New returns a new CBFT.
@@ -1086,7 +1086,7 @@ func (cbft *Cbft) Close() error {
 }
 
 // ConsensusNodes returns to the list of consensus nodes.
-func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
+func (cbft *Cbft) ConsensusNodes() ([]enode.ID, error) {
 	if cbft.consensusNodesMock != nil {
 		return cbft.consensusNodesMock()
 	}
@@ -1801,7 +1801,7 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 }
 
 // NodeID returns the ID value of the current node
-func (cbft *Cbft) NodeID() discover.NodeID {
+func (cbft *Cbft) NodeID() enode.ID {
 	return cbft.config.Option.NodeID
 }
 

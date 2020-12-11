@@ -55,7 +55,7 @@ func init() {
 }
 
 var (
-	nodeIdArr = []discover.NodeID{
+	nodeIdArr = []enode.ID{
 		discover.MustHexID("5a942bc607d970259e203f5110887d6105cc787f7433c16ce28390fb39f1e67897b0fb445710cc836b89ed7f951c57a1f26a0940ca308d630448b5bd391a8aa6"),
 		discover.MustHexID("c453d29394e613e85999129b8fb93146d584d5a0be16f7d13fd1f44de2d01bae104878eba8e8f6b8d2c162b5a35d5939d38851f856e56186471dd7de57e9bfa9"),
 		discover.MustHexID("2c1733caf5c23086612a309f5ee8e76ca45455351f7cf069bcde59c07175607325cf2bf2485daa0fbf1f9cdee6eea246e5e00b9a0d0bfed0f02b37f3b0c70490"),
@@ -338,11 +338,11 @@ func build_staking_data_more(block uint64) {
 
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
-		randBuildFunc := func() (discover.NodeID, common.Address, error) {
+		randBuildFunc := func() (enode.ID, common.Address, error) {
 			privateKey, err := crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random NodeId private key: %v", err)
-				return discover.NodeID{}, common.ZeroAddr, err
+				return enode.ID{}, common.ZeroAddr, err
 			}
 
 			nodeId := discover.PubkeyID(&privateKey.PublicKey)
@@ -350,7 +350,7 @@ func build_staking_data_more(block uint64) {
 			privateKey, err = crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random Address private key: %v", err)
-				return discover.NodeID{}, common.ZeroAddr, err
+				return enode.ID{}, common.ZeroAddr, err
 			}
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -358,7 +358,7 @@ func build_staking_data_more(block uint64) {
 			return nodeId, addr, nil
 		}
 
-		var nodeId discover.NodeID
+		var nodeId enode.ID
 		var addr common.Address
 
 		if i < 25 {
@@ -491,11 +491,11 @@ func build_staking_data(genesisHash common.Hash) {
 
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
-		randBuildFunc := func() (discover.NodeID, common.Address, error) {
+		randBuildFunc := func() (enode.ID, common.Address, error) {
 			privateKey, err := crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random NodeId private key: %v", err)
-				return discover.NodeID{}, common.ZeroAddr, err
+				return enode.ID{}, common.ZeroAddr, err
 			}
 
 			nodeId := discover.PubkeyID(&privateKey.PublicKey)
@@ -503,7 +503,7 @@ func build_staking_data(genesisHash common.Hash) {
 			privateKey, err = crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random Address private key: %v", err)
-				return discover.NodeID{}, common.ZeroAddr, err
+				return enode.ID{}, common.ZeroAddr, err
 			}
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -511,7 +511,7 @@ func build_staking_data(genesisHash common.Hash) {
 			return nodeId, addr, nil
 		}
 
-		var nodeId discover.NodeID
+		var nodeId enode.ID
 		var addr common.Address
 
 		if i < 25 {

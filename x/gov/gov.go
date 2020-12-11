@@ -34,12 +34,12 @@ import (
 
 type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
-	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error)
+	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]enode.ID, error)
 	GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error)
 	GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error)
 	GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error)
 	GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error)
-	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
+	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId enode.ID, programVersion uint32) error
 }
 
 const (
@@ -232,7 +232,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 }
 
 // node declares it's version
-func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
+func DeclareVersion(from common.Address, declaredNodeID enode.ID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
 
 	if !node.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
@@ -322,7 +322,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 }
 
 // check if the node a verifier, and the caller address is same as the staking address
-func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
+func checkVerifier(from common.Address, nodeID enode.ID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 
 	_, err := xutil.NodeId2Addr(nodeID)
@@ -443,7 +443,7 @@ func FindVotingProposal(blockHash common.Hash, state xcom.StateDB, proposalTypes
 // GetMaxEndVotingBlock returns the max endVotingBlock of proposals those are at voting stage, and the nodeID has voted for those proposals.
 // or returns 0 if there's no proposal at voting stage, or nodeID didn't voted for any proposal.
 // if any error happened, return 0 and the error
-func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state xcom.StateDB) (uint64, error) {
+func GetMaxEndVotingBlock(nodeID enode.ID, blockHash common.Hash, state xcom.StateDB) (uint64, error) {
 	if proposalIDList, err := ListVotingProposal(blockHash); err != nil {
 		return 0, err
 	} else {
@@ -468,7 +468,7 @@ func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state x
 }
 
 // NotifyPunishedVerifiers receives punished verifies notification from Staking
-func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[discover.NodeID]struct{}, state xcom.StateDB) error {
+func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[enode.ID]struct{}, state xcom.StateDB) error {
 	if punishedVerifierMap == nil || len(punishedVerifierMap) == 0 {
 		return nil
 	}
@@ -612,7 +612,7 @@ func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, 
 }
 
 // check if the node a candidate, and the caller address is same as the staking address
-func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
+func checkCandidate(from common.Address, nodeID enode.ID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 
 	_, err := xutil.NodeId2Addr(nodeID)
 	if nil != err {

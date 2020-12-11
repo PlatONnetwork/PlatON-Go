@@ -18,15 +18,15 @@ package types
 
 import (
 	"crypto/ecdsa"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 type OptionsConfig struct {
 	NodePriKey *ecdsa.PrivateKey `json:"-"`
-	NodeID     discover.NodeID   `json:"nodeID"`
+	NodeID     enode.ID          `json:"nodeID"`
 	BlsPriKey  *bls.SecretKey    `json:"-"`
 	WalMode    bool              `json:"walMode"`
 

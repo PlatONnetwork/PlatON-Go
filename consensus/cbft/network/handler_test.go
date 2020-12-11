@@ -46,18 +46,18 @@ import (
 // methods of the Cbft interface.
 type fakeCbft struct {
 	localPeer      *peer             // Represents a local peer
-	consensusNodes []discover.NodeID // All consensus nodes
+	consensusNodes []enode.ID // All consensus nodes
 	writer         p2p.MsgReadWriter // Pipeline for receiving data.
 	peers          []*peer           // Pre-initialized node for testing.
 }
 
 // Returns the ID of the local node.
-func (s *fakeCbft) NodeID() discover.NodeID {
+func (s *fakeCbft) NodeID() enode.ID {
 	return s.localPeer.Peer.ID()
 }
 
 // Return all consensus nodes.
-func (s *fakeCbft) ConsensusNodes() ([]discover.NodeID, error) {
+func (s *fakeCbft) ConsensusNodes() ([]enode.ID, error) {
 	return s.consensusNodes, nil
 }
 
@@ -143,10 +143,10 @@ func (s *fakeCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error 
 // Create a new EngineManager.
 func newHandle(t *testing.T) (*EngineManager, *fakeCbft) {
 	// init local peer and engineManager.
-	var consensusNodes []discover.NodeID
+	var consensusNodes []enode.ID
 	var peers []*peer
 	writer, reader := p2p.MsgPipe()
-	var localID discover.NodeID
+	var localID enode.ID
 	rand.Read(localID[:])
 	localPeer := newPeer(1, p2p.NewPeer(localID, "local", nil), reader)
 

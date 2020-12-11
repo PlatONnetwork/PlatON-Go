@@ -106,7 +106,7 @@ func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, err
 }
 
 //Add the Vote detail
-func AddVoteValue(proposalID common.Hash, voter discover.NodeID, option VoteOption, blockHash common.Hash) error {
+func AddVoteValue(proposalID common.Hash, voter enode.ID, option VoteOption, blockHash common.Hash) error {
 	voteValueList, err := ListVoteValue(proposalID, blockHash)
 	if err != nil {
 		return err
@@ -171,8 +171,8 @@ func ClearVoteValue(proposalID common.Hash, blockHash common.Hash) error {
 }
 
 /*
-func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.NodeID, error) {
-	var voterList []discover.NodeID
+func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]enode.ID, error) {
+	var voterList []enode.ID
 	valueList, err := ListVoteValue(proposalID, state)
 	if err != nil {
 		return nil, err
@@ -185,13 +185,13 @@ func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.N
 }
 */
 
-func GetVotedVerifierMap(proposalID common.Hash, blockHash common.Hash) (map[discover.NodeID]struct{}, error) {
+func GetVotedVerifierMap(proposalID common.Hash, blockHash common.Hash) (map[enode.ID]struct{}, error) {
 	valueList, err := ListVoteValue(proposalID, blockHash)
 	if err != nil {
 		return nil, err
 	}
 
-	votedMap := make(map[discover.NodeID]struct{}, len(valueList))
+	votedMap := make(map[enode.ID]struct{}, len(valueList))
 	for _, value := range valueList {
 		votedMap[value.VoteNodeID] = struct{}{}
 	}
@@ -375,7 +375,7 @@ func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash)
 }
 
 // Add the node that has made a new version declare or vote during voting period
-func AddActiveNode(blockHash common.Hash, proposalID common.Hash, nodeID discover.NodeID) error {
+func AddActiveNode(blockHash common.Hash, proposalID common.Hash, nodeID enode.ID) error {
 	if err := addActiveNode(blockHash, nodeID, proposalID); err != nil {
 		log.Error("add active node to snapshot db failed", "blockHash", blockHash.Hex(), "proposalID", proposalID, "error", err)
 		return err
@@ -384,7 +384,7 @@ func AddActiveNode(blockHash common.Hash, proposalID common.Hash, nodeID discove
 }
 
 // Get the node list that have made a new version declare or vote during voting period
-func GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
+func GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) ([]enode.ID, error) {
 	nodes, err := getActiveNodeList(blockHash, proposalID)
 	if err != nil {
 		log.Error("get active nodes from snapshot db failed", "blockHash", blockHash.Hex(), "proposalID", proposalID, "error", err)
@@ -404,7 +404,7 @@ func ClearActiveNodes(blockHash common.Hash, proposalID common.Hash) error {
 }
 
 // AccuVerifiers accumulates all distinct verifiers those can vote this proposal ID
-func AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) error {
+func AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []enode.ID) error {
 	if err := addAccuVerifiers(blockHash, proposalID, verifierList); err != nil {
 		log.Error("accumulates verifiers to snapshot db failed", "blockHash", blockHash.Hex(), "proposalID", proposalID, "error", err)
 		return err
@@ -413,7 +413,7 @@ func AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList [
 }
 
 // Get the total number of all voting verifiers
-func ListAccuVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
+func ListAccuVerifier(blockHash common.Hash, proposalID common.Hash) ([]enode.ID, error) {
 	if l, err := getAccuVerifiers(blockHash, proposalID); err != nil {
 		log.Error("list accumulated verifiers failed", "blockHash", blockHash.Hex(), "proposalID", proposalID, "error", err)
 		return nil, err

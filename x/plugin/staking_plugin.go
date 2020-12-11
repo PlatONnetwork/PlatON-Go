@@ -179,7 +179,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 	return nil
 }
 
-func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (sk *StakingPlugin) Confirmed(nodeId enode.ID, block *types.Block) error {
 
 	if xutil.IsElection(block.NumberU64()) {
 
@@ -200,7 +200,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		diff := make(staking.ValidatorQueue, 0)
 		var isCurr, isNext bool
 
-		currMap := make(map[discover.NodeID]struct{})
+		currMap := make(map[enode.ID]struct{})
 		for _, v := range current.Arr {
 			currMap[v.NodeId] = struct{}{}
 			if nodeId == v.NodeId {
@@ -767,12 +767,12 @@ func (sk *StakingPlugin) GetDelegatesInfo(blockHash common.Hash, delAddr common.
 }
 
 func (sk *StakingPlugin) GetDelegateInfo(blockHash common.Hash, delAddr common.Address,
-	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.Delegation, error) {
+	nodeId enode.ID, stakeBlockNumber uint64) (*staking.Delegation, error) {
 	return sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
 }
 
 func (sk *StakingPlugin) GetDelegateExInfo(blockHash common.Hash, delAddr common.Address,
-	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
+	nodeId enode.ID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
 
 	del, err := sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
 	if nil != err {
@@ -793,7 +793,7 @@ func (sk *StakingPlugin) GetDelegateExInfo(blockHash common.Hash, delAddr common
 }
 
 func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNumber uint64, delAddr common.Address,
-	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
+	nodeId enode.ID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
 
 	del, err := sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
 	if nil != err {
@@ -819,13 +819,13 @@ func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNu
 }
 
 func (sk *StakingPlugin) GetDelegateInfoByIrr(delAddr common.Address,
-	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.Delegation, error) {
+	nodeId enode.ID, stakeBlockNumber uint64) (*staking.Delegation, error) {
 
 	return sk.db.GetDelegateStoreByIrr(delAddr, nodeId, stakeBlockNumber)
 }
 
 func (sk *StakingPlugin) GetDelegateExInfoByIrr(delAddr common.Address,
-	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
+	nodeId enode.ID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
 
 	del, err := sk.db.GetDelegateStoreByIrr(delAddr, nodeId, stakeBlockNumber)
 	if nil != err {
@@ -927,7 +927,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 }
 
 func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
-	delAddr common.Address, nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer) (*big.Int, error) {
+	delAddr common.Address, nodeId enode.ID, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer) (*big.Int, error) {
 	issueIncome := new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -1342,7 +1342,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 	return queue, nil
 }
 
-func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, isCommit bool) (bool, error) {
+func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId enode.ID, isCommit bool) (bool, error) {
 
 	verifierList, err := sk.getVerifierList(blockHash, blockNumber, isCommit)
 	if nil != err {
@@ -1359,7 +1359,7 @@ func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint6
 	return flag, nil
 }
 
-func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
+func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]enode.ID, error) {
 
 	verifierList, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
@@ -1374,7 +1374,7 @@ func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber u
 		return nil, staking.ErrBlockNumberDisordered
 	}
 
-	queue := make([]discover.NodeID, len(verifierList.Arr))
+	queue := make([]enode.ID, len(verifierList.Arr))
 
 	for i, v := range verifierList.Arr {
 		queue[i] = v.NodeId
@@ -1562,14 +1562,14 @@ func (sk *StakingPlugin) GetCandidateONRound(blockHash common.Hash, blockNumber 
 	return queue, nil
 }
 
-func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
+func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumber uint64) ([]enode.ID, error) {
 
 	arr, err := sk.getCurrValList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
 		return nil, err
 	}
 
-	queue := make([]discover.NodeID, len(arr.Arr))
+	queue := make([]enode.ID, len(arr.Arr))
 
 	for i, candidate := range arr.Arr {
 		queue[i] = candidate.NodeId
@@ -1577,7 +1577,7 @@ func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumb
 	return queue, err
 }
 
-func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, isCommit bool) (bool, error) {
+func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, blockNumber uint64, nodeId enode.ID, isCommit bool) (bool, error) {
 
 	validatorArr, err := sk.getCurrValList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
@@ -1645,7 +1645,7 @@ func (sk *StakingPlugin) GetCanBaseList(blockHash common.Hash, blockNumber uint6
 	return queue, nil
 }
 
-func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
+func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId enode.ID, isCommit bool) (bool, error) {
 
 	var can *staking.Candidate
 	addr, err := xutil.NodeId2Addr(nodeId)
@@ -1688,7 +1688,7 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr com
 
 		prefixLen := len(staking.DelegateKeyPrefix)
 
-		nodeIdLen := discover.NodeIDBits / 8
+		nodeIdLen := enode.IDBits / 8
 
 		// delAddr
 		delAddrByte := key[prefixLen : prefixLen+common.AddressLength]
@@ -1754,11 +1754,11 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	needRMLowVersionLen := 0
 	invalidLen := 0 // the num that the can need to remove
 
-	invalidCan := make(map[discover.NodeID]struct{})
+	invalidCan := make(map[enode.ID]struct{})
 	removeCans := make(staking.NeedRemoveCans) // the candidates need to remove
 	withdrewCans := make(staking.CandidateMap) // the candidates had withdrew
 
-	withdrewQueue := make([]discover.NodeID, 0)
+	withdrewQueue := make([]enode.ID, 0)
 	lowRatioValidAddrs := make([]common.NodeAddress, 0)                 // The addr of candidate that need to clean lowRatio status
 	lowRatioValidMap := make(map[common.NodeAddress]*staking.Candidate) // The map collect candidate info that need to clean lowRatio status
 
@@ -1784,7 +1784,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		return errors.New("Failed to get CurrentActiveVersion")
 	}
 
-	currMap := make(map[discover.NodeID]*big.Int, len(curr.Arr))
+	currMap := make(map[enode.ID]*big.Int, len(curr.Arr))
 	currqueen := make([]*staking.Validator, 0)
 	for _, v := range curr.Arr {
 
@@ -2093,9 +2093,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	// Nodes that need to be deleted from the candidate list
 	// Keep governance votes that have been voted
-	invalidNodeIdMap := make(map[discover.NodeID]struct{}, 0)
+	invalidNodeIdMap := make(map[enode.ID]struct{}, 0)
 	// Need to remove eligibility to govern voting
-	invalidRemoveGovNodeIdMap := make(map[discover.NodeID]struct{}, 0)
+	invalidRemoveGovNodeIdMap := make(map[enode.ID]struct{}, 0)
 
 	for _, slashItem := range queue {
 		needRemove, err := sk.toSlash(state, blockNumber, blockHash, slashItem)
@@ -2341,7 +2341,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	return needRemove, nil
 }
 
-func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash common.Hash, slashNodeIdMap map[discover.NodeID]struct{}) error {
+func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash common.Hash, slashNodeIdMap map[enode.ID]struct{}) error {
 	verifier, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
 		log.Error("Failed to SlashCandidates: Query Verifier List is failed", "blockNumber", blockNumber,
@@ -2463,7 +2463,7 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 	return slashAmountTmp, balanceTmp, nil
 }
 
-func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
+func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []enode.ID,
 	programVersion uint32) error {
 
 	log.Info("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
@@ -2516,7 +2516,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 	return nil
 }
 
-func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
+func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId enode.ID,
 	programVersion uint32) error {
 
 	log.Info("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
@@ -2593,7 +2593,7 @@ func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators
 }
 
 // NOTE: Verify that it is the validator of the current Epoch
-func (sk *StakingPlugin) IsCandidateNode(nodeID discover.NodeID) bool {
+func (sk *StakingPlugin) IsCandidateNode(nodeID enode.ID) bool {
 
 	indexs, err := sk.db.GetEpochValIndexByIrr()
 	if nil != err {
@@ -3427,7 +3427,7 @@ func (sk *StakingPlugin) setVerifierListByIndex(blockNumber uint64, blockHash co
 }
 
 func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, epoch uint64,
-	nodeId discover.NodeID, canAddr common.NodeAddress, stakingBlockNum uint64) error {
+	nodeId enode.ID, canAddr common.NodeAddress, stakingBlockNum uint64) error {
 
 	endVoteNum, err := gov.GetMaxEndVotingBlock(nodeId, blockHash, state)
 	if nil != err {
@@ -3462,7 +3462,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 	return nil
 }
 
-func (sk *StakingPlugin) addRecoveryUnStakeItem(blockNumber uint64, blockHash common.Hash, nodeId discover.NodeID,
+func (sk *StakingPlugin) addRecoveryUnStakeItem(blockNumber uint64, blockHash common.Hash, nodeId enode.ID,
 	canAddr common.NodeAddress, stakingBlockNum uint64) error {
 
 	duration, err := gov.GovernZeroProduceFreezeDuration(blockNumber, blockHash)

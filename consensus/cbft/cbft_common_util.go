@@ -246,8 +246,8 @@ func MockValidator(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftN
 }
 
 // NewEngineManager returns a list of EngineManager and NodeID.
-func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []discover.NodeID) {
-	nodeids := make([]discover.NodeID, 0)
+func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []enode.ID) {
+	nodeids := make([]enode.ID, 0)
 	engines := make([]*network.EngineManager, 0)
 	for _, c := range cbfts {
 		engines = append(engines, c.engine.network)

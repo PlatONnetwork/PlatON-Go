@@ -3,8 +3,8 @@ module github.com/PlatONnetwork/PlatON-Go
 go 1.13
 
 require (
-	github.com/Azure/azure-pipeline-go v0.0.0-20180607212504-7571e8eb0876 // indirect
-	github.com/Azure/azure-storage-blob-go v0.0.0-20180712005634-eaae161d9d5e
+	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
+	github.com/Azure/azure-storage-blob-go v0.7.0
 	github.com/PlatONnetwork/wagon v0.6.1-0.20201026015350-67507c2a7b96
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.7

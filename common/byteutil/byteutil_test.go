@@ -110,7 +110,7 @@ func TestBytesToNodeId(t *testing.T) {
 }
 
 func TestBytesToNodeIdArr(t *testing.T) {
-	nodeIdArr := make([]discover.NodeID, 0, 3)
+	nodeIdArr := make([]enode.ID, 0, 3)
 	for i := 0; i < 3; i++ {
 		ecdsaKey, _ := crypto.GenerateKey()
 		nodeID := discover.PubkeyID(&ecdsaKey.PublicKey)

@@ -58,7 +58,7 @@ var (
 )
 
 type MockStaking struct {
-	DeclaeredVodes map[discover.NodeID]uint32
+	DeclaeredVodes map[enode.ID]uint32
 }
 
 func (stk *MockStaking) GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
@@ -72,8 +72,8 @@ func (stk *MockStaking) GetVerifierList(blockHash common.Hash, blockNumber uint6
 	return []*staking.ValidatorEx{valEx}, nil
 }
 
-func (stk *MockStaking) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
-	return []discover.NodeID{nodeID}, nil
+func (stk *MockStaking) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]enode.ID, error) {
+	return []enode.ID{nodeID}, nil
 }
 
 func (stk *MockStaking) GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error) {
@@ -98,15 +98,15 @@ func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.NodeAdd
 	can := &staking.CandidateMutable{Status: staking.Valided}
 	return can, nil
 }
-func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error {
+func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId enode.ID, programVersion uint32) error {
 	if stk.DeclaeredVodes == nil {
-		stk.DeclaeredVodes = make(map[discover.NodeID]uint32)
+		stk.DeclaeredVodes = make(map[enode.ID]uint32)
 	}
 	stk.DeclaeredVodes[nodeID] = programVersion
 	return nil
 }
 
-func (stk *MockStaking) ListDeclaredNode() map[discover.NodeID]uint32 {
+func (stk *MockStaking) ListDeclaredNode() map[enode.ID]uint32 {
 	return stk.DeclaeredVodes
 }
 
@@ -555,7 +555,7 @@ func TestGov_NotifyPunishedVerifiers(t *testing.T) {
 		assert.Equal(t, 1, len(vvList))
 	}
 
-	punishedVerifierMap := make(map[discover.NodeID]struct{})
+	punishedVerifierMap := make(map[enode.ID]struct{})
 	punishedVerifierMap[nodeID] = struct{}{}
 
 	if err := NotifyPunishedVerifiers(chain.CurrentHeader().Hash(), punishedVerifierMap, chain.StateDB); err != nil {

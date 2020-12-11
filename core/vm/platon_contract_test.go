@@ -52,7 +52,7 @@ func init() {
 const initGas = 10000000
 
 var (
-	nodeIdArr = []discover.NodeID{
+	nodeIdArr = []enode.ID{
 		discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384"),
 		discover.MustHexID("0xced880d4769331f47af07a8d1b79de1e40c95a37ea1890bb9d3f0da8349e1a7c0ea4cadbb9c5bf185b051061eef8e5eadca251c24e1db1d9faf0fb24cbd06f9a"),
 		discover.MustHexID("0xda56501a77fc1dfe0399b81f3909061d9a176cb9433fab4d3dfb1a10344c243274e38155e18878c7a0b3fcdd6182000c7784a95e2c4d9e0691ce67798624786e"),
@@ -771,11 +771,11 @@ func build_staking_data_more(chain *mock.Chain) {
 
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
-		randBuildFunc := func() (discover.NodeID, common.Address, error) {
+		randBuildFunc := func() (enode.ID, common.Address, error) {
 			privateKey, err := crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random NodeId private key: %v", err)
-				return discover.NodeID{}, common.ZeroAddr, err
+				return enode.ID{}, common.ZeroAddr, err
 			}
 
 			nodeId := discover.PubkeyID(&privateKey.PublicKey)
@@ -783,7 +783,7 @@ func build_staking_data_more(chain *mock.Chain) {
 			privateKey, err = crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random Address private key: %v", err)
-				return discover.NodeID{}, common.ZeroAddr, err
+				return enode.ID{}, common.ZeroAddr, err
 			}
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -791,7 +791,7 @@ func build_staking_data_more(chain *mock.Chain) {
 			return nodeId, addr, nil
 		}
 
-		var nodeId discover.NodeID
+		var nodeId enode.ID
 		var addr common.Address
 
 		if i < 25 {

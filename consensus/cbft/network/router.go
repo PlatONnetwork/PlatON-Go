@@ -39,7 +39,7 @@ const DefaultFanOut = 5
 
 type unregisterFunc func(id string) error                 // Unregister peer from peerSet.
 type getByIDFunc func(id string) (*peer, error)           // Get peer based on ID.
-type consensusNodesFunc func() ([]discover.NodeID, error) // Get a list of consensus nodes.
+type consensusNodesFunc func() ([]enode.ID, error) // Get a list of consensus nodes.
 type peersFunc func() ([]*peer, error)                    // Get a list of all neighbor nodes.
 
 // Router implements the message protocol of gossip.
@@ -312,7 +312,7 @@ func formatPeers(peers []*peer) string {
 }
 
 // FormatNodes is used to print the information about peerID.
-func FormatNodes(ids []discover.NodeID) string {
+func FormatNodes(ids []enode.ID) string {
 	var bf bytes.Buffer
 	for idx, id := range ids {
 		bf.WriteString(id.TerminalString())

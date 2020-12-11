@@ -230,7 +230,8 @@ type udp struct {
 }
 
 // ListenUDP returns a new table that listens for UDP packets on laddr.
-func ListenUDP(priv *ecdsa.PrivateKey, conn conn, realaddr *net.UDPAddr, nodeDBPath string, netrestrict *netutil.Netlist) (*Network, error) {
+func ListenUDP(priv *ecdsa.PrivateKey, conn conn, nodeDBPath string, netrestrict *netutil.Netlist) (*Network, error) {
+	realaddr := conn.LocalAddr().(*net.UDPAddr)
 	transport, err := listenUDP(priv, conn, realaddr)
 	if err != nil {
 		return nil, err
@@ -239,6 +240,12 @@ func ListenUDP(priv *ecdsa.PrivateKey, conn conn, realaddr *net.UDPAddr, nodeDBP
 	if err != nil {
 		return nil, err
 	}
+
+	if cfg.ChainID != nil {
+		bytes_ChainId, _ = rlp.EncodeToBytes(cfg.ChainID)
+		log.Info("UDP listener up", "chainId", cfg.ChainID, "bytes_ChainId", bytes_ChainId)
+	}
+
 	log.Info("UDP listener up", "net", net.tab.self)
 	transport.net = net
 	go transport.readLoop()
@@ -269,6 +276,7 @@ func (t *udp) sendPing(remote *Node, toaddr *net.UDPAddr, topics []Topic) (hash 
 		To:         makeEndpoint(toaddr, uint16(toaddr.Port)), // TODO: maybe use known TCP port from DB
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 		Topics:     topics,
+		Rest:       []rlp.RawValue{bytes_ChainId},
 	})
 	return hash
 }
@@ -277,6 +285,7 @@ func (t *udp) sendFindnode(remote *Node, target NodeID) {
 	t.sendPacket(remote.ID, remote.addr(), byte(findnodePacket), findnode{
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
+		Rest:       cRest,
 	})
 }
 

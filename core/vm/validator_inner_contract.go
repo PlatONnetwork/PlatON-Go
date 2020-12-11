@@ -47,7 +47,7 @@ const (
 
 type ValidateNode struct {
 	Index     uint               `json:"index"`
-	NodeID    discover.NodeID    `json:"nodeID"`
+	NodeID    enode.ID           `json:"nodeID"`
 	Address   common.NodeAddress `json:"-"`
 	BlsPubKey bls.PublicKey      `json:"blsPubKey"`
 }

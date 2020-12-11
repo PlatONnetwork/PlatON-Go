@@ -18,9 +18,7 @@
 package les
 
 import (
-	"bytes"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"errors"
 	"fmt"
 	"io"
@@ -29,7 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
@@ -147,21 +145,21 @@ func (a *announceData) sign(privKey *ecdsa.PrivateKey) {
 }
 
 // checkSignature verifies if the block announcement has a valid signature by the given pubKey
-func (a *announceData) checkSignature(pubKey *ecdsa.PublicKey) error {
+func (a *announceData) checkSignature(id enode.ID) error {
 	var sig []byte
 	if err := a.Update.decode().get("sign", &sig); err != nil {
 		return err
 	}
 	rlp, _ := rlp.EncodeToBytes(announceBlock{a.Hash, a.Number,})
-	recPubkey, err := secp256k1.RecoverPubkey(crypto.Keccak256(rlp), sig)
+	recPubkey, err := crypto.SigToPub(crypto.Keccak256(rlp), sig)
 	if err != nil {
 		return err
 	}
-	pbytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
-	if bytes.Equal(pbytes, recPubkey) {
+
+	if id == enode.PubkeyToIDV4(recPubkey) {
 		return nil
 	}
-	return errors.New("Wrong signature")
+	return errors.New("wrong signature")
 }
 
 type blockInfo struct {

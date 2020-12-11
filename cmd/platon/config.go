@@ -114,7 +114,7 @@ func loadConfigFile(filePath string, cfg *platonConfig) error {
 func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
-	cfg.Version = params.VersionWithCommit(gitCommit)
+	cfg.Version = params.VersionWithCommit(gitCommit, "")
 	cfg.HTTPModules = append(cfg.HTTPModules, "platon")
 	cfg.WSModules = append(cfg.WSModules, "platon")
 	cfg.IPCPath = "platon.ipc"

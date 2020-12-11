@@ -48,7 +48,7 @@ import (
 
 type RewardMgrPlugin struct {
 	db            snapshotdb.DB
-	nodeID        discover.NodeID
+	nodeID        enode.ID
 	nodeADD       common.NodeAddress
 	stakingPlugin *StakingPlugin
 }
@@ -142,11 +142,11 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 }
 
 // Confirmed does nothing
-func (rmp *RewardMgrPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (rmp *RewardMgrPlugin) Confirmed(nodeId enode.ID, block *types.Block) error {
 	return nil
 }
 
-func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId discover.NodeID) {
+func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId enode.ID) {
 	rmp.nodeID = nodeId
 	add, err := xutil.NodeId2Addr(rmp.nodeID)
 	if err != nil {
@@ -333,7 +333,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 	return rewards, nil
 }
 
-func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum uint64, account common.Address, nodes []discover.NodeID, state xcom.StateDB) ([]reward.NodeDelegateRewardPresenter, error) {
+func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum uint64, account common.Address, nodes []enode.ID, state xcom.StateDB) ([]reward.NodeDelegateRewardPresenter, error) {
 	log.Debug("Call RewardMgrPlugin: query delegate reward result begin", "account", account, "nodes", nodes, "num", blockNum)
 
 	dls, err := rmp.stakingPlugin.db.GetDelegatesInfo(blockHash, account)
@@ -345,7 +345,7 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 		return nil, reward.ErrDelegationNotFound
 	}
 	if len(nodes) > 0 {
-		nodeMap := make(map[discover.NodeID]struct{})
+		nodeMap := make(map[enode.ID]struct{})
 		for _, node := range nodes {
 			nodeMap[node] = struct{}{}
 		}
@@ -427,7 +427,7 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 	return nil
 }
 
-func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (discover.NodeID, common.NodeAddress, error) {
+func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (enode.ID, common.NodeAddress, error) {
 	if blockHash == common.ZeroHash {
 		return rmp.nodeID, rmp.nodeADD, nil
 	}
@@ -503,11 +503,11 @@ func NewDelegationInfoWithRewardPerList(delegationInfo *staking.DelegationInfo, 
 	return &DelegationInfoWithRewardPerList{delegationInfo, rewardPerList}
 }
 
-func (rmp *RewardMgrPlugin) GetDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, stakingNum, fromEpoch, toEpoch uint64) ([]*reward.DelegateRewardPer, error) {
+func (rmp *RewardMgrPlugin) GetDelegateRewardPerList(blockHash common.Hash, nodeID enode.ID, stakingNum, fromEpoch, toEpoch uint64) ([]*reward.DelegateRewardPer, error) {
 	return getDelegateRewardPerList(blockHash, nodeID, stakingNum, fromEpoch, toEpoch, rmp.db)
 }
 
-func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, stakingNum, fromEpoch, toEpoch uint64, db snapshotdb.DB) ([]*reward.DelegateRewardPer, error) {
+func getDelegateRewardPerList(blockHash common.Hash, nodeID enode.ID, stakingNum, fromEpoch, toEpoch uint64, db snapshotdb.DB) ([]*reward.DelegateRewardPer, error) {
 	keys := reward.DelegateRewardPerKeys(nodeID, stakingNum, fromEpoch, toEpoch)
 	pers := make([]*reward.DelegateRewardPer, 0)
 	for _, key := range keys {
@@ -531,7 +531,7 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID discover.NodeID, sta
 	return pers, nil
 }
 
-func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) error {
+func AppendDelegateRewardPer(blockHash common.Hash, nodeID enode.ID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) error {
 	key := reward.DelegateRewardPerKey(nodeID, stakingNum, per.Epoch)
 	list := reward.NewDelegateRewardPerList()
 	val, err := db.Get(blockHash, key)
@@ -557,7 +557,7 @@ func AppendDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 	return nil
 }
 
-func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stakingNum uint64, receives []reward.DelegateRewardReceipt, db snapshotdb.DB) error {
+func UpdateDelegateRewardPer(blockHash common.Hash, nodeID enode.ID, stakingNum uint64, receives []reward.DelegateRewardReceipt, db snapshotdb.DB) error {
 	if len(receives) == 0 {
 		return nil
 	}

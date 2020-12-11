@@ -513,7 +513,7 @@ func testValidatorSwitch(t *testing.T) {
 func newUpdateValidatorTx(t *testing.T, parent *types.Block, header *types.Header, nodes []params.CbftNode, switchNode params.CbftNode, mineNode *TestCBFT) (*types.Transaction, *types.Receipt, *cstate.StateDB) {
 	type Vd struct {
 		Index     uint            `json:"index"`
-		NodeID    discover.NodeID `json:"nodeID"`
+		NodeID    enode.ID        `json:"nodeID"`
 		BlsPubKey bls.PublicKey   `json:"blsPubKey"`
 	}
 	type VdList struct {

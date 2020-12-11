@@ -159,7 +159,7 @@ type Agency interface {
 	VerifyHeader(header *types.Header, stateDB *state.StateDB) error
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
-	IsCandidateNode(nodeID discover.NodeID) bool
+	IsCandidateNode(nodeID enode.ID) bool
 	OnCommit(block *types.Block) error
 }
 
@@ -171,7 +171,7 @@ type Bft interface {
 	Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error
 
 	// Returns the current consensus node address list.
-	ConsensusNodes() ([]discover.NodeID, error)
+	ConsensusNodes() ([]enode.ID, error)
 
 	// Returns whether the current node is out of the block
 	ShouldSeal(curTime time.Time) (bool, error)
@@ -193,5 +193,5 @@ type Bft interface {
 	TracingSwitch(flag int8)
 
 	// NodeID is temporary.
-	NodeID() discover.NodeID
+	NodeID() enode.ID
 }

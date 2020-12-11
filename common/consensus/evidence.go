@@ -18,7 +18,7 @@ package consensus
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
 type EvidenceType uint8
@@ -32,7 +32,7 @@ type Evidence interface {
 	ViewNumber() uint64
 	Hash() []byte
 	//Address() common.NodeAddress
-	NodeID() discover.NodeID
+	NodeID() enode.ID
 	BlsPubKey() *bls.PublicKey
 	Validate() error
 	Type() EvidenceType

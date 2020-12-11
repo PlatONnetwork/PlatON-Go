@@ -25,7 +25,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/light"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -61,7 +61,7 @@ func (c *lesCommons) makeProtocols(versions []uint) []p2p.Protocol {
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 				return c.protocolManager.runPeer(version, p, rw)
 			},
-			PeerInfo: func(id discover.NodeID) interface{} {
+			PeerInfo: func(id enode.ID) interface{} {
 				if p := c.protocolManager.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
 					return p.Info()
 				}
