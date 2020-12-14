@@ -483,6 +483,39 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	return nil
 }
 
+// ReturnWrongLockFunds transfer the money from the staking contract account to the restricting contract account
+func (rp *RestrictingPlugin) ReturnWrongLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
+	amountCompareWithZero := amount.Cmp(common.Big0)
+	if amountCompareWithZero == 0 {
+		return nil
+	} else if amountCompareWithZero < 0 {
+		return restricting.ErrReturnLockFundsAmountLessThanZero
+	}
+	restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
+	if err != nil {
+		return err
+	}
+	rp.log.Debug("Call ReturnWrongLockFunds begin", "account", account, "amount", amount, "info", restrictInfo)
+
+	if restrictInfo.StakingAmount.Cmp(amount) < 0 {
+		return restricting.ErrStakingAmountInvalid
+	}
+
+	rp.transferAmount(state, vm.StakingContractAddr, vm.RestrictingContractAddr, amount)
+	restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, amount)
+	restrictInfo.StakingAmount.Sub(restrictInfo.StakingAmount, amount)
+	// save restricting account info
+	if restrictInfo.StakingAmount.Cmp(common.Big0) == 0 &&
+		len(restrictInfo.ReleaseList) == 0 && restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
+		state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+		rp.log.Debug("Call ReturnWrongLockFunds finished,set info empty", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr))
+	} else {
+		rp.storeRestrictingInfo(state, restrictingKey, restrictInfo)
+		rp.log.Debug("Call ReturnWrongLockFunds finished", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "info", restrictInfo)
+	}
+	return nil
+}
+
 // SlashingNotify modify Debt of restricting account
 func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.Int, state xcom.StateDB) error {
 

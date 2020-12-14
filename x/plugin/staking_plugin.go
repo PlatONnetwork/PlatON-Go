@@ -3442,6 +3442,16 @@ func (sk *StakingPlugin) setVerifierListByIndex(blockNumber uint64, blockHash co
 	return nil
 }
 
+func (sk *StakingPlugin) addErrorAccountUnStakeItem(blockNumber uint64, blockHash common.Hash, nodeId discover.NodeID, canAddr common.NodeAddress, stakingBlockNum uint64) error {
+	targetEpoch := xutil.CalculateEpoch(blockNumber) + 1
+	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, false); nil != err {
+		return err
+	}
+	log.Debug("Call addErrorAccountUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber, "unstake item target Epoch", targetEpoch,
+		"nodeId", nodeId.String())
+	return nil
+}
+
 func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, epoch uint64,
 	nodeId discover.NodeID, canAddr common.NodeAddress, stakingBlockNum uint64) error {
 
