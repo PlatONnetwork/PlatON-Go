@@ -44,6 +44,7 @@ func init() {
 		commandGenkeypair,
 		commandGenblskeypair,
 		commandAddressHexToBech32,
+		commandV5ToV4,
 	}
 }
 

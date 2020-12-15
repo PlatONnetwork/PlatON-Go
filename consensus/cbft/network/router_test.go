@@ -20,21 +20,16 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -19,6 +19,7 @@ package adapters
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math"
 	"net"
 	"sync"
@@ -27,7 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/pipes"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )

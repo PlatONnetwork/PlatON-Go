@@ -19,6 +19,7 @@ package types
 
 import (
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"io"
 	"math/big"
 	"sort"
@@ -31,7 +32,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
@@ -125,7 +125,7 @@ func (header *Header) SealHash() (hash common.Hash) {
 func (header *Header) _sealHash() (hash common.Hash) {
 	extra := header.Extra
 
-	hasher := sha3.NewKeccak256()
+	hasher := sha3.NewLegacyKeccak256()
 	if len(header.Extra) > 32 {
 		extra = header.Extra[0:32]
 	}
@@ -165,7 +165,7 @@ func (h *Header) Signature() []byte {
 // hasherPool holds Keccak hashers.
 var hasherPool = sync.Pool{
 	New: func() interface{} {
-		return sha3.NewKeccak256()
+		return sha3.NewLegacyKeccak256()
 	},
 }
 

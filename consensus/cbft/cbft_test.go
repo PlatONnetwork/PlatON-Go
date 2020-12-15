@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
 	"time"
@@ -41,7 +42,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	cvm "github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -72,14 +72,14 @@ func TestBls(t *testing.T) {
 	owner := sk[0]
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
-		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
+		nodes[i].Node = *discover.NewNode(enode.PubkeyToIDV4(&pk[i].PublicKey), nil, 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 	}
 
 	agency := validator.NewStaticAgency(nodes)
 
 	cbft := &Cbft{
-		validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID),
+		validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID()),
 		config: ctypes.Config{
 			Option: &ctypes.OptionsConfig{
 				BlsPriKey: owner,
@@ -98,13 +98,13 @@ func TestPrepareBlockBls(t *testing.T) {
 	pk, sk := GenerateKeys(1)
 	owner := sk[0]
 	node := params.CbftNode{
-		Node:      *discover.NewNode(discover.PubkeyID(&pk[0].PublicKey), nil, 0, 0),
+		Node:      *discover.NewNode(enode.PubkeyToIDV4(&pk[0].PublicKey), nil, 0, 0),
 		BlsPubKey: *sk[0].GetPublicKey(),
 	}
 	agency := validator.NewStaticAgency([]params.CbftNode{node})
 
 	cbft := &Cbft{
-		validatorPool: validator.NewValidatorPool(agency, 0, 0, node.Node.ID),
+		validatorPool: validator.NewValidatorPool(agency, 0, 0, node.Node.ID()),
 		config: ctypes.Config{
 			Option: &ctypes.OptionsConfig{
 				BlsPriKey: owner,
@@ -162,7 +162,7 @@ func TestAgg(t *testing.T) {
 	pk, sk := GenerateKeys(num)
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
-		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
+		nodes[i].Node = *discover.NewNode(enode.PubkeyToIDV4(&pk[i].PublicKey), nil, 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 
 	}
@@ -173,7 +173,7 @@ func TestAgg(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		cnode[i] = &Cbft{
-			validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID),
+			validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID()),
 			config: ctypes.Config{
 				Option: &ctypes.OptionsConfig{
 					BlsPriKey: sk[i],
@@ -527,13 +527,13 @@ func newUpdateValidatorTx(t *testing.T, parent *types.Block, header *types.Heade
 	for i := 0; i < 3; i++ {
 		vdl.NodeList = append(vdl.NodeList, &Vd{
 			Index:     uint(i),
-			NodeID:    nodes[i].Node.ID,
+			NodeID:    nodes[i].Node.ID(),
 			BlsPubKey: nodes[i].BlsPubKey,
 		})
 	}
 	vdl.NodeList = append(vdl.NodeList, &Vd{
 		Index:     3,
-		NodeID:    switchNode.Node.ID,
+		NodeID:    switchNode.Node.ID(),
 		BlsPubKey: switchNode.BlsPubKey,
 	})
 

@@ -22,16 +22,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 func NodeId2Addr(nodeId enode.ID) (common.NodeAddress, error) {
-	if pk, err := nodeId.Pubkey(); nil != err {
-		return common.ZeroNodeAddr, err
-	} else {
-		return common.NodeAddress(crypto.PubkeyToAddress(*pk)), nil
-	}
+	return common.NodeAddress(common.BytesToAddress(nodeId[12:])), nil
 }
 
 // The ProgramVersion: Major.Minor.Patch eg. 1.1.0

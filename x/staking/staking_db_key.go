@@ -17,13 +17,13 @@
 package staking
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 const (
@@ -162,7 +162,7 @@ func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId enode.ID, sta
 	delAddrLength := len(delAddr) + delegateKeyPrefixLength
 	nodeIdLength := len(nodeId) + delAddrLength
 	delAddr = common.BytesToAddress(key[delegateKeyPrefixLength:delAddrLength])
-	nodeId = discover.MustBytesID(key[delAddrLength:nodeIdLength])
+	nodeId = enode.MustBytesID(key[delAddrLength:nodeIdLength])
 	stakeBlockNumber = common.BytesToUint64(key[nodeIdLength:])
 	return
 }

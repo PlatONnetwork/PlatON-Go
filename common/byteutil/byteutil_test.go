@@ -17,20 +17,16 @@
 package byteutil
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
-	"github.com/stretchr/testify/assert"
-
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBytesToString(t *testing.T) {
@@ -101,7 +97,7 @@ func TestBytesToBigIntArr(t *testing.T) {
 
 func TestBytesToNodeId(t *testing.T) {
 	ecdsaKey, _ := crypto.GenerateKey()
-	nodeID := discover.PubkeyID(&ecdsaKey.PublicKey)
+	nodeID := enode.PubkeyToIDV4(&ecdsaKey.PublicKey)
 	data, err := rlp.EncodeToBytes(nodeID)
 	assert.Nil(t, err)
 	dnodeID := BytesToNodeId(data)
@@ -113,7 +109,7 @@ func TestBytesToNodeIdArr(t *testing.T) {
 	nodeIdArr := make([]enode.ID, 0, 3)
 	for i := 0; i < 3; i++ {
 		ecdsaKey, _ := crypto.GenerateKey()
-		nodeID := discover.PubkeyID(&ecdsaKey.PublicKey)
+		nodeID := enode.PubkeyToIDV4(&ecdsaKey.PublicKey)
 		nodeIdArr = append(nodeIdArr, nodeID)
 	}
 	data, err := rlp.EncodeToBytes(nodeIdArr)

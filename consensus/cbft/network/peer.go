@@ -21,6 +21,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -34,7 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	mapset "github.com/deckarep/golang-set"
 )
 

@@ -244,6 +244,7 @@ func ListenUDP(priv *ecdsa.PrivateKey, conn conn, nodeDBPath string, netrestrict
 	if cfg.ChainID != nil {
 		bytes_ChainId, _ = rlp.EncodeToBytes(cfg.ChainID)
 		log.Info("UDP listener up", "chainId", cfg.ChainID, "bytes_ChainId", bytes_ChainId)
+		cRest = []rlp.RawValue{bytes_ChainId, bytes_ChainId}
 	}
 
 	log.Info("UDP listener up", "net", net.tab.self)

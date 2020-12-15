@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
@@ -39,7 +40,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -553,13 +553,13 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		return slashing.ErrSlashingExist
 	}
 
-	evidencePubKey, err := evidence.NodeID().Pubkey()
+	nodeID := evidence.NodeID()
+	canAddr, err := xutil.NodeId2Addr(nodeID)
 	if nil != err {
 		log.Error("Failed to Slash, parse pubKey failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"evidenceBlockNumber", evidence.BlockNumber(), "evidenceNodeId", evidence.NodeID().TerminalString(), "err", err)
 		return slashing.ErrDuplicateSignVerify
 	}
-	canAddr := crypto.PubkeyToNodeAddress(*evidencePubKey)
 	canBase, err := stk.GetCanBase(blockHash, canAddr)
 	if nil != err {
 		log.Error("Failed to Slash, query CandidateBase info is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
@@ -694,23 +694,20 @@ func buildPrefixByRound(round uint64) []byte {
 
 func getNodeId(prefix []byte, key []byte) (enode.ID, error) {
 	key = key[len(prefix):]
-	nodeId, err := discover.BytesID(key)
-	if nil != err {
-		return enode.ID{}, err
-	}
+	nodeId := enode.MustBytesID(key)
 	return nodeId, nil
 }
 
 func parseNodeId(header *types.Header) (enode.ID, error) {
 	if xutil.IsWorker(header.Extra) {
-		return discover.PubkeyID(&SlashInstance().privateKey.PublicKey), nil
+		return enode.PubkeyToIDV4(&SlashInstance().privateKey.PublicKey), nil
 	} else {
 		sign := header.Extra[32:97]
 		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
 		if nil != err {
 			return enode.ID{}, err
 		}
-		return discover.PubkeyID(pk), nil
+		return enode.PubkeyToIDV4(pk), nil
 	}
 }
 

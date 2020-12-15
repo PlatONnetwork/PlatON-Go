@@ -18,6 +18,7 @@
 package consensus
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -25,7 +26,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )

@@ -17,12 +17,11 @@
 package mock
 
 import (
+	"golang.org/x/crypto/sha3"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 type journalEntry interface {
@@ -132,7 +131,7 @@ func (ch codeChange) revert(s *MockStateDB) {
 		s.Code[*ch.account] = ch.prevcode
 
 		var h common.Hash
-		hw := sha3.NewKeccak256()
+		hw := sha3.NewLegacyKeccak256()
 		rlp.Encode(hw, ch.prevcode)
 		hw.Sum(h[:0])
 		s.CodeHash[*ch.account] = h[:]

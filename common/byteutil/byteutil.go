@@ -186,9 +186,6 @@ func BytesToBigIntArr(curByte []byte) []*big.Int {
 }
 
 func BytesToNodeId(curByte []byte) enode.ID {
-	//str := BytesToString(curByte)
-	//nodeId, _ := discover.HexID(str)
-	//return nodeId
 	var nodeId enode.ID
 	if err := rlp.DecodeBytes(curByte, &nodeId); nil != err {
 		panic("BytesToNodeId:" + err.Error())
@@ -197,14 +194,6 @@ func BytesToNodeId(curByte []byte) enode.ID {
 }
 
 func BytesToNodeIdArr(curByte []byte) []enode.ID {
-	/*str := BytesToString(curByte)
-	strArr := strings.Split(str, ":")
-	var ANodeID []enode.ID
-	for i := 0; i < len(strArr); i++ {
-		nodeId, _ := discover.HexID(strArr[i])
-		ANodeID = append(ANodeID, nodeId)
-	}
-	return ANodeID*/
 	var nodeIdArr []enode.ID
 	if err := rlp.DecodeBytes(curByte, &nodeIdArr); nil != err {
 		panic("BytesToNodeIdArr:" + err.Error())

@@ -18,29 +18,20 @@ package plugin
 
 import (
 	"encoding/hex"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/node"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	//	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"math/big"
 
@@ -1233,7 +1224,7 @@ func TestGovPlugin_printVersion(t *testing.T) {
 
 func TestGovPlugin_TestNodeID(t *testing.T) {
 	var nodeID enode.ID
-	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
+	nodeID = [32]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
 
 	t.Logf("nodeID is empty, %t", nodeID == discover.ZeroNodeID)
 
@@ -1310,7 +1301,7 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 var (
 	chandler *node.CryptoHandler
 	priKey   = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
-	nodeID   = discover.MustHexID("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
+	nodeID   = enode.HexID("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
 )
 
 func initChandlerHandler() {

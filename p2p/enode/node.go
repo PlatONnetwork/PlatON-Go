@@ -236,6 +236,18 @@ func HexID(in string) ID {
 	return id
 }
 
+// MustBytesID converts a byte slice to an ID.
+// It panics if the byte slice is not a valid enode.ID.
+func MustBytesID(b []byte) ID {
+	var id ID
+
+	if len(b) != len(id) {
+		panic(fmt.Errorf("wrong length, want %d bytes", len(id)))
+	}
+	copy(id[:], b)
+	return id
+}
+
 func parseID(in string) (ID, error) {
 	var id ID
 	b, err := hex.DecodeString(strings.TrimPrefix(in, "0x"))

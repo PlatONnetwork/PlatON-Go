@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"net"
 	"net/url"
 	"regexp"
@@ -197,4 +198,9 @@ func PubkeyToIDV4(key *ecdsa.PublicKey) ID {
 	math.ReadBits(key.X, e[:len(e)/2])
 	math.ReadBits(key.Y, e[len(e)/2:])
 	return ID(crypto.Keccak256Hash(e))
+}
+
+// NodeIDToIDV4 derives the v4 node address from the given NodeID.
+func NodeIDToIDV4(id discv5.NodeID) ID {
+	return ID(crypto.Keccak256Hash(id[:]))
 }

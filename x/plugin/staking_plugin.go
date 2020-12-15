@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"sort"
 	"strconv"
@@ -44,7 +45,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -1688,7 +1688,7 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr com
 
 		prefixLen := len(staking.DelegateKeyPrefix)
 
-		nodeIdLen := enode.IDBits / 8
+		nodeIdLen := len(enode.ID{})
 
 		// delAddr
 		delAddrByte := key[prefixLen : prefixLen+common.AddressLength]
@@ -1696,7 +1696,7 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr com
 
 		// nodeId
 		nodeIdByte := key[prefixLen+common.AddressLength : prefixLen+common.AddressLength+nodeIdLen]
-		nodeId := discover.MustBytesID(nodeIdByte)
+		nodeId := enode.MustBytesID(nodeIdByte)
 
 		// stakenum
 		stakeNumByte := key[prefixLen+common.AddressLength+nodeIdLen:]
@@ -2626,14 +2626,11 @@ func buildCbftValidators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Va
 	valMap := make(cbfttypes.ValidateNodeMap, len(arr))
 
 	for i, v := range arr {
-
-		pubKey, _ := v.NodeId.Pubkey()
 		blsPk, _ := v.BlsPubKey.ParseBlsPubKey()
 
 		vn := &cbfttypes.ValidateNode{
 			Index:     uint32(i),
 			Address:   v.NodeAddress,
-			PubKey:    pubKey,
 			NodeID:    v.NodeId,
 			BlsPubKey: blsPk,
 		}

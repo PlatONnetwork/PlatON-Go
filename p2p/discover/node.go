@@ -29,6 +29,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
+var (
+	ZeroNodeID = enode.HexID(enode.ID{}.String())
+)
+
 // node represents a host on the network.
 // The fields of Node may not be modified.
 type node struct {

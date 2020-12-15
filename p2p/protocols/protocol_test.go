@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
 	p2ptest "github.com/PlatONnetwork/PlatON-Go/p2p/testing"
 )

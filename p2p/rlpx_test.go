@@ -18,9 +18,11 @@ package p2p
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"io"
 	"io/ioutil"
 	"net"
@@ -30,12 +32,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/ecies"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/pipes"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestSharedSecret(t *testing.T) {

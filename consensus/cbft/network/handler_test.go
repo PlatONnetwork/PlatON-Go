@@ -19,6 +19,7 @@ package network
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"math/rand"
 	"strconv"
@@ -39,7 +40,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // fakeCbft is a fake cbft for testing.It implements all

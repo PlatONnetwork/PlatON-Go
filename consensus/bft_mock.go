@@ -19,6 +19,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"time"
 
@@ -32,7 +33,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -149,7 +149,7 @@ func (bm *BftMock) NodeID() enode.ID {
 	if nil != err {
 		panic(fmt.Sprintf("Failed to generate random NodeId private key: %v", err))
 	}
-	return discover.PubkeyID(&privateKey.PublicKey)
+	return enode.PubkeyToIDV4(&privateKey.PublicKey)
 }
 
 // Author retrieves the Ethereum address of the account that minted the given

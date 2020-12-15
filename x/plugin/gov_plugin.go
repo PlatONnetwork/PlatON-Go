@@ -17,11 +17,10 @@
 package plugin
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math"
 	"math/big"
 	"sync"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"

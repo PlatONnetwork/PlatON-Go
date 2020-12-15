@@ -270,7 +270,7 @@ func (n NodeID) String() string {
 
 // The Go syntax representation of a NodeID is a call to HexID.
 func (n NodeID) GoString() string {
-	return fmt.Sprintf("discover.HexID(\"%x\")", n[:])
+	return fmt.Sprintf("enode.HexID(\"%x\")", n[:])
 }
 
 // TerminalString returns a shortened hex string for terminal logging.

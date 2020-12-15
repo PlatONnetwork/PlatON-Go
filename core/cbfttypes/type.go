@@ -18,7 +18,6 @@ package cbfttypes
 
 import (
 	"bytes"
-	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -99,7 +98,6 @@ type UpdateValidatorEvent struct{}
 type ValidateNode struct {
 	Index     uint32             `json:"index"`
 	Address   common.NodeAddress `json:"address"`
-	PubKey    *ecdsa.PublicKey   `json:"-"`
 	NodeID    enode.ID    `json:"nodeID"`
 	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
 }

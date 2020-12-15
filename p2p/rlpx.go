@@ -27,7 +27,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/bitutil"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -36,11 +35,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/bitutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/ecies"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/golang/snappy"
+	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -164,7 +164,7 @@ func readProtocolHandshake(rw MsgReader) (*protoHandshake, error) {
 	if err := msg.Decode(&hs); err != nil {
 		return nil, err
 	}
-	if len(hs.ID) != 64 || !bitutil.TestBytes(hs.ID) {
+	if len(hs.ID) != 64 || !bitutil.TestBytes(hs.ID[:]) {
 		return nil, DiscInvalidIdentity
 	}
 	return &hs, nil

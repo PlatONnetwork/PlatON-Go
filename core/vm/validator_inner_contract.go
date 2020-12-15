@@ -19,6 +19,8 @@ package vm
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"bytes"
 
@@ -27,10 +29,8 @@ import (
 	"encoding/binary"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -107,12 +107,12 @@ func (vic *validatorInnerContract) UpdateValidators(validators *Validators) erro
 
 	var newVds Validators
 	for _, node := range validators.ValidateNodes {
-		pubkey, err := node.NodeID.Pubkey()
+		nodeAddr, err := xutil.NodeId2Addr(node.NodeID)
 		if err != nil {
-			log.Error("Get pubkey from nodeID fail", "error", err)
+			log.Error("Get nodeAddr from nodeID fail", "error", err)
 			return err
 		}
-		node.Address = crypto.PubkeyToNodeAddress(*pubkey)
+		node.Address = nodeAddr
 		newVds.ValidateNodes = append(newVds.ValidateNodes, node)
 	}
 	log.Debug("Update validators", "validators", newVds.String(), "address", vic.Contract.Address())

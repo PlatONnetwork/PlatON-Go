@@ -164,7 +164,7 @@ func (s *dialstate) addConsensus(n *enode.Node) {
 
 func (s *dialstate) removeConsensus(n *enode.Node) {
 	//delete(s.consensus, n.ID)
-	s.consensus.RemoveTask(n.ID)
+	s.consensus.RemoveTask(n.ID())
 }
 
 func (s *dialstate) removeConsensusFromQueue(n *enode.Node) {
@@ -228,7 +228,7 @@ func (s *dialstate) newTasks(nRunning int, peers map[enode.ID]*Peer, now time.Ti
 		switch err {
 		case errNotWhitelisted, errSelf:
 			//delete(s.consensus, t.dest.ID)
-			s.consensus.RemoveTask(t.dest.ID)
+			s.consensus.RemoveTask(t.dest.ID())
 		case nil:
 			s.dialing[t.dest.ID()] = t.flags
 			newtasks = append(newtasks, t)

@@ -20,23 +20,20 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
@@ -110,7 +107,7 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	//}
 	ethConf := &eth.DefaultConfig
 	ethConf.Genesis = core.DefaultGrapeGenesisBlock()
-	n, _ := discover.ParseNode("enode://73f48a69ae73b85c0a578258954936300b305cb063cbd658d680826ebc0d47cedb890f01f15df2f2e510342d16e7bf5aaf3d7be4ba05a3490de0e9663663addc@127.0.0.1:16789")
+	n := enode.MustParse("enode://73f48a69ae73b85c0a578258954936300b305cb063cbd658d680826ebc0d47cedb890f01f15df2f2e510342d16e7bf5aaf3d7be4ba05a3490de0e9663663addc@127.0.0.1:16789")
 
 	var nodes []params.CbftNode
 	var blsKey bls.SecretKey
@@ -169,8 +166,8 @@ func (env *tester) Close(t *testing.T) {
 	if err := env.console.Stop(false); err != nil {
 		t.Errorf("failed to stop embedded console: %v", err)
 	}
-	if err := env.stack.Stop(); err != nil {
-		t.Errorf("failed to stop embedded node: %v", err)
+	if err := env.stack.Close(); err != nil {
+		t.Errorf("failed to tear down embedded node: %v", err)
 	}
 	os.RemoveAll(env.workspace)
 }

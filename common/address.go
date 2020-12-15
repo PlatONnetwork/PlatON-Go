@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"math/big"
 	"strings"
 
@@ -13,7 +14,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/bech32util"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
@@ -133,7 +133,7 @@ func (a Address) Hash() Hash { return BytesToHash(a[:]) }
 // Hex returns an EIP55-compliant hex string representation of the address.it's use for node address
 func (a Address) Hex() string {
 	unchecksummed := hex.EncodeToString(a[:])
-	sha := sha3.NewKeccak256()
+	sha := sha3.NewLegacyKeccak256()
 	sha.Write([]byte(unchecksummed))
 	hash := sha.Sum(nil)
 
@@ -155,7 +155,7 @@ func (a Address) Hex() string {
 // Deprecated: address to string is use bech32 now
 func (a Address) HexWithNoPrefix() string {
 	unchecksummed := hex.EncodeToString(a[:])
-	sha := sha3.NewKeccak256()
+	sha := sha3.NewLegacyKeccak256()
 	sha.Write([]byte(unchecksummed))
 	hash := sha.Sum(nil)
 
@@ -405,7 +405,7 @@ func (a NodeAddress) Hash() Hash { return BytesToHash(a[:]) }
 // Hex returns an EIP55-compliant hex string representation of the address.
 func (a NodeAddress) Hex() string {
 	unchecksummed := hex.EncodeToString(a[:])
-	sha := sha3.NewKeccak256()
+	sha := sha3.NewLegacyKeccak256()
 	sha.Write([]byte(unchecksummed))
 	hash := sha.Sum(nil)
 
@@ -426,7 +426,7 @@ func (a NodeAddress) Hex() string {
 
 func (a NodeAddress) HexWithNoPrefix() string {
 	unchecksummed := hex.EncodeToString(a[:])
-	sha := sha3.NewKeccak256()
+	sha := sha3.NewLegacyKeccak256()
 	sha.Write([]byte(unchecksummed))
 	hash := sha.Sum(nil)
 

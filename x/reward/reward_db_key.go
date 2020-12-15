@@ -17,11 +17,9 @@
 package reward
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 const DelegateRewardPerLength = 1000

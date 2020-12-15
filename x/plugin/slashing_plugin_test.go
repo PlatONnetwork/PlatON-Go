@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
 
@@ -42,7 +43,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -84,7 +84,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 		pri = sk
 	}
 
-	nodeIdA := discover.PubkeyID(&pri.PublicKey)
+	nodeIdA := enode.PubkeyToIDV4(&pri.PublicKey)
 	addrA, _ := xutil.NodeId2Addr(nodeIdA)
 
 	nodeIdB := nodeIdArr[1]
@@ -491,10 +491,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
 	stakingAddr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
-	stakingNodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
-	if nil != err {
-		t.Fatal(err)
-	}
+	stakingNodeId := enode.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	var stakingBlsKey bls.SecretKey
 	blsSkByte, err := hex.DecodeString("b36d4c3c3e8ee7fba3fbedcda4e0493e699cd95b68594093a8498c618680480a")
 	if nil != err {
@@ -544,10 +541,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := si.Slash(normalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender); nil != err {
 		t.Fatal(err)
 	}
-	slashNodeId, err := discover.HexID("c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1")
-	if nil != err {
-		t.Fatal(err)
-	}
+	slashNodeId := enode.HexID("c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1")
 	if value, err := si.CheckDuplicateSign(slashNodeId, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Fatal(err)
 	}
@@ -617,7 +611,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	noSlashingNodeId := discover.PubkeyID(&nodePrivate.PublicKey)
+	noSlashingNodeId := enode.PubkeyToIDV4(&nodePrivate.PublicKey)
 	// Current round of production blocks; removed from pending list
 	// bits: 1 -> delete
 	validatorMap[noSlashingNodeId] = false
