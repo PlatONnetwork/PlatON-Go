@@ -33,13 +33,13 @@ type FixRestrictingPlugin struct {
 	sdb snapshotdb.DB
 }
 
-type wrongAddr struct {
+type rollBackInfo struct {
 	addr   common.Address
 	amount *big.Int
 }
 
 func (a *FixRestrictingPlugin) fix(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-	for _, wrong := range []wrongAddr{} {
+	for _, wrong := range []rollBackInfo{} {
 		restrictingKey, restrictInfo, err := rt.getRestrictingInfoByDecode(state, wrong.addr)
 		if err != nil {
 			return err
@@ -70,6 +70,7 @@ func (a *FixRestrictingPlugin) fix(blockHash common.Hash, head *types.Header, st
 				}
 			}
 		} else {
+			//犹豫期解质押，此时查不到质押信息
 			restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, wrong.amount)
 			if restrictInfo.StakingAmount.Cmp(common.Big0) == 0 &&
 				len(restrictInfo.ReleaseList) == 0 && restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
@@ -101,7 +102,7 @@ func (a *FixRestrictingPlugin) rollBackDel(hash common.Hash, blockNumber *big.In
 	}
 	defer iter.Release()
 
-	var wrongDels wrongDelInfos
+	var wrongDels rollBackDelInfos
 
 	for iter.Valid(); iter.Next(); {
 		var del staking.Delegation
@@ -118,17 +119,19 @@ func (a *FixRestrictingPlugin) rollBackDel(hash common.Hash, blockNumber *big.In
 			return err
 		}
 
-		wrongDel := new(wrongDelInfo)
+		wrongDel := new(rollBackDelInfo)
 		wrongDel.del = &del
 		wrongDel.candidate = can
 		wrongDel.stakingBlock = stakingBlock
+		wrongDel.originRestrictingAmount = new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
+		wrongDel.originFreeAmount = new(big.Int).Add(del.Released, del.ReleasedHes)
 		wrongDels = append(wrongDels, wrongDel)
 	}
 	sort.Sort(wrongDels)
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 	stakingdb := staking.NewStakingDBWithDB(a.sdb)
 	for i := 0; i < len(wrongDels); i++ {
-		if _, err := wrongDels[i].WithdrewDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb); err != nil {
+		if _, err := wrongDels[i].HandleDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb); err != nil {
 			return err
 		}
 		if amount.Cmp(common.Big0) <= 0 {
@@ -148,7 +151,7 @@ func (a *FixRestrictingPlugin) rollBackStaking(hash common.Hash, blockNumber *bi
 
 	stakingdb := staking.NewStakingDBWithDB(a.sdb)
 
-	var wrongStakings wrongStakingInfos
+	var wrongStakings rollBackStakingInfos
 	for iter.Valid(); iter.Next(); {
 		var canbase staking.CandidateBase
 		if err := rlp.DecodeBytes(iter.Value(), &canbase); nil != err {
@@ -167,17 +170,14 @@ func (a *FixRestrictingPlugin) rollBackStaking(hash common.Hash, blockNumber *bi
 			candidate := staking.Candidate{
 				&canbase, canmu,
 			}
-			wrongStakings = append(wrongStakings, &wrongStakingInfo{
-				candidate: &candidate,
-				canAddr:   canAddr,
-			})
+			wrongStakings = append(wrongStakings, newWrongStakingInfo(&candidate, canAddr))
 		}
 	}
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
 	sort.Sort(wrongStakings)
 	for i := 0; i < len(wrongStakings); i++ {
-		if err := wrongStakings[i].withdrewStaking(hash, blockNumber, epoch, amount, state, stakingdb); err != nil {
+		if err := wrongStakings[i].handleStaking(hash, blockNumber, epoch, amount, state, stakingdb); err != nil {
 			return err
 		}
 		if amount.Cmp(common.Big0) <= 0 {
@@ -187,191 +187,241 @@ func (a *FixRestrictingPlugin) rollBackStaking(hash common.Hash, blockNumber *bi
 	return nil
 }
 
-type wrongStakingInfo struct {
-	candidate *staking.Candidate
-	canAddr   common.NodeAddress
+func newWrongStakingInfo(candidate *staking.Candidate, canAddr common.NodeAddress) *rollBackStakingInfo {
+	w := &rollBackStakingInfo{
+		candidate: candidate,
+		canAddr:   canAddr,
+	}
+	w.originRestrictingAmount = new(big.Int).Add(w.candidate.RestrictingPlan, w.candidate.RestrictingPlanHes)
+	w.originFreeAmount = new(big.Int).Add(w.candidate.Released, w.candidate.ReleasedHes)
+	return w
 }
 
-func (a *wrongStakingInfo) withdrewStaking(hash common.Hash, blockNumber *big.Int, epoch uint64, amount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
-	lazyCalcStakeAmount(epoch, a.candidate.CandidateMutable)
-	res := new(big.Int).Add(a.candidate.RestrictingPlan, a.candidate.RestrictingPlanHes)
-	release := new(big.Int).Add(a.candidate.Released, a.candidate.ReleasedHes)
-	shouldWithdrewStaking := false
+type rollBackStakingInfo struct {
+	candidate                                 *staking.Candidate
+	canAddr                                   common.NodeAddress
+	originRestrictingAmount, originFreeAmount *big.Int
+}
 
-	if res.Cmp(amount) >= 0 {
-		left := new(big.Int).Add(release, new(big.Int).Sub(res, amount))
-		if ok, _ := CheckStakeThreshold(blockNumber.Uint64(), hash, left); !ok {
-			shouldWithdrewStaking = true
+func (a *rollBackStakingInfo) HandelExistStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
+	if a.originRestrictingAmount.Cmp(rollBackAmount) >= 0 {
+		if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, rollBackAmount, state); nil != err {
+			return err
 		}
+		a.candidate.RestrictingPlan = new(big.Int).Sub(a.candidate.RestrictingPlan, rollBackAmount)
+		rollBackAmount.SetInt64(0)
 	} else {
-		left := new(big.Int).Sub(release, res)
-		if ok, _ := CheckStakeThreshold(blockNumber.Uint64(), hash, left); !ok {
-			shouldWithdrewStaking = true
+		if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, a.originRestrictingAmount, state); nil != err {
+			return err
 		}
+		a.candidate.RestrictingPlan = new(big.Int).SetInt64(0)
+		rollBackAmount.Sub(rollBackAmount, a.originRestrictingAmount)
 	}
-	log.Debug("fix restricting for staking begin", "account", a.candidate.StakingAddress, "withdrewStaking", shouldWithdrewStaking, "return", amount, "restrictingPlan", a.candidate.RestrictingPlan, "restrictingPlanRes", a.candidate.RestrictingPlanHes,
-		"release", release, "share", a.candidate.Shares)
-	if shouldWithdrewStaking {
-		if err := stdb.DelCanPowerStore(hash, a.candidate); nil != err {
-			return err
-		}
 
-		// Direct return of money during the hesitation period
-		// Return according to the way of coming
-		if a.candidate.ReleasedHes.Cmp(common.Big0) > 0 {
-			state.AddBalance(a.candidate.StakingAddress, a.candidate.ReleasedHes)
-			state.SubBalance(vm.StakingContractAddr, a.candidate.ReleasedHes)
-			a.candidate.ReleasedHes = new(big.Int).SetInt64(0)
-		}
+	a.candidate.StakingEpoch = uint32(epoch)
 
-		if res.Cmp(amount) >= 0 {
-			if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, amount, state); nil != err {
-				return err
-			}
-			if a.candidate.RestrictingPlanHes.Cmp(amount) >= 0 {
-				a.candidate.RestrictingPlanHes = new(big.Int).Sub(a.candidate.RestrictingPlanHes, amount)
-			} else {
-				a.candidate.RestrictingPlan = new(big.Int).Sub(a.candidate.RestrictingPlan, new(big.Int).Sub(amount, a.candidate.RestrictingPlanHes))
-				a.candidate.RestrictingPlanHes = new(big.Int).SetInt64(0)
-			}
-			amount.SetInt64(0)
-		} else {
-			if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, res, state); nil != err {
-				return err
-			}
-			a.candidate.RestrictingPlanHes = new(big.Int).SetInt64(0)
-			a.candidate.RestrictingPlan = new(big.Int).SetInt64(0)
-			amount.Sub(amount, res)
-		}
-
-		if a.candidate.RestrictingPlanHes.Cmp(common.Big0) > 0 {
-			err := rt.ReturnLockFunds(a.candidate.StakingAddress, a.candidate.RestrictingPlanHes, state)
-			if nil != err {
-				return err
-			}
-			a.candidate.RestrictingPlanHes = new(big.Int).SetInt64(0)
-		}
-
-		//todo add a.candidate.Status check
-		if a.candidate.Status.IsValid() {
-			if a.candidate.Released.Cmp(common.Big0) > 0 || a.candidate.RestrictingPlan.Cmp(common.Big0) > 0 {
-				if err := stk.addErrorAccountUnStakeItem(blockNumber.Uint64(), hash, a.candidate.NodeId, a.canAddr, a.candidate.StakingBlockNum); nil != err {
-					return err
-				}
-				// sub the account staking Reference Count
-				if err := stdb.SubAccountStakeRc(hash, a.candidate.StakingAddress); nil != err {
-					return err
-				}
-			}
-		}
-
-		a.candidate.CleanShares()
-		a.candidate.Status |= staking.Invalided | staking.Withdrew
-
-		a.candidate.StakingEpoch = uint32(epoch)
-
-		if a.candidate.Released.Cmp(common.Big0) > 0 || a.candidate.RestrictingPlan.Cmp(common.Big0) > 0 {
-			if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
-				return err
-			}
-		} else {
-			if err := stdb.DelCandidateStore(hash, a.canAddr); nil != err {
-				return err
-			}
-		}
-
-	} else {
-
-		realSub := new(big.Int)
-		if res.Cmp(amount) >= 0 {
-			if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, amount, state); nil != err {
-				return err
-			}
-			realSub.Set(amount)
-			if a.candidate.RestrictingPlanHes.Cmp(amount) >= 0 {
-				a.candidate.RestrictingPlanHes = new(big.Int).Sub(a.candidate.RestrictingPlanHes, amount)
-			} else {
-				a.candidate.RestrictingPlan = new(big.Int).Sub(a.candidate.RestrictingPlan, new(big.Int).Sub(amount, a.candidate.RestrictingPlanHes))
-				a.candidate.RestrictingPlanHes = new(big.Int).SetInt64(0)
-			}
-			amount = new(big.Int).SetInt64(0)
-		} else {
-			if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, res, state); nil != err {
-				return err
-			}
-			realSub.Set(res)
-			a.candidate.RestrictingPlanHes = new(big.Int)
-			a.candidate.RestrictingPlan = new(big.Int)
-			amount = new(big.Int).Sub(amount, res)
-		}
-
-		if err := stk.db.DelCanPowerStore(hash, a.candidate); nil != err {
-			return err
-		}
-
-		a.candidate.StakingEpoch = uint32(epoch)
-		a.candidate.SubShares(realSub)
-
-		if err := stk.db.SetCanPowerStore(hash, a.canAddr, a.candidate); nil != err {
-			return err
-		}
-
-		if err := stk.db.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
-			return err
-		}
+	if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
+		return err
 	}
-	log.Debug("fix restricting for staking end", "account", a.candidate.StakingAddress, "return", amount, "restrictingPlan", a.candidate.RestrictingPlan, "restrictingPlanRes", a.candidate.RestrictingPlanHes,
-		"release", release, "share", a.candidate.Shares)
+
 	return nil
 }
 
-type wrongStakingInfos []*wrongStakingInfo
+func (a *rollBackStakingInfo) shouldWithdrewStaking(hash common.Hash, blockNumber *big.Int, rollBackAmount *big.Int) bool {
+	if a.originRestrictingAmount.Cmp(rollBackAmount) >= 0 {
+		left := new(big.Int).Add(a.originFreeAmount, new(big.Int).Sub(a.originRestrictingAmount, rollBackAmount))
+		if ok, _ := CheckStakeThreshold(blockNumber.Uint64(), hash, left); !ok {
+			return true
+		}
+	} else {
+		left := new(big.Int).Sub(a.originFreeAmount, a.originRestrictingAmount)
+		if ok, _ := CheckStakeThreshold(blockNumber.Uint64(), hash, left); !ok {
+			return true
+		}
+	}
+	return false
+}
 
-func (d wrongStakingInfos) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
-func (d wrongStakingInfos) Len() int      { return len(d) }
-func (d wrongStakingInfos) Less(i, j int) bool {
+func (a *rollBackStakingInfo) decreaseStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB) error {
+	realSub, err := a.refundWrongLockFunds(rollBackAmount, state)
+	if err != nil {
+		return err
+	}
+	if err := stk.db.DelCanPowerStore(hash, a.candidate); nil != err {
+		return err
+	}
+
+	a.candidate.StakingEpoch = uint32(epoch)
+	a.candidate.SubShares(realSub)
+
+	if err := stk.db.SetCanPowerStore(hash, a.canAddr, a.candidate); nil != err {
+		return err
+	}
+
+	if err := stk.db.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
+		return err
+	}
+	return nil
+}
+
+func (a *rollBackStakingInfo) withdrewStaking(hash common.Hash, epoch uint64, blockNumber *big.Int, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
+	if err := stdb.DelCanPowerStore(hash, a.candidate); nil != err {
+		return err
+	}
+
+	//回退自由金
+	if a.candidate.ReleasedHes.Cmp(common.Big0) > 0 {
+		state.AddBalance(a.candidate.StakingAddress, a.candidate.ReleasedHes)
+		state.SubBalance(vm.StakingContractAddr, a.candidate.ReleasedHes)
+		a.candidate.ReleasedHes = new(big.Int).SetInt64(0)
+	}
+
+	//回退因为漏洞产生的金额
+	if _, err := a.refundWrongLockFunds(rollBackAmount, state); err != nil {
+		return err
+	}
+
+	//回退锁仓
+	if a.candidate.RestrictingPlanHes.Cmp(common.Big0) > 0 {
+		err := rt.ReturnLockFunds(a.candidate.StakingAddress, a.candidate.RestrictingPlanHes, state)
+		if nil != err {
+			return err
+		}
+		a.candidate.RestrictingPlanHes = new(big.Int).SetInt64(0)
+	}
+
+	a.candidate.CleanShares()
+	a.candidate.Status |= staking.Invalided | staking.Withdrew
+
+	a.candidate.StakingEpoch = uint32(epoch)
+
+	if a.candidate.Released.Cmp(common.Big0) > 0 || a.candidate.RestrictingPlan.Cmp(common.Big0) > 0 {
+		//如果质押处于生效期，需要锁定
+		if err := stk.addErrorAccountUnStakeItem(blockNumber.Uint64(), hash, a.candidate.NodeId, a.canAddr, a.candidate.StakingBlockNum); nil != err {
+			return err
+		}
+		// sub the account staking Reference Count
+		if err := stdb.SubAccountStakeRc(hash, a.candidate.StakingAddress); nil != err {
+			return err
+		}
+		if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
+			return err
+		}
+	} else {
+		//如果质押还处于犹豫期，不用锁定
+		if err := stdb.DelCandidateStore(hash, a.canAddr); nil != err {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *rollBackStakingInfo) handleStaking(hash common.Hash, blockNumber *big.Int, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
+	lazyCalcStakeAmount(epoch, a.candidate.CandidateMutable)
+	log.Debug("fix restricting for staking begin", "account", a.candidate.StakingAddress, "nodeID", a.candidate.NodeId.TerminalString(), "return", rollBackAmount, "restrictingPlan",
+		a.candidate.RestrictingPlan, "restrictingPlanRes", a.candidate.RestrictingPlanHes, "released", a.candidate.Released, "releasedHes", a.candidate.ReleasedHes, "share", a.candidate.Shares)
+	if a.candidate.Status.IsWithdrew() {
+		//已经解质押,节点处于退出锁定期
+		if err := a.HandelExistStaking(hash, epoch, rollBackAmount, state, stdb); err != nil {
+			return err
+		}
+		log.Debug("fix restricting for staking end", "account", a.candidate.StakingAddress, "nodeID", a.candidate.NodeId.TerminalString(), "status", a.candidate.Status, "return",
+			rollBackAmount, "restrictingPlan", a.candidate.RestrictingPlan, "restrictingPlanRes", a.candidate.RestrictingPlanHes, "released", a.candidate.Released, "releasedHes", a.candidate.ReleasedHes, "share", a.candidate.Shares)
+	} else {
+		//如果质押中,根据回退后的剩余质押金额是否达到质押门槛来判断时候需要撤销或者减持质押
+		shouldWithdrewStaking := a.shouldWithdrewStaking(hash, blockNumber, rollBackAmount)
+		if shouldWithdrewStaking {
+			//撤销质押
+			if err := a.withdrewStaking(hash, epoch, blockNumber, rollBackAmount, state, stdb); err != nil {
+				return err
+			}
+		} else {
+			//减持质押
+			if err := a.decreaseStaking(hash, epoch, rollBackAmount, state); err != nil {
+				return err
+			}
+		}
+		log.Debug("fix restricting for staking end", "account", a.candidate.StakingAddress, "nodeID", a.candidate.NodeId.TerminalString(), "status", a.candidate.Status, "withdrewStaking",
+			shouldWithdrewStaking, "return", rollBackAmount, "restrictingPlan", a.candidate.RestrictingPlan, "restrictingPlanRes", a.candidate.RestrictingPlanHes, "released", a.candidate.Released,
+			"releasedHes", a.candidate.ReleasedHes, "share", a.candidate.Shares)
+	}
+	return nil
+}
+
+func (a *rollBackStakingInfo) refundWrongLockFunds(rollBackAmount *big.Int, state xcom.StateDB) (*big.Int, error) {
+	realSub := new(big.Int)
+	if a.originRestrictingAmount.Cmp(rollBackAmount) >= 0 {
+		if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, rollBackAmount, state); nil != err {
+			return nil, err
+		}
+		realSub.Set(rollBackAmount)
+		if a.candidate.RestrictingPlanHes.Cmp(rollBackAmount) >= 0 {
+			a.candidate.RestrictingPlanHes = new(big.Int).Sub(a.candidate.RestrictingPlanHes, rollBackAmount)
+		} else {
+			a.candidate.RestrictingPlan = new(big.Int).Sub(a.candidate.RestrictingPlan, new(big.Int).Sub(rollBackAmount, a.candidate.RestrictingPlanHes))
+			a.candidate.RestrictingPlanHes = new(big.Int).SetInt64(0)
+		}
+		rollBackAmount.SetInt64(0)
+	} else {
+		if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, a.originRestrictingAmount, state); nil != err {
+			return nil, err
+		}
+		realSub.Set(a.originRestrictingAmount)
+		a.candidate.RestrictingPlanHes = new(big.Int)
+		a.candidate.RestrictingPlan = new(big.Int)
+		rollBackAmount.Sub(rollBackAmount, a.originRestrictingAmount)
+	}
+	return realSub, nil
+}
+
+type rollBackStakingInfos []*rollBackStakingInfo
+
+func (d rollBackStakingInfos) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
+func (d rollBackStakingInfos) Len() int      { return len(d) }
+func (d rollBackStakingInfos) Less(i, j int) bool {
+	//按照节点质押的时间远近进行排序，最近的质押排在前面
 	if d[i].candidate.StakingBlockNum > d[j].candidate.StakingBlockNum {
 		return true
 	}
 	return false
 }
 
-type wrongDelInfo struct {
+type rollBackDelInfo struct {
 	del       *staking.Delegation
 	candidate *staking.Candidate
 	//use for get staking
 	stakingBlock uint64
 	canAddr      common.NodeAddress
+
+	originRestrictingAmount, originFreeAmount *big.Int
 }
 
-func (a *wrongDelInfo) WithdrewDelegate(hash common.Hash, blockNumber *big.Int, epoch uint64, delAddr common.Address, amount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) (*big.Int, error) {
-	restrictingPlan := new(big.Int).Add(a.del.RestrictingPlan, a.del.RestrictingPlanHes)
-	released := new(big.Int).Add(a.del.Released, a.del.ReleasedHes)
+func (a *rollBackDelInfo) HandleDelegate(hash common.Hash, blockNumber *big.Int, epoch uint64, delAddr common.Address, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) (*big.Int, error) {
 
 	refundAmount := new(big.Int)
 	wrongRestrictingAmount := new(big.Int)
 
-	if amount.Cmp(restrictingPlan) >= 0 {
-		if ok, _ := CheckOperatingThreshold(blockNumber.Uint64(), hash, released); !ok {
-			refundAmount = new(big.Int).Add(released, restrictingPlan)
+	if rollBackAmount.Cmp(a.originRestrictingAmount) >= 0 {
+		if ok, _ := CheckOperatingThreshold(blockNumber.Uint64(), hash, a.originFreeAmount); !ok {
+			refundAmount = new(big.Int).Add(a.originFreeAmount, a.originRestrictingAmount)
 		} else {
-			refundAmount = restrictingPlan
+			refundAmount = new(big.Int).Set(a.originRestrictingAmount)
 		}
-		wrongRestrictingAmount = new(big.Int).Set(restrictingPlan)
+		wrongRestrictingAmount = new(big.Int).Set(a.originRestrictingAmount)
 	} else {
-		resrtict := new(big.Int).Sub(restrictingPlan, amount)
-		if ok, _ := CheckOperatingThreshold(blockNumber.Uint64(), hash, new(big.Int).Add(released, resrtict)); !ok {
-			refundAmount = new(big.Int).Add(released, restrictingPlan)
+		resrtict := new(big.Int).Sub(a.originRestrictingAmount, rollBackAmount)
+		if ok, _ := CheckOperatingThreshold(blockNumber.Uint64(), hash, new(big.Int).Add(a.originFreeAmount, resrtict)); !ok {
+			refundAmount = new(big.Int).Add(a.originFreeAmount, a.originRestrictingAmount)
 		} else {
-			refundAmount = new(big.Int).Set(amount)
+			refundAmount = new(big.Int).Set(rollBackAmount)
 		}
-		wrongRestrictingAmount = new(big.Int).Set(amount)
+		wrongRestrictingAmount = new(big.Int).Set(rollBackAmount)
 	}
 
-	log.Debug("fix restricting for delegate begin", "account", delAddr, "currentReturn", wrongRestrictingAmount, "leftReturn", amount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
+	log.Debug("fix restricting for delegate begin", "account", delAddr, "currentReturn", wrongRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
 		"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "share", a.candidate.Shares)
 
-	amount.Sub(amount, wrongRestrictingAmount)
+	rollBackAmount.Sub(rollBackAmount, wrongRestrictingAmount)
 
 	realSub := new(big.Int).Set(refundAmount)
 
@@ -397,9 +447,12 @@ func (a *wrongDelInfo) WithdrewDelegate(hash common.Hash, blockNumber *big.Int, 
 		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
 			// When remain is greater than or equal to del.ReleasedHes/del.Releaseds
+			//回退因为漏洞产生的金额
 			if err := rt.ReturnWrongLockFunds(delAddr, wrongRestrictingAmount, state); nil != err {
 				return nil, err
 			}
+
+			//更新锁仓信息
 			refundAmount = new(big.Int).Sub(refundAmount, wrongRestrictingAmount)
 			if a.del.RestrictingPlanHes.Cmp(wrongRestrictingAmount) >= 0 {
 				a.del.RestrictingPlanHes.Sub(a.del.RestrictingPlanHes, wrongRestrictingAmount)
@@ -417,6 +470,7 @@ func (a *wrongDelInfo) WithdrewDelegate(hash common.Hash, blockNumber *big.Int, 
 			}
 		}
 
+		//如果还有回退金额，处理犹豫期的钱
 		if refundAmount.Cmp(common.Big0) > 0 {
 			rm, rbalance, lbalance, err := rufundDelegateFn(refundAmount, a.del.ReleasedHes, a.del.RestrictingPlanHes, delAddr, state)
 			if nil != err {
@@ -428,6 +482,7 @@ func (a *wrongDelInfo) WithdrewDelegate(hash common.Hash, blockNumber *big.Int, 
 			refundAmount, a.del.ReleasedHes, a.del.RestrictingPlanHes = rm, rbalance, lbalance
 		}
 
+		//如果还有回退金额，处理锁定期的钱
 		// handle delegate on Effective period
 		if refundAmount.Cmp(common.Big0) > 0 {
 			rm, rbalance, lbalance, err := rufundDelegateFn(refundAmount, a.del.Released, a.del.RestrictingPlan, delAddr, state)
@@ -443,7 +498,7 @@ func (a *wrongDelInfo) WithdrewDelegate(hash common.Hash, blockNumber *big.Int, 
 		if refundAmount.Cmp(common.Big0) != 0 {
 			return nil, staking.ErrWrongWithdrewDelVonCalc
 		}
-		total := new(big.Int).Add(restrictingPlan, released)
+		total := new(big.Int).Add(a.originFreeAmount, a.originFreeAmount)
 		// If total had full sub,
 		// then clean the delegate info
 		issueIncome := new(big.Int)
@@ -486,17 +541,17 @@ func (a *wrongDelInfo) WithdrewDelegate(hash common.Hash, blockNumber *big.Int, 
 			return nil, err
 		}
 	}
-	log.Debug("fix restricting for delegate end", "account", delAddr, "currentReturn", wrongRestrictingAmount, "leftReturn", amount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
+	log.Debug("fix restricting for delegate end", "account", delAddr, "currentReturn", wrongRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
 		"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "share", a.candidate.Shares)
 	return nil, nil
 }
 
-type wrongDelInfos []*wrongDelInfo
+type rollBackDelInfos []*rollBackDelInfo
 
-func (d wrongDelInfos) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
-func (d wrongDelInfos) Len() int      { return len(d) }
-func (d wrongDelInfos) Less(i, j int) bool {
-	//todo add quote
+func (d rollBackDelInfos) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
+func (d rollBackDelInfos) Len() int      { return len(d) }
+func (d rollBackDelInfos) Less(i, j int) bool {
+	//根据委托节点的分红比例从小到大排序，如果委托比例相同，根据节点id从小到大排序
 	if d[i].candidate.RewardPer < d[j].candidate.RewardPer {
 		return true
 	} else if d[i].candidate.RewardPer == d[j].candidate.RewardPer {
