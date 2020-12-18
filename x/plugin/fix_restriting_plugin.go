@@ -379,11 +379,29 @@ type rollBackStakingInfos []*rollBackStakingInfo
 func (d rollBackStakingInfos) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
 func (d rollBackStakingInfos) Len() int      { return len(d) }
 func (d rollBackStakingInfos) Less(i, j int) bool {
-	//按照节点质押的时间远近进行排序，最近的质押排在前面
+	//1.节点处于解质押状态,并且质押的时间靠后的排在前面
+	//2.按照节点质押的时间远近进行排序，并且质押的时间靠后的排在前面
+	if d[i].candidate.IsWithdrew() {
+		if d[j].candidate.IsWithdrew() {
+			return d.LessByStakingBlockNum(i, j)
+		} else {
+			return false
+		}
+	} else {
+		if d[j].candidate.IsWithdrew() {
+			return false
+		} else {
+			return d.LessByStakingBlockNum(i, j)
+		}
+	}
+}
+
+func (d rollBackStakingInfos) LessByStakingBlockNum(i, j int) bool {
 	if d[i].candidate.StakingBlockNum > d[j].candidate.StakingBlockNum {
 		return true
+	} else {
+		return false
 	}
-	return false
 }
 
 type rollBackDelInfo struct {
@@ -551,7 +569,53 @@ type rollBackDelInfos []*rollBackDelInfo
 func (d rollBackDelInfos) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
 func (d rollBackDelInfos) Len() int      { return len(d) }
 func (d rollBackDelInfos) Less(i, j int) bool {
-	//根据委托节点的分红比例从小到大排序，如果委托比例相同，根据节点id从小到大排序
+	//排序顺序
+	//1.委托的节点已经完全退出,并且委托的时间靠后
+	//2.委托的节点处于解质押状态,并且委托的时间靠后
+	//3.根据委托节点的分红比例从小到大排序，如果委托比例相同，根据节点id从小到大排序
+	if d[i].candidate.IsEmpty() {
+		if d[j].candidate.IsEmpty() {
+			return d.LessDelByEpoch(i, j)
+		} else {
+			return true
+		}
+	} else {
+		if d[i].candidate.IsEmpty() {
+			return false
+		} else {
+			if d[i].candidate.IsWithdrew() {
+				if d[j].candidate.IsWithdrew() {
+					return d.LessDelByEpoch(i, j)
+				} else {
+					return true
+				}
+			} else {
+				if d[j].candidate.IsWithdrew() {
+					return false
+				} else {
+					return d.LessDelByRewardPer(i, j)
+				}
+			}
+		}
+	}
+
+}
+
+func (d rollBackDelInfos) LessDelByEpoch(i, j int) bool {
+	if d[i].del.DelegateEpoch > d[j].del.DelegateEpoch {
+		return true
+	} else if d[i].del.DelegateEpoch == d[j].del.DelegateEpoch {
+		if bytes.Compare(d[i].candidate.NodeId.Bytes(), d[j].candidate.NodeId.Bytes()) < 0 {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
+}
+
+func (d rollBackDelInfos) LessDelByRewardPer(i, j int) bool {
 	if d[i].candidate.RewardPer < d[j].candidate.RewardPer {
 		return true
 	} else if d[i].candidate.RewardPer == d[j].candidate.RewardPer {
