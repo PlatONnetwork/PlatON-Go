@@ -64,15 +64,15 @@ var (
 
 // CanBase ...
 
-func CanBaseKeyByAddr(addr common.NodeAddress) []byte {
-	return append(CanBaseKeyPrefix, addr.Bytes()...)
+func CanBaseKeyByAddr(id enode.ID) []byte {
+	return append(CanBaseKeyPrefix, id.Bytes()...)
 }
 func CanBaseKeyBySuffix(addr []byte) []byte {
 	return append(CanBaseKeyPrefix, addr...)
 }
 
-func CanMutableKeyByAddr(addr common.NodeAddress) []byte {
-	return append(CanMutableKeyPrefix, addr.Bytes()...)
+func CanMutableKeyByAddr(id enode.ID) []byte {
+	return append(CanMutableKeyPrefix, id.Bytes()...)
 }
 
 func CanMutableKeyBySuffix(addr []byte) []byte {
@@ -80,7 +80,7 @@ func CanMutableKeyBySuffix(addr []byte) []byte {
 }
 
 // the candidate power key
-func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, nodeID enode.ID) []byte {
+func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, id enode.ID) []byte {
 
 	// Only sort Major and Minor
 	// eg. 1.1.x => 1.1.0
@@ -90,8 +90,6 @@ func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64,
 	priority := new(big.Int).Sub(math.MaxBig104, shares)
 	zeros := make([]byte, b104Len)
 	prio := append(zeros, priority.Bytes()...)
-
-	id := nodeID.Bytes()
 
 	num := common.Uint64ToBytes(stakeBlockNum)
 	txIndex := common.Uint32ToBytes(stakeTxIndex)
@@ -111,7 +109,7 @@ func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64,
 	copy(key[indexVersion:indexPrio], prio)
 	copy(key[indexPrio:indexNum], num)
 	copy(key[indexNum:indexTxIndex], txIndex)
-	copy(key[indexTxIndex:], id)
+	copy(key[indexTxIndex:], id[:])
 	return key
 }
 

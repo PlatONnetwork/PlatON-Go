@@ -1236,7 +1236,13 @@ func (srv *Server) watching() {
 					continue
 				}
 				log.Trace("Received AddValidatorEvent", "nodeID", addEv.NodeID.String())
-				node := newNode(addEv.NodeID, nil)
+				pkey, err := addEv.NodeID.Pubkey()
+				if err != nil {
+
+					log.Error("Add validator event NodeID error")
+					continue
+				}
+				node := enode.NewV4(pkey, nil, 0, 0)
 				srv.AddConsensusPeer(node)
 			case cbfttypes.RemoveValidatorEvent:
 				removeEv, ok := ev.Data.(cbfttypes.RemoveValidatorEvent)
@@ -1245,7 +1251,13 @@ func (srv *Server) watching() {
 					continue
 				}
 				log.Trace("Received RemoveValidatorEvent", "nodeID", removeEv.NodeID.String())
-				node := discover.NewNode(removeEv.NodeID, nil, 0, 0)
+				pkey, err := removeEv.NodeID.Pubkey()
+				if err != nil {
+
+					log.Error("RemoveValidatorEvent NodeID error")
+					continue
+				}
+				node := enode.NewV4(pkey, nil, 0, 0)
 				srv.RemoveConsensusPeer(node)
 			default:
 				log.Error("Received unexcepted event")

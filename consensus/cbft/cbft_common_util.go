@@ -118,7 +118,7 @@ func GenerateCbftNode(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey, []params.
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
 
-		nodes[i].Node = *discover.NewNode(enode.PubkeyToIDV4(&pk[i].PublicKey), nil, 0, 0)
+		nodes[i].Node = *enode.NewV4(&pk[i].PublicKey, nil, 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 
 	}

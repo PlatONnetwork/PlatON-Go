@@ -36,9 +36,9 @@ type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
 	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]enode.ID, error)
 	GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error)
-	GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error)
-	GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error)
-	GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error)
+	GetCandidateInfo(blockHash common.Hash, id enode.ID) (*staking.Candidate, error)
+	GetCanBase(blockHash common.Hash, id enode.ID) (*staking.CandidateBase, error)
+	GetCanMutable(blockHash common.Hash, id enode.ID) (*staking.CandidateMutable, error)
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId enode.ID, programVersion uint32) error
 }
 
@@ -340,9 +340,9 @@ func checkVerifier(from common.Address, nodeID enode.ID, blockHash common.Hash, 
 	//xcom.PrintObject("checkVerifier", verifierList)
 
 	for _, verifier := range verifierList {
-		if verifier != nil && verifier.NodeId == nodeID {
+		if verifier != nil && verifier.Id == nodeID {
 			if verifier.StakingAddress == from {
-				nodeAddress, err := xutil.NodeId2Addr(verifier.NodeId)
+				nodeAddress, err := xutil.NodeId2Addr(verifier.Id)
 				if err != nil {
 					return err
 				}
@@ -612,11 +612,11 @@ func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, 
 }
 
 // check if the node a candidate, and the caller address is same as the staking address
-func checkCandidate(from common.Address, nodeID enode.ID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
+func checkCandidate(from common.Address, id enode.ID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 
-	_, err := xutil.NodeId2Addr(nodeID)
+	_, err := xutil.NodeId2Addr(id)
 	if nil != err {
-		log.Error("parse nodeID error", "err", err)
+		log.Error("parse id error", "err", err)
 		return err
 	}
 
@@ -627,7 +627,7 @@ func checkCandidate(from common.Address, nodeID enode.ID, blockHash common.Hash,
 	}
 
 	for _, candidate := range candidateList {
-		if candidate.NodeId == nodeID {
+		if candidate.ID == id {
 			if candidate.StakingAddress == from {
 				return nil
 			} else {

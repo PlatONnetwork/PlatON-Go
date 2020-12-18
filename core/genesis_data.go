@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -66,7 +67,8 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		node := initQueue[index]
 
 		var keyHex bls.PublicKeyHex
-		if b, err := node.BlsPubKey.MarshalText(); nil != err {
+		b, err := node.BlsPubKey.MarshalText()
+		if nil != err {
 			return lastHash, err
 		} else {
 			if err := keyHex.UnmarshalText(b); nil != err {
@@ -75,7 +77,8 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		base := &staking.CandidateBase{
-			NodeId:          node.Node.ID(),
+			ID:              node.Node.ID(),
+			NodeId:          discv5.PubkeyID(node.Node.Pubkey()),
 			BlsPubKey:       keyHex,
 			StakingAddress:  xcom.CDFAccount(),
 			BenefitAddress:  vm.RewardManagerPoolAddr,
@@ -100,17 +103,11 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 			RestrictingPlanHes: new(big.Int).SetInt64(0),
 		}
 
-		nodeAddr, err := xutil.NodeId2Addr(base.NodeId)
-		if err != nil {
-			return lastHash, fmt.Errorf("Failed to convert nodeID to address. nodeId:%s, error:%s",
-				base.NodeId.String(), err.Error())
-		}
-
 		// about CanBase ...
-		baseKey := staking.CanBaseKeyByAddr(nodeAddr)
+		baseKey := staking.CanBaseKeyByAddr(base.ID)
 		if val, err := rlp.EncodeToBytes(base); nil != err {
-			return lastHash, fmt.Errorf("Failed to Store CanBase Info: rlp encodeing failed. nodeId:%s, error:%s",
-				base.NodeId.String(), err.Error())
+			return lastHash, fmt.Errorf("Failed to Store CanBase Info: rlp encodeing failed. ID:%s, error:%s",
+				base.ID.String(), err.Error())
 		} else {
 
 			lastHash, err = putbasedbFn(baseKey, val, lastHash)
@@ -122,10 +119,10 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		// about CanMutable ...
-		mutableKey := staking.CanMutableKeyByAddr(nodeAddr)
+		mutableKey := staking.CanMutableKeyByAddr(base.ID)
 		if val, err := rlp.EncodeToBytes(mutable); nil != err {
-			return lastHash, fmt.Errorf("Failed to Store CanMutable Info: rlp encodeing failed. nodeId:%s, error:%s",
-				base.NodeId.String(), err.Error())
+			return lastHash, fmt.Errorf("Failed to Store CanMutable Info: rlp encodeing failed. ID:%s, error:%s",
+				base.ID.String(), err.Error())
 		} else {
 
 			lastHash, err = putbasedbFn(mutableKey, val, lastHash)
@@ -137,8 +134,8 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		// about can power ...
-		powerKey := staking.TallyPowerKey(base.ProgramVersion, mutable.Shares, base.StakingBlockNum, base.StakingTxIndex, base.NodeId)
-		lastHash, err = putbasedbFn(powerKey, nodeAddr.Bytes(), lastHash)
+		powerKey := staking.TallyPowerKey(base.ProgramVersion, mutable.Shares, base.StakingBlockNum, base.StakingTxIndex, base.ID)
+		lastHash, err = putbasedbFn(powerKey, base.ID.Bytes(), lastHash)
 		if nil != err {
 			return lastHash, fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. nodeId:%s, error:%s",
 				base.NodeId.String(), err.Error())
@@ -146,7 +143,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 
 		// build validator queue for the first consensus epoch
 		validator := &staking.Validator{
-			NodeAddress:     nodeAddr,
+			Id:              base.ID,
 			NodeId:          base.NodeId,
 			BlsPubKey:       base.BlsPubKey,
 			ProgramVersion:  base.ProgramVersion, // real version

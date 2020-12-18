@@ -18,6 +18,7 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"strings"
 	"testing"
@@ -533,7 +534,7 @@ func buildSingleCbft() (*Cbft, []enode.ID) {
 	//node.engine.network.Close()
 	// Add a node to the Handler.
 	cNodes := network.RandomID()
-	node.engine.consensusNodesMock = func() ([]enode.ID, error) {
+	node.engine.consensusNodesMock = func() ([]discv5.NodeID, error) {
 		return cNodes, nil
 	}
 	network.FillEngineManager(cNodes, node.engine.network)

@@ -147,7 +147,7 @@ func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
 func (bm *BftMock) NodeID() enode.ID {
 	privateKey, err := crypto.GenerateKey()
 	if nil != err {
-		panic(fmt.Sprintf("Failed to generate random NodeId private key: %v", err))
+		panic(fmt.Sprintf("Failed to generate random Id private key: %v", err))
 	}
 	return enode.PubkeyToIDV4(&privateKey.PublicKey)
 }

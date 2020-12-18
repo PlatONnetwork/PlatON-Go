@@ -20,6 +20,7 @@ import (
 	"crypto/rand"
 	"flag"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
@@ -320,8 +321,8 @@ func Test_InitializePeers(t *testing.T) {
 }
 
 type mockCbft struct {
-	consensusNodes []enode.ID
-	peerID         enode.ID
+	consensusNodes []discv5.NodeID
+	peerID         discv5.NodeID
 }
 
 func (s *mockCbft) NodeID() enode.ID {

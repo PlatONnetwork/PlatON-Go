@@ -61,7 +61,7 @@ type MockStaking struct {
 
 func (stk *MockStaking) GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
 	valEx := &staking.ValidatorEx{
-		NodeId:          nodeID,
+		Id:              nodeID,
 		StakingAddress:  sender,
 		ProgramVersion:  params.GenesisVersion,
 		StakingBlockNum: 0,
@@ -84,15 +84,15 @@ func (stk *MockStaking) GetCanBaseList(blockHash common.Hash, blockNumber uint64
 	return []*staking.CandidateBase{candidate}, nil
 }
 
-func (stk *MockStaking) GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error) {
+func (stk *MockStaking) GetCandidateInfo(blockHash common.Hash, id enode.ID) (*staking.Candidate, error) {
 	return nil, nil
 }
 
-func (stk *MockStaking) GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error) {
+func (stk *MockStaking) GetCanBase(blockHash common.Hash, id enode.ID) (*staking.CandidateBase, error) {
 	return nil, nil
 }
 
-func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error) {
+func (stk *MockStaking) GetCanMutable(blockHash common.Hash, id enode.ID) (*staking.CandidateMutable, error) {
 	can := &staking.CandidateMutable{Status: staking.Valided}
 	return can, nil
 }

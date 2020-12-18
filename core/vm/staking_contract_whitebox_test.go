@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
 

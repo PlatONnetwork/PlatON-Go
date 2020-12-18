@@ -19,6 +19,7 @@ package vm
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -47,7 +48,7 @@ const (
 
 type ValidateNode struct {
 	Index     uint               `json:"index"`
-	NodeID    enode.ID           `json:"nodeID"`
+	NodeID    discv5.NodeID      `json:"nodeID"`
 	Address   common.NodeAddress `json:"-"`
 	BlsPubKey bls.PublicKey      `json:"blsPubKey"`
 }
@@ -107,7 +108,7 @@ func (vic *validatorInnerContract) UpdateValidators(validators *Validators) erro
 
 	var newVds Validators
 	for _, node := range validators.ValidateNodes {
-		nodeAddr, err := xutil.NodeId2Addr(node.NodeID)
+		nodeAddr, err := xutil.NodeId2Addr(enode.NodeIDToIDV4(node.NodeID))
 		if err != nil {
 			log.Error("Get nodeAddr from nodeID fail", "error", err)
 			return err

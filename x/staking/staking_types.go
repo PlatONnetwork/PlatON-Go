@@ -18,6 +18,7 @@ package staking
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"strings"
@@ -131,8 +132,8 @@ type Candidate struct {
 }
 
 func (can *Candidate) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d,"RewardPer": %d,"NextRewardPer": %d}`,
-		fmt.Sprintf("%x", can.NodeId.Bytes()),
+	return fmt.Sprintf(`{"ID": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d,"RewardPer": %d,"NextRewardPer": %d}`,
+		fmt.Sprintf("%x", can.ID),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
@@ -166,7 +167,10 @@ func (can *Candidate) IsEmpty() bool {
 }
 
 type CandidateBase struct {
-	NodeId enode.ID
+	// V4ID
+	ID	   enode.ID
+	// V5ID
+	NodeId discv5.NodeID
 	// bls public key
 	BlsPubKey bls.PublicKeyHex
 	// The account used to initiate the staking
@@ -185,8 +189,8 @@ type CandidateBase struct {
 }
 
 func (can *CandidateBase) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
-		fmt.Sprintf("%x", can.NodeId.Bytes()),
+	return fmt.Sprintf(`{"Id": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+		fmt.Sprintf("%x", can.ID),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
@@ -425,7 +429,7 @@ type CandidateHex struct {
 }
 
 func (can *CandidateHex) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","DelegateEpoch": "%d","DelegateTotal": "%s","DelegateTotalHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateRewardTotal": "%s"}`,
+	return fmt.Sprintf(`{"Id": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","DelegateEpoch": "%d","DelegateTotal": "%s","DelegateTotalHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateRewardTotal": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -548,40 +552,21 @@ func (queue CandidateBaseQueue) IsEmpty() bool {
 	return len(queue) == 0
 }
 
-// the Validator info
-// They are Simplified Candidate
-// They are consensus nodes and Epoch nodes snapshot
-/*type Validator struct {
-	NodeAddress common.Address
-	NodeId      enode.ID
-	// bls public key
-	BlsPubKey bls.PublicKeyHex
-	// The weight snapshot
-	// NOTE:
-	// converted from the weight snapshot of Candidate, they array order is:
-	//
-	// programVersion, candidate.shares, stakingBlocknum, stakingTxindex
-	//
-	// They origin type is: uint32, *big.Int, uint64, uint32
-	StakingWeight [SWeightItem]string
-	// Validator's term in the consensus round
-	ValidatorTerm uint32
-}*/
 type Validator struct {
 	ProgramVersion  uint32
 	StakingTxIndex  uint32
 	ValidatorTerm   uint32 // Validator's term in the consensus round
 	StakingBlockNum uint64
-	NodeAddress     common.NodeAddress
-	NodeId          enode.ID
+	Id              enode.ID
+	NodeId          discv5.NodeID
 	BlsPubKey       bls.PublicKeyHex
 	Shares          *big.Int
 }
 
 func (val *Validator) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","ProgramVersion": %d,"Shares": %d,"StakingBlockNum": %d,"StakingTxIndex": %d,"ValidatorTerm": %d}`,
+	return fmt.Sprintf(`{"Id": "%s","Id": "%s","BlsPubKey": "%s","ProgramVersion": %d,"Shares": %d,"StakingBlockNum": %d,"StakingTxIndex": %d,"ValidatorTerm": %d}`,
 		val.NodeId.String(),
-		fmt.Sprintf("%x", val.NodeAddress.Bytes()),
+		val.Id.String(),
 		fmt.Sprintf("%x", val.BlsPubKey.Bytes()),
 		val.ProgramVersion,
 		val.Shares,
@@ -612,41 +597,41 @@ type CandidateMap map[enode.ID]*Candidate
 
 type NeedRemoveCans map[enode.ID]*Candidate
 
-func (arr ValidatorQueue) ValidatorSort(removes NeedRemoveCans,
+func (queue ValidatorQueue) ValidatorSort(removes NeedRemoveCans,
 	compare func(slashs NeedRemoveCans, c, can *Validator) int) {
-	if len(arr) <= 1 {
+	if len(queue) <= 1 {
 		return
 	}
 
 	if nil == compare {
-		arr.quickSort(removes, 0, len(arr)-1, CompareDefault)
+		queue.quickSort(removes, 0, len(queue)-1, CompareDefault)
 	} else {
-		arr.quickSort(removes, 0, len(arr)-1, compare)
+		queue.quickSort(removes, 0, len(queue)-1, compare)
 	}
 }
-func (arr ValidatorQueue) quickSort(removes NeedRemoveCans, left, right int,
+func (queue ValidatorQueue) quickSort(removes NeedRemoveCans, left, right int,
 	compare func(slashs NeedRemoveCans, c, can *Validator) int) {
 	if left < right {
-		pivot := arr.partition(removes, left, right, compare)
-		arr.quickSort(removes, left, pivot-1, compare)
-		arr.quickSort(removes, pivot+1, right, compare)
+		pivot := queue.partition(removes, left, right, compare)
+		queue.quickSort(removes, left, pivot-1, compare)
+		queue.quickSort(removes, pivot+1, right, compare)
 	}
 }
-func (arr ValidatorQueue) partition(removes NeedRemoveCans, left, right int,
+func (queue ValidatorQueue) partition(removes NeedRemoveCans, left, right int,
 	compare func(slashs NeedRemoveCans, c, can *Validator) int) int {
 	for left < right {
-		for left < right && compare(removes, arr[left], arr[right]) >= 0 {
+		for left < right && compare(removes, queue[left], queue[right]) >= 0 {
 			right--
 		}
 		if left < right {
-			arr[left], arr[right] = arr[right], arr[left]
+			queue[left], queue[right] = queue[right], queue[left]
 			left++
 		}
-		for left < right && compare(removes, arr[left], arr[right]) >= 0 {
+		for left < right && compare(removes, queue[left], queue[right]) >= 0 {
 			left++
 		}
 		if left < right {
-			arr[left], arr[right] = arr[right], arr[left]
+			queue[left], queue[right] = queue[right], queue[left]
 			right--
 		}
 	}
@@ -708,8 +693,8 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 		}
 	}
 
-	_, leftOk := removes[left.NodeId]
-	_, rightOk := removes[right.NodeId]
+	_, leftOk := removes[enode.NodeIDToIDV4(left.NodeId)]
+	_, rightOk := removes[enode.NodeIDToIDV4(right.NodeId)]
 
 	if leftOk && !rightOk {
 		return -1
@@ -823,8 +808,8 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 		}
 	}
 
-	lCan, lOK := removes[left.NodeId]
-	rCan, rOK := removes[right.NodeId]
+	lCan, lOK := removes[enode.NodeIDToIDV4(left.NodeId)]
+	rCan, rOK := removes[enode.NodeIDToIDV4(right.NodeId)]
 
 	/**
 	Start Compare
@@ -960,8 +945,8 @@ func (v ValidatorArray) String() string {
 }
 
 type ValidatorEx struct {
-	//NodeAddress common.Address
-	NodeId enode.ID
+	//IDV4
+	Id enode.ID
 	// bls public key
 	BlsPubKey bls.PublicKeyHex
 	// The account used to initiate the staking
@@ -995,8 +980,8 @@ type ValidatorEx struct {
 }
 
 func (vex *ValidatorEx) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d,"DelegateTotal": "%s"}`,
-		vex.NodeId.String(),
+	return fmt.Sprintf(`{"Id": "%s","Id": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d,"DelegateTotal": "%s"}`,
+		vex.Id.String(),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
@@ -1125,7 +1110,7 @@ type DelegationEx struct {
 }
 
 func (dex *DelegationEx) String() string {
-	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s}`,
+	return fmt.Sprintf(`{"Addr": "%s","Id": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s}`,
 		dex.Addr.String(),
 		fmt.Sprintf("%x", dex.NodeId.Bytes()),
 		dex.StakingBlockNum,
@@ -1152,7 +1137,7 @@ type DelegateRelated struct {
 }
 
 func (dr *DelegateRelated) String() string {
-	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d"}`,
+	return fmt.Sprintf(`{"Addr": "%s","Id": "%s","StakingBlockNum": "%d"}`,
 		dr.Addr.String(),
 		fmt.Sprintf("%x", dr.NodeId.Bytes()),
 		dr.StakingBlockNum)
@@ -1186,7 +1171,7 @@ func (queue DelRelatedQueue) String() string {
 
 type UnStakeItem struct {
 	// this is the nodeAddress
-	NodeAddress     common.NodeAddress
+	Id             enode.ID
 	StakingBlockNum uint64
 	// Return to normal staking state
 	Recovery bool
@@ -1229,7 +1214,7 @@ func (queue ValArrIndexQueue) String() string {
 // An item that exists for slash
 type SlashNodeItem struct {
 	// the nodeId will be slashed
-	NodeId enode.ID
+	Id enode.ID
 	// the amount of von with slashed
 	Amount *big.Int
 	// slash type
@@ -1239,7 +1224,7 @@ type SlashNodeItem struct {
 }
 
 func (s *SlashNodeItem) String() string {
-	return fmt.Sprintf(`{"nodeId": %s, "amount": %d, "slashType": %d, "benefitAddr": %s}`, s.NodeId.String(), s.Amount, s.SlashType, s.BenefitAddr)
+	return fmt.Sprintf(`{"nodeId": %s, "amount": %d, "slashType": %d, "benefitAddr": %s}`, s.Id.String(), s.Amount, s.SlashType, s.BenefitAddr)
 }
 
 type SlashQueue []*SlashNodeItem

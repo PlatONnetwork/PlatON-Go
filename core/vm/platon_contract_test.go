@@ -473,7 +473,7 @@ func build_staking_data(genesisHash common.Hash) {
 	queue := make(staking.ValidatorQueue, 0)
 
 	v1 := &staking.Validator{
-		NodeAddress:     addr_A,
+		Id:              addr_A,
 		NodeId:          c1.NodeId,
 		BlsPubKey:       c1.BlsPubKey,
 		ProgramVersion:  c1.ProgramVersion,
@@ -484,7 +484,7 @@ func build_staking_data(genesisHash common.Hash) {
 	}
 
 	v2 := &staking.Validator{
-		NodeAddress:     addr_B,
+		Id:              addr_B,
 		NodeId:          c2.NodeId,
 		BlsPubKey:       c2.BlsPubKey,
 		ProgramVersion:  c2.ProgramVersion,
@@ -495,7 +495,7 @@ func build_staking_data(genesisHash common.Hash) {
 	}
 
 	v3 := &staking.Validator{
-		NodeAddress:     addr_C,
+		Id:              addr_C,
 		NodeId:          c3.NodeId,
 		BlsPubKey:       c3.BlsPubKey,
 		ProgramVersion:  c3.ProgramVersion,
@@ -679,7 +679,7 @@ func build_staking_data_new(chain *mock.Chain) {
 	queue := make(staking.ValidatorQueue, 0)
 
 	v1 := &staking.Validator{
-		NodeAddress:     addr_A,
+		Id:              addr_A,
 		NodeId:          c1.NodeId,
 		BlsPubKey:       c1.BlsPubKey,
 		ProgramVersion:  c1.ProgramVersion,
@@ -690,7 +690,7 @@ func build_staking_data_new(chain *mock.Chain) {
 	}
 
 	v2 := &staking.Validator{
-		NodeAddress:     addr_B,
+		Id:              addr_B,
 		NodeId:          c2.NodeId,
 		BlsPubKey:       c2.BlsPubKey,
 		ProgramVersion:  c2.ProgramVersion,
@@ -701,7 +701,7 @@ func build_staking_data_new(chain *mock.Chain) {
 	}
 
 	v3 := &staking.Validator{
-		NodeAddress:     addr_C,
+		Id:              addr_C,
 		NodeId:          c3.NodeId,
 		BlsPubKey:       c3.BlsPubKey,
 		ProgramVersion:  c3.ProgramVersion,
@@ -774,7 +774,7 @@ func build_staking_data_more(chain *mock.Chain) {
 		randBuildFunc := func() (enode.ID, common.Address, error) {
 			privateKey, err := crypto.GenerateKey()
 			if nil != err {
-				fmt.Printf("Failed to generate random NodeId private key: %v", err)
+				fmt.Printf("Failed to generate random Id private key: %v", err)
 				return enode.ID{}, common.ZeroAddr, err
 			}
 
@@ -855,7 +855,7 @@ func build_staking_data_more(chain *mock.Chain) {
 		}
 
 		v := &staking.Validator{
-			NodeAddress:     canAddr,
+			Id:              canAddr,
 			NodeId:          canTmp.NodeId,
 			BlsPubKey:       canTmp.BlsPubKey,
 			ProgramVersion:  canTmp.ProgramVersion,

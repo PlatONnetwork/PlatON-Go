@@ -22,6 +22,7 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"strings"
 	"sync/atomic"
@@ -183,7 +184,7 @@ type Cbft struct {
 	//test
 	insertBlockQCHook  func(block *types.Block, qc *ctypes.QuorumCert)
 	executeFinishHook  func(index uint32)
-	consensusNodesMock func() ([]enode.ID, error)
+	consensusNodesMock func() ([]discv5.NodeID, error)
 }
 
 // New returns a new CBFT.
@@ -1086,7 +1087,7 @@ func (cbft *Cbft) Close() error {
 }
 
 // ConsensusNodes returns to the list of consensus nodes.
-func (cbft *Cbft) ConsensusNodes() ([]enode.ID, error) {
+func (cbft *Cbft) ConsensusNodes() ([]discv5.NodeID, error) {
 	if cbft.consensusNodesMock != nil {
 		return cbft.consensusNodesMock()
 	}

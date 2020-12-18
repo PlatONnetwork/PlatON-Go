@@ -19,6 +19,7 @@ package network
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -28,10 +29,10 @@ import (
 // ============================ simulation network ============================
 
 // RandomID returns a list of NodeID by random.
-func RandomID() []enode.ID {
-	ids := make([]enode.ID, 0)
+func RandomID() []discv5.NodeID {
+	ids := make([]discv5.NodeID, 0)
 	for i := 0; i < 4; i++ {
-		var id enode.ID
+		var id discv5.NodeID
 		rand.Read(id[:])
 		ids = append(ids, id)
 	}

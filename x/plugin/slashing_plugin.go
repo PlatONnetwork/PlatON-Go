@@ -393,7 +393,7 @@ func (sp *SlashingPlugin) checkSlashing(blockNumber uint64, blockHash common.Has
 			}
 
 			slashItem := &staking.SlashNodeItem{
-				NodeId:      nodeId,
+				Id:          nodeId,
 				Amount:      slashAmount,
 				SlashType:   staking.LowRatio,
 				BenefitAddr: vm.RewardManagerPoolAddr,
@@ -633,7 +633,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 
 	toCallerAmount := calcAmountByRate(slashAmount, uint64(rewardFraction), HundredDenominator)
 	toCallerItem := &staking.SlashNodeItem{
-		NodeId:      canBase.NodeId,
+		Id:          canBase.NodeId,
 		Amount:      toCallerAmount,
 		SlashType:   staking.DuplicateSign,
 		BenefitAddr: caller,
@@ -641,7 +641,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 
 	toRewardPoolAmount := new(big.Int).Sub(slashAmount, toCallerAmount)
 	toRewardPoolItem := &staking.SlashNodeItem{
-		NodeId:      canBase.NodeId,
+		Id:          canBase.NodeId,
 		Amount:      toRewardPoolAmount,
 		SlashType:   staking.DuplicateSign,
 		BenefitAddr: vm.RewardManagerPoolAddr,

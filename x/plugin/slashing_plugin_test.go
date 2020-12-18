@@ -212,7 +212,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 	queue := make(staking.ValidatorQueue, 0)
 
 	v1 := &staking.Validator{
-		NodeAddress:     addrA,
+		Id:              addrA,
 		NodeId:          c1.NodeId,
 		BlsPubKey:       c1.BlsPubKey,
 		ProgramVersion:  c1.ProgramVersion,
@@ -223,7 +223,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 	}
 
 	v2 := &staking.Validator{
-		NodeAddress:     addrB,
+		Id:              addrB,
 		NodeId:          c2.NodeId,
 		BlsPubKey:       c2.BlsPubKey,
 		ProgramVersion:  c2.ProgramVersion,
@@ -234,7 +234,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 	}
 
 	v3 := &staking.Validator{
-		NodeAddress:     addrC,
+		Id:              addrC,
 		NodeId:          c3.NodeId,
 		BlsPubKey:       c3.BlsPubKey,
 		ProgramVersion:  c3.ProgramVersion,

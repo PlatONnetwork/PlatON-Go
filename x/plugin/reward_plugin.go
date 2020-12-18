@@ -256,7 +256,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 		} else {
 
 			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, verifier.DelegateTotal)
-			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
+			if err := AppendDelegateRewardPer(blockHash, verifier.ID, verifier.StakingBlockNum, per, rmp.db); err != nil {
 				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 					"nodeId", verifier.NodeId.TerminalString(), "err", err, "CurrentEpochDelegateReward", verifier.CurrentEpochDelegateReward, "delegateTotal", verifier.DelegateTotal)
 				return err
@@ -264,7 +264,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 			currentEpochDelegateReward := new(big.Int).Set(verifier.CurrentEpochDelegateReward)
 
 			verifier.PrepareNextEpoch()
-			canAddr, err := xutil.NodeId2Addr(verifier.NodeId)
+			canAddr, err := xutil.NodeId2Addr(verifier.ID)
 			if nil != err {
 				log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: nodeId parse addr failed",
 					"blockNumber", blockNumber, "blockHash", blockHash, "nodeID", verifier.NodeId.String(), "err", err)
@@ -432,7 +432,10 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 	if err != nil {
 		return discover.ZeroNodeID, common.ZeroNodeAddr, err
 	}
-	return enode.PubkeyToIDV4(pk), crypto.PubkeyToNodeAddress(*pk), nil
+	idv4 := enode.PubkeyToIDV4(pk)
+	nodeAddr,_ := xutil.NodeId2Addr(idv4)
+	return idv4, nodeAddr, nil
+
 }
 
 // AllocatePackageBlock used for reward new block. it returns coinbase and error
@@ -526,8 +529,8 @@ func getDelegateRewardPerList(blockHash common.Hash, nodeID enode.ID, stakingNum
 	return pers, nil
 }
 
-func AppendDelegateRewardPer(blockHash common.Hash, nodeID enode.ID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) error {
-	key := reward.DelegateRewardPerKey(nodeID, stakingNum, per.Epoch)
+func AppendDelegateRewardPer(blockHash common.Hash, id enode.ID, stakingNum uint64, per *reward.DelegateRewardPer, db snapshotdb.DB) error {
+	key := reward.DelegateRewardPerKey(id, stakingNum, per.Epoch)
 	list := reward.NewDelegateRewardPerList()
 	val, err := db.Get(blockHash, key)
 	if err != nil {
@@ -548,7 +551,7 @@ func AppendDelegateRewardPer(blockHash common.Hash, nodeID enode.ID, stakingNum 
 	if err := db.Put(blockHash, key, v); err != nil {
 		return err
 	}
-	log.Debug("append delegate rewardPer", "nodeID", nodeID.TerminalString(), "stkNum", stakingNum, "per", per)
+	log.Debug("append delegate rewardPer", "id", id.TerminalString(), "stkNum", stakingNum, "per", per)
 	return nil
 }
 

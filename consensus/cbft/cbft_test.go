@@ -72,7 +72,7 @@ func TestBls(t *testing.T) {
 	owner := sk[0]
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
-		nodes[i].Node = *discover.NewNode(enode.PubkeyToIDV4(&pk[i].PublicKey), nil, 0, 0)
+		nodes[i].Node = *enode.NewV4(&pk[i].PublicKey, nil, 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 	}
 
@@ -98,7 +98,7 @@ func TestPrepareBlockBls(t *testing.T) {
 	pk, sk := GenerateKeys(1)
 	owner := sk[0]
 	node := params.CbftNode{
-		Node:      *discover.NewNode(enode.PubkeyToIDV4(&pk[0].PublicKey), nil, 0, 0),
+		Node:      *enode.NewV4(&pk[0].PublicKey, nil, 0, 0),
 		BlsPubKey: *sk[0].GetPublicKey(),
 	}
 	agency := validator.NewStaticAgency([]params.CbftNode{node})
@@ -162,7 +162,7 @@ func TestAgg(t *testing.T) {
 	pk, sk := GenerateKeys(num)
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
-		nodes[i].Node = *discover.NewNode(enode.PubkeyToIDV4(&pk[i].PublicKey), nil, 0, 0)
+		nodes[i].Node = *enode.NewV4(&pk[i].PublicKey, nil, 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 
 	}

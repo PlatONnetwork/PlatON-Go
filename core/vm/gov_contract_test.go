@@ -19,6 +19,7 @@ package vm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"

@@ -133,7 +133,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random Id private key: %v", err)
 			return nil, err
 		}
 
@@ -221,7 +221,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 
 		if j < int(xcom.MaxValidators()) {
 			v := &staking.Validator{
-				NodeAddress:     canAddr,
+				Id:              canAddr,
 				NodeId:          canTmp.NodeId,
 				BlsPubKey:       canTmp.BlsPubKey,
 				ProgramVersion:  canTmp.ProgramVersion,
@@ -509,7 +509,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
 		privateKey, err := crypto.GenerateKey()
-		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random NodeId private key: %v", err)) {
+		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Id private key: %v", err)) {
 			return
 		}
 
@@ -591,7 +591,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 		if j < int(xcom.MaxValidators()) {
 			v := &staking.Validator{
-				NodeAddress:     canAddr,
+				Id:              canAddr,
 				NodeId:          canBase.NodeId,
 				BlsPubKey:       canBase.BlsPubKey,
 				ProgramVersion:  canBase.ProgramVersion,
@@ -827,7 +827,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random Id private key: %v", err)
 			return
 		}
 
@@ -910,7 +910,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 		if j < int(xcom.MaxValidators()) {
 			v := &staking.Validator{
-				NodeAddress:     canAddr,
+				Id:              canAddr,
 				NodeId:          canBase.NodeId,
 				BlsPubKey:       canBase.BlsPubKey,
 				ProgramVersion:  canBase.ProgramVersion,
@@ -1475,7 +1475,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 	canAddr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 
-	if err := StakingInstance().addUnStakeItem(state, blockNumber.Uint64(), blockHash, epoch, nodeIdArr[index], canAddr, blockNumber.Uint64()); nil != err {
+	if err := StakingInstance().addUnStakeItem(state, blockNumber.Uint64(), blockHash, nodeIdArr[index], blockNumber.Uint64()); nil != err {
 		t.Error("Failed to AddUnStakeItemStore:", err)
 		return
 	}
@@ -1522,7 +1522,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 		t.Fatal(err)
 	}
 	canAddr, _ = xutil.NodeId2Addr(nodeIdArr[index])
-	if err := StakingInstance().addRecoveryUnStakeItem(blockNumber2.Uint64(), blockHash2, nodeIdArr[index], canAddr, blockNumber2.Uint64()); nil != err {
+	if err := StakingInstance().addRecoveryUnStakeItem(blockNumber2.Uint64(), blockHash2, nodeIdArr[index], blockNumber2.Uint64()); nil != err {
 		t.Error("Failed to AddUnStakeItemStore:", err)
 		return
 	}
@@ -1551,7 +1551,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	assert.Nil(t, StakingInstance().EditCandidate(blockHash2, blockNumber2, canAddr, recoveryCan2))
 
 	// Handle the lock period of low block rate, and increase the double sign freeze operation
-	if err := StakingInstance().addRecoveryUnStakeItem(blockNumber2.Uint64(), blockHash2, nodeIdArr[index], canAddr, blockNumber2.Uint64()); nil != err {
+	if err := StakingInstance().addRecoveryUnStakeItem(blockNumber2.Uint64(), blockHash2, nodeIdArr[index], blockNumber2.Uint64()); nil != err {
 		t.Error("Failed to AddUnStakeItemStore:", err)
 		return
 	}
@@ -2087,7 +2087,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random Id private key: %v", err)
 			return
 		}
 
@@ -2187,7 +2187,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		addr := common.BytesToNodeAddress(addrSuffix)
 
 		val := &staking.Validator{
-			NodeAddress:     addr,
+			Id:              addr,
 			NodeId:          can.NodeId,
 			BlsPubKey:       can.BlsPubKey,
 			ProgramVersion:  can.ProgramVersion,
@@ -2274,7 +2274,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random Id private key: %v", err)
 			return
 		}
 
@@ -2373,7 +2373,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		addr := common.BytesToNodeAddress(addrSuffix)
 
 		val := &staking.Validator{
-			NodeAddress:     addr,
+			Id:              addr,
 			NodeId:          can.NodeId,
 			BlsPubKey:       can.BlsPubKey,
 			ProgramVersion:  can.ProgramVersion,
@@ -2485,7 +2485,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random Id private key: %v", err)
 			return
 		}
 
@@ -2590,7 +2590,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 		addr := common.BytesToNodeAddress(addrSuffix)
 
 		val := &staking.Validator{
-			NodeAddress:     addr,
+			Id:              addr,
 			NodeId:          can.NodeId,
 			BlsPubKey:       can.BlsPubKey,
 			ProgramVersion:  can.ProgramVersion,
@@ -2631,7 +2631,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 	// Be punished for less than the quality deposit
 	slashItem1 := &staking.SlashNodeItem{
-		NodeId:      slash1.NodeId,
+		Id:          slash1.NodeId,
 		Amount:      slash1.Released,
 		SlashType:   staking.LowRatio,
 		BenefitAddr: vm.RewardManagerPoolAddr,
@@ -2641,7 +2641,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	sla := new(big.Int).Div(slash2.Released, big.NewInt(10))
 	caller := common.MustBech32ToAddress("lax1uj3zd9yz00axz7ls88ynwsp3jprhjd9ldx9qpm")
 	slashItem2 := &staking.SlashNodeItem{
-		NodeId:      slash2.NodeId,
+		Id:          slash2.NodeId,
 		Amount:      sla,
 		SlashType:   staking.DuplicateSign,
 		BenefitAddr: caller,
@@ -2653,13 +2653,13 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash3 := slashQueue[2]
 	slashAmount3 := new(big.Int).Div(slash3.Released, big.NewInt(10))
 	slashItem3_1 := &staking.SlashNodeItem{
-		NodeId:      slash3.NodeId,
+		Id:          slash3.NodeId,
 		Amount:      slashAmount3,
 		SlashType:   staking.LowRatio,
 		BenefitAddr: vm.RewardManagerPoolAddr,
 	}
 	slashItem3_2 := &staking.SlashNodeItem{
-		NodeId:      slash3.NodeId,
+		Id:          slash3.NodeId,
 		Amount:      slashAmount3,
 		SlashType:   staking.LowRatio,
 		BenefitAddr: vm.RewardManagerPoolAddr,
@@ -2671,13 +2671,13 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash4 := slashQueue[3]
 	slashAmount4 := new(big.Int).Div(slash4.Released, big.NewInt(10))
 	slashItem4_1 := &staking.SlashNodeItem{
-		NodeId:      slash4.NodeId,
+		Id:          slash4.NodeId,
 		Amount:      slashAmount4,
 		SlashType:   staking.LowRatio,
 		BenefitAddr: vm.RewardManagerPoolAddr,
 	}
 	slashItem4_2 := &staking.SlashNodeItem{
-		NodeId:      slash4.NodeId,
+		Id:          slash4.NodeId,
 		Amount:      slashAmount4,
 		SlashType:   staking.DuplicateSign,
 		BenefitAddr: caller,
@@ -2689,13 +2689,13 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash5 := slashQueue[4]
 	slashAmount5 := new(big.Int).Div(slash5.Released, big.NewInt(10))
 	slashItem5_1 := &staking.SlashNodeItem{
-		NodeId:      slash5.NodeId,
+		Id:          slash5.NodeId,
 		Amount:      slashAmount5,
 		SlashType:   staking.DuplicateSign,
 		BenefitAddr: caller,
 	}
 	slashItem5_2 := &staking.SlashNodeItem{
-		NodeId:      slash5.NodeId,
+		Id:          slash5.NodeId,
 		Amount:      slashAmount5,
 		SlashType:   staking.LowRatio,
 		BenefitAddr: vm.RewardManagerPoolAddr,
@@ -2798,7 +2798,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random Id private key: %v", err)
 			return
 		}
 
@@ -2930,7 +2930,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random Id private key: %v", err)
 			return
 		}
 
@@ -2994,7 +2994,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		}
 
 		v := &staking.Validator{
-			NodeAddress:     canAddr,
+			Id:              canAddr,
 			NodeId:          canTmp.NodeId,
 			BlsPubKey:       canTmp.BlsPubKey,
 			ProgramVersion:  canTmp.ProgramVersion,
@@ -3314,7 +3314,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random Id private key: %v", err)
 			return
 		}
 
@@ -3399,7 +3399,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 			return
 		}
 		if !yes {
-			t.Logf("The NodeId is not a Id of Candidate, nodeId: %s", nodeId.String())
+			t.Logf("The Id is not a Id of Candidate, nodeId: %s", nodeId.String())
 		}
 	}
 }
@@ -3434,7 +3434,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 			return
 		}
 		if !yes {
-			t.Logf("The NodeId is not a Id of current round validator, nodeId: %s", nodeId.String())
+			t.Logf("The Id is not a Id of current round validator, nodeId: %s", nodeId.String())
 		}
 	}
 
@@ -3471,7 +3471,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 			return
 		}
 		if !yes {
-			t.Logf("The NodeId is not a Id of Epoch validator, nodeId: %s", nodeId.String())
+			t.Logf("The Id is not a Id of Epoch validator, nodeId: %s", nodeId.String())
 		}
 	}
 }
@@ -3597,9 +3597,9 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		}
 
 		v := &staking.Validator{
-			NodeAddress: addr,
-			NodeId:      nodeId,
-			BlsPubKey:   blsKeyHex,
+			Id:        addr,
+			NodeId:    nodeId,
+			BlsPubKey: blsKeyHex,
 
 			ProgramVersion:  uint32(mrand.Intn(5) + 1),
 			Shares:          v1.SetInt64(10),
@@ -3646,8 +3646,8 @@ func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 		nodeId := enode.PubkeyToIDV4(&tempPrivateKey.PublicKey)
 		addr := crypto.PubkeyToNodeAddress(tempPrivateKey.PublicKey)
 		v := &staking.Validator{
-			NodeAddress: addr,
-			NodeId:      nodeId,
+			Id:     addr,
+			NodeId: nodeId,
 		}
 		vqList = append(vqList, v)
 	}
@@ -3711,7 +3711,7 @@ func Test_IteratorCandidate(t *testing.T) {
 
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random Id private key: %v", err)
 			return
 		}
 

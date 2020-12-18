@@ -20,7 +20,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -47,17 +49,16 @@ func newValidators(nodes []params.CbftNode, validBlockNumber uint64) *cbfttypes.
 	}
 
 	for i, node := range nodes {
-		pubkey, err := node.Node.ID.Pubkey()
-		if err != nil {
-			panic(err)
-		}
-
 		blsPubKey := node.BlsPubKey
-
+		nodeAddr, err := xutil.NodeId2Addr(node.Node.ID())
+		if err != nil {
+			log.Error("NodeId2Addr return err", err)
+			return nil
+		}
 		vds.Nodes[node.Node.ID()] = &cbfttypes.ValidateNode{
 			Index:     uint32(i),
-			Address:   crypto.PubkeyToNodeAddress(*pubkey),
-			NodeID:    node.Node.ID(),
+			Address:   nodeAddr,
+			NodeID:    discv5.PubkeyID(node.Node.Pubkey()),
 			BlsPubKey: &blsPubKey,
 		}
 	}
@@ -266,7 +267,7 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 	validators.Nodes = make(cbfttypes.ValidateNodeMap, len(vds.ValidateNodes))
 	for _, node := range vds.ValidateNodes {
 		blsPubKey := node.BlsPubKey
-		validators.Nodes[node.NodeID] = &cbfttypes.ValidateNode{
+		validators.Nodes[enode.NodeIDToIDV4(node.NodeID)] = &cbfttypes.ValidateNode{
 			Index:     uint32(node.Index),
 			Address:   node.Address,
 			NodeID:    node.NodeID,
@@ -421,14 +422,16 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 		// to keep connect with old validators.
 		if isValidatorAfter {
 			for _, nodeID := range vp.currentValidators.NodeList() {
-				if node, _ := vp.prevValidators.FindNodeByID(nodeID); node == nil {
+				id := enode.NodeIDToIDV4(nodeID)
+				if node, _ := vp.prevValidators.FindNodeByID(id); node == nil {
 					eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: nodeID})
 					log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
 				}
 			}
 
 			for _, nodeID := range vp.prevValidators.NodeList() {
-				if node, _ := vp.currentValidators.FindNodeByID(nodeID); node == nil {
+				id := enode.NodeIDToIDV4(nodeID)
+				if node, _ := vp.currentValidators.FindNodeByID(id); node == nil {
 					eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: nodeID})
 					log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
 				}
@@ -530,14 +533,14 @@ func (vp *ValidatorPool) getIndexByNodeID(epoch uint64, nodeID enode.ID) (uint32
 }
 
 // ValidatorList get the validator list.
-func (vp *ValidatorPool) ValidatorList(epoch uint64) []enode.ID {
+func (vp *ValidatorPool) ValidatorList(epoch uint64) []discv5.NodeID {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
 	return vp.validatorList(epoch)
 }
 
-func (vp *ValidatorPool) validatorList(epoch uint64) []enode.ID {
+func (vp *ValidatorPool) validatorList(epoch uint64) []discv5.NodeID {
 	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.NodeList()
 	}

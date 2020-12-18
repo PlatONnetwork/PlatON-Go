@@ -333,7 +333,7 @@ func build_staking_data_more(block uint64) {
 		randBuildFunc := func() (enode.ID, common.Address, error) {
 			privateKey, err := crypto.GenerateKey()
 			if nil != err {
-				fmt.Printf("Failed to generate random NodeId private key: %v", err)
+				fmt.Printf("Failed to generate random Id private key: %v", err)
 				return enode.ID{}, common.ZeroAddr, err
 			}
 
@@ -412,7 +412,7 @@ func build_staking_data_more(block uint64) {
 		stakingDB.SetCandidateStore(hash, canAddr, canTmp)
 
 		v := &staking.Validator{
-			NodeAddress:     canAddr,
+			Id:              canAddr,
 			NodeId:          canTmp.NodeId,
 			BlsPubKey:       canTmp.BlsPubKey,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -486,7 +486,7 @@ func build_staking_data(genesisHash common.Hash) {
 		randBuildFunc := func() (enode.ID, common.Address, error) {
 			privateKey, err := crypto.GenerateKey()
 			if nil != err {
-				fmt.Printf("Failed to generate random NodeId private key: %v", err)
+				fmt.Printf("Failed to generate random Id private key: %v", err)
 				return enode.ID{}, common.ZeroAddr, err
 			}
 
@@ -574,7 +574,7 @@ func build_staking_data(genesisHash common.Hash) {
 		}
 
 		v := &staking.Validator{
-			NodeAddress:     canAddr,
+			Id:              canAddr,
 			NodeId:          canTmp.NodeId,
 			BlsPubKey:       canTmp.BlsPubKey,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),

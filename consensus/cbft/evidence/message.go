@@ -190,7 +190,7 @@ type EvidenceNode struct {
 func NewEvidenceNode(node *cbfttypes.ValidateNode) *EvidenceNode {
 	return &EvidenceNode{
 		Index:     node.Index,
-		NodeID:    node.NodeID,
+		NodeID:    enode.NodeIDToIDV4(node.NodeID),
 		BlsPubKey: node.BlsPubKey,
 	}
 }

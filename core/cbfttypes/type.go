@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math"
 	"math/big"
@@ -86,19 +87,19 @@ func (ps *ProducerState) Validate(period int) bool {
 }
 
 type AddValidatorEvent struct {
-	NodeID enode.ID
+	NodeID discv5.NodeID
 }
 
 type RemoveValidatorEvent struct {
-	NodeID enode.ID
+	NodeID discv5.NodeID
 }
 
 type UpdateValidatorEvent struct{}
 
 type ValidateNode struct {
 	Index     uint32             `json:"index"`
-	Address   common.NodeAddress `json:"address"`
-	NodeID    enode.ID    `json:"nodeID"`
+	ID        enode.ID           `json:"ID"`
+	NodeID    discv5.NodeID      `json:"nodeID"`
 	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
 }
 
@@ -148,10 +149,10 @@ func (vs *Validators) String() string {
 	return string(b)
 }
 
-func (vs *Validators) NodeList() []enode.ID {
-	nodeList := make([]enode.ID, 0)
-	for id, _ := range vs.Nodes {
-		nodeList = append(nodeList, id)
+func (vs *Validators) NodeList() []discv5.NodeID {
+	nodeList := make([]discv5.NodeID, 0)
+	for _, vNode := range vs.Nodes {
+		nodeList = append(nodeList, vNode.NodeID)
 	}
 	return nodeList
 }
@@ -206,9 +207,9 @@ func (vs *Validators) FindNodeByIndex(index int) (*ValidateNode, error) {
 	}
 }
 
-func (vs *Validators) FindNodeByAddress(addr common.NodeAddress) (*ValidateNode, error) {
+func (vs *Validators) FindNodeByAddress(id enode.ID) (*ValidateNode, error) {
 	for _, node := range vs.Nodes {
-		if bytes.Equal(node.Address[:], addr[:]) {
+		if bytes.Equal(node.ID[:], id[:]) {
 			return node, nil
 		}
 	}
@@ -222,7 +223,7 @@ func (vs *Validators) NodeID(idx int) enode.ID {
 	if idx >= vs.sortedNodes.Len() {
 		return enode.ID{}
 	}
-	return vs.sortedNodes[idx].NodeID
+	return enode.NodeIDToIDV4(vs.sortedNodes[idx].NodeID)
 }
 
 func (vs *Validators) Index(nodeID enode.ID) (uint32, error) {
