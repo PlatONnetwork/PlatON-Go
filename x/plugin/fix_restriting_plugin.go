@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package plugin
 
 import (
@@ -55,22 +71,23 @@ func (a *FixRestrictingPlugin) fix(blockHash common.Hash, head *types.Header, st
 		wrongStakingAmount := new(big.Int).Sub(restrictInfo.StakingAmount, realAmount)
 		if wrongStakingAmount.Cmp(common.Big0) > 0 {
 			//If the user uses the wrong amount,Roll back the unused part first
+			//优先回滚没有使用的那部分锁仓余额
 			wrongNoUseAmount := new(big.Int).Sub(wrong.amount, wrongStakingAmount)
 			restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, wrongNoUseAmount)
 			rt.storeRestrictingInfo(state, restrictingKey, restrictInfo)
 			log.Debug("fix restricting  in wrongStakingAmount", "no use", wrongNoUseAmount)
-			//roll back del
+			//roll back del,回滚委托
 			if err := a.rollBackDel(blockHash, head.Number, wrong.addr, wrongStakingAmount, state); err != nil {
 				return err
 			}
-			//roll back staking
+			//roll back staking,回滚质押
 			if wrongStakingAmount.Cmp(common.Big0) > 0 {
 				if err := a.rollBackStaking(blockHash, head.Number, wrong.addr, wrongStakingAmount, state); err != nil {
 					return err
 				}
 			}
 		} else {
-			//犹豫期解质押，此时查不到质押信息
+			//当用户没有使用因为漏洞产生的钱，直接减去漏洞的钱就是正确的余额
 			restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, wrong.amount)
 			if restrictInfo.StakingAmount.Cmp(common.Big0) == 0 &&
 				len(restrictInfo.ReleaseList) == 0 && restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
@@ -131,7 +148,7 @@ func (a *FixRestrictingPlugin) rollBackDel(hash common.Hash, blockNumber *big.In
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 	stakingdb := staking.NewStakingDBWithDB(a.sdb)
 	for i := 0; i < len(wrongDels); i++ {
-		if _, err := wrongDels[i].HandleDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb); err != nil {
+		if _, err := wrongDels[i].handleDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb); err != nil {
 			return err
 		}
 		if amount.Cmp(common.Big0) <= 0 {
@@ -203,7 +220,8 @@ type rollBackStakingInfo struct {
 	originRestrictingAmount, originFreeAmount *big.Int
 }
 
-func (a *rollBackStakingInfo) HandelExistStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
+//回退处于退出期的质押信息
+func (a *rollBackStakingInfo) handelExistStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
 	if a.originRestrictingAmount.Cmp(rollBackAmount) >= 0 {
 		if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, rollBackAmount, state); nil != err {
 			return err
@@ -227,6 +245,7 @@ func (a *rollBackStakingInfo) HandelExistStaking(hash common.Hash, epoch uint64,
 	return nil
 }
 
+//检查是否达到质押门槛
 func (a *rollBackStakingInfo) shouldWithdrewStaking(hash common.Hash, blockNumber *big.Int, rollBackAmount *big.Int) bool {
 	if a.originRestrictingAmount.Cmp(rollBackAmount) >= 0 {
 		left := new(big.Int).Add(a.originFreeAmount, new(big.Int).Sub(a.originRestrictingAmount, rollBackAmount))
@@ -242,6 +261,7 @@ func (a *rollBackStakingInfo) shouldWithdrewStaking(hash common.Hash, blockNumbe
 	return false
 }
 
+//减持质押
 func (a *rollBackStakingInfo) decreaseStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB) error {
 	realSub, err := a.refundWrongLockFunds(rollBackAmount, state)
 	if err != nil {
@@ -264,6 +284,7 @@ func (a *rollBackStakingInfo) decreaseStaking(hash common.Hash, epoch uint64, ro
 	return nil
 }
 
+//撤销质押
 func (a *rollBackStakingInfo) withdrewStaking(hash common.Hash, epoch uint64, blockNumber *big.Int, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
 	if err := stdb.DelCanPowerStore(hash, a.candidate); nil != err {
 		return err
@@ -322,7 +343,7 @@ func (a *rollBackStakingInfo) handleStaking(hash common.Hash, blockNumber *big.I
 		a.candidate.RestrictingPlan, "restrictingPlanRes", a.candidate.RestrictingPlanHes, "released", a.candidate.Released, "releasedHes", a.candidate.ReleasedHes, "share", a.candidate.Shares)
 	if a.candidate.Status.IsWithdrew() {
 		//已经解质押,节点处于退出锁定期
-		if err := a.HandelExistStaking(hash, epoch, rollBackAmount, state, stdb); err != nil {
+		if err := a.handelExistStaking(hash, epoch, rollBackAmount, state, stdb); err != nil {
 			return err
 		}
 		log.Debug("fix restricting for staking end", "account", a.candidate.StakingAddress, "nodeID", a.candidate.NodeId.TerminalString(), "status", a.candidate.Status, "return",
@@ -348,6 +369,7 @@ func (a *rollBackStakingInfo) handleStaking(hash common.Hash, blockNumber *big.I
 	return nil
 }
 
+//回退因漏洞产生的锁仓金额
 func (a *rollBackStakingInfo) refundWrongLockFunds(rollBackAmount *big.Int, state xcom.StateDB) (*big.Int, error) {
 	realSub := new(big.Int)
 	if a.originRestrictingAmount.Cmp(rollBackAmount) >= 0 {
@@ -414,11 +436,12 @@ type rollBackDelInfo struct {
 	originRestrictingAmount, originFreeAmount *big.Int
 }
 
-func (a *rollBackDelInfo) HandleDelegate(hash common.Hash, blockNumber *big.Int, epoch uint64, delAddr common.Address, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) (*big.Int, error) {
+func (a *rollBackDelInfo) handleDelegate(hash common.Hash, blockNumber *big.Int, epoch uint64, delAddr common.Address, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) (*big.Int, error) {
 
 	refundAmount := new(big.Int)
 	wrongRestrictingAmount := new(big.Int)
 
+	//优先回滚此次委托中锁仓的部分，如果剩余的金额没有达到委托门槛，就撤销委托
 	if rollBackAmount.Cmp(a.originRestrictingAmount) >= 0 {
 		if ok, _ := CheckOperatingThreshold(blockNumber.Uint64(), hash, a.originFreeAmount); !ok {
 			refundAmount = new(big.Int).Add(a.originFreeAmount, a.originRestrictingAmount)
@@ -441,6 +464,7 @@ func (a *rollBackDelInfo) HandleDelegate(hash common.Hash, blockNumber *big.Int,
 
 	rollBackAmount.Sub(rollBackAmount, wrongRestrictingAmount)
 
+	//节点总共撤回了委托的钱
 	realSub := new(big.Int).Set(refundAmount)
 
 	delegateRewardPerList, err := RewardMgrInstance().GetDelegateRewardPerList(hash, a.candidate.NodeId, a.stakingBlock, uint64(a.del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)

@@ -317,10 +317,11 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 			}
 			can.RestrictingPlanHes = restrictingPlanHes
 			can.ReleasedHes = releasedHes
+		} else {
+			log.Error("Failed to CreateCandidate on stakingPlugin", "err", staking.ErrWrongVonOptType,
+				"got type", typ, "need type", fmt.Sprintf("%d or %d", FreeVon, RestrictVon))
+			return staking.ErrWrongVonOptType
 		}
-		log.Error("Failed to CreateCandidate on stakingPlugin", "err", staking.ErrWrongVonOptType,
-			"got type", typ, "need type", fmt.Sprintf("%d or %d", FreeVon, RestrictVon))
-		return staking.ErrWrongVonOptType
 	} else {
 
 		log.Error("Failed to CreateCandidate on stakingPlugin", "err", staking.ErrWrongVonOptType,
