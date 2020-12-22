@@ -22,6 +22,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -393,8 +395,19 @@ func (rp *RestrictingPlugin) MixPledgeLockFunds(account common.Address, amount *
 
 	restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
-		return nil, nil, err
+		if err == restricting.ErrAccountNotFound {
+			//if not found restricting,we just use free
+			origin := state.GetBalance(account)
+			if origin.Cmp(amount) < 0 {
+				return nil, nil, staking.ErrAccountVonNoEnough
+			}
+			rp.transferAmount(state, account, vm.StakingContractAddr, amount)
+			return new(big.Int), new(big.Int).Set(amount), nil
+		} else {
+			return nil, nil, err
+		}
 	}
+
 	rp.log.Debug("Call MixPledgeLockFunds begin", "account", account, "amount", amount, "old info", restrictInfo)
 
 	if amount.Cmp(common.Big0) < 0 {
