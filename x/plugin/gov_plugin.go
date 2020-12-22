@@ -137,7 +137,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 			}
 
 			if versionProposal.NewVersion == params.FORKVERSION_0_15_0 {
-				fixRestrictingPlugin := NewFixRestrictingPlugin(snapshotdb.Instance())
+				fixRestrictingPlugin := NewFixIssue1625Plugin(snapshotdb.Instance())
 				if err := fixRestrictingPlugin.fix(blockHash, header, state); err != nil {
 					return err
 				}
