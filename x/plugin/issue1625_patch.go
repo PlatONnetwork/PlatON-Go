@@ -492,10 +492,11 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		a.del.DelegateEpoch = uint32(epoch)
 
 		//回滚错误金额
-		if err := rt.ReturnWrongLockFunds(delAddr, improperRestrictingAmount, state); nil != err {
+		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
 			return nil, err
 		}
 
+		//开始撤销委托
 		//更新candidate中由于撤销委托导致的记录变动
 		if a.candidate.IsNotEmpty() {
 			hes := new(big.Int).Add(a.del.ReleasedHes, a.del.RestrictingPlanHes)
@@ -503,11 +504,6 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 			a.candidate.DelegateTotalHes.Sub(a.candidate.DelegateTotalHes, hes)
 			a.candidate.DelegateTotal.Sub(a.candidate.DelegateTotal, lock)
 			a.candidate.Shares.Sub(a.candidate.Shares, new(big.Int).Add(hes, lock))
-			if a.del.RestrictingPlanHes.Cmp(improperRestrictingAmount) >= 0 {
-				a.candidate.DelegateTotalHes.Sub(a.candidate.DelegateTotalHes, improperRestrictingAmount)
-			} else {
-				a.candidate.DelegateTotal.Sub(a.candidate.DelegateTotal, new(big.Int).Sub(improperRestrictingAmount, a.del.RestrictingPlanHes))
-			}
 		}
 
 		//回退锁仓
@@ -531,30 +527,13 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		log.Debug("fix issue 1625 for delegate end,withdrew del", "account", delAddr, "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes, "income", a.del.CumulativeIncome)
 	} else {
 		//不需要解除委托
-		if err := rt.ReturnWrongLockFunds(delAddr, improperRestrictingAmount, state); nil != err {
+		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
 			return nil, err
-		}
-		//更新锁仓信息
-		if a.del.RestrictingPlanHes.Cmp(improperRestrictingAmount) >= 0 {
-			a.del.RestrictingPlanHes.Sub(a.del.RestrictingPlanHes, improperRestrictingAmount)
-			if a.candidate.IsNotEmpty() {
-				a.candidate.DelegateTotalHes.Sub(a.candidate.DelegateTotalHes, improperRestrictingAmount)
-			}
-		} else {
-			hes := new(big.Int).Set(a.del.RestrictingPlanHes)
-			a.del.RestrictingPlanHes = new(big.Int)
-			a.del.RestrictingPlan = new(big.Int).Sub(a.del.RestrictingPlan, new(big.Int).Sub(improperRestrictingAmount, hes))
-			if a.candidate.IsNotEmpty() {
-				a.candidate.DelegateTotalHes.Sub(a.candidate.DelegateTotalHes, hes)
-				a.candidate.DelegateTotal.Sub(a.candidate.DelegateTotal, new(big.Int).Sub(improperRestrictingAmount, hes))
-			}
 		}
 		if err := stdb.SetDelegateStore(hash, delAddr, a.candidate.NodeId, a.stakingBlock, a.del); nil != err {
 			return nil, err
 		}
-		if a.candidate.IsNotEmpty() {
-			a.candidate.SubShares(improperRestrictingAmount)
-		}
+
 		log.Debug("fix issue 1625 for delegate end,decrease del", "account", delAddr, "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
 			"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes)
 	}
@@ -573,6 +552,31 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		}
 	}
 	return nil, nil
+}
+
+//修正委托以及验证人的锁仓信息
+func (a *issue1625AccountDelInfo) fixImproperRestrictingAmountByDel(delAddr common.Address, improperRestrictingAmount *big.Int, state xcom.StateDB) error {
+	if err := rt.ReturnWrongLockFunds(delAddr, improperRestrictingAmount, state); nil != err {
+		return err
+	}
+	if a.del.RestrictingPlanHes.Cmp(improperRestrictingAmount) >= 0 {
+		a.del.RestrictingPlanHes.Sub(a.del.RestrictingPlanHes, improperRestrictingAmount)
+		if a.candidate.IsNotEmpty() {
+			a.candidate.DelegateTotalHes.Sub(a.candidate.DelegateTotalHes, improperRestrictingAmount)
+		}
+	} else {
+		hes := new(big.Int).Set(a.del.RestrictingPlanHes)
+		a.del.RestrictingPlanHes = new(big.Int)
+		a.del.RestrictingPlan = new(big.Int).Sub(a.del.RestrictingPlan, new(big.Int).Sub(improperRestrictingAmount, hes))
+		if a.candidate.IsNotEmpty() {
+			a.candidate.DelegateTotalHes.Sub(a.candidate.DelegateTotalHes, hes)
+			a.candidate.DelegateTotal.Sub(a.candidate.DelegateTotal, new(big.Int).Sub(improperRestrictingAmount, hes))
+		}
+	}
+	if a.candidate.IsNotEmpty() {
+		a.candidate.SubShares(improperRestrictingAmount)
+	}
+	return nil
 }
 
 type issue1625AccountDelInfos []*issue1625AccountDelInfo
