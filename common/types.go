@@ -253,7 +253,7 @@ func (s *VersionSign) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// HexID converts a hex string to a NodeID.
+// HexID converts a hex string to a Id.
 // The string may be prefixed with 0x.
 func HexSign(in string) (VersionSign, error) {
 	var vs VersionSign
@@ -267,8 +267,8 @@ func HexSign(in string) (VersionSign, error) {
 	return vs, nil
 }
 
-/*// MustHexID converts a hex string to a NodeID.
-// It panics if the string is not a valid NodeID.
+/*// MustHexID converts a hex string to a Id.
+// It panics if the string is not a valid Id.
 func MustHexSign(in string) VersionSign {
 	vs, err := HexSign(in)
 	if err != nil {

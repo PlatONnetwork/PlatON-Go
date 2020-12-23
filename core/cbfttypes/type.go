@@ -207,13 +207,13 @@ func (vs *Validators) FindNodeByIndex(index int) (*ValidateNode, error) {
 	}
 }
 
-func (vs *Validators) FindNodeByAddress(id enode.ID) (*ValidateNode, error) {
+func (vs *Validators) FindNodeById(id enode.ID) (*ValidateNode, error) {
 	for _, node := range vs.Nodes {
 		if bytes.Equal(node.ID[:], id[:]) {
 			return node, nil
 		}
 	}
-	return nil, errors.New("invalid address")
+	return nil, errors.New("invalid ID")
 }
 
 func (vs *Validators) NodeID(idx int) enode.ID {

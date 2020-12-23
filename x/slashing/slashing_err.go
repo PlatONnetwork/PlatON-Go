@@ -25,7 +25,7 @@ var (
 	ErrIntervalTooLong     = common.NewBizError(303003, "evidence interval is too long")
 	ErrGetCandidate        = common.NewBizError(303004, "failed to get certifier information")
 	ErrAddrMismatch        = common.NewBizError(303005, "address does not match")
-	ErrNodeIdMismatch      = common.NewBizError(303006, "nodeId does not match")
+	ErrIdMismatch          = common.NewBizError(303006, "nodeId does not match")
 	ErrBlsPubKeyMismatch   = common.NewBizError(303007, "blsPubKey does not match")
 	ErrSlashingFail        = common.NewBizError(303008, "slashing node fail")
 	ErrNotValidator        = common.NewBizError(303009, "This node is not a validator")

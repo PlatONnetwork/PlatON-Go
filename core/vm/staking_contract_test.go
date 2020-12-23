@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
 
@@ -1474,7 +1475,7 @@ func TestStakingContract_DelegateMerge(t *testing.T) {
 	delLastAmount.Mul(delLastAmount, new(big.Int).SetUint64(200))
 
 	afterTxHook := func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-		del, err := plugin.NewStakingPlugin(sdb).GetDelegateInfo(hash, delAdd, nodeIdArr[index], header.Number.Uint64())
+		del, err := plugin.NewStakingPlugin(sdb).GetDelegateInfo(hash, delAdd, enode.NodeIDToIDV4(nodeIdArr[index]), header.Number.Uint64())
 		if err != nil {
 			return err
 		}

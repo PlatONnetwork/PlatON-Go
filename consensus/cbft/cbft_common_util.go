@@ -136,7 +136,7 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 
 	optConfig := &ctypes.OptionsConfig{
 		NodePriKey:        pk,
-		NodeID:            enode.PubkeyToIDV4(&pk.PublicKey),
+		Id:                enode.PubkeyToIDV4(&pk.PublicKey),
 		BlsPriKey:         sk,
 		MaxQueuesLimit:    1000,
 		BlacklistDeadline: 1,
@@ -245,13 +245,13 @@ func MockValidator(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftN
 	}
 }
 
-// NewEngineManager returns a list of EngineManager and NodeID.
+// NewEngineManager returns a list of EngineManager and Id.
 func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []enode.ID) {
 	nodeids := make([]enode.ID, 0)
 	engines := make([]*network.EngineManager, 0)
 	for _, c := range cbfts {
 		engines = append(engines, c.engine.network)
-		nodeids = append(nodeids, c.engine.config.Option.NodeID)
+		nodeids = append(nodeids, c.engine.config.Option.Id)
 	}
 	return engines, nodeids
 }
@@ -264,7 +264,7 @@ func Mock4NodePipe(start bool) []*TestCBFT {
 		node := MockNode(pk[i], sk[i], cbftnodes, 20000, 10)
 
 		nodes = append(nodes, node)
-		//fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
+		//fmt.Println(i, node.engine.config.Option.Id.TerminalString())
 		nodes[i].Start()
 	}
 

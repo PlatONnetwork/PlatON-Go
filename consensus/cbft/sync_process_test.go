@@ -174,7 +174,7 @@ func TestSyncBlock(t *testing.T) {
 				nodes[j].engine.executeFinishHook = func(index uint32) {
 					execute <- index
 				}
-				assert.Nil(t, nodes[j].engine.OnPrepareBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), pb))
+				assert.Nil(t, nodes[j].engine.OnPrepareBlock(nodes[0].engine.config.Option.Id.TerminalString(), pb))
 
 				select {
 				case <-timer.C:
@@ -185,7 +185,7 @@ func TestSyncBlock(t *testing.T) {
 				index, finish := nodes[j].engine.state.Executing()
 				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("%d,%v", index, finish))
 				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote(nodes[j].engine.config.Option.NodeID.TerminalString(), msg), fmt.Sprintf("number:%d", b.NumberU64()))
+				assert.Nil(t, nodes[0].engine.OnPrepareVote(nodes[j].engine.config.Option.Id.TerminalString(), msg), fmt.Sprintf("number:%d", b.NumberU64()))
 			}
 			_, qc := nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
 			assert.NotNil(t, qc)
@@ -214,7 +214,7 @@ func TestSyncBlock(t *testing.T) {
 		}
 	}
 	_, fetchBlockQC := nodes[0].engine.blockTree.FindBlockAndQC(fetchBlock.Hash(), fetchBlock.NumberU64())
-	nodes[1].engine.fetchBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), fetchBlock.Hash(), fetchBlock.NumberU64(), fetchBlockQC)
+	nodes[1].engine.fetchBlock(nodes[0].engine.config.Option.Id.TerminalString(), fetchBlock.Hash(), fetchBlock.NumberU64(), fetchBlockQC)
 
 	select {
 	case <-time.NewTimer(30 * time.Second).C:
@@ -531,14 +531,17 @@ func buildSingleCbft() (*Cbft, []enode.ID) {
 	pk, sk, cbftnodes := GenerateCbftNode(1)
 	node := MockNode(pk[0], sk[0], cbftnodes, 1000000, 10)
 	node.Start()
-	//node.engine.network.Close()
 	// Add a node to the Handler.
-	cNodes := network.RandomID()
+	cNodes := network.RandomNodeID()
 	node.engine.consensusNodesMock = func() ([]discv5.NodeID, error) {
 		return cNodes, nil
 	}
-	network.FillEngineManager(cNodes, node.engine.network)
-	return node.engine, cNodes
+	var ids []enode.ID
+	for _, nid := range cNodes {
+		ids = append(ids, enode.NodeIDToIDV4(nid))
+	}
+	network.FillEngineManager(ids, node.engine.network)
+	return node.engine, ids
 }
 
 func TestCbft_OnPong(t *testing.T) {

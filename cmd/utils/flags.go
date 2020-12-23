@@ -1217,7 +1217,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 	if nodeCfg.P2P.PrivateKey != nil {
 		cfg.NodePriKey = nodeCfg.P2P.PrivateKey
-		cfg.NodeID = enode.PubkeyToIDV4(&cfg.NodePriKey.PublicKey)
+		cfg.Id = enode.PubkeyToIDV4(&cfg.NodePriKey.PublicKey)
 	}
 
 	if ctx.GlobalIsSet(CbftBlsPriKeyFileFlag.Name) {

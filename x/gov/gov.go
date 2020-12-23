@@ -342,11 +342,7 @@ func checkVerifier(from common.Address, nodeID enode.ID, blockHash common.Hash, 
 	for _, verifier := range verifierList {
 		if verifier != nil && verifier.Id == nodeID {
 			if verifier.StakingAddress == from {
-				nodeAddress, err := xutil.NodeId2Addr(verifier.Id)
-				if err != nil {
-					return err
-				}
-				candidate, err := stk.GetCanMutable(blockHash, nodeAddress)
+				candidate, err := stk.GetCanMutable(blockHash, verifier.Id)
 				if candidate == nil || err != nil {
 					return VerifierInfoNotFound
 				} else if candidate.IsInvalid() {

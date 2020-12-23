@@ -357,7 +357,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListDifNumber() {
 func (suit *SyncMsgTestSuite) TestOnGetPrepareVote() {
 	votes := make([]*protocols.PrepareVote, 0)
 	for _, node := range suit.view.allCbft {
-		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.NodeID)
+		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.Id)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -391,7 +391,7 @@ func (suit *SyncMsgTestSuite) TestOnPrepareVotes() {
 	suit.view.firstProposer().state.AddPrepareBlock(pb)
 	votes := make([]*protocols.PrepareVote, 0)
 	for _, node := range suit.view.allCbft {
-		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.NodeID)
+		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.Id)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -416,7 +416,7 @@ func (suit *SyncMsgTestSuite) TestOnPrepareVotesDup() {
 	suit.view.firstProposer().state.AddPrepareBlock(pb)
 	votes := make([]*protocols.PrepareVote, 0)
 	for _, node := range suit.view.allCbft {
-		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.NodeID)
+		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.Id)
 		if err != nil {
 			panic(err.Error())
 		}

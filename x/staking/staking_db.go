@@ -165,7 +165,7 @@ func (db *StakingDB) DelCandidateStore(blockHash common.Hash, id enode.ID) error
 
 func (db *StakingDB) GetCanBaseStore(blockHash common.Hash, id enode.ID) (*CandidateBase, error) {
 
-	key := CanBaseKeyByAddr(id)
+	key := CanBaseKeyById(id)
 
 	canByte, err := db.get(blockHash, key)
 
@@ -182,7 +182,7 @@ func (db *StakingDB) GetCanBaseStore(blockHash common.Hash, id enode.ID) (*Candi
 }
 
 func (db *StakingDB) GetCanBaseStoreByIrr(id enode.ID) (*CandidateBase, error) {
-	key := CanBaseKeyByAddr(id)
+	key := CanBaseKeyById(id)
 	canByte, err := db.getFromCommitted(key)
 
 	if nil != err {
@@ -229,7 +229,7 @@ func (db *StakingDB) GetCanBaseStoreByIrrWithSuffix(suffix []byte) (*CandidateBa
 
 func (db *StakingDB) SetCanBaseStore(blockHash common.Hash, id enode.ID, can *CandidateBase) error {
 
-	key := CanBaseKeyByAddr(id)
+	key := CanBaseKeyById(id)
 
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		return err
@@ -240,7 +240,7 @@ func (db *StakingDB) SetCanBaseStore(blockHash common.Hash, id enode.ID, can *Ca
 }
 
 func (db *StakingDB) DelCanBaseStore(blockHash common.Hash, id enode.ID) error {
-	key := CanBaseKeyByAddr(id)
+	key := CanBaseKeyById(id)
 	return db.del(blockHash, key)
 }
 
@@ -248,7 +248,7 @@ func (db *StakingDB) DelCanBaseStore(blockHash common.Hash, id enode.ID) error {
 
 func (db *StakingDB) GetCanMutableStore(blockHash common.Hash, id enode.ID) (*CandidateMutable, error) {
 
-	key := CanMutableKeyByAddr(id)
+	key := CanMutableKeyById(id)
 
 	canByte, err := db.get(blockHash, key)
 
@@ -265,7 +265,7 @@ func (db *StakingDB) GetCanMutableStore(blockHash common.Hash, id enode.ID) (*Ca
 }
 
 func (db *StakingDB) GetCanMutableStoreByIrr(id enode.ID) (*CandidateMutable, error) {
-	key := CanMutableKeyByAddr(id)
+	key := CanMutableKeyById(id)
 	canByte, err := db.getFromCommitted(key)
 
 	if nil != err {
@@ -312,7 +312,7 @@ func (db *StakingDB) GetCanMutableStoreByIrrWithSuffix(suffix []byte) (*Candidat
 
 func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, id enode.ID, can *CandidateMutable) error {
 
-	key := CanMutableKeyByAddr(id)
+	key := CanMutableKeyById(id)
 
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		return err
@@ -323,7 +323,7 @@ func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, id enode.ID, can 
 }
 
 func (db *StakingDB) DelCanMutableStore(blockHash common.Hash, id enode.ID) error {
-	key := CanMutableKeyByAddr(id)
+	key := CanMutableKeyById(id)
 	return db.del(blockHash, key)
 }
 
@@ -763,7 +763,7 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 
 // about round validator's addrs ...
 
-func (db *StakingDB) StoreRoundValidatorAddrs(blockHash common.Hash, key []byte, arry []common.NodeAddress) error {
+func (db *StakingDB) StoreRoundValidatorAddrs(blockHash common.Hash, key []byte, arry []enode.ID) error {
 	value, err := rlp.EncodeToBytes(arry)
 	if nil != err {
 		return err
@@ -775,12 +775,12 @@ func (db *StakingDB) DelRoundValidatorAddrs(blockHash common.Hash, key []byte) e
 	return db.del(blockHash, key)
 }
 
-func (db *StakingDB) LoadRoundValidatorAddrs(blockHash common.Hash, key []byte) ([]common.Address, error) {
+func (db *StakingDB) LoadRoundValidatorIds(blockHash common.Hash, key []byte) ([]enode.ID, error) {
 	rlpValue, err := db.get(blockHash, key)
 	if nil != err {
 		return nil, err
 	}
-	var value []common.Address
+	var value []enode.ID
 	if err := rlp.DecodeBytes(rlpValue, &value); nil != err {
 		return nil, err
 	}

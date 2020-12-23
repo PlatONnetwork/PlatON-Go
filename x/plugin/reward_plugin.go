@@ -44,7 +44,6 @@ import (
 type RewardMgrPlugin struct {
 	db            snapshotdb.DB
 	nodeID        enode.ID
-	nodeADD       common.NodeAddress
 	stakingPlugin *StakingPlugin
 }
 
@@ -143,11 +142,6 @@ func (rmp *RewardMgrPlugin) Confirmed(nodeId enode.ID, block *types.Block) error
 
 func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId enode.ID) {
 	rmp.nodeID = nodeId
-	add, err := xutil.NodeId2Addr(rmp.nodeID)
-	if err != nil {
-		panic(err)
-	}
-	rmp.nodeADD = add
 }
 
 func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
@@ -264,13 +258,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 			currentEpochDelegateReward := new(big.Int).Set(verifier.CurrentEpochDelegateReward)
 
 			verifier.PrepareNextEpoch()
-			canAddr, err := xutil.NodeId2Addr(verifier.ID)
-			if nil != err {
-				log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: nodeId parse addr failed",
-					"blockNumber", blockNumber, "blockHash", blockHash, "nodeID", verifier.NodeId.String(), "err", err)
-				return err
-			}
-			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, canAddr, verifier.CandidateMutable); err != nil {
+			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, verifier.ID, verifier.CandidateMutable); err != nil {
 				log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: setCanMutableStore  failed",
 					"blockNumber", blockNumber, "blockHash", blockHash, "err", err, "mutable", verifier.CandidateMutable)
 				return err
@@ -422,39 +410,38 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 	return nil
 }
 
-func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *types.Header) (enode.ID, common.NodeAddress, error) {
+func (rmp *RewardMgrPlugin) getBlockMinderId(blockHash common.Hash, head *types.Header) (enode.ID, error) {
 	if blockHash == common.ZeroHash {
-		return rmp.nodeID, rmp.nodeADD, nil
+		return rmp.nodeID, nil
 	}
 	sign := head.Extra[32:97]
 	sealhash := head.SealHash().Bytes()
 	pk, err := crypto.SigToPub(sealhash, sign)
 	if err != nil {
-		return discover.ZeroNodeID, common.ZeroNodeAddr, err
+		return discover.ZeroNodeID, err
 	}
 	idv4 := enode.PubkeyToIDV4(pk)
-	nodeAddr,_ := xutil.NodeId2Addr(idv4)
-	return idv4, nodeAddr, nil
+	return idv4, nil
 
 }
 
 // AllocatePackageBlock used for reward new block. it returns coinbase and error
 func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *types.Header, reward *big.Int, state xcom.StateDB) error {
-	nodeID, add, err := rmp.getBlockMinderAddress(blockHash, head)
+	id, err := rmp.getBlockMinderId(blockHash, head)
 	if err != nil {
 		log.Error("AllocatePackageBlock getBlockMinderAddress fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 		return err
 	}
 
-	currVerifier, err := rmp.stakingPlugin.IsCurrVerifier(blockHash, head.Number.Uint64(), nodeID, false)
+	currVerifier, err := rmp.stakingPlugin.IsCurrVerifier(blockHash, head.Number.Uint64(), id, false)
 	if err != nil {
 		log.Error("AllocatePackageBlock IsCurrVerifier fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 		return err
 	}
 	if currVerifier {
-		cm, err := rmp.stakingPlugin.GetCanMutable(blockHash, add)
+		cm, err := rmp.stakingPlugin.GetCanMutable(blockHash, id)
 		if err != nil {
-			log.Error("AllocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash, "add", add)
+			log.Error("AllocatePackageBlock GetCanMutable fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash, "id", id)
 			return err
 		}
 		if cm.ShouldGiveDelegateReward() {
@@ -466,7 +453,7 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 			cm.CurrentEpochDelegateReward.Add(cm.CurrentEpochDelegateReward, delegateReward)
 			log.Debug("allocate package reward, delegate reward", "blockNumber", head.Number, "blockHash", blockHash, "delegateReward", delegateReward, "epochDelegateReward", cm.CurrentEpochDelegateReward)
 
-			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, add, cm); err != nil {
+			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, id, cm); err != nil {
 				log.Error("AllocatePackageBlock SetCanMutableStore fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 				return err
 			}

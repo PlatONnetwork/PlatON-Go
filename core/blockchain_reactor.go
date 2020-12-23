@@ -195,7 +195,7 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 	bcr.endRule = rule
 }
 
-func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId enode.ID) {
+func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, id enode.ID) {
 
 	/**
 	this things about ppos
@@ -204,23 +204,17 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId eno
 		return
 	}
 
-	nodeIdAddr, err := xutil.NodeId2Addr(nodeId)
-	if nil != err {
-		log.Error("Failed to SetWorkerCoinBase: parse current nodeId is failed", "err", err)
-		panic(fmt.Sprintf("parse current nodeId is failed: %s", err.Error()))
-	}
-
 	if plu, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
 		stake := plu.(*plugin.StakingPlugin)
-		can, err := stake.GetCandidateInfo(common.ZeroHash, nodeIdAddr)
+		can, err := stake.GetCandidateInfo(common.ZeroHash, id)
 		if nil != err {
 			log.Error("Failed to SetWorkerCoinBase: Query candidate info is failed", "blockNumber", header.Number,
-				"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "err", err)
+				"id", id.String(), "Id", id.String(), "err", err)
 			return
 		}
 		header.Coinbase = can.BenefitAddress
 		log.Info("SetWorkerCoinBase Successfully", "blockNumber", header.Number,
-			"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "coinbase", header.Coinbase.String())
+			"id", id.String(), "Id", id.String(), "coinbase", header.Coinbase.String())
 	}
 
 }

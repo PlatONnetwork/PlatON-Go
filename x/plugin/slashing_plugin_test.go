@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
@@ -84,14 +85,14 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 		pri = sk
 	}
 
-	nodeIdA := enode.PubkeyToIDV4(&pri.PublicKey)
-	addrA, _ := xutil.NodeId2Addr(nodeIdA)
+	idv5A := discv5.PubkeyID(&pri.PublicKey)
+	idv4A := enode.NodeIDToIDV4(idv5A)
 
-	nodeIdB := nodeIdArr[1]
-	addrB, _ := xutil.NodeId2Addr(nodeIdB)
+	idv5B := nodeIdArr[1]
+	idv4B := enode.NodeIDToIDV4(idv5B)
 
-	nodeIdC := nodeIdArr[2]
-	addrC, _ := xutil.NodeId2Addr(nodeIdC)
+	idv5C := nodeIdArr[2]
+	idv4C := enode.NodeIDToIDV4(idv5C)
 
 	var blsKeyHex bls.PublicKeyHex
 	b, _ := blsKey.GetPublicKey().MarshalText()
@@ -101,7 +102,8 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 
 	c1 := &staking.Candidate{
 		CandidateBase: &staking.CandidateBase{
-			NodeId:          nodeIdA,
+			ID:              idv4A,
+			NodeId:          idv5A,
 			BlsPubKey:       blsKeyHex,
 			StakingAddress:  sender,
 			BenefitAddress:  addrArr[1],
@@ -137,7 +139,8 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 
 	c2 := &staking.Candidate{
 		CandidateBase: &staking.CandidateBase{
-			NodeId:          nodeIdB,
+			ID:              idv4B,
+			NodeId:          idv5B,
 			BlsPubKey:       blsKeyHex2,
 			StakingAddress:  sender,
 			BenefitAddress:  addrArr[2],
@@ -173,7 +176,8 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 
 	c3 := &staking.Candidate{
 		CandidateBase: &staking.CandidateBase{
-			NodeId:          nodeIdC,
+			ID:              idv4C,
+			NodeId:          idv5C,
 			BlsPubKey:       blsKeyHex3,
 			StakingAddress:  sender,
 			BenefitAddress:  addrArr[3],
@@ -199,20 +203,20 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 		},
 	}
 
-	stakingDB.SetCanPowerStore(blockHash, addrA, c1)
-	stakingDB.SetCanPowerStore(blockHash, addrB, c2)
-	stakingDB.SetCanPowerStore(blockHash, addrC, c3)
+	stakingDB.SetCanPowerStore(blockHash, idv4A, c1)
+	stakingDB.SetCanPowerStore(blockHash, idv4B, c2)
+	stakingDB.SetCanPowerStore(blockHash, idv4C, c3)
 
-	stakingDB.SetCandidateStore(blockHash, addrA, c1)
-	stakingDB.SetCandidateStore(blockHash, addrB, c2)
-	stakingDB.SetCandidateStore(blockHash, addrC, c3)
+	stakingDB.SetCandidateStore(blockHash, idv4A, c1)
+	stakingDB.SetCandidateStore(blockHash, idv4B, c2)
+	stakingDB.SetCandidateStore(blockHash, idv4C, c3)
 
-	log.Info("addr_A", hex.EncodeToString(addrA.Bytes()), "addr_B", hex.EncodeToString(addrB.Bytes()), "addr_C", hex.EncodeToString(addrC.Bytes()))
+	log.Info("addr_A", hex.EncodeToString(idv4A.Bytes()), "addr_B", hex.EncodeToString(idv4B.Bytes()), "addr_C", hex.EncodeToString(idv4C.Bytes()))
 
 	queue := make(staking.ValidatorQueue, 0)
 
 	v1 := &staking.Validator{
-		Id:              addrA,
+		Id:              idv4A,
 		NodeId:          c1.NodeId,
 		BlsPubKey:       c1.BlsPubKey,
 		ProgramVersion:  c1.ProgramVersion,
@@ -223,7 +227,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 	}
 
 	v2 := &staking.Validator{
-		Id:              addrB,
+		Id:              idv4B,
 		NodeId:          c2.NodeId,
 		BlsPubKey:       c2.BlsPubKey,
 		ProgramVersion:  c2.ProgramVersion,
@@ -234,7 +238,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 	}
 
 	v3 := &staking.Validator{
-		Id:              addrC,
+		Id:              idv4C,
 		NodeId:          c3.NodeId,
 		BlsPubKey:       c3.BlsPubKey,
 		ProgramVersion:  c3.ProgramVersion,
@@ -491,7 +495,8 @@ func TestSlashingPlugin_Slash(t *testing.T) {
          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
 	stakingAddr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
-	stakingNodeId := enode.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	stakingNodeId := discv5.MustHexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	stakingId := enode.NodeIDToIDV4(stakingNodeId)
 	var stakingBlsKey bls.SecretKey
 	blsSkByte, err := hex.DecodeString("b36d4c3c3e8ee7fba3fbedcda4e0493e699cd95b68594093a8498c618680480a")
 	if nil != err {
@@ -507,6 +512,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 
 	can := &staking.Candidate{
 		CandidateBase: &staking.CandidateBase{
+			ID:              stakingId,
 			NodeId:          stakingNodeId,
 			BlsPubKey:       blsKeyHex,
 			StakingAddress:  stakingAddr,
@@ -528,7 +534,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber, commitHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, common.NodeAddress(stakingAddr), can); nil != err {
+	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, stakingId, can); nil != err {
 		t.Fatal(err)
 	}
 	normalEvidence, err := si.DecodeEvidence(1, normalData)
@@ -575,7 +581,7 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	if _, err := si.CheckDuplicateSign(nodeIdArr[0], 1, 1, stateDB); nil != err {
+	if _, err := si.CheckDuplicateSign(enode.NodeIDToIDV4(nodeIdArr[0]), 1, 1, stateDB); nil != err {
 		t.Fatal(err)
 	}
 }
@@ -603,65 +609,81 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	validatorMap := make(map[enode.ID]bool)
 	// Blocks were produced in the last round; removed from pending list
 	// bits：1 -> delete
-	validatorMap[nodeIdArr[0]] = true
+	id0 := enode.NodeIDToIDV4(nodeIdArr[0])
+	validatorMap[id0] = true
 	validatorQueue = append(validatorQueue, &staking.Validator{
+		Id: id0,
 		NodeId: nodeIdArr[0],
 	})
 	nodePrivate, err := crypto.GenerateKey()
 	if err != nil {
 		panic(err)
 	}
-	noSlashingNodeId := enode.PubkeyToIDV4(&nodePrivate.PublicKey)
+	noSlashingNodeIdV5 := discv5.PubkeyID(&nodePrivate.PublicKey)
+	noSlashingNodeIdV4 := enode.NodeIDToIDV4(noSlashingNodeIdV5)
 	// Current round of production blocks; removed from pending list
 	// bits: 1 -> delete
-	validatorMap[noSlashingNodeId] = false
+	validatorMap[noSlashingNodeIdV4] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
-		NodeId: noSlashingNodeId,
+		Id:     noSlashingNodeIdV4,
+		NodeId: noSlashingNodeIdV5,
 	})
 	// There is no penalty when the time window is reached, there is no zero block in the middle,
 	// the last round was zero block, and the "bit" operation is performed.
 	// bits：010001
-	validatorMap[nodeIdArr[1]] = false
-	validatorMap[noSlashingNodeId] = false
+	id1 := enode.NodeIDToIDV4(nodeIdArr[1])
+	validatorMap[id1] = false
+	validatorMap[noSlashingNodeIdV4] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
+		Id:     id1,
 		NodeId: nodeIdArr[1],
 	})
 	// There is no penalty when the time window is reached;
 	// there is no production block in the penultimate round and no production block in the last round;
 	// "bit" operations are required
 	// bits：011001
-	validatorMap[nodeIdArr[2]] = false
+	id2 := enode.NodeIDToIDV4(nodeIdArr[2])
+	validatorMap[id2] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
+		Id:     id2,
 		NodeId: nodeIdArr[2],
 	})
 	// There is no penalty for reaching the time window;
 	// there is no production block in the penultimate round, and the last round is not selected as a consensus node;
 	// a "bit" operation is required
 	// bits：001001
-	validatorMap[nodeIdArr[3]] = false
+	id3 := enode.NodeIDToIDV4(nodeIdArr[3])
+	validatorMap[id3] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
+		Id:     id3,
 		NodeId: nodeIdArr[3],
 	})
 	// No penalty is reached when the time window is reached;
 	// it has not been selected as a consensus node in the middle, and it has not been selected as a consensus node in the last round;
 	// it is necessary to move the "bit" operation. After the operation, the "bit" bit = 0, from the list of waiting penalties Delete
 	// bits：00001 -> delete
-	validatorMap[nodeIdArr[4]] = false
+	id4 := enode.NodeIDToIDV4(nodeIdArr[4])
+	validatorMap[id4] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
+		Id:     id4,
 		NodeId: nodeIdArr[4],
 	})
 	// Since the value of the time window is reduced after being governed;
 	// and there are no production blocks in the last two rounds, N bits need to be shifted, but no penalty is imposed.
 	// Governance again, at this time the time window becomes larger, and the consensus node was not selected in the last round, no penalty will be imposed.
 	// bits：111001
-	validatorMap[nodeIdArr[5]] = false
+	id5 := enode.NodeIDToIDV4(nodeIdArr[5])
+	validatorMap[id5] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
+		Id: id5,
 		NodeId: nodeIdArr[5],
 	})
 	// Meet the penalty conditions, punish them, and remove them from the pending list
 	// bits：1011 -> delete
-	validatorMap[nodeIdArr[6]] = false
+	id6 := enode.NodeIDToIDV4(nodeIdArr[6])
+	validatorMap[id6] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
+		Id: id6,
 		NodeId: nodeIdArr[6],
 	})
 	var blsKey bls.SecretKey
@@ -672,12 +694,13 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		panic(err)
 	}
 
-	canAddr, err := xutil.NodeId2Addr(nodeIdArr[6])
+	canAddr, err := xutil.NodeId2Addr(id6)
 	if nil != err {
 		t.Fatal(err)
 	}
 	can := &staking.Candidate{
 		CandidateBase: &staking.CandidateBase{
+			ID:              id6,
 			NodeId:          nodeIdArr[6],
 			BlsPubKey:       blsKeyHex,
 			StakingAddress:  common.Address(canAddr),
@@ -698,12 +721,12 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	stateDB.AddBalance(can.StakingAddress, new(big.Int).SetUint64(1000000000000000000))
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		t.Fatal(err)
-	} else if err := snapshotdb.Instance().PutBaseDB(staking.CanBaseKeyByAddr(canAddr), val); nil != err {
+	} else if err := snapshotdb.Instance().PutBaseDB(staking.CanBaseKeyById(id6), val); nil != err {
 		t.Fatal(err)
 	}
 	if val, err := rlp.EncodeToBytes(can.CandidateMutable); nil != err {
 		t.Fatal(err)
-	} else if err := snapshotdb.Instance().PutBaseDB(staking.CanMutableKeyByAddr(canAddr), val); nil != err {
+	} else if err := snapshotdb.Instance().PutBaseDB(staking.CanMutableKeyById(id6), val); nil != err {
 		t.Fatal(err)
 	}
 
@@ -721,12 +744,14 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
-	validatorMap[nodeIdArr[0]] = false
+	validatorMap[id0] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
+		Id: id0,
 		NodeId: nodeIdArr[0],
 	})
-	validatorMap[nodeIdArr[6]] = false
+	validatorMap[id6] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
+		Id: id6,
 		NodeId: nodeIdArr[6],
 	})
 	sign, err := crypto.Sign(header.SealHash().Bytes(), nodePrivate)
@@ -747,7 +772,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
-	validatorMap[nodeIdArr[0]] = true
+	validatorMap[id0] = true
 	validatorQueue = append(validatorQueue, &staking.Validator{
 		NodeId: nodeIdArr[0],
 	})
@@ -761,10 +786,10 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
-	validatorMap[nodeIdArr[2]] = false
-	validatorMap[nodeIdArr[3]] = false
-	validatorMap[nodeIdArr[5]] = false
-	validatorMap[nodeIdArr[6]] = false
+	validatorMap[id2] = false
+	validatorMap[id3] = false
+	validatorMap[id5] = false
+	validatorMap[id6] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
 		NodeId: nodeIdArr[2],
 	})
@@ -793,9 +818,9 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
-	validatorMap[nodeIdArr[1]] = false
-	validatorMap[nodeIdArr[2]] = false
-	validatorMap[nodeIdArr[5]] = false
+	validatorMap[id1] = false
+	validatorMap[id2] = false
+	validatorMap[id5] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
 		NodeId: nodeIdArr[1],
 	})
@@ -821,7 +846,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
 	validatorMap = make(map[enode.ID]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
-	validatorMap[nodeIdArr[5]] = false
+	validatorMap[id5] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
 		NodeId: nodeIdArr[5],
 	})
@@ -841,25 +866,25 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		return
 	}
 	expectMap := make(map[enode.ID]*WaitSlashingNode)
-	expectMap[nodeIdArr[1]] = &WaitSlashingNode{
+	expectMap[id1] = &WaitSlashingNode{
 		CountBit: 1,
 		Round:    5,
 	}
-	expectMap[nodeIdArr[2]] = &WaitSlashingNode{
+	expectMap[id2] = &WaitSlashingNode{
 		CountBit: 3, // 11
 		Round:    4,
 	}
-	expectMap[nodeIdArr[3]] = &WaitSlashingNode{
+	expectMap[id3] = &WaitSlashingNode{
 		CountBit: 1,
 		Round:    4,
 	}
-	expectMap[nodeIdArr[5]] = &WaitSlashingNode{
+	expectMap[id4] = &WaitSlashingNode{
 		CountBit: 7, // 111
 		Round:    4,
 	}
 	for _, value := range waitSlashingNodeList {
-		if expectValue, ok := expectMap[value.NodeId]; !ok {
-			t.Errorf("waitSlashingNodeList info: not nodeId:%v", value.NodeId.TerminalString())
+		if expectValue, ok := expectMap[value.Id]; !ok {
+			t.Errorf("waitSlashingNodeList info: not nodeId:%v", value.Id.TerminalString())
 			return
 		} else {
 			if expectValue.Round != value.Round {

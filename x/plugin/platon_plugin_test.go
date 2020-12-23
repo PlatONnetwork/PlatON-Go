@@ -19,6 +19,7 @@ package plugin
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"math/rand"
@@ -47,34 +48,34 @@ func init() {
 }
 
 var (
-	nodeIdArr = []enode.ID{
-		enode.HexID("5a942bc607d970259e203f5110887d6105cc787f7433c16ce28390fb39f1e67897b0fb445710cc836b89ed7f951c57a1f26a0940ca308d630448b5bd391a8aa6"),
-		enode.HexID("c453d29394e613e85999129b8fb93146d584d5a0be16f7d13fd1f44de2d01bae104878eba8e8f6b8d2c162b5a35d5939d38851f856e56186471dd7de57e9bfa9"),
-		enode.HexID("2c1733caf5c23086612a309f5ee8e76ca45455351f7cf069bcde59c07175607325cf2bf2485daa0fbf1f9cdee6eea246e5e00b9a0d0bfed0f02b37f3b0c70490"),
-		enode.HexID("e7edfb4f9c3e1fe0288ddcf0894535214fa03acea941c7360ccf90e86460aefa118ba9f2573921349c392cd1b5d4db90b4795ab353df3c915b2e8481d241ec57"),
+	nodeIdArr = []discv5.NodeID{
+		discv5.MustHexID("5a942bc607d970259e203f5110887d6105cc787f7433c16ce28390fb39f1e67897b0fb445710cc836b89ed7f951c57a1f26a0940ca308d630448b5bd391a8aa6"),
+		discv5.MustHexID("c453d29394e613e85999129b8fb93146d584d5a0be16f7d13fd1f44de2d01bae104878eba8e8f6b8d2c162b5a35d5939d38851f856e56186471dd7de57e9bfa9"),
+		discv5.MustHexID("2c1733caf5c23086612a309f5ee8e76ca45455351f7cf069bcde59c07175607325cf2bf2485daa0fbf1f9cdee6eea246e5e00b9a0d0bfed0f02b37f3b0c70490"),
+		discv5.MustHexID("e7edfb4f9c3e1fe0288ddcf0894535214fa03acea941c7360ccf90e86460aefa118ba9f2573921349c392cd1b5d4db90b4795ab353df3c915b2e8481d241ec57"),
 
-		enode.HexID("3a06953a2d5d45b29167bef58208f1287225bdd2591260af29ae1300aeed362e9b548369dfc1659abbef403c9b3b07a8a194040e966acd6e5b6d55aa2df7c1d8"),
-		enode.HexID("fd06314e027c3812bd0d1cf0ce1b5742d21d1ae5a397da6e7eed463ad1172c268092c2b3de52a204aabb3a6048be48f4880ce54ff3116a3843d4087d219db054"),
-		enode.HexID("811eb49e3127389065f41aac395d15e1e9968555f43913447ebb358705a63b2de37ab890f06854034a2dd171daf873adf8647498200a54cf376fcbe07d12ecd8"),
-		enode.HexID("b3d3667793ea2c2a77848b89bed514cd6fd7d685af4ee9d2482b6c58f8b3dd371cf8a41aa638e45ce420df323dfff6ed041213c343066348b4e1b39bd1396f48"),
+		discv5.MustHexID("3a06953a2d5d45b29167bef58208f1287225bdd2591260af29ae1300aeed362e9b548369dfc1659abbef403c9b3b07a8a194040e966acd6e5b6d55aa2df7c1d8"),
+		discv5.MustHexID("fd06314e027c3812bd0d1cf0ce1b5742d21d1ae5a397da6e7eed463ad1172c268092c2b3de52a204aabb3a6048be48f4880ce54ff3116a3843d4087d219db054"),
+		discv5.MustHexID("811eb49e3127389065f41aac395d15e1e9968555f43913447ebb358705a63b2de37ab890f06854034a2dd171daf873adf8647498200a54cf376fcbe07d12ecd8"),
+		discv5.MustHexID("b3d3667793ea2c2a77848b89bed514cd6fd7d685af4ee9d2482b6c58f8b3dd371cf8a41aa638e45ce420df323dfff6ed041213c343066348b4e1b39bd1396f48"),
 
-		enode.HexID("0x248af08a775ff63a47a5970e4928bcccd1a8cef984fd4142ea7f89cd13015bdab9ca4a8c5e1070dc00fa81a047542f53ca596f553c4acfb7abe75a8fb5019057"),
-		enode.HexID("0xfd790ff5dc48baccb9418ce5cfac6a10c3646f20a3fe32d9502c4edce3a77fa90bfee0361d8a72093b7994f8cbc28ee537bdda2b634c5966b1a9253d9d270145"),
-		enode.HexID("0x56d243db84a521cb204f582ee84bca7f4af29437dd447a6e36d17f4853888e05343844bd64294b99b835ca7f72ef5b1325ef1c89b0c5c2744154cdadf7c4e9fa"),
-		enode.HexID("0x8796a6fcefd9037d8433e3a959ff8f3c4552a482ce727b00a90bfd1ec365ce2faa33e19aa6a172b5c186b51f5a875b5acd35063171f0d9501a9c8f1c98513825"),
-		enode.HexID("0x547b876036165d66274ce31692165c8acb6f140a65cab0e0e12f1f09d1c7d8d53decf997830919e4f5cacb2df1adfe914c53d22e3ab284730b78f5c63a273b8c"),
-		enode.HexID("0x9fdbeb873bea2557752eabd2c96419b8a700b680716081472601ddf7498f0db9b8a40797b677f2fac541031f742c2bbd110ff264ae3400bf177c456a76a93d42"),
-		enode.HexID("0xc553783799bfef7c34a84b2737f2c77f8f2c5cfedc3fd7af2d944da6ece90aa94cf621e6de5c4495881fbfc9beec655ffb10e39cb4ca9be7768d284409040f32"),
-		enode.HexID("0x75ad2ee8ca77619c3ba0ddcec5dab1375fe4fa90bab9e751caef3996ce082dfed32fe4c137401ee05e501c079b2e4400397b09de14b08b09c9e7f9698e9e4f0a"),
-		enode.HexID("0xdb18af9be2af9dff2347c3d06db4b1bada0598d099a210275251b68fa7b5a863d47fcdd382cc4b3ea01e5b55e9dd0bdbce654133b7f58928ce74629d5e68b974"),
-		enode.HexID("0x472d19e5e9888368c02f24ebbbe0f2132096e7183d213ab65d96b8c03205f88398924af8876f3c615e08aa0f9a26c38911fda26d51c602c8d4f8f3cb866808d7"),
-		enode.HexID("4f1f036e5e18cc812347d5073cbec2a8da7930de323063c39b0d4413a396e088bfa90e8c28174313d8d82e9a14bc0884b13a48fc28e619e44c48a49b4fd9f107"),
-		enode.HexID("f18c596232d637409c6295abb1e720db99ffc12363a1eb8123d6f54af80423a5edd06f91115115a1dca1377e97b9031e2ddb864d34d9b3491d6fa07e8d9b951b"),
-		enode.HexID("7a8f7a28ac1c4eaf98b2be890f372e5abc58ebe6d3aab47aedcb0076e34eb42882e926676ebab327a4ef4e2ea5c4296e9c7bc0991360cb44f52672631012db1b"),
-		enode.HexID("9eeb448babf9e93449e831b91f98d9cbc0c2324fe8c43baac69d090717454f3f930713084713fe3a9f01e4ca59b80a0f2b41dbd6d531f414650bab0363e3691a"),
-		enode.HexID("cc1d7314c15e30dc5587f675eb5f803b1a2d88bfe76cec591cec1ff678bc6abce98f40054325bdcb44fb83174f27d38a54fbce4846af8f027b333868bc5144a4"),
-		enode.HexID("e4d99694be2fc8a53d8c2446f947aec1c7de3ee26f7cd43f4f6f77371f56f11156218dec32b51ddce470e97127624d330bb7a3237ba5f0d87d2d3166faf1035e"),
-		enode.HexID("9c61f59f70296b6d494e7230888e58f19b13c5c6c85562e57e1fe02d0ff872b4957238c73559d017c8770b999891056aa6329dbf628bc19028d8f4d35ec35823"),
+		discv5.MustHexID("0x248af08a775ff63a47a5970e4928bcccd1a8cef984fd4142ea7f89cd13015bdab9ca4a8c5e1070dc00fa81a047542f53ca596f553c4acfb7abe75a8fb5019057"),
+		discv5.MustHexID("0xfd790ff5dc48baccb9418ce5cfac6a10c3646f20a3fe32d9502c4edce3a77fa90bfee0361d8a72093b7994f8cbc28ee537bdda2b634c5966b1a9253d9d270145"),
+		discv5.MustHexID("0x56d243db84a521cb204f582ee84bca7f4af29437dd447a6e36d17f4853888e05343844bd64294b99b835ca7f72ef5b1325ef1c89b0c5c2744154cdadf7c4e9fa"),
+		discv5.MustHexID("0x8796a6fcefd9037d8433e3a959ff8f3c4552a482ce727b00a90bfd1ec365ce2faa33e19aa6a172b5c186b51f5a875b5acd35063171f0d9501a9c8f1c98513825"),
+		discv5.MustHexID("0x547b876036165d66274ce31692165c8acb6f140a65cab0e0e12f1f09d1c7d8d53decf997830919e4f5cacb2df1adfe914c53d22e3ab284730b78f5c63a273b8c"),
+		discv5.MustHexID("0x9fdbeb873bea2557752eabd2c96419b8a700b680716081472601ddf7498f0db9b8a40797b677f2fac541031f742c2bbd110ff264ae3400bf177c456a76a93d42"),
+		discv5.MustHexID("0xc553783799bfef7c34a84b2737f2c77f8f2c5cfedc3fd7af2d944da6ece90aa94cf621e6de5c4495881fbfc9beec655ffb10e39cb4ca9be7768d284409040f32"),
+		discv5.MustHexID("0x75ad2ee8ca77619c3ba0ddcec5dab1375fe4fa90bab9e751caef3996ce082dfed32fe4c137401ee05e501c079b2e4400397b09de14b08b09c9e7f9698e9e4f0a"),
+		discv5.MustHexID("0xdb18af9be2af9dff2347c3d06db4b1bada0598d099a210275251b68fa7b5a863d47fcdd382cc4b3ea01e5b55e9dd0bdbce654133b7f58928ce74629d5e68b974"),
+		discv5.MustHexID("0x472d19e5e9888368c02f24ebbbe0f2132096e7183d213ab65d96b8c03205f88398924af8876f3c615e08aa0f9a26c38911fda26d51c602c8d4f8f3cb866808d7"),
+		discv5.MustHexID("4f1f036e5e18cc812347d5073cbec2a8da7930de323063c39b0d4413a396e088bfa90e8c28174313d8d82e9a14bc0884b13a48fc28e619e44c48a49b4fd9f107"),
+		discv5.MustHexID("f18c596232d637409c6295abb1e720db99ffc12363a1eb8123d6f54af80423a5edd06f91115115a1dca1377e97b9031e2ddb864d34d9b3491d6fa07e8d9b951b"),
+		discv5.MustHexID("7a8f7a28ac1c4eaf98b2be890f372e5abc58ebe6d3aab47aedcb0076e34eb42882e926676ebab327a4ef4e2ea5c4296e9c7bc0991360cb44f52672631012db1b"),
+		discv5.MustHexID("9eeb448babf9e93449e831b91f98d9cbc0c2324fe8c43baac69d090717454f3f930713084713fe3a9f01e4ca59b80a0f2b41dbd6d531f414650bab0363e3691a"),
+		discv5.MustHexID("cc1d7314c15e30dc5587f675eb5f803b1a2d88bfe76cec591cec1ff678bc6abce98f40054325bdcb44fb83174f27d38a54fbce4846af8f027b333868bc5144a4"),
+		discv5.MustHexID("e4d99694be2fc8a53d8c2446f947aec1c7de3ee26f7cd43f4f6f77371f56f11156218dec32b51ddce470e97127624d330bb7a3237ba5f0d87d2d3166faf1035e"),
+		discv5.MustHexID("9c61f59f70296b6d494e7230888e58f19b13c5c6c85562e57e1fe02d0ff872b4957238c73559d017c8770b999891056aa6329dbf628bc19028d8f4d35ec35823"),
 	}
 
 	addrArr = []common.Address{
@@ -330,39 +331,43 @@ func build_staking_data_more(block uint64) {
 
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
-		randBuildFunc := func() (enode.ID, common.Address, error) {
+		randBuildFunc := func() (enode.ID, discv5.NodeID ,common.Address, error) {
 			privateKey, err := crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random Id private key: %v", err)
-				return enode.ID{}, common.ZeroAddr, err
+				return enode.ID{}, discv5.NodeID{}, common.ZeroAddr, err
 			}
 
-			nodeId := enode.PubkeyToIDV4(&privateKey.PublicKey)
+			idv5 := discv5.PubkeyID(&privateKey.PublicKey)
+			idv4 := enode.NodeIDToIDV4(idv5)
 
 			privateKey, err = crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random Address private key: %v", err)
-				return enode.ID{}, common.ZeroAddr, err
+				return enode.ID{}, discv5.NodeID{}, common.ZeroAddr, err
 			}
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
-			return nodeId, addr, nil
+			return idv4, idv5, addr, nil
 		}
 
-		var nodeId enode.ID
+		var id enode.ID
+		var nid discv5.NodeID
 		var addr common.Address
 
 		if i < 25 {
-			nodeId = nodeIdArr[i]
-			ar, _ := xutil.NodeId2Addr(nodeId)
+			nid = nodeIdArr[i]
+			id = enode.NodeIDToIDV4(nid)
+			ar, _ := xutil.NodeId2Addr(id)
 			addr = common.Address(ar)
 		} else {
-			id, ar, err := randBuildFunc()
+			id, nid, ar, err := randBuildFunc()
 			if nil != err {
 				return
 			}
-			nodeId = id
+			nid = nid
+			id = id
 			addr = ar
 		}
 
@@ -378,7 +383,8 @@ func build_staking_data_more(block uint64) {
 		}
 
 		canBase := &staking.CandidateBase{
-			NodeId:          nodeId,
+			ID:          id,
+			NodeId:          nid,
 			BlsPubKey:       blsKeyHex,
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
@@ -406,13 +412,11 @@ func build_staking_data_more(block uint64) {
 		canTmp.CandidateBase = canBase
 		canTmp.CandidateMutable = canMutable
 
-		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-
-		stakingDB.SetCanPowerStore(hash, canAddr, canTmp)
-		stakingDB.SetCandidateStore(hash, canAddr, canTmp)
+		stakingDB.SetCanPowerStore(hash, canTmp.ID, canTmp)
+		stakingDB.SetCandidateStore(hash, canTmp.ID, canTmp)
 
 		v := &staking.Validator{
-			Id:              canAddr,
+			Id:              canTmp.ID,
 			NodeId:          canTmp.NodeId,
 			BlsPubKey:       canTmp.BlsPubKey,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -483,39 +487,43 @@ func build_staking_data(genesisHash common.Hash) {
 
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
-		randBuildFunc := func() (enode.ID, common.Address, error) {
+		randBuildFunc := func() (enode.ID, discv5.NodeID,common.Address, error) {
 			privateKey, err := crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random Id private key: %v", err)
-				return enode.ID{}, common.ZeroAddr, err
+				return enode.ID{}, discv5.NodeID{}, common.ZeroAddr, err
 			}
 
-			nodeId := enode.PubkeyToIDV4(&privateKey.PublicKey)
+			idv5 := discv5.PubkeyID(&privateKey.PublicKey)
+			idv4 := enode.NodeIDToIDV4(idv5)
 
 			privateKey, err = crypto.GenerateKey()
 			if nil != err {
 				fmt.Printf("Failed to generate random Address private key: %v", err)
-				return enode.ID{}, common.ZeroAddr, err
+				return enode.ID{}, discv5.NodeID{}, common.ZeroAddr, err
 			}
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
-			return nodeId, addr, nil
+			return idv4, idv5, addr, nil
 		}
 
-		var nodeId enode.ID
+		var id enode.ID
+		var nid discv5.NodeID
 		var addr common.Address
 
 		if i < 25 {
-			nodeId = nodeIdArr[i]
-			ar, _ := xutil.NodeId2Addr(nodeId)
+			nid = nodeIdArr[i]
+			id = enode.NodeIDToIDV4(nid)
+			ar, _ := xutil.NodeId2Addr(id)
 			addr = common.Address(ar)
 		} else {
-			id, ar, err := randBuildFunc()
+			id, nid, ar, err := randBuildFunc()
 			if nil != err {
 				return
 			}
-			nodeId = id
+			id = id
+			nid = nid
 			addr = ar
 		}
 
@@ -532,7 +540,8 @@ func build_staking_data(genesisHash common.Hash) {
 		}
 
 		canBase := &staking.CandidateBase{
-			NodeId:          nodeId,
+			ID:          id,
+			NodeId:          nid,
 			BlsPubKey:       blsKeyHex,
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
@@ -560,21 +569,19 @@ func build_staking_data(genesisHash common.Hash) {
 		canTmp.CandidateBase = canBase
 		canTmp.CandidateMutable = canMutable
 
-		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-
-		err := stakingDB.SetCanPowerStore(blockHash, canAddr, canTmp)
+		err := stakingDB.SetCanPowerStore(blockHash, canTmp.ID, canTmp)
 		if nil != err {
 			fmt.Printf("Failed to SetCanPowerStore: %v", err)
 			return
 		}
-		err = stakingDB.SetCandidateStore(blockHash, canAddr, canTmp)
+		err = stakingDB.SetCandidateStore(blockHash, canTmp.ID, canTmp)
 		if nil != err {
 			fmt.Printf("Failed to SetCandidateStore: %v", err)
 			return
 		}
 
 		v := &staking.Validator{
-			Id:              canAddr,
+			Id:              canTmp.ID,
 			NodeId:          canTmp.NodeId,
 			BlsPubKey:       canTmp.BlsPubKey,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),

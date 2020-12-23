@@ -104,7 +104,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		// about CanBase ...
-		baseKey := staking.CanBaseKeyByAddr(base.ID)
+		baseKey := staking.CanBaseKeyById(base.ID)
 		if val, err := rlp.EncodeToBytes(base); nil != err {
 			return lastHash, fmt.Errorf("Failed to Store CanBase Info: rlp encodeing failed. ID:%s, error:%s",
 				base.ID.String(), err.Error())
@@ -119,7 +119,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		// about CanMutable ...
-		mutableKey := staking.CanMutableKeyByAddr(base.ID)
+		mutableKey := staking.CanMutableKeyById(base.ID)
 		if val, err := rlp.EncodeToBytes(mutable); nil != err {
 			return lastHash, fmt.Errorf("Failed to Store CanMutable Info: rlp encodeing failed. ID:%s, error:%s",
 				base.ID.String(), err.Error())

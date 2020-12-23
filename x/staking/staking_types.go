@@ -404,7 +404,7 @@ func (can *CandidateMutable) IsInvalidWithdrew() bool {
 
 // Display amount field using 0x hex
 type CandidateHex struct {
-	NodeId               enode.ID
+	Id                   enode.ID
 	BlsPubKey            bls.PublicKeyHex
 	StakingAddress       common.Address
 	BenefitAddress       common.Address
@@ -430,7 +430,7 @@ type CandidateHex struct {
 
 func (can *CandidateHex) String() string {
 	return fmt.Sprintf(`{"Id": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","DelegateEpoch": "%d","DelegateTotal": "%s","DelegateTotalHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateRewardTotal": "%s"}`,
-		fmt.Sprintf("%x", can.NodeId.Bytes()),
+		fmt.Sprintf("%x", can.Id.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),

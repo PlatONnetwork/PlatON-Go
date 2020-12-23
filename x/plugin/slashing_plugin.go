@@ -61,7 +61,7 @@ var (
 
 // Nodes with zero blocks will construct this structure and store it in the queue waiting for punishment.
 type WaitSlashingNode struct {
-	NodeId enode.ID
+	Id enode.ID
 	// The number of consensus rounds when the first zero block appeared
 	Round uint64
 	// Used to record the number of times the node has zero blocks.
@@ -144,12 +144,12 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
 			validatorMap := make(map[enode.ID]bool)
 			for _, validator := range preRoundVal.Arr {
-				nodeId := validator.NodeId
-				count := result[nodeId]
+				id := validator.Id
+				count := result[id]
 				if count > 0 {
-					validatorMap[nodeId] = true
+					validatorMap[id] = true
 				} else {
-					validatorMap[nodeId] = false
+					validatorMap[id] = false
 				}
 			}
 
@@ -178,7 +178,7 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 	return nil
 }
 
-func (sp *SlashingPlugin) Confirmed(nodeId enode.ID, block *types.Block) error {
+func (sp *SlashingPlugin) Confirmed(id enode.ID, block *types.Block) error {
 	return nil
 }
 
@@ -210,9 +210,9 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 			waitSlashingNode := waitSlashingNodeList[index]
 			// Check if a node has produced a block, including in the current round
 			var isDelete = false
-			nodeId := waitSlashingNode.NodeId
-			isProduced, ok := validatorMap[nodeId]
-			delete(validatorMap, nodeId)
+			id := waitSlashingNode.Id
+			isProduced, ok := validatorMap[id]
+			delete(validatorMap, id)
 
 			delFunc := func(nodeList []*WaitSlashingNode, index *int) []*WaitSlashingNode {
 				if len(nodeList) == 1 {
@@ -229,23 +229,23 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 			if ok && isProduced {
 				isDelete = true
 			} else {
-				if amount, err := sp.getPackAmount(blockNumber, blockHash, nodeId); nil != err {
+				if amount, err := sp.getPackAmount(blockNumber, blockHash, id); nil != err {
 					return nil, err
 				} else if amount > 0 {
 					isDelete = true
-					log.Debug("Call zeroProduceProcess, The current round produced blocks", "blockNumber", blockNumber, "blockHash", blockHash, "nodeId", nodeId.TerminalString(), "packAmount", amount)
+					log.Debug("Call zeroProduceProcess, The current round produced blocks", "blockNumber", blockNumber, "blockHash", blockHash, "id", id.TerminalString(), "packAmount", amount)
 				}
 			}
 
 			if isDelete {
 				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
-				log.Debug("Call zeroProduceProcess, produced blocks", "blockNumber", blockNumber, "blockHash", blockHash, "nodeId", nodeId.TerminalString(),
+				log.Debug("Call zeroProduceProcess, produced blocks", "blockNumber", blockNumber, "blockHash", blockHash, "id", id.TerminalString(),
 					"preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "waitSlashingNodeListSize", len(waitSlashingNodeList))
 				continue
 			}
 
 			log.Debug("Call zeroProduceProcess, Judgment time threshold", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "zeroProduceNumberThreshold", zeroProduceNumberThreshold, "zeroProduceCumulativeTime", zeroProduceCumulativeTime,
-				"nodeId", nodeId.TerminalString(), "preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "isProduced", isProduced, "isExistPreRound", ok)
+				"id", id.TerminalString(), "preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "isProduced", isProduced, "isExistPreRound", ok)
 			// The time window is full and you need to move the bits to store the previous round of information
 			if diff := uint16(preRound - waitSlashingNode.Round); diff >= zeroProduceCumulativeTime {
 				// When the value of the time window becomes smaller after being governed, the extra value needs to be cleared
@@ -256,7 +256,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 
 				if waitSlashingNode.CountBit > 0 {
 					waitSlashingNode.Round += uint64(moveNumber)
-					log.Debug("Call zeroProduceProcess, first move bit, countBit > 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+					log.Debug("Call zeroProduceProcess, first move bit, countBit > 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "id", id.TerminalString(),
 						"moveBitNumber", moveNumber, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit))
 					for {
 						// If the first bit is a zero-out block, then exit the loop directly
@@ -267,11 +267,11 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 						}
 						waitSlashingNode.CountBit = waitSlashingNode.CountBit >> 1
 						if waitSlashingNode.CountBit == 0 {
-							log.Debug("Call zeroProduceProcess, for move 1bit, countBit equals 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString())
+							log.Debug("Call zeroProduceProcess, for move 1bit, countBit equals 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "id", id.TerminalString())
 							break
 						}
 						waitSlashingNode.Round++
-						log.Debug("Call zeroProduceProcess, for move 1bit, countBit > 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+						log.Debug("Call zeroProduceProcess, for move 1bit, countBit > 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "id", id.TerminalString(),
 							"firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit))
 					}
 				}
@@ -286,13 +286,13 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 					diffRound := preRound - waitSlashingNode.Round
 					waitSlashingNode.CountBit = waitSlashingNode.CountBit | (1 << diffRound)
 				}
-				log.Debug("Call zeroProduceProcess, preRound zero produced, set bit", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+				log.Debug("Call zeroProduceProcess, preRound zero produced, set bit", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "id", id.TerminalString(),
 					"preRound", preRound, "firstRound", waitSlashingNode.Round, "countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit))
 			}
 
 			if waitSlashingNode.CountBit == 0 {
 				waitSlashingNodeList = delFunc(waitSlashingNodeList, &index)
-				log.Debug("Call zeroProduceProcess, Move and set the bit successfully, countBit equals 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "waitSlashingNodeListSize", len(waitSlashingNodeList))
+				log.Debug("Call zeroProduceProcess, Move and set the bit successfully, countBit equals 0", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "id", id.TerminalString(), "waitSlashingNodeListSize", len(waitSlashingNodeList))
 				continue
 			}
 
@@ -309,10 +309,10 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 	// The remaining zero-out blocks in the map belong to the first zero-out block,
 	// so they are directly added to the list.
 	for _, validator := range validatorQueue {
-		isProduced, ok := validatorMap[validator.NodeId]
+		isProduced, ok := validatorMap[validator.Id]
 		if ok && !isProduced {
 			waitSlashingNode := &WaitSlashingNode{
-				NodeId:   validator.NodeId,
+				Id:       validator.Id,
 				Round:    preRound,
 				CountBit: 1,
 			}
@@ -324,7 +324,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 				slashQueue = append(slashQueue, slashItem)
 			} else {
 				waitSlashingNodeList = append(waitSlashingNodeList, waitSlashingNode)
-				log.Debug("Call zeroProduceProcess, first zero produced", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", validator.NodeId.TerminalString(), "preRound", preRound, "waitSlashingNodeListSize", len(waitSlashingNodeList))
+				log.Debug("Call zeroProduceProcess, first zero produced", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "id", validator.Id.String(), "preRound", preRound, "waitSlashingNodeListSize", len(waitSlashingNodeList))
 			}
 		}
 	}
@@ -337,7 +337,7 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 }
 
 func (sp *SlashingPlugin) checkSlashing(blockNumber uint64, blockHash common.Hash, waitSlashingNode *WaitSlashingNode, preRound uint64, zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) (*staking.SlashNodeItem, error) {
-	nodeId := waitSlashingNode.NodeId
+	id := waitSlashingNode.Id
 	// If the range of the time window is satisfied, and the number of zero blocks is satisfied, a penalty is imposed.
 	if diff := uint16(preRound - waitSlashingNode.Round + 1); diff == zeroProduceCumulativeTime {
 
@@ -355,19 +355,13 @@ func (sp *SlashingPlugin) checkSlashing(blockNumber uint64, blockHash common.Has
 		}
 
 		if zeroProduceCount := calcBitFunc(waitSlashingNode.CountBit, int(zeroProduceCumulativeTime)); zeroProduceCount >= zeroProduceNumberThreshold {
-			log.Debug("Call zeroProduceProcess, Meet the conditions of punishment", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+			log.Debug("Call zeroProduceProcess, Meet the conditions of punishment", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "id", id.String(),
 				"countBit", fmt.Sprintf("%b", waitSlashingNode.CountBit), "zeroProduceCount", zeroProduceCount, "zeroProduceNumberThreshold", zeroProduceNumberThreshold)
 
-			// Structure for constructing penalty information
-			nodeAddr, err := xutil.NodeId2Addr(nodeId)
-			if err != nil {
-				log.Error("Failed to convert nodeID to address", "nodeId", nodeId.TerminalString(), "error", err)
-				return nil, err
-			}
-			canMutable, err := stk.GetCanMutableByIrr(nodeAddr)
+			canMutable, err := stk.GetCanMutableByIrr(id)
 			if nil != err {
 				log.Error("Failed to zeroProduceProcess, call candidate mutable info is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-					"nodeAddr", nodeAddr.Hex(), "err", err)
+					"id", id.String(), "err", err)
 				if err == snapshotdb.ErrNotFound {
 					return nil, nil
 				}
@@ -393,12 +387,12 @@ func (sp *SlashingPlugin) checkSlashing(blockNumber uint64, blockHash common.Has
 			}
 
 			slashItem := &staking.SlashNodeItem{
-				Id:          nodeId,
+				Id:          id,
 				Amount:      slashAmount,
 				SlashType:   staking.LowRatio,
 				BenefitAddr: vm.RewardManagerPoolAddr,
 			}
-			log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+			log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "id", id.TerminalString(),
 				"zeroProduceCount", zeroProduceCount, "slashType", slashItem.SlashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blocksReward)
 			return slashItem, nil
 		}
@@ -434,8 +428,8 @@ func (sp *SlashingPlugin) setWaitSlashingNodeList(blockNumber uint64, blockHash 
 	return nil
 }
 
-func (sp *SlashingPlugin) getPackAmount(blockNumber uint64, blockHash common.Hash, nodeId enode.ID) (uint32, error) {
-	value, err := sp.db.Get(blockHash, buildKey(blockNumber, nodeId.Bytes()))
+func (sp *SlashingPlugin) getPackAmount(blockNumber uint64, blockHash common.Hash, id enode.ID) (uint32, error) {
+	value, err := sp.db.Get(blockHash, buildKey(blockNumber, id.Bytes()))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return 0, err
 	}
@@ -449,18 +443,18 @@ func (sp *SlashingPlugin) getPackAmount(blockNumber uint64, blockHash common.Has
 }
 
 func (sp *SlashingPlugin) setPackAmount(blockHash common.Hash, header *types.Header) error {
-	nodeId, err := parseNodeId(header)
+	id, err := parseId(header)
 	if nil != err {
 		return err
 	}
-	if value, err := sp.getPackAmount(header.Number.Uint64(), blockHash, nodeId); nil != err {
+	if value, err := sp.getPackAmount(header.Number.Uint64(), blockHash, id); nil != err {
 		return err
 	} else {
 		value++
-		if err := sp.db.Put(blockHash, buildKey(header.Number.Uint64(), nodeId.Bytes()), common.Uint32ToBytes(value)); nil != err {
+		if err := sp.db.Put(blockHash, buildKey(header.Number.Uint64(), id.Bytes()), common.Uint32ToBytes(value)); nil != err {
 			return err
 		}
-		log.Debug("Call setPackAmount finished", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "value", value)
+		log.Debug("Call setPackAmount finished", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "id", id.TerminalString(), "value", value)
 	}
 	return nil
 }
@@ -500,11 +494,11 @@ func (sp *SlashingPlugin) GetPrePackAmount(blockNumber uint64, parentHash common
 		key := iter.Key()
 		value := iter.Value()
 		amount := common.BytesToUint32(value)
-		nodeId, err := getNodeId(prefixKey, key)
+		id, err := getId(prefixKey, key)
 		if nil != err {
 			return nil, err
 		}
-		result[nodeId] = amount
+		result[id] = amount
 	}
 	return result, nil
 }
@@ -546,67 +540,61 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 			return slashing.ErrIntervalTooLong
 		}
 	}
-	if slashTxHash := sp.getSlashTxHash(evidence.NodeID(), evidence.BlockNumber(), evidence.Type(), stateDB); len(slashTxHash) > 0 {
+	if slashTxHash := sp.getSlashTxHash(evidence.ID(), evidence.BlockNumber(), evidence.Type(), stateDB); len(slashTxHash) > 0 {
 		log.Error("Failed to Slash, the evidence had slashed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"evidenceBlockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()),
-			"evidenceNodeId", evidence.NodeID().TerminalString(), "evidenceType", evidence.Type(), "err", slashing.ErrSlashingExist)
+			"evidenceId", evidence.ID().String(), "evidenceType", evidence.Type(), "err", slashing.ErrSlashingExist)
 		return slashing.ErrSlashingExist
 	}
 
-	nodeID := evidence.NodeID()
-	canAddr, err := xutil.NodeId2Addr(nodeID)
-	if nil != err {
-		log.Error("Failed to Slash, parse pubKey failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"evidenceBlockNumber", evidence.BlockNumber(), "evidenceNodeId", evidence.NodeID().TerminalString(), "err", err)
-		return slashing.ErrDuplicateSignVerify
-	}
-	canBase, err := stk.GetCanBase(blockHash, canAddr)
+	id := evidence.ID()
+	canBase, err := stk.GetCanBase(blockHash, id)
 	if nil != err {
 		log.Error("Failed to Slash, query CandidateBase info is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"evidenceBlockNumber", evidence.BlockNumber(), "evidenceNodeId", evidence.NodeID().TerminalString(), "err", err)
+			"evidenceBlockNumber", evidence.BlockNumber(), "evidenceId", evidence.ID().String(), "err", err)
 		return slashing.ErrGetCandidate
 	}
 
 	if canBase.IsEmpty() {
 		log.Error("Failed to Slash, the candidate info is nil", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"evidenceNodeId", evidence.NodeID().TerminalString(), "evidenceType", evidence.Type())
+			"evidenceId", evidence.ID().String(), "evidenceType", evidence.Type())
 		return slashing.ErrGetCandidate
 	}
 
 	if caller == canBase.StakingAddress {
 		log.Error("Failed to Slash, can't report self", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"nodeId", canBase.NodeId.TerminalString(), "stakingAddress", caller.String(), "evidenceType", evidence.Type())
+			"Id", canBase.ID.String(), "stakingAddress", caller.String(), "evidenceType", evidence.Type())
 		return slashing.ErrSameAddr
 	}
 
-	if canBase.NodeId != evidence.NodeID() {
-		log.Error("Failed to Slash, Mismatch nodeId", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"can nodeId", canBase.NodeId.TerminalString(), "evidence nodeId", evidence.NodeID().TerminalString(), "evidenceType", evidence.Type())
-		return slashing.ErrNodeIdMismatch
+	if canBase.ID != evidence.ID() {
+		log.Error("Failed to Slash, Mismatch Id", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+			"can Id", canBase.ID.String(), "evidence Id", evidence.ID().String(), "evidenceType", evidence.Type())
+		return slashing.ErrIdMismatch
 	}
 
 	blsKey, _ := canBase.BlsPubKey.ParseBlsPubKey()
 	if !bytes.Equal(blsKey.Serialize(), evidence.BlsPubKey().Serialize()) {
 		log.Error("Failed to Slash, Mismatch blsPubKey", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"nodeId", canBase.NodeId.TerminalString(), "can blsKey", hex.EncodeToString(blsKey.Serialize()),
+			"Id", canBase.ID.String(), "can blsKey", hex.EncodeToString(blsKey.Serialize()),
 			"evidence blsKey", hex.EncodeToString(evidence.BlsPubKey().Serialize()), "evidenceType", evidence.Type())
 		return slashing.ErrBlsPubKeyMismatch
 	}
 
-	if has, err := stk.checkRoundValidatorAddr(blockHash, evidence.BlockNumber(), canAddr); nil != err {
+	if has, err := stk.checkRoundValidatorId(blockHash, evidence.BlockNumber(), id); nil != err {
 		log.Error("Failed to Slash, checkRoundValidatorAddr is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"evidenceBlockNum", evidence.BlockNumber(), "canAddr", canAddr.Hex(), "err", err)
+			"evidenceBlockNum", evidence.BlockNumber(), "canAddr", id.String(), "err", err)
 		return slashing.ErrDuplicateSignVerify
 	} else if !has {
 		log.Error("Failed to Slash, this node is not a validator, maybe!", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"evidenceBlockNum", evidence.BlockNumber(), "canAddr", canAddr.Hex())
+			"evidenceBlockNum", evidence.BlockNumber(), "canAddr", id.String())
 		return slashing.ErrNotValidator
 	}
 
-	canMutable, err := stk.GetCanMutable(blockHash, canAddr)
+	canMutable, err := stk.GetCanMutable(blockHash, id)
 	if nil != err {
 		log.Error("Failed to Slash, query CandidateMutable info is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"evidenceBlockNumber", evidence.BlockNumber(), "canAddr", canAddr.Hex(), "err", err)
+			"evidenceBlockNumber", evidence.BlockNumber(), "canAddr", id.String(), "err", err)
 		return slashing.ErrGetCandidate
 	}
 
@@ -628,12 +616,12 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	slashAmount := calcAmountByRate(totalBalance, uint64(fraction), TenThousandDenominator)
 
 	log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-		"nodeId", canBase.NodeId.TerminalString(), "totalBalance", totalBalance, "fraction", fraction, "rewardFraction", rewardFraction,
+		"id", canBase.ID.String(), "totalBalance", totalBalance, "fraction", fraction, "rewardFraction", rewardFraction,
 		"slashAmount", slashAmount, "reporter", caller)
 
 	toCallerAmount := calcAmountByRate(slashAmount, uint64(rewardFraction), HundredDenominator)
 	toCallerItem := &staking.SlashNodeItem{
-		Id:          canBase.NodeId,
+		Id:          canBase.ID,
 		Amount:      toCallerAmount,
 		SlashType:   staking.DuplicateSign,
 		BenefitAddr: caller,
@@ -641,7 +629,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 
 	toRewardPoolAmount := new(big.Int).Sub(slashAmount, toCallerAmount)
 	toRewardPoolItem := &staking.SlashNodeItem{
-		Id:          canBase.NodeId,
+		Id:          canBase.ID,
 		Amount:      toRewardPoolAmount,
 		SlashType:   staking.DuplicateSign,
 		BenefitAddr: vm.RewardManagerPoolAddr,
@@ -649,35 +637,35 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 
 	if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, toCallerItem, toRewardPoolItem); nil != err {
 		log.Error("Failed to Slash, call SlashCandidates is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"nodeId", canBase.NodeId.TerminalString(), "err", err)
+			"id", canBase.ID.String(), "err", err)
 		return slashing.ErrSlashingFail
 	}
-	sp.putSlashTxHash(evidence.NodeID(), evidence.BlockNumber(), evidence.Type(), stateDB)
+	sp.putSlashTxHash(evidence.ID(), evidence.BlockNumber(), evidence.Type(), stateDB)
 	log.Info("Call Slash finished", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-		"evidenceBlockNum", evidence.BlockNumber(), "nodeId", canBase.NodeId.TerminalString(), "evidenceType", evidence.Type(),
+		"evidenceBlockNum", evidence.BlockNumber(), "id", canBase.ID.String(), "evidenceType", evidence.Type(),
 		"the txHash", stateDB.TxHash().TerminalString())
 
 	return nil
 }
 
-func (sp *SlashingPlugin) CheckDuplicateSign(nodeId enode.ID, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) ([]byte, error) {
-	if value := sp.getSlashTxHash(nodeId, blockNumber, dupType, stateDB); len(value) > 0 {
+func (sp *SlashingPlugin) CheckDuplicateSign(id enode.ID, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) ([]byte, error) {
+	if value := sp.getSlashTxHash(id, blockNumber, dupType, stateDB); len(value) > 0 {
 		return value, nil
 	}
 	return nil, nil
 }
 
-func (sp *SlashingPlugin) putSlashTxHash(nodeId enode.ID, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) {
-	stateDB.SetState(vm.SlashingContractAddr, duplicateSignKey(nodeId, blockNumber, dupType), stateDB.TxHash().Bytes())
+func (sp *SlashingPlugin) putSlashTxHash(id enode.ID, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) {
+	stateDB.SetState(vm.SlashingContractAddr, duplicateSignKey(id, blockNumber, dupType), stateDB.TxHash().Bytes())
 }
 
-func (sp *SlashingPlugin) getSlashTxHash(nodeId enode.ID, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) []byte {
-	return stateDB.GetState(vm.SlashingContractAddr, duplicateSignKey(nodeId, blockNumber, dupType))
+func (sp *SlashingPlugin) getSlashTxHash(id enode.ID, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) []byte {
+	return stateDB.GetState(vm.SlashingContractAddr, duplicateSignKey(id, blockNumber, dupType))
 }
 
 // duplicate signature result key format addr+blockNumber+_+type
-func duplicateSignKey(nodeId enode.ID, blockNumber uint64, dupType consensus.EvidenceType) []byte {
-	return append(append(nodeId.Bytes(), common.Uint64ToBytes(blockNumber)...), common.Uint16ToBytes(uint16(dupType))...)
+func duplicateSignKey(id enode.ID, blockNumber uint64, dupType consensus.EvidenceType) []byte {
+	return append(append(id.Bytes(), common.Uint64ToBytes(blockNumber)...), common.Uint16ToBytes(uint16(dupType))...)
 }
 
 func buildKey(blockNumber uint64, key []byte) []byte {
@@ -692,13 +680,13 @@ func buildPrefixByRound(round uint64) []byte {
 	return append(packAmountPrefix, common.Uint64ToBytes(round)...)
 }
 
-func getNodeId(prefix []byte, key []byte) (enode.ID, error) {
+func getId(prefix []byte, key []byte) (enode.ID, error) {
 	key = key[len(prefix):]
-	nodeId := enode.MustBytesID(key)
-	return nodeId, nil
+	id := enode.MustBytesID(key)
+	return id, nil
 }
 
-func parseNodeId(header *types.Header) (enode.ID, error) {
+func parseId(header *types.Header) (enode.ID, error) {
 	if xutil.IsWorker(header.Extra) {
 		return enode.PubkeyToIDV4(&SlashInstance().privateKey.PublicKey), nil
 	} else {

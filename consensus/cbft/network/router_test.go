@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math"
 	"sync"
@@ -42,7 +43,7 @@ var (
 func newTestRouter(t *testing.T) (*router, *peer) {
 	// Create a peerSet for assistance.
 	ps := NewPeerSet()
-	var consensusNodes []enode.ID
+	var consensusNodes []discv5.NodeID
 	writer, reader := p2p.MsgPipe()
 	var localID enode.ID
 	rand.Read(localID[:])
@@ -60,7 +61,7 @@ func newTestRouter(t *testing.T) (*router, *peer) {
 	getHook := func(id string) (*peer, error) {
 		return ps.get(id)
 	}
-	consensusNodesHook := func() ([]enode.ID, error) {
+	consensusNodesHook := func() ([]discv5.NodeID, error) {
 		return consensusNodes, nil
 	}
 	peersHook := func() ([]*peer, error) {
@@ -289,7 +290,7 @@ func Test_Router_FormatPeers(t *testing.T) {
 	t.Log(formatPeers(peers))
 }
 
-func formatDiscoverNodeIDs(ids []enode.ID) string {
+func formatDiscoverNodeIDs(ids []discv5.NodeID) string {
 	var bf bytes.Buffer
 	for idx, id := range ids {
 		bf.WriteString(id.TerminalString())

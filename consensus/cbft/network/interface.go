@@ -20,6 +20,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
@@ -28,10 +29,10 @@ import (
 type Cbft interface {
 
 	// Returns the ID value of the current node.
-	NodeID() enode.ID
+	Id() enode.ID
 
 	// Return a list of all consensus nodes.
-	ConsensusNodes() ([]enode.ID, error)
+	ConsensusNodes() ([]discv5.NodeID, error)
 
 	// Return configuration information of CBFT consensus.
 	Config() *types.Config

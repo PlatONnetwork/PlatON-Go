@@ -144,14 +144,14 @@ func TestValidators(t *testing.T) {
 	assert.True(t, validator.Index == 2)
 
 	pubkey := nodes[1].Node.Pubkey()
-	addrN1 := crypto.PubkeyToNodeAddress(*pubkey)
+	idN1 := enode.PubkeyToIDV4(pubkey)
 
 	validator, err = vds.FindNodeByID(nodes[1].Node.ID())
 	assert.True(t, err == nil, "get node index and address fail")
-	assert.Equal(t, validator.Address, addrN1)
+	assert.Equal(t, validator.ID, idN1)
 	assert.Equal(t, validator.Index, uint32(1))
 
-	idxN1, err := vds.FindNodeByAddress(addrN1)
+	idxN1, err := vds.FindNodeById(idN1)
 	assert.True(t, err == nil, "get index by address fail")
 	assert.Equal(t, validator.Index, idxN1.Index)
 
@@ -166,8 +166,8 @@ func TestValidators(t *testing.T) {
 	notFound := vds.NodeID(4)
 	assert.Equal(t, notFound, emptyNodeID)
 
-	emptyAddr := common.NodeAddress{}
-	validator, err = vds.FindNodeByAddress(emptyAddr)
+	emptyId := enode.ID{}
+	validator, err = vds.FindNodeById(emptyId)
 	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
 
@@ -445,11 +445,11 @@ func TestValidatorPool(t *testing.T) {
 
 	vds := newValidators(nodes, 0)
 	node0, _ := vds.FindNodeByIndex(2)
-	node, err = validatorPool.GetValidatorByAddr(0, node0.Address)
+	node, err = validatorPool.GetValidatorById(0, node0.ID)
 	assert.Nil(t, err)
-	assert.Equal(t, node.Address, node0.Address)
+	assert.Equal(t, node.ID, node0.ID)
 
-	_, err = validatorPool.GetValidatorByAddr(0, common.NodeAddress{})
+	_, err = validatorPool.GetValidatorById(0, enode.ID{})
 	assert.Equal(t, err, errors.New("invalid address"))
 
 	nodeID := validatorPool.GetNodeIDByIndex(0, 4)

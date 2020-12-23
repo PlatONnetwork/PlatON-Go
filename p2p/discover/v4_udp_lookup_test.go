@@ -84,7 +84,7 @@ func TestUDPv4_Lookup(t *testing.T) {
 }
 
 // This is the test network for the Lookup test.
-// The nodes were obtained by running lookupTestnet.mine with a random NodeID as target.
+// The nodes were obtained by running lookupTestnet.mine with a random Id as target.
 var lookupTestnet = &preminedTestnet{
 	target: hexEncPubkey("5d485bdcbe9bc89314a10ae9231e429d33853e3a8fa2af39f5f827370a2e4185e344ace5d16237491dad41f278f1d3785210d29ace76cd627b9147ee340b1125"),
 	dists: [257][]*ecdsa.PrivateKey{

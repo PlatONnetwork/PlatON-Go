@@ -45,7 +45,7 @@ var (
 	}
 	getRelatedListByDelAddrCmd = cli.Command{
 		Name:   "getRelatedListByDelAddr",
-		Usage:  "1103,Query the NodeID and pledge Id of the node entrusted by the current account address,parameter:add",
+		Usage:  "1103,Query the Id and pledge Id of the node entrusted by the current account address,parameter:add",
 		Action: getRelatedListByDelAddr,
 		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, addFlag, jsonFlag},
 	}

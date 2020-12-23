@@ -19,6 +19,7 @@ package network
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"math/rand"
@@ -46,18 +47,18 @@ import (
 // methods of the Cbft interface.
 type fakeCbft struct {
 	localPeer      *peer             // Represents a local peer
-	consensusNodes []enode.ID // All consensus nodes
+	consensusNodes []discv5.NodeID   // All consensus nodes
 	writer         p2p.MsgReadWriter // Pipeline for receiving data.
 	peers          []*peer           // Pre-initialized node for testing.
 }
 
 // Returns the ID of the local node.
-func (s *fakeCbft) NodeID() enode.ID {
+func (s *fakeCbft) Id() enode.ID {
 	return s.localPeer.Peer.ID()
 }
 
 // Return all consensus nodes.
-func (s *fakeCbft) ConsensusNodes() ([]enode.ID, error) {
+func (s *fakeCbft) ConsensusNodes() ([]discv5.NodeID, error) {
 	return s.consensusNodes, nil
 }
 
@@ -143,7 +144,7 @@ func (s *fakeCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error 
 // Create a new EngineManager.
 func newHandle(t *testing.T) (*EngineManager, *fakeCbft) {
 	// init local peer and engineManager.
-	var consensusNodes []enode.ID
+	var consensusNodes []discv5.NodeID
 	var peers []*peer
 	writer, reader := p2p.MsgPipe()
 	var localID enode.ID
@@ -222,7 +223,7 @@ func Test_EngineManager_Handle(t *testing.T) {
 	//
 	protocols := h.Protocols()
 	protocols[0].NodeInfo()
-	pi := protocols[0].PeerInfo(fake.NodeID())
+	pi := protocols[0].PeerInfo(fake.Id())
 	assert.Nil(t, pi)
 	err := protocols[0].Run(fakePeer.Peer, fakePeer.rw)
 	//err := h.handler(fakePeer.Peer, fakePeer.rw)

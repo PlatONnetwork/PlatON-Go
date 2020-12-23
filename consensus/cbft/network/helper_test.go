@@ -267,13 +267,13 @@ func newTestPeer(version int, name string) (*peer, enode.ID) {
 	return peer, id
 }
 
-func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, enode.ID) {
+func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, discv5.NodeID) {
 	// Generate a random id and create the peer.
-	var id enode.ID
+	var id discv5.NodeID
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
-	peer := newPeer(version, p2p.NewPeer(id, name, nil), rw)
+	peer := newPeer(version, p2p.NewPeer(enode.NodeIDToIDV4(id), name, nil), rw)
 	go peer.sendLoop()
 	return peer, id
 }
@@ -281,7 +281,7 @@ func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, enode
 func Test_InitializePeers(t *testing.T) {
 
 	// Randomly generated ID.
-	nodeIds := RandomID()
+	nodeIds := RandomNodeID()
 
 	// init cbft
 	cbft1 := &mockCbft{nodeIds, nodeIds[0]}
@@ -295,9 +295,12 @@ func Test_InitializePeers(t *testing.T) {
 	h3 := NewEngineManger(cbft3)
 	h4 := NewEngineManger(cbft4)
 
+	var ids []enode.ID
+	for _, nid := range nodeIds {
+		ids = append(ids, enode.NodeIDToIDV4(nid))
+	}
 	// register
-	//initializeHandler(peers, []*EngineManager{h1, h2, h3, h4})
-	EnhanceEngineManager(nodeIds, []*EngineManager{h1, h2, h3, h4})
+	EnhanceEngineManager(ids, []*EngineManager{h1, h2, h3, h4})
 
 	// start handler.
 	h1.Start()
@@ -325,11 +328,11 @@ type mockCbft struct {
 	peerID         discv5.NodeID
 }
 
-func (s *mockCbft) NodeID() enode.ID {
-	return s.peerID
+func (s *mockCbft) Id() enode.ID {
+	return enode.NodeIDToIDV4(s.peerID)
 }
 
-func (s *mockCbft) ConsensusNodes() ([]enode.ID, error) {
+func (s *mockCbft) ConsensusNodes() ([]discv5.NodeID, error) {
 	return s.consensusNodes, nil
 }
 

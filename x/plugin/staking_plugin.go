@@ -323,7 +323,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 	// add the account staking Reference Count
 	if err := sk.db.AddAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Store Staking Account Reference Count (add) is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "NodeID", can.NodeId.String(),
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "Id", can.NodeId.String(),
 			"staking Account", can.StakingAddress.String(), "err", err)
 		return err
 	}
@@ -484,7 +484,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 		return err
 	}
 
-	if err := sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), epoch, id, can); nil != err {
+	if err := sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), epoch, can); nil != err {
 		return err
 	}
 
@@ -517,7 +517,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
-func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64, id enode.ID, can *staking.Candidate) error {
+func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64, can *staking.Candidate) error {
 
 	// Direct return of money during the hesitation period
 	// Return according to the way of coming
@@ -1546,7 +1546,7 @@ func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumb
 	return queue, err
 }
 
-func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, blockNumber uint64, id enode.ID, isCommit bool) (bool, error) {
+func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, blockNumber uint64, id enode.ID) (bool, error) {
 
 	validatorArr, err := sk.getCurrValList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
@@ -1800,7 +1800,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	for _, v := range verifiers.Arr {
 
 		if _, ok := withdrewCans[v.Id]; ok {
-			delete(withdrewCans, v.NodeId)
+			delete(withdrewCans, v.Id)
 		}
 
 		if _, ok := currMap[v.Id]; ok {
@@ -3463,7 +3463,7 @@ func (sk *StakingPlugin) storeRoundValidatorAddrs(blockNumber uint64, blockHash 
 		// Clean all outside the boundarys of previous valAddrs
 		var count int
 		for invalidRound > boundary {
-			key := staking.GetRoundValAddrArrKey(invalidRound)
+			key := staking.GetRoundValIdArrKey(invalidRound)
 			if err := sk.db.DelRoundValidatorAddrs(blockHash, key); nil != err {
 				log.Error("Failed to DelRoundValidatorAddrs", "blockHash", blockHash.TerminalString(), "nextStart", nextStart,
 					"nextRound", nextRound, "nextEpoch", nextEpoch, "validEpochCount", validEpochCount, "validRoundCount", validRoundCount, "invalidRound", invalidRound, "key", hex.EncodeToString(key), "err", err)
@@ -3480,8 +3480,8 @@ func (sk *StakingPlugin) storeRoundValidatorAddrs(blockNumber uint64, blockHash 
 		}
 
 	}
-	newKey := staking.GetRoundValAddrArrKey(nextRound)
-	newValue := make([]common.NodeAddress, 0, len(array))
+	newKey := staking.GetRoundValIdArrKey(nextRound)
+	newValue := make([]enode.ID, 0, len(array))
 	for _, v := range array {
 		newValue = append(newValue, v.Id)
 	}
@@ -3494,17 +3494,17 @@ func (sk *StakingPlugin) storeRoundValidatorAddrs(blockNumber uint64, blockHash 
 	return nil
 }
 
-func (sk *StakingPlugin) checkRoundValidatorAddr(blockHash common.Hash, targetBlockNumber uint64, addr common.NodeAddress) (bool, error) {
+func (sk *StakingPlugin) checkRoundValidatorId(blockHash common.Hash, targetBlockNumber uint64, id enode.ID) (bool, error) {
 	targetRound := xutil.CalculateRound(targetBlockNumber)
-	addrList, err := sk.db.LoadRoundValidatorAddrs(blockHash, staking.GetRoundValAddrArrKey(targetRound))
+	idList, err := sk.db.LoadRoundValidatorIds(blockHash, staking.GetRoundValIdArrKey(targetRound))
 	if nil != err {
-		log.Error("Failed to checkRoundValidatorAddr", "blockHash", blockHash.TerminalString(), "targetBlockNumber", targetBlockNumber,
-			"addr", addr.Hex(), "targetRound", targetRound, "addrListLen", len(addrList), "err", err)
+		log.Error("Failed to checkRoundValidatorId", "blockHash", blockHash.TerminalString(), "targetBlockNumber", targetBlockNumber,
+			"id", id.String(), "targetRound", targetRound, "idListLen", len(idList), "err", err)
 		return false, err
 	}
-	if len(addrList) > 0 {
-		for _, v := range addrList {
-			if bytes.Equal(v.Bytes(), addr.Bytes()) {
+	if len(idList) > 0 {
+		for _, v := range idList {
+			if bytes.Equal(v.Bytes(), id.Bytes()) {
 				return true, nil
 			}
 		}
@@ -3542,7 +3542,7 @@ func calcRealRefund(blockNumber uint64, blockHash common.Hash, realtotal, amount
 
 func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 	return &staking.CandidateHex{
-		NodeId:               can.NodeId,
+		Id:                   can.ID,
 		BlsPubKey:            can.BlsPubKey,
 		StakingAddress:       can.StakingAddress,
 		BenefitAddress:       can.BenefitAddress,

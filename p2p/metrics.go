@@ -74,7 +74,7 @@ const (
 type MeteredPeerEvent struct {
 	Type    MeteredPeerEventType // Type of peer event
 	IP      net.IP               // IP address of the peer
-	ID      enode.ID             // NodeID of the peer
+	ID      enode.ID             // Id of the peer
 	Elapsed time.Duration        // Time elapsed between the connection and the handshake/disconnection
 	Ingress uint64               // Ingress count at the moment of the event
 	Egress  uint64               // Egress count at the moment of the event
@@ -93,7 +93,7 @@ type meteredConn struct {
 
 	connected time.Time // Connection time of the peer
 	ip        net.IP    // IP address of the peer
-	id        enode.ID  // NodeID of the peer
+	id        enode.ID  // Id of the peer
 
 	// trafficMetered denotes if the peer is registered in the traffic registries.
 	// Its value is true if the metered peer count doesn't reach the limit in the

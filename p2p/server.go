@@ -591,7 +591,7 @@ func (srv *Server) setupDiscovery() error {
 		}
 		cfg := discover.Config{
 			PrivateKey:  srv.PrivateKey,
-			ChainID: srv.ChainID,
+			ChainID:     srv.ChainID,
 			NetRestrict: srv.NetRestrict,
 			Bootnodes:   srv.BootstrapNodes,
 			Unhandled:   unhandled,
@@ -1239,7 +1239,7 @@ func (srv *Server) watching() {
 				pkey, err := addEv.NodeID.Pubkey()
 				if err != nil {
 
-					log.Error("Add validator event NodeID error")
+					log.Error("Add validator event Id error")
 					continue
 				}
 				node := enode.NewV4(pkey, nil, 0, 0)
@@ -1254,7 +1254,7 @@ func (srv *Server) watching() {
 				pkey, err := removeEv.NodeID.Pubkey()
 				if err != nil {
 
-					log.Error("RemoveValidatorEvent NodeID error")
+					log.Error("RemoveValidatorEvent Id error")
 					continue
 				}
 				node := enode.NewV4(pkey, nil, 0, 0)

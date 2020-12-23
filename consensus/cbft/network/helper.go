@@ -28,8 +28,8 @@ import (
 
 // ============================ simulation network ============================
 
-// RandomID returns a list of NodeID by random.
-func RandomID() []discv5.NodeID {
+// RandomNodeID returns a list of discv5.NodeID by random.
+func RandomNodeID() []discv5.NodeID {
 	ids := make([]discv5.NodeID, 0)
 	for i := 0; i < 4; i++ {
 		var id discv5.NodeID
@@ -39,6 +39,16 @@ func RandomID() []discv5.NodeID {
 	return ids
 }
 
+// RandomID returns a list of enode.ID by random.
+func RandomID() []enode.ID {
+	ids := make([]enode.ID, 0)
+	for i := 0; i < 4; i++ {
+		var id enode.ID
+		rand.Read(id[:])
+		ids = append(ids, id)
+	}
+	return ids
+}
 // EnhanceEngineManager is used to register a batch of handlers to
 // simulate the test environment.
 //

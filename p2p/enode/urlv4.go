@@ -200,7 +200,7 @@ func PubkeyToIDV4(key *ecdsa.PublicKey) ID {
 	return ID(crypto.Keccak256Hash(e))
 }
 
-// NodeIDToIDV4 derives the v4 node address from the given NodeID.
+// NodeIDToIDV4 derives the v4 node address from the given Id.
 func NodeIDToIDV4(id discv5.NodeID) ID {
 	return ID(crypto.Keccak256Hash(id[:]))
 }

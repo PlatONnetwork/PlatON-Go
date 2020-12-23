@@ -17,13 +17,11 @@
 package vm
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
-	"bytes"
 
 	"encoding/json"
 
@@ -49,7 +47,7 @@ const (
 type ValidateNode struct {
 	Index     uint               `json:"index"`
 	NodeID    discv5.NodeID      `json:"nodeID"`
-	Address   common.NodeAddress `json:"-"`
+	Id        enode.ID           `json:"-"`
 	BlsPubKey bls.PublicKey      `json:"blsPubKey"`
 }
 
@@ -58,7 +56,7 @@ type NodeList []*ValidateNode
 func (nl *NodeList) String() string {
 	s := ""
 	for _, v := range *nl {
-		s = s + fmt.Sprintf("{Index: %d NodeID: %s Address: %s blsPubKey: %s},", v.Index, v.NodeID, v.Address.String(), fmt.Sprintf("%x", v.BlsPubKey.Serialize()))
+		s = s + fmt.Sprintf("{Index: %d Id: %s Address: %s blsPubKey: %s},", v.Index, v.NodeID, v.Id.String(), fmt.Sprintf("%x", v.BlsPubKey.Serialize()))
 	}
 	return s
 }
@@ -108,12 +106,7 @@ func (vic *validatorInnerContract) UpdateValidators(validators *Validators) erro
 
 	var newVds Validators
 	for _, node := range validators.ValidateNodes {
-		nodeAddr, err := xutil.NodeId2Addr(enode.NodeIDToIDV4(node.NodeID))
-		if err != nil {
-			log.Error("Get nodeAddr from nodeID fail", "error", err)
-			return err
-		}
-		node.Address = nodeAddr
+		node.Id = node.Id
 		newVds.ValidateNodes = append(newVds.ValidateNodes, node)
 	}
 	log.Debug("Update validators", "validators", newVds.String(), "address", vic.Contract.Address())

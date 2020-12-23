@@ -32,7 +32,7 @@ type Evidence interface {
 	ViewNumber() uint64
 	Hash() []byte
 	//Address() common.NodeAddress
-	NodeID() enode.ID
+	ID() enode.ID
 	BlsPubKey() *bls.PublicKey
 	Validate() error
 	Type() EvidenceType

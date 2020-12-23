@@ -80,10 +80,10 @@ func (suit *EvidenceTestSuite) TestViewChangeDuplicate() {
 		suit.blockOne.Hash(), suit.blockOne.NumberU64(), suit.view.secondProposerIndex(), suit.blockOneQC.BlockQC)
 	viewChange2 := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber,
 		suit.view.genesisBlock.Hash(), suit.view.genesisBlock.NumberU64(), suit.view.secondProposerIndex(), nil)
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange1); err != nil {
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Id().String(), viewChange1); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange2); err == nil {
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Id().String(), viewChange2); err == nil {
 		suit.T().Fatal("fail")
 	}
 	ev := suit.view.firstProposer().Evidences()
@@ -94,9 +94,9 @@ func (suit *EvidenceTestSuite) TestViewChangeDuplicate() {
 	if len(duplicateViewChange.DC) == 0 {
 		suit.T().Fatal("Evidences is empty")
 	}
-	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicateViewChange.DC[0].ViewA.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.secondProposer().config.Option.Id, duplicateViewChange.DC[0].ViewA.ValidateNode.NodeID)
 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicateViewChange.DC[0].ViewA.ValidateNode.BlsPubKey.Serialize())
-	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicateViewChange.DC[0].ViewB.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.secondProposer().config.Option.Id, duplicateViewChange.DC[0].ViewB.ValidateNode.NodeID)
 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicateViewChange.DC[0].ViewB.ValidateNode.BlsPubKey.Serialize())
 }
 
@@ -167,13 +167,13 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 	prepareBlock1 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch,
 		suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block1, qc, nil)
-	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock1); err != nil {
+	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Id().String(), prepareBlock1); err != nil {
 		suit.T().Fatal(err.Error())
 	}
 	// time.Sleep(time.Millisecond * 10)
 	prepareBlock2 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block2, qc, nil)
-	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock2); err == nil {
+	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Id().String(), prepareBlock2); err == nil {
 		suit.T().Error("FAIL")
 	} else {
 		fmt.Println(err.Error())
@@ -186,9 +186,9 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 	if len(duplicatePrepareBlock.DP) == 0 {
 		suit.T().Fatal("Evidences is empty")
 	}
-	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.secondProposer().config.Option.Id, duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.NodeID)
 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.BlsPubKey.Serialize())
-	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.secondProposer().config.Option.Id, duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.NodeID)
 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.BlsPubKey.Serialize())
 }
 
@@ -283,10 +283,10 @@ func (suit *EvidenceTestSuite) TestPrepareVoteDuplicate() {
 	prepareVote2 := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), block1.Hash(),
 		block1.NumberU64(), nil)
-	if err := suit.view.secondProposer().OnPrepareVote(suit.view.firstProposer().NodeID().String(), prepareVote1); err != nil {
+	if err := suit.view.secondProposer().OnPrepareVote(suit.view.firstProposer().Id().String(), prepareVote1); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	if err := suit.view.secondProposer().OnPrepareVote(suit.view.firstProposer().NodeID().String(), prepareVote2); err == nil {
+	if err := suit.view.secondProposer().OnPrepareVote(suit.view.firstProposer().Id().String(), prepareVote2); err == nil {
 		suit.T().Fatal("FAIL")
 	}
 	ev := suit.view.secondProposer().Evidences()
@@ -297,9 +297,9 @@ func (suit *EvidenceTestSuite) TestPrepareVoteDuplicate() {
 	if len(duplicatePrepareVote.DV) == 0 {
 		suit.T().Fatal("Evidences is empty")
 	}
-	suit.EqualValues(suit.view.firstProposer().config.Option.NodeID, duplicatePrepareVote.DV[0].VoteB.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.firstProposer().config.Option.Id, duplicatePrepareVote.DV[0].VoteB.ValidateNode.NodeID)
 	suit.EqualValues(suit.view.firstProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareVote.DV[0].VoteB.ValidateNode.BlsPubKey.Serialize())
-	suit.EqualValues(suit.view.firstProposer().config.Option.NodeID, duplicatePrepareVote.DV[0].VoteB.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.firstProposer().config.Option.Id, duplicatePrepareVote.DV[0].VoteB.ValidateNode.NodeID)
 	suit.EqualValues(suit.view.firstProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareVote.DV[0].VoteB.ValidateNode.BlsPubKey.Serialize())
 }
 

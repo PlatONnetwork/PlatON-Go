@@ -20,7 +20,7 @@ package network
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"math"
 	"reflect"
 	"sync"
@@ -38,7 +38,7 @@ const DefaultFanOut = 5
 
 type unregisterFunc func(id string) error                 // Unregister peer from peerSet.
 type getByIDFunc func(id string) (*peer, error)           // Get peer based on ID.
-type consensusNodesFunc func() ([]enode.ID, error) // Get a list of consensus nodes.
+type consensusNodesFunc func() ([]discv5.NodeID, error)   // Get a list of consensus nodes.
 type peersFunc func() ([]*peer, error)                    // Get a list of all neighbor nodes.
 
 // Router implements the message protocol of gossip.
@@ -311,7 +311,7 @@ func formatPeers(peers []*peer) string {
 }
 
 // FormatNodes is used to print the information about peerID.
-func FormatNodes(ids []enode.ID) string {
+func FormatNodes(ids []discv5.NodeID) string {
 	var bf bytes.Buffer
 	for idx, id := range ids {
 		bf.WriteString(id.TerminalString())

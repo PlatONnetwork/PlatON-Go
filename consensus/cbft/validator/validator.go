@@ -22,10 +22,8 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
@@ -50,14 +48,9 @@ func newValidators(nodes []params.CbftNode, validBlockNumber uint64) *cbfttypes.
 
 	for i, node := range nodes {
 		blsPubKey := node.BlsPubKey
-		nodeAddr, err := xutil.NodeId2Addr(node.Node.ID())
-		if err != nil {
-			log.Error("NodeId2Addr return err", err)
-			return nil
-		}
 		vds.Nodes[node.Node.ID()] = &cbfttypes.ValidateNode{
 			Index:     uint32(i),
-			Address:   nodeAddr,
+			ID:        node.Node.ID(),
 			NodeID:    discv5.PubkeyID(node.Node.Pubkey()),
 			BlsPubKey: &blsPubKey,
 		}
@@ -269,7 +262,7 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 		blsPubKey := node.BlsPubKey
 		validators.Nodes[enode.NodeIDToIDV4(node.NodeID)] = &cbfttypes.ValidateNode{
 			Index:     uint32(node.Index),
-			Address:   node.Address,
+			ID:        node.Id,
 			NodeID:    node.NodeID,
 			BlsPubKey: &blsPubKey,
 		}
@@ -459,10 +452,10 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 }
 
 // GetValidatorByNodeID get the validator by node id.
-func (vp *ValidatorPool) GetValidatorByNodeID(epoch uint64, nodeID enode.ID) (*cbfttypes.ValidateNode, error) {
+func (vp *ValidatorPool) GetValidatorByNodeID(epoch uint64, id enode.ID) (*cbfttypes.ValidateNode, error) {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
-	return vp.getValidatorByNodeID(epoch, nodeID)
+	return vp.getValidatorByNodeID(epoch, id)
 }
 
 func (vp *ValidatorPool) getValidatorByNodeID(epoch uint64, nodeID enode.ID) (*cbfttypes.ValidateNode, error) {
@@ -473,18 +466,18 @@ func (vp *ValidatorPool) getValidatorByNodeID(epoch uint64, nodeID enode.ID) (*c
 }
 
 // GetValidatorByAddr get the validator by address.
-func (vp *ValidatorPool) GetValidatorByAddr(epoch uint64, addr common.NodeAddress) (*cbfttypes.ValidateNode, error) {
+func (vp *ValidatorPool) GetValidatorById(epoch uint64, id enode.ID) (*cbfttypes.ValidateNode, error) {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
-	return vp.getValidatorByAddr(epoch, addr)
+	return vp.getValidatorById(epoch, id)
 }
 
-func (vp *ValidatorPool) getValidatorByAddr(epoch uint64, addr common.NodeAddress) (*cbfttypes.ValidateNode, error) {
+func (vp *ValidatorPool) getValidatorById(epoch uint64, id enode.ID) (*cbfttypes.ValidateNode, error) {
 	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
-		return vp.prevValidators.FindNodeByAddress(addr)
+		return vp.prevValidators.FindNodeById(id)
 	}
-	return vp.currentValidators.FindNodeByAddress(addr)
+	return vp.currentValidators.FindNodeById(id)
 }
 
 // GetValidatorByIndex get the validator by index.

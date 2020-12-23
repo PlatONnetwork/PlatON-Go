@@ -18,6 +18,7 @@ package network
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"math/rand"
@@ -308,7 +309,7 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 	}
 }
 
-// AliveConsensusNodeIDs returns all NodeID to alive peer.
+// AliveConsensusNodeIDs returns all Id to alive peer.
 func (h *EngineManager) AliveConsensusNodeIDs() ([]string, error) {
 	cNodes, _ := h.engine.ConsensusNodes()
 	peers := h.peers.allPeers()
@@ -334,7 +335,7 @@ func (h *EngineManager) Unregister(id string) error {
 }
 
 // ConsensusNodes returns a list of all consensus nodes.
-func (h *EngineManager) ConsensusNodes() ([]enode.ID, error) {
+func (h *EngineManager) ConsensusNodes() ([]discv5.NodeID, error) {
 	return h.engine.ConsensusNodes()
 }
 

@@ -264,9 +264,9 @@ func testTimeout(t *testing.T, node, node2 *TestCBFT) {
 	time.Sleep(10 * time.Second)
 	pb := node.engine.state.PrepareBlockByIndex(0)
 	assert.Len(t, node.engine.state.AllViewChange(), 1)
-	assert.NotNil(t, node2.engine.OnPrepareBlock(node.engine.config.Option.NodeID.TerminalString(), pb))
-	assert.Nil(t, node.engine.OnViewChange(node.engine.config.Option.NodeID.TerminalString(), node.engine.state.AllViewChange()[0]))
-	assert.Nil(t, node2.engine.OnViewChange(node.engine.config.Option.NodeID.TerminalString(), node.engine.state.AllViewChange()[0]))
+	assert.NotNil(t, node2.engine.OnPrepareBlock(node.engine.config.Option.Id.TerminalString(), pb))
+	assert.Nil(t, node.engine.OnViewChange(node.engine.config.Option.Id.TerminalString(), node.engine.state.AllViewChange()[0]))
+	assert.Nil(t, node2.engine.OnViewChange(node.engine.config.Option.Id.TerminalString(), node.engine.state.AllViewChange()[0]))
 }
 
 func testExecuteBlock(t *testing.T) {

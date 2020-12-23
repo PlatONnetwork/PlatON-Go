@@ -26,7 +26,7 @@ import (
 
 type OptionsConfig struct {
 	NodePriKey *ecdsa.PrivateKey `json:"-"`
-	NodeID     enode.ID          `json:"nodeID"`
+	Id         enode.ID          `json:"nodeID"`
 	BlsPriKey  *bls.SecretKey    `json:"-"`
 	WalMode    bool              `json:"walMode"`
 

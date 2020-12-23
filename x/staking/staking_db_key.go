@@ -56,7 +56,7 @@ var (
 	RoundValArrPrefix       = []byte(RoundValArrPrefixStr)
 	AccountStakeRcPrefix    = []byte(AccountStakeRcPrefixStr)
 	PPOSHASHKey             = []byte(PPOSHASHStr)
-	RoundValAddrArrPrefix   = []byte(RoundValAddrArrPrefixStr)
+	RoundValIdArrPrefix     = []byte(RoundValAddrArrPrefixStr)
 	RoundAddrBoundaryPrefix = []byte(RoundAddrBoundaryPrefixStr)
 
 	b104Len = len(math.MaxBig104.Bytes())
@@ -64,14 +64,14 @@ var (
 
 // CanBase ...
 
-func CanBaseKeyByAddr(id enode.ID) []byte {
+func CanBaseKeyById(id enode.ID) []byte {
 	return append(CanBaseKeyPrefix, id.Bytes()...)
 }
 func CanBaseKeyBySuffix(addr []byte) []byte {
 	return append(CanBaseKeyPrefix, addr...)
 }
 
-func CanMutableKeyByAddr(id enode.ID) []byte {
+func CanMutableKeyById(id enode.ID) []byte {
 	return append(CanMutableKeyPrefix, id.Bytes()...)
 }
 
@@ -217,8 +217,8 @@ func GetPPOSHASHKey() []byte {
 	return PPOSHASHKey
 }
 
-func GetRoundValAddrArrKey(round uint64) []byte {
-	return append(RoundValAddrArrPrefix, common.Uint64ToBytes(round)...)
+func GetRoundValIdArrKey(round uint64) []byte {
+	return append(RoundValIdArrPrefix, common.Uint64ToBytes(round)...)
 }
 
 func GetRoundAddrBoundaryKey() []byte {
