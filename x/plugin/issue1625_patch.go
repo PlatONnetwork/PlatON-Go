@@ -142,6 +142,7 @@ func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int,
 		delInfo.stakingBlock = stakingBlock
 		delInfo.originRestrictingAmount = new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
 		delInfo.originFreeAmount = new(big.Int).Add(del.Released, del.ReleasedHes)
+		delInfo.canAddr = canAddr
 		dels = append(dels, delInfo)
 	}
 	sort.Sort(dels)
@@ -604,7 +605,7 @@ func (d issue1625AccountDelInfos) Less(i, j int) bool {
 			return true
 		}
 	} else {
-		if d[i].candidate.IsEmpty() {
+		if d[j].candidate.IsEmpty() {
 			return false
 		} else {
 			if d[i].candidate.IsWithdrew() {
