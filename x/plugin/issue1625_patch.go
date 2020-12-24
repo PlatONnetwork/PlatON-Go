@@ -298,8 +298,6 @@ func (a *issue1625AccountStakingInfo) decreaseStaking(hash common.Hash, epoch ui
 		return err
 	}
 
-	lazyCalcStakeAmount(epoch, a.candidate.CandidateMutable)
-
 	//计算此次需要回退的钱
 	improperRestrictingAmount := a.calImproperRestrictingAmount(rollBackAmount)
 
@@ -329,8 +327,6 @@ func (a *issue1625AccountStakingInfo) withdrewStaking(hash common.Hash, epoch ui
 	if err := stdb.DelCanPowerStore(hash, a.candidate); nil != err {
 		return err
 	}
-
-	lazyCalcStakeAmount(epoch, a.candidate.CandidateMutable)
 
 	//计算此次需要回退的钱
 	improperRestrictingAmount := a.calImproperRestrictingAmount(rollBackAmount)
