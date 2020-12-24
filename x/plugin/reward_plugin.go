@@ -283,7 +283,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 	for _, delWithPer := range list {
 		rewardsReceive := calcDelegateIncome(currentEpoch, delWithPer.DelegationInfo.Delegation, delWithPer.RewardPerList)
 		rewards = append(rewards, reward.NodeDelegateReward{
-			NodeID:     delWithPer.DelegationInfo.NodeID,
+			Id:         delWithPer.DelegationInfo.NodeID,
 			StakingNum: delWithPer.DelegationInfo.StakeBlockNumber,
 			Reward:     new(big.Int).Set(delWithPer.DelegationInfo.Delegation.CumulativeIncome),
 		})

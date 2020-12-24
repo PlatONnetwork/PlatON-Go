@@ -3485,8 +3485,8 @@ func (sk *StakingPlugin) storeRoundValidatorAddrs(blockNumber uint64, blockHash 
 	for _, v := range array {
 		newValue = append(newValue, v.Id)
 	}
-	if err := sk.db.StoreRoundValidatorAddrs(blockHash, newKey, newValue); nil != err {
-		log.Error("Failed to StoreRoundValidatorAddrs", "blockHash", blockHash.TerminalString(), "nextStart", nextStart,
+	if err := sk.db.StoreRoundValidatorIds(blockHash, newKey, newValue); nil != err {
+		log.Error("Failed to StoreRoundValidatorIds", "blockHash", blockHash.TerminalString(), "nextStart", nextStart,
 			"nextRound", nextRound, "nextEpoch", nextEpoch, "validEpochCount", validEpochCount, "validRoundCount", validRoundCount,
 			"validatorLen", len(array), "newKey", hex.EncodeToString(newKey), "err", err)
 		return err

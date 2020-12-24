@@ -763,7 +763,7 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 
 // about round validator's addrs ...
 
-func (db *StakingDB) StoreRoundValidatorAddrs(blockHash common.Hash, key []byte, arry []enode.ID) error {
+func (db *StakingDB) StoreRoundValidatorIds(blockHash common.Hash, key []byte, arry []enode.ID) error {
 	value, err := rlp.EncodeToBytes(arry)
 	if nil != err {
 		return err

@@ -19,6 +19,7 @@ package vm
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
@@ -44,12 +45,13 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		t.Fatal(err)
 	}
 	addr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
-	nodeId := enode.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	idv5 := discv5.MustHexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	idv4 := enode.NodeIDToIDV4(idv5)
 	build_staking_data(genesis.Hash())
 	newKey := staking.GetRoundValIdArrKey(1)
-	newValue := make([]common.NodeAddress, 0, 1)
-	newValue = append(newValue, common.NodeAddress(addr))
-	if err := staking.NewStakingDB().StoreRoundValidatorAddrs(blockHash, newKey, newValue); nil != err {
+	newValue := make([]enode.ID, 0, 1)
+	newValue = append(newValue, idv4)
+	if err := staking.NewStakingDB().StoreRoundValidatorIds(blockHash, newKey, newValue); nil != err {
 		t.Fatal(err)
 	}
 	contract := &SlashingContract{
@@ -78,7 +80,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
            "validateNode": {
             "index": 0,
-            "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+            "id": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
            "signature": "0x36015fee15253487e8125b86505377d8540b1a95d1a6b13f714baa55b12bd06ec7d5755a98230cdc88858470afa8cb0000000000000000000000000000000000"
@@ -92,7 +94,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
            "validateNode": {
             "index": 0,
-            "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+            "id": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
            "signature": "0x783892b9b766f9f4c2a1d45b1fd53ca9ea56a82e38a998939edc17bc7fd756267d3c145c03bc6c1412302cf590645d8200000000000000000000000000000000"
@@ -127,7 +129,8 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 
 	can := &staking.Candidate{
 		CandidateBase: &staking.CandidateBase{
-			NodeId:          nodeId,
+			ID:              idv4,
+			NodeId:          idv5,
 			BlsPubKey:       blsKeyHex,
 			StakingAddress:  addr,
 			BenefitAddress:  addr,
@@ -149,7 +152,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber2, blockHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := plugin.StakingInstance().CreateCandidate(state, common.ZeroHash, blockNumber2, can.Shares, 0, common.NodeAddress(addr), can); nil != err {
+	if err := plugin.StakingInstance().CreateCandidate(state, common.ZeroHash, blockNumber2, can.Shares, 0, idv4, can); nil != err {
 		t.Fatal(err)
 	}
 	runContract(contract, buf.Bytes(), t)
@@ -170,7 +173,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
 
-	nodeId := enode.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	nodeId := enode.HexID("b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	fnType, _ := rlp.EncodeToBytes(uint16(3001))
 	typ, _ := rlp.EncodeToBytes(uint8(1))
 	enNodeId, _ := rlp.EncodeToBytes(nodeId)

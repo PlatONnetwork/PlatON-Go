@@ -18,6 +18,7 @@ package vm
 
 import (
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
@@ -61,9 +62,10 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	if nil != err {
 		panic(err)
 	}
-	nodeID, add := enode.PubkeyToIDV4(&privateKey.PublicKey), crypto.PubkeyToAddress(privateKey.PublicKey)
+	idv4, idv5, add := enode.PubkeyToIDV4(&privateKey.PublicKey), discv5.PubkeyID(&privateKey.PublicKey), crypto.PubkeyToAddress(privateKey.PublicKey)
 	canBase.BenefitAddress = add
-	canBase.NodeId = nodeID
+	canBase.ID = idv4
+	canBase.NodeId = idv5
 	canBase.StakingBlockNum = 100
 
 	var delegation staking.Delegation
@@ -89,8 +91,8 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	})
 	validatorQueue := make(staking.ValidatorQueue, 0)
 	validatorQueue = append(validatorQueue, &staking.Validator{
-		NodeId:          nodeID,
-		Id:              common.NodeAddress(canBase.BenefitAddress),
+		NodeId:          idv5,
+		Id:              idv4,
 		StakingBlockNum: canBase.StakingBlockNum,
 	})
 
@@ -132,7 +134,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 		if err := stkDB.SetCanMutableStore(hash, queue[0].Id, can.CandidateMutable); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.ID, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
 			return err
 		}
 		return nil
@@ -141,7 +143,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 
 	contact := newRewardContact(delegateRewardAdd, chain, initGas)
 
-	contact.Plugin.SetCurrentNodeID(can.NodeId)
+	contact.Plugin.SetCurrentNodeID(can.ID)
 
 	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
 
@@ -212,7 +214,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 		if len(rewards) == 0 {
 			return errors.New("rewards must not be zero")
 		}
-		if rewards[0].NodeID != can.NodeId {
+		if rewards[0].Id != can.ID {
 			return errors.New("node id should be same")
 		}
 		if rewards[0].StakingNum != can.StakingBlockNum {
@@ -333,13 +335,13 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 			return err
 		}
 
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.ID, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can2.CandidateBase.NodeId, can2.CandidateBase.StakingBlockNum, &delegate2); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can2.CandidateBase.ID, can2.CandidateBase.StakingBlockNum, &delegate2); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can3.CandidateBase.NodeId, can3.CandidateBase.StakingBlockNum, &delegate3); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can3.CandidateBase.ID, can3.CandidateBase.StakingBlockNum, &delegate3); err != nil {
 			return err
 		}
 		return nil
@@ -349,7 +351,7 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 
 	contact := newRewardContact(delegateRewardAdd, chain, initGas)
 
-	contact.Plugin.SetCurrentNodeID(can.NodeId)
+	contact.Plugin.SetCurrentNodeID(can.ID)
 
 	blockReward, stakingReward := big.NewInt(100000), big.NewInt(200000)
 
@@ -423,8 +425,8 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 			return errors.New("rewards must not be zero")
 		}
 		assert.True(t, len(rewards) == int(xcom.TheNumberOfDelegationsReward()))
-		assert.True(t, rewards[0].NodeID == can2.NodeId)
-		assert.True(t, rewards[1].NodeID == can3.NodeId)
+		assert.True(t, rewards[0].Id == can2.ID)
+		assert.True(t, rewards[1].Id == can3.ID)
 		return nil
 	}); err != nil {
 		t.Error(err)

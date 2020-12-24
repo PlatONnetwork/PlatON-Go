@@ -106,9 +106,9 @@ func (d *DelegateRewardPerList) IsChange() bool {
 }
 
 type NodeDelegateReward struct {
-	NodeID     enode.ID `json:"nodeID"`
-	StakingNum uint64          `json:"stakingNum"`
-	Reward     *big.Int        `json:"reward" rlp:"nil"`
+	Id         enode.ID `json:"nodeID"`
+	StakingNum uint64   `json:"stakingNum"`
+	Reward     *big.Int `json:"reward" rlp:"nil"`
 }
 
 type NodeDelegateRewardPresenter struct {
