@@ -656,47 +656,51 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 
 		// The state of the node needs to be restored
 		if stakeItem.Recovery {
-			// If the node is reported double-signed during the lock-up period，
-			// Then you need to enter the double-signed lock-up period after the lock-up period expires and release the pledge after the expiration
-			// Otherwise, the state of the node is restored to the normal staking state
-			if can.IsDuplicateSign() {
-
-				// Because there is no need to release the staking when the zero-out block is locked, "SubAccountStakeRc" is not executed
-				if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
-					log.Error("Failed to HandleUnCandidateItem: Sub Account staking Reference Count is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
-				}
-
-				// Lock the node again and will release the staking
-				if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
-					log.Error("Failed to SlashCandidates on stakingPlugin: Add UnStakeItemStore failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
-				}
-				can.CleanLowRatioStatus()
-				if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
-					log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store CandidateMutable info is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
-				}
-				log.Debug("Call HandleUnCandidateItem: Node double sign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
-					"status", can.Status, "shares", can.Shares)
+			// If the pledge has been revoked, there is no need to restore the state
+			if gov.Gte0150VersionState(state) && can.IsWithdrew() {
 			} else {
+				// If the node is reported double-signed during the lock-up period，
+				// Then you need to enter the double-signed lock-up period after the lock-up period expires and release the pledge after the expiration
+				// Otherwise, the state of the node is restored to the normal staking state
+				if can.IsDuplicateSign() {
 
-				can.SetValided()
-				if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
-					log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store Candidate power is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
+					// Because there is no need to release the staking when the zero-out block is locked, "SubAccountStakeRc" is not executed
+					if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
+						log.Error("Failed to HandleUnCandidateItem: Sub Account staking Reference Count is failed",
+							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+						return err
+					}
+
+					// Lock the node again and will release the staking
+					if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
+						log.Error("Failed to SlashCandidates on stakingPlugin: Add UnStakeItemStore failed",
+							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+						return err
+					}
+					can.CleanLowRatioStatus()
+					if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
+						log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store CandidateMutable info is failed",
+							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+						return err
+					}
+					log.Debug("Call HandleUnCandidateItem: Node double sign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+						"status", can.Status, "shares", can.Shares)
+				} else {
+
+					can.SetValided()
+					if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
+						log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store Candidate power is failed",
+							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+						return err
+					}
+					if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
+						log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store CandidateMutable info is failed",
+							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+						return err
+					}
+					log.Debug("Call HandleUnCandidateItem: Node state recovery", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+						"status", can.Status, "shares", can.Shares)
 				}
-				if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
-					log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store CandidateMutable info is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
-				}
-				log.Debug("Call HandleUnCandidateItem: Node state recovery", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
-					"status", can.Status, "shares", can.Shares)
 			}
 		} else {
 			// Second handle balabala ...
