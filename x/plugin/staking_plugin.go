@@ -317,10 +317,11 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 			}
 			can.RestrictingPlanHes = restrictingPlanHes
 			can.ReleasedHes = releasedHes
+		} else {
+			log.Error("Failed to CreateCandidate on stakingPlugin", "err", staking.ErrWrongVonOptType,
+				"got type", typ, "need type", fmt.Sprintf("%d or %d", FreeVon, RestrictVon))
+			return staking.ErrWrongVonOptType
 		}
-		log.Error("Failed to CreateCandidate on stakingPlugin", "err", staking.ErrWrongVonOptType,
-			"got type", typ, "need type", fmt.Sprintf("%d or %d", FreeVon, RestrictVon))
-		return staking.ErrWrongVonOptType
 	} else {
 
 		log.Error("Failed to CreateCandidate on stakingPlugin", "err", staking.ErrWrongVonOptType,
@@ -3439,6 +3440,16 @@ func (sk *StakingPlugin) setVerifierListByIndex(blockNumber uint64, blockHash co
 			"start", valArr.Start, "end", valArr.End, "val arr length", len(valArr.Arr), "err", err)
 		return err
 	}
+	return nil
+}
+
+func (sk *StakingPlugin) addErrorAccountUnStakeItem(blockNumber uint64, blockHash common.Hash, nodeId discover.NodeID, canAddr common.NodeAddress, stakingBlockNum uint64) error {
+	targetEpoch := xutil.CalculateEpoch(blockNumber) + 1
+	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, false); nil != err {
+		return err
+	}
+	log.Debug("Call addErrorAccountUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber, "unstake item target Epoch", targetEpoch,
+		"nodeId", nodeId.String())
 	return nil
 }
 
