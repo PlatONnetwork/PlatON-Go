@@ -65,7 +65,7 @@ func TestSize(t *testing.T) {
 	delegate := new(big.Int).Mul(new(big.Int).SetInt64(10000000), big.NewInt(params.LAT))
 	reward, _ := new(big.Int).SetString("135840374364973262032076", 10)
 	per := new(big.Int).Div(reward, delegate)
-	key := DelegateRewardPerKey(enode.HexID("0aa9805681d8f77c05f317efc141c97d5adb511ffb51f5a251d2d7a4a3a96d9a12adf39f06b702f0ccdff9eddc1790eb272dca31b0c47751d49b5931c58701e7"), 100, 10)
+	key := DelegateRewardPerKey(enode.HexID("0aa9805681d8f77c05f317efc141c97d5adb511ffb51f5a251d2d7a4a3a96d9a"), 100, 10)
 
 	list := NewDelegateRewardPerList()
 	for i := 0; i < DelegateRewardPerLength; i++ {
