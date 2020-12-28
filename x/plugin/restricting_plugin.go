@@ -740,8 +740,9 @@ func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, 
 		totalLeft.Add(totalLeft, bAmount)
 		plans = append(plans, plan)
 	}
-
-	if gov.Gte0140VersionState(state) {
+	if gov.Gte0150VersionState(state) {
+		result.Balance = (*hexutil.Big)(info.CachePlanAmount)
+	} else if gov.Gte0140VersionState(state) {
 		if totalLeft.Cmp(info.CachePlanAmount) < 0 {
 			result.Balance = (*hexutil.Big)(totalLeft)
 		} else {
