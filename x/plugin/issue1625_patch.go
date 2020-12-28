@@ -229,7 +229,7 @@ type issue1625AccountStakingInfo struct {
 }
 
 //回退处于退出期的质押信息
-func (a *issue1625AccountStakingInfo) handelExistStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
+func (a *issue1625AccountStakingInfo) handleExistStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
 	if a.originRestrictingAmount.Cmp(rollBackAmount) >= 0 {
 		if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, rollBackAmount, state); nil != err {
 			return err
@@ -389,7 +389,7 @@ func (a *issue1625AccountStakingInfo) handleStaking(hash common.Hash, blockNumbe
 		a.candidate.RestrictingPlan, "restrictingPlanRes", a.candidate.RestrictingPlanHes, "released", a.candidate.Released, "releasedHes", a.candidate.ReleasedHes, "share", a.candidate.Shares)
 	if a.candidate.Status.IsWithdrew() {
 		//已经解质押,节点处于退出锁定期
-		if err := a.handelExistStaking(hash, epoch, rollBackAmount, state, stdb); err != nil {
+		if err := a.handleExistStaking(hash, epoch, rollBackAmount, state, stdb); err != nil {
 			return err
 		}
 		log.Debug("fix issue 1625 for staking end", "account", a.candidate.StakingAddress, "nodeID", a.candidate.NodeId.TerminalString(), "status", a.candidate.Status, "return",
@@ -482,24 +482,24 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		log.Debug("fix issue 1625 for delegate begin,can not empty", "account", delAddr, "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
 			"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes, "canValid", a.candidate.IsValid())
 	}
+	//先计算委托收益
+	delegateRewardPerList, err := RewardMgrInstance().GetDelegateRewardPerList(hash, a.candidate.NodeId, a.stakingBlock, uint64(a.del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return nil, err
+	}
+
+	rewardsReceive := calcDelegateIncome(epoch, a.del, delegateRewardPerList)
+	if err := UpdateDelegateRewardPer(hash, a.candidate.NodeId, a.stakingBlock, rewardsReceive, rm.db); err != nil {
+		return nil, err
+	}
+	if a.candidate.IsNotEmpty() {
+		lazyCalcNodeTotalDelegateAmount(epoch, a.candidate.CandidateMutable)
+	}
+
+	a.del.DelegateEpoch = uint32(epoch)
+
 	withdrewDel := a.shouldWithdrewDel(hash, blockNumber, rollBackAmount)
 	if withdrewDel {
-		//需要解除委托，先计算委托收益
-		delegateRewardPerList, err := RewardMgrInstance().GetDelegateRewardPerList(hash, a.candidate.NodeId, a.stakingBlock, uint64(a.del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
-		if snapshotdb.NonDbNotFoundErr(err) {
-			return nil, err
-		}
-
-		rewardsReceive := calcDelegateIncome(epoch, a.del, delegateRewardPerList)
-		if err := UpdateDelegateRewardPer(hash, a.candidate.NodeId, a.stakingBlock, rewardsReceive, rm.db); err != nil {
-			return nil, err
-		}
-		if a.candidate.IsNotEmpty() {
-			lazyCalcNodeTotalDelegateAmount(epoch, a.candidate.CandidateMutable)
-		}
-
-		a.del.DelegateEpoch = uint32(epoch)
-
 		//回滚错误金额
 		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
 			return nil, err
