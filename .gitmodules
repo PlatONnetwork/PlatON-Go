@@ -10,3 +10,7 @@
 	path = crypto/bls/bls_win
 	url = https://github.com/PlatONnetwork/bls_win.git
     ignore = dirty
+[submodule "crypto/bulletproof/tx/confidential_transaction"]
+	path = crypto/bulletproof/tx/confidential_transaction
+	url = https://github.com/PlatONnetwork/libconfidentialtx.git
+	branch = lib
