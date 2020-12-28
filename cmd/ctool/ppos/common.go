@@ -74,7 +74,7 @@ func funcTypeToContractAddress(funcType uint16) common.Address {
 	case funcType >= 3000 && funcType < 4000:
 		toadd = vm.SlashingContractAddr
 	case funcType >= 4000 && funcType < 5000:
-		toadd = vm.RewardManagerPoolAddr
+		toadd = vm.RestrictingContractAddr
 	case funcType >= 5000 && funcType < 6000:
 		toadd = vm.DelegateRewardPoolAddr
 	}
