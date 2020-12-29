@@ -1098,6 +1098,12 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 					"stakingBlockNum", stakingBlockNum, "err", err)
 				return nil, err
 			}
+		} else {
+			if gov.Gte0150VersionState(state) {
+				if can.Shares != nil && can.Shares.Cmp(realSub) > 0 {
+					can.SubShares(realSub)
+				}
+			}
 		}
 
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
