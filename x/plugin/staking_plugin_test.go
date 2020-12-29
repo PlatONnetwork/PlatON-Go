@@ -3674,26 +3674,16 @@ func TestStakingPlugin_ProbabilityElectionDifferentWeights(t *testing.T) {
 		return vqList, preNonces
 	}
 
-	t.Run("Election1", func(t *testing.T) {
-		vqList, preNonces := buildCandidate(1000000)
-		result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, params.GenesisVersion)
-		assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
-		assert.True(t, nil != result, "the result is nil")
-	})
-
-	t.Run("Election2", func(t *testing.T) {
-		vqList, preNonces := buildCandidate(10000000)
-		result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, params.GenesisVersion)
-		assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
-		assert.True(t, nil != result, "the result is nil")
-	})
-
-	t.Run("Election3", func(t *testing.T) {
-		vqList, preNonces := buildCandidate(100000000)
-		result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, params.GenesisVersion)
-		assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
-		assert.True(t, nil != result, "the result is nil")
-	})
+	stakeThreshold := 1000000
+	for i := 0; i < 3; i++ {
+		vqList, preNonceList := buildCandidate(stakeThreshold)
+		stakeThreshold *= 10
+		t.Run(fmt.Sprintf("Election_%d", i+1), func(t *testing.T) {
+			result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonceList, 1, params.GenesisVersion)
+			assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
+			assert.True(t, nil != result, "the result is nil")
+		})
+	}
 
 }
 
