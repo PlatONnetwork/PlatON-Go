@@ -235,65 +235,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	oneAtp, _ := new(big.Int).SetString("1000000000000000000", 10)
 
 	switch netId {
-	case DefaultMainNet:
-		ec = &EconomicModel{
-			Common: commonConfig{
-				MaxEpochMinutes:     uint64(360), // 6 hours
-				NodeBlockTimeWindow: uint64(20),  // 20 seconds
-				PerRoundBlocks:      uint64(10),
-				MaxConsensusVals:    uint64(25),
-				AdditionalCycleTime: uint64(525960),
-			},
-			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
-				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
-				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
-				RewardPerMaxChangeRange: uint16(500),
-				RewardPerChangeInterval: uint16(10),
-			},
-			Slashing: slashingConfig{
-				SlashFractionDuplicateSign: uint32(10),
-				DuplicateSignReportReward:  uint32(50),
-				MaxEvidenceAge:             uint32(27),
-				SlashBlocksReward:          uint32(250),
-				ZeroProduceCumulativeTime:  uint16(30),
-				ZeroProduceNumberThreshold: uint16(1),
-				ZeroProduceFreezeDuration:  uint64(20),
-			},
-			Gov: governanceConfig{
-				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
-				//VersionProposalActive_ConsensusRounds: uint64(5),
-				VersionProposalSupportRate:       6670,
-				TextProposalVoteDurationSeconds:  uint64(14 * 24 * 3600),
-				TextProposalVoteRate:             5000,
-				TextProposalSupportRate:          6670,
-				CancelProposalVoteRate:           5000,
-				CancelProposalSupportRate:        6670,
-				ParamProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
-				ParamProposalVoteRate:            5000,
-				ParamProposalSupportRate:         6670,
-			},
-			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  2,
-				IncreaseIssuanceRatio: 500,
-			},
-			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("atp10spacq8cz76y2n60pl7sg5yazncmjuus54xaaq"),
-				PlatONFundBalance: platonFundBalance,
-				CDFAccount:        common.MustBech32ToAddress("atp17tfkaghs4vded6mz6k53xyv5cvqsl63h7wu5ty"),
-				CDFBalance:        new(big.Int).Set(cdfundBalance),
-			},
-		}
-		ece = &EconomicModelExtend{
-			Reward: rewardConfigExtend{
-				TheNumberOfDelegationsReward: 20,
-			},
-			Restricting: restrictingConfigExtend{
-				MinimumRelease: new(big.Int).Mul(oneAtp, new(big.Int).SetInt64(500)),
-			},
-		}
 	case DefaultAlayaNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
