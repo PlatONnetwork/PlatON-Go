@@ -2868,13 +2868,15 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces))
 		return nil, staking.ErrWrongFuncParams
 	}
-	sumWeights := new(big.Int)
+	totalWeights := new(big.Int)
+	totalSqrtWeights := new(big.Int)
 	svList := make(sortValidatorQueue, 0)
 	for _, val := range validatorList {
 
 		weights := new(big.Int).Div(val.Shares, new(big.Int).SetUint64(1e18))
+		totalWeights.Add(totalWeights, weights)
 		weights = new(big.Int).Sqrt(weights)
-		sumWeights.Add(sumWeights, weights)
+		totalSqrtWeights.Add(totalSqrtWeights, weights)
 
 		sv := &sortValidator{
 			v:           val,
@@ -2886,16 +2888,24 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 		svList = append(svList, sv)
 	}
 	var maxValue float64 = (1 << 256) - 1
-	sumWeightsFloat, err := strconv.ParseFloat(sumWeights.Text(10), 64)
+	totalWeightsFloat, err := strconv.ParseFloat(totalWeights.Text(10), 64)
+	if nil != err {
+		return nil, err
+	}
+	totalSqrtWeightsFloat, err := strconv.ParseFloat(totalSqrtWeights.Text(10), 64)
 	if nil != err {
 		return nil, err
 	}
 
-	// todo This is an empirical formula, and the follow-up will make a better determination.
-	p := float64(xcom.ShiftValidatorNum()) * float64(xcom.MaxConsensusVals()) / sumWeightsFloat
+	var p float64
+	if gov.Gte0150Version(currentVersion) {
+		p = xcom.CalcP(totalWeightsFloat, totalSqrtWeightsFloat)
+	} else {
+		p = float64(xcom.ShiftValidatorNum()) * float64(xcom.MaxConsensusVals()) / totalSqrtWeightsFloat
+	}
 
 	log.Debug("Call probabilityElection Basic parameter on Election", "blockNumber", blockNumber, "currentVersion", currentVersion, "validatorListSize", len(validatorList),
-		"p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen)
+		"p", p, "totalWeights", totalWeightsFloat, "totalSqrtWeightsFloat", totalSqrtWeightsFloat, "shiftValidatorNum", shiftLen)
 
 	for index, sv := range svList {
 		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)
