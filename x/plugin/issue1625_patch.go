@@ -150,6 +150,10 @@ func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int,
 		delInfo.originRestrictingAmount = new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
 		delInfo.originFreeAmount = new(big.Int).Add(del.Released, del.ReleasedHes)
 		delInfo.canAddr = canAddr
+		//如果该委托没有用锁仓，无需回滚
+		if delInfo.originRestrictingAmount.Cmp(common.Big0) == 0 {
+			continue
+		}
 		dels = append(dels, delInfo)
 	}
 	sort.Sort(dels)
@@ -194,6 +198,13 @@ func (a *FixIssue1625Plugin) rollBackStaking(hash common.Hash, blockNumber *big.
 			}
 			candidate := staking.Candidate{
 				&canbase, canmu,
+			}
+			//如果该质押没有用锁仓，无需回滚
+			if candidate.IsNotEmpty() {
+				restrictingAmount := new(big.Int).Add(candidate.RestrictingPlan, candidate.RestrictingPlanHes)
+				if restrictingAmount.Cmp(common.Big0) == 0 {
+					continue
+				}
 			}
 			stakings = append(stakings, newIssue1625AccountStakingInfo(&candidate, canAddr))
 		}
