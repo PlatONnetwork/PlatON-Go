@@ -296,7 +296,7 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		common.SetAddressPrefix(common.TestNetAddressPrefix)
 	}
 
-	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
+	g.EconomicModel = xcom.GetEc(xcom.DefaultAlayaNet)
 
 	file.Seek(0, io.SeekStart)
 	if err := g.UnmarshalEconomicConfigExtend(file); nil != err {
@@ -525,31 +525,6 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
 	g := Genesis{Alloc: GenesisAlloc{addr: {Balance: balance}}}
 	return g.MustCommit(db)
-}
-
-// DefaultGenesisBlock returns the PlatON main net genesis block.
-func DefaultGenesisBlock() *Genesis {
-
-	generalAddr := common.MustBech32ToAddress("atp1dl93r6fr022ca5yjqe6cgkg06er9pyqfhqckj8")
-	generalBalance, _ := new(big.Int).SetString("100000000000000000000000000", 10)
-
-	rewardMgrPoolIssue, _ := new(big.Int).SetString("2000000000000000000000000", 10)
-
-	genesis := Genesis{
-		Config:    params.MainnetChainConfig,
-		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
-		Timestamp: 0,
-		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  params.GenesisGasLimit,
-		Alloc: map[common.Address]GenesisAccount{
-			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
-			generalAddr:              {Balance: generalBalance},
-		},
-		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
-	}
-	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
-	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
-	return &genesis
 }
 
 // DefaultGenesisBlock returns the PlatON main net genesis block.
