@@ -22,6 +22,8 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -49,13 +51,15 @@ type FixIssue1625Plugin struct {
 	sdb snapshotdb.DB
 }
 
-type issue1625Accounts struct {
-	addr   common.Address
-	amount *big.Int
-}
-
-func (a *FixIssue1625Plugin) fix(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-	for _, issue1625Account := range []issue1625Accounts{} {
+func (a *FixIssue1625Plugin) fix(blockHash common.Hash, head *types.Header, state xcom.StateDB, chainID *big.Int) error {
+	if chainID.Cmp(params.AlayaChainConfig.ChainID) != 0 {
+		return nil
+	}
+	issue1625, err := NewIssue1625Accounts()
+	if err != nil {
+		return err
+	}
+	for _, issue1625Account := range issue1625 {
 		restrictingKey, restrictInfo, err := rt.getRestrictingInfoByDecode(state, issue1625Account.addr)
 		if err != nil {
 			return err
