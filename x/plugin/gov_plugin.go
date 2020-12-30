@@ -17,6 +17,7 @@
 package plugin
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -96,10 +97,8 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 	if isVersionProposal {
 		//log.Debug("found pre-active version proposal", "proposalID", preActiveVersionProposalID, "blockNumber", blockNumber, "blockHash", blockHash, "activeBlockNumber", versionProposal.GetActiveBlock())
 		if blockNumber == versionProposal.GetActiveBlock() {
-			if gov.Gte0150VersionState(state) {
-				if params.CodeVersion() < versionProposal.NewVersion {
-					panic("Please update the code to the new version")
-				}
+			if params.LtMinorVersion(versionProposal.NewVersion) {
+				panic(fmt.Sprintf("Please upgrade to：%s", params.FormatVersion(versionProposal.NewVersion)))
 			}
 			//log.Debug("it's time to active the pre-active version proposal")
 			tallyResult, err := gov.GetTallyResult(preActiveVersionProposalID, state)
