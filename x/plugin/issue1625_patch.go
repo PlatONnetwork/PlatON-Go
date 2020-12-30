@@ -77,9 +77,12 @@ func (a *FixIssue1625Plugin) fix(blockHash common.Hash, head *types.Header, stat
 			//If the user uses the wrong amount,Roll back the unused part first
 			//优先回滚没有使用的那部分锁仓余额
 			wrongNoUseAmount := new(big.Int).Sub(issue1625Account.amount, wrongStakingAmount)
-			restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, wrongNoUseAmount)
-			rt.storeRestrictingInfo(state, restrictingKey, restrictInfo)
-			log.Debug("fix issue 1625  at no use", "no use", wrongNoUseAmount)
+			if wrongNoUseAmount.Cmp(common.Big0) > 0 {
+				restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, wrongNoUseAmount)
+				rt.storeRestrictingInfo(state, restrictingKey, restrictInfo)
+				log.Debug("fix issue 1625  at no use", "no use", wrongNoUseAmount)
+			}
+
 			//roll back del,回滚委托
 			if err := a.rollBackDel(blockHash, head.Number, issue1625Account.addr, wrongStakingAmount, state); err != nil {
 				return err
