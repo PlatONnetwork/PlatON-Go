@@ -138,7 +138,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 
 			if versionProposal.NewVersion == params.FORKVERSION_0_15_0 {
 				fixRestrictingPlugin := NewFixIssue1625Plugin(snapshotdb.Instance())
-				if err := fixRestrictingPlugin.fix(blockHash, header, state); err != nil {
+				if err := fixRestrictingPlugin.fix(blockHash, header, state, govPlugin.chainID); err != nil {
 					return err
 				}
 				log.Info("Successfully upgraded the new version 0.15.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
