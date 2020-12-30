@@ -22,14 +22,6 @@ import (
 )
 
 func TestGetDefaultEMConfig(t *testing.T) {
-	t.Run("DefaultMainNet", func(t *testing.T) {
-		if getDefaultEMConfig(DefaultMainNet) == nil {
-			t.Error("DefaultMainNet can't be nil config")
-		}
-		if err := CheckEconomicModel(); nil != err {
-			t.Error(err)
-		}
-	})
 	t.Run("DefaultTestNet", func(t *testing.T) {
 		if getDefaultEMConfig(DefaultTestNet) == nil {
 			t.Error("DefaultTestNet can't be nil config")
