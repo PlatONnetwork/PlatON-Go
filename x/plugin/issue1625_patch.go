@@ -22,6 +22,8 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -153,6 +155,7 @@ func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int,
 		} else {
 			delInfo.candidate = can
 		}
+		delInfo.nodeID = nodeID
 		delInfo.stakingBlock = stakingBlock
 		delInfo.originRestrictingAmount = new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
 		delInfo.originFreeAmount = new(big.Int).Add(del.Released, del.ReleasedHes)
@@ -469,6 +472,7 @@ type issue1625AccountDelInfo struct {
 	//use for get staking
 	stakingBlock uint64
 	canAddr      common.NodeAddress
+	nodeID       discover.NodeID
 
 	originRestrictingAmount, originFreeAmount *big.Int
 }
@@ -494,20 +498,20 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		improperRestrictingAmount = new(big.Int).Set(rollBackAmount)
 	}
 	if a.candidate.IsEmpty() {
-		log.Debug("fix issue 1625 for delegate begin,can is empty", "account", delAddr, "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
+		log.Debug("fix issue 1625 for delegate begin,can is empty", "account", delAddr, "candidate", a.nodeID.String(), "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
 			"release", a.del.Released, "releaseHes", a.del.ReleasedHes)
 	} else {
-		log.Debug("fix issue 1625 for delegate begin,can not empty", "account", delAddr, "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
+		log.Debug("fix issue 1625 for delegate begin,can not empty", "account", delAddr, "candidate", a.nodeID.String(), "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
 			"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes, "canValid", a.candidate.IsValid())
 	}
 	//先计算委托收益
-	delegateRewardPerList, err := RewardMgrInstance().GetDelegateRewardPerList(hash, a.candidate.NodeId, a.stakingBlock, uint64(a.del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
+	delegateRewardPerList, err := RewardMgrInstance().GetDelegateRewardPerList(hash, a.nodeID, a.stakingBlock, uint64(a.del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 
 	rewardsReceive := calcDelegateIncome(epoch, a.del, delegateRewardPerList)
-	if err := UpdateDelegateRewardPer(hash, a.candidate.NodeId, a.stakingBlock, rewardsReceive, rm.db); err != nil {
+	if err := UpdateDelegateRewardPer(hash, a.nodeID, a.stakingBlock, rewardsReceive, rm.db); err != nil {
 		return nil, err
 	}
 	if a.candidate.IsNotEmpty() {
