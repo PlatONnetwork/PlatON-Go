@@ -31,6 +31,16 @@ const (
 	GenesisVersion = uint32(0<<16 | 14<<8 | 0)
 )
 
+func CodeVersion() uint32 {
+	return uint32(VersionMajor<<16 | VersionMinor<<8 | VersionPatch)
+}
+
+func LtMinorVersion(version uint32) bool {
+	localVersion := CodeVersion() >> 8
+	version = version >> 8
+	return localVersion < version
+}
+
 // Version holds the textual version string.
 var Version = func() string {
 	return fmt.Sprintf("%d.%d.%d", VersionMajor, VersionMinor, VersionPatch)
