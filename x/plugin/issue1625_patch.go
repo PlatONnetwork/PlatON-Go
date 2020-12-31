@@ -551,7 +551,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		}
 
 		//删除委托
-		if err := stdb.DelDelegateStore(hash, delAddr, a.candidate.NodeId, a.stakingBlock); nil != err {
+		if err := stdb.DelDelegateStore(hash, delAddr, a.nodeID, a.stakingBlock); nil != err {
 			return err
 		}
 
@@ -561,7 +561,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
 			return err
 		}
-		if err := stdb.SetDelegateStore(hash, delAddr, a.candidate.NodeId, a.stakingBlock, a.del); nil != err {
+		if err := stdb.SetDelegateStore(hash, delAddr, a.nodeID, a.stakingBlock, a.del); nil != err {
 			return err
 		}
 		log.Debug("fix issue 1625 for delegate,decrease del", "account", delAddr, "candidate", a.nodeID.String(), "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
