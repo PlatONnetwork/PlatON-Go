@@ -19,6 +19,7 @@ package plugin
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -190,7 +191,7 @@ var (
 	}
 
 	initProgramVersion = uint32(0<<16 | 8<<8 | 0) // 65536, version: 0.8.0
-	promoteVersion     = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
+	promoteVersion     = params.CodeVersion()
 
 	balanceStr = []string{
 		"90000000000000000000000000",
