@@ -497,12 +497,10 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 	} else {
 		improperRestrictingAmount = new(big.Int).Set(rollBackAmount)
 	}
-	if a.candidate.IsEmpty() {
-		log.Debug("fix issue 1625 for delegate begin,can is empty", "account", delAddr, "candidate", a.nodeID.String(), "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
-			"release", a.del.Released, "releaseHes", a.del.ReleasedHes)
-	} else {
-		log.Debug("fix issue 1625 for delegate begin,can not empty", "account", delAddr, "candidate", a.nodeID.String(), "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
-			"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes, "canValid", a.candidate.IsValid())
+	log.Debug("fix issue 1625 for delegate begin", "account", delAddr, "candidate", a.nodeID.String(), "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
+		"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "CumulativeIncome", a.del.CumulativeIncome)
+	if a.candidate.IsNotEmpty() {
+		log.Debug("fix issue 1625 for delegate ,can not empty", "account", delAddr, "candidate", a.nodeID.String(), "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes, "canValid", a.candidate.IsValid())
 	}
 	//先计算委托收益
 	delegateRewardPerList, err := RewardMgrInstance().GetDelegateRewardPerList(hash, a.nodeID, a.stakingBlock, uint64(a.del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
@@ -557,6 +555,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 			return nil, err
 		}
 
+		log.Debug("fix issue 1625 for delegate,withdrew del", "account", delAddr, "candidate", a.nodeID.String(), "income", a.del.CumulativeIncome)
 	} else {
 		//不需要解除委托
 		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
@@ -565,6 +564,8 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		if err := stdb.SetDelegateStore(hash, delAddr, a.candidate.NodeId, a.stakingBlock, a.del); nil != err {
 			return nil, err
 		}
+		log.Debug("fix issue 1625 for delegate,decrease del", "account", delAddr, "candidate", a.nodeID.String(), "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
+			"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "income", a.del.CumulativeIncome)
 	}
 
 	if a.candidate.IsNotEmpty() {
@@ -583,22 +584,9 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 
 	rollBackAmount.Sub(rollBackAmount, improperRestrictingAmount)
 
-	if a.candidate.IsEmpty() {
-		if withdrewDel {
-			log.Debug("fix issue 1625 for delegate end,can is empty,withdrew del", "account", delAddr, "leftReturn", rollBackAmount, "income", a.del.CumulativeIncome)
-		} else {
-			log.Debug("fix issue 1625 for delegate end,can is empty,decrease del", "account", delAddr, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
-				"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "income", a.del.CumulativeIncome)
-		}
-	} else {
-		if withdrewDel {
-			log.Debug("fix issue 1625 for delegate end,can not empty,withdrew del", "account", delAddr, "leftReturn", rollBackAmount, "income", a.del.CumulativeIncome, "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes)
-		} else {
-			log.Debug("fix issue 1625 for delegate end,can not empty,decrease del", "account", delAddr, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
-				"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "income", a.del.CumulativeIncome, "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes)
-		}
+	if !a.candidate.IsEmpty() {
+		log.Debug("fix issue 1625 for delegate end,can not empty", "account", delAddr, "candidate", a.nodeID.String(), "leftReturn", rollBackAmount, "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes)
 	}
-
 	return nil, nil
 }
 
