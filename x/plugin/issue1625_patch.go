@@ -665,12 +665,6 @@ func (d issue1625AccountDelInfos) Less(i, j int) bool {
 func (d issue1625AccountDelInfos) LessDelByEpoch(i, j int) bool {
 	if d[i].del.DelegateEpoch > d[j].del.DelegateEpoch {
 		return true
-	} else if d[i].del.DelegateEpoch == d[j].del.DelegateEpoch {
-		if bytes.Compare(d[i].candidate.NodeId.Bytes(), d[j].candidate.NodeId.Bytes()) < 0 {
-			return true
-		} else {
-			return false
-		}
 	} else {
 		return false
 	}
