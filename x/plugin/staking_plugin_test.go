@@ -3625,6 +3625,68 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 
 }
 
+func TestStakingPlugin_ProbabilityElectionDifferentWeights(t *testing.T) {
+
+	newChainState()
+
+	curve := elliptic.P256()
+
+	currentNonce := crypto.Keccak256([]byte("nonce"))
+
+	buildCandidate := func(stakeThreshold int) (staking.ValidatorQueue, [][]byte) {
+		preNonces := make([][]byte, 0)
+		vqList := make(staking.ValidatorQueue, 0)
+		candidateNumber := 101
+		for i := 0; i < candidateNumber; i++ {
+			shares := new(big.Int).SetUint64(uint64(stakeThreshold))
+			shares.Mul(shares, new(big.Int).SetInt64(1e18))
+
+			mrand.Seed(time.Now().UnixNano())
+
+			var blsKey bls.SecretKey
+			blsKey.SetByCSPRNG()
+			privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
+			nodeId := discover.PubkeyID(&privKey.PublicKey)
+			addr := crypto.PubkeyToNodeAddress(privKey.PublicKey)
+
+			var blsKeyHex bls.PublicKeyHex
+			b, _ := blsKey.GetPublicKey().MarshalText()
+			if err := blsKeyHex.UnmarshalText(b); nil != err {
+				log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+				return nil, nil
+			}
+
+			v := &staking.Validator{
+				NodeAddress: addr,
+				NodeId:      nodeId,
+				BlsPubKey:   blsKeyHex,
+
+				ProgramVersion:  uint32(mrand.Intn(5) + 1),
+				Shares:          shares,
+				StakingBlockNum: uint64(mrand.Intn(230)),
+				StakingTxIndex:  uint32(mrand.Intn(1000)),
+				ValidatorTerm:   1,
+			}
+			vqList = append(vqList, v)
+			preNonces = append(preNonces, crypto.Keccak256(common.Int64ToBytes(time.Now().UnixNano() + int64(i)))[:])
+			time.Sleep(time.Microsecond * 10)
+		}
+		return vqList, preNonces
+	}
+
+	stakeThreshold := 1000000
+	for i := 0; i < 3; i++ {
+		vqList, preNonceList := buildCandidate(stakeThreshold)
+		stakeThreshold *= 10
+		t.Run(fmt.Sprintf("Election_%d", i+1), func(t *testing.T) {
+			result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonceList, 1, params.GenesisVersion)
+			assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
+			assert.True(t, nil != result, "the result is nil")
+		})
+	}
+
+}
+
 func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 	newPlugins()
 	handler.NewVrfHandler(make([]byte, 0))

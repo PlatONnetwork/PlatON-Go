@@ -23,13 +23,23 @@ import (
 const (
 	//These versions are meaning the current code version.
 	VersionMajor = 0          // Major version component of the current release
-	VersionMinor = 14         // Minor version component of the current release
+	VersionMinor = 15         // Minor version component of the current release
 	VersionPatch = 0          // Patch version component of the current release
 	VersionMeta  = "unstable" // Version metadata to append to the version string
 
 	//CAUTION: DO NOT MODIFY THIS ONCE THE CHAIN HAS BEEN INITIALIZED!!!
-	GenesisVersion = uint32(0<<16 | 14<<8 | 0)
+	GenesisVersion = uint32(0<<16 | 15<<8 | 0)
 )
+
+func CodeVersion() uint32 {
+	return uint32(VersionMajor<<16 | VersionMinor<<8 | VersionPatch)
+}
+
+func LtMinorVersion(version uint32) bool {
+	localVersion := CodeVersion() >> 8
+	version = version >> 8
+	return localVersion < version
+}
 
 // Version holds the textual version string.
 var Version = func() string {
