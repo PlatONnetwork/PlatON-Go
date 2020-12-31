@@ -170,7 +170,7 @@ func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int,
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 	stakingdb := staking.NewStakingDBWithDB(a.sdb)
 	for i := 0; i < len(dels); i++ {
-		if _, err := dels[i].handleDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb); err != nil {
+		if err := dels[i].handleDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb); err != nil {
 			return err
 		}
 		if amount.Cmp(common.Big0) <= 0 {
@@ -490,7 +490,7 @@ func (a *issue1625AccountDelInfo) shouldWithdrewDel(hash common.Hash, blockNumbe
 	return true
 }
 
-func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *big.Int, epoch uint64, delAddr common.Address, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) (*big.Int, error) {
+func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *big.Int, epoch uint64, delAddr common.Address, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
 	improperRestrictingAmount := new(big.Int)
 	if rollBackAmount.Cmp(a.originRestrictingAmount) >= 0 {
 		improperRestrictingAmount = new(big.Int).Set(a.originRestrictingAmount)
@@ -500,17 +500,17 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 	log.Debug("fix issue 1625 for delegate begin", "account", delAddr, "candidate", a.nodeID.String(), "currentReturn", improperRestrictingAmount, "leftReturn", rollBackAmount, "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
 		"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "CumulativeIncome", a.del.CumulativeIncome)
 	if a.candidate.IsNotEmpty() {
-		log.Debug("fix issue 1625 for delegate ,can not empty", "account", delAddr, "candidate", a.nodeID.String(), "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes, "canValid", a.candidate.IsValid())
+		log.Debug("fix issue 1625 for delegate ,can begin info", "account", delAddr, "candidate", a.nodeID.String(), "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes, "canValid", a.candidate.IsValid())
 	}
 	//先计算委托收益
 	delegateRewardPerList, err := RewardMgrInstance().GetDelegateRewardPerList(hash, a.nodeID, a.stakingBlock, uint64(a.del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		return nil, err
+		return err
 	}
 
 	rewardsReceive := calcDelegateIncome(epoch, a.del, delegateRewardPerList)
 	if err := UpdateDelegateRewardPer(hash, a.nodeID, a.stakingBlock, rewardsReceive, rm.db); err != nil {
-		return nil, err
+		return err
 	}
 	if a.candidate.IsNotEmpty() {
 		lazyCalcNodeTotalDelegateAmount(epoch, a.candidate.CandidateMutable)
@@ -522,7 +522,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 	if withdrewDel {
 		//回滚错误金额
 		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
-			return nil, err
+			return err
 		}
 
 		//开始撤销委托
@@ -539,7 +539,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 
 		//回退锁仓
 		if err := rt.ReturnLockFunds(delAddr, new(big.Int).Add(a.del.RestrictingPlan, a.del.RestrictingPlanHes), state); err != nil {
-			return nil, err
+			return err
 		}
 
 		//回退自由
@@ -547,22 +547,22 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 
 		//领取收益
 		if err := rm.ReturnDelegateReward(delAddr, a.del.CumulativeIncome, state); err != nil {
-			return nil, common.InternalError
+			return common.InternalError
 		}
 
 		//删除委托
 		if err := stdb.DelDelegateStore(hash, delAddr, a.candidate.NodeId, a.stakingBlock); nil != err {
-			return nil, err
+			return err
 		}
 
 		log.Debug("fix issue 1625 for delegate,withdrew del", "account", delAddr, "candidate", a.nodeID.String(), "income", a.del.CumulativeIncome)
 	} else {
 		//不需要解除委托
 		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
-			return nil, err
+			return err
 		}
 		if err := stdb.SetDelegateStore(hash, delAddr, a.candidate.NodeId, a.stakingBlock, a.del); nil != err {
-			return nil, err
+			return err
 		}
 		log.Debug("fix issue 1625 for delegate,decrease del", "account", delAddr, "candidate", a.nodeID.String(), "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
 			"release", a.del.Released, "releaseHes", a.del.ReleasedHes, "income", a.del.CumulativeIncome)
@@ -571,23 +571,24 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 	if a.candidate.IsNotEmpty() {
 		if a.candidate.IsValid() {
 			if err := stdb.DelCanPowerStore(hash, a.candidate); nil != err {
-				return nil, err
+				return err
 			}
 			if err := stdb.SetCanPowerStore(hash, a.canAddr, a.candidate); nil != err {
-				return nil, err
+				return err
 			}
 		}
 		if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
-			return nil, err
+			return err
 		}
 	}
 
 	rollBackAmount.Sub(rollBackAmount, improperRestrictingAmount)
 
 	if !a.candidate.IsEmpty() {
-		log.Debug("fix issue 1625 for delegate end,can not empty", "account", delAddr, "candidate", a.nodeID.String(), "leftReturn", rollBackAmount, "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes)
+		log.Debug("fix issue 1625 for delegate,can last info", "account", delAddr, "candidate", a.nodeID.String(), "share", a.candidate.Shares, "candidate.del", a.candidate.DelegateTotal, "candidate.delhes", a.candidate.DelegateTotalHes)
 	}
-	return nil, nil
+	log.Debug("fix issue 1625 for delegate end", "account", delAddr, "candidate", a.nodeID.String(), "leftReturn", rollBackAmount, "withdrewDel", withdrewDel)
+	return nil
 }
 
 //修正委托以及验证人的锁仓信息
