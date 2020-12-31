@@ -518,6 +518,12 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 
 	a.del.DelegateEpoch = uint32(epoch)
 
+	if a.candidate.IsNotEmpty() && a.candidate.IsValid() {
+		if err := stdb.DelCanPowerStore(hash, a.candidate); nil != err {
+			return err
+		}
+	}
+
 	withdrewDel := a.shouldWithdrewDel(hash, blockNumber, rollBackAmount)
 	if withdrewDel {
 		//回滚错误金额
@@ -570,9 +576,6 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 
 	if a.candidate.IsNotEmpty() {
 		if a.candidate.IsValid() {
-			if err := stdb.DelCanPowerStore(hash, a.candidate); nil != err {
-				return err
-			}
 			if err := stdb.SetCanPowerStore(hash, a.canAddr, a.candidate); nil != err {
 				return err
 			}
