@@ -608,16 +608,6 @@ func (rp *RestrictingPlugin) mustGetRestrictingInfoByDecode(state xcom.StateDB, 
 	return restrictingKey, restrictInfo, nil
 }
 
-func (rp *RestrictingPlugin) getRestrictingInfoByDecode(state xcom.StateDB, account common.Address) ([]byte, restricting.RestrictingInfo, error) {
-	restrictingKey, restrictInfoByte := rp.getRestrictingInfo(state, account)
-	var restrictInfo restricting.RestrictingInfo
-	if err := rlp.DecodeBytes(restrictInfoByte, &restrictInfo); err != nil {
-		rp.log.Error("Failed to rlp decode restricting account", "error", err.Error(), "account", account.String())
-		return restrictingKey, restrictInfo, common.InternalError.Wrap(err.Error())
-	}
-	return restrictingKey, restrictInfo, nil
-}
-
 func (rp *RestrictingPlugin) getReleaseAmount(state xcom.StateDB, epoch uint64, account common.Address) ([]byte, *big.Int) {
 	releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
 	bRelease := state.GetState(vm.RestrictingContractAddr, releaseAmountKey)
@@ -665,7 +655,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 	for index := numbers; index > 0; index-- {
 		releaseAccountKey, account := rp.getReleaseAccount(state, epoch, index)
 
-		restrictingKey, restrictInfo, err := rp.getRestrictingInfoByDecode(state, account)
+		restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
 		if err != nil {
 			return err
 		}
