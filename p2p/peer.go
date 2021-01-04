@@ -37,7 +37,7 @@ var (
 )
 
 const (
-	baseProtocolVersion    = 5
+	baseProtocolVersion    = 6
 	baseProtocolLength     = uint64(16)
 	baseProtocolMaxMsgSize = 2 * 1024
 

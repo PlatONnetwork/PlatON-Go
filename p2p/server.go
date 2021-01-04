@@ -112,6 +112,10 @@ type Config struct {
 	// maintained and re-connected on disconnects.
 	StaticNodes []*discover.Node `json:"-"`
 
+	// Allow nodes returns the whitelist of nodes
+	// if the peer's p2p protocol version is lower, the connection is still allowed.
+	AllowNodes []*discover.Node `json:"-"`
+
 	// Trusted nodes are used as pre-configured connections which are always
 	// allowed to connect, even above the peer limit.
 	TrustedNodes []*discover.Node
@@ -340,6 +344,18 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 	case srv.removestatic <- node:
 	case <-srv.quit:
 	}
+}
+
+// Determine whether the node is in the whitelist.
+func (srv *Server) IsAllowNode(nodeID discover.NodeID) bool {
+	if len(srv.AllowNodes) > 0 {
+		for _, n := range srv.AllowNodes {
+			if n.ID == nodeID {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // AddConsensusPeer connects to the given consensus node and maintains the connection until the
@@ -1008,6 +1024,12 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 		clog.Trace("Wrong devp2p handshake identity", "err", phs.ID)
 		return DiscUnexpectedIdentity
 	}
+	// P2p protocol version and whitelist verification
+	if phs.Version < baseProtocolVersion && !srv.IsAllowNode(phs.ID) {
+		clog.Error("Low version of p2p protocol version", "err", phs.ID)
+		return DiscIncompatibleVersion
+	}
+
 	c.caps, c.name = phs.Caps, phs.Name
 	err = srv.checkpoint(c, srv.addpeer)
 	if err != nil {
