@@ -2989,7 +2989,9 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-
+		if i == 0 {
+			canTmp.AppendStatus(staking.Invalided)
+		}
 		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if !assert.Nil(t, err, fmt.Sprintf("Failed to Create Staking, num: %d, err: %v", i, err)) {
@@ -3055,6 +3057,12 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
+	for _, nodeId := range nodeIdArr {
+		addr, _ := xutil.NodeId2Addr(nodeId)
+		can, err := StakingInstance().GetCanBase(blockHash2, addr)
+		assert.Nil(t, err)
+		assert.True(t, can.ProgramVersion == promoteVersion)
+	}
 }
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
