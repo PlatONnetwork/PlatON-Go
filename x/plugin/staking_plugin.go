@@ -2514,6 +2514,11 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 		}
 
 		if gov.Gte0150VersionState(state) {
+			if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
+				log.Error("Failed to ProposalPassedNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+				return err
+			}
 			can.ProgramVersion = programVersion
 			//Store full version
 			if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
@@ -2524,11 +2529,6 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			if can.IsInvalid() {
 				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
 				continue
-			}
-			if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-				log.Error("Failed to ProposalPassedNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
-					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-				return err
 			}
 			if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 				log.Error("Failed to ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
