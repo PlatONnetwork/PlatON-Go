@@ -1776,16 +1776,25 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	start := curr.End + 1
 	end := curr.End + xutil.ConsensusSize()
 
+	// 记录 被惩罚的 can数目
 	hasSlashLen := 0 // duplicateSign And lowRatio No enough von
 	needRMwithdrewLen := 0
 	needRMLowVersionLen := 0
 	invalidLen := 0 // the num that the can need to remove
 
+	// 收集 失效的 can集合 (被惩罚的 + 主动解除质押的 + 版本号低的)
 	invalidCan := make(map[discover.NodeID]struct{})
+	// 收集需要被优先移除的 can集合 (被惩罚的 + 版本号低的 + 主动撤销且不在当前101人中的<一般是处于跨epoch时处理>)
 	removeCans := make(staking.NeedRemoveCans) // the candidates need to remove
-	withdrewCans := make(staking.CandidateMap) // the candidates had withdrew
 
+	// 先从 当前 25 人中收集 到 withdrewCans 和 withdrewQueue
+	//
+	// 收集 主动解除质押 (但 没有被 惩罚过的， 主要用来做 过滤的， 使之继续保留在 当前epoch 101人中)
+	withdrewCans := make(staking.CandidateMap) // the candidates had withdrew
+	// 其实 和 withdrewCans 是对应的 (可以考虑合成一个)
 	withdrewQueue := make([]discover.NodeID, 0)
+
+	// 收集 低出块率的  (现有的 代码逻辑 基本不会进入这个,  最后为 空)
 	lowRatioValidAddrs := make([]common.NodeAddress, 0)                 // The addr of candidate that need to clean lowRatio status
 	lowRatioValidMap := make(map[common.NodeAddress]*staking.Candidate) // The map collect candidate info that need to clean lowRatio status
 
@@ -1811,7 +1820,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		return errors.New("Failed to get CurrentActiveVersion")
 	}
 
+	// 收集当前的  (验证人Id => Power)
 	currMap := make(map[discover.NodeID]*big.Int, len(curr.Arr))
+	// 验证人信息  (基本上和  curr.Arr 一致)
 	currqueen := make([]*staking.Validator, 0)
 	for _, v := range curr.Arr {
 
@@ -1836,12 +1847,15 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			isSlash = true
 		}
 
+		// 收集 主动退出(但没有被惩罚的)
 		// Collecting candidate information that active withdrawal
 		if can.IsInvalidWithdrew() && !isSlash {
+			// 代码走到这里的时候,  withdrewCans 和 withdrewQueue 中的验证人个数时一致的
 			withdrewCans[v.NodeId] = can
 			withdrewQueue = append(withdrewQueue, v.NodeId)
 		}
 
+		// 收集 低出块率的  (现有的 代码逻辑 基本不会进入这个)
 		// valid AND lowRatio status, that candidate need to clean the lowRatio status
 		if can.IsValid() && can.IsLowRatio() {
 			lowRatioValidAddrs = append(lowRatioValidAddrs, canAddr)
@@ -1850,7 +1864,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 		// Collect candidate who need to be removed
 		// from the validators because the version is too low
-
+		//
+		// 收集版本号低的
 		if xutil.CalcVersion(can.ProgramVersion) < currVersion {
 			removeCans[v.NodeId] = can
 			invalidCan[can.NodeId] = struct{}{}
@@ -1861,19 +1876,28 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		currqueen = append(currqueen, v)
 	}
 
+	// 记录 在101 但不在 25的 验证人 (一般是在 76个人中)
 	// Exclude the current consensus round validators from the validators of the Epoch
 	diffQueue := make(staking.ValidatorQueue, 0)
+
 	for _, v := range verifiers.Arr {
 
+		// 如果 是主动退出 (但没有被惩罚过的) 需要继续保留在 101人中
 		if _, ok := withdrewCans[v.NodeId]; ok {
+			// 代码如果走到这里时, 会导致 withdrewCans 中的验证人比 withdrewQueue 少
 			delete(withdrewCans, v.NodeId)
 		}
 
+		// 这里使用 101 人的 power值来替换 25人中 同一个人的power值
+		// (理由: 同一个人可能会跨越 epoch 且会跨越 round)
+		// 比如: 4个 round 是一个 epoch， 当验证人A 处于 epoch1 . round4时的 power为 100， 而在 epoch2 时的101人中 power为 200
+		// 这时A 如果还在 round5中。 那么他的power应该修改为 200
 		if _, ok := currMap[v.NodeId]; ok {
 			currMap[v.NodeId] = new(big.Int).Set(v.Shares)
 			continue
 		}
 
+		// 走到这, 说明时需要被收集到 diffqueue中的 验证人
 		addr, _ := xutil.NodeId2Addr(v.NodeId)
 		can, err := sk.db.GetCandidateStore(blockHash, addr)
 		if nil != err {
@@ -1886,11 +1910,15 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			return err
 		}
 
+		// 判断下改验证人是否被惩罚过,
+		// 因为 不在 25人中，但是处于 101人中的 验证人 可能会收 【双签举报惩罚】
+		// 对于这类人我们不收集到 diffqueue中
 		// Jump the slashed candidate
 		if checkHaveSlash(can.Status) {
 			continue
 		}
 
+		// 版本号低的，处理同上
 		// Ignore the low version
 		if xutil.CalcVersion(can.ProgramVersion) < currVersion {
 			continue
@@ -1899,19 +1927,32 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		diffQueue = append(diffQueue, v)
 	}
 
+	// 这里开始处理 withdrewQueue, 因为在上一个 for 中我们处理了 在当前25人且在当前101人中 (状态为 主动退出但没有收到惩罚的, 及 某个验证人可能从 和 withdrewQueue对应的 withdrewCans 中被删除了)
 	for i := 0; i < len(withdrewQueue); i++ {
 
 		nodeId := withdrewQueue[i]
+
+		// 如果发现当前这个 验证人已经在上一个 for中被处理出 withdrewCans了
+		// 说明他即在当前25人 也在当前101人 且状态为 主动退出不被惩罚
 		if can, ok := withdrewCans[nodeId]; !ok {
 			// remove the can on withdrewqueue
+			//
+			// 那么我们从 queue 中对应的 和 withdrewCans 保持一致的移除掉改验证人
 			withdrewQueue = append(withdrewQueue[:i], withdrewQueue[i+1:]...)
 			i--
 		} else {
+
+			// 否则， 说明该验证人 还同时在 withdrewCans 和withdrewQueue中
+			// 也就是 他还在当前25人，但是已经不再 101人了 (这情况一般是 跨epoch开始时)
+			// 对于这一类 正常的主动退出的人在这里我们需要从25人中移除掉<后续也不会选入25人>
+			//
 			// append to the collection that needs to be removed
 			removeCans[nodeId] = can
 		}
 
 	}
+
+	// 记录剩余的 withdrewQueue 饿验证人个数 (这一类人在上一个for中都被追加到 removeCans 中了)
 	needRMwithdrewLen = len(withdrewQueue)
 	for _, nodeID := range withdrewQueue {
 		invalidCan[nodeID] = struct{}{}
@@ -1981,26 +2022,34 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		panic("The Next Round Validator is empty, blockNumber: " + fmt.Sprint(blockNumber))
 	}
 
+	// 拿到这个就是 选好的下 一 round 25 人
 	next := &staking.ValidatorArray{
 		Start: start,
 		End:   end,
 		Arr:   nextQueue,
 	}
 
+	// 记录多轮的验证人列表 窗口 (避免 切换操作)
 	if err := sk.setRoundValListAndIndex(blockNumber, blockHash, next); nil != err {
 		log.Error("Failed to SetNextValidatorList on Election", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
 
+	// 处理 低出块率的状态 用
+	//  (现有的 代码逻辑 基本不会进入这个)
+	//
 	// update candidate status
 	// Must sort
 	for _, canAddr := range lowRatioValidAddrs {
 
 		can := lowRatioValidMap[canAddr]
+
+		// 清除 低出块率状态
 		// clean the low package ratio status
 		can.CleanLowRatioStatus()
 
+		// 重新保存
 		addr, _ := xutil.NodeId2Addr(can.NodeId)
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to Store Candidate on Election", "blockNumber", blockNumber,
