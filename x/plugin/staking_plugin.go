@@ -2540,7 +2540,7 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 }
 
 func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
-	programVersion uint32) error {
+	programVersion uint32, state xcom.StateDB) error {
 
 	log.Info("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
@@ -2562,31 +2562,54 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			continue
 		}
 
-		if can.IsInvalid() {
-			log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
-			continue
-		}
+		if gov.Gte0150VersionState(state) {
+			if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
+				log.Error("Failed to ProposalPassedNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+				return err
+			}
+			can.ProgramVersion = programVersion
+			//Store full version
+			if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
+				log.Error("Failed to ProposalPassedNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+				return err
+			}
+			if can.IsInvalid() {
+				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
+				continue
+			}
+			if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
+				log.Error("Failed to ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+				return err
+			}
+		} else {
+			if can.IsInvalid() {
+				log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
+				continue
+			}
 
-		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-			log.Error("Failed to ProposalPassedNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-			return err
-		}
+			if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
+				log.Error("Failed to ProposalPassedNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+				return err
+			}
 
-		can.ProgramVersion = programVersion
+			can.ProgramVersion = programVersion
 
-		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
-			log.Error("Failed to ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-			return err
+			if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
+				log.Error("Failed to ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+				return err
+			}
+			//Store full version
+			if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
+				log.Error("Failed to ProposalPassedNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+				return err
+			}
 		}
-		//Store full version
-		if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
-			log.Error("Failed to ProposalPassedNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-			return err
-		}
-
 	}
 
 	return nil

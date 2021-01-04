@@ -2990,6 +2990,9 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
+		if i == 0 {
+			canTmp.AppendStatus(staking.Invalided)
+		}
 
 		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
@@ -3050,12 +3053,22 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		return
 	}
 
+	if err := gov.AddActiveVersion(params.FORKVERSION_0_15_0, 1, state); err != nil {
+		t.Fatalf("add active version error...%s", err)
+	}
+
 	/**
 	Start ProposalPassedNotify
 	*/
-	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
+	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion, state)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
+	for _, nodeId := range nodeIdArr {
+		addr, _ := xutil.NodeId2Addr(nodeId)
+		can, err := StakingInstance().GetCanBase(blockHash2, addr)
+		assert.Nil(t, err)
+		assert.True(t, can.ProgramVersion == promoteVersion)
+	}
 }
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
