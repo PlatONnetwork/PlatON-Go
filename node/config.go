@@ -43,6 +43,7 @@ const (
 	datadirPrivateKey      = "nodekey"            // Path within the datadir to the node's private key
 	datadirDefaultKeyStore = "keystore"           // Path within the datadir to the keystore
 	datadirStaticNodes     = "static-nodes.json"  // Path within the datadir to the static node list
+	datadirAllowNodes      = "allow-nodes.json"   // Path within the datadir to the allow node list
 	datadirTrustedNodes    = "trusted-nodes.json" // Path within the datadir to the trusted node list
 	datadirNodeDatabase    = "nodes"              // Path within the datadir to store the node infos
 	datadirBlsKey          = "blskey"             // Path within the datadir to the node's private key
@@ -159,6 +160,7 @@ type Config struct {
 	Logger log.Logger `toml:",omitempty"`
 
 	staticNodesWarning     bool
+	allowNodesWarning      bool
 	trustedNodesWarning    bool
 	oldGethResourceWarning bool
 }
@@ -272,6 +274,7 @@ var isOldPlatONResource = map[string]bool{
 	"nodes":              true,
 	"nodekey":            true,
 	"static-nodes.json":  false, // no warning for these because they have their
+	"allow-nodes.json":   false,
 	"trusted-nodes.json": false, // own separate warning.
 }
 
@@ -290,16 +293,16 @@ func (c *Config) ResolvePath(path string) string {
 	// Backwards-compatibility: ensure that data directory files created
 	// by platon 1.4 are used if they exist.
 	if warn, isOld := isOldPlatONResource[path]; isOld {
-			oldpath := ""
-			if c.name() == "platon" {
-				oldpath = filepath.Join(c.DataDir, path)
+		oldpath := ""
+		if c.name() == "platon" {
+			oldpath = filepath.Join(c.DataDir, path)
+		}
+		if oldpath != "" && common.FileExist(oldpath) {
+			if warn {
+				c.warnOnce(&c.oldGethResourceWarning, "Using deprecated resource file %s, please move this file to the 'geth' subdirectory of datadir.", oldpath)
 			}
-			if oldpath != "" && common.FileExist(oldpath) {
-				if warn {
-					c.warnOnce(&c.oldGethResourceWarning, "Using deprecated resource file %s, please move this file to the 'geth' subdirectory of datadir.", oldpath)
-				}
-				return oldpath
-			}
+			return oldpath
+		}
 	}
 	return filepath.Join(c.instanceDir(), path)
 }
@@ -380,6 +383,11 @@ func (c *Config) BlsKey() *bls.SecretKey {
 // StaticNodes returns a list of node enode URLs configured as static nodes.
 func (c *Config) StaticNodes() []*discover.Node {
 	return c.parsePersistentNodes(&c.staticNodesWarning, c.ResolvePath(datadirStaticNodes))
+}
+
+// AllowNodes returns a list of node enode URLs configured as allow nodes.
+func (c *Config) AllowNodes() []*discover.Node {
+	return c.parsePersistentNodes(&c.allowNodesWarning, c.ResolvePath(datadirAllowNodes))
 }
 
 // TrustedNodes returns a list of node enode URLs configured as trusted nodes.

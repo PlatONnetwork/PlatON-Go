@@ -58,6 +58,11 @@ const (
 
 var errServerStopped = errors.New("server stopped")
 
+var AllowNodesMap = map[discover.NodeID]struct{}{
+	//discover.MustHexID("8b6969c0d73d96555416e29f7c8b63fff21e4e1b85ba2fb79446a739ea76b269da80cab48171b82844713cd54314e13e9351e600bc70c75bfee13af1a5a7cd9f"): struct{}{},
+	//discover.MustHexID("0f533a84f0c74be527dc92bb3367018f8474f2d75dca824de55220383540896853d0c9c8eaf57f707e4f61d7411202f0e90d567a9612b3d8e7010f909078d8c7"): struct{}{},
+}
+
 // Config holds Server options.
 type Config struct {
 	// This field must be set to a valid secp256k1 private key.
@@ -111,6 +116,10 @@ type Config struct {
 	// Static nodes are used as pre-configured connections which are always
 	// maintained and re-connected on disconnects.
 	StaticNodes []*discover.Node `json:"-"`
+
+	// Allow nodes returns the whitelist of nodes
+	// if the peer's p2p protocol version is lower, the connection is still allowed.
+	AllowNodes []*discover.Node `json:"-"`
 
 	// Trusted nodes are used as pre-configured connections which are always
 	// allowed to connect, even above the peer limit.
@@ -340,6 +349,19 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 	case srv.removestatic <- node:
 	case <-srv.quit:
 	}
+}
+
+// Determine whether the node is in the whitelist.
+func (srv *Server) IsAllowNode(nodeID discover.NodeID) bool {
+	if len(AllowNodesMap) <= 0 {
+		if len(srv.AllowNodes) > 0 {
+			for _, n := range srv.AllowNodes {
+				AllowNodesMap[n.ID] = struct{}{}
+			}
+		}
+	}
+	_, ok := AllowNodesMap[nodeID]
+	return ok
 }
 
 // AddConsensusPeer connects to the given consensus node and maintains the connection until the
@@ -1008,6 +1030,12 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 		clog.Trace("Wrong devp2p handshake identity", "err", phs.ID)
 		return DiscUnexpectedIdentity
 	}
+	// P2p protocol version and whitelist verification
+	if phs.Version < baseProtocolVersion && !srv.IsAllowNode(phs.ID) {
+		clog.Error("Low version of p2p protocol version", "err", phs.ID)
+		return DiscIncompatibleVersion
+	}
+
 	c.caps, c.name = phs.Caps, phs.Name
 	err = srv.checkpoint(c, srv.addpeer)
 	if err != nil {
