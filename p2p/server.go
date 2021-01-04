@@ -58,6 +58,11 @@ const (
 
 var errServerStopped = errors.New("server stopped")
 
+var AllowNodesMap = map[discover.NodeID]struct{}{
+	//discover.MustHexID("8b6969c0d73d96555416e29f7c8b63fff21e4e1b85ba2fb79446a739ea76b269da80cab48171b82844713cd54314e13e9351e600bc70c75bfee13af1a5a7cd9f"): struct{}{},
+	//discover.MustHexID("0f533a84f0c74be527dc92bb3367018f8474f2d75dca824de55220383540896853d0c9c8eaf57f707e4f61d7411202f0e90d567a9612b3d8e7010f909078d8c7"): struct{}{},
+}
+
 // Config holds Server options.
 type Config struct {
 	// This field must be set to a valid secp256k1 private key.
@@ -348,14 +353,15 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 
 // Determine whether the node is in the whitelist.
 func (srv *Server) IsAllowNode(nodeID discover.NodeID) bool {
-	if len(srv.AllowNodes) > 0 {
-		for _, n := range srv.AllowNodes {
-			if n.ID == nodeID {
-				return true
+	if len(AllowNodesMap) <= 0 {
+		if len(srv.AllowNodes) > 0 {
+			for _, n := range srv.AllowNodes {
+				AllowNodesMap[n.ID] = struct{}{}
 			}
 		}
 	}
-	return false
+	_, ok := AllowNodesMap[nodeID]
+	return ok
 }
 
 // AddConsensusPeer connects to the given consensus node and maintains the connection until the
