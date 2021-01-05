@@ -28,6 +28,11 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
+var AccountPrefixFlag = cli.StringFlag{
+	Name:  "accountPrefix",
+	Usage: "Custom address prefix hrp",
+}
+
 var (
 	accountCommand = cli.Command{
 		Name:     "account",
@@ -61,6 +66,7 @@ Make sure you backup your keys regularly.`,
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.KeyStoreDirFlag,
+					AccountPrefixFlag,
 				},
 				Description: `
 Print a short summary of all accounts`,
@@ -74,6 +80,7 @@ Print a short summary of all accounts`,
 					utils.KeyStoreDirFlag,
 					utils.PasswordFileFlag,
 					utils.LightKDFFlag,
+					AccountPrefixFlag,
 				},
 				Description: `
     platon account new
@@ -158,6 +165,8 @@ nodes.
 
 func accountList(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
+	common.SetAddressPrefix(ctx.String(AccountPrefixFlag.Name))
+
 	var index int
 	for _, wallet := range stack.AccountManager().Wallets() {
 		for _, account := range wallet.Accounts() {
@@ -276,6 +285,8 @@ func accountCreate(ctx *cli.Context) error {
 	password := getPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
 
 	address, err := keystore.StoreKey(keydir, password, scryptN, scryptP)
+
+	common.SetAddressPrefix(ctx.String(AccountPrefixFlag.Name))
 
 	if err != nil {
 		utils.Fatalf("Failed to create account: %v", err)

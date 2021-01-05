@@ -20,6 +20,11 @@ var HexAccountFileFlag = cli.StringFlag{
 	Usage: "file bech32/hex accounts want to update to mainnet/testnet bech32 address,file like  [hex,hex...]",
 }
 
+var AccountPrefixFlag = cli.StringFlag{
+	Name:  "accountPrefix",
+	Usage: "Custom address prefix hrp",
+}
+
 type addressPair struct {
 	Address       common.AddressOutput
 	OriginAddress string
@@ -35,6 +40,7 @@ update hex/bech32 address to mainnet/testnet bech32 address.
 	Flags: []cli.Flag{
 		jsonFlag,
 		HexAccountFileFlag,
+		AccountPrefixFlag,
 	},
 	Action: func(ctx *cli.Context) error {
 		var accounts []string
@@ -55,6 +61,7 @@ update hex/bech32 address to mainnet/testnet bech32 address.
 				accounts = append(accounts, add)
 			}
 		}
+		common.SetAddressPrefix(ctx.String(AccountPrefixFlag.Name))
 		var outAddress []addressPair
 		for _, account := range accounts {
 			_, _, err := bech32.Decode(account)

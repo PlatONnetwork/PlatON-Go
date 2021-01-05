@@ -54,6 +54,7 @@ If you want to encrypt an existing private key, it can be specified by setting
 			Name:  "privatekey",
 			Usage: "file containing a raw private key to encrypt",
 		},
+		AccountPrefixFlag,
 	},
 	Action: func(ctx *cli.Context) error {
 		// Check if keyfile path given and make sure it doesn't already exist.
@@ -105,6 +106,8 @@ If you want to encrypt an existing private key, it can be specified by setting
 		if err := ioutil.WriteFile(keyfilepath, keyjson, 0600); err != nil {
 			utils.Fatalf("Failed to write keyfile to %s: %v", keyfilepath, err)
 		}
+
+		common.SetAddressPrefix(ctx.String(AccountPrefixFlag.Name))
 
 		// Output some information.
 		out := outputGenerate{

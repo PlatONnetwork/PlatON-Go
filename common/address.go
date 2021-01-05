@@ -20,7 +20,13 @@ import (
 const (
 	MainNetAddressPrefix = "atp"
 	TestNetAddressPrefix = "atx"
+
+	AddressPrefixDBKey = "AddressPrefixDBKey"
 )
+
+func GetAddressPrefixDBKeyByte() []byte {
+	return []byte(AddressPrefixDBKey)
+}
 
 var currentAddressPrefix string
 
@@ -38,7 +44,7 @@ func SetAddressPrefix(s string) {
 
 func CheckAddressPrefix(s string) bool {
 	switch s {
-	case MainNetAddressPrefix, TestNetAddressPrefix:
+	case MainNetAddressPrefix, TestNetAddressPrefix, currentAddressPrefix:
 		return true
 	default:
 		return false
@@ -280,7 +286,7 @@ type AddressOutput struct {
 func NewAddressOutput(add Address) AddressOutput {
 	return AddressOutput{
 		add.Bech32WithPrefix(MainNetAddressPrefix),
-		add.Bech32WithPrefix(TestNetAddressPrefix),
+		add.Bech32WithPrefix(GetAddressPrefix()),
 	}
 }
 

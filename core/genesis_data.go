@@ -247,6 +247,30 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 	return lastHash, nil
 }
 
+func genesisAddressPrefix(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis) (common.Hash, error) {
+	lastHash := prevHash
+	if g.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 || g.Config.AddressPrefix == "" {
+		return prevHash, nil
+	}
+
+	putbasedbFn := func(key, val []byte, hash common.Hash) (common.Hash, error) {
+		if err := snapdb.PutBaseDB(key, val); nil != err {
+			return hash, err
+		}
+		newHash := common.GenerateKVHash(key, val, hash)
+		return newHash, nil
+	}
+	addressPrefix, err := rlp.EncodeToBytes(g.Config.AddressPrefix)
+	if nil != err {
+		return lastHash, fmt.Errorf("rlp address prefix failed. error:%s", err.Error())
+	}
+	lastHash, err = putbasedbFn(common.GetAddressPrefixDBKeyByte(), addressPrefix, lastHash)
+	if nil != err {
+		return lastHash, fmt.Errorf("Failed to Store AddressPrefix: PutBaseDB failed. error:%s", err.Error())
+	}
+	return lastHash, nil
+}
+
 func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.BaseDB, genesisIssue *big.Int) error {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {

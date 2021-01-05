@@ -228,9 +228,9 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion, ""}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion, ""}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -260,6 +260,8 @@ type ChainConfig struct {
 	Cbft   *CbftConfig   `json:"cbft,omitempty"`
 
 	GenesisVersion uint32 `json:"genesisVersion"`
+
+	AddressPrefix string `json:"addressPrefix"` // Specify the address prefix of the network
 }
 
 type CbftNode struct {

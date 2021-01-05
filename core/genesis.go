@@ -161,7 +161,11 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		if genesis.Config.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || genesis.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
 			common.SetAddressPrefix(common.MainNetAddressPrefix)
 		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+			if genesis.Config.AddressPrefix != "" {
+				common.SetAddressPrefix(genesis.Config.AddressPrefix)
+			} else {
+				common.SetAddressPrefix(common.TestNetAddressPrefix)
+			}
 		}
 
 		// check EconomicModel configuration
@@ -195,7 +199,11 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || newcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
 			common.SetAddressPrefix(common.MainNetAddressPrefix)
 		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+			if newcfg.AddressPrefix != "" {
+				common.SetAddressPrefix(newcfg.AddressPrefix)
+			} else {
+				common.SetAddressPrefix(common.TestNetAddressPrefix)
+			}
 		}
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
@@ -205,13 +213,21 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		if storedcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || storedcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
 			common.SetAddressPrefix(common.MainNetAddressPrefix)
 		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+			if storedcfg.AddressPrefix != "" {
+				common.SetAddressPrefix(storedcfg.AddressPrefix)
+			} else {
+				common.SetAddressPrefix(common.TestNetAddressPrefix)
+			}
 		}
 	} else {
 		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || newcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
 			common.SetAddressPrefix(common.MainNetAddressPrefix)
 		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+			if newcfg.AddressPrefix != "" {
+				common.SetAddressPrefix(newcfg.AddressPrefix)
+			} else {
+				common.SetAddressPrefix(common.TestNetAddressPrefix)
+			}
 		}
 	}
 
@@ -255,16 +271,17 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
-func (g *Genesis) UnmarshalChainID(r io.Reader) (*big.Int, error) {
+func (g *Genesis) UnmarshalChainID(r io.Reader) (*big.Int, string, error) {
 	var genesisChaind struct {
 		Config *struct {
-			ChainID *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+			ChainID       *big.Int `json:"chainId"`       // chainId identifies the current chain and is used for replay protection
+			AddressPrefix string   `json:"addressPrefix"` // Specify the address prefix of the network
 		} `json:"config"`
 	}
 	if err := json.NewDecoder(r).Decode(&genesisChaind); err != nil {
-		return nil, fmt.Errorf("invalid genesis file chain id: %v", err)
+		return nil, "", fmt.Errorf("invalid genesis file chain id: %v", err)
 	}
-	return genesisChaind.Config.ChainID, nil
+	return genesisChaind.Config.ChainID, genesisChaind.Config.AddressPrefix, nil
 }
 
 func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
@@ -286,14 +303,18 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
 	}
 	defer file.Close()
-	chainID, err := g.UnmarshalChainID(file)
+	chainID, addressPrefix, err := g.UnmarshalChainID(file)
 	if err != nil {
 		return err
 	}
 	if chainID != nil && (chainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || chainID.Cmp(params.AlayaChainConfig.ChainID) == 0) {
 		common.SetAddressPrefix(common.MainNetAddressPrefix)
 	} else {
-		common.SetAddressPrefix(common.TestNetAddressPrefix)
+		if addressPrefix != "" {
+			common.SetAddressPrefix(addressPrefix)
+		} else {
+			common.SetAddressPrefix(common.TestNetAddressPrefix)
+		}
 	}
 
 	g.EconomicModel = xcom.GetEc(xcom.DefaultAlayaNet)
@@ -415,6 +436,11 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		if g.Config.GenesisVersion == 0 {
 			log.Error("genesis version is zero")
 			panic("genesis version is zero")
+		}
+
+		// Storage network address prefix
+		if initDataStateHash, err = genesisAddressPrefix(initDataStateHash, sdb, g); nil != err {
+			panic("Failed to store address prefix: " + err.Error())
 		}
 
 		// Store genesis version into governance data And somethings about reward
