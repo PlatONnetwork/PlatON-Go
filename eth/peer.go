@@ -638,7 +638,7 @@ func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
 		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
 			list := make([]*peer, 0, len(consensusNodes))
 			for _, nodeID := range consensusNodes {
-				nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
+				nodeID := fmt.Sprintf("%x", nodeID[:8])
 				if peer, ok := ps.peers[nodeID]; ok {
 					list = append(list, peer)
 				}
@@ -657,7 +657,7 @@ func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
 	if cbftEngine, ok := engine.(consensus.Bft); ok {
 		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
 			for _, nodeID := range consensusNodes {
-				nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
+				nodeID := fmt.Sprintf("%x", nodeID[:8])
 				consensusNodeMap[nodeID] = nodeID
 			}
 		}

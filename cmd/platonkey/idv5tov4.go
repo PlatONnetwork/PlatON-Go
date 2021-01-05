@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package main
 
 import (
@@ -24,7 +40,7 @@ var commandV5ToV4 = cli.Command{
 	Usage:     "update NodeID to enode.ID",
 	ArgsUsage: "[<node>]",
 	Description: `
-update NodeID to enode.ID.
+update Id to enode.ID.
 `,
 	Flags: []cli.Flag{
 		jsonFlag,
@@ -44,7 +60,7 @@ update NodeID to enode.ID.
 		} else {
 			for _, v5idStr := range ctx.Args() {
 				if v5idStr == "" {
-					utils.Fatalf("the NodeID can't be nil")
+					utils.Fatalf("the Id can't be nil")
 				}
 				nodes = append(nodes, v5idStr)
 			}
@@ -65,7 +81,7 @@ update NodeID to enode.ID.
 			mustPrintJSON(outpairs)
 		} else {
 			for i, idpair := range outpairs {
-				fmt.Println("NodeID(V5)  : ", idpair.v5.String())
+				fmt.Println("Id(V5)  : ", idpair.v5.String())
 				fmt.Println("enode.ID(V4): ", idpair.v4.String())
 				if i != len(outpairs)-1 {
 					fmt.Println("---")

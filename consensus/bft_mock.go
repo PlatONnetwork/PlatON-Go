@@ -19,6 +19,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"time"
@@ -144,7 +145,7 @@ func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
 	return nil, nil
 }
 
-func (bm *BftMock) NodeID() enode.ID {
+func (bm *BftMock) Id() enode.ID {
 	privateKey, err := crypto.GenerateKey()
 	if nil != err {
 		panic(fmt.Sprintf("Failed to generate random Id private key: %v", err))
@@ -278,7 +279,7 @@ func (bm *BftMock) Close() error {
 }
 
 // ConsensusNodes returns the current consensus node address list.
-func (bm *BftMock) ConsensusNodes() ([]enode.ID, error) {
+func (bm *BftMock) ConsensusNodes() ([]discv5.NodeID, error) {
 	return nil, nil
 }
 

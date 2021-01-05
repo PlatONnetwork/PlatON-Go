@@ -18,6 +18,7 @@
 package consensus
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"time"
 
@@ -171,7 +172,7 @@ type Bft interface {
 	Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error
 
 	// Returns the current consensus node address list.
-	ConsensusNodes() ([]enode.ID, error)
+	ConsensusNodes() ([]discv5.NodeID, error)
 
 	// Returns whether the current node is out of the block
 	ShouldSeal(curTime time.Time) (bool, error)
@@ -193,5 +194,5 @@ type Bft interface {
 	TracingSwitch(flag int8)
 
 	// NodeID is temporary.
-	NodeID() enode.ID
+	Id() enode.ID
 }
