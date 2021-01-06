@@ -149,6 +149,14 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
 
+	setAddressPrefix := func(chainId *big.Int, addressPrefix string) {
+		if params.IsMainNet(chainId) {
+			common.SetAddressPrefix(common.MainNetAddressPrefix)
+		} else {
+			common.SetAddressPrefix(addressPrefix)
+		}
+	}
+
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
 
@@ -158,15 +166,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		} else {
 			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
 		}
-		if genesis.Config.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || genesis.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
-		} else {
-			if genesis.Config.AddressPrefix != "" {
-				common.SetAddressPrefix(genesis.Config.AddressPrefix)
-			} else {
-				common.SetAddressPrefix(common.TestNetAddressPrefix)
-			}
-		}
+		setAddressPrefix(genesis.Config.ChainID, genesis.Config.AddressPrefix)
 
 		// check EconomicModel configuration
 		if err := xcom.CheckEconomicModel(); nil != err {
@@ -196,39 +196,15 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
-		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || newcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
-		} else {
-			if newcfg.AddressPrefix != "" {
-				common.SetAddressPrefix(newcfg.AddressPrefix)
-			} else {
-				common.SetAddressPrefix(common.TestNetAddressPrefix)
-			}
-		}
+		setAddressPrefix(newcfg.ChainID, newcfg.AddressPrefix)
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
 
 	if genesis == nil && stored != params.MainnetGenesisHash {
-		if storedcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || storedcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
-		} else {
-			if storedcfg.AddressPrefix != "" {
-				common.SetAddressPrefix(storedcfg.AddressPrefix)
-			} else {
-				common.SetAddressPrefix(common.TestNetAddressPrefix)
-			}
-		}
+		setAddressPrefix(storedcfg.ChainID, storedcfg.AddressPrefix)
 	} else {
-		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || newcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
-		} else {
-			if newcfg.AddressPrefix != "" {
-				common.SetAddressPrefix(newcfg.AddressPrefix)
-			} else {
-				common.SetAddressPrefix(common.TestNetAddressPrefix)
-			}
-		}
+		setAddressPrefix(newcfg.ChainID, newcfg.AddressPrefix)
 	}
 
 	// Get the existing EconomicModel configuration.
@@ -307,14 +283,10 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	if err != nil {
 		return err
 	}
-	if chainID != nil && (chainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || chainID.Cmp(params.AlayaChainConfig.ChainID) == 0) {
+	if params.IsMainNet(chainID) {
 		common.SetAddressPrefix(common.MainNetAddressPrefix)
 	} else {
-		if addressPrefix != "" {
-			common.SetAddressPrefix(addressPrefix)
-		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
-		}
+		common.SetAddressPrefix(addressPrefix)
 	}
 
 	g.EconomicModel = xcom.GetEc(xcom.DefaultAlayaNet)

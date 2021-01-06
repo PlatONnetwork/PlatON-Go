@@ -32,14 +32,18 @@ var currentAddressPrefix string
 
 func GetAddressPrefix() string {
 	if currentAddressPrefix == "" {
-		return TestNetAddressPrefix
+		return MainNetAddressPrefix
 	}
 	return currentAddressPrefix
 }
 
 func SetAddressPrefix(s string) {
 	log.Info("addressPrefix  has set", "prefix", s)
-	currentAddressPrefix = s
+	if s != "" {
+		currentAddressPrefix = s
+	} else {
+		currentAddressPrefix = MainNetAddressPrefix
+	}
 }
 
 func CheckAddressPrefix(s string) bool {

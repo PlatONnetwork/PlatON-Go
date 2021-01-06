@@ -433,3 +433,7 @@ func ConvertNodeUrl(initialNodes []initNode) []CbftNode {
 	}
 	return NodeList
 }
+
+func IsMainNet(chainId *big.Int) bool {
+	return chainId != nil && (chainId.Cmp(MainnetChainConfig.ChainID) == 0 || chainId.Cmp(AlayaChainConfig.ChainID) == 0)
+}
