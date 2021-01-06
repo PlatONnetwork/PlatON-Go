@@ -17,6 +17,7 @@
 package ethclient
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -24,6 +25,7 @@ import (
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
 // Verify that Client implements the ethereum interfaces.
@@ -40,6 +42,69 @@ var (
 	// _ = ethereum.PendingStateEventer(&Client{})
 	_ = ethereum.PendingContractCaller(&Client{})
 )
+
+const (
+	host = ""
+)
+
+func TestPlatonCall(t *testing.T) {
+	ctx := context.Background()
+	common.SetAddressPrefix("atp")
+	address := common.MustBech32ToAddress("atp19rnu40l5dux6p2n2wvlft40lqt4hya0l99fspf")
+	client, err := DialContext(ctx, host)
+	if err != nil {
+		t.Fatalf("rawurl %s err: %s", host, err)
+	}
+
+	for _, testCase := range []struct {
+		name    string
+		address common.Address
+		output  interface{}
+		err     error
+	}{
+		{
+			"get_balance",
+			address,
+			"0x66248f04690c5",
+			nil,
+		},
+		{
+			"get_nonce",
+			address,
+			2523,
+			nil,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			switch testCase.name {
+			case "get_balance":
+				output, err := client.BalanceAt(ctx, testCase.address, nil)
+				if (testCase.err == nil) != (err == nil) {
+					t.Fatalf("expected error %v but got %v", testCase.err, err)
+				}
+				if testCase.err != nil {
+					if testCase.err.Error() != err.Error() {
+						t.Fatalf("expected error %v but got %v", testCase.err, err)
+					}
+				} else if !reflect.DeepEqual(testCase.output, hexutil.EncodeBig(output)) {
+					t.Fatalf("expected filter arg %v but got %v", testCase.output, output)
+				}
+			case "get_nonce":
+				output, err := client.NonceAt(ctx, testCase.address, nil)
+				if (testCase.err == nil) != (err == nil) {
+					t.Fatalf("expected error %v but got %v", testCase.err, err)
+				}
+				if testCase.err != nil {
+					if testCase.err.Error() != err.Error() {
+						t.Fatalf("expected error %v but got %v", testCase.err, err)
+					}
+				} else if !reflect.DeepEqual(testCase.output, output) {
+					t.Fatalf("expected filter arg %v but got %v", testCase.output, output)
+				}
+			}
+		})
+	}
+}
 
 func TestToFilterArg(t *testing.T) {
 	blockHashErr := fmt.Errorf("cannot specify both BlockHash and FromBlock/ToBlock")
