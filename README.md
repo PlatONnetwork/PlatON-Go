@@ -89,8 +89,7 @@ platon --datadir ./data account new
 Your new account is locked with a password. Please give a password. Do not forget this password.
 Passphrase:
 Repeat passphrase:
-main net Address: lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9
-other net Address: lax1anp4tzmdggdrcf39qvshfq3glacjxcd5elapx2
+Address: {lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9}
 ```
 
 > Do remember the password

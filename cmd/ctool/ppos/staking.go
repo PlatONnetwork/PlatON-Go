@@ -30,55 +30,55 @@ var (
 		Name:   "getVerifierList",
 		Usage:  "1100,query the validator queue of the current settlement epoch",
 		Action: getVerifierList,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getValidatorListCmd = cli.Command{
 		Name:   "getValidatorList",
 		Usage:  "1101,query the list of validators in the current consensus round",
 		Action: getValidatorList,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getCandidateListCmd = cli.Command{
 		Name:   "getCandidateList",
 		Usage:  "1102,Query the list of all real-time candidates",
 		Action: getCandidateList,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getRelatedListByDelAddrCmd = cli.Command{
 		Name:   "getRelatedListByDelAddr",
 		Usage:  "1103,Query the NodeID and pledge Id of the node entrusted by the current account address,parameter:add",
 		Action: getRelatedListByDelAddr,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, addFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, addFlag, jsonFlag},
 	}
 	getDelegateInfoCmd = cli.Command{
 		Name:   "getDelegateInfo",
 		Usage:  "1104,Query the delegation information of the current single node,parameter:stakingBlock,address,nodeid",
 		Action: getDelegateInfo,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, stakingBlockNumFlag, addFlag, nodeIdFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, stakingBlockNumFlag, addFlag, nodeIdFlag, jsonFlag},
 	}
 	getCandidateInfoCmd = cli.Command{
 		Name:   "getCandidateInfo",
 		Usage:  "1105,Query the pledge information of the current node,parameter:nodeid",
 		Action: getCandidateInfo,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, nodeIdFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, nodeIdFlag, jsonFlag},
 	}
 	getPackageRewardCmd = cli.Command{
 		Name:   "getPackageReward",
 		Usage:  "1200,query the block reward of the current settlement epoch",
 		Action: getPackageReward,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getStakingRewardCmd = cli.Command{
 		Name:   "getStakingReward",
 		Usage:  "1201,query the pledge reward of the current settlement epoch",
 		Action: getStakingReward,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getAvgPackTimeCmd = cli.Command{
 		Name:   "getAvgPackTime",
 		Usage:  "1202,average time to query packaged blocks",
 		Action: getAvgPackTime,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	addFlag = cli.StringFlag{
 		Name:  "address",

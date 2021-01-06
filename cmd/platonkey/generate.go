@@ -18,6 +18,7 @@ package main
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -33,7 +34,7 @@ import (
 )
 
 type outputGenerate struct {
-	Address      common.AddressOutput
+	Address      string
 	AddressEIP55 string
 }
 
@@ -54,8 +55,14 @@ If you want to encrypt an existing private key, it can be specified by setting
 			Name:  "privatekey",
 			Usage: "file containing a raw private key to encrypt",
 		},
+		utils.AddressPrefixFlag,
 	},
 	Action: func(ctx *cli.Context) error {
+		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
+		if addressPrefix != "" {
+			common.SetAddressPrefix(addressPrefix)
+		}
+
 		// Check if keyfile path given and make sure it doesn't already exist.
 		keyfilepath := ctx.Args().First()
 		if keyfilepath == "" {
@@ -108,12 +115,12 @@ If you want to encrypt an existing private key, it can be specified by setting
 
 		// Output some information.
 		out := outputGenerate{
-			Address: common.NewAddressOutput(key.Address),
+			Address: key.Address.String(),
 		}
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)
 		} else {
-			out.Address.Print()
+			fmt.Println("Address:", out.Address)
 		}
 		return nil
 	},

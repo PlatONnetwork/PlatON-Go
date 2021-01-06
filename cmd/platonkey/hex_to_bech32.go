@@ -21,22 +21,28 @@ var HexAccountFileFlag = cli.StringFlag{
 }
 
 type addressPair struct {
-	Address       common.AddressOutput
+	Address       string
 	OriginAddress string
 }
 
 var commandAddressHexToBech32 = cli.Command{
 	Name:      "updateaddress",
-	Usage:     "update hex/bech32 address to mainnet/testnet bech32 address",
+	Usage:     "update hex/bech32 address to  bech32 address",
 	ArgsUsage: "[<address> <address>...]",
 	Description: `
-update hex/bech32 address to mainnet/testnet bech32 address.
+update hex/bech32 address to  bech32 address.
 `,
 	Flags: []cli.Flag{
 		jsonFlag,
 		HexAccountFileFlag,
+		utils.AddressPrefixFlag,
 	},
 	Action: func(ctx *cli.Context) error {
+		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
+		if addressPrefix != "" {
+			common.SetAddressPrefix(addressPrefix)
+		}
+
 		var accounts []string
 		if ctx.IsSet(HexAccountFileFlag.Name) {
 			accountPath := ctx.String(HexAccountFileFlag.Name)
@@ -61,7 +67,7 @@ update hex/bech32 address to mainnet/testnet bech32 address.
 			if err != nil {
 				address := common.HexToAddress(account)
 				out := addressPair{
-					Address:       common.NewAddressOutput(address),
+					Address:       address.String(),
 					OriginAddress: account,
 				}
 				outAddress = append(outAddress, out)
@@ -73,7 +79,7 @@ update hex/bech32 address to mainnet/testnet bech32 address.
 				var a common.Address
 				a.SetBytes(converted)
 				out := addressPair{
-					Address:       common.NewAddressOutput(a),
+					Address:       a.String(),
 					OriginAddress: account,
 				}
 				outAddress = append(outAddress, out)
@@ -85,7 +91,7 @@ update hex/bech32 address to mainnet/testnet bech32 address.
 		} else {
 			for i, address := range outAddress {
 				fmt.Println("originAddress: ", address.OriginAddress)
-				address.Address.Print()
+				fmt.Printf("newAddress: %s\n", address.Address)
 				if i != len(outAddress)-1 {
 					fmt.Println("---")
 				}
