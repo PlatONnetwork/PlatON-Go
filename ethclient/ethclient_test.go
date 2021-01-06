@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"strconv"
 	"testing"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
@@ -44,7 +45,7 @@ var (
 )
 
 const (
-	host = ""
+	host = "https://openapi.alaya.network/rpc"
 )
 
 func TestPlatonCall(t *testing.T) {
@@ -71,7 +72,7 @@ func TestPlatonCall(t *testing.T) {
 		{
 			"get_nonce",
 			address,
-			2523,
+			"2523",
 			nil,
 		},
 	} {
@@ -98,9 +99,10 @@ func TestPlatonCall(t *testing.T) {
 					if testCase.err.Error() != err.Error() {
 						t.Fatalf("expected error %v but got %v", testCase.err, err)
 					}
-				} else if !reflect.DeepEqual(testCase.output, output) {
+				} else if !reflect.DeepEqual(testCase.output, strconv.FormatUint(output, 10)) {
 					t.Fatalf("expected filter arg %v but got %v", testCase.output, output)
 				}
+			default:
 			}
 		})
 	}
