@@ -249,7 +249,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 
 func genesisAddressPrefix(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis) (common.Hash, error) {
 	lastHash := prevHash
-	if g.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 || g.Config.AddressPrefix == "" {
+	if params.IsMainNet(g.Config.ChainID) {
 		return prevHash, nil
 	}
 
@@ -260,7 +260,7 @@ func genesisAddressPrefix(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Gen
 		newHash := common.GenerateKVHash(key, val, hash)
 		return newHash, nil
 	}
-	addressPrefix, err := rlp.EncodeToBytes(g.Config.AddressPrefix)
+	addressPrefix, err := rlp.EncodeToBytes(common.GetAddressPrefix())
 	if nil != err {
 		return lastHash, fmt.Errorf("rlp address prefix failed. error:%s", err.Error())
 	}
