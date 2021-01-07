@@ -193,6 +193,13 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
+		if newcfg.AddressPrefix != "" {
+			common.SetAddressPrefix(newcfg.AddressPrefix)
+		} else {
+			common.SetAddressPrefix(common.DefaultAddressPrefix)
+			rawdb.WriteAddressPrefix(db, common.DefaultAddressPrefix)
+		}
+
 		return newcfg, stored, nil
 	}
 
@@ -201,6 +208,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		common.SetAddressPrefix(addressPrefix)
 	} else {
 		common.SetAddressPrefix(common.DefaultAddressPrefix)
+		rawdb.WriteAddressPrefix(db, common.DefaultAddressPrefix)
 	}
 
 	// Get the existing EconomicModel configuration.

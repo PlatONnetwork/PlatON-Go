@@ -82,7 +82,7 @@ func funcTypeToContractAddress(funcType uint16) common.Address {
 }
 
 func netCheck(context *cli.Context) {
-	addressPrefix := context.String(addressPrefixFlag.Name)
+	addressPrefix := context.GlobalString(addressPrefixFlag.Name)
 	if addressPrefix != "" {
 		common.SetAddressPrefix(addressPrefix)
 	} else {
