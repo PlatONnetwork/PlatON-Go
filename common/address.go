@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -18,15 +17,14 @@ import (
 )
 
 const (
-	MainNetAddressPrefix = "atp"
-	TestNetAddressPrefix = "atx"
+	DefaultAddressPrefix = "atp"
 )
 
 var currentAddressPrefix string
 
 func GetAddressPrefix() string {
 	if currentAddressPrefix == "" {
-		return TestNetAddressPrefix
+		return DefaultAddressPrefix
 	}
 	return currentAddressPrefix
 }
@@ -37,12 +35,10 @@ func SetAddressPrefix(s string) {
 }
 
 func CheckAddressPrefix(s string) bool {
-	switch s {
-	case MainNetAddressPrefix, TestNetAddressPrefix:
-		return true
-	default:
+	if currentAddressPrefix != "" && s != currentAddressPrefix {
 		return false
 	}
+	return true
 }
 
 /////////// Address
@@ -270,40 +266,6 @@ func (a *Address) Scan(src interface{}) error {
 // Value implements valuer for database/sql.
 func (a Address) Value() (driver.Value, error) {
 	return a[:], nil
-}
-
-type AddressOutput struct {
-	MainNet string `json:"mainnet"`
-	TestNet string `json:"testnet"`
-}
-
-func NewAddressOutput(add Address) AddressOutput {
-	return AddressOutput{
-		add.Bech32WithPrefix(MainNetAddressPrefix),
-		add.Bech32WithPrefix(TestNetAddressPrefix),
-	}
-}
-
-func (a AddressOutput) Address() (Address, error) {
-	if a.MainNet == "" || a.TestNet == "" {
-		return ZeroAddr, errors.New("can't generate address,the addressOutput is empty")
-	}
-	addr, err := Bech32ToAddress(a.MainNet)
-	if err != nil {
-		return ZeroAddr, err
-	}
-	addr2, err := Bech32ToAddress(a.TestNet)
-	if err != nil {
-		return ZeroAddr, err
-	}
-	if addr != addr2 {
-		return ZeroAddr, fmt.Errorf("main net address and testnet address not same,mainnet:%s,testnet:%s", a.MainNet, a.TestNet)
-	}
-	return addr, nil
-}
-
-func (a AddressOutput) Print() {
-	fmt.Printf("main net Address: %s\nother net Address: %s\n", a.MainNet, a.TestNet)
 }
 
 // UnprefixedAddress allows marshaling an Address without 0x prefix.

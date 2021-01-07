@@ -268,12 +268,6 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.Ba
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
 
-	if !(g.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 || g.Config.ChainID.Cmp(params.AlayaTestChainConfig.ChainID) == 0) {
-		err := plugin.NewRestrictingPlugin(nil).InitGenesisRestrictingPlans(statedb)
-		if err != nil {
-			return fmt.Errorf("Failed to init genesis restricting plans, err:%s", err.Error())
-		}
-	}
 	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
 	plugin.SetYearEndBalance(statedb, 0, genesisReward)
 	log.Info("Set SetYearEndBalance", "genesisReward", genesisReward)

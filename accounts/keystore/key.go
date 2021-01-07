@@ -28,10 +28,11 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pborman/uuid"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/pborman/uuid"
 )
 
 const (
@@ -57,24 +58,24 @@ type keyStore interface {
 }
 
 type plainKeyJSON struct {
-	Address    common.AddressOutput `json:"address"`
-	PrivateKey string               `json:"privatekey"`
-	Id         string               `json:"id"`
-	Version    int                  `json:"version"`
+	Address    string `json:"address"`
+	PrivateKey string `json:"privatekey"`
+	Id         string `json:"id"`
+	Version    int    `json:"version"`
 }
 
 type encryptedKeyJSONV3 struct {
-	Address common.AddressOutput `json:"address"`
-	Crypto  cryptoJSON           `json:"crypto"`
-	Id      string               `json:"id"`
-	Version int                  `json:"version"`
+	Address string     `json:"address"`
+	Crypto  cryptoJSON `json:"crypto"`
+	Id      string     `json:"id"`
+	Version int        `json:"version"`
 }
 
 type encryptedKeyJSONV1 struct {
-	Address common.AddressOutput `json:"address"`
-	Crypto  cryptoJSON           `json:"crypto"`
-	Id      string               `json:"id"`
-	Version string               `json:"version"`
+	Address string     `json:"address"`
+	Crypto  cryptoJSON `json:"crypto"`
+	Id      string     `json:"id"`
+	Version string     `json:"version"`
 }
 
 type cryptoJSON struct {
@@ -92,7 +93,7 @@ type cipherparamsJSON struct {
 
 func (k *Key) MarshalJSON() (j []byte, err error) {
 	jStruct := plainKeyJSON{
-		common.NewAddressOutput(k.Address),
+		k.Address.String(),
 		hex.EncodeToString(crypto.FromECDSA(k.PrivateKey)),
 		k.Id.String(),
 		version,
@@ -112,7 +113,7 @@ func (k *Key) UnmarshalJSON(j []byte) (err error) {
 	*u = uuid.Parse(keyJSON.Id)
 	k.Id = *u
 
-	addr, err := keyJSON.Address.Address()
+	addr, err := common.Bech32ToAddress(keyJSON.Address)
 	if err != nil {
 		return err
 	}

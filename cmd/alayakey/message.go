@@ -85,7 +85,7 @@ To sign a message contained in a file, use the --msgfile flag.
 
 type outputVerify struct {
 	Success            bool
-	RecoveredAddress   common.AddressOutput
+	RecoveredAddress   string
 	RecoveredPublicKey string
 }
 
@@ -99,8 +99,13 @@ It is possible to refer to a file containing the message.`,
 	Flags: []cli.Flag{
 		jsonFlag,
 		msgfileFlag,
+		utils.AddressPrefixFlag,
 	},
 	Action: func(ctx *cli.Context) error {
+		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
+		if addressPrefix != "" {
+			common.SetAddressPrefix(addressPrefix)
+		}
 		addressStr := ctx.Args().First()
 		signatureHex := ctx.Args().Get(1)
 		message := getMessage(ctx, 2)
@@ -128,7 +133,7 @@ It is possible to refer to a file containing the message.`,
 		out := outputVerify{
 			Success:            success,
 			RecoveredPublicKey: hex.EncodeToString(recoveredPubkeyBytes),
-			RecoveredAddress:   common.NewAddressOutput(recoveredAddress),
+			RecoveredAddress:   recoveredAddress.String(),
 		}
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)
@@ -139,8 +144,7 @@ It is possible to refer to a file containing the message.`,
 				fmt.Println("Signature verification failed!")
 			}
 			fmt.Println("Recovered public key:", out.RecoveredPublicKey)
-			fmt.Println("Recovered main net address:", out.RecoveredAddress.MainNet)
-			fmt.Println("Recovered test net address:", out.RecoveredAddress.TestNet)
+			fmt.Println("Recovered address:", out.RecoveredAddress)
 		}
 		return nil
 	},

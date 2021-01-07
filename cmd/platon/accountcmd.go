@@ -18,6 +18,9 @@ package main
 
 import (
 	"fmt"
+
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
@@ -25,7 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/console"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -161,8 +163,7 @@ func accountList(ctx *cli.Context) error {
 	var index int
 	for _, wallet := range stack.AccountManager().Wallets() {
 		for _, account := range wallet.Accounts() {
-			out := common.NewAddressOutput(account.Address)
-			fmt.Printf("Account #%d: {mainnet:%s,testnet:%s} %s\n", index, out.MainNet, out.TestNet, &account.URL)
+			fmt.Printf("Account #%d: {%s} %s\n", index, account.Address.String(), &account.URL)
 			index++
 		}
 	}
@@ -256,9 +257,13 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 
 // accountCreate creates a new account into the keystore defined by the CLI flags.
 func accountCreate(ctx *cli.Context) error {
-	if !ctx.GlobalBool(utils.TestnetFlag.Name) {
-		common.SetAddressPrefix(common.MainNetAddressPrefix)
+	addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
+	if addressPrefix != "" {
+		common.SetAddressPrefix(addressPrefix)
+	} else {
+		common.SetAddressPrefix(common.DefaultAddressPrefix)
 	}
+
 	cfg := platonConfig{Node: defaultNodeConfig()}
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
@@ -280,7 +285,7 @@ func accountCreate(ctx *cli.Context) error {
 	if err != nil {
 		utils.Fatalf("Failed to create account: %v", err)
 	}
-	common.NewAddressOutput(address).Print()
+	fmt.Printf("Address: {%s}\n", address.String())
 	return nil
 }
 
@@ -320,6 +325,6 @@ func accountImport(ctx *cli.Context) error {
 	if err != nil {
 		utils.Fatalf("Could not create the account: %v", err)
 	}
-	common.NewAddressOutput(acct.Address).Print()
+	fmt.Printf("Address: {%s}\n", acct.Address.String())
 	return nil
 }

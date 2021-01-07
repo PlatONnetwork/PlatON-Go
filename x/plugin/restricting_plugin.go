@@ -167,36 +167,6 @@ func (rp *RestrictingPlugin) updateGenesisRestrictingPlans(plans []*big.Int, sta
 	return nil
 }
 
-// init the genesis restricting plans
-func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) error {
-
-	genesisAllowancePlans := []*big.Int{
-		new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18)),
-	}
-
-	//initial release from genesis restricting plans(62215742ATP)
-	initialRelease := new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
-	statedb.SubBalance(xcom.CDFAccount(), initialRelease)
-	statedb.AddBalance(vm.RewardManagerPoolAddr, initialRelease)
-
-	//transfer 259096239ATP from CDFAccount to vm.RestrictingContractAddr
-	totalRestrictingPlan := new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18))
-	statedb.SubBalance(xcom.CDFAccount(), totalRestrictingPlan)
-	statedb.AddBalance(vm.RestrictingContractAddr, totalRestrictingPlan)
-
-	if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {
-		return err
-	}
-	return nil
-}
-
 // release genesis restricting plans
 func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Hash, statedb xcom.StateDB) error {
 

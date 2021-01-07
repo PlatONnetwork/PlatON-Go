@@ -13,8 +13,8 @@ var (
 		Usage: "print raw transaction",
 	}
 
-	testNetFlag = cli.BoolFlag{
-		Name:  "testnet",
-		Usage: "use for testnet",
+	addressPrefixFlag = cli.BoolFlag{
+		Name:  "addressPrefix",
+		Usage: "set address prefix",
 	}
 )

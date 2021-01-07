@@ -148,6 +148,10 @@ var (
 		Name:  "alayatestnet",
 		Usage: "alaya test network: pre-configured alaya test network",
 	}
+	AddressPrefixFlag = cli.StringFlag{
+		Name:  "addressPrefix",
+		Usage: "set the address prefix,if not set,use default address prefix",
+	}
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",
 		Usage: "Block period to use in developer mode (0 = mine only if transaction pending)",
