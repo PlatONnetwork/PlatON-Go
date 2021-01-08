@@ -202,13 +202,18 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
-
-	addressPrefix := rawdb.ReadAddressPrefix(db)
-	if addressPrefix != "" {
-		common.SetAddressPrefix(addressPrefix)
+	if genesis == nil {
+		if storedcfg.AddressPrefix != "" {
+			common.SetAddressPrefix(storedcfg.AddressPrefix)
+		} else {
+			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		}
 	} else {
-		common.SetAddressPrefix(common.DefaultAddressPrefix)
-		rawdb.WriteAddressPrefix(db, common.DefaultAddressPrefix)
+		if newcfg.AddressPrefix != "" {
+			common.SetAddressPrefix(newcfg.AddressPrefix)
+		} else {
+			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		}
 	}
 
 	// Get the existing EconomicModel configuration.
@@ -514,13 +519,6 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 	rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
 
-	if g.Config != nil {
-		if g.Config.AddressPrefix != "" {
-			rawdb.WriteAddressPrefix(db, g.Config.AddressPrefix)
-		} else {
-			rawdb.WriteAddressPrefix(db, common.DefaultAddressPrefix)
-		}
-	}
 	return block, nil
 }
 
