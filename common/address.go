@@ -223,8 +223,8 @@ func (a *Address) UnmarshalText(input []byte) error {
 	if err != nil {
 		return err
 	}
-	if hrpDecode != GetAddressPrefix() {
-		return fmt.Errorf("the address not compare current net,want %v,have %v", GetAddressPrefix(), string(input))
+	if !CheckAddressPrefix(hrpDecode) {
+		return fmt.Errorf("the address not compare current net1,want %v,have %v", GetAddressPrefix(), string(input))
 	}
 	a.SetBytes(converted)
 	return nil
@@ -239,8 +239,8 @@ func (a *Address) UnmarshalJSON(input []byte) error {
 	if err != nil {
 		return &json.UnmarshalTypeError{Value: err.Error(), Type: addressT}
 	}
-	if hrpDecode != GetAddressPrefix() {
-		return &json.UnmarshalTypeError{Value: fmt.Sprintf("hrpDecode not compare the current net,want %v,have %v", GetAddressPrefix(), hrpDecode), Type: addressT}
+	if !CheckAddressPrefix(hrpDecode) {
+		return &json.UnmarshalTypeError{Value: fmt.Sprintf("hrpDecode not compare the current net2,want %v,have %v", GetAddressPrefix(), hrpDecode), Type: addressT}
 	}
 	a.SetBytes(v)
 	return nil
