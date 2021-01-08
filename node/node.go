@@ -170,9 +170,7 @@ func (n *Node) Start() error {
 			n.serverConfig.StaticNodes = n.config.StaticNodes()
 		}
 	}
-	if n.serverConfig.AllowNodes == nil {
-		n.serverConfig.AllowNodes = n.config.AllowNodes()
-	}
+
 	if n.serverConfig.TrustedNodes == nil {
 		n.serverConfig.TrustedNodes = n.config.TrustedNodes()
 	}

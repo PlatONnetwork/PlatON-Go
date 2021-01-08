@@ -31,7 +31,7 @@ import (
 )
 
 type outputInspect struct {
-	Address    common.AddressOutput
+	Address    string
 	PublicKey  string
 	PrivateKey string
 }
@@ -52,8 +52,14 @@ make sure to use this feature with great caution!`,
 			Name:  "private",
 			Usage: "include the private key in the output",
 		},
+		utils.AddressPrefixFlag,
 	},
 	Action: func(ctx *cli.Context) error {
+		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
+		if addressPrefix != "" {
+			common.SetAddressPrefix(addressPrefix)
+		}
+
 		keyfilepath := ctx.Args().First()
 
 		// Read key from file.
@@ -72,7 +78,7 @@ make sure to use this feature with great caution!`,
 		// Output all relevant information we can retrieve.
 		showPrivate := ctx.Bool("private")
 		out := outputInspect{
-			Address: common.NewAddressOutput(key.Address),
+			Address: key.Address.String(),
 			PublicKey: hex.EncodeToString(
 				crypto.FromECDSAPub(&key.PrivateKey.PublicKey)),
 		}
@@ -83,7 +89,7 @@ make sure to use this feature with great caution!`,
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)
 		} else {
-			out.Address.Print()
+			fmt.Printf("address: %s\n", out.Address)
 			fmt.Println("Public key:    ", out.PublicKey)
 			if showPrivate {
 				fmt.Println("Private key:   ", out.PrivateKey)

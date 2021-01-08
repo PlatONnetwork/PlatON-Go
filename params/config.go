@@ -142,9 +142,10 @@ var (
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(100),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
+		ChainID:       big.NewInt(100),
+		AddressPrefix: "atp",
+		EmptyBlock:    "on",
+		EIP155Block:   big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialMainNetConsensusNodes),
 			Amount:        10,
@@ -156,9 +157,10 @@ var (
 
 	// AlayaChainConfig is the chain parameters to run a node on the main network.
 	AlayaChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(201018),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
+		ChainID:       big.NewInt(201018),
+		AddressPrefix: "atp",
+		EmptyBlock:    "on",
+		EIP155Block:   big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialAlayaConsensusNodes),
 			Amount:        10,
@@ -170,9 +172,10 @@ var (
 
 	// AlayaTestChainConfig is the chain parameters to run a node on the main network.
 	AlayaTestChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(201030),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
+		ChainID:       big.NewInt(201030),
+		AddressPrefix: "atp",
+		EmptyBlock:    "on",
+		EIP155Block:   big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialAlayaTestNetConsensusNodes),
 			Amount:        10,
@@ -193,9 +196,10 @@ var (
 
 	// TestnetChainConfig is the chain parameters to run a node on the test network.
 	TestnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(104),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
+		ChainID:       big.NewInt(104),
+		AddressPrefix: "atp",
+		EmptyBlock:    "on",
+		EIP155Block:   big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
 			Amount:        10,
@@ -215,9 +219,10 @@ var (
 	}
 
 	GrapeChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(304),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(3),
+		AddressPrefix: "atp",
+		ChainID:       big.NewInt(304),
+		EmptyBlock:    "on",
+		EIP155Block:   big.NewInt(3),
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
@@ -228,9 +233,9 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "atp", "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "atp", "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -251,10 +256,11 @@ type TrustedCheckpoint struct {
 // that any network, identified by its genesis block, can have its own
 // set of configuration options.
 type ChainConfig struct {
-	ChainID     *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
-	EmptyBlock  string   `json:"emptyBlock"`
-	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
-	EWASMBlock  *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)
+	ChainID       *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+	AddressPrefix string   `json:"addressPrefix"`
+	EmptyBlock    string   `json:"emptyBlock"`
+	EIP155Block   *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
+	EWASMBlock    *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)
 	// Various consensus engines
 	Clique *CliqueConfig `json:"clique,omitempty"`
 	Cbft   *CbftConfig   `json:"cbft,omitempty"`
