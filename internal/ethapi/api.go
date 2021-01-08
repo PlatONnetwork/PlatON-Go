@@ -529,7 +529,12 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 }
 
 func (s *PublicBlockChainAPI) GetAddressPrefix() string {
-	return rawdb.ReadAddressPrefix(s.b.ChainDb())
+	stored := rawdb.ReadCanonicalHash(s.b.ChainDb(), 0)
+	chainConfig := rawdb.ReadChainConfig(s.b.ChainDb(), stored)
+	if chainConfig == nil || chainConfig.AddressPrefix == "" {
+		return common.DefaultAddressPrefix
+	}
+	return chainConfig.AddressPrefix
 }
 
 // Result structs for GetProof

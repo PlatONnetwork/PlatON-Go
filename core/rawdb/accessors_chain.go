@@ -31,20 +31,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-func WriteAddressPrefix(db ethdb.Writer, addressPrefix string) {
-	if err := db.Put(AddressPrefixKey, []byte(addressPrefix)); err != nil {
-		log.Crit("Failed to store number to hash mapping", "err", err)
-	}
-}
-
-func ReadAddressPrefix(db ethdb.Reader) string {
-	data, _ := db.Get(AddressPrefixKey)
-	if len(data) == 0 {
-		return ""
-	}
-	return string(data)
-}
-
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
 func ReadCanonicalHash(db ethdb.Reader, number uint64) common.Hash {
 	data, _ := db.Get(headerHashKey(number))
