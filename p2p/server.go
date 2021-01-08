@@ -27,6 +27,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -116,10 +118,6 @@ type Config struct {
 	// Static nodes are used as pre-configured connections which are always
 	// maintained and re-connected on disconnects.
 	StaticNodes []*discover.Node `json:"-"`
-
-	// Allow nodes returns the whitelist of nodes
-	// if the peer's p2p protocol version is lower, the connection is still allowed.
-	AllowNodes []*discover.Node `json:"-"`
 
 	// Trusted nodes are used as pre-configured connections which are always
 	// allowed to connect, even above the peer limit.
@@ -353,15 +351,18 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 
 // Determine whether the node is in the whitelist.
 func (srv *Server) IsAllowNode(nodeID discover.NodeID) bool {
-	if len(AllowNodesMap) <= 0 {
-		if len(srv.AllowNodes) > 0 {
-			for _, n := range srv.AllowNodes {
-				AllowNodesMap[n.ID] = struct{}{}
+	if srv.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
+		if len(AllowNodesMap) == 0 {
+			nodesString := params.AllowNodes
+			for _, node := range nodesString {
+				tmp := discover.MustHexID(node)
+				AllowNodesMap[tmp] = struct{}{}
 			}
 		}
+		_, ok := AllowNodesMap[nodeID]
+		return ok
 	}
-	_, ok := AllowNodesMap[nodeID]
-	return ok
+	return true
 }
 
 // AddConsensusPeer connects to the given consensus node and maintains the connection until the
