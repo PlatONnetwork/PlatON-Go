@@ -26,43 +26,43 @@ var (
 		Name:   "getProposal",
 		Usage:  "2100,get proposal,parameter:proposalID",
 		Action: getProposal,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, proposalIDFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, proposalIDFlag, jsonFlag},
 	}
 	getTallyResultCmd = cli.Command{
 		Name:   "getTallyResult",
 		Usage:  "2101,get tally result,parameter:proposalID",
 		Action: getTallyResult,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, proposalIDFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, proposalIDFlag, jsonFlag},
 	}
 	listProposalCmd = cli.Command{
 		Name:   "listProposal",
 		Usage:  "2102,list proposal",
 		Action: listProposal,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getActiveVersionCmd = cli.Command{
 		Name:   "getActiveVersion",
 		Usage:  "2103,query the effective version of the  chain",
 		Action: getActiveVersion,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getGovernParamValueCmd = cli.Command{
 		Name:   "getGovernParamValue",
 		Usage:  "2104,query the governance parameter value of the current block height,parameter:module,name",
 		Action: getGovernParamValue,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, moduleFlag, nameFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, moduleFlag, nameFlag, jsonFlag},
 	}
 	getAccuVerifiersCountCmd = cli.Command{
 		Name:   "getAccuVerifiersCount",
 		Usage:  "2105,query the cumulative number of votes available for a proposal,parameter:proposalID,blockHash",
 		Action: getAccuVerifiersCount,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, proposalIDFlag, blockHashFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, proposalIDFlag, blockHashFlag, jsonFlag},
 	}
 	listGovernParamCmd = cli.Command{
 		Name:   "listGovernParam",
 		Usage:  "2106,query the list of governance parameters,parameter:module",
 		Action: listGovernParam,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, moduleFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, moduleFlag, jsonFlag},
 	}
 	proposalIDFlag = cli.StringFlag{
 		Name:  "proposalID",

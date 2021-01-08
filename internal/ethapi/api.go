@@ -528,6 +528,15 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
 }
 
+func (s *PublicBlockChainAPI) GetAddressPrefix() string {
+	stored := rawdb.ReadCanonicalHash(s.b.ChainDb(), 0)
+	chainConfig := rawdb.ReadChainConfig(s.b.ChainDb(), stored)
+	if chainConfig == nil || chainConfig.AddressPrefix == "" {
+		return common.DefaultAddressPrefix
+	}
+	return chainConfig.AddressPrefix
+}
+
 // Result structs for GetProof
 type AccountResult struct {
 	Address      common.Address  `json:"address"`

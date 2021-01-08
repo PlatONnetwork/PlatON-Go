@@ -156,12 +156,12 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			log.Info("Writing default main-net genesis block")
 			genesis = DefaultGenesisBlock()
 		} else {
-			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
+			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressPrefix", genesis.Config.AddressPrefix)
 		}
-		if genesis.Config.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
+		if genesis.Config.AddressPrefix != "" {
+			common.SetAddressPrefix(genesis.Config.AddressPrefix)
 		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+			common.SetAddressPrefix(common.DefaultAddressPrefix)
 		}
 
 		// check EconomicModel configuration
@@ -193,20 +193,26 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
+		if newcfg.AddressPrefix != "" {
+			common.SetAddressPrefix(newcfg.AddressPrefix)
+		} else {
+			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		}
+
 		return newcfg, stored, nil
 	}
 
-	if genesis == nil && stored != params.MainnetGenesisHash {
-		if storedcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
+	if genesis == nil {
+		if storedcfg.AddressPrefix != "" {
+			common.SetAddressPrefix(storedcfg.AddressPrefix)
 		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+			common.SetAddressPrefix(common.DefaultAddressPrefix)
 		}
 	} else {
-		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
+		if newcfg.AddressPrefix != "" {
+			common.SetAddressPrefix(newcfg.AddressPrefix)
 		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+			common.SetAddressPrefix(common.DefaultAddressPrefix)
 		}
 	}
 
@@ -242,16 +248,16 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
-func (g *Genesis) UnmarshalChainID(r io.Reader) (*big.Int, error) {
-	var genesisChaind struct {
+func (g *Genesis) UnmarshalAddressPrefix(r io.Reader) (string, error) {
+	var genesisAddressPrefix struct {
 		Config *struct {
-			ChainID *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+			AddressPrefix string `json:"addressPrefix"`
 		} `json:"config"`
 	}
-	if err := json.NewDecoder(r).Decode(&genesisChaind); err != nil {
-		return nil, fmt.Errorf("invalid genesis file chain id: %v", err)
+	if err := json.NewDecoder(r).Decode(&genesisAddressPrefix); err != nil {
+		return "", fmt.Errorf("invalid genesis file address prefix: %v", err)
 	}
-	return genesisChaind.Config.ChainID, nil
+	return genesisAddressPrefix.Config.AddressPrefix, nil
 }
 
 //this is only use to private chain
@@ -261,14 +267,15 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
 	}
 	defer file.Close()
-	chainID, err := g.UnmarshalChainID(file)
+	addressPrefix, err := g.UnmarshalAddressPrefix(file)
 	if err != nil {
 		return err
 	}
-	if chainID != nil && chainID.Cmp(params.MainnetChainConfig.ChainID) == 0 {
-		common.SetAddressPrefix(common.MainNetAddressPrefix)
+
+	if addressPrefix != "" {
+		common.SetAddressPrefix(addressPrefix)
 	} else {
-		common.SetAddressPrefix(common.TestNetAddressPrefix)
+		common.SetAddressPrefix(common.DefaultAddressPrefix)
 	}
 
 	file.Seek(0, io.SeekStart)
@@ -393,6 +400,13 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 			panic("Failed Store staking: " + err.Error())
 		}
 	}
+	if g.Config != nil {
+		if g.Config.AddressPrefix != "" {
+			statedb.SetString(vm.StakingContractAddr, rawdb.AddressPrefixKey, g.Config.AddressPrefix)
+		} else {
+			statedb.SetString(vm.StakingContractAddr, rawdb.AddressPrefixKey, common.DefaultAddressPrefix)
+		}
+	}
 
 	root := statedb.IntermediateRoot(false)
 
@@ -466,6 +480,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
+
 	return block, nil
 }
 

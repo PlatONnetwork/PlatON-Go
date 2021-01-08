@@ -21,7 +21,7 @@ var (
 		Name:   "checkDuplicateSign",
 		Usage:  "3001,query whether the node has been reported for too many signatures,parameter:duplicateSignType,nodeid,blockNum",
 		Action: checkDuplicateSign,
-		Flags: []cli.Flag{rpcUrlFlag, testNetFlag,
+		Flags: []cli.Flag{rpcUrlFlag, addressPrefixFlag,
 			cli.Uint64Flag{
 				Name:  "duplicateSignType",
 				Usage: "duplicateSign type,1：prepareBlock，2：prepareVote，3：viewChange",
@@ -34,7 +34,7 @@ var (
 		Name:   "zeroProduceNodeList",
 		Usage:  "3002,query the list of nodes with zero block",
 		Action: zeroProduceNodeList,
-		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	blockNumFlag = cli.Uint64Flag{
 		Name:  "blockNum",

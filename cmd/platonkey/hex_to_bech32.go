@@ -17,26 +17,33 @@ import (
 
 var HexAccountFileFlag = cli.StringFlag{
 	Name:  "hexAddressFile",
-	Usage: "file bech32/hex accounts want to update to mainnet/testnet bech32 address,file like  [hex,hex...]",
+	Usage: "file bech32/hex accounts want to update to  bech32 address,file like  [hex,hex...]",
 }
 
 type addressPair struct {
-	Address       common.AddressOutput
+	Address       string
 	OriginAddress string
+	Hex           string
 }
 
 var commandAddressHexToBech32 = cli.Command{
 	Name:      "updateaddress",
-	Usage:     "update hex/bech32 address to mainnet/testnet bech32 address",
+	Usage:     "update hex/bech32 address to  bech32 address",
 	ArgsUsage: "[<address> <address>...]",
 	Description: `
-update hex/bech32 address to mainnet/testnet bech32 address.
+update hex/bech32 address to  bech32 address.
 `,
 	Flags: []cli.Flag{
 		jsonFlag,
 		HexAccountFileFlag,
+		utils.AddressPrefixFlag,
 	},
 	Action: func(ctx *cli.Context) error {
+		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
+		if addressPrefix != "" {
+			common.SetAddressPrefix(addressPrefix)
+		}
+
 		var accounts []string
 		if ctx.IsSet(HexAccountFileFlag.Name) {
 			accountPath := ctx.String(HexAccountFileFlag.Name)
@@ -55,42 +62,37 @@ update hex/bech32 address to mainnet/testnet bech32 address.
 				accounts = append(accounts, add)
 			}
 		}
-		var outAddress []addressPair
-		for _, account := range accounts {
+		for i, account := range accounts {
 			_, _, err := bech32.Decode(account)
+			var out addressPair
+			var address common.Address
 			if err != nil {
-				address := common.HexToAddress(account)
-				out := addressPair{
-					Address:       common.NewAddressOutput(address),
-					OriginAddress: account,
-				}
-				outAddress = append(outAddress, out)
+				address = common.HexToAddress(account)
 			} else {
 				_, converted, err := bech32util.DecodeAndConvert(account)
 				if err != nil {
 					return err
 				}
-				var a common.Address
-				a.SetBytes(converted)
-				out := addressPair{
-					Address:       common.NewAddressOutput(a),
-					OriginAddress: account,
-				}
-				outAddress = append(outAddress, out)
-			}
-		}
+				address.SetBytes(converted)
 
-		if ctx.Bool(jsonFlag.Name) {
-			mustPrintJSON(outAddress)
-		} else {
-			for i, address := range outAddress {
-				fmt.Println("originAddress: ", address.OriginAddress)
-				address.Address.Print()
-				if i != len(outAddress)-1 {
+			}
+			out = addressPair{
+				Address:       address.String(),
+				OriginAddress: account,
+				Hex:           address.Hex(),
+			}
+			if ctx.Bool(jsonFlag.Name) {
+				mustPrintJSON(out)
+			} else {
+				fmt.Printf("origin: %s\n", out.OriginAddress)
+				fmt.Printf("bech32: %s\n", out.Address)
+				fmt.Printf("hex: %s\n", out.Hex)
+				if i != len(accounts)-1 {
 					fmt.Println("---")
 				}
 			}
 		}
+
 		return nil
 	},
 }

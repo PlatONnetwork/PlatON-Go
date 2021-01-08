@@ -56,7 +56,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
@@ -140,6 +139,10 @@ var (
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
 		Usage: "Testnet network: pre-configured test network",
+	}
+	AddressPrefixFlag = cli.StringFlag{
+		Name:  "addressPrefix",
+		Usage: "set the address prefix,if not set,use default address prefix",
 	}
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",
@@ -1448,24 +1451,6 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 			}
 		}
 		return action(ctx)
-	}
-}
-
-func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
-	var networkId int8
-
-	// Override any default Economic configs for hard coded networks.
-	switch {
-	case ctx.GlobalBool(TestnetFlag.Name):
-		networkId = xcom.DefaultTestNet // Test Net: --testnet
-	default:
-		networkId = xcom.DefaultMainNet // main net
-	}
-
-	if model := xcom.GetEc(networkId); model == nil {
-		panic("get economic model failed")
-	} else {
-		return model
 	}
 }
 
