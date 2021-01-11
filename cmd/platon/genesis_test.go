@@ -32,7 +32,7 @@ var customGenesisTests = []struct {
 	{
 		genesis: `{
     "alloc":{
-        "atx17zqcdshx7eptgmkn2jzyx7w7tg0e4nnrfjnzq9":{
+        "atp17zqcdshx7eptgmkn2jzyx7w7tg0e4nnrr50gn0":{
             "balance":"2000000000000000000000000000"
         }
     },
@@ -71,9 +71,9 @@ var customGenesisTests = []struct {
             "platonFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "atx15myzn7h77r8r6m8fz7zs7zcq89japd2kza7u83",
+            "platonFundAccount": "atp15myzn7h77r8r6m8fz7zs7zcq89japd2kgmzk5m",
             "platonFundBalance": 0,
-            "cdfAccount": "atx18unvsalu3ljuhn3cck9fqnppanvszmf4mthtw6",
+            "cdfAccount": "atp18unvsalu3ljuhn3cck9fqnppanvszmf43dtpas",
             "cdfBalance": 331811981000000000000000000
         }
     },
@@ -104,7 +104,7 @@ var customGenesisTests = []struct {
 	{
 		genesis: `{
     "alloc":{
-        "atx17zqcdshx7eptgmkn2jzyx7w7tg0e4nnrfjnzq9":{
+        "atp17zqcdshx7eptgmkn2jzyx7w7tg0e4nnrr50gn0":{
             "balance":"2000000000000000000000000000"
         }
     },
@@ -143,9 +143,9 @@ var customGenesisTests = []struct {
             "platonFoundationYear": 2 
         },
         "innerAcc":{
-            "platonFundAccount": "atx15myzn7h77r8r6m8fz7zs7zcq89japd2kza7u83",
+            "platonFundAccount": "atp15myzn7h77r8r6m8fz7zs7zcq89japd2kgmzk5m",
             "platonFundBalance": 0,
-            "cdfAccount": "atx18unvsalu3ljuhn3cck9fqnppanvszmf4mthtw6",
+            "cdfAccount": "atp18unvsalu3ljuhn3cck9fqnppanvszmf43dtpas",
             "cdfBalance": 331811981000000000000000000000
         }
     },
@@ -176,7 +176,7 @@ var customGenesisTests = []struct {
 	{
 		genesis: `{
     "alloc":{
-        "atx17zqcdshx7eptgmkn2jzyx7w7tg0e4nnrfjnzq9":{
+        "atp17zqcdshx7eptgmkn2jzyx7w7tg0e4nnrr50gn0":{
             "balance":"2000000000000000000000000000000000000"
         }
     },
@@ -215,9 +215,9 @@ var customGenesisTests = []struct {
             "platonFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "atx15myzn7h77r8r6m8fz7zs7zcq89japd2kza7u83",
+            "platonFundAccount": "atp15myzn7h77r8r6m8fz7zs7zcq89japd2kgmzk5m",
             "platonFundBalance": 0,
-            "cdfAccount": "atx18unvsalu3ljuhn3cck9fqnppanvszmf4mthtw6",
+            "cdfAccount": "atp18unvsalu3ljuhn3cck9fqnppanvszmf43dtpas",
             "cdfBalance": 33181198100000000000000000000000
         }
     },

@@ -81,13 +81,12 @@ func funcTypeToContractAddress(funcType uint16) common.Address {
 	return toadd
 }
 
-func netCheck(context *cli.Context) {
-	addressPrefix := context.GlobalString(addressPrefixFlag.Name)
-	if addressPrefix != "" {
-		common.SetAddressPrefix(addressPrefix)
-	} else {
-		common.SetAddressPrefix(common.DefaultAddressPrefix)
+func netCheck(context *cli.Context) error {
+	addressPrefix := context.String(addressPrefixFlag.Name)
+	if err := common.SetAddressPrefix(addressPrefix); err != nil {
+		return err
 	}
+	return nil
 }
 
 func query(c *cli.Context, funcType uint16, params ...interface{}) error {

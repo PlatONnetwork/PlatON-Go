@@ -17,7 +17,6 @@
 package main
 
 import (
-	"log"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -49,7 +48,6 @@ func TestAccountListEmpty(t *testing.T) {
 
 func TestAccountList(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	log.Print(datadir)
 	platon := runPlatON(t, "account", "list", "--datadir", datadir)
 	defer platon.ExpectExit()
 	if runtime.GOOS == "windows" {

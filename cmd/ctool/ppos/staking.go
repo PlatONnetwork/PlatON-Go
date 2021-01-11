@@ -29,54 +29,63 @@ var (
 	GetVerifierListCmd = cli.Command{
 		Name:   "getVerifierList",
 		Usage:  "1100,query the validator queue of the current settlement epoch",
+		Before: netCheck,
 		Action: getVerifierList,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getValidatorListCmd = cli.Command{
 		Name:   "getValidatorList",
 		Usage:  "1101,query the list of validators in the current consensus round",
+		Before: netCheck,
 		Action: getValidatorList,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getCandidateListCmd = cli.Command{
 		Name:   "getCandidateList",
 		Usage:  "1102,Query the list of all real-time candidates",
+		Before: netCheck,
 		Action: getCandidateList,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getRelatedListByDelAddrCmd = cli.Command{
 		Name:   "getRelatedListByDelAddr",
 		Usage:  "1103,Query the NodeID and pledge Id of the node entrusted by the current account address,parameter:add",
+		Before: netCheck,
 		Action: getRelatedListByDelAddr,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, addFlag, jsonFlag},
 	}
 	getDelegateInfoCmd = cli.Command{
 		Name:   "getDelegateInfo",
 		Usage:  "1104,Query the delegation information of the current single node,parameter:stakingBlock,address,nodeid",
+		Before: netCheck,
 		Action: getDelegateInfo,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, stakingBlockNumFlag, addFlag, nodeIdFlag, jsonFlag},
 	}
 	getCandidateInfoCmd = cli.Command{
 		Name:   "getCandidateInfo",
 		Usage:  "1105,Query the pledge information of the current node,parameter:nodeid",
+		Before: netCheck,
 		Action: getCandidateInfo,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, nodeIdFlag, jsonFlag},
 	}
 	getPackageRewardCmd = cli.Command{
 		Name:   "getPackageReward",
 		Usage:  "1200,query the block reward of the current settlement epoch",
+		Before: netCheck,
 		Action: getPackageReward,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getStakingRewardCmd = cli.Command{
 		Name:   "getStakingReward",
 		Usage:  "1201,query the pledge reward of the current settlement epoch",
+		Before: netCheck,
 		Action: getStakingReward,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
 	getAvgPackTimeCmd = cli.Command{
 		Name:   "getAvgPackTime",
 		Usage:  "1202,average time to query packaged blocks",
+		Before: netCheck,
 		Action: getAvgPackTime,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
@@ -95,22 +104,18 @@ var (
 )
 
 func getVerifierList(c *cli.Context) error {
-	netCheck(c)
 	return query(c, 1100)
 }
 
 func getValidatorList(c *cli.Context) error {
-	netCheck(c)
 	return query(c, 1101)
 }
 
 func getCandidateList(c *cli.Context) error {
-	netCheck(c)
 	return query(c, 1102)
 }
 
 func getRelatedListByDelAddr(c *cli.Context) error {
-	netCheck(c)
 	addstring := c.String(addFlag.Name)
 	if addstring == "" {
 		return errors.New("The Del's account address is not set")
@@ -123,7 +128,6 @@ func getRelatedListByDelAddr(c *cli.Context) error {
 }
 
 func getDelegateInfo(c *cli.Context) error {
-	netCheck(c)
 	addstring := c.String(addFlag.Name)
 	if addstring == "" {
 		return errors.New("The Del's account address is not set")
@@ -145,7 +149,6 @@ func getDelegateInfo(c *cli.Context) error {
 }
 
 func getCandidateInfo(c *cli.Context) error {
-	netCheck(c)
 	nodeIDstring := c.String(nodeIdFlag.Name)
 	if nodeIDstring == "" {
 		return errors.New("The verifier's node ID is not set")
@@ -158,16 +161,13 @@ func getCandidateInfo(c *cli.Context) error {
 }
 
 func getPackageReward(c *cli.Context) error {
-	netCheck(c)
 	return query(c, 1200)
 }
 
 func getStakingReward(c *cli.Context) error {
-	netCheck(c)
 	return query(c, 1201)
 }
 
 func getAvgPackTime(c *cli.Context) error {
-	netCheck(c)
 	return query(c, 1202)
 }

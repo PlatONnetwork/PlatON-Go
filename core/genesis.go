@@ -159,10 +159,8 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		} else {
 			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressPrefix", genesis.Config.AddressPrefix)
 		}
-		if genesis.Config.AddressPrefix != "" {
-			common.SetAddressPrefix(genesis.Config.AddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		if err := common.SetAddressPrefix(genesis.Config.AddressPrefix); err != nil {
+			return nil, common.Hash{}, err
 		}
 
 		// check EconomicModel configuration
@@ -194,25 +192,19 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 
-		if newcfg.AddressPrefix != "" {
-			common.SetAddressPrefix(newcfg.AddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		if err := common.SetAddressPrefix(newcfg.AddressPrefix); err != nil {
+			return newcfg, stored, err
 		}
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
 	if genesis == nil {
-		if storedcfg.AddressPrefix != "" {
-			common.SetAddressPrefix(storedcfg.AddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		if err := common.SetAddressPrefix(storedcfg.AddressPrefix); err != nil {
+			return newcfg, stored, err
 		}
 	} else {
-		if newcfg.AddressPrefix != "" {
-			common.SetAddressPrefix(newcfg.AddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		if err := common.SetAddressPrefix(newcfg.AddressPrefix); err != nil {
+			return newcfg, stored, err
 		}
 	}
 
@@ -292,10 +284,8 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return err
 	}
 
-	if addressPrefix != "" {
-		common.SetAddressPrefix(addressPrefix)
-	} else {
-		common.SetAddressPrefix(common.DefaultAddressPrefix)
+	if err := common.SetAddressPrefix(addressPrefix); err != nil {
+		return err
 	}
 
 	g.EconomicModel = xcom.GetEc(xcom.DefaultAlayaNet)

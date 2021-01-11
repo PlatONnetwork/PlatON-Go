@@ -40,8 +40,8 @@ update hex/bech32 address to  bech32 address.
 	},
 	Action: func(ctx *cli.Context) error {
 		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
-		if addressPrefix != "" {
-			common.SetAddressPrefix(addressPrefix)
+		if err := common.SetAddressPrefix(addressPrefix); err != nil {
+			return err
 		}
 
 		var accounts []string

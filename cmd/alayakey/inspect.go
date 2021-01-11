@@ -56,8 +56,8 @@ make sure to use this feature with great caution!`,
 	},
 	Action: func(ctx *cli.Context) error {
 		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
-		if addressPrefix != "" {
-			common.SetAddressPrefix(addressPrefix)
+		if err := common.SetAddressPrefix(addressPrefix); err != nil {
+			return err
 		}
 
 		keyfilepath := ctx.Args().First()

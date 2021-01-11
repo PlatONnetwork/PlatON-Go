@@ -13,7 +13,7 @@ var (
 		Usage: "print raw transaction",
 	}
 
-	addressPrefixFlag = cli.BoolFlag{
+	addressPrefixFlag = cli.StringFlag{
 		Name:  "addressPrefix",
 		Usage: "set address prefix",
 	}

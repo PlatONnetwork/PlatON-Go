@@ -103,8 +103,8 @@ It is possible to refer to a file containing the message.`,
 	},
 	Action: func(ctx *cli.Context) error {
 		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
-		if addressPrefix != "" {
-			common.SetAddressPrefix(addressPrefix)
+		if err := common.SetAddressPrefix(addressPrefix); err != nil {
+			return err
 		}
 		addressStr := ctx.Args().First()
 		signatureHex := ctx.Args().Get(1)

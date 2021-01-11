@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -29,9 +30,16 @@ func GetAddressPrefix() string {
 	return currentAddressPrefix
 }
 
-func SetAddressPrefix(s string) {
+func SetAddressPrefix(s string) error {
+	if s == "" {
+		s = DefaultAddressPrefix
+	}
+	if len(s) != 3 {
+		return errors.New("address prefix length must be 3")
+	}
 	log.Info("addressPrefix  has set", "prefix", s)
 	currentAddressPrefix = s
+	return nil
 }
 
 func CheckAddressPrefix(s string) bool {
