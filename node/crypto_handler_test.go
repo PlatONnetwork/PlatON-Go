@@ -27,7 +27,7 @@ var (
 	//priKey = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
 	priKey = crypto.HexMustToECDSA("8c56e4a0d8bb1f82b94231d535c499fdcbf6e06221acf669d5a964f5bb974903")
 
-	nodeID = enode.HexID("9b548369dfc1659abbef403c9b3b07a8a194040e966acd6e5b6d55aa2df7c1d8")
+	nodeID = enode.HexID("fd070d294c4348d165c0bb89ed5079841ffc3b44a6ce391418fcc6603ea2d284")
 )
 
 func initChandlerHandler() {

@@ -68,7 +68,7 @@ func (chandler *CryptoHandler) MustSign(data interface{}) []byte {
 	return sig
 }
 
-func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, nodeid enode.ID) bool {
+func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, nodeId enode.ID) bool {
 	pubKey, err := crypto.SigToPub(RlpHash(data).Bytes(), sig)
 	if err != nil {
 		log.Error("Check if the signature is signed by a node", "err", err)
@@ -76,10 +76,10 @@ func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, no
 	}
 	id := enode.PubkeyToIDV4(pubKey)
 
-	if id == nodeid {
+	if id == nodeId {
 		return true
 	}
-	log.Error("the signature is not signed by the node", "nodeID", nodeid.String())
+	log.Error("the signature is not signed by the node", "nodeID", nodeId.String())
 	return false
 }
 

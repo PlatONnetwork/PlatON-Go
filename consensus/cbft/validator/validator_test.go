@@ -180,12 +180,8 @@ func TestValidators(t *testing.T) {
 
 	assert.False(t, vds.Equal(vds3))
 
-	badNodes := make([]params.CbftNode, 0)
-	badNode := enode.MustParse("enode://111164b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
-	var sec bls.SecretKey
-	sec.SetByCSPRNG()
-	badNodes = append(badNodes, params.CbftNode{Node: *badNode, BlsPubKey: *sec.GetPublicKey()})
-	assert.Panics(t, func() { newValidators(badNodes, 0) })
+	badV4NodeStr := "enode://111164b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789"
+	assert.Panics(t, func() { enode.MustParse(badV4NodeStr) })
 }
 
 func TestStaticAgency(t *testing.T) {
