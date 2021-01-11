@@ -120,6 +120,7 @@ func (tt *TestCmd) matchExactOutput(want []byte) error {
 	n := 0
 	tt.withKillTimeout(func() { n, _ = io.ReadFull(tt.stdout, buf) })
 	buf = buf[:n]
+	tt.Log(string(buf))
 	if n < len(want) || !bytes.Equal(buf, want) {
 
 		// Grab any additional buffered output in case of mismatch

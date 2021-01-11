@@ -528,13 +528,13 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
 }
 
-func (s *PublicBlockChainAPI) GetAddressPrefix() string {
+func (s *PublicBlockChainAPI) GetAddressHrp() string {
 	stored := rawdb.ReadCanonicalHash(s.b.ChainDb(), 0)
 	chainConfig := rawdb.ReadChainConfig(s.b.ChainDb(), stored)
-	if chainConfig == nil || chainConfig.AddressPrefix == "" {
-		return common.DefaultAddressPrefix
+	if chainConfig == nil || chainConfig.AddressHRP == "" {
+		return common.DefaultAddressHRP
 	}
-	return chainConfig.AddressPrefix
+	return chainConfig.AddressHRP
 }
 
 // Result structs for GetProof

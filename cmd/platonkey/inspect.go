@@ -52,12 +52,12 @@ make sure to use this feature with great caution!`,
 			Name:  "private",
 			Usage: "include the private key in the output",
 		},
-		utils.AddressPrefixFlag,
+		utils.AddressHRPFlag,
 	},
 	Action: func(ctx *cli.Context) error {
-		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
-		if addressPrefix != "" {
-			common.SetAddressPrefix(addressPrefix)
+		hrp := ctx.String(utils.AddressHRPFlag.Name)
+		if err := common.SetAddressHRP(hrp); err != nil {
+			return err
 		}
 
 		keyfilepath := ctx.Args().First()

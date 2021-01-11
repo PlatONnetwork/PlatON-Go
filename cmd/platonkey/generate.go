@@ -55,12 +55,12 @@ If you want to encrypt an existing private key, it can be specified by setting
 			Name:  "privatekey",
 			Usage: "file containing a raw private key to encrypt",
 		},
-		utils.AddressPrefixFlag,
+		utils.AddressHRPFlag,
 	},
 	Action: func(ctx *cli.Context) error {
-		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
-		if addressPrefix != "" {
-			common.SetAddressPrefix(addressPrefix)
+		hrp := ctx.String(utils.AddressHRPFlag.Name)
+		if err := common.SetAddressHRP(hrp); err != nil {
+			return err
 		}
 
 		// Check if keyfile path given and make sure it doesn't already exist.
