@@ -157,9 +157,9 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		if genesis == nil {
 			panic("Please specify network")
 		} else {
-			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressPrefix", genesis.Config.AddressPrefix)
+			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressHRP", genesis.Config.AddressHRP)
 		}
-		if err := common.SetAddressPrefix(genesis.Config.AddressPrefix); err != nil {
+		if err := common.SetAddressHRP(genesis.Config.AddressHRP); err != nil {
 			return nil, common.Hash{}, err
 		}
 
@@ -192,18 +192,18 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 
-		if err := common.SetAddressPrefix(newcfg.AddressPrefix); err != nil {
+		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
 			return newcfg, stored, err
 		}
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
 	if genesis == nil {
-		if err := common.SetAddressPrefix(storedcfg.AddressPrefix); err != nil {
+		if err := common.SetAddressHRP(storedcfg.AddressHRP); err != nil {
 			return newcfg, stored, err
 		}
 	} else {
-		if err := common.SetAddressPrefix(newcfg.AddressPrefix); err != nil {
+		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
 			return newcfg, stored, err
 		}
 	}
@@ -248,16 +248,16 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
-func (g *Genesis) UnmarshalAddressPrefix(r io.Reader) (string, error) {
-	var genesisAddressPrefix struct {
+func (g *Genesis) UnmarshalAddressHRP(r io.Reader) (string, error) {
+	var genesisAddressHRP struct {
 		Config *struct {
-			AddressPrefix string `json:"addressPrefix"`
+			AddressHRP string `json:"addressHRP"`
 		} `json:"config"`
 	}
-	if err := json.NewDecoder(r).Decode(&genesisAddressPrefix); err != nil {
+	if err := json.NewDecoder(r).Decode(&genesisAddressHRP); err != nil {
 		return "", fmt.Errorf("invalid genesis file address prefix: %v", err)
 	}
-	return genesisAddressPrefix.Config.AddressPrefix, nil
+	return genesisAddressHRP.Config.AddressHRP, nil
 }
 
 func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
@@ -279,12 +279,12 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
 	}
 	defer file.Close()
-	addressPrefix, err := g.UnmarshalAddressPrefix(file)
+	hrp, err := g.UnmarshalAddressHRP(file)
 	if err != nil {
 		return err
 	}
 
-	if err := common.SetAddressPrefix(addressPrefix); err != nil {
+	if err := common.SetAddressHRP(hrp); err != nil {
 		return err
 	}
 
@@ -427,10 +427,10 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		}
 
 		if g.Config != nil && g.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) != 0 {
-			if g.Config.AddressPrefix != "" {
-				statedb.SetString(vm.StakingContractAddr, rawdb.AddressPrefixKey, g.Config.AddressPrefix)
+			if g.Config.AddressHRP != "" {
+				statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, g.Config.AddressHRP)
 			} else {
-				statedb.SetString(vm.StakingContractAddr, rawdb.AddressPrefixKey, common.DefaultAddressPrefix)
+				statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, common.DefaultAddressHRP)
 			}
 		}
 	}

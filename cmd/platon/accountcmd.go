@@ -76,6 +76,7 @@ Print a short summary of all accounts`,
 					utils.KeyStoreDirFlag,
 					utils.PasswordFileFlag,
 					utils.LightKDFFlag,
+					utils.AddressHRPFlag,
 				},
 				Description: `
     platon account new
@@ -257,8 +258,8 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 
 // accountCreate creates a new account into the keystore defined by the CLI flags.
 func accountCreate(ctx *cli.Context) error {
-	addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
-	if err := common.SetAddressPrefix(addressPrefix); err != nil {
+	hrp := ctx.String(utils.AddressHRPFlag.Name)
+	if err := common.SetAddressHRP(hrp); err != nil {
 		return err
 	}
 

@@ -99,11 +99,11 @@ It is possible to refer to a file containing the message.`,
 	Flags: []cli.Flag{
 		jsonFlag,
 		msgfileFlag,
-		utils.AddressPrefixFlag,
+		utils.AddressHRPFlag,
 	},
 	Action: func(ctx *cli.Context) error {
-		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
-		if err := common.SetAddressPrefix(addressPrefix); err != nil {
+		hrp := ctx.String(utils.AddressHRPFlag.Name)
+		if err := common.SetAddressHRP(hrp); err != nil {
 			return err
 		}
 		addressStr := ctx.Args().First()

@@ -203,7 +203,7 @@ func TestStaticAgency(t *testing.T) {
 }
 
 func genesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) (*types.Block, *params.ChainConfig) {
-	common.SetAddressPrefix("")
+	common.SetAddressHRP("")
 	buf, err := ioutil.ReadFile("../../../eth/downloader/testdata/platon.json")
 	if err != nil {
 		return nil, nil

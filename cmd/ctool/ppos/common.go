@@ -82,8 +82,8 @@ func funcTypeToContractAddress(funcType uint16) common.Address {
 }
 
 func netCheck(context *cli.Context) error {
-	addressPrefix := context.String(addressPrefixFlag.Name)
-	if err := common.SetAddressPrefix(addressPrefix); err != nil {
+	hrp := context.String(addressHRPFlag.Name)
+	if err := common.SetAddressHRP(hrp); err != nil {
 		return err
 	}
 	return nil
