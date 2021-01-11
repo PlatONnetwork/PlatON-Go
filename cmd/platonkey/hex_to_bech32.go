@@ -36,11 +36,11 @@ update hex/bech32 address to  bech32 address.
 	Flags: []cli.Flag{
 		jsonFlag,
 		HexAccountFileFlag,
-		utils.AddressPrefixFlag,
+		utils.AddressHRPFlag,
 	},
 	Action: func(ctx *cli.Context) error {
-		addressPrefix := ctx.String(utils.AddressPrefixFlag.Name)
-		if err := common.SetAddressHRP(addressPrefix); err != nil {
+		hrp := ctx.String(utils.AddressHRPFlag.Name)
+		if err := common.SetAddressHRP(hrp); err != nil {
 			return err
 		}
 

@@ -186,7 +186,7 @@ type TrustedCheckpoint struct {
 // set of configuration options.
 type ChainConfig struct {
 	ChainID     *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
-	AddressHRP  string   `json:"hrp"`
+	AddressHRP  string   `json:"addressHRP"`
 	EmptyBlock  string   `json:"emptyBlock"`
 	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
 	EWASMBlock  *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)

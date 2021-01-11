@@ -22,7 +22,7 @@ var (
 		Usage:  "3001,query whether the node has been reported for too many signatures,parameter:duplicateSignType,nodeid,blockNum",
 		Before: netCheck,
 		Action: checkDuplicateSign,
-		Flags: []cli.Flag{rpcUrlFlag, addressPrefixFlag,
+		Flags: []cli.Flag{rpcUrlFlag, addressHRPFlag,
 			cli.Uint64Flag{
 				Name:  "duplicateSignType",
 				Usage: "duplicateSign type,1：prepareBlock，2：prepareVote，3：viewChange",
@@ -36,7 +36,7 @@ var (
 		Usage:  "3002,query the list of nodes with zero block",
 		Before: netCheck,
 		Action: zeroProduceNodeList,
-		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
 	}
 	blockNumFlag = cli.Uint64Flag{
 		Name:  "blockNum",

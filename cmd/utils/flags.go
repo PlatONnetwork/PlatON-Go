@@ -140,9 +140,9 @@ var (
 		Name:  "testnet",
 		Usage: "Testnet network: pre-configured test network",
 	}
-	AddressPrefixFlag = cli.StringFlag{
-		Name:  "addressPrefix",
-		Usage: "set the address prefix,if not set,use default address prefix",
+	AddressHRPFlag = cli.StringFlag{
+		Name:  "addressHRP",
+		Usage: "set the address hrp,if not set,use default address hrp",
 	}
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",

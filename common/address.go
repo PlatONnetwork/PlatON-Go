@@ -90,11 +90,11 @@ func Bech32ToAddress(s string) (Address, error) {
 		return Address{}, err
 	}
 	if !CheckAddressHRP(hrpDecode) {
-		return Address{}, fmt.Errorf("the address HRP not compare right,input:%s", s)
+		return Address{}, fmt.Errorf("the address hrp not compare right,input:%s", s)
 	}
 
 	if currentAddressHRP == "" {
-		log.Warn("the address HRP not set yet", "input", s)
+		log.Warn("the address hrp not set yet", "input", s)
 	} else if currentAddressHRP != hrpDecode {
 		log.Warn("the address not compare current net", "want", currentAddressHRP, "input", s)
 	}

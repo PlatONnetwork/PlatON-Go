@@ -33,7 +33,7 @@ var (
 	headHeaderKey = []byte("LastHeader")
 
 	// chain address prefix key
-	AddressHRPKey = []byte("hrp-key-")
+	AddressHRPKey = []byte("address-hrp-key-")
 
 	// headBlockKey tracks the latest know full block's hash.
 	headBlockKey = []byte("LastBlock")

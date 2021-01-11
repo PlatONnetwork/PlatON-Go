@@ -13,8 +13,8 @@ var (
 		Usage: "print raw transaction",
 	}
 
-	addressPrefixFlag = cli.StringFlag{
-		Name:  "addressPrefix",
-		Usage: "set address prefix",
+	addressHRPFlag = cli.StringFlag{
+		Name:  "addressHRP",
+		Usage: "set address hrp",
 	}
 )

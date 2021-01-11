@@ -21,7 +21,7 @@ var (
 		Usage:  "4100,get restricting info,parameter:address",
 		Before: netCheck,
 		Action: getRestrictingInfo,
-		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, addFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, addFlag, jsonFlag},
 	}
 )
 

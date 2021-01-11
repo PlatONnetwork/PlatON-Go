@@ -156,7 +156,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			log.Info("Writing default main-net genesis block")
 			genesis = DefaultGenesisBlock()
 		} else {
-			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressPrefix", genesis.Config.AddressHRP)
+			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressHRP", genesis.Config.AddressHRP)
 		}
 		if err := common.SetAddressHRP(genesis.Config.AddressHRP); err != nil {
 			return nil, common.Hash{}, err
@@ -239,16 +239,16 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
-func (g *Genesis) UnmarshalAddressPrefix(r io.Reader) (string, error) {
-	var genesisAddressPrefix struct {
+func (g *Genesis) UnmarshalAddressHRP(r io.Reader) (string, error) {
+	var genesisAddressHRP struct {
 		Config *struct {
-			AddressPrefix string `json:"addressPrefix"`
+			AddressHRP string `json:"addressHRP"`
 		} `json:"config"`
 	}
-	if err := json.NewDecoder(r).Decode(&genesisAddressPrefix); err != nil {
-		return "", fmt.Errorf("invalid genesis file address prefix: %v", err)
+	if err := json.NewDecoder(r).Decode(&genesisAddressHRP); err != nil {
+		return "", fmt.Errorf("invalid genesis file address hrp: %v", err)
 	}
-	return genesisAddressPrefix.Config.AddressPrefix, nil
+	return genesisAddressHRP.Config.AddressHRP, nil
 }
 
 //this is only use to private chain
@@ -258,12 +258,12 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
 	}
 	defer file.Close()
-	addressPrefix, err := g.UnmarshalAddressPrefix(file)
+	hrp, err := g.UnmarshalAddressHRP(file)
 	if err != nil {
 		return err
 	}
 
-	if err := common.SetAddressHRP(addressPrefix); err != nil {
+	if err := common.SetAddressHRP(hrp); err != nil {
 		return err
 	}
 

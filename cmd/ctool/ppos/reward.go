@@ -19,7 +19,7 @@ var (
 		Usage:  "5100,query account not withdrawn commission rewards at each node,parameter:nodeList(can empty)",
 		Before: netCheck,
 		Action: getDelegateReward,
-		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, nodeList, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, nodeList, jsonFlag},
 	}
 	nodeList = cli.StringSliceFlag{
 		Name:  "nodeList",
