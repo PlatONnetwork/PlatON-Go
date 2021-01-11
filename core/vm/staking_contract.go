@@ -17,8 +17,8 @@
 package vm
 
 import (
-	"errors"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -48,27 +48,28 @@ import (
 )
 
 const (
-	TxCreateStaking     = 1000
-	TxEditorCandidate   = 1001
-	TxIncreaseStaking   = 1002
-	TxWithdrewCandidate = 1003
-	TxDelegate          = 1004
-	TxWithdrewDelegate  = 1005
-	QueryVerifierList   = 1100
-	QueryValidatorList  = 1101
-	QueryCandidateList  = 1102
-	QueryRelateList     = 1103
-	QueryDelegateInfo   = 1104
-	QueryCandidateInfo  = 1105
-	QueryHistoryVerifierList  = 1106
-	QueryHistoryValidatorList  = 1107
-	QueryNodeVersion  = 1108
-	QueryHistoryReward  = 1109
-	QueryHistorySlash = 1110
-	QueryHistoryTrans = 1111
-	GetPackageReward    = 1200
-	GetStakingReward    = 1201
-	GetAvgPackTime      = 1202
+	TxCreateStaking                = 1000
+	TxEditorCandidate              = 1001
+	TxIncreaseStaking              = 1002
+	TxWithdrewCandidate            = 1003
+	TxDelegate                     = 1004
+	TxWithdrewDelegate             = 1005
+	QueryVerifierList              = 1100
+	QueryValidatorList             = 1101
+	QueryCandidateList             = 1102
+	QueryRelateList                = 1103
+	QueryDelegateInfo              = 1104
+	QueryCandidateInfo             = 1105
+	QueryHistoryVerifierList       = 1106
+	QueryHistoryValidatorList      = 1107
+	QueryNodeVersion               = 1108
+	QueryHistoryReward             = 1109
+	QueryHistorySlash              = 1110
+	QueryHistoryTrans              = 1111
+	QueryAdjustmentStakingDelegate = 1112
+	GetPackageReward               = 1200
+	GetStakingReward               = 1201
+	GetAvgPackTime                 = 1202
 )
 
 const (
@@ -111,18 +112,19 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		TxWithdrewDelegate:  stkc.withdrewDelegate,
 
 		// Get
-		QueryVerifierList:  stkc.getVerifierList,
-		QueryValidatorList: stkc.getValidatorList,
-		QueryCandidateList: stkc.getCandidateList,
-		QueryRelateList:    stkc.getRelatedListByDelAddr,
-		QueryDelegateInfo:  stkc.getDelegateInfo,
-		QueryCandidateInfo: stkc.getCandidateInfo,
-		QueryHistoryVerifierList: stkc.getHistoryVerifierList,
-		QueryHistoryValidatorList: stkc.getHistoryValidatorList,
-		QueryNodeVersion: stkc.getNodeVersion,
-		QueryHistoryReward: stkc.getHistoryReward,
-		QueryHistorySlash: stkc.getHistorySlash,
-		QueryHistoryTrans: stkc.QueryHistoryTrans,
+		QueryVerifierList:              stkc.getVerifierList,
+		QueryValidatorList:             stkc.getValidatorList,
+		QueryCandidateList:             stkc.getCandidateList,
+		QueryRelateList:                stkc.getRelatedListByDelAddr,
+		QueryDelegateInfo:              stkc.getDelegateInfo,
+		QueryCandidateInfo:             stkc.getCandidateInfo,
+		QueryHistoryVerifierList:       stkc.getHistoryVerifierList,
+		QueryHistoryValidatorList:      stkc.getHistoryValidatorList,
+		QueryNodeVersion:               stkc.getNodeVersion,
+		QueryHistoryReward:             stkc.getHistoryReward,
+		QueryHistorySlash:              stkc.getHistorySlash,
+		QueryHistoryTrans:              stkc.QueryHistoryTrans,
+		QueryAdjustmentStakingDelegate: stkc.queryAdjustmentStakingDelegate,
 
 		GetPackageReward: stkc.getPackageReward,
 		GetStakingReward: stkc.getStakingReward,
@@ -1110,4 +1112,17 @@ func (stkc *StakingContract) getAvgPackTime() ([]byte, error) {
 		return callResultHandler(stkc.Evm, "getAvgPackTime", nil, common.InternalError.Wrap(err.Error())), nil
 	}
 	return callResultHandler(stkc.Evm, "getAvgPackTime", avgPackTime, nil), nil
+}
+
+func (stkc *StakingContract) queryAdjustmentStakingDelegate(blockNumber *big.Int) ([]byte, error) {
+	blockHash := stkc.Evm.BlockHash
+
+	adjustmentStakingDelegateData, err := stkc.Plugin.GetAdjustmentStakingDelegate(blockHash, blockNumber.Uint64())
+	if nil != err {
+		return callResultHandler(stkc.Evm, "queryAdjustmentStakingDelegate",
+			adjustmentStakingDelegateData, common.NotFound.Wrap(err.Error())), nil
+	}
+
+	return callResultHandler(stkc.Evm, "getHistorySlash",
+		adjustmentStakingDelegateData, nil), nil
 }

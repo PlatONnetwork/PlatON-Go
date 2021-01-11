@@ -19,10 +19,10 @@ package plugin
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"sort"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
@@ -61,6 +61,9 @@ func (a *FixIssue1625Plugin) fix(blockHash common.Hash, head *types.Header, stat
 	if err != nil {
 		return err
 	}
+
+	collectionList := make(staking.AdjustmentStakingDelegateQueue, 0)
+
 	for _, issue1625Account := range issue1625 {
 		restrictingKey, restrictInfo, err := rt.mustGetRestrictingInfoByDecode(state, issue1625Account.addr)
 		if err != nil {
@@ -86,12 +89,12 @@ func (a *FixIssue1625Plugin) fix(blockHash common.Hash, head *types.Header, stat
 			}
 
 			//roll back del,回滚委托
-			if err := a.rollBackDel(blockHash, head.Number, issue1625Account.addr, wrongStakingAmount, state); err != nil {
+			if err := a.rollBackDel(blockHash, head.Number, issue1625Account.addr, wrongStakingAmount, state, &collectionList); err != nil {
 				return err
 			}
 			//roll back staking,回滚质押
 			if wrongStakingAmount.Cmp(common.Big0) > 0 {
-				if err := a.rollBackStaking(blockHash, head.Number, issue1625Account.addr, wrongStakingAmount, state); err != nil {
+				if err := a.rollBackStaking(blockHash, head.Number, issue1625Account.addr, wrongStakingAmount, state, &collectionList); err != nil {
 					return err
 				}
 			}
@@ -108,10 +111,17 @@ func (a *FixIssue1625Plugin) fix(blockHash common.Hash, head *types.Header, stat
 			}
 		}
 	}
+
+	data, err := rlp.EncodeToBytes(collectionList)
+	if nil != err {
+		log.Error("wow,Failed to EncodeToBytes on slashingPlugin Confirmed When Election block", "err", err)
+	}
+	STAKING_DB.HistoryDB.Put([]byte(AdjustmentName+strconv.FormatUint(head.Number.Uint64(), 10)), data)
+
 	return nil
 }
 
-func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int, account common.Address, amount *big.Int, state xcom.StateDB) error {
+func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int, account common.Address, amount *big.Int, state xcom.StateDB, collectionList *staking.AdjustmentStakingDelegateQueue) error {
 
 	delAddrByte := account.Bytes()
 
@@ -170,7 +180,13 @@ func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int,
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 	stakingdb := staking.NewStakingDBWithDB(a.sdb)
 	for i := 0; i < len(dels); i++ {
-		if err := dels[i].handleDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb); err != nil {
+		delData := new(staking.AdjustmentStakingDelegateData)
+		delData.OptType = "delegate"
+		delData.NodeId = dels[i].nodeID
+		delData.StakingBlockNum = dels[i].stakingBlock
+		delData.Addr = account
+		*collectionList = append(*collectionList, delData)
+		if err := dels[i].handleDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb, delData); err != nil {
 			return err
 		}
 		if amount.Cmp(common.Big0) <= 0 {
@@ -180,7 +196,7 @@ func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int,
 	return nil
 }
 
-func (a *FixIssue1625Plugin) rollBackStaking(hash common.Hash, blockNumber *big.Int, account common.Address, amount *big.Int, state xcom.StateDB) error {
+func (a *FixIssue1625Plugin) rollBackStaking(hash common.Hash, blockNumber *big.Int, account common.Address, amount *big.Int, state xcom.StateDB, collectionList *staking.AdjustmentStakingDelegateQueue) error {
 
 	iter := a.sdb.Ranking(hash, staking.CanBaseKeyPrefix, 0)
 	if err := iter.Error(); nil != err {
@@ -223,7 +239,15 @@ func (a *FixIssue1625Plugin) rollBackStaking(hash common.Hash, blockNumber *big.
 
 	sort.Sort(stakings)
 	for i := 0; i < len(stakings); i++ {
-		if err := stakings[i].handleStaking(hash, blockNumber, epoch, amount, state, stakingdb); err != nil {
+
+		stakingData := new(staking.AdjustmentStakingDelegateData)
+		stakingData.OptType = "staking"
+		stakingData.NodeId = stakings[i].candidate.NodeId
+		stakingData.StakingBlockNum = stakings[i].candidate.StakingBlockNum
+		stakingData.Addr = stakings[i].candidate.StakingAddress
+		*collectionList = append(*collectionList, stakingData)
+
+		if err := stakings[i].handleStaking(hash, blockNumber, epoch, amount, state, stakingdb, stakingData); err != nil {
 			return err
 		}
 		if amount.Cmp(common.Big0) <= 0 {
@@ -250,17 +274,25 @@ type issue1625AccountStakingInfo struct {
 }
 
 //回退处于退出期的质押信息
-func (a *issue1625AccountStakingInfo) handleExistStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
+func (a *issue1625AccountStakingInfo) handelExistStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB, stakingData *staking.AdjustmentStakingDelegateData) error {
 	if a.originRestrictingAmount.Cmp(rollBackAmount) >= 0 {
 		if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, rollBackAmount, state); nil != err {
 			return err
 		}
+
+		stakingData.Hes = new(big.Int)
+		stakingData.Lock = new(big.Int).Set(rollBackAmount)
+
 		a.candidate.RestrictingPlan = new(big.Int).Sub(a.candidate.RestrictingPlan, rollBackAmount)
 		rollBackAmount.SetInt64(0)
 	} else {
 		if err := rt.ReturnWrongLockFunds(a.candidate.StakingAddress, a.originRestrictingAmount, state); nil != err {
 			return err
 		}
+
+		stakingData.Hes = new(big.Int).Set(a.candidate.RestrictingPlanHes)
+		stakingData.Lock = new(big.Int).Set(a.candidate.RestrictingPlan)
+
 		a.candidate.RestrictingPlan = new(big.Int).SetInt64(0)
 		a.candidate.RestrictingPlanHes = new(big.Int).SetInt64(0)
 		rollBackAmount.Sub(rollBackAmount, a.originRestrictingAmount)
@@ -301,12 +333,20 @@ func (a *issue1625AccountStakingInfo) calImproperRestrictingAmount(rollBackAmoun
 	return improperRestrictingAmount
 }
 
-func (a *issue1625AccountStakingInfo) fixCandidateInfo(improperRestrictingAmount *big.Int) {
+func (a *issue1625AccountStakingInfo) fixCandidateInfo(improperRestrictingAmount *big.Int, stakingData *staking.AdjustmentStakingDelegateData) {
 	//修正质押信息
 	if a.candidate.RestrictingPlanHes.Cmp(improperRestrictingAmount) >= 0 {
+
+		stakingData.Hes = new(big.Int).Set(improperRestrictingAmount)
+		stakingData.Lock = new(big.Int)
+
 		a.candidate.RestrictingPlanHes.Sub(a.candidate.RestrictingPlanHes, improperRestrictingAmount)
 	} else {
 		hes := new(big.Int).Set(a.candidate.RestrictingPlanHes)
+
+		stakingData.Hes = new(big.Int).Set(a.candidate.RestrictingPlanHes)
+		stakingData.Lock = new(big.Int).Sub(improperRestrictingAmount, hes)
+
 		a.candidate.RestrictingPlanHes = new(big.Int)
 		a.candidate.RestrictingPlan = new(big.Int).Sub(a.candidate.RestrictingPlan, new(big.Int).Sub(improperRestrictingAmount, hes))
 	}
@@ -314,7 +354,7 @@ func (a *issue1625AccountStakingInfo) fixCandidateInfo(improperRestrictingAmount
 }
 
 //减持质押
-func (a *issue1625AccountStakingInfo) decreaseStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB) error {
+func (a *issue1625AccountStakingInfo) decreaseStaking(hash common.Hash, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stakingData *staking.AdjustmentStakingDelegateData) error {
 	if err := stk.db.DelCanPowerStore(hash, a.candidate); nil != err {
 		return err
 	}
@@ -328,7 +368,7 @@ func (a *issue1625AccountStakingInfo) decreaseStaking(hash common.Hash, epoch ui
 	}
 
 	//修正质押信息
-	a.fixCandidateInfo(improperRestrictingAmount)
+	a.fixCandidateInfo(improperRestrictingAmount, stakingData)
 
 	a.candidate.StakingEpoch = uint32(epoch)
 
@@ -344,7 +384,7 @@ func (a *issue1625AccountStakingInfo) decreaseStaking(hash common.Hash, epoch ui
 }
 
 //撤销质押
-func (a *issue1625AccountStakingInfo) withdrewStaking(hash common.Hash, epoch uint64, blockNumber *big.Int, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
+func (a *issue1625AccountStakingInfo) withdrewStaking(hash common.Hash, epoch uint64, blockNumber *big.Int, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB, stakingData *staking.AdjustmentStakingDelegateData) error {
 	if err := stdb.DelCanPowerStore(hash, a.candidate); nil != err {
 		return err
 	}
@@ -358,7 +398,7 @@ func (a *issue1625AccountStakingInfo) withdrewStaking(hash common.Hash, epoch ui
 	}
 
 	//修正质押信息
-	a.fixCandidateInfo(improperRestrictingAmount)
+	a.fixCandidateInfo(improperRestrictingAmount, stakingData)
 
 	//开始解质押
 	//回退犹豫期的自由金
@@ -404,13 +444,13 @@ func (a *issue1625AccountStakingInfo) withdrewStaking(hash common.Hash, epoch ui
 	return nil
 }
 
-func (a *issue1625AccountStakingInfo) handleStaking(hash common.Hash, blockNumber *big.Int, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
+func (a *issue1625AccountStakingInfo) handleStaking(hash common.Hash, blockNumber *big.Int, epoch uint64, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB, stakingData *staking.AdjustmentStakingDelegateData) error {
 	lazyCalcStakeAmount(epoch, a.candidate.CandidateMutable)
 	log.Debug("fix issue 1625 for staking begin", "account", a.candidate.StakingAddress, "nodeID", a.candidate.NodeId.TerminalString(), "return", rollBackAmount, "restrictingPlan",
 		a.candidate.RestrictingPlan, "restrictingPlanRes", a.candidate.RestrictingPlanHes, "released", a.candidate.Released, "releasedHes", a.candidate.ReleasedHes, "share", a.candidate.Shares)
 	if a.candidate.Status.IsWithdrew() {
 		//已经解质押,节点处于退出锁定期
-		if err := a.handleExistStaking(hash, epoch, rollBackAmount, state, stdb); err != nil {
+		if err := a.handelExistStaking(hash, epoch, rollBackAmount, state, stdb, stakingData); err != nil {
 			return err
 		}
 		log.Debug("fix issue 1625 for staking end", "account", a.candidate.StakingAddress, "nodeID", a.candidate.NodeId.TerminalString(), "status", a.candidate.Status, "return",
@@ -420,12 +460,12 @@ func (a *issue1625AccountStakingInfo) handleStaking(hash common.Hash, blockNumbe
 		shouldWithdrewStaking := a.shouldWithdrewStaking(hash, blockNumber, rollBackAmount)
 		if shouldWithdrewStaking {
 			//撤销质押
-			if err := a.withdrewStaking(hash, epoch, blockNumber, rollBackAmount, state, stdb); err != nil {
+			if err := a.withdrewStaking(hash, epoch, blockNumber, rollBackAmount, state, stdb, stakingData); err != nil {
 				return err
 			}
 		} else {
 			//减持质押
-			if err := a.decreaseStaking(hash, epoch, rollBackAmount, state); err != nil {
+			if err := a.decreaseStaking(hash, epoch, rollBackAmount, state, stakingData); err != nil {
 				return err
 			}
 		}
@@ -490,7 +530,7 @@ func (a *issue1625AccountDelInfo) shouldWithdrewDel(hash common.Hash, blockNumbe
 	return true
 }
 
-func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *big.Int, epoch uint64, delAddr common.Address, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB) error {
+func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *big.Int, epoch uint64, delAddr common.Address, rollBackAmount *big.Int, state xcom.StateDB, stdb *staking.StakingDB, delData *staking.AdjustmentStakingDelegateData) error {
 	improperRestrictingAmount := new(big.Int)
 	if rollBackAmount.Cmp(a.originRestrictingAmount) >= 0 {
 		improperRestrictingAmount = new(big.Int).Set(a.originRestrictingAmount)
@@ -527,7 +567,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 	withdrewDel := a.shouldWithdrewDel(hash, blockNumber, rollBackAmount)
 	if withdrewDel {
 		//回滚错误金额
-		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
+		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state, delData); err != nil {
 			return err
 		}
 
@@ -564,7 +604,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		log.Debug("fix issue 1625 for delegate,withdrew del", "account", delAddr, "candidate", a.nodeID.String(), "income", a.del.CumulativeIncome)
 	} else {
 		//不需要解除委托
-		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
+		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state, delData); err != nil {
 			return err
 		}
 		if err := stdb.SetDelegateStore(hash, delAddr, a.nodeID, a.stakingBlock, a.del); nil != err {
@@ -595,17 +635,25 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 }
 
 //修正委托以及验证人的锁仓信息
-func (a *issue1625AccountDelInfo) fixImproperRestrictingAmountByDel(delAddr common.Address, improperRestrictingAmount *big.Int, state xcom.StateDB) error {
+func (a *issue1625AccountDelInfo) fixImproperRestrictingAmountByDel(delAddr common.Address, improperRestrictingAmount *big.Int, state xcom.StateDB, delData *staking.AdjustmentStakingDelegateData) error {
 	if err := rt.ReturnWrongLockFunds(delAddr, improperRestrictingAmount, state); nil != err {
 		return err
 	}
 	if a.del.RestrictingPlanHes.Cmp(improperRestrictingAmount) >= 0 {
+
+		delData.Hes = new(big.Int).Set(improperRestrictingAmount)
+		delData.Lock = new(big.Int)
+
 		a.del.RestrictingPlanHes.Sub(a.del.RestrictingPlanHes, improperRestrictingAmount)
 		if a.candidate.IsNotEmpty() {
 			a.candidate.DelegateTotalHes.Sub(a.candidate.DelegateTotalHes, improperRestrictingAmount)
 		}
 	} else {
 		hes := new(big.Int).Set(a.del.RestrictingPlanHes)
+
+		delData.Hes = new(big.Int).Set(a.del.RestrictingPlanHes)
+		delData.Lock = new(big.Int).Sub(improperRestrictingAmount, hes)
+
 		a.del.RestrictingPlanHes = new(big.Int)
 		a.del.RestrictingPlan = new(big.Int).Sub(a.del.RestrictingPlan, new(big.Int).Sub(improperRestrictingAmount, hes))
 		if a.candidate.IsNotEmpty() {

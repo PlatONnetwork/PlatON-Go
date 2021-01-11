@@ -580,11 +580,11 @@ type Validator struct {
 }
 
 type ValidatorSave struct {
-	ValidatorTerm   uint32 // Validator's term in the consensus round
-	NodeId          discover.NodeID
+	ValidatorTerm       uint32 // Validator's term in the consensus round
+	NodeId              discover.NodeID
 	DelegateRewardTotal *big.Int
-	DelegateTotal     *big.Int
-	StakingBlockNum uint64
+	DelegateTotal       *big.Int
+	StakingBlockNum     uint64
 }
 
 func (val *Validator) String() string {
@@ -1266,6 +1266,14 @@ type SlashNodeData struct {
 	Amount *big.Int
 }
 
+type AdjustmentStakingDelegateData struct {
+	OptType         string
+	NodeId          discover.NodeID
+	StakingBlockNum uint64
+	Addr            common.Address
+	Lock            *big.Int
+	Hes             *big.Int
+}
 
 func (s *SlashNodeItem) String() string {
 	return fmt.Sprintf(`{"nodeId": %s, "amount": %d, "slashType": %d, "benefitAddr": %s}`, s.NodeId.String(), s.Amount, s.SlashType, s.BenefitAddr)
@@ -1274,6 +1282,8 @@ func (s *SlashNodeItem) String() string {
 type SlashQueue []*SlashNodeItem
 
 type SlashNodeQueue []*SlashNodeData
+
+type AdjustmentStakingDelegateQueue []*AdjustmentStakingDelegateData
 
 func (queue SlashQueue) String() string {
 	arr := make([]string, len(queue))
@@ -1284,50 +1294,50 @@ func (queue SlashQueue) String() string {
 }
 
 type CandidateVersion struct {
-	NodeId             discover.NodeID
-	ProgramVersion     uint32
+	NodeId         discover.NodeID
+	ProgramVersion uint32
 }
 
 type Reward struct {
-	PackageReward     *big.Int
-	StakingReward     *big.Int
-	YearNum     uint32
-	YearStartNum     uint64
-	YearEndNum     uint64
-	RemainEpoch     uint32
-	AvgPackTime      uint64
+	PackageReward *big.Int
+	StakingReward *big.Int
+	YearNum       uint32
+	YearStartNum  uint64
+	YearEndNum    uint64
+	RemainEpoch   uint32
+	AvgPackTime   uint64
 }
 
 type RewardReturn struct {
-	PackageReward     *hexutil.Big
-	StakingReward     *hexutil.Big
-	YearNum     uint32
-	YearStartNum     uint64
-	YearEndNum     uint64
-	RemainEpoch     uint32
-	AvgPackTime      uint64
+	PackageReward *hexutil.Big
+	StakingReward *hexutil.Big
+	YearNum       uint32
+	YearStartNum  uint64
+	YearEndNum    uint64
+	RemainEpoch   uint32
+	AvgPackTime   uint64
 }
 
 type TransBlockReturnQueue []*TransBlockReturn
 
 type TransBlockReturn struct {
 	TxHash     string
-	From      common.Address
-	To        common.Address
-	TransDatas     []TransData
+	From       common.Address
+	To         common.Address
+	TransDatas []TransData
 }
 
 type TransBlock struct {
-	TransHashStr     []string
+	TransHashStr []string
 }
 
 type TransInput struct {
-	From      []byte
-	To        []byte
-	TransDatas     []TransData
+	From       []byte
+	To         []byte
+	TransDatas []TransData
 }
 
 type TransData struct {
-	Input     string
-	Code      string
+	Input string
+	Code  string
 }
