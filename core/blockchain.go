@@ -58,12 +58,12 @@ type CacheConfig struct {
 	TrieTimeLimit time.Duration // Time limit after which to flush the current in-memory trie to disk
 	TrieDBCache   int
 
-	BodyCacheLimit  int
-	BlockCacheLimit int
+	BodyCacheLimit     int
+	BlockCacheLimit    int
 	receiptsCacheLimit int
-	MaxFutureBlocks int
-	BadBlockLimit   int
-	TriesInMemory   int
+	MaxFutureBlocks    int
+	BadBlockLimit      int
+	TriesInMemory      int
 
 	DBDisabledGC common.AtomicBool // Whether to disable database garbage collection
 	DBGCInterval uint64            // Block interval for database garbage collection
@@ -129,12 +129,12 @@ type BlockChain struct {
 	currentBlock     atomic.Value // Current head of the block chain
 	currentFastBlock atomic.Value // Current head of the fast-sync chain (may be above the block chain!)
 
-	stateCache   state.Database // State database to reuse between imports (contains state cache)
-	bodyCache    *lru.Cache     // Cache for the most recent block bodies
-	bodyRLPCache *lru.Cache     // Cache for the most recent block bodies in RLP encoded format
+	stateCache    state.Database // State database to reuse between imports (contains state cache)
+	bodyCache     *lru.Cache     // Cache for the most recent block bodies
+	bodyRLPCache  *lru.Cache     // Cache for the most recent block bodies in RLP encoded format
 	receiptsCache *lru.Cache     // Cache for the most recent receipts per block
-	blockCache   *lru.Cache     // Cache for the most recent entire blocks
-	futureBlocks *lru.Cache     // future blocks are blocks added for later processing
+	blockCache    *lru.Cache     // Cache for the most recent entire blocks
+	futureBlocks  *lru.Cache     // future blocks are blocks added for later processing
 
 	quit    chan struct{} // blockchain quit channel
 	running int32         // running must be called atomically
@@ -159,17 +159,17 @@ type BlockChain struct {
 func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
-			TrieNodeLimit:   256 * 1024 * 1024,
-			TrieTimeLimit:   5 * time.Minute,
-			BodyCacheLimit:  256,
-			BlockCacheLimit: 256,
+			TrieNodeLimit:      256 * 1024 * 1024,
+			TrieTimeLimit:      5 * time.Minute,
+			BodyCacheLimit:     256,
+			BlockCacheLimit:    256,
 			receiptsCacheLimit: 32,
-			MaxFutureBlocks: 256,
-			BadBlockLimit:   10,
-			TriesInMemory:   128,
-			TrieDBCache:     512,
-			DBGCInterval:    86400,
-			DBGCTimeout:     time.Minute,
+			MaxFutureBlocks:    256,
+			BadBlockLimit:      10,
+			TriesInMemory:      128,
+			TrieDBCache:        512,
+			DBGCInterval:       86400,
+			DBGCTimeout:        time.Minute,
 		}
 	}
 	bodyCache, _ := lru.New(cacheConfig.BodyCacheLimit)
@@ -671,7 +671,7 @@ func (bc *BlockChain) GetReceiptsByHash(hash common.Hash) types.Receipts {
 	if number == nil {
 		return nil
 	}
-	receipts := rawdb.ReadReceipts(bc.db, hash, *number,bc.chainConfig)
+	receipts := rawdb.ReadReceipts(bc.db, hash, *number, bc.chainConfig)
 	bc.receiptsCache.Add(hash, receipts)
 	return receipts
 }
@@ -1509,6 +1509,11 @@ func (bc *BlockChain) GetHeaderByHash(hash common.Hash) *types.Header {
 // it if present.
 func (bc *BlockChain) HasHeader(hash common.Hash, number uint64) bool {
 	return bc.hc.HasHeader(hash, number)
+}
+
+// GetCanonicalHash returns the canonical hash for a given block number
+func (bc *BlockChain) GetCanonicalHash(number uint64) common.Hash {
+	return bc.hc.GetCanonicalHash(number)
 }
 
 // GetBlockHashesFromHash retrieves a number of block hashes starting at a given

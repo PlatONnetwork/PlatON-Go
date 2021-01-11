@@ -30,11 +30,12 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
+	"github.com/naoina/toml"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/naoina/toml"
 )
 
 var (
@@ -181,6 +182,11 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 
 	utils.RegisterEthService(stack, &cfg.Eth)
+
+	// Configure GraphQL if requested
+	if ctx.GlobalIsSet(utils.GraphQLEnabledFlag.Name) {
+		utils.RegisterGraphQLService(stack, cfg.Node.GraphQLEndpoint(), cfg.Node.GraphQLCors, cfg.Node.GraphQLVirtualHosts, cfg.Node.HTTPTimeouts)
+	}
 
 	// Add the Ethereum Stats daemon if requested.
 	if cfg.Ethstats.URL != "" {

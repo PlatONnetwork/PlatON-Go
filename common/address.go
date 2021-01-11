@@ -250,6 +250,24 @@ func (a *Address) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
+func (a Address) ImplementsGraphQLType(name string) bool { return name == "Address" }
+
+// UnmarshalGraphQL unmarshals the provided GraphQL query data.
+func (a *Address) UnmarshalGraphQL(input interface{}) error {
+	var err error
+	switch input := input.(type) {
+	case string:
+		add, addError := Bech32ToAddress(input)
+		if addError != nil {
+			return addError
+		}
+		*a = add
+	default:
+		err = fmt.Errorf("Unexpected type for Address: %v", input)
+	}
+	return err
+}
+
 func isString(input []byte) bool {
 	return len(input) >= 2 && input[0] == '"' && input[len(input)-1] == '"'
 }

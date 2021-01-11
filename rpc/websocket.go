@@ -31,8 +31,9 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"golang.org/x/net/websocket"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // websocketJSONCodec is a custom JSON codec with payload size enforcement and
@@ -72,13 +73,6 @@ func (srv *Server) WebsocketHandler(allowedOrigins []string) http.Handler {
 			srv.ServeCodec(NewCodec(conn, encoder, decoder), OptionMethodInvocation|OptionSubscriptions)
 		},
 	}
-}
-
-// NewWSServer creates a new websocket RPC server around an API provider.
-//
-// Deprecated: use Server.WebsocketHandler
-func NewWSServer(allowedOrigins []string, srv *Server) *http.Server {
-	return &http.Server{Handler: srv.WebsocketHandler(allowedOrigins)}
 }
 
 // wsHandshakeValidator returns a handler that verifies the origin during the
