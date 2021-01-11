@@ -137,10 +137,10 @@ func TestValidators(t *testing.T) {
 	vds := newValidators(nodes, 0)
 
 	assert.True(t, len(nodes) == vds.Len())
-	assert.Equal(t, vds.NodeID(0), nodes[0].Node.ID)
+	assert.Equal(t, vds.NodeID(0), nodes[0].Node.ID())
 
 	validator, err := vds.FindNodeByID(nodes[2].Node.ID())
-	assert.True(t, err == nil, "get node idex fail")
+	assert.True(t, err == nil, "get node index fail")
 	assert.True(t, validator.Index == 2)
 
 	pubkey := nodes[1].Node.Pubkey()
