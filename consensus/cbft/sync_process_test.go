@@ -552,6 +552,7 @@ func TestCbft_OnPong(t *testing.T) {
 			tInt64 := curTime - value*1000000 // Suppose there is a 200 millisecond delay.
 			latency := (curTime - tInt64) / 2 / 1000000
 			engine.OnPong(v.TerminalString(), latency)
+			fmt.Println("TestCbft_OnPong","latency",latency)
 		}
 		avg := engine.AvgLatency()
 		return avg

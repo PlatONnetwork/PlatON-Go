@@ -316,7 +316,8 @@ func (h *EngineManager) AliveConsensusNodeIDs() ([]string, error) {
 	target := make([]string, 0, len(peers))
 	for _, pNode := range peers {
 		for _, cNode := range cNodes {
-			if pNode.PeerID() == cNode.TerminalString() {
+			idv4 := enode.NodeIDToIDV4(cNode)
+			if pNode.PeerID() == idv4.TerminalString() {
 				target = append(target, pNode.PeerID())
 			}
 		}
