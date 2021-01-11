@@ -35,9 +35,9 @@ func SetAddressHRP(s string) error {
 		s = DefaultAddressHRP
 	}
 	if len(s) != 3 {
-		return errors.New("the length of  addressHRP  must be 3")
+		return errors.New("the length of addressHRP must be 3")
 	}
-	log.Info("address hrp  has set", "hrp", s)
+	log.Info("the address hrp has been set", "hrp", s)
 	currentAddressHRP = s
 	return nil
 }
