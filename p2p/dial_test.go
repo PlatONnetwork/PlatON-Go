@@ -625,7 +625,7 @@ func TestDialResolve(t *testing.T) {
 	dest := newNode(uintID(1), nil)
 	state.addStatic(dest)
 	tasks := state.newTasks(0, nil, time.Time{})
-	if !reflect.DeepEqual(table.resolveCalls, []*enode.Node{dest}) {
+	if !reflect.DeepEqual(tasks, []task{&dialTask{flags: staticDialedConn, dest: dest}}) {
 		t.Fatalf("expected dial task, got %#v", tasks)
 	}
 
