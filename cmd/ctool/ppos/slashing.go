@@ -20,6 +20,7 @@ var (
 	checkDuplicateSignCmd = cli.Command{
 		Name:   "checkDuplicateSign",
 		Usage:  "3001,query whether the node has been reported for too many signatures,parameter:duplicateSignType,nodeid,blockNum",
+		Before: netCheck,
 		Action: checkDuplicateSign,
 		Flags: []cli.Flag{rpcUrlFlag, addressPrefixFlag,
 			cli.Uint64Flag{
@@ -33,6 +34,7 @@ var (
 	zeroProduceNodeListCmd = cli.Command{
 		Name:   "zeroProduceNodeList",
 		Usage:  "3002,query the list of nodes with zero block",
+		Before: netCheck,
 		Action: zeroProduceNodeList,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, jsonFlag},
 	}
@@ -43,7 +45,6 @@ var (
 )
 
 func checkDuplicateSign(c *cli.Context) error {
-	netCheck(c)
 	duplicateSignType := c.Uint64("duplicateSignType")
 
 	nodeIDstring := c.String(nodeIdFlag.Name)
@@ -61,6 +62,5 @@ func checkDuplicateSign(c *cli.Context) error {
 }
 
 func zeroProduceNodeList(c *cli.Context) error {
-	netCheck(c)
 	return query(c, 3002)
 }

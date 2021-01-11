@@ -17,6 +17,7 @@ var (
 	getDelegateRewardCmd = cli.Command{
 		Name:   "getDelegateReward",
 		Usage:  "5100,query account not withdrawn commission rewards at each node,parameter:nodeList(can empty)",
+		Before: netCheck,
 		Action: getDelegateReward,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, nodeList, jsonFlag},
 	}
@@ -27,7 +28,6 @@ var (
 )
 
 func getDelegateReward(c *cli.Context) error {
-	netCheck(c)
 	nodeIDlist := c.StringSlice(nodeList.Name)
 	idlist := make([]discover.NodeID, 0)
 	for _, node := range nodeIDlist {

@@ -156,12 +156,10 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			log.Info("Writing default main-net genesis block")
 			genesis = DefaultGenesisBlock()
 		} else {
-			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressPrefix", genesis.Config.AddressPrefix)
+			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressPrefix", genesis.Config.AddressHRP)
 		}
-		if genesis.Config.AddressPrefix != "" {
-			common.SetAddressPrefix(genesis.Config.AddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		if err := common.SetAddressHRP(genesis.Config.AddressHRP); err != nil {
+			return nil, common.Hash{}, err
 		}
 
 		// check EconomicModel configuration
@@ -192,27 +190,20 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
-		rawdb.WriteChainConfig(db, stored, newcfg)
-		if newcfg.AddressPrefix != "" {
-			common.SetAddressPrefix(newcfg.AddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.DefaultAddressPrefix)
-		}
 
+		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
+			return newcfg, stored, err
+		}
+		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
-
 	if genesis == nil {
-		if storedcfg.AddressPrefix != "" {
-			common.SetAddressPrefix(storedcfg.AddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		if err := common.SetAddressHRP(storedcfg.AddressHRP); err != nil {
+			return newcfg, stored, err
 		}
 	} else {
-		if newcfg.AddressPrefix != "" {
-			common.SetAddressPrefix(newcfg.AddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.DefaultAddressPrefix)
+		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
+			return newcfg, stored, err
 		}
 	}
 
@@ -272,10 +263,8 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return err
 	}
 
-	if addressPrefix != "" {
-		common.SetAddressPrefix(addressPrefix)
-	} else {
-		common.SetAddressPrefix(common.DefaultAddressPrefix)
+	if err := common.SetAddressHRP(addressPrefix); err != nil {
+		return err
 	}
 
 	file.Seek(0, io.SeekStart)
@@ -401,10 +390,10 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		}
 	}
 	if g.Config != nil {
-		if g.Config.AddressPrefix != "" {
-			statedb.SetString(vm.StakingContractAddr, rawdb.AddressPrefixKey, g.Config.AddressPrefix)
+		if g.Config.AddressHRP != "" {
+			statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, g.Config.AddressHRP)
 		} else {
-			statedb.SetString(vm.StakingContractAddr, rawdb.AddressPrefixKey, common.DefaultAddressPrefix)
+			statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, common.DefaultAddressHRP)
 		}
 	}
 
@@ -529,7 +518,7 @@ func DefaultGenesisBlock() *Genesis {
 func DefaultTestnetGenesisBlock() *Genesis {
 
 	// TODO this should change
-	generalAddr := common.MustBech32ToAddress("lax1n8ws5exjsz0ru2f7gw7m7fcyel7c0t8v66eyfs")
+	generalAddr := common.HexToAddress("0x99DD0a64d2809e3e293E43bDbF2704cFfD87aCEC")
 	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)

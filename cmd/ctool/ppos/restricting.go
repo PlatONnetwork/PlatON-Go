@@ -19,13 +19,13 @@ var (
 	getRestrictingInfoCmd = cli.Command{
 		Name:   "getRestrictingInfo",
 		Usage:  "4100,get restricting info,parameter:address",
+		Before: netCheck,
 		Action: getRestrictingInfo,
 		Flags:  []cli.Flag{rpcUrlFlag, addressPrefixFlag, addFlag, jsonFlag},
 	}
 )
 
 func getRestrictingInfo(c *cli.Context) error {
-	netCheck(c)
 	addstring := c.String(addFlag.Name)
 	if addstring == "" {
 		return errors.New("The locked position release to the account account is not set")
