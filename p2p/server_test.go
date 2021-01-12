@@ -418,7 +418,7 @@ func TestServerAtCap(t *testing.T) {
 	}
 
 	// Add anotherID to trusted set and try again
-	srv.RemoveTrustedPeer(newNode(trustedID, nil))
+	srv.AddTrustedPeer(newNode(anotherID, nil))
 	c = newconn(anotherID)
 	if err := srv.checkpoint(c, srv.checkpointPostHandshake); err != nil {
 		t.Error("unexpected error for trusted conn @posthandshake:", err)
@@ -429,7 +429,7 @@ func TestServerAtCap(t *testing.T) {
 
 	// Try inserting a consensus connection.
 	consensusID := randomID()
-	srv.AddTrustedPeer(newNode(anotherID, nil))
+	srv.AddConsensusPeer(newNode(consensusID, nil))
 	c = newconn(consensusID)
 	if err := srv.checkpoint(c, srv.checkpointPostHandshake); err != nil {
 		t.Error("unexpected error for consensus conn @posthandshake:", err)
