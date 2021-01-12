@@ -317,7 +317,7 @@ func TestInnerAgency(t *testing.T) {
 	assert.True(t, newVds.ValidBlockNumber == 81)
 
 	id3 := newVds.NodeID(3)
-	assert.Equal(t, id3, vmVds.ValidateNodes[3].NodeID)
+	assert.Equal(t, id3, enode.NodeIDToIDV4(vmVds.ValidateNodes[3].NodeID))
 	assert.True(t, agency.GetLastNumber(81) == 120)
 
 	assert.True(t, agency.Sign(nil) == nil)
