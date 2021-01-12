@@ -427,14 +427,14 @@ func TestValidatorPool(t *testing.T) {
 
 	node, err := validatorPool.GetValidatorByNodeID(0, nodes[0].Node.ID())
 	assert.Nil(t, err)
-	assert.Equal(t, node.NodeID, nodes[0].Node.ID)
+	assert.Equal(t, enode.NodeIDToIDV4(node.NodeID), nodes[0].Node.ID())
 
 	_, err = validatorPool.GetValidatorByNodeID(0, enode.ID{})
 	assert.Equal(t, err, errors.New("not found the node"))
 
 	node, err = validatorPool.GetValidatorByIndex(0, 1)
 	assert.Nil(t, err)
-	assert.Equal(t, node.NodeID, nodes[1].Node.ID)
+	assert.Equal(t, node.ID, nodes[1].Node.ID())
 
 	_, err = validatorPool.GetValidatorByIndex(0, 5)
 	assert.Equal(t, err, errors.New("not found the specified validator"))
@@ -446,13 +446,13 @@ func TestValidatorPool(t *testing.T) {
 	assert.Equal(t, node.ID, node0.ID)
 
 	_, err = validatorPool.GetValidatorById(0, enode.ID{})
-	assert.Equal(t, err, errors.New("invalid address"))
+	assert.Equal(t, err, errors.New("invalid ID"))
 
 	nodeID := validatorPool.GetNodeIDByIndex(0, 4)
 	assert.Equal(t, nodeID, enode.ID{})
 
 	nodeID = validatorPool.GetNodeIDByIndex(0, 0)
-	assert.Equal(t, nodeID, nodes[0].Node.ID)
+	assert.Equal(t, nodeID, nodes[0].Node.ID())
 
 	index, err := validatorPool.GetIndexByNodeID(0, nodeID)
 	assert.Nil(t, err)
