@@ -325,12 +325,6 @@ func DeclareVersion(from common.Address, declaredNodeID enode.ID, declaredVersio
 func checkVerifier(from common.Address, nodeID enode.ID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 
-	_, err := xutil.NodeId2Addr(nodeID)
-	if nil != err {
-		log.Error("parse nodeID error", "err", err)
-		return err
-	}
-
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
 		log.Error("list verifiers error", "blockHash", blockHash, "err", err)

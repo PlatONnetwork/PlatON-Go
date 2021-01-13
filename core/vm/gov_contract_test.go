@@ -100,7 +100,7 @@ func buildSubmitTextInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[1])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[1]))) // param 1 ...
 	input = append(input, common.MustRlpEncode("textUrl"))
 
 	return common.MustRlpEncode(input)
@@ -132,7 +132,7 @@ func buildSubmitVersionInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2001))) // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[0]))) // param 1 ...
 	input = append(input, common.MustRlpEncode("verionPIPID"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
 	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())))
@@ -156,7 +156,7 @@ func buildSubmitCancelInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ..
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[0]))) // param 1 ..
 	input = append(input, common.MustRlpEncode("cancelPIPID"))
 	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1))
 	input = append(input, common.MustRlpEncode(defaultProposalID))
@@ -178,7 +178,7 @@ func buildVoteInput(nodeIdx int, proposalID common.Hash) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2003)))       // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[nodeIdx])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[nodeIdx]))) // param 1 ...
 	input = append(input, common.MustRlpEncode(proposalID))
 	input = append(input, common.MustRlpEncode(uint8(1)))
 	input = append(input, common.MustRlpEncode(promoteVersion))
@@ -191,7 +191,7 @@ func buildVote(nodeIdx int, proposalID common.Hash, option gov.VoteOption, progr
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2003)))       // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[nodeIdx])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[nodeIdx]))) // param 1 ...
 	input = append(input, common.MustRlpEncode(proposalID))
 	input = append(input, common.MustRlpEncode(option))
 	input = append(input, common.MustRlpEncode(programVersion))
@@ -204,7 +204,7 @@ func buildDeclareInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2004))) // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[0]))) // param 1 ...
 	input = append(input, common.MustRlpEncode(promoteVersion))
 	input = append(input, common.MustRlpEncode(versionSign))
 	return common.MustRlpEncode(input)
@@ -1280,7 +1280,7 @@ func TestGovContract_SubmitText_NotPassed_SamePIPID_Allowed(t *testing.T) {
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	} else {
-		assert.Equal(t, nodeIdArr[2], p.GetProposer())
+		assert.Equal(t, enode.NodeIDToIDV4(nodeIdArr[2]), p.GetProposer())
 	}
 
 }
