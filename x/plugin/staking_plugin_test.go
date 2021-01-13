@@ -365,6 +365,7 @@ func create_staking(state xcom.StateDB, blockNumber *big.Int, blockHash common.H
 	}
 
 	canBase := &staking.CandidateBase{
+		ID:              enode.NodeIDToIDV4(nodeIdArr[index]),
 		NodeId:          nodeIdArr[index],
 		BlsPubKey:       blsKeyHex,
 		StakingAddress:  sender,

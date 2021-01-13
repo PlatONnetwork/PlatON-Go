@@ -18,6 +18,7 @@ package byteutil
 
 import (
 	"encoding/hex"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 
@@ -42,20 +43,22 @@ var Bytes2X_CMD = map[string]interface{}{
 	"uint32":  BytesToUint32,
 	"uint64":  BytesToUint64,
 
-	"*big.Int":              BytesToBigInt,
-	"[]*big.Int":            BytesToBigIntArr,
-	"enode.ID":       BytesToNodeId,
-	"[]enode.ID":     BytesToNodeIdArr,
-	"common.Hash":           BytesToHash,
-	"[]common.Hash":         BytesToHashArr,
-	"common.Address":        BytesToAddress,
-	"*common.Address":       BytesToAddressPoint,
-	"[]common.Address":      BytesToAddressArr,
-	"common.VersionSign":    BytesToVersionSign,
-	"[]common.VersionSign":  BytesToVersionSignArr,
-	"bls.PublicKeyHex":      BytesToPublicKeyHex,
-	"[]bls.PublicKeyHex":    BytesToPublicKeyHexArr,
-	"bls.SchnorrProofHex":   BytesToSchnorrProofHex,
+	"*big.Int":             BytesToBigInt,
+	"[]*big.Int":           BytesToBigIntArr,
+	"enode.ID":             BytesToEnodeId,
+	"[]enode.ID":           BytesToEnodeIdArr,
+	"discv5.NodeID":        BytesToNodeId,
+	"[]discv5.NodeID":      BytesToNodeIdArr,
+	"common.Hash":          BytesToHash,
+	"[]common.Hash":        BytesToHashArr,
+	"common.Address":       BytesToAddress,
+	"*common.Address":      BytesToAddressPoint,
+	"[]common.Address":     BytesToAddressArr,
+	"common.VersionSign":   BytesToVersionSign,
+	"[]common.VersionSign": BytesToVersionSignArr,
+	"bls.PublicKeyHex":     BytesToPublicKeyHex,
+	"[]bls.PublicKeyHex":   BytesToPublicKeyHexArr,
+	"bls.SchnorrProofHex":  BytesToSchnorrProofHex,
 	"[]bls.SchnorrProofHex": BytesToSchnorrProofHexArr,
 
 	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
@@ -185,22 +188,37 @@ func BytesToBigIntArr(curByte []byte) []*big.Int {
 	return arr
 }
 
-func BytesToNodeId(curByte []byte) enode.ID {
+func BytesToEnodeId(curByte []byte) enode.ID {
 	var nodeId enode.ID
+	if err := rlp.DecodeBytes(curByte, &nodeId); nil != err {
+		panic("BytesToEnodeId:" + err.Error())
+	}
+	return nodeId
+}
+
+func BytesToEnodeIdArr(curByte []byte) []enode.ID {
+	var nodeIdArr []enode.ID
+	if err := rlp.DecodeBytes(curByte, &nodeIdArr); nil != err {
+		panic("BytesToEnodeIdArr:" + err.Error())
+	}
+	return nodeIdArr
+}
+
+func BytesToNodeId(curByte []byte) discv5.NodeID {
+	var nodeId discv5.NodeID
 	if err := rlp.DecodeBytes(curByte, &nodeId); nil != err {
 		panic("BytesToNodeId:" + err.Error())
 	}
 	return nodeId
 }
 
-func BytesToNodeIdArr(curByte []byte) []enode.ID {
-	var nodeIdArr []enode.ID
+func BytesToNodeIdArr(curByte []byte) []discv5.NodeID {
+	var nodeIdArr []discv5.NodeID
 	if err := rlp.DecodeBytes(curByte, &nodeIdArr); nil != err {
 		panic("BytesToNodeIdArr:" + err.Error())
 	}
 	return nodeIdArr
 }
-
 func BytesToHash(curByte []byte) common.Hash {
 	//str := BytesToString(curByte)
 	//return common.HexToHash(str)

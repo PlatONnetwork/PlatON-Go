@@ -1065,7 +1065,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1005))
 	stakingBlockNum, _ := rlp.EncodeToBytes(blockNumber.Uint64())
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	nodeId, _ := rlp.EncodeToBytes(enode.NodeIDToIDV4(nodeIdArr[index]))
 	withdrewAmount, _ := new(big.Int).SetString(balanceStr[index], 10)
 	amount, _ := rlp.EncodeToBytes(withdrewAmount)
 
@@ -1337,7 +1337,7 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	fnType, _ := rlp.EncodeToBytes(uint16(1104))
 	stakingBlockNum, _ := rlp.EncodeToBytes(blockNumber.Uint64())
 	delAddr, _ := rlp.EncodeToBytes(delegateSender)
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	nodeId, _ := rlp.EncodeToBytes(enode.NodeIDToIDV4(nodeIdArr[index]))
 
 	params = append(params, fnType)
 	params = append(params, stakingBlockNum)

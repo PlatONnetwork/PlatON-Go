@@ -362,6 +362,7 @@ func build_staking_data(genesisHash common.Hash) {
 	}
 	c1 := &staking.Candidate{
 		CandidateBase: &staking.CandidateBase{
+			ID:              id_A,
 			NodeId:          nodeId_A,
 			BlsPubKey:       blsKeyHex1,
 			StakingAddress:  sender,
@@ -399,6 +400,7 @@ func build_staking_data(genesisHash common.Hash) {
 	}
 	c2 := &staking.Candidate{
 		CandidateBase: &staking.CandidateBase{
+			ID:              id_B,
 			NodeId:          nodeId_B,
 			BlsPubKey:       blsKeyHex2,
 			StakingAddress:  sender,
@@ -436,6 +438,7 @@ func build_staking_data(genesisHash common.Hash) {
 	}
 	c3 := &staking.Candidate{
 		CandidateBase: &staking.CandidateBase{
+			ID:              id_C,
 			NodeId:          nodeId_C,
 			BlsPubKey:       blsKeyHex3,
 			StakingAddress:  sender,

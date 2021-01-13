@@ -100,7 +100,7 @@ func TestBytesToNodeId(t *testing.T) {
 	nodeID := enode.PubkeyToIDV4(&ecdsaKey.PublicKey)
 	data, err := rlp.EncodeToBytes(nodeID)
 	assert.Nil(t, err)
-	dnodeID := BytesToNodeId(data)
+	dnodeID := BytesToEnodeId(data)
 	assert.Equal(t, nodeID, dnodeID)
 	assert.NotNil(t, PrintNodeID(dnodeID))
 }
@@ -114,7 +114,7 @@ func TestBytesToNodeIdArr(t *testing.T) {
 	}
 	data, err := rlp.EncodeToBytes(nodeIdArr)
 	assert.Nil(t, err)
-	dnodeIdArr := BytesToNodeIdArr(data)
+	dnodeIdArr := BytesToEnodeIdArr(data)
 	assert.Equal(t, len(nodeIdArr), len(dnodeIdArr))
 	for i := 0; i < 3; i++ {
 		assert.Equal(t, nodeIdArr[i], dnodeIdArr[i])

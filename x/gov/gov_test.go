@@ -329,7 +329,7 @@ func TestGov_Vote(t *testing.T) {
 		t.Error("ListAccuVerifier, err", err)
 	} else {
 		assert.Equal(t, 1, len(avList))
-		assert.Equal(t, nodeID, avList[0])
+		assert.Equal(t, ID, avList[0])
 	}
 }
 
@@ -407,7 +407,7 @@ func TestGov_DeclareVersion_3(t *testing.T) {
 			t.Error("DeclareVersion, err", err)
 		} else {
 			assert.Equal(t, 1, len(anList))
-			assert.Equal(t, nodeID, anList[0])
+			assert.Equal(t, ID, anList[0])
 		}
 
 	}

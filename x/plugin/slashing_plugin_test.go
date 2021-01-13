@@ -411,7 +411,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0x94ac820f54471ae9a32342f8a86e516944ec333a717241428ed997c4d3c1c8e3",
            "validateNode": {
             "index": 0,
-            "nodeId": "c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1",
+            "nodeId": "dfed9108e180d0046e8b0f1485396cdef1d2800c621361437c2439c59c934038",
             "blsPubKey": "f9b5e5b333418f5f6cb23ad092d2321c49a6fc17dfa2e5899a0fa0a6ab96bc44482552c9149f5909ec7772a902094401912576fdd78497bf57399c711566284ae2f5db3f8e611ac21dbc53cf7c1ff881ab760c0f1e5954b9cd2602b98007ef05"
            },
            "signature": "0xcd01a6ed0ee36d346fc0cf2eaa0151b775e22ffd97a8c9c5fada22f43deee2940776a3da82e2ba9ea4499037c4a3321200000000000000000000000000000000"
@@ -425,7 +425,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0xc789252723b04c60fc4566abefa23aa4e9ef18d9b4ebd1b083a564700cbb8891",
            "validateNode": {
             "index": 0,
-            "nodeId": "c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1",
+            "nodeId": "dfed9108e180d0046e8b0f1485396cdef1d2800c621361437c2439c59c934038",
             "blsPubKey": "f9b5e5b333418f5f6cb23ad092d2321c49a6fc17dfa2e5899a0fa0a6ab96bc44482552c9149f5909ec7772a902094401912576fdd78497bf57399c711566284ae2f5db3f8e611ac21dbc53cf7c1ff881ab760c0f1e5954b9cd2602b98007ef05"
            },
            "signature": "0x06ebc53e4227a89c6a7f2adf978436cb829fbc47d4e6189569fb240a2c8c1f0a2b3b63fdbf905aaa3f1ffe7b0b4d7e8e00000000000000000000000000000000"
@@ -442,7 +442,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
            "validateNode": {
             "index": 0,
-            "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+            "nodeId": "58154717ef8523eef84c89a4195667cdefcad94c521bdff0bf85079761e0f8f3",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
            "signature": "0x36015fee15253487e8125b86505377d8540b1a95d1a6b13f714baa55b12bd06ec7d5755a98230cdc88858470afa8cb0000000000000000000000000000000000"
@@ -456,7 +456,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
            "validateNode": {
             "index": 0,
-            "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+            "nodeId": "58154717ef8523eef84c89a4195667cdefcad94c521bdff0bf85079761e0f8f3",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
            "signature": "0x783892b9b766f9f4c2a1d45b1fd53ca9ea56a82e38a998939edc17bc7fd756267d3c145c03bc6c1412302cf590645d8200000000000000000000000000000000"
@@ -473,7 +473,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
            "validateNode": {
             "index": 0,
-            "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+            "nodeId": "58154717ef8523eef84c89a4195667cdefcad94c521bdff0bf85079761e0f8f3",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
            "signature": "0x36015fee15253487e8125b86505377d8540b1a95d1a6b13f714baa55b12bd06ec7d5755a98230cdc88858470afa8cb0000000000000000000000000000000000"
@@ -487,7 +487,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
            "validateNode": {
             "index": 0,
-            "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+            "nodeId": "58154717ef8523eef84c89a4195667cdefcad94c521bdff0bf85079761e0f8f3",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
            "signature": "0x783892b9b766f9f4c2a1d45b1fd53ca9ea56a82e38a998939edc17bc7fd756267d3c145c03bc6c1412302cf590645d8200000000000000000000000000000000"
@@ -547,7 +547,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := si.Slash(normalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender); nil != err {
 		t.Fatal(err)
 	}
-	slashNodeId := enode.HexID("57865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1")
+	slashNodeId := enode.HexID("dfed9108e180d0046e8b0f1485396cdef1d2800c621361437c2439c59c934038")
 	if value, err := si.CheckDuplicateSign(slashNodeId, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Fatal(err)
 	}
@@ -878,7 +878,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		CountBit: 1,
 		Round:    4,
 	}
-	expectMap[id4] = &WaitSlashingNode{
+	expectMap[id5] = &WaitSlashingNode{
 		CountBit: 7, // 111
 		Round:    4,
 	}
