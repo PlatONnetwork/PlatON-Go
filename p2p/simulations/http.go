@@ -709,18 +709,18 @@ func (s *Server) wrapHandler(handler http.HandlerFunc) httprouter.Handle {
 		ctx := context.Background()
 
 		if id := params.ByName("nodeid"); id != "" {
-			var peerID enode.ID
-			var peer *Node
-			if peerID.UnmarshalText([]byte(id)) == nil {
-				peer = s.network.GetNode(peerID)
+			var nodeID enode.ID
+			var node *Node
+			if nodeID.UnmarshalText([]byte(id)) == nil {
+				node = s.network.GetNode(nodeID)
 			} else {
-				peer = s.network.GetNodeByName(id)
+				node = s.network.GetNodeByName(id)
 			}
-			if peer == nil {
+			if node == nil {
 				http.NotFound(w, req)
 				return
 			}
-			ctx = context.WithValue(ctx, "peer", peer)
+			ctx = context.WithValue(ctx, "node", node)
 		}
 
 		if id := params.ByName("peerid"); id != "" {
