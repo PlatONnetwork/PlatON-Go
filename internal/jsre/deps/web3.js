@@ -1871,29 +1871,12 @@ var ETH_UNITS = [
     'kvon',
     'Mvon',
     'Gvon',
-    'szabo',
-    'finney',
-    'femtolat',
-    'picolat',
-    'nanolat',
-    'microlat',
-    'millilat',
-    'nano',
-    'micro',
-    'milli',
-    'lat',
-    'grand',
-    'Mlat',
-    'Glat',
-    'Tlat',
-    'Plat',
-    'Elat',
-    'Zlat',
-    'Ylat',
-    'Nlat',
-    'Dlat',
-    'Vlat',
-    'Ulat'
+    'Tvon',
+    'Pvon',
+    'KPvon',
+    'MPvon',
+    'GPvon',
+    'TPvon'
 ];
 
 module.exports = {
@@ -2129,33 +2112,25 @@ var utf8 = require('utf8');
 var segwit_addr = require('./segwit_addr.js');
 
 var unitMap = {
-    'noatp':      	'0',
     'von':          '1',
     'kvon':         '1000',
     'Kvon':         '1000',
-    'babbage':      '1000',
-    'femtoatp':   	'1000',
     'mvon':         '1000000',
     'Mvon':         '1000000',
-    'lovelace':     '1000000',
-    'picoatp':    	'1000000',
     'gvon':         '1000000000',
     'Gvon':         '1000000000',
-    'shannon':      '1000000000',
-    'nanoatp':    	'1000000000',
-    'nano':         '1000000000',
-    'szabo':        '1000000000000',
-    'microatp':   	'1000000000000',
-    'micro':        '1000000000000',
-    'finney':       '1000000000000000',
-    'milliatp':   	'1000000000000000',
-    'milli':        '1000000000000000',
-    'atp':        	'1000000000000000000',
-    'katp':       	'1000000000000000000000',
-    'grand':        '1000000000000000000000',
-    'matp':       	'1000000000000000000000000',
-    'gatp':       	'1000000000000000000000000000',
-    'tatp':       	'1000000000000000000000000000000'
+    'tvon':         '1000000000000',
+    'Tvon':         '1000000000000',
+    'pvon':         '1000000000000000',
+    'Pvon':         '1000000000000000',
+    'kpvon':         '1000000000000000000',
+    'KPvon':         '1000000000000000000',
+    'mpvon':         '1000000000000000000000',
+    'MPvon':         '1000000000000000000000',
+    'gpvon':         '1000000000000000000000000',
+    'GPvon':         '1000000000000000000000000',
+    'tpvon':         '1000000000000000000000000000',
+    'TPvon':         '1000000000000000000000000000'
 };
 
 /**
@@ -2382,12 +2357,12 @@ var toHex = function (val) {
  * Returns value of unit in von
  *
  * @method getValueOfUnit
- * @param {String} unit the unit to convert to, default atp
+ * @param {String} unit the unit to convert to, default kpvon
  * @returns {BigNumber} value of the unit (in von)
  * @throws error if the unit is not correct:w
  */
 var getValueOfUnit = function (unit) {
-    unit = unit ? unit.toLowerCase() : 'atp';
+    unit = unit ? unit.toLowerCase() : 'kpvon';
     var unitValue = unitMap[unit];
     if (unitValue === undefined) {
         throw new Error('This unit doesn\'t exists, please use the one of the following units' + JSON.stringify(unitMap, null, 2));
@@ -2396,24 +2371,24 @@ var getValueOfUnit = function (unit) {
 };
 
 /**
- * Takes a number of von and converts it to any other atp unit.
+ * Takes a number of von and converts it to any other lat unit.
  *
  * Possible units are:
  *   SI Short   SI Full        Effigy       Other
- * - kvon       femtoatp     babbage
- * - mvon       picoatp      lovelace
- * - gvon       nanoatp      shannon      nano
- * - --         microatp     szabo        micro
- * - --         milliatp     finney       milli
- * - atp      --             --
- * - katp                    --           grand
- * - matp
- * - gatp
- * - tatp
+ * - kvon       femtolat     babbage
+ * - mvon       picolat      lovelace
+ * - gvon       nanolat      shannon      nano
+ * - --         microlat     szabo        micro
+ * - --         millilat     finney       milli
+ * - lat      --             --
+ * - klat                    --           grand
+ * - mlat
+ * - glat
+ * - tlat
  *
  * @method fromVon
  * @param {Number|String} number can be a number, number string or a HEX of a decimal
- * @param {String} unit the unit to convert to, default atp
+ * @param {String} unit the unit to convert to, default lat
  * @return {String|Object} When given a BigNumber object it returns one as well, otherwise a number
 */
 var fromVon = function(number, unit) {
@@ -2427,20 +2402,20 @@ var fromVon = function(number, unit) {
  *
  * Possible units are:
  *   SI Short   SI Full        Effigy       Other
- * - kvon       femtoatp     babbage
- * - mvon       picoatp      lovelace
- * - gvon       nanoatp      shannon      nano
- * - --         microatp     szabo        micro
- * - --         milliatp     finney       milli
- * - atp      --             --
- * - katp                    --           grand
- * - matp
- * - gatp
- * - tatp
+ * - kvon       femtolat     babbage
+ * - mvon       picolat      lovelace
+ * - gvon       nanolat      shannon      nano
+ * - --         microlat     szabo        micro
+ * - --         millilat     finney       milli
+ * - lat      --             --
+ * - klat                    --           grand
+ * - mlat
+ * - glat
+ * - tlat
  *
  * @method toVon
  * @param {Number|String|BigNumber} number can be a number, number string or a HEX of a decimal
- * @param {String} unit the unit to convert from, default atp
+ * @param {String} unit the unit to convert from, default lat
  * @return {String|Object} When given a BigNumber object it returns one as well, otherwise a number
 */
 var toVon = function(number, unit) {
@@ -5584,6 +5559,11 @@ Object.defineProperty(Eth.prototype, 'defaultAccount', {
 });
 
 var methods = function () {
+    var getAddressHrp = new Method({
+        name: 'getAddressHrp',
+        call: 'platon_getAddressHrp',
+        params: 0,
+    });
 
     var getBalance = new Method({
         name: 'getBalance',
@@ -5709,6 +5689,7 @@ var methods = function () {
     });
 
     return [
+        getAddressHrp,
         getBalance,
         getStorageAt,
         getCode,
