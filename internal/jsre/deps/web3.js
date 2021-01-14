@@ -1871,12 +1871,29 @@ var ETH_UNITS = [
     'kvon',
     'Mvon',
     'Gvon',
-    'Tvon',
-    'Pvon',
-    'KPvon',
-    'MPvon',
-    'GPvon',
-    'TPvon'
+    'szabo',
+    'finney',
+    'femtolat',
+    'picolat',
+    'nanolat',
+    'microlat',
+    'millilat',
+    'nano',
+    'micro',
+    'milli',
+    'lat',
+    'grand',
+    'Mlat',
+    'Glat',
+    'Tlat',
+    'Plat',
+    'Elat',
+    'Zlat',
+    'Ylat',
+    'Nlat',
+    'Dlat',
+    'Vlat',
+    'Ulat'
 ];
 
 module.exports = {
@@ -2112,25 +2129,33 @@ var utf8 = require('utf8');
 var segwit_addr = require('./segwit_addr.js');
 
 var unitMap = {
+    'nolat':      '0',
     'von':          '1',
     'kvon':         '1000',
     'Kvon':         '1000',
+    'babbage':      '1000',
+    'femtolat':   '1000',
     'mvon':         '1000000',
     'Mvon':         '1000000',
+    'lovelace':     '1000000',
+    'picolat':    '1000000',
     'gvon':         '1000000000',
     'Gvon':         '1000000000',
-    'tvon':         '1000000000000',
-    'Tvon':         '1000000000000',
-    'pvon':         '1000000000000000',
-    'Pvon':         '1000000000000000',
-    'kpvon':         '1000000000000000000',
-    'KPvon':         '1000000000000000000',
-    'mpvon':         '1000000000000000000000',
-    'MPvon':         '1000000000000000000000',
-    'gpvon':         '1000000000000000000000000',
-    'GPvon':         '1000000000000000000000000',
-    'tpvon':         '1000000000000000000000000000',
-    'TPvon':         '1000000000000000000000000000'
+    'shannon':      '1000000000',
+    'nanolat':    '1000000000',
+    'nano':         '1000000000',
+    'szabo':        '1000000000000',
+    'microlat':   '1000000000000',
+    'micro':        '1000000000000',
+    'finney':       '1000000000000000',
+    'millilat':   '1000000000000000',
+    'milli':        '1000000000000000',
+    'lat':        '1000000000000000000',
+    'klat':       '1000000000000000000000',
+    'grand':        '1000000000000000000000',
+    'mlat':       '1000000000000000000000000',
+    'glat':       '1000000000000000000000000000',
+    'tlat':       '1000000000000000000000000000000'
 };
 
 /**
@@ -2357,12 +2382,12 @@ var toHex = function (val) {
  * Returns value of unit in von
  *
  * @method getValueOfUnit
- * @param {String} unit the unit to convert to, default kpvon
+ * @param {String} unit the unit to convert to, default lat
  * @returns {BigNumber} value of the unit (in von)
  * @throws error if the unit is not correct:w
  */
 var getValueOfUnit = function (unit) {
-    unit = unit ? unit.toLowerCase() : 'kpvon';
+    unit = unit ? unit.toLowerCase() : 'lat';
     var unitValue = unitMap[unit];
     if (unitValue === undefined) {
         throw new Error('This unit doesn\'t exists, please use the one of the following units' + JSON.stringify(unitMap, null, 2));
