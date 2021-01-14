@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"reflect"
 	"sync"
 	"time"
 
@@ -268,13 +267,6 @@ func ListenV4(c UDPConn, ln *enode.LocalNode, cfg Config) (*UDPv4, error) {
 		addReplyMatcher: make(chan *replyMatcher),
 		log:             cfg.Log,
 	}
-
-	if cfg.ChainID != nil {
-		bytes_ChainId, _ := rlp.EncodeToBytes(cfg.ChainID)
-		log.Info("UDP listener up", "chainId", cfg.ChainID, "bytes_ChainId", bytes_ChainId)
-		cRest = []rlp.RawValue{bytes_ChainId, bytes_ChainId}
-	}
-
 	if t.log == nil {
 		t.log = log.Root()
 	}
@@ -531,7 +523,6 @@ func (t *UDPv4) findnode(toid enode.ID, toaddr *net.UDPAddr, target encPubkey) (
 	t.send(toaddr, toid, &findnodeV4{
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Rest:       cRest,
 	})
 	return nodes, <-rm.errc
 }
@@ -901,11 +892,6 @@ func (req *pingV4) preverify(t *UDPv4, from *net.UDPAddr, fromID enode.ID, fromK
 func (req *pingV4) handle(t *UDPv4, from *net.UDPAddr, fromID enode.ID, mac []byte) {
 	// Reply.
 	seq, _ := rlp.EncodeToBytes(t.localNode.Node().Seq())
-
-	if !reflect.DeepEqual(req.Rest, cRest) {
-		return
-	}
-
 	t.send(from, fromID, &pongV4{
 		To:         makeEndpoint(from, req.From.TCP),
 		ReplyTok:   mac,
@@ -944,9 +930,6 @@ func (req *pongV4) preverify(t *UDPv4, from *net.UDPAddr, fromID enode.ID, fromK
 }
 
 func (req *pongV4) handle(t *UDPv4, from *net.UDPAddr, fromID enode.ID, mac []byte) {
-	if !reflect.DeepEqual(req.Rest, cRest) {
-		return
-	}
 	t.localNode.UDPEndpointStatement(from, &net.UDPAddr{IP: req.To.IP, Port: int(req.To.UDP)})
 	t.db.UpdateLastPongReceived(fromID, from.IP, time.Now())
 }
@@ -973,9 +956,6 @@ func (req *findnodeV4) preverify(t *UDPv4, from *net.UDPAddr, fromID enode.ID, f
 }
 
 func (req *findnodeV4) handle(t *UDPv4, from *net.UDPAddr, fromID enode.ID, mac []byte) {
-	if !reflect.DeepEqual(req.Rest, cRest) {
-		return
-	}
 	// Determine closest nodes.
 	target := enode.ID(crypto.Keccak256Hash(req.Target[:]))
 	t.tab.mutex.Lock()
@@ -984,10 +964,7 @@ func (req *findnodeV4) handle(t *UDPv4, from *net.UDPAddr, fromID enode.ID, mac 
 
 	// Send neighbors in chunks with at most maxNeighbors per packet
 	// to stay below the packet size limit.
-	p := neighborsV4{
-		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Rest:       cRest,
-	}
+	p := neighborsV4{Expiration: uint64(time.Now().Add(expiration).Unix())}
 	var sent bool
 	for _, n := range closest {
 		if netutil.CheckRelayIP(from.IP, n.IP()) == nil {

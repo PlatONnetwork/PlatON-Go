@@ -39,7 +39,7 @@ var parseNodeTests = []struct {
 			testKey, _ := crypto.HexToECDSA("45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")
 			var r enr.Record
 			r.Set(enr.IP{127, 0, 0, 1})
-			r.Set(enr.UDP(16789))
+			r.Set(enr.UDP(30303))
 			r.SetSeq(99)
 			SignV4(&r, testKey)
 			n, _ := New(ValidSchemes, &r)
@@ -162,7 +162,7 @@ func TestParseNode(t *testing.T) {
 			if err == nil {
 				t.Errorf("test %q:\n  got nil error, expected %#q", test.input, test.wantError)
 				continue
-			} else if err.Error() != test.wantError {
+			} else if !strings.Contains(err.Error(), test.wantError) {
 				t.Errorf("test %q:\n  got error %#q, expected %#q", test.input, err.Error(), test.wantError)
 				continue
 			}
