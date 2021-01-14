@@ -1871,29 +1871,12 @@ var ETH_UNITS = [
     'kvon',
     'Mvon',
     'Gvon',
-    'szabo',
-    'finney',
-    'femtolat',
-    'picolat',
-    'nanolat',
-    'microlat',
-    'millilat',
-    'nano',
-    'micro',
-    'milli',
-    'lat',
-    'grand',
-    'Mlat',
-    'Glat',
-    'Tlat',
-    'Plat',
-    'Elat',
-    'Zlat',
-    'Ylat',
-    'Nlat',
-    'Dlat',
-    'Vlat',
-    'Ulat'
+    'Tvon',
+    'Pvon',
+    'KPvon',
+    'MPvon',
+    'GPvon',
+    'TPvon'
 ];
 
 module.exports = {
@@ -2129,33 +2112,25 @@ var utf8 = require('utf8');
 var segwit_addr = require('./segwit_addr.js');
 
 var unitMap = {
-    'nolat':      '0',
     'von':          '1',
     'kvon':         '1000',
     'Kvon':         '1000',
-    'babbage':      '1000',
-    'femtolat':   '1000',
     'mvon':         '1000000',
     'Mvon':         '1000000',
-    'lovelace':     '1000000',
-    'picolat':    '1000000',
     'gvon':         '1000000000',
     'Gvon':         '1000000000',
-    'shannon':      '1000000000',
-    'nanolat':    '1000000000',
-    'nano':         '1000000000',
-    'szabo':        '1000000000000',
-    'microlat':   '1000000000000',
-    'micro':        '1000000000000',
-    'finney':       '1000000000000000',
-    'millilat':   '1000000000000000',
-    'milli':        '1000000000000000',
-    'lat':        '1000000000000000000',
-    'klat':       '1000000000000000000000',
-    'grand':        '1000000000000000000000',
-    'mlat':       '1000000000000000000000000',
-    'glat':       '1000000000000000000000000000',
-    'tlat':       '1000000000000000000000000000000'
+    'tvon':         '1000000000000',
+    'Tvon':         '1000000000000',
+    'pvon':         '1000000000000000',
+    'Pvon':         '1000000000000000',
+    'kpvon':         '1000000000000000000',
+    'KPvon':         '1000000000000000000',
+    'mpvon':         '1000000000000000000000',
+    'MPvon':         '1000000000000000000000',
+    'gpvon':         '1000000000000000000000000',
+    'GPvon':         '1000000000000000000000000',
+    'tpvon':         '1000000000000000000000000000',
+    'TPvon':         '1000000000000000000000000000'
 };
 
 /**
@@ -2382,12 +2357,12 @@ var toHex = function (val) {
  * Returns value of unit in von
  *
  * @method getValueOfUnit
- * @param {String} unit the unit to convert to, default lat
+ * @param {String} unit the unit to convert to, default kpvon
  * @returns {BigNumber} value of the unit (in von)
  * @throws error if the unit is not correct:w
  */
 var getValueOfUnit = function (unit) {
-    unit = unit ? unit.toLowerCase() : 'lat';
+    unit = unit ? unit.toLowerCase() : 'kpvon';
     var unitValue = unitMap[unit];
     if (unitValue === undefined) {
         throw new Error('This unit doesn\'t exists, please use the one of the following units' + JSON.stringify(unitMap, null, 2));
@@ -2523,16 +2498,12 @@ var isAddress = function (address) {
  * @return {Boolean}
 */
 var isBech32Address = function (address) {
-    var hrp = "lat";
+    if(address.length != 42)
+    {
+        return false;
+    }
+    var hrp = address.substr(0,3);
     var ret = segwit_addr.decode(hrp, address);
-    if (ret === null) {
-        hrp = "lax";
-        ret = segwit_addr.decode(hrp, address);
-    }
-    else {
-        return true;
-    }
-
     if (ret === null) {
         return false;
     }
@@ -2543,17 +2514,37 @@ var isBech32Address = function (address) {
  * Transforms given string to bech32 addres
  *
  * @method toBech32Address
- * @param {String} address
  * @param {String} hrp
+ * @param {String} address
  * @return {String} formatted bech32 address
  */
-var toBech32Address = function (address, hrp) {
+var toBech32Address = function (hrp, address) {
     if (isStrictAddress(address) || isChecksumAddress(address)) {
         return segwit_addr.EncodeAddress(hrp, address);
     }
 
     return ''
 };
+
+/**
+ * Resolve the bech32 address
+ *
+ * @method decodeBech32Address
+ * @param {String} bech32Address
+ * @return {String} formatted address
+ */
+var decodeBech32Address = function (bech32Address) {
+    if (isBech32Address(bech32Address)) {
+        var hrp = bech32Address.substr(0,3);
+        address = segwit_addr.DecodeAddress(hrp, bech32Address);
+        if (address !== null) {
+            return "0x" + address
+        }
+    }
+
+    return ''
+};
+
 
 /**
  * Checks if the given string is a checksummed address
@@ -2762,6 +2753,7 @@ module.exports = {
     toChecksumAddress: toChecksumAddress,
     isBech32Address:isBech32Address,
     toBech32Address:toBech32Address,
+    decodeBech32Address:decodeBech32Address,
     isFunction: isFunction,
     isString: isString,
     isObject: isObject,
@@ -2877,6 +2869,7 @@ Web3.prototype.isChecksumAddress = utils.isChecksumAddress;
 Web3.prototype.toChecksumAddress = utils.toChecksumAddress;
 Web3.prototype.isBech32Address = utils.isBech32Address;
 Web3.prototype.toBech32Address = utils.toBech32Address;
+Web3.prototype.decodeBech32Address = utils.decodeBech32Address;
 Web3.prototype.padLeft = utils.padLeft;
 Web3.prototype.padRight = utils.padRight;
 
@@ -4214,12 +4207,10 @@ var outputPostFormatter = function(post){
 };
 
 var inputAddressFormatter = function (address) {
-    //var strAddress = segwit_addr.DecodeAddress("lax",address)
-    var iban = new Iban(address);
-    if (iban.isValid() && iban.isDirect()) {
-        return segwit_addr.EncodeAddress("lax",'0x' + iban.address())
-    } else if (utils.isBech32Address(address)) {
+    if (utils.isBech32Address(address)) {
         return address;
+    } else if (utils.isAddress(address)) {
+        return '0x' + address.toLowerCase().replace('0x', '');
     }
     throw new Error('invalid address');
 };
@@ -5568,6 +5559,11 @@ Object.defineProperty(Eth.prototype, 'defaultAccount', {
 });
 
 var methods = function () {
+    var getAddressHrp = new Method({
+        name: 'getAddressHrp',
+        call: 'platon_getAddressHrp',
+        params: 0,
+    });
 
     var getBalance = new Method({
         name: 'getBalance',
@@ -5693,6 +5689,7 @@ var methods = function () {
     });
 
     return [
+        getAddressHrp,
         getBalance,
         getStorageAt,
         getCode,
