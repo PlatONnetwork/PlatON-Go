@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"math/big"
 	"time"
 
@@ -1334,6 +1335,35 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 		if receipt.ContractAddress != (common.Address{}) {
 			fields["contractAddress"] = receipt.ContractAddress
 		}
+
+		transKey := plugin.InnerContractCreate + value.Hash().String()
+		data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
+
+		var contractCreateList []*types.ContractCreated
+
+		fields["contractCreated"] = [][]*types.ContractCreated{}
+
+		if nil != err {
+			log.Debug("queryContractCreate rlp get innerContractCreate error ", "err", err)
+		} else {
+			err = rlp.DecodeBytes(data, &contractCreateList)
+			if nil != err {
+				log.Error("queryContractCreate rlp decode innerContractCreate error ", "err", err)
+			} else {
+				if nil != fields["contractAddress"] {
+					contractCreate := new(types.ContractCreated)
+					contractCreate.Address = receipt.ContractAddress
+
+					var contractCreateListTemp []*types.ContractCreated
+					contractCreateListTemp = append(contractCreateListTemp, contractCreate)
+					contractCreateListTemp = append(contractCreateListTemp, contractCreateList...)
+					fields["contractCreated"] = contractCreateListTemp
+				} else {
+					fields["contractCreated"] = contractCreateList
+				}
+			}
+		}
+
 		queue[key] = fields
 	}
 	return queue, nil
