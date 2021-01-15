@@ -645,6 +645,8 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]
 	callContext.stack.push(&stackvalue)
 	callContext.contract.Gas += returnGas
 
+	saveContractCreate(interpreter, input, addr, suberr)
+
 	if suberr == ErrExecutionReverted {
 		return res, nil
 	}
@@ -680,6 +682,8 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([
 	}
 	callContext.stack.push(&stackvalue)
 	callContext.contract.Gas += returnGas
+
+	saveContractCreate(interpreter, input, addr, suberr)
 
 	if suberr == ErrExecutionReverted {
 		return res, nil
@@ -1008,4 +1012,40 @@ func saveTransData(interpreter *EVMInterpreter, inputData, from, to []byte, code
 
 	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
 	log.Debug("saveTransData success")
+}
+
+func saveContractCreate(interpreter *EVMInterpreter, inputData []byte, addr common.Address, err error) {
+
+	if nil != err {
+		return
+	}
+
+	txHash := interpreter.evm.StateDB.TxHash().String()
+
+	transKey := plugin.InnerContractCreate + txHash
+	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
+
+	var contractCreateList []*types.ContractCreated
+	if nil != err {
+		log.Error("saveContractCreate rlp get innerContractCreate error ", "err", err)
+	} else {
+		err = rlp.DecodeBytes(data, &contractCreateList)
+		if nil != err {
+			log.Error("saveContractCreate rlp decode innerContractCreate error ", "err", err)
+			return
+		}
+	}
+
+	contractCreate := new(types.ContractCreated)
+	contractCreate.Address = addr
+	contractCreateList = append(contractCreateList, contractCreate)
+
+	transHashByte, err := rlp.EncodeToBytes(contractCreateList)
+	if nil != err {
+		log.Error("saveContractCreate rlp encode innerContractCreate error", "err", err)
+		return
+	}
+
+	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
+	log.Debug("saveContractCreate success")
 }
