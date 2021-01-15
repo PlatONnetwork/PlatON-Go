@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -46,7 +47,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -90,16 +90,16 @@ var (
 func newTestNode() []params.CbftNode {
 	nodes := make([]params.CbftNode, 0)
 
-	n0, _ := discover.ParseNode("enode://e74864b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
+	n0 := enode.MustParse("enode://e74864b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
 	var sec0 bls.SecretKey
 	sec0.SetByCSPRNG()
-	n1, _ := discover.ParseNode("enode://bf0cd4c95bc3d48cc7999bcf5b3fe6ab9974fd5dabc5253e3e7506c075d0c7a699251caa76672b144be0fc75fe34cee9aaac20753036b0dbd1cb2b3691f26965@127.0.0.1:26789")
+	n1 := enode.MustParse("enode://bf0cd4c95bc3d48cc7999bcf5b3fe6ab9974fd5dabc5253e3e7506c075d0c7a699251caa76672b144be0fc75fe34cee9aaac20753036b0dbd1cb2b3691f26965@127.0.0.1:26789")
 	var sec1 bls.SecretKey
 	sec1.SetByCSPRNG()
-	n2, _ := discover.ParseNode("enode://84c59064dd3b2df54204c52d772cf3809bb0ad6be268843e406f473cef61dacc6d4d4546779dbfa1480deddc64016179ecefdf75d837914f69b679a71ad9711a@127.0.0.1:36789")
+	n2 := enode.MustParse("enode://84c59064dd3b2df54204c52d772cf3809bb0ad6be268843e406f473cef61dacc6d4d4546779dbfa1480deddc64016179ecefdf75d837914f69b679a71ad9711a@127.0.0.1:36789")
 	var sec2 bls.SecretKey
 	sec2.SetByCSPRNG()
-	n3, _ := discover.ParseNode("enode://a9b7e60fa1290c1013cb862c0693d9e87113e8d4cb87d60452749acd978c9fd3a80b49ab5ce7916a5bbfe0b0a0d7e4cde201bd59acccdf97006990156bfe73a5@127.0.0.1:46789")
+	n3 := enode.MustParse("enode://a9b7e60fa1290c1013cb862c0693d9e87113e8d4cb87d60452749acd978c9fd3a80b49ab5ce7916a5bbfe0b0a0d7e4cde201bd59acccdf97006990156bfe73a5@127.0.0.1:46789")
 	var sec3 bls.SecretKey
 	sec3.SetByCSPRNG()
 
@@ -113,13 +113,13 @@ func newTestNode() []params.CbftNode {
 func newTestNode3() []params.CbftNode {
 	nodes := make([]params.CbftNode, 0)
 
-	n0, _ := discover.ParseNode("enode://e74864b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
+	n0 := enode.MustParse("enode://e74864b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
 	var sec0 bls.SecretKey
 	sec0.SetByCSPRNG()
-	n1, _ := discover.ParseNode("enode://bf0cd4c95bc3d48cc7999bcf5b3fe6ab9974fd5dabc5253e3e7506c075d0c7a699251caa76672b144be0fc75fe34cee9aaac20753036b0dbd1cb2b3691f26965@127.0.0.1:26789")
+	n1 := enode.MustParse("enode://bf0cd4c95bc3d48cc7999bcf5b3fe6ab9974fd5dabc5253e3e7506c075d0c7a699251caa76672b144be0fc75fe34cee9aaac20753036b0dbd1cb2b3691f26965@127.0.0.1:26789")
 	var sec1 bls.SecretKey
 	sec1.SetByCSPRNG()
-	n2, _ := discover.ParseNode("enode://84c59064dd3b2df54204c52d772cf3809bb0ad6be268843e406f473cef61dacc6d4d4546779dbfa1480deddc64016179ecefdf75d837914f69b679a71ad9711a@127.0.0.1:36789")
+	n2 := enode.MustParse("enode://84c59064dd3b2df54204c52d772cf3809bb0ad6be268843e406f473cef61dacc6d4d4546779dbfa1480deddc64016179ecefdf75d837914f69b679a71ad9711a@127.0.0.1:36789")
 	var sec2 bls.SecretKey
 	sec2.SetByCSPRNG()
 
@@ -137,28 +137,28 @@ func TestValidators(t *testing.T) {
 	vds := newValidators(nodes, 0)
 
 	assert.True(t, len(nodes) == vds.Len())
-	assert.Equal(t, vds.NodeID(0), nodes[0].Node.ID)
+	assert.Equal(t, vds.NodeID(0), nodes[0].Node.ID())
 
-	validator, err := vds.FindNodeByID(nodes[2].Node.ID)
-	assert.True(t, err == nil, "get node idex fail")
+	validator, err := vds.FindNodeByID(nodes[2].Node.ID())
+	assert.True(t, err == nil, "get node index fail")
 	assert.True(t, validator.Index == 2)
 
-	pubkey, _ := nodes[1].Node.ID.Pubkey()
-	addrN1 := crypto.PubkeyToNodeAddress(*pubkey)
+	pubkey := nodes[1].Node.Pubkey()
+	idN1 := enode.PubkeyToIDV4(pubkey)
 
-	validator, err = vds.FindNodeByID(nodes[1].Node.ID)
+	validator, err = vds.FindNodeByID(nodes[1].Node.ID())
 	assert.True(t, err == nil, "get node index and address fail")
-	assert.Equal(t, validator.Address, addrN1)
+	assert.Equal(t, validator.ID, idN1)
 	assert.Equal(t, validator.Index, uint32(1))
 
-	idxN1, err := vds.FindNodeByAddress(addrN1)
+	idxN1, err := vds.FindNodeById(idN1)
 	assert.True(t, err == nil, "get index by address fail")
 	assert.Equal(t, validator.Index, idxN1.Index)
 
 	nl := vds.NodeList()
 	assert.True(t, len(nl) == vds.Len())
 
-	emptyNodeID := discover.NodeID{}
+	emptyNodeID := enode.ID{}
 	validator, err = vds.FindNodeByID(emptyNodeID)
 	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
@@ -166,8 +166,8 @@ func TestValidators(t *testing.T) {
 	notFound := vds.NodeID(4)
 	assert.Equal(t, notFound, emptyNodeID)
 
-	emptyAddr := common.NodeAddress{}
-	validator, err = vds.FindNodeByAddress(emptyAddr)
+	emptyId := enode.ID{}
+	validator, err = vds.FindNodeById(emptyId)
 	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
 
@@ -180,12 +180,8 @@ func TestValidators(t *testing.T) {
 
 	assert.False(t, vds.Equal(vds3))
 
-	badNodes := make([]params.CbftNode, 0)
-	badNode, _ := discover.ParseNode("enode://111164b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
-	var sec bls.SecretKey
-	sec.SetByCSPRNG()
-	badNodes = append(badNodes, params.CbftNode{Node: *badNode, BlsPubKey: *sec.GetPublicKey()})
-	assert.Panics(t, func() { newValidators(badNodes, 0) })
+	badV4NodeStr := "enode://111164b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789"
+	assert.Panics(t, func() { enode.MustParse(badV4NodeStr) })
 }
 
 func TestStaticAgency(t *testing.T) {
@@ -321,7 +317,7 @@ func TestInnerAgency(t *testing.T) {
 	assert.True(t, newVds.ValidBlockNumber == 81)
 
 	id3 := newVds.NodeID(3)
-	assert.Equal(t, id3, vmVds.ValidateNodes[3].NodeID)
+	assert.Equal(t, id3, enode.NodeIDToIDV4(vmVds.ValidateNodes[3].NodeID))
 	assert.True(t, agency.GetLastNumber(81) == 120)
 
 	assert.True(t, agency.Sign(nil) == nil)
@@ -425,59 +421,59 @@ func TestValidatorPool(t *testing.T) {
 	nodes := newTestNode()
 	agency := newTestInnerAgency(nodes)
 
-	validatorPool := NewValidatorPool(agency, 0, 0, nodes[0].Node.ID)
+	validatorPool := NewValidatorPool(agency, 0, 0, nodes[0].Node.ID())
 	assert.False(t, validatorPool.ShouldSwitch(0))
 	assert.True(t, validatorPool.ShouldSwitch(40))
 
-	node, err := validatorPool.GetValidatorByNodeID(0, nodes[0].Node.ID)
+	node, err := validatorPool.GetValidatorByNodeID(0, nodes[0].Node.ID())
 	assert.Nil(t, err)
-	assert.Equal(t, node.NodeID, nodes[0].Node.ID)
+	assert.Equal(t, enode.NodeIDToIDV4(node.NodeID), nodes[0].Node.ID())
 
-	_, err = validatorPool.GetValidatorByNodeID(0, discover.NodeID{})
+	_, err = validatorPool.GetValidatorByNodeID(0, enode.ID{})
 	assert.Equal(t, err, errors.New("not found the node"))
 
 	node, err = validatorPool.GetValidatorByIndex(0, 1)
 	assert.Nil(t, err)
-	assert.Equal(t, node.NodeID, nodes[1].Node.ID)
+	assert.Equal(t, node.ID, nodes[1].Node.ID())
 
 	_, err = validatorPool.GetValidatorByIndex(0, 5)
 	assert.Equal(t, err, errors.New("not found the specified validator"))
 
 	vds := newValidators(nodes, 0)
 	node0, _ := vds.FindNodeByIndex(2)
-	node, err = validatorPool.GetValidatorByAddr(0, node0.Address)
+	node, err = validatorPool.GetValidatorById(0, node0.ID)
 	assert.Nil(t, err)
-	assert.Equal(t, node.Address, node0.Address)
+	assert.Equal(t, node.ID, node0.ID)
 
-	_, err = validatorPool.GetValidatorByAddr(0, common.NodeAddress{})
-	assert.Equal(t, err, errors.New("invalid address"))
+	_, err = validatorPool.GetValidatorById(0, enode.ID{})
+	assert.Equal(t, err, errors.New("invalid ID"))
 
 	nodeID := validatorPool.GetNodeIDByIndex(0, 4)
-	assert.Equal(t, nodeID, discover.NodeID{})
+	assert.Equal(t, nodeID, enode.ID{})
 
 	nodeID = validatorPool.GetNodeIDByIndex(0, 0)
-	assert.Equal(t, nodeID, nodes[0].Node.ID)
+	assert.Equal(t, nodeID, nodes[0].Node.ID())
 
 	index, err := validatorPool.GetIndexByNodeID(0, nodeID)
 	assert.Nil(t, err)
 	assert.Equal(t, index, uint32(0))
 
-	index, err = validatorPool.GetIndexByNodeID(0, discover.NodeID{})
+	index, err = validatorPool.GetIndexByNodeID(0, enode.ID{})
 	assert.Equal(t, err, errors.New("not found the specified validator"))
 	assert.Equal(t, index, uint32(0xffffffff))
 
 	nl := validatorPool.ValidatorList(0)
 	assert.True(t, len(nl) == len(nodes))
 
-	assert.True(t, validatorPool.IsValidator(0, nodes[0].Node.ID))
+	assert.True(t, validatorPool.IsValidator(0, nodes[0].Node.ID()))
 	assert.True(t, validatorPool.Len(0) == len(nodes))
-	assert.True(t, validatorPool.IsCandidateNode(discover.NodeID{}))
+	assert.True(t, validatorPool.IsCandidateNode(enode.ID{}))
 
 	eventMux := &event.TypeMux{}
 
 	validatorPool.Update(80, 1, eventMux)
-	assert.True(t, validatorPool.IsValidator(0, nodes[0].Node.ID))
-	assert.False(t, validatorPool.IsValidator(1, nodes[0].Node.ID))
+	assert.True(t, validatorPool.IsValidator(0, nodes[0].Node.ID()))
+	assert.False(t, validatorPool.IsValidator(1, nodes[0].Node.ID()))
 }
 
 func TestValidatorPoolVerify(t *testing.T) {
@@ -485,22 +481,22 @@ func TestValidatorPoolVerify(t *testing.T) {
 
 	nodes := make([]params.CbftNode, 0)
 
-	n0, _ := discover.ParseNode("enode://e74864b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
+	n0 := enode.MustParse("enode://e74864b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
 	var sec0 bls.SecretKey
 	sec0.SetByCSPRNG()
-	n1, _ := discover.ParseNode("enode://bf0cd4c95bc3d48cc7999bcf5b3fe6ab9974fd5dabc5253e3e7506c075d0c7a699251caa76672b144be0fc75fe34cee9aaac20753036b0dbd1cb2b3691f26965@127.0.0.1:26789")
+	n1 := enode.MustParse("enode://bf0cd4c95bc3d48cc7999bcf5b3fe6ab9974fd5dabc5253e3e7506c075d0c7a699251caa76672b144be0fc75fe34cee9aaac20753036b0dbd1cb2b3691f26965@127.0.0.1:26789")
 	var sec1 bls.SecretKey
 	sec1.SetByCSPRNG()
-	n2, _ := discover.ParseNode("enode://84c59064dd3b2df54204c52d772cf3809bb0ad6be268843e406f473cef61dacc6d4d4546779dbfa1480deddc64016179ecefdf75d837914f69b679a71ad9711a@127.0.0.1:36789")
+	n2 := enode.MustParse("enode://84c59064dd3b2df54204c52d772cf3809bb0ad6be268843e406f473cef61dacc6d4d4546779dbfa1480deddc64016179ecefdf75d837914f69b679a71ad9711a@127.0.0.1:36789")
 	var sec2 bls.SecretKey
 	sec2.SetByCSPRNG()
-	n3, _ := discover.ParseNode("enode://a9b7e60fa1290c1013cb862c0693d9e87113e8d4cb87d60452749acd978c9fd3a80b49ab5ce7916a5bbfe0b0a0d7e4cde201bd59acccdf97006990156bfe73a5@127.0.0.1:46789")
+	n3 := enode.MustParse("enode://a9b7e60fa1290c1013cb862c0693d9e87113e8d4cb87d60452749acd978c9fd3a80b49ab5ce7916a5bbfe0b0a0d7e4cde201bd59acccdf97006990156bfe73a5@127.0.0.1:46789")
 	var sec3 bls.SecretKey
 	sec3.SetByCSPRNG()
 
 	priKey, _ := crypto.GenerateKey()
 	nodeStr := fmt.Sprintf("enode://%s@127.0.0.1:6666", hex.EncodeToString(crypto.FromECDSAPub(&priKey.PublicKey)[1:]))
-	n4, _ := discover.ParseNode(nodeStr)
+	n4, _ := enode.ParseV4(nodeStr)
 	var sec4 bls.SecretKey
 	sec4.SetByCSPRNG()
 
@@ -511,7 +507,7 @@ func TestValidatorPoolVerify(t *testing.T) {
 	nodes = append(nodes, params.CbftNode{Node: *n4, BlsPubKey: *sec4.GetPublicKey()})
 
 	agency := newTestInnerAgency(nodes)
-	vp := NewValidatorPool(agency, 0, 0, nodes[0].Node.ID)
+	vp := NewValidatorPool(agency, 0, 0, nodes[0].Node.ID())
 
 	m := "test sig"
 
@@ -578,13 +574,13 @@ func (m *mockAgency) GetValidator(blockNumber uint64) (*cbfttypes.Validators, er
 	}, nil
 }
 
-func (m *mockAgency) IsCandidateNode(discover.NodeID) bool { return false }
+func (m *mockAgency) IsCandidateNode(enode.ID) bool { return false }
 
 func (m *mockAgency) OnCommit(block *types.Block) error { return nil }
 
 func TestValidatorPoolReset(t *testing.T) {
 	agency := newMockAgency(100)
-	vp := NewValidatorPool(agency, 0, 0, discover.NodeID{})
+	vp := NewValidatorPool(agency, 0, 0, enode.ID{})
 
 	vp.Reset(100, 10)
 	assert.Equal(t, vp.switchPoint, uint64(100))

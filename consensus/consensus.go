@@ -18,6 +18,8 @@
 package consensus
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -25,7 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
@@ -159,7 +160,7 @@ type Agency interface {
 	VerifyHeader(header *types.Header, stateDB *state.StateDB) error
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
-	IsCandidateNode(nodeID discover.NodeID) bool
+	IsCandidateNode(nodeID enode.ID) bool
 	OnCommit(block *types.Block) error
 }
 
@@ -171,7 +172,7 @@ type Bft interface {
 	Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error
 
 	// Returns the current consensus node address list.
-	ConsensusNodes() ([]discover.NodeID, error)
+	ConsensusNodes() ([]discv5.NodeID, error)
 
 	// Returns whether the current node is out of the block
 	ShouldSeal(curTime time.Time) (bool, error)
@@ -193,5 +194,5 @@ type Bft interface {
 	TracingSwitch(flag int8)
 
 	// NodeID is temporary.
-	NodeID() discover.NodeID
+	Id() enode.ID
 }

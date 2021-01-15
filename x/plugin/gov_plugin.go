@@ -17,11 +17,10 @@
 package plugin
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math"
 	"math/big"
 	"sync"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -52,7 +51,7 @@ func GovPluginInstance() *GovPlugin {
 func (govPlugin *GovPlugin) SetChainID(chainId *big.Int) {
 	govPlugin.chainID = chainId
 }
-func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (govPlugin *GovPlugin) Confirmed(nodeId enode.ID, block *types.Block) error {
 	return nil
 }
 
@@ -193,7 +192,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	return nil
 }
 
-/*func NewVerifiersForNextEpoch(newVerifiers []discover.NodeID, endBlockHashOfCurrentEpoch common.Hash, endBlockNumberOfCurrentEpoch uint64) error {
+/*func NewVerifiersForNextEpoch(newVerifiers []enode.ID, endBlockHashOfCurrentEpoch common.Hash, endBlockNumberOfCurrentEpoch uint64) error {
 	if xutil.IsEndOfEpoch(endBlockNumberOfCurrentEpoch) {
 		if err := accuVerifiersAtBeginOfSettlement(newVerifiers, endBlockHashOfCurrentEpoch, endBlockNumberOfCurrentEpoch); err != nil {
 			log.Error("accumulates all distinct verifiers for voting proposal failed.", "err", err)

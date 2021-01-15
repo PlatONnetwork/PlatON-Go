@@ -19,19 +19,14 @@ package xutil
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
-func NodeId2Addr(nodeId discover.NodeID) (common.NodeAddress, error) {
-	if pk, err := nodeId.Pubkey(); nil != err {
-		return common.ZeroNodeAddr, err
-	} else {
-		return common.NodeAddress(crypto.PubkeyToAddress(*pk)), nil
-	}
+func NodeId2Addr(nodeId enode.ID) (common.NodeAddress, error) {
+	return common.NodeAddress(common.BytesToAddress(nodeId[12:])), nil
 }
 
 // The ProgramVersion: Major.Minor.Patch eg. 1.1.0
@@ -152,7 +147,7 @@ func CalculateRound(blockNumber uint64) uint64 {
 	return round
 }
 
-func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
+func InNodeIDList(nodeID enode.ID, nodeIDList []enode.ID) bool {
 	for _, v := range nodeIDList {
 		if nodeID == v {
 			return true

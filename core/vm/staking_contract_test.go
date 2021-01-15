@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
 
@@ -1064,7 +1065,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1005))
 	stakingBlockNum, _ := rlp.EncodeToBytes(blockNumber.Uint64())
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	nodeId, _ := rlp.EncodeToBytes(enode.NodeIDToIDV4(nodeIdArr[index]))
 	withdrewAmount, _ := new(big.Int).SetString(balanceStr[index], 10)
 	amount, _ := rlp.EncodeToBytes(withdrewAmount)
 
@@ -1336,7 +1337,7 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	fnType, _ := rlp.EncodeToBytes(uint16(1104))
 	stakingBlockNum, _ := rlp.EncodeToBytes(blockNumber.Uint64())
 	delAddr, _ := rlp.EncodeToBytes(delegateSender)
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	nodeId, _ := rlp.EncodeToBytes(enode.NodeIDToIDV4(nodeIdArr[index]))
 
 	params = append(params, fnType)
 	params = append(params, stakingBlockNum)
@@ -1474,7 +1475,7 @@ func TestStakingContract_DelegateMerge(t *testing.T) {
 	delLastAmount.Mul(delLastAmount, new(big.Int).SetUint64(200))
 
 	afterTxHook := func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-		del, err := plugin.NewStakingPlugin(sdb).GetDelegateInfo(hash, delAdd, nodeIdArr[index], header.Number.Uint64())
+		del, err := plugin.NewStakingPlugin(sdb).GetDelegateInfo(hash, delAdd, enode.NodeIDToIDV4(nodeIdArr[index]), header.Number.Uint64())
 		if err != nil {
 			return err
 		}

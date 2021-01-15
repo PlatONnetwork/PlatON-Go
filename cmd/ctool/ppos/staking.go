@@ -2,12 +2,11 @@ package ppos
 
 import (
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 var (
@@ -46,7 +45,7 @@ var (
 	}
 	getRelatedListByDelAddrCmd = cli.Command{
 		Name:   "getRelatedListByDelAddr",
-		Usage:  "1103,Query the NodeID and pledge Id of the node entrusted by the current account address,parameter:add",
+		Usage:  "1103,Query the Id and pledge Id of the node entrusted by the current account address,parameter:add",
 		Action: getRelatedListByDelAddr,
 		Flags:  []cli.Flag{rpcUrlFlag, testNetFlag, addFlag, jsonFlag},
 	}
@@ -136,10 +135,7 @@ func getDelegateInfo(c *cli.Context) error {
 	if nodeIDstring == "" {
 		return errors.New("The verifier's node ID is not set")
 	}
-	nodeid, err := discover.HexID(nodeIDstring)
-	if err != nil {
-		return err
-	}
+	nodeid := enode.HexID(nodeIDstring)
 	stakingBlockNum := c.Uint64(stakingBlockNumFlag.Name)
 	return query(c, 1104, stakingBlockNum, add, nodeid)
 }
@@ -150,10 +146,7 @@ func getCandidateInfo(c *cli.Context) error {
 	if nodeIDstring == "" {
 		return errors.New("The verifier's node ID is not set")
 	}
-	nodeid, err := discover.HexID(nodeIDstring)
-	if err != nil {
-		return err
-	}
+	nodeid := enode.HexID(nodeIDstring)
 	return query(c, 1105, nodeid)
 }
 

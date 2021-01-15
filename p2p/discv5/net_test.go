@@ -354,12 +354,12 @@ func (tn *preminedTestnet) mine(target NodeID) {
 	fmt.Println("&preminedTestnet{")
 	fmt.Printf("	target: %#v,\n", tn.target)
 	fmt.Printf("	targetSha: %#v,\n", tn.targetSha)
-	fmt.Printf("	dists: [%d][]NodeID{\n", len(tn.dists))
+	fmt.Printf("	dists: [%d][]Id{\n", len(tn.dists))
 	for ld, ns := range &tn.dists {
 		if len(ns) == 0 {
 			continue
 		}
-		fmt.Printf("		%d: []NodeID{\n", ld)
+		fmt.Printf("		%d: []Id{\n", ld)
 		for _, n := range ns {
 			fmt.Printf("			MustHexID(\"%x\"),\n", n[:])
 		}

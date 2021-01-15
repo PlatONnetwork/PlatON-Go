@@ -17,13 +17,13 @@
 package staking
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 const (
@@ -56,7 +56,7 @@ var (
 	RoundValArrPrefix       = []byte(RoundValArrPrefixStr)
 	AccountStakeRcPrefix    = []byte(AccountStakeRcPrefixStr)
 	PPOSHASHKey             = []byte(PPOSHASHStr)
-	RoundValAddrArrPrefix   = []byte(RoundValAddrArrPrefixStr)
+	RoundValIdArrPrefix     = []byte(RoundValAddrArrPrefixStr)
 	RoundAddrBoundaryPrefix = []byte(RoundAddrBoundaryPrefixStr)
 
 	b104Len = len(math.MaxBig104.Bytes())
@@ -64,15 +64,15 @@ var (
 
 // CanBase ...
 
-func CanBaseKeyByAddr(addr common.NodeAddress) []byte {
-	return append(CanBaseKeyPrefix, addr.Bytes()...)
+func CanBaseKeyById(id enode.ID) []byte {
+	return append(CanBaseKeyPrefix, id.Bytes()...)
 }
 func CanBaseKeyBySuffix(addr []byte) []byte {
 	return append(CanBaseKeyPrefix, addr...)
 }
 
-func CanMutableKeyByAddr(addr common.NodeAddress) []byte {
-	return append(CanMutableKeyPrefix, addr.Bytes()...)
+func CanMutableKeyById(id enode.ID) []byte {
+	return append(CanMutableKeyPrefix, id.Bytes()...)
 }
 
 func CanMutableKeyBySuffix(addr []byte) []byte {
@@ -80,7 +80,7 @@ func CanMutableKeyBySuffix(addr []byte) []byte {
 }
 
 // the candidate power key
-func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, nodeID discover.NodeID) []byte {
+func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, id enode.ID) []byte {
 
 	// Only sort Major and Minor
 	// eg. 1.1.x => 1.1.0
@@ -90,8 +90,6 @@ func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64,
 	priority := new(big.Int).Sub(math.MaxBig104, shares)
 	zeros := make([]byte, b104Len)
 	prio := append(zeros, priority.Bytes()...)
-
-	id := nodeID.Bytes()
 
 	num := common.Uint64ToBytes(stakeBlockNum)
 	txIndex := common.Uint32ToBytes(stakeTxIndex)
@@ -111,7 +109,7 @@ func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64,
 	copy(key[indexVersion:indexPrio], prio)
 	copy(key[indexPrio:indexNum], num)
 	copy(key[indexNum:indexTxIndex], txIndex)
-	copy(key[indexTxIndex:], id)
+	copy(key[indexTxIndex:], id[:])
 	return key
 }
 
@@ -136,7 +134,7 @@ func GetUnStakeItemKey(epoch, index uint64) []byte {
 	return key
 }
 
-func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) []byte {
+func GetDelegateKey(delAddr common.Address, nodeId enode.ID, stakeBlockNumber uint64) []byte {
 
 	delAddrByte := delAddr.Bytes()
 	nodeIdByte := nodeId.Bytes()
@@ -157,12 +155,12 @@ func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNu
 }
 
 //notice this assume key must right
-func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) {
+func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId enode.ID, stakeBlockNumber uint64) {
 	delegateKeyPrefixLength := len(DelegateKeyPrefix)
 	delAddrLength := len(delAddr) + delegateKeyPrefixLength
 	nodeIdLength := len(nodeId) + delAddrLength
 	delAddr = common.BytesToAddress(key[delegateKeyPrefixLength:delAddrLength])
-	nodeId = discover.MustBytesID(key[delAddrLength:nodeIdLength])
+	nodeId = enode.MustBytesID(key[delAddrLength:nodeIdLength])
 	stakeBlockNumber = common.BytesToUint64(key[nodeIdLength:])
 	return
 }
@@ -219,8 +217,8 @@ func GetPPOSHASHKey() []byte {
 	return PPOSHASHKey
 }
 
-func GetRoundValAddrArrKey(round uint64) []byte {
-	return append(RoundValAddrArrPrefix, common.Uint64ToBytes(round)...)
+func GetRoundValIdArrKey(round uint64) []byte {
+	return append(RoundValIdArrPrefix, common.Uint64ToBytes(round)...)
 }
 
 func GetRoundAddrBoundaryKey() []byte {

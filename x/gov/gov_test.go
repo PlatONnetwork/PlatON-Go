@@ -18,6 +18,8 @@ package gov
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
 
@@ -28,19 +30,16 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
-	"github.com/stretchr/testify/assert"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
 	sender = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
-	nodeID = discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384")
-
+	nodeID = discv5.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384")
+	ID = enode.NodeIDToIDV4(nodeID)
 	priKey = crypto.HexMustToECDSA("0c6ccec28e36dc5581ea3d8af1303c774b51523da397f55cdc4acd9d2b988132")
 
 	senderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
@@ -58,12 +57,12 @@ var (
 )
 
 type MockStaking struct {
-	DeclaeredVodes map[discover.NodeID]uint32
+	DeclaeredVodes map[enode.ID]uint32
 }
 
 func (stk *MockStaking) GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
 	valEx := &staking.ValidatorEx{
-		NodeId:          nodeID,
+		Id:              ID,
 		StakingAddress:  sender,
 		ProgramVersion:  params.GenesisVersion,
 		StakingBlockNum: 0,
@@ -72,12 +71,13 @@ func (stk *MockStaking) GetVerifierList(blockHash common.Hash, blockNumber uint6
 	return []*staking.ValidatorEx{valEx}, nil
 }
 
-func (stk *MockStaking) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
-	return []discover.NodeID{nodeID}, nil
+func (stk *MockStaking) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]enode.ID, error) {
+	return []enode.ID{ID}, nil
 }
 
 func (stk *MockStaking) GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error) {
 	candidate := &staking.CandidateBase{
+		ID:              ID,
 		NodeId:          nodeID,
 		StakingAddress:  sender,
 		ProgramVersion:  params.GenesisVersion,
@@ -86,27 +86,27 @@ func (stk *MockStaking) GetCanBaseList(blockHash common.Hash, blockNumber uint64
 	return []*staking.CandidateBase{candidate}, nil
 }
 
-func (stk *MockStaking) GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error) {
+func (stk *MockStaking) GetCandidateInfo(blockHash common.Hash, id enode.ID) (*staking.Candidate, error) {
 	return nil, nil
 }
 
-func (stk *MockStaking) GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error) {
+func (stk *MockStaking) GetCanBase(blockHash common.Hash, id enode.ID) (*staking.CandidateBase, error) {
 	return nil, nil
 }
 
-func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error) {
+func (stk *MockStaking) GetCanMutable(blockHash common.Hash, id enode.ID) (*staking.CandidateMutable, error) {
 	can := &staking.CandidateMutable{Status: staking.Valided}
 	return can, nil
 }
-func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error {
+func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId enode.ID, programVersion uint32) error {
 	if stk.DeclaeredVodes == nil {
-		stk.DeclaeredVodes = make(map[discover.NodeID]uint32)
+		stk.DeclaeredVodes = make(map[enode.ID]uint32)
 	}
-	stk.DeclaeredVodes[nodeID] = programVersion
+	stk.DeclaeredVodes[ID] = programVersion
 	return nil
 }
 
-func (stk *MockStaking) ListDeclaredNode() map[discover.NodeID]uint32 {
+func (stk *MockStaking) ListDeclaredNode() map[enode.ID]uint32 {
 	return stk.DeclaeredVodes
 }
 
@@ -204,7 +204,7 @@ func submitText(t *testing.T, chain *mock.Chain) Proposal {
 		ProposalType: Text,
 		SubmitBlock:  chain.CurrentHeader().Number.Uint64(),
 		ProposalID:   tpProposalID,
-		Proposer:     nodeID,
+		Proposer:     ID,
 	}
 	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), NewMockStaking(), chain.StateDB, chainID); err != nil {
 		t.Error("submitText, err", err)
@@ -218,7 +218,7 @@ func submitVersion(t *testing.T, chain *mock.Chain, stk *MockStaking) Proposal {
 		ProposalType:    Version,
 		SubmitBlock:     chain.CurrentHeader().Number.Uint64(),
 		ProposalID:      vpProposalID,
-		Proposer:        nodeID,
+		Proposer:        ID,
 		NewVersion:      tempActiveVersion,
 		EndVotingRounds: vpEndVotingRounds,
 	}
@@ -310,7 +310,7 @@ func TestGov_Vote(t *testing.T) {
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
-	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
+	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: ID, VoteOption: Yes}
 	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, NewMockStaking(), chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
@@ -329,7 +329,7 @@ func TestGov_Vote(t *testing.T) {
 		t.Error("ListAccuVerifier, err", err)
 	} else {
 		assert.Equal(t, 1, len(avList))
-		assert.Equal(t, nodeID, avList[0])
+		assert.Equal(t, ID, avList[0])
 	}
 }
 
@@ -340,12 +340,12 @@ func TestGov_DeclareVersion_1(t *testing.T) {
 	stk := NewMockStaking()
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
-	if err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
+	if err := DeclareVersion(sender, ID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
 		t.Error("DeclareVersion, err", err)
 	} else {
 		anList := stk.ListDeclaredNode()
 		assert.Equal(t, 1, len(anList))
-		assert.Equal(t, params.GenesisVersion, anList[nodeID])
+		assert.Equal(t, params.GenesisVersion, anList[ID])
 	}
 }
 
@@ -361,19 +361,19 @@ func TestGov_DeclareVersion_2(t *testing.T) {
 	stk := NewMockStaking()
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
-	err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
+	err := DeclareVersion(sender, ID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
 	assert.Equal(t, DeclareVersionError, err)
 
-	err = DeclareVersion(sender, nodeID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
+	err = DeclareVersion(sender, ID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
 	assert.Equal(t, VersionSignError, err)
 
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
-	if err := DeclareVersion(sender, nodeID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
+	if err := DeclareVersion(sender, ID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
 		t.Error("DeclareVersion, err", err)
 	} else {
 		anList := stk.ListDeclaredNode()
 		assert.Equal(t, 1, len(anList))
-		assert.Equal(t, tempActiveVersion, anList[nodeID])
+		assert.Equal(t, tempActiveVersion, anList[ID])
 	}
 }
 
@@ -390,29 +390,29 @@ func TestGov_DeclareVersion_3(t *testing.T) {
 	prepair_sndb(chain)
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
-	if err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
+	if err := DeclareVersion(sender, ID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
 		t.Error("DeclareVersion, err", err)
 	} else {
 		anList := stk.ListDeclaredNode()
 		assert.Equal(t, 1, len(anList))
-		assert.Equal(t, params.GenesisVersion, anList[nodeID])
+		assert.Equal(t, params.GenesisVersion, anList[ID])
 	}
 
 	//declared new version, gov will save all these nodes and notify staking if proposal is passed
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
-	if err := DeclareVersion(sender, nodeID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
+	if err := DeclareVersion(sender, ID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
 		t.Error("DeclareVersion, err", err)
 	} else {
 		if anList, err := GetActiveNodeList(chain.CurrentHeader().Hash(), vpProposalID); err != nil {
 			t.Error("DeclareVersion, err", err)
 		} else {
 			assert.Equal(t, 1, len(anList))
-			assert.Equal(t, nodeID, anList[0])
+			assert.Equal(t, ID, anList[0])
 		}
 
 	}
 
-	err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
+	err := DeclareVersion(sender, ID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
 	assert.Equal(t, VersionSignError, err)
 }
 
@@ -489,20 +489,20 @@ func TestGov_GetMaxEndVotingBlock(t *testing.T) {
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
-	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
+	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: ID, VoteOption: Yes}
 	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 
-	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
+	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: ID, VoteOption: Yes}
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
 	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 
-	if maxBlockNumber, err := GetMaxEndVotingBlock(nodeID, chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
+	if maxBlockNumber, err := GetMaxEndVotingBlock(ID, chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
 		t.Error("FindVotingProposal, err", err)
 	} else {
 		t.Log("maxBlockNumber", maxBlockNumber, "tp.GetEndVotingBlock()", tp.GetEndVotingBlock(), "vp.GetEndVotingBlock()", vp.GetEndVotingBlock())
@@ -528,13 +528,13 @@ func TestGov_NotifyPunishedVerifiers(t *testing.T) {
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
-	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
+	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: ID, VoteOption: Yes}
 	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 
-	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
+	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: ID, VoteOption: Yes}
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
 	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
@@ -555,8 +555,8 @@ func TestGov_NotifyPunishedVerifiers(t *testing.T) {
 		assert.Equal(t, 1, len(vvList))
 	}
 
-	punishedVerifierMap := make(map[discover.NodeID]struct{})
-	punishedVerifierMap[nodeID] = struct{}{}
+	punishedVerifierMap := make(map[enode.ID]struct{})
+	punishedVerifierMap[ID] = struct{}{}
 
 	if err := NotifyPunishedVerifiers(chain.CurrentHeader().Hash(), punishedVerifierMap, chain.StateDB); err != nil {
 		t.Error("NotifyPunishedVerifiers, err", err)
@@ -870,13 +870,13 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
-	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
+	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: ID, VoteOption: Yes}
 	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 
-	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
+	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: ID, VoteOption: Yes}
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
 	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)

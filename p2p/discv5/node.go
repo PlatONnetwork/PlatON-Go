@@ -147,7 +147,7 @@ var incompleteNodeURL = regexp.MustCompile("(?i)^(?:enode://)?([0-9a-f]+)$")
 // a node with IP address 10.3.58.6, TCP listening port 16789
 // and UDP discovery port 30301.
 //
-//    enode://<hex node id>@10.3.58.6:30303?discport=30301
+//    enode://<hex node id>@10.3.58.6:16789?discport=30301
 func ParseNode(rawurl string) (*Node, error) {
 	if m := incompleteNodeURL.FindStringSubmatch(rawurl); m != nil {
 		id, err := HexID(m[1])
@@ -270,12 +270,27 @@ func (n NodeID) String() string {
 
 // The Go syntax representation of a NodeID is a call to HexID.
 func (n NodeID) GoString() string {
-	return fmt.Sprintf("discover.HexID(\"%x\")", n[:])
+	return fmt.Sprintf("enode.HexID(\"%x\")", n[:])
 }
 
 // TerminalString returns a shortened hex string for terminal logging.
 func (n NodeID) TerminalString() string {
 	return hex.EncodeToString(n[:8])
+}
+
+// MarshalText implements the encoding.TextMarshaler interface.
+func (n NodeID) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(n[:])), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+func (n *NodeID) UnmarshalText(text []byte) error {
+	id, err := HexID(string(text))
+	if err != nil {
+		return err
+	}
+	*n = id
+	return nil
 }
 
 // HexID converts a hex string to a NodeID.
@@ -436,3 +451,4 @@ func hashAtDistance(a common.Hash, n int) (b common.Hash) {
 	}
 	return b
 }
+

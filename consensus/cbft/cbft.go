@@ -22,6 +22,8 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"strings"
 	"sync/atomic"
 
@@ -58,7 +60,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
@@ -183,7 +184,7 @@ type Cbft struct {
 	//test
 	insertBlockQCHook  func(block *types.Block, qc *ctypes.QuorumCert)
 	executeFinishHook  func(index uint32)
-	consensusNodesMock func() ([]discover.NodeID, error)
+	consensusNodesMock func() ([]discv5.NodeID, error)
 }
 
 // New returns a new CBFT.
@@ -261,10 +262,10 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	go cbft.network.Start()
 
 	if isGenesis() {
-		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), cstate.DefaultEpoch, cbft.config.Option.NodeID)
+		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), cstate.DefaultEpoch, cbft.config.Option.Id)
 		cbft.changeView(cstate.DefaultEpoch, cstate.DefaultViewNumber, block, qc, nil)
 	} else {
-		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), qc.Epoch, cbft.config.Option.NodeID)
+		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), qc.Epoch, cbft.config.Option.Id)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
 
@@ -750,9 +751,9 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	me, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.NodeID())
+	me, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.Id())
 	if err != nil {
-		cbft.log.Warn("Can not got the validator, seal fail", "epoch", cbft.state.Epoch(), "nodeID", cbft.NodeID())
+		cbft.log.Warn("Can not got the validator, seal fail", "epoch", cbft.state.Epoch(), "nodeID", cbft.Id())
 		return
 	}
 	numValidators := cbft.validatorPool.Len(cbft.state.Epoch())
@@ -1086,7 +1087,7 @@ func (cbft *Cbft) Close() error {
 }
 
 // ConsensusNodes returns to the list of consensus nodes.
-func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
+func (cbft *Cbft) ConsensusNodes() ([]discv5.NodeID, error) {
 	if cbft.consensusNodesMock != nil {
 		return cbft.consensusNodesMock()
 	}
@@ -1138,14 +1139,14 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	}
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
-	if !cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.NodeID) {
+	if !cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.Id) {
 		result <- ErrorNotValidator
 		return
 	}
 
 	numValidators := cbft.validatorPool.Len(cbft.state.Epoch())
 	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
-	validator, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+	validator, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Id)
 	if err != nil {
 		cbft.log.Error("Should seal fail", "err", err)
 		result <- err
@@ -1212,7 +1213,7 @@ func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 
 // IsConsensusNode returns whether the current node is a consensus node.
 func (cbft *Cbft) IsConsensusNode() bool {
-	return cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.NodeID)
+	return cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.Id)
 }
 
 // GetBlock returns the block corresponding to the specified number and hash.
@@ -1362,7 +1363,7 @@ func (cbft *Cbft) isStart() bool {
 }
 
 func (cbft *Cbft) isCurrentValidator() (*cbfttypes.ValidateNode, error) {
-	return cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+	return cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Id)
 }
 
 func (cbft *Cbft) currentProposer() *cbfttypes.ValidateNode {
@@ -1800,9 +1801,9 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	return err
 }
 
-// NodeID returns the ID value of the current node
-func (cbft *Cbft) NodeID() discover.NodeID {
-	return cbft.config.Option.NodeID
+// Id returns the ID value of the current node
+func (cbft *Cbft) Id() enode.ID {
+	return cbft.config.Option.Id
 }
 
 func (cbft *Cbft) avgRTT() time.Duration {

@@ -1,9 +1,8 @@
 package ppos
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 var (
@@ -29,12 +28,9 @@ var (
 func getDelegateReward(c *cli.Context) error {
 	netCheck(c)
 	nodeIDlist := c.StringSlice(nodeList.Name)
-	idlist := make([]discover.NodeID, 0)
+	idlist := make([]enode.ID, 0)
 	for _, node := range nodeIDlist {
-		nodeid, err := discover.HexID(node)
-		if err != nil {
-			return err
-		}
+		nodeid := enode.HexID(node)
 		idlist = append(idlist, nodeid)
 	}
 	return query(c, 5100, idlist)

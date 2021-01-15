@@ -19,30 +19,41 @@ package network
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // ============================ simulation network ============================
 
-// RandomID returns a list of NodeID by random.
-func RandomID() []discover.NodeID {
-	ids := make([]discover.NodeID, 0)
+// RandomNodeID returns a list of discv5.NodeID by random.
+func RandomNodeID() []discv5.NodeID {
+	ids := make([]discv5.NodeID, 0)
 	for i := 0; i < 4; i++ {
-		var id discover.NodeID
+		var id discv5.NodeID
 		rand.Read(id[:])
 		ids = append(ids, id)
 	}
 	return ids
 }
 
+// RandomID returns a list of enode.ID by random.
+func RandomID() []enode.ID {
+	ids := make([]enode.ID, 0)
+	for i := 0; i < 4; i++ {
+		var id enode.ID
+		rand.Read(id[:])
+		ids = append(ids, id)
+	}
+	return ids
+}
 // EnhanceEngineManager is used to register a batch of handlers to
 // simulate the test environment.
 //
 // The number of simulated network nodes is fixed at four.
-func EnhanceEngineManager(ids []discover.NodeID, handlers []*EngineManager) {
+func EnhanceEngineManager(ids []enode.ID, handlers []*EngineManager) {
 
 	// node 1 => 1 <--> 2 association.
 	rw1Node1_2, rw2Node1_2 := p2p.MsgPipe()
@@ -99,7 +110,7 @@ func SetSendQueueHook(engine *EngineManager, hook func(msg *types.MsgPackage)) {
 }
 
 // FillEngineManager populates the peer for the specified Handle.
-func FillEngineManager(ids []discover.NodeID, handler *EngineManager) {
+func FillEngineManager(ids []enode.ID, handler *EngineManager) {
 	write, read := p2p.MsgPipe()
 	for _, v := range ids {
 		peer := newPeer(CbftProtocolVersion, p2p.NewPeer(v, v.TerminalString(), nil), write)

@@ -18,7 +18,7 @@ package gov
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
 type TallyResult struct {
@@ -33,12 +33,12 @@ type TallyResult struct {
 
 type VoteInfo struct {
 	ProposalID common.Hash     `json:"proposalID"`
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
+	VoteNodeID enode.ID        `json:"voteNodeID"`
 	VoteOption VoteOption      `json:"voteOption"`
 }
 
 type VoteValue struct {
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
+	VoteNodeID enode.ID        `json:"voteNodeID"`
 	VoteOption VoteOption      `json:"voteOption"`
 }
 

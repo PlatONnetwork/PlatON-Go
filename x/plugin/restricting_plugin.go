@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"sort"
 	"sync"
@@ -25,8 +26,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -87,7 +86,7 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 }
 
 // Confirmed is empty function
-func (rp *RestrictingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (rp *RestrictingPlugin) Confirmed(nodeId enode.ID, block *types.Block) error {
 	return nil
 }
 

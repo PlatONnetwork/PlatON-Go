@@ -19,13 +19,11 @@ package evidence
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
@@ -113,7 +111,7 @@ func (d DuplicatePrepareBlockEvidence) Validate() error {
 	return nil
 }
 
-func (d DuplicatePrepareBlockEvidence) NodeID() discover.NodeID {
+func (d DuplicatePrepareBlockEvidence) ID() enode.ID {
 	return d.PrepareA.ValidateNode.NodeID
 }
 
@@ -208,7 +206,7 @@ func (d DuplicatePrepareVoteEvidence) Validate() error {
 	return nil
 }
 
-func (d DuplicatePrepareVoteEvidence) NodeID() discover.NodeID {
+func (d DuplicatePrepareVoteEvidence) ID() enode.ID {
 	return d.VoteA.ValidateNode.NodeID
 }
 
@@ -300,7 +298,7 @@ func (d DuplicateViewChangeEvidence) Validate() error {
 	return nil
 }
 
-func (d DuplicateViewChangeEvidence) NodeID() discover.NodeID {
+func (d DuplicateViewChangeEvidence) ID() enode.ID {
 	return d.ViewA.ValidateNode.NodeID
 }
 

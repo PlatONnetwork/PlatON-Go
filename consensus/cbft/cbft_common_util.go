@@ -18,6 +18,7 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"time"
 
@@ -43,7 +44,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -68,7 +68,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Time:        uint64(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x0353e2f9065dd8d09ae0eb42a2e0776b07cd6915f53583d6ce0ad7b203e0be3c")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x4a63bf66d9bd3565fcf6cc2859c9ea6d7cc277cd71aa793e1822e3f097281738")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -85,7 +85,7 @@ func NewBlockWithSign(parent common.Hash, number uint64, node *TestCBFT) *types.
 		Time:        uint64(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x0353e2f9065dd8d09ae0eb42a2e0776b07cd6915f53583d6ce0ad7b203e0be3c")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x4a63bf66d9bd3565fcf6cc2859c9ea6d7cc277cd71aa793e1822e3f097281738")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -118,7 +118,7 @@ func GenerateCbftNode(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey, []params.
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
 
-		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
+		nodes[i].Node = *enode.NewV4(&pk[i].PublicKey, nil, 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 
 	}
@@ -136,7 +136,7 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 
 	optConfig := &ctypes.OptionsConfig{
 		NodePriKey:        pk,
-		NodeID:            discover.PubkeyID(&pk.PublicKey),
+		Id:                enode.PubkeyToIDV4(&pk.PublicKey),
 		BlsPriKey:         sk,
 		MaxQueuesLimit:    1000,
 		BlacklistDeadline: 1,
@@ -219,6 +219,7 @@ func (t *TestCBFT) Start() error {
 
 // MockNode returns a new TestCBFT for testing.
 func MockNode(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftNode, period uint64, amount uint32) *TestCBFT {
+	xcom.GetEc(xcom.DefaultUnitTestNet)
 	engine := CreateCBFT(pk, sk, period, amount)
 
 	chain, cache, txpool, agency := CreateBackend(engine, nodes)
@@ -245,13 +246,13 @@ func MockValidator(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftN
 	}
 }
 
-// NewEngineManager returns a list of EngineManager and NodeID.
-func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []discover.NodeID) {
-	nodeids := make([]discover.NodeID, 0)
+// NewEngineManager returns a list of EngineManager and Id.
+func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []enode.ID) {
+	nodeids := make([]enode.ID, 0)
 	engines := make([]*network.EngineManager, 0)
 	for _, c := range cbfts {
 		engines = append(engines, c.engine.network)
-		nodeids = append(nodeids, c.engine.config.Option.NodeID)
+		nodeids = append(nodeids, c.engine.config.Option.Id)
 	}
 	return engines, nodeids
 }
@@ -264,7 +265,7 @@ func Mock4NodePipe(start bool) []*TestCBFT {
 		node := MockNode(pk[i], sk[i], cbftnodes, 20000, 10)
 
 		nodes = append(nodes, node)
-		//fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
+		//fmt.Println(i, node.engine.config.Option.Id.TerminalString())
 		nodes[i].Start()
 	}
 

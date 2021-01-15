@@ -18,13 +18,13 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
@@ -174,7 +174,7 @@ func TestSyncBlock(t *testing.T) {
 				nodes[j].engine.executeFinishHook = func(index uint32) {
 					execute <- index
 				}
-				assert.Nil(t, nodes[j].engine.OnPrepareBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), pb))
+				assert.Nil(t, nodes[j].engine.OnPrepareBlock(nodes[0].engine.config.Option.Id.TerminalString(), pb))
 
 				select {
 				case <-timer.C:
@@ -185,7 +185,7 @@ func TestSyncBlock(t *testing.T) {
 				index, finish := nodes[j].engine.state.Executing()
 				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("%d,%v", index, finish))
 				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote(nodes[j].engine.config.Option.NodeID.TerminalString(), msg), fmt.Sprintf("number:%d", b.NumberU64()))
+				assert.Nil(t, nodes[0].engine.OnPrepareVote(nodes[j].engine.config.Option.Id.TerminalString(), msg), fmt.Sprintf("number:%d", b.NumberU64()))
 			}
 			_, qc := nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
 			assert.NotNil(t, qc)
@@ -214,7 +214,7 @@ func TestSyncBlock(t *testing.T) {
 		}
 	}
 	_, fetchBlockQC := nodes[0].engine.blockTree.FindBlockAndQC(fetchBlock.Hash(), fetchBlock.NumberU64())
-	nodes[1].engine.fetchBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), fetchBlock.Hash(), fetchBlock.NumberU64(), fetchBlockQC)
+	nodes[1].engine.fetchBlock(nodes[0].engine.config.Option.Id.TerminalString(), fetchBlock.Hash(), fetchBlock.NumberU64(), fetchBlockQC)
 
 	select {
 	case <-time.NewTimer(30 * time.Second).C:
@@ -526,19 +526,22 @@ func TestCbft_MissingViewChangeNodes(t *testing.T) {
 	assert.Nil(t, message)
 }
 
-func buildSingleCbft() (*Cbft, []discover.NodeID) {
+func buildSingleCbft() (*Cbft, []enode.ID) {
 	// Init mock node.
 	pk, sk, cbftnodes := GenerateCbftNode(1)
 	node := MockNode(pk[0], sk[0], cbftnodes, 1000000, 10)
 	node.Start()
-	//node.engine.network.Close()
 	// Add a node to the Handler.
-	cNodes := network.RandomID()
-	node.engine.consensusNodesMock = func() ([]discover.NodeID, error) {
+	cNodes := network.RandomNodeID()
+	node.engine.consensusNodesMock = func() ([]discv5.NodeID, error) {
 		return cNodes, nil
 	}
-	network.FillEngineManager(cNodes, node.engine.network)
-	return node.engine, cNodes
+	var ids []enode.ID
+	for _, nid := range cNodes {
+		ids = append(ids, enode.NodeIDToIDV4(nid))
+	}
+	network.FillEngineManager(ids, node.engine.network)
+	return node.engine, ids
 }
 
 func TestCbft_OnPong(t *testing.T) {
@@ -549,6 +552,7 @@ func TestCbft_OnPong(t *testing.T) {
 			tInt64 := curTime - value*1000000 // Suppose there is a 200 millisecond delay.
 			latency := (curTime - tInt64) / 2 / 1000000
 			engine.OnPong(v.TerminalString(), latency)
+			fmt.Println("TestCbft_OnPong","latency",latency)
 		}
 		avg := engine.AvgLatency()
 		return avg

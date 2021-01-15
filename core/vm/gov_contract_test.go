@@ -19,6 +19,8 @@ package vm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
 
@@ -31,7 +33,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -99,22 +100,22 @@ func buildSubmitTextInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[1])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[1]))) // param 1 ...
 	input = append(input, common.MustRlpEncode("textUrl"))
 
 	return common.MustRlpEncode(input)
 }
-func buildSubmitText(nodeID discover.NodeID, pipID string) []byte {
+func buildSubmitText(id enode.ID, pipID string) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
-	input = append(input, common.MustRlpEncode(nodeID))       // param 1 ...
+	input = append(input, common.MustRlpEncode(id))           // param 1 ...
 	input = append(input, common.MustRlpEncode(pipID))
 
 	return common.MustRlpEncode(input)
 }
 
-func buildSubmitParam(nodeID discover.NodeID, pipID string, module, name, newValue string) []byte {
+func buildSubmitParam(nodeID enode.ID, pipID string, module, name, newValue string) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2002))) // func type code
@@ -131,7 +132,7 @@ func buildSubmitVersionInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2001))) // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[0]))) // param 1 ...
 	input = append(input, common.MustRlpEncode("verionPIPID"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
 	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())))
@@ -139,7 +140,7 @@ func buildSubmitVersionInput() []byte {
 	return common.MustRlpEncode(input)
 }
 
-func buildSubmitVersion(nodeID discover.NodeID, pipID string, newVersion uint32, endVotingRounds uint64) []byte {
+func buildSubmitVersion(nodeID enode.ID, pipID string, newVersion uint32, endVotingRounds uint64) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2001))) // func type code
@@ -155,14 +156,14 @@ func buildSubmitCancelInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ..
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[0]))) // param 1 ..
 	input = append(input, common.MustRlpEncode("cancelPIPID"))
 	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1))
 	input = append(input, common.MustRlpEncode(defaultProposalID))
 	return common.MustRlpEncode(input)
 }
 
-func buildSubmitCancel(nodeID discover.NodeID, pipID string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) []byte {
+func buildSubmitCancel(nodeID enode.ID, pipID string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
@@ -177,7 +178,7 @@ func buildVoteInput(nodeIdx int, proposalID common.Hash) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2003)))       // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[nodeIdx])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[nodeIdx]))) // param 1 ...
 	input = append(input, common.MustRlpEncode(proposalID))
 	input = append(input, common.MustRlpEncode(uint8(1)))
 	input = append(input, common.MustRlpEncode(promoteVersion))
@@ -190,7 +191,7 @@ func buildVote(nodeIdx int, proposalID common.Hash, option gov.VoteOption, progr
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2003)))       // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[nodeIdx])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[nodeIdx]))) // param 1 ...
 	input = append(input, common.MustRlpEncode(proposalID))
 	input = append(input, common.MustRlpEncode(option))
 	input = append(input, common.MustRlpEncode(programVersion))
@@ -203,13 +204,13 @@ func buildDeclareInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2004))) // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
+	input = append(input, common.MustRlpEncode(enode.NodeIDToIDV4(nodeIdArr[0]))) // param 1 ...
 	input = append(input, common.MustRlpEncode(promoteVersion))
 	input = append(input, common.MustRlpEncode(versionSign))
 	return common.MustRlpEncode(input)
 }
 
-func buildDeclare(nodeID discover.NodeID, declaredVersion uint32, sign common.VersionSign) []byte {
+func buildDeclare(nodeID enode.ID, declaredVersion uint32, sign common.VersionSign) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2004))) // func type code
@@ -356,16 +357,16 @@ func TestGovContract_SubmitText_PIPID_empty(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], ""), t, gov.PIPIDEmpty)
+	runGovContract(false, gc, buildSubmitText(enode.NodeIDToIDV4(nodeIdArr[1]), ""), t, gov.PIPIDEmpty)
 }
 
 func TestGovContract_SubmitText_ProposalID_exist(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	runGovContract(false, gc, buildSubmitText(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid1"), t)
 
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid33"), t, gov.ProposalIDExist)
+	runGovContract(false, gc, buildSubmitText(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid33"), t, gov.ProposalIDExist)
 }
 
 func TestGovContract_SubmitText_Proposal_Empty(t *testing.T) {
@@ -403,7 +404,7 @@ func TestGovContract_SubmitParam(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
+	runGovContract(false, gc, buildSubmitParam(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid3", paramModule, paramName, "30"), t)
 
 	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
@@ -422,18 +423,18 @@ func TestGovContract_SubmitParam_thenSubmitParamFailed(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
+	runGovContract(false, gc, buildSubmitParam(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid3", paramModule, paramName, "30"), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[2], "pipid4", paramModule, paramName, "35"), t, gov.VotingParamProposalExist)
+	runGovContract(false, gc, buildSubmitParam(enode.NodeIDToIDV4(nodeIdArr[2]), "pipid4", paramModule, paramName, "35"), t, gov.VotingParamProposalExist)
 }
 
 func TestGovContract_SubmitParam_thenSubmitVersionFailed(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
+	runGovContract(false, gc, buildSubmitParam(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid3", paramModule, paramName, "30"), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
@@ -452,7 +453,7 @@ func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
 	}
 
 	//submit a proposal and vote for it.
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
+	runGovContract(false, gc, buildSubmitParam(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid3", paramModule, paramName, "30"), t)
 	//runGovContract(false, gc, buildSubmitTextInput(), t)
 	commit_sndb(chain)
 
@@ -476,7 +477,7 @@ func TestGovContract_voteTwoProposal_punished(t *testing.T) {
 	}
 
 	//submit a proposal and vote for it.
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
+	runGovContract(false, gc, buildSubmitParam(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid3", paramModule, paramName, "30"), t)
 	//runGovContract(false, gc, buildSubmitTextInput(), t)
 	commit_sndb(chain)
 
@@ -486,7 +487,7 @@ func TestGovContract_voteTwoProposal_punished(t *testing.T) {
 
 	prepair_sndb(chain, txHashArr[3])
 	//submit a proposal and vote for it.
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[1], "pipid2", 4, defaultProposalID), t)
+	runGovContract(false, gc, buildSubmitCancel(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid2", 4, defaultProposalID), t)
 	//runGovContract(false, gc, buildSubmitTextInput(), t)
 	commit_sndb(chain)
 
@@ -495,7 +496,7 @@ func TestGovContract_voteTwoProposal_punished(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[5])
-	punished := make(map[discover.NodeID]struct{})
+	punished := make(map[enode.ID]struct{})
 	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 
 	// punish last one
@@ -522,7 +523,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	}
 
 	//submit a proposal and vote for it.
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
+	runGovContract(false, gc, buildSubmitParam(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid3", paramModule, paramName, "30"), t)
 	//runGovContract(false, gc, buildSubmitTextInput(), t)
 	commit_sndb(chain)
 
@@ -582,7 +583,7 @@ func TestGovContract_SubmitVersion_thenSubmitParamFailed(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t, gov.VotingVersionProposalExist)
+	runGovContract(false, gc, buildSubmitParam(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid3", paramModule, paramName, "30"), t, gov.VotingVersionProposalExist)
 }
 
 func TestGovContract_GetVersionProposal(t *testing.T) {
@@ -601,12 +602,12 @@ func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
 	defer clear(chain, t)
 
 	//submit a proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t)
+	runGovContract(false, gc, buildSubmitVersion(enode.NodeIDToIDV4(nodeIdArr[1]), "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
 	//submit a proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.VotingVersionProposalExist)
+	runGovContract(false, gc, buildSubmitVersion(enode.NodeIDToIDV4(nodeIdArr[2]), "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.VotingVersionProposalExist)
 }
 
 func TestGovContract_SubmitVersion_Passed(t *testing.T) {
@@ -698,7 +699,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	//skip empty blocks, this version proposal is pre-active
 	skip_emptyBlock(chain, p.GetActiveBlock()-1)
 	//submit another version proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.PreActiveVersionProposalExist)
+	runGovContract(false, gc, buildSubmitVersion(enode.NodeIDToIDV4(nodeIdArr[2]), "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.PreActiveVersionProposalExist)
 }
 
 func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
@@ -793,13 +794,13 @@ func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
 func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.NewVersionError)
+	runGovContract(false, gc, buildSubmitVersion(enode.NodeIDToIDV4(nodeIdArr[1]), "versionPIPID", uint32(32), xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.NewVersionError)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooSmall(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 0), t, gov.EndVotingRoundsTooSmall)
+	runGovContract(false, gc, buildSubmitVersion(enode.NodeIDToIDV4(nodeIdArr[1]), "versionPIPID", promoteVersion, 0), t, gov.EndVotingRoundsTooSmall)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
@@ -807,7 +808,7 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
 	defer clear(chain, t)
 
 	//the default rounds is 6 for developer test net
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())+1), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(false, gc, buildSubmitVersion(enode.NodeIDToIDV4(nodeIdArr[1]), "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())+1), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t *testing.T) {
@@ -826,7 +827,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t 
 
 	//fmt.Println("hash:::", chain.CurrentHeader().Hash().Hex())
 
-	runGovContract(false, gc, buildDeclare(nodeIdArr[0], initProgramVersion, sign), t)
+	runGovContract(false, gc, buildDeclare(enode.NodeIDToIDV4(nodeIdArr[0]), initProgramVersion, sign), t)
 
 	//if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 	//	t.Error("cannot list ActiveNode")
@@ -875,7 +876,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareOtherVersion_Err
 	var sign common.VersionSign
 	sign.SetBytes(chandler.MustSign(otherVersion))
 
-	runGovContract(false, gc, buildDeclare(nodeIdArr[0], otherVersion, sign), t, gov.DeclareVersionError)
+	runGovContract(false, gc, buildDeclare(enode.NodeIDToIDV4(nodeIdArr[0]), otherVersion, sign), t, gov.DeclareVersionError)
 
 }
 
@@ -894,7 +895,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareNewVersion(t *testi
 	runGovContract(false, gc, buildVoteInput(0, defaultProposalID), t)
 
 	//declare new version
-	runGovContract(false, gc, buildDeclare(nodeIdArr[0], promoteVersion, versionSign), t)
+	runGovContract(false, gc, buildDeclare(enode.NodeIDToIDV4(nodeIdArr[0]), promoteVersion, versionSign), t)
 
 	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -925,7 +926,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOldVersion_ERROR(t 
 	sign.SetBytes(chandler.MustSign(initProgramVersion))
 
 	//vote new version, but declare old version
-	runGovContract(false, gc, buildDeclare(nodeIdArr[0], initProgramVersion, sign), t, gov.DeclareVersionError)
+	runGovContract(false, gc, buildDeclare(enode.NodeIDToIDV4(nodeIdArr[0]), initProgramVersion, sign), t, gov.DeclareVersionError)
 
 	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -955,7 +956,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOtherVersion_ERROR(
 	sign.SetBytes(chandler.MustSign(otherVersion))
 
 	//vote new version, but declare other version
-	runGovContract(false, gc, buildDeclare(nodeIdArr[0], otherVersion, sign), t, gov.DeclareVersionError)
+	runGovContract(false, gc, buildDeclare(enode.NodeIDToIDV4(nodeIdArr[0]), otherVersion, sign), t, gov.DeclareVersionError)
 
 	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -982,16 +983,16 @@ func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
 	defer clear(chain, t)
 
 	//submit a proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t)
+	runGovContract(false, gc, buildSubmitVersion(enode.NodeIDToIDV4(nodeIdArr[0]), "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
+	runGovContract(false, gc, buildSubmitCancel(enode.NodeIDToIDV4(nodeIdArr[1]), "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
 
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[3])
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[2], "cancelPIPIDAnother", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.VotingCancelProposalExist)
+	runGovContract(false, gc, buildSubmitCancel(enode.NodeIDToIDV4(nodeIdArr[2]), "cancelPIPIDAnother", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.VotingCancelProposalExist)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
@@ -1001,7 +1002,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), defaultProposalID), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(false, gc, buildSubmitCancel(enode.NodeIDToIDV4(nodeIdArr[0]), "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), defaultProposalID), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testing.T) {
@@ -1013,7 +1014,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testin
 
 	prepair_sndb(chain, txHashArr[2])
 	//the version proposal's endVotingRounds=5
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, txHashArr[3]), t, gov.TobeCanceledProposalNotFound)
+	runGovContract(false, gc, buildSubmitCancel(enode.NodeIDToIDV4(nodeIdArr[0]), "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, txHashArr[3]), t, gov.TobeCanceledProposalNotFound)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal(t *testing.T) {
@@ -1025,7 +1026,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal
 
 	prepair_sndb(chain, txHashArr[2])
 	//try to cancel a text proposal
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalTypeError)
+	runGovContract(false, gc, buildSubmitCancel(enode.NodeIDToIDV4(nodeIdArr[0]), "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalTypeError)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t *testing.T) {
@@ -1045,7 +1046,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t
 
 	prepair_sndb(chain, txHashArr[3])
 	//try to cancel a closed version proposal
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalNotAtVoting)
+	runGovContract(false, gc, buildSubmitCancel(enode.NodeIDToIDV4(nodeIdArr[0]), "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalNotAtVoting)
 }
 
 func TestGovContract_GetCancelProposal(t *testing.T) {
@@ -1057,7 +1058,7 @@ func TestGovContract_GetCancelProposal(t *testing.T) {
 
 	prepair_sndb(chain, txHashArr[2])
 	//submit a proposal and get it.
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
+	runGovContract(false, gc, buildSubmitCancel(enode.NodeIDToIDV4(nodeIdArr[0]), "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[3])
@@ -1193,7 +1194,7 @@ func TestGovContract_SubmitText_passed_PIPID_exist(t *testing.T) {
 	defer clear(chain, t)
 
 	//submit a proposal and vote for it.
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	runGovContract(false, gc, buildSubmitText(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid1"), t)
 	commit_sndb(chain)
 
 	build_staking_data_more(chain)
@@ -1220,7 +1221,7 @@ func TestGovContract_SubmitText_passed_PIPID_exist(t *testing.T) {
 	prepair_sndb(chain, txHashArr[3])
 
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
+	runGovContract(false, gc, buildSubmitText(enode.NodeIDToIDV4(nodeIdArr[2]), "pipid1"), t, gov.PIPIDExist)
 }
 
 func TestGovContract_SubmitText_voting_PIPID_exist(t *testing.T) {
@@ -1228,7 +1229,7 @@ func TestGovContract_SubmitText_voting_PIPID_exist(t *testing.T) {
 	defer clear(chain, t)
 
 	//submit a proposal and vote for it.
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	runGovContract(false, gc, buildSubmitText(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid1"), t)
 	commit_sndb(chain)
 
 	build_staking_data_more(chain)
@@ -1240,7 +1241,7 @@ func TestGovContract_SubmitText_voting_PIPID_exist(t *testing.T) {
 
 	//submit another proposal
 	prepair_sndb(chain, txHashArr[3])
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
+	runGovContract(false, gc, buildSubmitText(enode.NodeIDToIDV4(nodeIdArr[2]), "pipid1"), t, gov.PIPIDExist)
 }
 
 func TestGovContract_SubmitText_NotPassed_SamePIPID_Allowed(t *testing.T) {
@@ -1248,7 +1249,7 @@ func TestGovContract_SubmitText_NotPassed_SamePIPID_Allowed(t *testing.T) {
 	defer clear(chain, t)
 
 	//submit a proposal and vote for it.
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	runGovContract(false, gc, buildSubmitText(enode.NodeIDToIDV4(nodeIdArr[1]), "pipid1"), t)
 	commit_sndb(chain)
 
 	build_staking_data_more(chain)
@@ -1273,13 +1274,13 @@ func TestGovContract_SubmitText_NotPassed_SamePIPID_Allowed(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[3])
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t)
+	runGovContract(false, gc, buildSubmitText(enode.NodeIDToIDV4(nodeIdArr[2]), "pipid1"), t)
 
 	p, err = gov.GetProposal(txHashArr[3], chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	} else {
-		assert.Equal(t, nodeIdArr[2], p.GetProposer())
+		assert.Equal(t, enode.NodeIDToIDV4(nodeIdArr[2]), p.GetProposer())
 	}
 
 }
@@ -1641,7 +1642,7 @@ func runGovContract(callType bool, contract *GovContract, buf []byte, t *testing
 func Test_ResetVoteOption(t *testing.T) {
 	v := gov.VoteInfo{}
 	v.ProposalID = common.ZeroHash
-	v.VoteNodeID = discover.NodeID{}
+	v.VoteNodeID = enode.ID{}
 	v.VoteOption = gov.Abstention
 	t.Log(v)
 
@@ -1712,7 +1713,7 @@ func allVote(chain *mock.Chain, t *testing.T, pid common.Hash, option gov.VoteOp
 	for i := 0; i < voteCount; i++ {
 		vote := gov.VoteInfo{
 			ProposalID: pid,
-			VoteNodeID: nodeIdArr[i],
+			VoteNodeID: enode.NodeIDToIDV4(nodeIdArr[i]),
 			VoteOption: option,
 		}
 

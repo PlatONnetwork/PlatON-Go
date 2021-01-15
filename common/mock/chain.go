@@ -18,13 +18,13 @@ package mock
 
 import (
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"math/big"
 	"math/rand"
 	"reflect"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -90,7 +90,7 @@ func (c *Chain) execTx(miner bool, f Transaction) error {
 type Transaction func(blockHash common.Hash, header *types.Header, statedb *MockStateDB, sdb snapshotdb.DB) error
 
 func (T *Transaction) Hash() (h common.Hash) {
-	hw := sha3.NewKeccak256()
+	hw := sha3.NewLegacyKeccak256()
 	if err := rlp.Encode(hw, fmt.Sprint(T)); err != nil {
 		panic(err)
 	}
@@ -363,7 +363,7 @@ func (s *MockStateDB) SetCode(addr common.Address, code []byte) {
 	s.Code[addr] = code
 
 	var h common.Hash
-	hw := sha3.NewKeccak256()
+	hw := sha3.NewLegacyKeccak256()
 	rlp.Encode(hw, code)
 	hw.Sum(h[:0])
 	s.CodeHash[addr] = h[:]

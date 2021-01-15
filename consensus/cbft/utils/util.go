@@ -18,13 +18,13 @@ package utils
 
 import (
 	"bytes"
+	"golang.org/x/crypto/sha3"
 	"io"
 	"math/rand"
 	"sort"
 	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 )
 
 // RandomOffset returns a random offset between 0 and n

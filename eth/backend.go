@@ -56,7 +56,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -603,7 +602,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 			for _, n := range s.chainConfig.Cbft.InitialNodes {
 				// todo: Mock point.
 				if !node.FakeNetEnable {
-					srvr.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
+					srvr.AddConsensusPeer(&n.Node)
 				}
 			}
 		}

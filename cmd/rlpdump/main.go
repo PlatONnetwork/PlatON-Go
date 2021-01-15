@@ -116,7 +116,7 @@ func main() {
 			slashing.ErrIntervalTooLong.Code:     slashing.ErrIntervalTooLong.Msg,
 			slashing.ErrGetCandidate.Code:        slashing.ErrGetCandidate.Msg,
 			slashing.ErrAddrMismatch.Code:        slashing.ErrAddrMismatch.Msg,
-			slashing.ErrNodeIdMismatch.Code:      slashing.ErrNodeIdMismatch.Msg,
+			slashing.ErrIdMismatch.Code:          slashing.ErrIdMismatch.Msg,
 			slashing.ErrBlsPubKeyMismatch.Code:   slashing.ErrBlsPubKeyMismatch.Msg,
 			slashing.ErrSlashingFail.Code:        slashing.ErrSlashingFail.Msg,
 			slashing.ErrNotValidator.Code:        slashing.ErrNotValidator.Msg,

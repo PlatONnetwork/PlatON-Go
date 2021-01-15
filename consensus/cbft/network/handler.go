@@ -18,6 +18,8 @@ package network
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -32,7 +34,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 const (
@@ -298,7 +299,7 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 			NodeInfo: func() interface{} {
 				return h.NodeInfo()
 			},
-			PeerInfo: func(id discover.NodeID) interface{} {
+			PeerInfo: func(id enode.ID) interface{} {
 				if p, err := h.peers.get(fmt.Sprintf("%x", id[:8])); err == nil {
 					return p.Info()
 				}
@@ -308,14 +309,15 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 	}
 }
 
-// AliveConsensusNodeIDs returns all NodeID to alive peer.
+// AliveConsensusNodeIDs returns all Id to alive peer.
 func (h *EngineManager) AliveConsensusNodeIDs() ([]string, error) {
 	cNodes, _ := h.engine.ConsensusNodes()
 	peers := h.peers.allPeers()
 	target := make([]string, 0, len(peers))
 	for _, pNode := range peers {
 		for _, cNode := range cNodes {
-			if pNode.PeerID() == cNode.TerminalString() {
+			idv4 := enode.NodeIDToIDV4(cNode)
+			if pNode.PeerID() == idv4.TerminalString() {
 				target = append(target, pNode.PeerID())
 			}
 		}
@@ -334,7 +336,7 @@ func (h *EngineManager) Unregister(id string) error {
 }
 
 // ConsensusNodes returns a list of all consensus nodes.
-func (h *EngineManager) ConsensusNodes() ([]discover.NodeID, error) {
+func (h *EngineManager) ConsensusNodes() ([]discv5.NodeID, error) {
 	return h.engine.ConsensusNodes()
 }
 

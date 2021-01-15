@@ -19,6 +19,8 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"time"
 
@@ -32,7 +34,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -144,12 +145,12 @@ func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
 	return nil, nil
 }
 
-func (bm *BftMock) NodeID() discover.NodeID {
+func (bm *BftMock) Id() enode.ID {
 	privateKey, err := crypto.GenerateKey()
 	if nil != err {
-		panic(fmt.Sprintf("Failed to generate random NodeId private key: %v", err))
+		panic(fmt.Sprintf("Failed to generate random Id private key: %v", err))
 	}
-	return discover.PubkeyID(&privateKey.PublicKey)
+	return enode.PubkeyToIDV4(&privateKey.PublicKey)
 }
 
 // Author retrieves the Ethereum address of the account that minted the given
@@ -278,7 +279,7 @@ func (bm *BftMock) Close() error {
 }
 
 // ConsensusNodes returns the current consensus node address list.
-func (bm *BftMock) ConsensusNodes() ([]discover.NodeID, error) {
+func (bm *BftMock) ConsensusNodes() ([]discv5.NodeID, error) {
 	return nil, nil
 }
 
@@ -289,7 +290,7 @@ func (bm *BftMock) ShouldSeal(curTime time.Time) (bool, error) {
 
 // OnBlockSignature received a new block signature
 // Need to verify if the signature is signed by nodeID
-func (bm *BftMock) OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
+func (bm *BftMock) OnBlockSignature(chain ChainReader, nodeID enode.ID, sig *cbfttypes.BlockSignature) error {
 	return nil
 }
 
@@ -299,7 +300,7 @@ func (bm *BftMock) OnNewBlock(chain ChainReader, block *types.Block) error {
 }
 
 // OnPong processes the BFT signatures
-func (bm *BftMock) OnPong(nodeID discover.NodeID, netLatency int64) error {
+func (bm *BftMock) OnPong(nodeID enode.ID, netLatency int64) error {
 	return nil
 
 }
@@ -310,7 +311,7 @@ func (bm *BftMock) OnBlockSynced() {
 }
 
 // CheckConsensusNode is a fake interface, no need to implement.
-func (bm *BftMock) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
+func (bm *BftMock) CheckConsensusNode(nodeID enode.ID) (bool, error) {
 	return true, nil
 }
 

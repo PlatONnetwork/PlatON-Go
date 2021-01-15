@@ -40,7 +40,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -77,7 +76,7 @@ func main() {
 		}
 		// Connect the node to al the previous ones
 		for _, enode := range enodes {
-			enode, err := discover.ParseNode(enode)
+			enode, err := enode.MustParse(enode)
 			if err != nil {
 				panic(err)
 			}

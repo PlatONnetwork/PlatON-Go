@@ -20,19 +20,18 @@ import (
 	"crypto/rand"
 	"flag"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	types2 "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
 
@@ -238,7 +237,7 @@ func newFakePeer(name string, version int, pm *EngineManager, shake bool) (*fake
 	app, net := p2p.MsgPipe()
 
 	// Generate a random id and create the peer.
-	var id discover.NodeID
+	var id enode.ID
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
@@ -255,11 +254,11 @@ func newFakePeer(name string, version int, pm *EngineManager, shake bool) (*fake
 }
 
 // Create a new peer for testing, return peer and ID.
-func newTestPeer(version int, name string) (*peer, discover.NodeID) {
+func newTestPeer(version int, name string) (*peer, enode.ID) {
 	_, net := p2p.MsgPipe()
 
 	// Generate a random id and create the peer.
-	var id discover.NodeID
+	var id enode.ID
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
@@ -268,13 +267,13 @@ func newTestPeer(version int, name string) (*peer, discover.NodeID) {
 	return peer, id
 }
 
-func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, discover.NodeID) {
+func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, discv5.NodeID) {
 	// Generate a random id and create the peer.
-	var id discover.NodeID
+	var id discv5.NodeID
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
-	peer := newPeer(version, p2p.NewPeer(id, name, nil), rw)
+	peer := newPeer(version, p2p.NewPeer(enode.NodeIDToIDV4(id), name, nil), rw)
 	go peer.sendLoop()
 	return peer, id
 }
@@ -282,7 +281,7 @@ func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, disco
 func Test_InitializePeers(t *testing.T) {
 
 	// Randomly generated ID.
-	nodeIds := RandomID()
+	nodeIds := RandomNodeID()
 
 	// init cbft
 	cbft1 := &mockCbft{nodeIds, nodeIds[0]}
@@ -296,9 +295,12 @@ func Test_InitializePeers(t *testing.T) {
 	h3 := NewEngineManger(cbft3)
 	h4 := NewEngineManger(cbft4)
 
+	var ids []enode.ID
+	for _, nid := range nodeIds {
+		ids = append(ids, enode.NodeIDToIDV4(nid))
+	}
 	// register
-	//initializeHandler(peers, []*EngineManager{h1, h2, h3, h4})
-	EnhanceEngineManager(nodeIds, []*EngineManager{h1, h2, h3, h4})
+	EnhanceEngineManager(ids, []*EngineManager{h1, h2, h3, h4})
 
 	// start handler.
 	h1.Start()
@@ -322,15 +324,15 @@ func Test_InitializePeers(t *testing.T) {
 }
 
 type mockCbft struct {
-	consensusNodes []discover.NodeID
-	peerID         discover.NodeID
+	consensusNodes []discv5.NodeID
+	peerID         discv5.NodeID
 }
 
-func (s *mockCbft) NodeID() discover.NodeID {
-	return s.peerID
+func (s *mockCbft) Id() enode.ID {
+	return enode.NodeIDToIDV4(s.peerID)
 }
 
-func (s *mockCbft) ConsensusNodes() ([]discover.NodeID, error) {
+func (s *mockCbft) ConsensusNodes() ([]discv5.NodeID, error) {
 	return s.consensusNodes, nil
 }
 
