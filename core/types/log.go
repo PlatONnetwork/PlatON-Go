@@ -70,6 +70,10 @@ type LogBlock struct {
 	Removed bool `json:"removed"`
 }
 
+type ContractCreated struct {
+	Address common.Address `json:"address" gencodec:"required"`
+}
+
 type logMarshaling struct {
 	Data        hexutil.Bytes
 	BlockNumber hexutil.Uint64
