@@ -997,3 +997,27 @@ func TestFork0140EcHash(t *testing.T) {
 	pposHash = chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
 	assert.True(t, pposHash != nil)
 }
+
+func TestFork0160EcHash(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	if Gte0160VersionState(chain.StateDB) {
+		if err := WriteEcHash0160(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash := chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash == nil)
+
+	if err := AddActiveVersion(params.FORKVERSION_0_16_0, 0, chain.StateDB); err != nil {
+		t.Error("AddActiveVersion, err", err)
+	}
+
+	if Gte0160VersionState(chain.StateDB) {
+		if err := WriteEcHash0160(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash = chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash != nil)
+}

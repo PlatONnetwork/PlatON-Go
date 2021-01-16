@@ -60,6 +60,7 @@ const (
 	KeyOperatingThreshold         = "operatingThreshold"
 	KeyMaxValidators              = "maxValidators"
 	KeyUnStakeFreezeDuration      = "unStakeFreezeDuration"
+	KeyUnDelegateFreezeDuration   = "unDelegateFreezeDuration"
 	KeySlashFractionDuplicateSign = "slashFractionDuplicateSign"
 	KeyDuplicateSignReportReward  = "duplicateSignReportReward"
 	KeyMaxEvidenceAge             = "maxEvidenceAge"
@@ -91,8 +92,25 @@ func Gte0150Version(version uint32) bool {
 	return version >= params.FORKVERSION_0_15_0
 }
 
+func Gte0160VersionState(state xcom.StateDB) bool {
+	return Gte0160Version(GetCurrentActiveVersion(state))
+}
+
+func Gte0160Version(version uint32) bool {
+	return version >= params.FORKVERSION_0_16_0
+}
+
 func WriteEcHash0140(state xcom.StateDB) error {
 	if data, err := xcom.EcParams0140(); nil != err {
+		return err
+	} else {
+		SetEcParametersHash(state, data)
+	}
+	return nil
+}
+
+func WriteEcHash0160(state xcom.StateDB) error {
+	if data, err := xcom.EcParams0160(); nil != err {
 		return err
 	} else {
 		SetEcParametersHash(state, data)
@@ -739,6 +757,20 @@ func GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, err
 
 func GovernUnStakeFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
 	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnStakeFreezeDuration, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	duration, err := strconv.Atoi(durationStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint64(duration), nil
+}
+
+func GovernUnDelegateFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnDelegateFreezeDuration, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}

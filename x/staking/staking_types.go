@@ -207,7 +207,7 @@ func (can *CandidateBase) IsEmpty() bool {
 	return nil == can
 }
 
-type CandidateMutable struct {
+type CandidateMutableOld struct {
 	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`
 	Status CandidateStatus
@@ -243,12 +243,58 @@ type CandidateMutable struct {
 	DelegateRewardTotal *big.Int
 }
 
+type CandidateMutable struct {
+	// The candidate status
+	// Reference `THE CANDIDATE  STATUS`
+	Status CandidateStatus
+	// The epoch number at staking or edit
+	StakingEpoch uint32
+	// All vons of staking and delegated
+	Shares *big.Int
+	// The staking von  is circulating for effective epoch (in effect)
+	Released *big.Int
+	// The staking von  is circulating for hesitant epoch (in hesitation)
+	ReleasedHes *big.Int
+	// The staking von  is RestrictingPlan for effective epoch (in effect)
+	RestrictingPlan *big.Int
+	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
+	RestrictingPlanHes *big.Int
+	// The epoch number at delegate or edit
+	DelegateEpoch uint32
+	// Effective total delegate
+	DelegateTotal *big.Int
+	// hesitant total delegate
+	DelegateTotalHes *big.Int
+	// Delegate reward amount percent for current settlement cycle
+	RewardPer uint16
+	// Delegate reward amount percent for next settlement cycle
+	NextRewardPer uint16
+	// Number of settlement cycles when changing the commission reward percentage
+	RewardPerChangeEpoch uint32
+
+	// current epoch  total Delegate reward
+	CurrentEpochDelegateReward *big.Int
+
+	// total  Delegate reward have give
+	DelegateRewardTotal *big.Int
+
+	// The settlement period to which the effective delegation is cancelled
+	WithdrewDelegateEpoch uint32
+
+	// The number of effective cancellations (the total number of cancellations in a settlement period)
+	WithdrewDelegateAmount *big.Int
+}
+
 func (can *CandidateMutable) PrepareNextEpoch() bool {
 	var changed bool
 	if can.CurrentEpochDelegateReward.Cmp(common.Big0) > 0 {
 		can.DelegateRewardTotal.Add(can.DelegateRewardTotal, can.CurrentEpochDelegateReward)
 		//clean  CurrentEpochDelegateReward
 		can.CleanCurrentEpochDelegateReward()
+		changed = true
+	}
+	if can.WithdrewDelegateAmount != nil && can.WithdrewDelegateAmount.Cmp(common.Big0) > 0 {
+		can.CleanWithdrewDelegateAmount()
 		changed = true
 	}
 	if can.NextRewardPer != can.RewardPer {
@@ -258,15 +304,43 @@ func (can *CandidateMutable) PrepareNextEpoch() bool {
 	return changed
 }
 
-func (can *CandidateMutable) ShouldGiveDelegateReward() bool {
-	if can.DelegateTotal.Cmp(common.Big0) > 0 && can.RewardPer > 0 {
+func (can *CandidateMutable) HasWithdrewDelegation() bool {
+	if can.WithdrewDelegateAmount != nil && can.WithdrewDelegateAmount.Cmp(common.Big0) > 0 {
 		return true
 	}
 	return false
 }
 
+func (can *CandidateMutable) ShouldGiveDelegateReward(epoch uint32) bool {
+	if can.EffectiveDelegateTotal(epoch).Cmp(common.Big0) > 0 && can.RewardPer > 0 {
+		return true
+	}
+	return false
+}
+
+func (can *CandidateMutable) EffectiveDelegateTotal(epoch uint32) *big.Int {
+	if epoch == can.WithdrewDelegateEpoch {
+		return new(big.Int).Add(can.DelegateTotal, can.WithdrewDelegateAmount)
+	}
+	return can.DelegateTotal
+}
+
+func (can *CandidateMutable) AppendWithdrewDelegateAmount(epoch uint32, amount *big.Int) {
+	if epoch == can.WithdrewDelegateEpoch {
+		can.WithdrewDelegateAmount = new(big.Int).Add(can.WithdrewDelegateAmount, amount)
+	} else {
+		can.WithdrewDelegateEpoch = epoch
+		can.WithdrewDelegateAmount = new(big.Int).Set(amount)
+	}
+}
+
+func (can *CandidateMutable) CleanWithdrewDelegateAmount() {
+	can.WithdrewDelegateEpoch = 0
+	can.WithdrewDelegateAmount = new(big.Int).SetUint64(0)
+}
+
 func (can *CandidateMutable) String() string {
-	return fmt.Sprintf(`{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d,"RewardPer": %d,"NextRewardPer": %d,"RewardPerChangeEpoch": %d}`,
+	return fmt.Sprintf(`{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d,"RewardPer": %d,"NextRewardPer": %d,"RewardPerChangeEpoch": %d,"WithdrewDelegateEpoch": %d,"WithdrewDelegateAmount": %d}`,
 		can.Status,
 		can.StakingEpoch,
 		can.Shares,
@@ -279,7 +353,9 @@ func (can *CandidateMutable) String() string {
 		can.DelegateTotalHes,
 		can.RewardPer,
 		can.NextRewardPer,
-		can.RewardPerChangeEpoch)
+		can.RewardPerChangeEpoch,
+		can.WithdrewDelegateEpoch,
+		can.WithdrewDelegateAmount)
 }
 
 func (can *CandidateMutable) SetValided() {
@@ -400,32 +476,34 @@ func (can *CandidateMutable) IsInvalidWithdrew() bool {
 
 // Display amount field using 0x hex
 type CandidateHex struct {
-	NodeId               discover.NodeID
-	BlsPubKey            bls.PublicKeyHex
-	StakingAddress       common.Address
-	BenefitAddress       common.Address
-	RewardPer            uint16
-	NextRewardPer        uint16
-	RewardPerChangeEpoch uint32
-	StakingTxIndex       uint32
-	ProgramVersion       uint32
-	Status               CandidateStatus
-	StakingEpoch         uint32
-	StakingBlockNum      uint64
-	Shares               *hexutil.Big
-	Released             *hexutil.Big
-	ReleasedHes          *hexutil.Big
-	RestrictingPlan      *hexutil.Big
-	RestrictingPlanHes   *hexutil.Big
-	DelegateEpoch        uint32
-	DelegateTotal        *hexutil.Big
-	DelegateTotalHes     *hexutil.Big
-	DelegateRewardTotal  *hexutil.Big
+	NodeId                 discover.NodeID
+	BlsPubKey              bls.PublicKeyHex
+	StakingAddress         common.Address
+	BenefitAddress         common.Address
+	RewardPer              uint16
+	NextRewardPer          uint16
+	RewardPerChangeEpoch   uint32
+	StakingTxIndex         uint32
+	ProgramVersion         uint32
+	Status                 CandidateStatus
+	StakingEpoch           uint32
+	StakingBlockNum        uint64
+	Shares                 *hexutil.Big
+	Released               *hexutil.Big
+	ReleasedHes            *hexutil.Big
+	RestrictingPlan        *hexutil.Big
+	RestrictingPlanHes     *hexutil.Big
+	DelegateEpoch          uint32
+	DelegateTotal          *hexutil.Big
+	DelegateTotalHes       *hexutil.Big
+	DelegateRewardTotal    *hexutil.Big
+	WithdrewDelegateEpoch  uint32
+	WithdrewDelegateAmount *hexutil.Big
 	Description
 }
 
 func (can *CandidateHex) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","DelegateEpoch": "%d","DelegateTotal": "%s","DelegateTotalHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateRewardTotal": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","DelegateEpoch": "%d","DelegateTotal": "%s","DelegateTotalHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateRewardTotal": "%s","WithdrewDelegateEpoch": "%d","WithdrewDelegateAmount": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -450,7 +528,9 @@ func (can *CandidateHex) String() string {
 		can.NodeName,
 		can.Website,
 		can.Details,
-		can.DelegateRewardTotal)
+		can.DelegateRewardTotal,
+		can.WithdrewDelegateEpoch,
+		can.WithdrewDelegateAmount)
 }
 
 func (can *CandidateHex) IsNotEmpty() bool {
@@ -991,11 +1071,13 @@ type ValidatorEx struct {
 	// Effective total delegate
 	DelegateTotal *hexutil.Big
 
-	DelegateRewardTotal *hexutil.Big
+	DelegateRewardTotal    *hexutil.Big
+	WithdrewDelegateEpoch  uint32
+	WithdrewDelegateAmount *hexutil.Big
 }
 
 func (vex *ValidatorEx) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d,"DelegateTotal": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","RewardPer": "%d","NextRewardPer": "%d","RewardPerChangeEpoch": "%d","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d,"DelegateTotal": "%s","WithdrewDelegateEpoch": "%d","WithdrewDelegateAmount": "%s"}`,
 		vex.NodeId.String(),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BlsPubKey.Bytes()),
@@ -1013,7 +1095,9 @@ func (vex *ValidatorEx) String() string {
 		vex.Website,
 		vex.Details,
 		vex.ValidatorTerm,
-		vex.DelegateTotal)
+		vex.DelegateTotal,
+		vex.WithdrewDelegateEpoch,
+		vex.WithdrewDelegateAmount)
 }
 
 type ValidatorExQueue []*ValidatorEx
@@ -1042,11 +1126,35 @@ func NewDelegation() *Delegation {
 	del.ReleasedHes = new(big.Int).SetInt64(0)
 	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
 	del.CumulativeIncome = new(big.Int).SetInt64(0)
+	del.WithdrewAmount = new(big.Int).SetInt64(0)
+	del.WithdrewEpoch = 0
+	del.UnLockEpoch = 0
 	return del
 }
 
 // the Delegate information
 type Delegation struct {
+	// The epoch number at delegate or edit
+	DelegateEpoch uint32
+	// The delegate von  is circulating for effective epoch (in effect)
+	Released *big.Int
+	// The delegate von  is circulating for hesitant epoch (in hesitation)
+	ReleasedHes *big.Int
+	// The delegate von  is RestrictingPlan for effective epoch (in effect)
+	RestrictingPlan *big.Int
+	// The delegate von  is RestrictingPlan for hesitant epoch (in hesitation)
+	RestrictingPlanHes *big.Int
+	// Cumulative delegate income (Waiting for withdrawal)
+	CumulativeIncome *big.Int
+	// Settlement period when the delegate is cancelled, Used to calculate delegation reward revenue
+	WithdrewEpoch uint32
+	// Number of effective delegate cancelled
+	WithdrewAmount *big.Int
+	// Unlock point for revoking effective commission (Billing cycle)
+	UnLockEpoch uint32
+}
+
+type DelegationOld struct {
 	// The epoch number at delegate or edit
 	DelegateEpoch uint32
 	// The delegate von  is circulating for effective epoch (in effect)
@@ -1066,14 +1174,23 @@ func (del *Delegation) CleanCumulativeIncome(epoch uint32) {
 	del.DelegateEpoch = epoch
 }
 
+func (del *Delegation) CleanWithdrewInfo() {
+	del.WithdrewEpoch = 0
+	del.WithdrewAmount = new(big.Int).SetUint64(0)
+	del.UnLockEpoch = 0
+}
+
 func (del *Delegation) String() string {
-	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%d","ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"CumulativeIncome": %d}`,
+	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%d","ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"CumulativeIncome": %d,"WithdrewEpoch": %d,"WithdrewAmount": %d,"UnLockEpoch": %d}`,
 		del.DelegateEpoch,
 		del.Released,
 		del.ReleasedHes,
 		del.RestrictingPlan,
 		del.RestrictingPlanHes,
-		del.CumulativeIncome)
+		del.CumulativeIncome,
+		del.WithdrewEpoch,
+		del.WithdrewAmount,
+		del.UnLockEpoch)
 }
 
 func (del *Delegation) IsNotEmpty() bool {
@@ -1082,6 +1199,17 @@ func (del *Delegation) IsNotEmpty() bool {
 
 func (del *Delegation) IsEmpty() bool {
 	return nil == del
+}
+
+// If there is an delegate that is being withdrawn, the settlement period that it belongs to at the time of cancellation has a profit,
+//and the value of "Withdrew Amount" needs to be subtracted from the subsequent settlement period,
+//and the cancelled delegate will have no profit.
+func (del *Delegation) TotalEffective(epoch uint64) *big.Int {
+	totalReleased := new(big.Int).Add(del.Released, del.RestrictingPlan)
+	if del.WithdrewEpoch > 0 && epoch > uint64(del.WithdrewEpoch) {
+		totalReleased = totalReleased.Sub(totalReleased, del.WithdrewAmount)
+	}
+	return totalReleased
 }
 
 type DelegationHex struct {
@@ -1097,16 +1225,22 @@ type DelegationHex struct {
 	RestrictingPlanHes *hexutil.Big
 	// Cumulative delegate income (Waiting for withdrawal)
 	CumulativeIncome *hexutil.Big
+	WithdrewEpoch    uint32
+	WithdrewAmount   *hexutil.Big
+	UnLockEpoch      uint32
 }
 
 func (delHex *DelegationHex) String() string {
-	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s}`,
+	return fmt.Sprintf(`{"DelegateEpoch": %d,"Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","CumulativeIncome": "%s","WithdrewEpoch": %d,"WithdrewAmount": "%s","UnLockEpoch": %d}`,
 		delHex.DelegateEpoch,
 		delHex.Released,
 		delHex.ReleasedHes,
 		delHex.RestrictingPlan,
 		delHex.RestrictingPlanHes,
-		delHex.CumulativeIncome)
+		delHex.CumulativeIncome,
+		delHex.WithdrewEpoch,
+		delHex.WithdrewAmount,
+		delHex.UnLockEpoch)
 }
 
 func (del *DelegationHex) IsNotEmpty() bool {
@@ -1125,7 +1259,7 @@ type DelegationEx struct {
 }
 
 func (dex *DelegationEx) String() string {
-	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s}`,
+	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": %d,"DelegateEpoch": %d,"Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","CumulativeIncome": "%s","WithdrewEpoch": %d,"WithdrewAmount": "%s","UnLockEpoch": %d}`,
 		dex.Addr.String(),
 		fmt.Sprintf("%x", dex.NodeId.Bytes()),
 		dex.StakingBlockNum,
@@ -1134,7 +1268,10 @@ func (dex *DelegationEx) String() string {
 		dex.ReleasedHes,
 		dex.RestrictingPlan,
 		dex.RestrictingPlanHes,
-		dex.CumulativeIncome)
+		dex.CumulativeIncome,
+		dex.WithdrewEpoch,
+		dex.WithdrewAmount,
+		dex.UnLockEpoch)
 }
 
 func (dex *DelegationEx) IsNotEmpty() bool {

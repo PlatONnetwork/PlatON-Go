@@ -90,7 +90,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 			},
 		}
 
-		mutable := &staking.CandidateMutable{
+		mutable := &staking.CandidateMutableOld{
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
 			Shares:             new(big.Int).Set(xcom.GeneStakingAmount),

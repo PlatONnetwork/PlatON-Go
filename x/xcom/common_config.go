@@ -157,6 +157,7 @@ type EconomicModel struct {
 type EconomicModelExtend struct {
 	Reward      rewardConfigExtend      `json:"reward"`
 	Restricting restrictingConfigExtend `json:"restricting"`
+	Staking     stakingConfigExtend     `json:"staking"`
 }
 
 type rewardConfigExtend struct {
@@ -165,6 +166,10 @@ type rewardConfigExtend struct {
 
 type restrictingConfigExtend struct {
 	MinimumRelease *big.Int `json:"minimumRelease"` //The minimum number of Restricting release in one epoch
+}
+
+type stakingConfigExtend struct {
+	UnDelegateFreezeDuration uint64 `json:"unDelegateFreezeDuration"` // The freeze period of the withdrew delegation (unit is epochs)
 }
 
 // New parameters added in version 0.14.0 need to be saved on the chain.
@@ -176,6 +181,19 @@ func EcParams0140() ([]byte, error) {
 	}{
 		TheNumberOfDelegationsReward: ece.Reward.TheNumberOfDelegationsReward,
 		RestrictingMinimumRelease:    ece.Restricting.MinimumRelease,
+	}
+	bytes, err := rlp.EncodeToBytes(params)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
+func EcParams0160() ([]byte, error) {
+	params := struct {
+		UnDelegateFreezeDuration uint64
+	}{
+		UnDelegateFreezeDuration: ece.Staking.UnDelegateFreezeDuration,
 	}
 	bytes, err := rlp.EncodeToBytes(params)
 	if err != nil {
@@ -293,6 +311,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Restricting: restrictingConfigExtend{
 				MinimumRelease: new(big.Int).Mul(oneAtp, new(big.Int).SetInt64(80)),
 			},
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 168,
+			},
 		}
 	case DefaultAlayaTestNet:
 		ec = &EconomicModel{
@@ -351,6 +372,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Restricting: restrictingConfigExtend{
 				MinimumRelease: new(big.Int).SetInt64(1),
+			},
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 168,
 			},
 		}
 	case DefaultTestNet:
@@ -411,6 +435,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Restricting: restrictingConfigExtend{
 				MinimumRelease: new(big.Int).SetInt64(1),
 			},
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 2,
+			},
 		}
 	case DefaultUnitTestNet:
 		ec = &EconomicModel{
@@ -470,6 +497,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Restricting: restrictingConfigExtend{
 				MinimumRelease: new(big.Int).SetInt64(1),
 			},
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 2,
+			},
 		}
 	default:
 		log.Error("not support chainID", "netId", netId)
@@ -507,6 +537,13 @@ func CheckUnStakeFreezeDuration(duration, maxEvidenceAge, zeroProduceFreezeDurat
 	}
 	if duration <= zeroProduceFreezeDuration || duration > CeilUnStakeFreezeDuration {
 		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnStakeFreezeDuration must be (%d, %d]", zeroProduceFreezeDuration, CeilUnStakeFreezeDuration))
+	}
+	return nil
+}
+
+func CheckUnDelegateFreezeDuration(duration int) error {
+	if duration <= Zero || duration > CeilUnStakeFreezeDuration {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnStakeFreezeDuration must be (%d, %d]", Zero, CeilUnStakeFreezeDuration))
 	}
 	return nil
 }
@@ -689,7 +726,9 @@ func CheckEconomicModel() error {
 	if err := CheckZeroProduceFreezeDuration(ec.Slashing.ZeroProduceFreezeDuration, ec.Staking.UnStakeFreezeDuration); nil != err {
 		return err
 	}
-
+	if err := CheckUnDelegateFreezeDuration(int(ece.Staking.UnDelegateFreezeDuration)); nil != err {
+		return err
+	}
 	return nil
 }
 
@@ -777,6 +816,10 @@ func RewardPerMaxChangeRange() uint16 {
 
 func RewardPerChangeInterval() uint16 {
 	return ec.Staking.RewardPerChangeInterval
+}
+
+func UnDelegateFreezeDuration() uint64 {
+	return ece.Staking.UnDelegateFreezeDuration
 }
 
 /******
