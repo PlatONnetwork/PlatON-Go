@@ -17,6 +17,7 @@
 package staking
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -316,6 +317,23 @@ func (db *StakingDB) decodeCandidateMutable(val []byte) (*CandidateMutable, erro
 			log.Error("StakingDB decodeCandidateMutable failed", "err", err, "err2", err2)
 			return nil, err2
 		}
+		can = CandidateMutable{
+			Status:                     canOld.Status,
+			StakingEpoch:               canOld.StakingEpoch,
+			Shares:                     canOld.Shares,
+			Released:                   canOld.Released,
+			ReleasedHes:                canOld.ReleasedHes,
+			RestrictingPlan:            canOld.RestrictingPlan,
+			RestrictingPlanHes:         canOld.RestrictingPlanHes,
+			DelegateEpoch:              canOld.DelegateEpoch,
+			DelegateTotal:              canOld.DelegateTotal,
+			DelegateTotalHes:           canOld.DelegateTotalHes,
+			RewardPer:                  canOld.RewardPer,
+			NextRewardPer:              canOld.NextRewardPer,
+			RewardPerChangeEpoch:       canOld.RewardPerChangeEpoch,
+			CurrentEpochDelegateReward: canOld.CurrentEpochDelegateReward,
+			DelegateRewardTotal:        canOld.DelegateTotal,
+		}
 	}
 	return &can, nil
 }
@@ -457,17 +475,30 @@ func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Addr
 	if nil != err {
 		return nil, err
 	}
+	del, err := db.decodeDelegation(delByte)
+	if nil != err {
+		return nil, err
+	}
+	return del, nil
+}
 
+func (db *StakingDB) decodeDelegation(val []byte) (*Delegation, error) {
 	var del Delegation
-	if err := rlp.DecodeBytes(delByte, &del); nil != err {
+	if err := rlp.DecodeBytes(val, &del); nil != err {
 		var delOld DelegationOld
-		if err2 := rlp.DecodeBytes(delByte, &delOld); nil != err2 {
-			log.Error("StakingDB GetDelegateStore failed", "blockHash", blockHash.TerminalString(), "delAddr", delAddr.Bech32(), "nodeId", nodeId.TerminalString(),
-				"stakeBlockNumber", stakeBlockNumber, "err", err, "err2", err2)
+		if err2 := rlp.DecodeBytes(val, &delOld); nil != err2 {
+			log.Error("StakingDB decodeDelegation failed", "enVal", hex.EncodeToString(val), "err", err, "err2", err2)
 			return nil, err2
 		}
+		del = Delegation{
+			DelegateEpoch:      delOld.DelegateEpoch,
+			Released:           delOld.Released,
+			ReleasedHes:        delOld.ReleasedHes,
+			RestrictingPlan:    delOld.RestrictingPlan,
+			RestrictingPlanHes: delOld.RestrictingPlanHes,
+			CumulativeIncome:   delOld.CumulativeIncome,
+		}
 	}
-
 	return &del, nil
 }
 
@@ -479,11 +510,11 @@ func (db *StakingDB) GetDelegateStoreByIrr(delAddr common.Address, nodeId discov
 		return nil, err
 	}
 
-	var del Delegation
-	if err := rlp.DecodeBytes(delByte, &del); nil != err {
+	del, err := db.decodeDelegation(delByte)
+	if nil != err {
 		return nil, err
 	}
-	return &del, nil
+	return del, nil
 }
 
 func (db *StakingDB) GetDelegateStoreBySuffix(blockHash common.Hash, keySuffix []byte) (*Delegation, error) {
@@ -493,11 +524,11 @@ func (db *StakingDB) GetDelegateStoreBySuffix(blockHash common.Hash, keySuffix [
 		return nil, err
 	}
 
-	var del Delegation
-	if err := rlp.DecodeBytes(delByte, &del); nil != err {
+	del, err := db.decodeDelegation(delByte)
+	if nil != err {
 		return nil, err
 	}
-	return &del, nil
+	return del, nil
 }
 
 type DelegationInfo struct {
@@ -524,10 +555,11 @@ func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Addr
 	for itr.Next() {
 		info := new(DelegationInfo)
 		_, info.NodeID, info.StakeBlockNumber = DecodeDelegateKey(itr.Key())
-		info.Delegation = new(Delegation)
-		if err := rlp.DecodeBytes(itr.Value(), info.Delegation); err != nil {
+		del, err := db.decodeDelegation(itr.Value())
+		if nil != err {
 			return nil, err
 		}
+		info.Delegation = del
 		infos = append(infos, info)
 	}
 	return infos, nil
