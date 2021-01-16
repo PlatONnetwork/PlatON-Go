@@ -332,7 +332,7 @@ func (db *StakingDB) decodeCandidateMutable(val []byte) (*CandidateMutable, erro
 			NextRewardPer:              canOld.NextRewardPer,
 			RewardPerChangeEpoch:       canOld.RewardPerChangeEpoch,
 			CurrentEpochDelegateReward: canOld.CurrentEpochDelegateReward,
-			DelegateRewardTotal:        canOld.DelegateTotal,
+			DelegateRewardTotal:        canOld.DelegateRewardTotal,
 		}
 	}
 	return &can, nil
