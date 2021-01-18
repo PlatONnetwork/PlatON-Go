@@ -627,6 +627,11 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 
 		restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
 		if err != nil {
+			if gov.Gte0150VersionState(state) {
+				if err == restricting.ErrAccountNotFound {
+					continue
+				}
+			}
 			return err
 		}
 
