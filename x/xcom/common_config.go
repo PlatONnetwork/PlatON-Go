@@ -202,6 +202,10 @@ func EcParams0160() ([]byte, error) {
 	return bytes, nil
 }
 
+func Ece0160UnDelegateFreezeDuration() uint64 {
+	return 168
+}
+
 var (
 	modelOnce sync.Once
 	ec        *EconomicModel
@@ -312,7 +316,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumRelease: new(big.Int).Mul(oneAtp, new(big.Int).SetInt64(80)),
 			},
 			Staking: stakingConfigExtend{
-				UnDelegateFreezeDuration: 168,
+				UnDelegateFreezeDuration: Ece0160UnDelegateFreezeDuration(),
 			},
 		}
 	case DefaultAlayaTestNet:

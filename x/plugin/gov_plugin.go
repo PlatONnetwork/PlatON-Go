@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math"
 	"math/big"
 	"sync"
@@ -42,6 +43,7 @@ var (
 
 type GovPlugin struct {
 	chainID *big.Int
+	chainDb ethdb.Database // Block chain database
 }
 
 var govp *GovPlugin
@@ -57,6 +59,11 @@ func GovPluginInstance() *GovPlugin {
 func (govPlugin *GovPlugin) SetChainID(chainId *big.Int) {
 	govPlugin.chainID = chainId
 }
+
+func (govPlugin *GovPlugin) SetChainDB(chainDB ethdb.Database) {
+	govPlugin.chainDb = chainDB
+}
+
 func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
@@ -153,7 +160,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 			}
 
 			if versionProposal.NewVersion == params.FORKVERSION_0_16_0 {
-				if err := gov.WriteEcHash0160(state); nil != err {
+				if err := gov.Write0160EcParams(govPlugin.chainDb, state); nil != err {
 					log.Error("save EcHash0160 to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 					return err
 				}

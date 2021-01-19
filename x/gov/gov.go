@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math/big"
 	"strconv"
 
@@ -116,6 +118,18 @@ func WriteEcHash0160(state xcom.StateDB) error {
 		SetEcParametersHash(state, data)
 	}
 	return nil
+}
+
+func Write0160EcParams(database ethdb.Database, state xcom.StateDB) error {
+	stored := rawdb.ReadCanonicalHash(database, 0)
+	eceCfg := rawdb.ReadEconomicModelExtend(database, stored)
+	if eceCfg == nil {
+		return errors.New("Economic model expansion parameters not found")
+	}
+	eceCfg.Staking.UnDelegateFreezeDuration = xcom.Ece0160UnDelegateFreezeDuration()
+	rawdb.WriteEconomicModelExtend(database, stored, eceCfg)
+	xcom.ResetEconomicExtendConfig(eceCfg)
+	return WriteEcHash0160(state)
 }
 
 func SetEcParametersHash(state xcom.StateDB, rlpData []byte) {
