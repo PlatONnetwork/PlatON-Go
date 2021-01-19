@@ -139,10 +139,6 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				log.Error("save  version 0140 Param failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID, "err", err)
 				return err
 			}
-			if err = gov.Set0160Param(blockHash, versionProposal.NewVersion, snapshotdb.Instance()); err != nil {
-				log.Error("save  version 0160 Param failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID, "err", err)
-				return err
-			}
 			if versionProposal.NewVersion == params.FORKVERSION_0_14_0 {
 				if err := gov.WriteEcHash0140(state); nil != err {
 					log.Error("save EcHash0140 to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
@@ -162,6 +158,10 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 			if versionProposal.NewVersion == params.FORKVERSION_0_16_0 {
 				if err := gov.Write0160EcParams(govPlugin.chainDb, state); nil != err {
 					log.Error("save EcHash0160 to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+					return err
+				}
+				if err = gov.Set0160GovParams(blockHash, snapshotdb.Instance()); err != nil {
+					log.Error("save  version 0160 Param failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID, "err", err)
 					return err
 				}
 				log.Info("Successfully upgraded the new version 0.16.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)

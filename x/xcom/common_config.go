@@ -378,7 +378,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumRelease: new(big.Int).SetInt64(1),
 			},
 			Staking: stakingConfigExtend{
-				UnDelegateFreezeDuration: 168,
+				UnDelegateFreezeDuration: Ece0160UnDelegateFreezeDuration(),
 			},
 		}
 	case DefaultTestNet:
