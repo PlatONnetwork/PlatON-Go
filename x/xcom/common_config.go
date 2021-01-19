@@ -965,6 +965,15 @@ func EconomicString() string {
 	}
 }
 
+func EconomicExtendString() string {
+	if nil != ece {
+		ecByte, _ := json.Marshal(ece)
+		return string(ecByte)
+	} else {
+		return ""
+	}
+}
+
 // Calculate the P value of the binomial distribution
 // Parameter: The total weight of the election
 func CalcP(totalWeight float64, sqrtWeight float64) float64 {
