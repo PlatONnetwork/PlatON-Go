@@ -592,7 +592,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 
 		//领取收益
 		if a.del.CumulativeIncome.Cmp(common.Big0) > 0 {
-			delData.Reward = a.del.CumulativeIncome
+			delData.Reward = new(big.Int).Set(a.del.CumulativeIncome)
 		}
 		if err := rm.ReturnDelegateReward(delAddr, a.del.CumulativeIncome, state); err != nil {
 			return common.InternalError

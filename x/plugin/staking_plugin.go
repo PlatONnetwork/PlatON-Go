@@ -4333,6 +4333,7 @@ func (sk *StakingPlugin) GetAdjustmentStakingDelegate(blockHash common.Hash, blo
 			Addr:            v.Addr,
 			Lock:            v.Lock,
 			Hes:             v.Hes,
+			Reward:          v.Reward,
 		}
 	}
 	log.Debug("wow,GetAdjustmentStakingDelegate", "snq", snq)
