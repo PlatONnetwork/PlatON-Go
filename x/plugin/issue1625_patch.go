@@ -183,6 +183,7 @@ func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int,
 		delData.NodeId = dels[i].nodeID
 		delData.StakingBlockNum = dels[i].stakingBlock
 		delData.Addr = account
+		delData.Reward = new(big.Int).SetInt64(0)
 		*collectionList = append(*collectionList, delData)
 		if err := dels[i].handleDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb, delData); err != nil {
 			return err
@@ -590,6 +591,9 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		rt.transferAmount(state, vm.StakingContractAddr, delAddr, new(big.Int).Add(a.del.ReleasedHes, a.del.Released))
 
 		//领取收益
+		if a.del.CumulativeIncome.Cmp(common.Big0) > 0 {
+			delData.Reward = a.del.CumulativeIncome
+		}
 		if err := rm.ReturnDelegateReward(delAddr, a.del.CumulativeIncome, state); err != nil {
 			return common.InternalError
 		}

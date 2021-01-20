@@ -1273,6 +1273,7 @@ type AdjustmentStakingDelegateData struct {
 	Addr            common.Address
 	Lock            *big.Int
 	Hes             *big.Int
+	Reward          *big.Int
 }
 
 func (s *SlashNodeItem) String() string {
