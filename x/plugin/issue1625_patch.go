@@ -19,7 +19,6 @@ package plugin
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"sort"
@@ -184,7 +183,7 @@ func (a *FixIssue1625Plugin) rollBackDel(hash common.Hash, blockNumber *big.Int,
 		delData.NodeId = dels[i].nodeID
 		delData.StakingBlockNum = dels[i].stakingBlock
 		delData.Addr = account
-		delData.Reward = (*hexutil.Big)(new(big.Int).SetInt64(0))
+		delData.Reward = new(big.Int).SetInt64(0)
 		*collectionList = append(*collectionList, delData)
 		if err := dels[i].handleDelegate(hash, blockNumber, epoch, account, amount, state, stakingdb, delData); err != nil {
 			return err
@@ -280,8 +279,8 @@ func (a *issue1625AccountStakingInfo) handelExistStaking(hash common.Hash, epoch
 			return err
 		}
 
-		stakingData.Hes = (*hexutil.Big)(new(big.Int))
-		stakingData.Lock = (*hexutil.Big)(new(big.Int).Set(rollBackAmount))
+		stakingData.Hes = new(big.Int)
+		stakingData.Lock = new(big.Int).Set(rollBackAmount)
 
 		a.candidate.RestrictingPlan = new(big.Int).Sub(a.candidate.RestrictingPlan, rollBackAmount)
 		rollBackAmount.SetInt64(0)
@@ -290,8 +289,8 @@ func (a *issue1625AccountStakingInfo) handelExistStaking(hash common.Hash, epoch
 			return err
 		}
 
-		stakingData.Hes = (*hexutil.Big)(new(big.Int).Set(a.candidate.RestrictingPlanHes))
-		stakingData.Lock = (*hexutil.Big)(new(big.Int).Set(a.candidate.RestrictingPlan))
+		stakingData.Hes = new(big.Int).Set(a.candidate.RestrictingPlanHes)
+		stakingData.Lock = new(big.Int).Set(a.candidate.RestrictingPlan)
 
 		a.candidate.RestrictingPlan = new(big.Int).SetInt64(0)
 		a.candidate.RestrictingPlanHes = new(big.Int).SetInt64(0)
@@ -337,15 +336,15 @@ func (a *issue1625AccountStakingInfo) fixCandidateInfo(improperRestrictingAmount
 	//修正质押信息
 	if a.candidate.RestrictingPlanHes.Cmp(improperRestrictingAmount) >= 0 {
 
-		stakingData.Hes = (*hexutil.Big)(new(big.Int).Set(improperRestrictingAmount))
-		stakingData.Lock = (*hexutil.Big)(new(big.Int))
+		stakingData.Hes = new(big.Int).Set(improperRestrictingAmount)
+		stakingData.Lock = new(big.Int)
 
 		a.candidate.RestrictingPlanHes.Sub(a.candidate.RestrictingPlanHes, improperRestrictingAmount)
 	} else {
 		hes := new(big.Int).Set(a.candidate.RestrictingPlanHes)
 
-		stakingData.Hes = (*hexutil.Big)(new(big.Int).Set(a.candidate.RestrictingPlanHes))
-		stakingData.Lock = (*hexutil.Big)(new(big.Int).Sub(improperRestrictingAmount, hes))
+		stakingData.Hes = new(big.Int).Set(a.candidate.RestrictingPlanHes)
+		stakingData.Lock = new(big.Int).Sub(improperRestrictingAmount, hes)
 
 		a.candidate.RestrictingPlanHes = new(big.Int)
 		a.candidate.RestrictingPlan = new(big.Int).Sub(a.candidate.RestrictingPlan, new(big.Int).Sub(improperRestrictingAmount, hes))
@@ -593,7 +592,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 
 		//领取收益
 		if a.del.CumulativeIncome.Cmp(common.Big0) > 0 {
-			delData.Reward = (*hexutil.Big)(new(big.Int).Set(a.del.CumulativeIncome))
+			delData.Reward = a.del.CumulativeIncome
 		}
 		if err := rm.ReturnDelegateReward(delAddr, a.del.CumulativeIncome, state); err != nil {
 			return common.InternalError
@@ -644,8 +643,8 @@ func (a *issue1625AccountDelInfo) fixImproperRestrictingAmountByDel(delAddr comm
 	}
 	if a.del.RestrictingPlanHes.Cmp(improperRestrictingAmount) >= 0 {
 
-		delData.Hes = (*hexutil.Big)(new(big.Int).Set(improperRestrictingAmount))
-		delData.Lock = (*hexutil.Big)(new(big.Int))
+		delData.Hes = new(big.Int).Set(improperRestrictingAmount)
+		delData.Lock = new(big.Int)
 
 		a.del.RestrictingPlanHes.Sub(a.del.RestrictingPlanHes, improperRestrictingAmount)
 		if a.candidate.IsNotEmpty() {
@@ -654,8 +653,8 @@ func (a *issue1625AccountDelInfo) fixImproperRestrictingAmountByDel(delAddr comm
 	} else {
 		hes := new(big.Int).Set(a.del.RestrictingPlanHes)
 
-		delData.Hes = (*hexutil.Big)(new(big.Int).Set(a.del.RestrictingPlanHes))
-		delData.Lock = (*hexutil.Big)(new(big.Int).Sub(improperRestrictingAmount, hes))
+		delData.Hes = new(big.Int).Set(a.del.RestrictingPlanHes)
+		delData.Lock = new(big.Int).Sub(improperRestrictingAmount, hes)
 
 		a.del.RestrictingPlanHes = new(big.Int)
 		a.del.RestrictingPlan = new(big.Int).Sub(a.del.RestrictingPlan, new(big.Int).Sub(improperRestrictingAmount, hes))

@@ -1271,9 +1271,9 @@ type AdjustmentStakingDelegateData struct {
 	NodeId          discover.NodeID
 	StakingBlockNum uint64
 	Addr            common.Address
-	Lock            *hexutil.Big
-	Hes             *hexutil.Big
-	Reward          *hexutil.Big
+	Lock            *big.Int
+	Hes             *big.Int
+	Reward          *big.Int
 }
 
 func (s *SlashNodeItem) String() string {
