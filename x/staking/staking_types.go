@@ -285,6 +285,14 @@ type CandidateMutable struct {
 	WithdrewDelegateAmount *big.Int
 }
 
+func (can *CandidateMutable) SubDelegateTotalHes(amount *big.Int) {
+	can.DelegateTotalHes = new(big.Int).Sub(can.DelegateTotalHes, amount)
+}
+
+func (can *CandidateMutable) SubDelegateTotal(amount *big.Int) {
+	can.DelegateTotal = new(big.Int).Sub(can.DelegateTotal, amount)
+}
+
 func (can *CandidateMutable) PrepareNextEpoch() bool {
 	var changed bool
 	if can.CurrentEpochDelegateReward.Cmp(common.Big0) > 0 {
@@ -1178,6 +1186,16 @@ func (del *Delegation) CleanWithdrewInfo() {
 	del.WithdrewEpoch = 0
 	del.WithdrewAmount = new(big.Int).SetUint64(0)
 	del.UnLockEpoch = 0
+}
+
+func (del *Delegation) Withdrew(epoch uint64, refundAmount *big.Int, duration uint64) {
+	del.WithdrewEpoch = uint32(epoch)
+	del.WithdrewAmount = new(big.Int).Set(refundAmount)
+	del.UnLockEpoch = uint32(epoch) + uint32(duration)
+}
+
+func (del *Delegation) TotalHes() *big.Int {
+	return new(big.Int).Add(del.ReleasedHes, del.RestrictingPlanHes)
 }
 
 func (del *Delegation) String() string {

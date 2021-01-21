@@ -1166,7 +1166,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 	if del.WithdrewEpoch > 0 {
 		// If the revocation is the entrustment in the hesitation period, it can be revoked successfully, otherwise the revocation fails
 		// If the revoked delegate is higher than the waiting period, the revocation fails
-		totalHes := new(big.Int).Add(del.ReleasedHes, del.RestrictingPlanHes)
+		totalHes := del.TotalHes()
 		if totalHes.Cmp(common.Big0) == 0 {
 			return staking.ErrAlreadyWithdrewDelegation
 		}
@@ -1212,7 +1212,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 				return err
 			}
 			if can.IsNotEmpty() {
-				can.DelegateTotalHes = new(big.Int).Sub(can.DelegateTotalHes, new(big.Int).Sub(refundAmount, rm))
+				can.SubDelegateTotalHes(new(big.Int).Sub(refundAmount, rm))
 			}
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
 		}
@@ -1220,16 +1220,14 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 		// handle delegate on Effective period
 		if refundAmount.Cmp(common.Big0) > 0 {
 			if can.IsNotEmpty() {
-				can.DelegateTotal = new(big.Int).Sub(can.DelegateTotal, refundAmount)
+				can.SubDelegateTotal(refundAmount)
 				can.AppendWithdrewDelegateAmount(uint32(epoch), refundAmount)
 			}
-			del.WithdrewEpoch = uint32(epoch)
-			del.WithdrewAmount = new(big.Int).Set(refundAmount)
 			duration, err := gov.GovernUnDelegateFreezeDuration(blockNumber.Uint64(), blockHash)
 			if nil != err {
 				return err
 			}
-			del.UnLockEpoch = uint32(epoch) + uint32(duration)
+			del.Withdrew(epoch, refundAmount, duration)
 		}
 
 		// When there is only a hesitation period share in the delegate information,
