@@ -200,11 +200,6 @@ var (
 		Usage: "Time interval to regenerate the local transaction journal",
 		Value: core.DefaultTxPoolConfig.Rejournal,
 	}
-	TxPoolPriceLimitFlag = cli.Uint64Flag{
-		Name:  "txpool.pricelimit",
-		Usage: "Minimum gas price limit to enforce for acceptance into the pool",
-		Value: eth.DefaultConfig.TxPool.PriceLimit,
-	}
 	TxPoolPriceBumpFlag = cli.Uint64Flag{
 		Name:  "txpool.pricebump",
 		Usage: "Price bump percentage to replace an already existing transaction",
@@ -271,11 +266,6 @@ var (
 		Usage: "Target gas floor for mined blocks",
 		Value: eth.DefaultConfig.MinerGasFloor,
 	}
-	MinerLegacyGasTargetFlag = cli.Uint64Flag{
-		Name:  "targetgaslimit",
-		Usage: "Target gas floor for mined blocks (deprecated, use --miner.gastarget)",
-		Value: eth.DefaultConfig.MinerGasFloor,
-	}
 	/*MinerGasLimitFlag = cli.Uint64Flag{
 		Name:  "miner.gaslimit",
 		Usage: "Target gas ceiling for mined blocks",
@@ -284,11 +274,6 @@ var (
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
-		Value: eth.DefaultConfig.MinerGasPrice,
-	}
-	MinerLegacyGasPriceFlag = BigFlag{
-		Name:  "gasprice",
-		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
 		Value: eth.DefaultConfig.MinerGasPrice,
 	}
 	/*
@@ -1008,9 +993,6 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolRejournalFlag.Name) {
 		cfg.Rejournal = ctx.GlobalDuration(TxPoolRejournalFlag.Name)
 	}
-	if ctx.GlobalIsSet(TxPoolPriceLimitFlag.Name) {
-		cfg.PriceLimit = ctx.GlobalUint64(TxPoolPriceLimitFlag.Name)
-	}
 	if ctx.GlobalIsSet(TxPoolPriceBumpFlag.Name) {
 		cfg.PriceBump = ctx.GlobalUint64(TxPoolPriceBumpFlag.Name)
 	}
@@ -1177,18 +1159,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
 				cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
 			}*/
-	if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
-		cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
-	}
 	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
 		cfg.MinerGasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
 	}
 	/*if ctx.GlobalIsSet(MinerGasLimitFlag.Name) {
 		cfg.MinerGasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
 	}*/
-	if ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
-	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
 		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
