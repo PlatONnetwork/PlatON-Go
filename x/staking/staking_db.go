@@ -312,7 +312,7 @@ func (db *StakingDB) GetCanMutableStoreByIrrWithSuffix(suffix []byte) (*Candidat
 func (db *StakingDB) decodeCandidateMutable(val []byte) (*CandidateMutable, error) {
 	var can CandidateMutable
 	if err := rlp.DecodeBytes(val, &can); nil != err {
-		var canOld CandidateMutableOld
+		var canOld CandidateMutableV1
 		if err2 := rlp.DecodeBytes(val, &canOld); nil != err2 {
 			log.Error("StakingDB decodeCandidateMutable failed", "err", err, "err2", err2)
 			return nil, err2
@@ -349,7 +349,7 @@ func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, addr common.NodeA
 			return err
 		}
 	} else {
-		canOld := &CandidateMutableOld{
+		canOld := &CandidateMutableV1{
 			Status:                     can.Status,
 			StakingEpoch:               can.StakingEpoch,
 			Shares:                     can.Shares,
@@ -485,7 +485,7 @@ func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Addr
 func (db *StakingDB) decodeDelegation(val []byte) (*Delegation, error) {
 	var del Delegation
 	if err := rlp.DecodeBytes(val, &del); nil != err {
-		var delOld DelegationOld
+		var delOld DelegationV1
 		if err2 := rlp.DecodeBytes(val, &delOld); nil != err2 {
 			log.Error("StakingDB decodeDelegation failed", "enVal", hex.EncodeToString(val), "err", err, "err2", err2)
 			return nil, err2
@@ -580,7 +580,7 @@ func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Addr
 			return err
 		}
 	} else {
-		del2 := &DelegationOld{
+		del2 := &DelegationV1{
 			DelegateEpoch:      del.DelegateEpoch,
 			Released:           del.Released,
 			ReleasedHes:        del.ReleasedHes,

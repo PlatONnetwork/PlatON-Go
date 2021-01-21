@@ -207,7 +207,7 @@ func (can *CandidateBase) IsEmpty() bool {
 	return nil == can
 }
 
-type CandidateMutableOld struct {
+type CandidateMutableV1 struct {
 	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`
 	Status CandidateStatus
@@ -1162,7 +1162,7 @@ type Delegation struct {
 	UnLockEpoch uint32
 }
 
-type DelegationOld struct {
+type DelegationV1 struct {
 	// The epoch number at delegate or edit
 	DelegateEpoch uint32
 	// The delegate von  is circulating for effective epoch (in effect)
