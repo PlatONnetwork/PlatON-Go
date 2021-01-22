@@ -433,6 +433,13 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 				panic("Failed Store EcHash0140: " + err.Error())
 			}
 		}
+
+		// 0.16.0
+		if gov.Gte0160Version(genesisVersion) {
+			if err := gov.WriteEcHash0160(statedb); nil != err {
+				panic("Failed Store EcHash0160: " + err.Error())
+			}
+		}
 	}
 
 	root := statedb.IntermediateRoot(false)

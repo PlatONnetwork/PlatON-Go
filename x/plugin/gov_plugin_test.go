@@ -19,6 +19,7 @@ package plugin
 import (
 	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"testing"
@@ -73,12 +74,16 @@ func setup(t *testing.T) func() {
 	newPlugins()
 
 	GovPluginInstance().SetChainID(chainID)
+	GovPluginInstance().SetChainDB(rawdb.NewMemoryDatabase())
 	govPlugin = GovPluginInstance()
 	stk = StakingInstance()
 
 	lastBlockHash = genesis.Hash()
 
 	build_staking_data(genesis.Hash())
+
+	xcom.GetEc(xcom.DefaultAlayaNet)
+	rawdb.WriteEconomicModelExtend(GovPluginInstance().chainDb, common.ZeroHash, xcom.GetEce())
 
 	snapdb = snapshotdb.Instance()
 

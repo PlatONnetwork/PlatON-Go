@@ -786,6 +786,22 @@ func TestGov_GovernUnStakeFreezeDuration(t *testing.T) {
 	}
 }
 
+func TestGov_GovernUnDelegateFreezeDuration(t *testing.T) {
+	chain := setup(t)
+	if _, err := InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, 4096); err != nil {
+		t.Error("InitGenesisGovernParam, error", err)
+	}
+	defer clear(chain, t)
+	commit_sndb(chain)
+	prepair_sndb(chain)
+	if threshold, err := GovernUnDelegateFreezeDuration(1, chain.CurrentHeader().Hash()); err != nil {
+		t.Error("GovernUnDelegateFreezeDuration, err", err)
+	} else {
+		assert.NotNil(t, threshold)
+		assert.Equal(t, xcom.UnDelegateFreezeDuration(), threshold)
+	}
+}
+
 func TestGov_GovernSlashFractionDuplicateSign(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
@@ -991,6 +1007,30 @@ func TestFork0140EcHash(t *testing.T) {
 
 	if Gte0140VersionState(chain.StateDB) {
 		if err := WriteEcHash0140(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash = chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash != nil)
+}
+
+func TestFork0160EcHash(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	if Gte0160VersionState(chain.StateDB) {
+		if err := WriteEcHash0160(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash := chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash == nil)
+
+	if err := AddActiveVersion(params.FORKVERSION_0_16_0, 0, chain.StateDB); err != nil {
+		t.Error("AddActiveVersion, err", err)
+	}
+
+	if Gte0160VersionState(chain.StateDB) {
+		if err := WriteEcHash0160(chain.StateDB); nil != err {
 			t.Fatal(err)
 		}
 	}

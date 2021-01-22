@@ -19,6 +19,7 @@ package plugin
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"sort"
 
@@ -268,7 +269,7 @@ func (a *issue1625AccountStakingInfo) handleExistStaking(hash common.Hash, epoch
 
 	a.candidate.StakingEpoch = uint32(epoch)
 
-	if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
+	if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable, gov.Gte0160VersionState(state)); nil != err {
 		return err
 	}
 
@@ -335,7 +336,7 @@ func (a *issue1625AccountStakingInfo) decreaseStaking(hash common.Hash, epoch ui
 	if err := stk.db.SetCanPowerStore(hash, a.canAddr, a.candidate); nil != err {
 		return err
 	}
-	if err := stk.db.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
+	if err := stk.db.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable, gov.Gte0160VersionState(state)); nil != err {
 		return err
 	}
 
@@ -390,7 +391,7 @@ func (a *issue1625AccountStakingInfo) withdrewStaking(hash common.Hash, epoch ui
 		if err := stdb.SubAccountStakeRc(hash, a.candidate.StakingAddress); nil != err {
 			return err
 		}
-		if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
+		if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable, gov.Gte0160VersionState(state)); nil != err {
 			return err
 		}
 	} else {
@@ -508,7 +509,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		return err
 	}
 
-	rewardsReceive := calcDelegateIncome(epoch, a.del, delegateRewardPerList)
+	rewardsReceive := calcDelegateIncome(epoch, a.del, delegateRewardPerList, gov.GetCurrentActiveVersion(state))
 	if err := UpdateDelegateRewardPer(hash, a.nodeID, a.stakingBlock, rewardsReceive, rm.db); err != nil {
 		return err
 	}
@@ -567,7 +568,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 		if err := a.fixImproperRestrictingAmountByDel(delAddr, improperRestrictingAmount, state); err != nil {
 			return err
 		}
-		if err := stdb.SetDelegateStore(hash, delAddr, a.nodeID, a.stakingBlock, a.del); nil != err {
+		if err := stdb.SetDelegateStore(hash, delAddr, a.nodeID, a.stakingBlock, a.del, gov.Gte0160VersionState(state)); nil != err {
 			return err
 		}
 		log.Debug("fix issue 1625 for delegate,decrease del", "account", delAddr, "candidate", a.nodeID.String(), "restrictingPlan", a.del.RestrictingPlan, "restrictingPlanRes", a.del.RestrictingPlanHes,
@@ -580,7 +581,7 @@ func (a *issue1625AccountDelInfo) handleDelegate(hash common.Hash, blockNumber *
 				return err
 			}
 		}
-		if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable); nil != err {
+		if err := stdb.SetCanMutableStore(hash, a.canAddr, a.candidate.CandidateMutable, gov.Gte0160VersionState(state)); nil != err {
 			return err
 		}
 	}

@@ -17,7 +17,9 @@
 package staking
 
 import (
+	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 
@@ -140,12 +142,12 @@ func (db *StakingDB) GetCandidateStoreByIrrWithSuffix(suffix []byte) (*Candidate
 	return can, nil
 }
 
-func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
+func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate, gte0160Version bool) error {
 
 	if err := db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 		return err
 	}
-	if err := db.SetCanMutableStore(blockHash, addr, can.CandidateMutable); nil != err {
+	if err := db.SetCanMutableStore(blockHash, addr, can.CandidateMutable, gte0160Version); nil != err {
 		return err
 	}
 	return nil
@@ -256,12 +258,12 @@ func (db *StakingDB) GetCanMutableStore(blockHash common.Hash, addr common.NodeA
 		return nil, err
 	}
 
-	var can CandidateMutable
-	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+	can, err := db.decodeCandidateMutable(canByte)
+	if nil != err {
 		return nil, err
 	}
 
-	return &can, nil
+	return can, nil
 }
 
 func (db *StakingDB) GetCanMutableStoreByIrr(addr common.NodeAddress) (*CandidateMutable, error) {
@@ -271,12 +273,11 @@ func (db *StakingDB) GetCanMutableStoreByIrr(addr common.NodeAddress) (*Candidat
 	if nil != err {
 		return nil, err
 	}
-	var can CandidateMutable
-
-	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+	can, err := db.decodeCandidateMutable(canByte)
+	if nil != err {
 		return nil, err
 	}
-	return &can, nil
+	return can, nil
 }
 
 func (db *StakingDB) GetCanMutableStoreWithSuffix(blockHash common.Hash, suffix []byte) (*CandidateMutable, error) {
@@ -287,12 +288,11 @@ func (db *StakingDB) GetCanMutableStoreWithSuffix(blockHash common.Hash, suffix 
 	if nil != err {
 		return nil, err
 	}
-	var can CandidateMutable
-
-	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+	can, err := db.decodeCandidateMutable(canByte)
+	if nil != err {
 		return nil, err
 	}
-	return &can, nil
+	return can, nil
 }
 
 func (db *StakingDB) GetCanMutableStoreByIrrWithSuffix(suffix []byte) (*CandidateMutable, error) {
@@ -302,24 +302,75 @@ func (db *StakingDB) GetCanMutableStoreByIrrWithSuffix(suffix []byte) (*Candidat
 	if nil != err {
 		return nil, err
 	}
-	var can CandidateMutable
-
-	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+	can, err := db.decodeCandidateMutable(canByte)
+	if nil != err {
 		return nil, err
+	}
+	return can, nil
+}
+
+func (db *StakingDB) decodeCandidateMutable(val []byte) (*CandidateMutable, error) {
+	var can CandidateMutable
+	if err := rlp.DecodeBytes(val, &can); nil != err {
+		var canOld CandidateMutableV1
+		if err2 := rlp.DecodeBytes(val, &canOld); nil != err2 {
+			log.Error("StakingDB decodeCandidateMutable failed", "err", err, "err2", err2)
+			return nil, err2
+		}
+		can = CandidateMutable{
+			Status:                     canOld.Status,
+			StakingEpoch:               canOld.StakingEpoch,
+			Shares:                     canOld.Shares,
+			Released:                   canOld.Released,
+			ReleasedHes:                canOld.ReleasedHes,
+			RestrictingPlan:            canOld.RestrictingPlan,
+			RestrictingPlanHes:         canOld.RestrictingPlanHes,
+			DelegateEpoch:              canOld.DelegateEpoch,
+			DelegateTotal:              canOld.DelegateTotal,
+			DelegateTotalHes:           canOld.DelegateTotalHes,
+			RewardPer:                  canOld.RewardPer,
+			NextRewardPer:              canOld.NextRewardPer,
+			RewardPerChangeEpoch:       canOld.RewardPerChangeEpoch,
+			CurrentEpochDelegateReward: canOld.CurrentEpochDelegateReward,
+			DelegateRewardTotal:        canOld.DelegateRewardTotal,
+		}
 	}
 	return &can, nil
 }
 
-func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, addr common.NodeAddress, can *CandidateMutable) error {
-
+func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, addr common.NodeAddress, can *CandidateMutable, gte0160Version bool) error {
 	key := CanMutableKeyByAddr(addr)
+	var val []byte
+	var err error
 
-	if val, err := rlp.EncodeToBytes(can); nil != err {
-		return err
+	// Starting from version 0.16.0, Use new structure
+	if gte0160Version {
+		if val, err = rlp.EncodeToBytes(can); nil != err {
+			return err
+		}
 	} else {
-
-		return db.put(blockHash, key, val)
+		canOld := &CandidateMutableV1{
+			Status:                     can.Status,
+			StakingEpoch:               can.StakingEpoch,
+			Shares:                     can.Shares,
+			Released:                   can.Released,
+			ReleasedHes:                can.ReleasedHes,
+			RestrictingPlan:            can.RestrictingPlan,
+			RestrictingPlanHes:         can.RestrictingPlanHes,
+			DelegateEpoch:              can.DelegateEpoch,
+			DelegateTotal:              can.DelegateTotal,
+			DelegateTotalHes:           can.DelegateTotalHes,
+			RewardPer:                  can.RewardPer,
+			NextRewardPer:              can.NextRewardPer,
+			RewardPerChangeEpoch:       can.RewardPerChangeEpoch,
+			CurrentEpochDelegateReward: can.CurrentEpochDelegateReward,
+			DelegateRewardTotal:        can.DelegateRewardTotal,
+		}
+		if val, err = rlp.EncodeToBytes(canOld); nil != err {
+			return err
+		}
 	}
+	return db.put(blockHash, key, val)
 }
 
 func (db *StakingDB) DelCanMutableStore(blockHash common.Hash, addr common.NodeAddress) error {
@@ -424,12 +475,30 @@ func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Addr
 	if nil != err {
 		return nil, err
 	}
-
-	var del Delegation
-	if err := rlp.DecodeBytes(delByte, &del); nil != err {
+	del, err := db.decodeDelegation(delByte)
+	if nil != err {
 		return nil, err
 	}
+	return del, nil
+}
 
+func (db *StakingDB) decodeDelegation(val []byte) (*Delegation, error) {
+	var del Delegation
+	if err := rlp.DecodeBytes(val, &del); nil != err {
+		var delOld DelegationV1
+		if err2 := rlp.DecodeBytes(val, &delOld); nil != err2 {
+			log.Error("StakingDB decodeDelegation failed", "enVal", hex.EncodeToString(val), "err", err, "err2", err2)
+			return nil, err2
+		}
+		del = Delegation{
+			DelegateEpoch:      delOld.DelegateEpoch,
+			Released:           delOld.Released,
+			ReleasedHes:        delOld.ReleasedHes,
+			RestrictingPlan:    delOld.RestrictingPlan,
+			RestrictingPlanHes: delOld.RestrictingPlanHes,
+			CumulativeIncome:   delOld.CumulativeIncome,
+		}
+	}
 	return &del, nil
 }
 
@@ -441,11 +510,11 @@ func (db *StakingDB) GetDelegateStoreByIrr(delAddr common.Address, nodeId discov
 		return nil, err
 	}
 
-	var del Delegation
-	if err := rlp.DecodeBytes(delByte, &del); nil != err {
+	del, err := db.decodeDelegation(delByte)
+	if nil != err {
 		return nil, err
 	}
-	return &del, nil
+	return del, nil
 }
 
 func (db *StakingDB) GetDelegateStoreBySuffix(blockHash common.Hash, keySuffix []byte) (*Delegation, error) {
@@ -455,11 +524,11 @@ func (db *StakingDB) GetDelegateStoreBySuffix(blockHash common.Hash, keySuffix [
 		return nil, err
 	}
 
-	var del Delegation
-	if err := rlp.DecodeBytes(delByte, &del); nil != err {
+	del, err := db.decodeDelegation(delByte)
+	if nil != err {
 		return nil, err
 	}
-	return &del, nil
+	return del, nil
 }
 
 type DelegationInfo struct {
@@ -486,29 +555,48 @@ func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Addr
 	for itr.Next() {
 		info := new(DelegationInfo)
 		_, info.NodeID, info.StakeBlockNumber = DecodeDelegateKey(itr.Key())
-		info.Delegation = new(Delegation)
-		if err := rlp.DecodeBytes(itr.Value(), info.Delegation); err != nil {
+		del, err := db.decodeDelegation(itr.Value())
+		if nil != err {
 			return nil, err
 		}
+		info.Delegation = del
 		infos = append(infos, info)
 	}
 	return infos, nil
 }
 
 func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
-	stakeBlockNumber uint64, del *Delegation) error {
+	stakeBlockNumber uint64, del *Delegation, gte0160Version bool) error {
 
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 
-	delByte, err := rlp.EncodeToBytes(del)
-	if nil != err {
-		return err
-	}
+	var delByte []byte
+	var err error
 
+	// Starting from version 0.16.0, a new delegation information structure is used, with some new fields added
+	if gte0160Version {
+		delByte, err = rlp.EncodeToBytes(del)
+		if nil != err {
+			return err
+		}
+	} else {
+		del2 := &DelegationV1{
+			DelegateEpoch:      del.DelegateEpoch,
+			Released:           del.Released,
+			ReleasedHes:        del.ReleasedHes,
+			RestrictingPlan:    del.RestrictingPlan,
+			RestrictingPlanHes: del.RestrictingPlanHes,
+			CumulativeIncome:   del.CumulativeIncome,
+		}
+		delByte, err = rlp.EncodeToBytes(del2)
+		if nil != err {
+			return err
+		}
+	}
 	return db.put(blockHash, key, delByte)
 }
 
-func (db *StakingDB) SetDelegateStoreBySuffix(blockHash common.Hash, suffix []byte, del *Delegation) error {
+/*func (db *StakingDB) SetDelegateStoreBySuffix(blockHash common.Hash, suffix []byte, del *Delegation) error {
 	key := GetDelegateKeyBySuffix(suffix)
 	delByte, err := rlp.EncodeToBytes(del)
 	if nil != err {
@@ -516,7 +604,7 @@ func (db *StakingDB) SetDelegateStoreBySuffix(blockHash common.Hash, suffix []by
 	}
 
 	return db.put(blockHash, key, delByte)
-}
+}*/
 
 func (db *StakingDB) DelDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
 	stakeBlockNumber uint64) error {

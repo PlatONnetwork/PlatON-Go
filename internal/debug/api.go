@@ -246,3 +246,7 @@ func (*HandlerT) EconomicConfig() string {
 	return xcom.EconomicString()
 
 }
+
+func (*HandlerT) EconomicExtendConfig() string {
+	return xcom.EconomicExtendString()
+}

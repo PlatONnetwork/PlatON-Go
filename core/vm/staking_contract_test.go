@@ -1266,6 +1266,108 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	getCandidate(contract2, index, t)
 }
 
+func TestStakingContract_redeemDelegation(t *testing.T) {
+
+	state, genesis, _ := newChainState()
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	index := 1
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+
+	state.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+
+	contract := &StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0, delegateSender),
+		Evm:      newEvm(new(big.Int).Add(blockNumber, new(big.Int).SetUint64(1)), blockHash2, state),
+	}
+
+	state.Prepare(txHashArr[1], blockHash, 1)
+	// delegate
+	create_delegate(contract, index, t)
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
+		return
+	}
+
+	// get CandidateInfo
+	getCandidate(contract1, index, t)
+
+	if err := sndb.NewBlock(new(big.Int).Add(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()), blockNumber), blockHash2, blockHash3); nil != err {
+		t.Fatal(err)
+	}
+
+	contract2 := &StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0, delegateSender),
+		Evm:      newEvm(new(big.Int).Add(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()), blockNumber), blockHash2, state),
+	}
+	// get CandidateInfo
+	getCandidate(contract2, index, t)
+
+	state.Prepare(txHashArr[2], blockHash2, 0)
+
+	gov.AddActiveVersion(params.CodeVersion(), 0, state)
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), params.FORKVERSION_0_16_0)
+
+	// withdrewDelegate
+	var inputParams [][]byte
+	inputParams = make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1005))
+	stakingBlockNum, _ := rlp.EncodeToBytes(blockNumber.Uint64())
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	withdrewAmount, _ := new(big.Int).SetString(balanceStr[index], 10)
+	amount, _ := rlp.EncodeToBytes(withdrewAmount)
+
+	inputParams = append(inputParams, fnType)
+	inputParams = append(inputParams, stakingBlockNum)
+	inputParams = append(inputParams, nodeId)
+	inputParams = append(inputParams, amount)
+
+	runContractSendTransaction(contract2, inputParams, "withdrewDelegation", t)
+
+	// withdrewDelegate
+	inputParams = make([][]byte, 0)
+
+	fnType, _ = rlp.EncodeToBytes(uint16(1006))
+	stakingBlockNum, _ = rlp.EncodeToBytes(blockNumber.Uint64())
+	nodeId, _ = rlp.EncodeToBytes(nodeIdArr[index])
+
+	inputParams = append(inputParams, fnType)
+	inputParams = append(inputParams, stakingBlockNum)
+	inputParams = append(inputParams, nodeId)
+
+	contract2.Evm = newEvm(new(big.Int).Mul(contract2.Evm.BlockNumber, new(big.Int).SetUint64(xcom.UnDelegateFreezeDuration()*xutil.CalcBlocksEachEpoch())), blockHash2, state)
+	gov.AddActiveVersion(params.CodeVersion(), 0, state)
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), params.FORKVERSION_0_16_0)
+	runContractSendTransaction(contract2, inputParams, "redeemDelegation", t)
+
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
+		return
+	}
+
+	// get CandidateInfo
+	getCandidate(contract2, index, t)
+}
+
 func TestStakingContract_getVerifierList(t *testing.T) {
 
 	state, genesis, _ := newChainState()

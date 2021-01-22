@@ -31,7 +31,7 @@ import (
 func TestBlockChainReactorClose(t *testing.T) {
 	t.Run("close after commit", func(t *testing.T) {
 		eventmux := new(event.TypeMux)
-		reacter := NewBlockChainReactor(eventmux, big.NewInt(100))
+		reacter := NewBlockChainReactor(eventmux, big.NewInt(100), nil)
 		reacter.Start(common.PPOS_VALIDATOR_MODE)
 		var parenthash common.Hash
 		cbftress := make(chan cbfttypes.CbftResult, 5)
