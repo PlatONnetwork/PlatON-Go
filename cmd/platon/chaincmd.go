@@ -22,8 +22,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-
 	"os"
 	"runtime"
 	"strconv"
@@ -273,7 +271,7 @@ func importChain(ctx *cli.Context) error {
 			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
 		}
 
-		miner := miner.New(bc, chain.Config(), minningConfig, &vm.Config{}, stack.EventMux(), c, platonConfig.Eth.MinerRecommit, platonConfig.Eth.MinerGasFloor, nil, blockChainCache, platonConfig.Eth.VmTimeoutDuration)
+		miner := miner.New(bc, chain.Config(), minningConfig, stack.EventMux(), c, platonConfig.Eth.MinerRecommit, platonConfig.Eth.MinerGasFloor, nil, blockChainCache, platonConfig.Eth.VmTimeoutDuration)
 		c.Start(chain, nil, nil, agency)
 		defer c.Close()
 		defer miner.Stop()
