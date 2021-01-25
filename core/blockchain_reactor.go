@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math/big"
 	"sync"
 
@@ -55,6 +56,7 @@ type BlockChainReactor struct {
 	exitCh        chan chan struct{}        // Used to receive an exit signal
 	exitOnce      sync.Once
 	chainID       *big.Int
+	chainDb       ethdb.Database // Block chain database
 }
 
 var (
@@ -62,7 +64,7 @@ var (
 	bcr     *BlockChainReactor
 )
 
-func NewBlockChainReactor(mux *event.TypeMux, chainId *big.Int) *BlockChainReactor {
+func NewBlockChainReactor(mux *event.TypeMux, chainId *big.Int, chainDb ethdb.Database) *BlockChainReactor {
 	bcrOnce.Do(func() {
 		log.Info("Init BlockChainReactor ...")
 		bcr = &BlockChainReactor{
@@ -70,6 +72,7 @@ func NewBlockChainReactor(mux *event.TypeMux, chainId *big.Int) *BlockChainReact
 			basePluginMap: make(map[int]plugin.BasePlugin, 0),
 			exitCh:        make(chan chan struct{}),
 			chainID:       chainId,
+			chainDb:       chainDb,
 		}
 	})
 	return bcr
@@ -99,6 +102,10 @@ func (bcr *BlockChainReactor) Close() {
 
 func (bcr *BlockChainReactor) GetChainID() *big.Int {
 	return bcr.chainID
+}
+
+func (bcr *BlockChainReactor) GetChainDB() ethdb.Database {
+	return bcr.chainDb
 }
 
 // Getting the global bcr single instance

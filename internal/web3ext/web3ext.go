@@ -407,6 +407,10 @@ web3._extend({
 			call: 'debug_economicConfig',
 		}),
 		new web3._extend.Method({
+			name: 'economicExtendConfig',
+			call: 'debug_economicExtendConfig',
+		}),
+		new web3._extend.Method({
 			name: 'getWaitSlashingNodeList',
 			call: 'debug_getWaitSlashingNodeList',
 		}),
