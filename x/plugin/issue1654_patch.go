@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -26,7 +28,7 @@ type FixIssue1654Plugin struct {
 	sdb snapshotdb.DB
 }
 
-func (a *FixIssue1654Plugin) fix(blockHash common.Hash, chainID *big.Int) error {
+func (a *FixIssue1654Plugin) fix(blockHash common.Hash, chainID *big.Int, state xcom.StateDB) error {
 	if chainID.Cmp(params.AlayaChainConfig.ChainID) != 0 {
 		return nil
 	}
@@ -52,14 +54,14 @@ func (a *FixIssue1654Plugin) fix(blockHash common.Hash, chainID *big.Int) error 
 				if err := stk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
 					return err
 				}
-				if err := stk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
+				if err := stk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable, gov.Gte0160VersionState(state)); nil != err {
 					return err
 				}
 				log.Debug("fix issue1654,can is valid,update the can power", "nodeID", candidate.nodeID, "stakingNum", candidate.stakingNum, "sub", candidate.shouldSub, "newShare", can.Shares)
 			} else {
 				if can.Shares != nil {
 					can.SubShares(candidate.shouldSub)
-					if err := stk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
+					if err := stk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable, gov.Gte0160VersionState(state)); nil != err {
 						return err
 					}
 					log.Debug("fix issue1654,can is invalid", "nodeID", candidate.nodeID, "stakingNum", candidate.stakingNum, "sub", candidate.shouldSub, "newShare", can.Shares)
