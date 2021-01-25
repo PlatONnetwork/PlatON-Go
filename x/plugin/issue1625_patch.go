@@ -24,6 +24,8 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -52,7 +54,7 @@ type FixIssue1625Plugin struct {
 }
 
 func (a *FixIssue1625Plugin) fix(blockHash common.Hash, head *types.Header, state xcom.StateDB, chainID *big.Int) error {
-	if chainID.Cmp(new(big.Int).SetInt64(201030)) != 0 {
+	if chainID.Cmp(params.AlayaChainConfig.ChainID) != 0 {
 		return nil
 	}
 	issue1625, err := NewIssue1625Accounts()
