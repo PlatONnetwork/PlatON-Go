@@ -329,15 +329,6 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 	if time.Since(t.db.lastPingReceived(toid)) > nodeDBNodeExpiration {
 		t.ping(toid, toaddr)
 		t.waitping(toid)
-		//nodes := make([]*Node, 0, bucketSize)
-		//errping := t.ping(toid, toaddr)
-		//if errping != nil {
-		//	return nodes, errping
-		//}
-		//errwaitping := t.waitping(toid)
-		//if errwaitping != nil {
-		//	return nodes, errwaitping
-		//}
 	}
 
 	nodes := make([]*Node, 0, bucketSize)
