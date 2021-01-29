@@ -20,10 +20,12 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -31,7 +33,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -255,11 +256,9 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	} else {
 		blockHash = header.CacheHash()
 		// Verify vrf proof
-		sign := header.Extra[32:97]
-		sealHash := header.SealHash().Bytes()
-		pk, err := crypto.SigToPub(sealHash, sign)
-		if nil != err {
-			return err
+		pk := header.CachePublicKey()
+		if pk == nil {
+			return errors.New("failed to get the public key of the block producer")
 		}
 		if err := bcr.vh.VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return err
