@@ -733,7 +733,10 @@ func (w *worker) resultLoop() {
 			log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64(), "coinbase", block.Coinbase(), "time", block.Time(), "root", block.Root())
 
 			// Broadcast the block and announce chain insertion event
-			w.mux.Post(core.NewMinedBlockEvent{Block: block})
+			if !w.engine.Syncing() {
+				log.Trace("Broadcast the block and announce chain insertion event", "hash", block.Hash(), "number", block.NumberU64())
+				w.mux.Post(core.NewMinedBlockEvent{Block: block})
+			}
 
 			var events []interface{}
 			switch stat {

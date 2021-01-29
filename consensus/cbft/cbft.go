@@ -1584,9 +1584,14 @@ func (cbft *Cbft) Pause() {
 	cbft.log.Info("Pause cbft consensus")
 	utils.SetTrue(&cbft.syncing)
 }
+
 func (cbft *Cbft) Resume() {
 	cbft.log.Info("Resume cbft consensus")
 	utils.SetFalse(&cbft.syncing)
+}
+
+func (cbft *Cbft) Syncing() bool {
+	return utils.True(&cbft.syncing)
 }
 
 func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
