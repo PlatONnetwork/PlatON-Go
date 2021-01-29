@@ -22,9 +22,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -705,10 +706,9 @@ func parseNodeId(header *types.Header) (discover.NodeID, error) {
 	if xutil.IsWorker(header.Extra) {
 		return discover.PubkeyID(&SlashInstance().privateKey.PublicKey), nil
 	} else {
-		sign := header.Extra[32:97]
-		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
-		if nil != err {
-			return discover.NodeID{}, err
+		pk := header.CachePublicKey()
+		if pk == nil {
+			return discover.NodeID{}, errors.New("failed to get the public key of the block producer")
 		}
 		return discover.PubkeyID(pk), nil
 	}
