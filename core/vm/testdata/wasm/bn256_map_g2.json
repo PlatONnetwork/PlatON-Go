@@ -1,0 +1,62 @@
+[
+  {
+    "Input": [
+      "283f03ddae06502142b502c8cbd875b570d333738ef5e57bbb94f5674f3bf3aa"
+    ],
+    "Return": 0,
+    "Expected": [
+      "170c0b65338842ff1050516f1ca038ac4cb0543eeedbbccc9c8fb7a20153cc77",
+      "0ef7149b5865142e2ba3468b006f0ba649f5b9b6a903027b80550c5e3f2b8ce7",
+      "176bf02672837c7777703063231dd7eb8b5a2b53bfb6e7f8cc3dba7cddd60ae7",
+      "16b9286166581923834481595c8bbe6b54b699582d1a41314c0a1bd7d21b4fa8"
+    ],
+    "Gas": 12000,
+    "Name": "bn256_map_g2_0",
+    "NoBenchmark": false
+  },
+  {
+    "Input": [
+      "2c89838c08ebba59f16685129615b341a788826039f013111db6c295c195dc2c"
+    ],
+    "Return": 0,
+    "Expected": [
+      "0e14527d1c32efda56fff9d856c917ea4a10e7dc2f7bf52ae1471773190e9ad9",
+      "18fad28b902e8904f7014dcf3dd1622c89ea8d2ac9a557a887da90bf62c761dd",
+      "09bc6bb40f64b77c9d14bf2c451f188bb5ae0a6c8badb07ae58a7f7945e87bcf",
+      "0f1d79154df6c2c5ecba9ffd4d82e906eae105a42f5c1a7aac7e7ac63ba89308"
+    ],
+    "Gas": 12000,
+    "Name": "bn256_map_g2_1",
+    "NoBenchmark": false
+  },
+  {
+    "Input": [
+      "0e7ee9f77c109f28e4a16de633d5c942a2b2582826946a1847cbe7b2f630bb9e"
+    ],
+    "Return": 0,
+    "Expected": [
+      "0e5e9809bae58fc0a5036a30fbbdf6140ebe7c0ccd455ada181d9edcf30f42e7",
+      "14b80bb19c0aa56b01ae9f2be60efc314a28f1eba0649c7d6b9ed01fc342891d",
+      "1f42915230cb823976e1286834ac98be3b1a44fc5bf41850c049aea114e20aa5",
+      "167b79c00f16a717ba1dd811bd494c4d146850d88d355fbd0334a8746482ead6"
+    ],
+    "Gas": 12000,
+    "Name": "bn256_map_g2_2",
+    "NoBenchmark": false
+  },
+  {
+    "Input": [
+      "2e1d6aba0a64397fda196d9b409b951b73b32eba657f93688de8a819972cebc5"
+    ],
+    "Return": 0,
+    "Expected": [
+      "2fb9335e740baf6df37f78cb3f7854a6e405be43260f683e5fee80bed9812e64",
+      "0f04cc28777052ad3d12ade450c7e158f02d10e28498f919d64ded730aa8961a",
+      "129f5d44922e2a90b0f19b7d523558c9906e663ae943cf76632edd99ad33dc10",
+      "10224ccfb3b03f681de8fd921db5aac9cb814652f0dc63e24fcb5e2d4bcbe7a0"
+    ],
+    "Gas": 12000,
+    "Name": "bn256_map_g2_3",
+    "NoBenchmark": false
+  }
+]

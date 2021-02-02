@@ -2,6 +2,10 @@ package vm
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bulletproof/tx"
 
 	"github.com/holiman/uint256"
@@ -37,6 +41,10 @@ type VMContext struct {
 	Revert   bool
 	Log      *WasmLogger
 }
+
+var (
+	ptrSize = uint32(4)
+)
 
 func addFuncExport(m *wasm.Module, sig wasm.FunctionSig, function wasm.Function, export wasm.ExportEntry) {
 	typesLen := len(m.Types.Entries)
@@ -848,6 +856,18 @@ func NewHostModule() *wasm.Module {
 func checkGas(ctx *VMContext, gas uint64) {
 	if !ctx.contract.UseGas(gas) {
 		panic(ErrOutOfGas)
+	}
+}
+
+func mustReadAt(proc *exec.Process, p []byte, off int64) {
+	if _, err := proc.ReadAt(p, off); err != nil {
+		panic(err)
+	}
+}
+
+func mustWriteAt(proc *exec.Process, p []byte, off int64) {
+	if _, err := proc.WriteAt(p, off); err != nil {
+		panic(err)
 	}
 }
 func GasPrice(proc *exec.Process, gasPrice uint32) uint32 {
@@ -2374,4 +2394,256 @@ func VariableLengthResult(proc *exec.Process, result uint32, resultLen uint32) i
 	}
 
 	return int32(len(ctx.VariableResult))
+}
+
+
+// int bn256_g1_add(byte x1[32], byte y1[32], byte x2[32], byte y2[32], byte x3[32], byte y3[32]);
+// func $bn256_g1_add(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (result i32)
+func Bn256G1Add(proc *exec.Process, x1, y1, x2, y2, x3, y3 uint32) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+
+	checkGas(ctx, params.Bn256G1AddGas)
+	var x1Bytes [32]byte
+	var y1Bytes [32]byte
+	var x2Bytes [32]byte
+	var y2Bytes [32]byte
+
+	mustReadAt(proc, x1Bytes[:], int64(x1))
+	mustReadAt(proc, y1Bytes[:], int64(y1))
+	mustReadAt(proc, x2Bytes[:], int64(x2))
+	mustReadAt(proc, y2Bytes[:], int64(y2))
+
+	var gx1, gx2 bn256.G1
+	if _, err := gx1.Unmarshal(append(x1Bytes[:], y1Bytes[:]...)); err != nil {
+		return -1
+	}
+	if _, err := gx2.Unmarshal(append(x2Bytes[:], y2Bytes[:]...)); err != nil {
+		return -1
+	}
+	//fmt.Println(hex.EncodeToString(append(x1Bytes[:], y1Bytes[:]...)))
+	//fmt.Println(hex.EncodeToString(append(x2Bytes[:], y2Bytes[:]...)))
+
+	gx3 := new(bn256.G1)
+
+	gx3.Add(&gx1, &gx2)
+	res := gx3.Marshal()
+
+	mustWriteAt(proc, res[:32], int64(x3))
+	mustWriteAt(proc, res[32:], int64(y3))
+	return 0
+}
+
+// int bn256_g1_mul(byte x1[32], byte y1[32], byte bigint[32], byte x2[32], byte y2[32]);
+// func $bn256_g1_mul(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (result i32)
+func Bn256G1Mul(proc *exec.Process, x1, y1, bigint, x2, y2 uint32) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, params.Bn256G1ScalarMulGas)
+
+	var x1Bytes [32]byte
+	var y1Bytes [32]byte
+	var bigIntBytes [32]byte
+	mustReadAt(proc, x1Bytes[:], int64(x1))
+	mustReadAt(proc, y1Bytes[:], int64(y1))
+	mustReadAt(proc, bigIntBytes[:], int64(bigint))
+
+	scalar := new(big.Int).SetBytes(bigIntBytes[:])
+	var gx1 bn256.G1
+	if _, err := gx1.Unmarshal(append(x1Bytes[:], y1Bytes[:]...)); err != nil {
+		return -1
+	}
+
+	gx3 := new(bn256.G1)
+
+	gx3.ScalarMult(&gx1, scalar)
+	res := gx3.Marshal()
+
+	mustWriteAt(proc, res[:32], int64(x2))
+	mustWriteAt(proc, res[32:], int64(y2))
+	return 0
+}
+
+
+// int bn256_g2_add(byte x11[32], byte y11[32], byte x12[32], byte y12[32], byte x21[32], byte y21[32], byte x22[32], byte y22[32], byte x31[32], byte y31[32], byte x32[32], byte y32[32]);
+// func $bn256_g2_add(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (result i32)
+func Bn256G2Add(proc *exec.Process, x11, y11, x12, y12, x21, y21, x22, y22, x31, y31, x32, y32 uint32) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, params.Bn256G2AddGas)
+
+	var x11Bytes [32]byte
+	var y11Bytes [32]byte
+	var x12Bytes [32]byte
+	var y12Bytes [32]byte
+
+	var x21Bytes [32]byte
+	var y21Bytes [32]byte
+	var x22Bytes [32]byte
+	var y22Bytes [32]byte
+
+	mustReadAt(proc, x11Bytes[:], int64(x11))
+	mustReadAt(proc, y11Bytes[:], int64(y11))
+	mustReadAt(proc, x12Bytes[:], int64(x12))
+	mustReadAt(proc, y12Bytes[:], int64(y12))
+
+	mustReadAt(proc, x21Bytes[:], int64(x21))
+	mustReadAt(proc, y21Bytes[:], int64(y21))
+	mustReadAt(proc, x22Bytes[:], int64(x22))
+	mustReadAt(proc, y22Bytes[:], int64(y22))
+
+
+	var gx1, gx2 bn256.G2
+	if _, err := gx1.Unmarshal(append(x11Bytes[:], append(y11Bytes[:], append(x12Bytes[:], y12Bytes[:]...)...)...)); err != nil {
+		return -1
+	}
+	if _, err := gx2.Unmarshal(append(x21Bytes[:], append(y21Bytes[:], append(x22Bytes[:], y22Bytes[:]...)...)...)); err != nil {
+		return -1
+	}
+	fmt.Println(hex.EncodeToString(append(x11Bytes[:], append(y11Bytes[:], append(x12Bytes[:], y12Bytes[:]...)...)...)))
+	fmt.Println(hex.EncodeToString(append(x21Bytes[:], append(y21Bytes[:], append(x22Bytes[:], y22Bytes[:]...)...)...)))
+
+	gx3 := new(bn256.G2)
+
+	gx3.Add(&gx1, &gx2)
+	res := gx3.Marshal()
+
+	mustWriteAt(proc, res[:32], int64(x31))
+	mustWriteAt(proc, res[32:64], int64(y31))
+	mustWriteAt(proc, res[64:96], int64(x32))
+	mustWriteAt(proc, res[96:128], int64(y32))
+
+	return 0
+}
+
+// int bn256_g2_mul(byte x11[32], byte y11[32], byte x12[32], byte y12[32], byte bigint[32] byte x21[32], byte y21[32], byte x22[32], byte y22[32]);
+// func $bn256_g2_mul(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (param $8 i32) (result i32)
+func Bn256G2Mul(proc *exec.Process, x11, y11, x12, y12, bigint, x21, y21, x22, y22 uint32) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, params.Bn256G2ScalarMulGas)
+
+	var x11Bytes [32]byte
+	var y11Bytes [32]byte
+	var x12Bytes [32]byte
+	var y12Bytes [32]byte
+	var bigintBytes [32]byte
+
+	mustReadAt(proc, x11Bytes[:], int64(x11))
+	mustReadAt(proc, y11Bytes[:], int64(y11))
+	mustReadAt(proc, x12Bytes[:], int64(x12))
+	mustReadAt(proc, y12Bytes[:], int64(y12))
+	mustReadAt(proc, bigintBytes[:], int64(bigint))
+
+
+	var gx1 bn256.G2
+	if _, err := gx1.Unmarshal(append(x11Bytes[:], append(y11Bytes[:], append(x12Bytes[:], y12Bytes[:]...)...)...)); err != nil {
+		return -1
+	}
+	fmt.Println(hex.EncodeToString(append(x11Bytes[:], append(y11Bytes[:], append(x12Bytes[:], y12Bytes[:]...)...)...)))
+
+	gx3 := new(bn256.G2)
+
+	gx3.ScalarMult(&gx1, new(big.Int).SetBytes(bigintBytes[:]))
+	res := gx3.Marshal()
+
+	mustWriteAt(proc, res[:32], int64(x21))
+	mustWriteAt(proc, res[32:64], int64(y21))
+	mustWriteAt(proc, res[64:96], int64(x22))
+	mustWriteAt(proc, res[96:128], int64(y22))
+
+	return 0
+}
+
+// int bn256_pairing(byte x1[32][], byte y1[32][], byte x21[32][], byte y21[32][], byte x22[32][], byte x22[32][], size_t len);
+// func $bn256_pairing(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
+func Bn256Pairing(proc *exec.Process, x1, y1, x21, y21, x22, y22, len uint32) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, params.Bn256PairingCheckBaseGas + params.Bn256PairingCheckPerPairGas * uint64(len))
+
+	x1Array := make([]byte, len * ptrSize)
+	y1Array := make([]byte, len * ptrSize)
+
+	x21Array := make([]byte, len * ptrSize)
+	y21Array := make([]byte, len * ptrSize)
+	x22Array := make([]byte, len * ptrSize)
+	y22Array := make([]byte, len * ptrSize)
+
+	mustReadAt(proc, x1Array[:], int64(x1))
+	mustReadAt(proc, y1Array[:], int64(y1))
+	mustReadAt(proc, x21Array[:], int64(x21))
+	mustReadAt(proc, y21Array[:], int64(y21))
+	mustReadAt(proc, x22Array[:], int64(x22))
+	mustReadAt(proc, y22Array[:], int64(y22))
+
+	g1s := make([]*bn256.G1, 0, len)
+	g2s := make([]*bn256.G2, 0, len)
+
+	for i := uint32(0); i < len; i++ {
+		var x1Bytes [32]byte
+		var y1Bytes [32]byte
+
+		var x21Bytes [32]byte
+		var y21Bytes [32]byte
+		var x22Bytes [32]byte
+		var y22Bytes [32]byte
+
+		mustReadAt(proc, x1Bytes[:], int64(binary.LittleEndian.Uint32(x1Array[i*4:(i+1)*4])))
+		mustReadAt(proc, y1Bytes[:], int64(binary.LittleEndian.Uint32(y1Array[i*4:(i+1)*4])))
+		mustReadAt(proc, x21Bytes[:], int64(binary.LittleEndian.Uint32(x21Array[i*4:(i+1)*4])))
+		mustReadAt(proc, y21Bytes[:], int64(binary.LittleEndian.Uint32(y21Array[i*4:(i+1)*4])))
+		mustReadAt(proc, x22Bytes[:], int64(binary.LittleEndian.Uint32(x22Array[i*4:(i+1)*4])))
+		mustReadAt(proc, y22Bytes[:], int64(binary.LittleEndian.Uint32(y22Array[i*4:(i+1)*4])))
+
+		var gx1 bn256.G1
+		if _, err := gx1.Unmarshal(append(x1Bytes[:], y1Bytes[:]...)); err != nil {
+			return -2
+		}
+		g1s = append(g1s, &gx1)
+
+		var gx2 bn256.G2
+		if _, err := gx2.Unmarshal(append(x21Bytes[:], append(y21Bytes[:], append(x22Bytes[:], y22Bytes[:]...)...)...)); err != nil {
+			return -2
+		}
+		g2s = append(g2s, &gx2)
+	}
+
+	if !bn256.PairingCheck(g1s, g2s) {
+		return -1
+	}
+
+	return 0
+}
+
+// int bn256_map_g1(byte fe[], size_t len, byte x1[32], byte y1[32]);
+// func $bn256_map_g1(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
+func Bn256MapG1(proc *exec.Process, fe, len, x1, y1 uint32) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, params.Bn256MapG1)
+
+	bigintArray := make([]byte, len)
+	mustReadAt(proc, bigintArray, int64(fe))
+
+	g1 := new(bn256.G1).ScalarBaseMult(new(big.Int).SetBytes(bigintArray))
+
+	res := g1.Marshal()
+
+	mustWriteAt(proc, res[:32], int64(x1))
+	mustWriteAt(proc, res[32:], int64(y1))
+	return 0
+}
+
+// int bn256_map_g2(byte fe[], size_t len, byte x11[32], byte y11[32], byte x12[32], byte y12[32]);
+// func $bn256_map_g2(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
+func Bn256MapG2(proc *exec.Process, fe, len, x11, y11, x12, y12 uint32) int32 {
+	ctx := proc.HostCtx().(*VMContext)
+	checkGas(ctx, params.Bn256MapG2)
+
+	bigintArray := make([]byte, len)
+	mustReadAt(proc, bigintArray, int64(fe))
+
+	g2 := new(bn256.G2).ScalarBaseMult(new(big.Int).SetBytes(bigintArray))
+	res := g2.Marshal()
+
+	mustWriteAt(proc, res[:32], int64(x11))
+	mustWriteAt(proc, res[32:64], int64(y11))
+	mustWriteAt(proc, res[64:96], int64(x12))
+	mustWriteAt(proc, res[96:128], int64(y12))
+	return 0
 }

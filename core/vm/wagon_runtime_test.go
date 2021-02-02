@@ -5,6 +5,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"hash/fnv"
 	"io/ioutil"
 	"math/big"
@@ -34,6 +38,15 @@ var (
 	addr2 = common.Address{1, 2, 4}
 	addr3 = common.Address{1, 2, 6}
 )
+
+type ExternalFuncTest struct {
+	Input       []string
+	Return      int
+	Expected    []string
+	Gas         uint64
+	Name        string
+	NoBenchmark bool // Benchmark primarily the worst-cases
+}
 
 var testCase = []*Case{
 	{
@@ -554,7 +567,6 @@ var testCase = []*Case{
 		check: func(self *Case, err error) bool {
 
 			newContract := common.BytesToAddress(self.ctx.Output)
-			//fmt.Println("new ContractAddr", newContract.String())
 			newBalance := self.ctx.evm.StateDB.GetBalance(newContract)
 			oldBalance := self.ctx.evm.StateDB.GetBalance(addr2)
 			code := self.ctx.evm.StateDB.GetCode(newContract)
@@ -673,7 +685,6 @@ var testCase = []*Case{
 		check: func(self *Case, err error) bool {
 
 			newContract := common.BytesToAddress(self.ctx.Output)
-			//fmt.Println("new ContractAddr", newContract.String())
 			newBalance := self.ctx.evm.StateDB.GetBalance(newContract)
 			oldBalance := self.ctx.evm.StateDB.GetBalance(addr2)
 			code := self.ctx.evm.StateDB.GetCode(newContract)
@@ -1556,4 +1567,321 @@ func checkContractRet(ret []byte) bool {
 		return false
 	}
 	return true
+}
+
+type testContract struct{}
+
+func (testContract) Address() common.Address {
+	return common.Address{}
+}
+
+var initExternalGas = uint64(10000000)
+
+func newTestVM() *exec.VM {
+	code := "0x0061736d010000000108026000006000017f03030200010405017001010105030100020615037f01418088040b7f00418088040b7f004180080b072c04066d656d6f727902000b5f5f686561705f6261736503010a5f5f646174615f656e640302046d61696e00010a090202000b0400412a0b004d0b2e64656275675f696e666f3d0000000400000000000401000000000c0023000000000000004300000005000000040000000205000000040000005c000000010439000000036100000005040000100e2e64656275675f6d6163696e666f0000400d2e64656275675f616262726576011101250e1305030e10171b0e110112060000022e0011011206030e3a0b3b0b49133f190000032400030e3e0b0b0b000000005e0b2e64656275675f6c696e654e000000040037000000010101fb0e0d0001010101000000010000012f746d702f6275696c645f7664717864336f336f316c2e24000066696c652e630001000000000502050000001505030a3d020100010100700a2e64656275675f737472636c616e672076657273696f6e20382e302e3020287472756e6b2033343139363029002f746d702f6275696c645f7664717864336f336f316c2e242f66696c652e63002f746d702f6275696c645f7664717864336f336f316c2e24006d61696e00696e74000021046e616d65011a0200115f5f7761736d5f63616c6c5f63746f727301046d61696e"
+	module, _ := ReadWasmModule(hexutil.MustDecode(code), false)
+
+	vm, _ := exec.NewVM(module.RawModule)
+	vm.SetHostCtx(&VMContext{contract: NewContract(&testContract{}, &testContract{}, big.NewInt(0), initExternalGas)})
+	return vm
+}
+
+func checkGasCost(t *testing.T, proc *exec.Process, except uint64) bool {
+	ctx := proc.HostCtx().(*VMContext)
+	return ctx.contract.Gas+except == initExternalGas
+}
+
+func mustReadTestCase(path string, t *testing.T) []PrecompiledTest {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var testcases []PrecompiledTest
+	if err := json.Unmarshal(data, &testcases); err != nil {
+		t.Fatal(err)
+	}
+	return testcases
+}
+
+func mustReadExternalFuncTestCase(path string, t *testing.T) []ExternalFuncTest {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var testcases []ExternalFuncTest
+	if err := json.Unmarshal(data, &testcases); err != nil {
+		t.Fatal(err)
+	}
+	return testcases
+}
+
+func executeExternalFunc(exec func() int32) (code int32, panic bool) {
+	defer func() {
+		if err := recover(); err != nil {
+			code = 0
+			panic = true
+		}
+	}()
+	code = exec()
+	panic = false
+	return code, panic
+}
+func TestBn256G1Add(t *testing.T) {
+	process := exec.NewProcess(newTestVM())
+	testcases := mustReadExternalFuncTestCase("testdata/wasm/bn256_g1_add.json", t)
+
+	count := 0
+	for pos, p := range testcases {
+		x1, _ := hex.DecodeString(p.Input[0])
+		y1, _ := hex.DecodeString(p.Input[1])
+		x2, _ := hex.DecodeString(p.Input[2])
+		y2, _ := hex.DecodeString(p.Input[3])
+		process.WriteAt(x1, 1024)
+		process.WriteAt(y1, 1024+32)
+		process.WriteAt(x2, 1024+64)
+		process.WriteAt(y2, 1024+96)
+
+		res, panic := executeExternalFunc(func()int32 {
+			return Bn256G1Add(process, 1024, 1024+32, 1024+64, 1024+96, 1024+128, 1024+160)
+		})
+		checkGasCost(t, process, p.Gas)
+		if panic {
+			assert.Empty(t, p.Expected)
+		} else {
+			assert.Equal(t, p.Return, int(res), fmt.Sprintf("execute testcase error pos:%d", pos))
+			for i, e := range p.Expected {
+				var buf [32]byte
+				process.ReadAt(buf[:], 1024+128 + int64(i)*32)
+				assert.Equal(t, e, hex.EncodeToString(buf[:]), fmt.Sprintf("execute testcase error pos:%d", pos))
+			}
+
+		}
+		count++
+	}
+}
+
+func TestBn256G1Mul(t *testing.T) {
+	process := exec.NewProcess(newTestVM())
+	testcases := mustReadExternalFuncTestCase("testdata/wasm/bn256_g1_mul.json", t)
+
+	count := 0
+	for pos, p := range testcases {
+		x1, _ := hex.DecodeString(p.Input[0])
+		y1, _ := hex.DecodeString(p.Input[1])
+		x2, _ := hex.DecodeString(p.Input[2])
+		process.WriteAt(x1, 1024)
+		process.WriteAt(y1, 1024+32)
+		process.WriteAt(x2, 1024+64)
+
+		res, panic := executeExternalFunc(func()int32 {
+			return Bn256G1Mul(process, 1024, 1024+32, 1024+64, 1024+96, 1024+128)
+		})
+		checkGasCost(t, process, p.Gas)
+		if panic {
+			assert.Empty(t, p.Expected)
+		} else {
+			assert.Equal(t, p.Return, int(res), fmt.Sprintf("execute testcase error pos:%d", pos))
+			for i, e := range p.Expected {
+				var buf [32]byte
+				process.ReadAt(buf[:], 1024+96 + int64(i)*32)
+				assert.Equal(t, e, hex.EncodeToString(buf[:]), fmt.Sprintf("execute testcase error pos:%d", pos))
+			}
+		}
+		count++
+	}
+}
+
+func TestBn256G2Add(t *testing.T) {
+	process := exec.NewProcess(newTestVM())
+	testcases := mustReadExternalFuncTestCase("testdata/wasm/bn256_g2_add.json", t)
+
+	count := 0
+	for _, p := range testcases {
+
+		x11, _ := hex.DecodeString(p.Input[0])
+		y11, _ := hex.DecodeString(p.Input[1])
+		x12, _ := hex.DecodeString(p.Input[2])
+		y12, _ := hex.DecodeString(p.Input[3])
+		x21, _ := hex.DecodeString(p.Input[4])
+		y21, _ := hex.DecodeString(p.Input[5])
+		x22, _ := hex.DecodeString(p.Input[6])
+		y22, _ := hex.DecodeString(p.Input[7])
+		process.WriteAt(x11, 1024)
+		process.WriteAt(y11, 1024+32)
+		process.WriteAt(x12, 1024+64)
+		process.WriteAt(y12, 1024+96)
+		process.WriteAt(x21, 1024+128)
+		process.WriteAt(y21, 1024+160)
+		process.WriteAt(x22, 1024+192)
+		process.WriteAt(y22, 1024+224)
+		res := Bn256G2Add(process, 1024, 1024+32, 1024+64, 1024+96, 1024+128, 1024+160, 1024+192, 1024+224, 1024+256, 1024+288, 1024+320, 1024+352)
+		if res != 0 {
+			t.Error("add error")
+		}
+
+		checkGasCost(t, process, p.Gas)
+		for i, e := range p.Expected {
+			var buf [32]byte
+			process.ReadAt(buf[:], 1024+256+int64(i)*32)
+			assert.Equal(t, e, hex.EncodeToString(buf[:]))
+		}
+		count++
+	}
+}
+
+func TestBn256G2Mul(t *testing.T) {
+	process := exec.NewProcess(newTestVM())
+	testcases := mustReadExternalFuncTestCase("testdata/wasm/bn256_g2_mul.json", t)
+
+	count := 0
+	for _, p := range testcases {
+
+		x11, _ := hex.DecodeString(p.Input[0])
+		y11, _ := hex.DecodeString(p.Input[1])
+
+		x12, _ := hex.DecodeString(p.Input[2])
+		y12, _ := hex.DecodeString(p.Input[3])
+		bigint, _ := hex.DecodeString(p.Input[4])
+
+		process.WriteAt(x11, 1024)
+		process.WriteAt(y11, 1024+32)
+		process.WriteAt(x12, 1024+64)
+		process.WriteAt(y12, 1024+96)
+		process.WriteAt(bigint, 1024+128)
+		res := Bn256G2Mul(process, 1024, 1024+32, 1024+64, 1024+96, 1024+128, 1024+160, 1024+192, 1024+224, 1024+256)
+		if res != 0 {
+			t.Error("mul error")
+		}
+
+		checkGasCost(t, process, p.Gas)
+		for i, e := range p.Expected {
+			var buf [32]byte
+			process.ReadAt(buf[:], 1024+160+int64(i)*32)
+			assert.Equal(t, e, hex.EncodeToString(buf[:]))
+		}
+		count++
+	}
+}
+
+func TestBn256Pairing(t *testing.T) {
+	process := exec.NewProcess(newTestVM())
+	testcases := mustReadExternalFuncTestCase("testdata/wasm/bn256_g1_pairing.json", t)
+
+	count := 0
+	for _, p := range testcases {
+
+		step := int64(100)
+		x1 := int64(1024)
+		y1 := x1 + step
+		x11 := y1 + step
+		y11 := x11 + step
+		x12 := y11 + step
+		y12 := x12 + step
+
+		step = 1000
+		x1Data := int64(2024)
+		y1Data := x1Data + step
+		x11Data := y1Data + step
+		y11Data := x11Data + step
+		x12Data := y11Data + step
+		y12Data := x12Data + step
+
+		for _, pair := range p.Input {
+			var args []string
+			json.Unmarshal([]byte(pair), &args)
+			offset := make([]byte, 4)
+			binary.LittleEndian.PutUint32(offset, uint32(x1Data))
+			process.WriteAt(offset, x1)
+
+			binary.LittleEndian.PutUint32(offset, uint32(y1Data))
+			process.WriteAt(offset, y1)
+
+			binary.LittleEndian.PutUint32(offset, uint32(x11Data))
+			process.WriteAt(offset, x11)
+
+			binary.LittleEndian.PutUint32(offset, uint32(y11Data))
+			process.WriteAt(offset, y11)
+
+			binary.LittleEndian.PutUint32(offset, uint32(x12Data))
+			process.WriteAt(offset, x12)
+
+			binary.LittleEndian.PutUint32(offset, uint32(y12Data))
+			process.WriteAt(offset, y12)
+
+			decodeString := func(a string) []byte {
+				buf, _ := hex.DecodeString(a)
+				return buf
+			}
+			process.WriteAt(decodeString(args[0]), x1Data)
+			process.WriteAt(decodeString(args[1]), y1Data)
+			process.WriteAt(decodeString(args[2]), x11Data)
+			process.WriteAt(decodeString(args[3]), y11Data)
+			process.WriteAt(decodeString(args[4]), x12Data)
+			process.WriteAt(decodeString(args[5]), y12Data)
+
+			x1, y1, x11, y11, x12, y12 = x1+4, y1+4, x11+4, y11+4, x12+4, y12+4
+			x1Data, y1Data, x11Data, y11Data, x12Data, y12Data = x1Data+32, y1Data+32, x11Data+32, y11Data+32, x12Data+32, y12Data+32
+		}
+
+		status := Bn256Pairing(process, 1024, 1024+100, 1024+200, 1024+300, 1024+400, 1024+500, uint32(len(p.Input)))
+		assert.Equal(t, p.Return, int(status))
+		count++
+	}
+}
+
+func TestBn256MapG1(t *testing.T) {
+	process := exec.NewProcess(newTestVM())
+	testcases := mustReadExternalFuncTestCase("testdata/wasm/bn256_map_g1.json", t)
+
+	count := 0
+	for _, p := range testcases {
+		buf, err := hex.DecodeString(p.Input[0])
+		if err != nil {
+			t.Error(err)
+		}
+
+		x11 := buf[:]
+
+		process.WriteAt(x11, 1024)
+		res := Bn256MapG1(process, 1024, uint32(len(x11)), 1024+64, 1024+96)
+		if res != 0 {
+			t.Error("map g1 error")
+		}
+		for i, e := range p.Expected {
+			buf = make([]byte, 32)
+			process.ReadAt(buf, 1024+64+int64(i)*32)
+			assert.Equal(t, e, hex.EncodeToString(buf))
+		}
+		checkGasCost(t, process, p.Gas)
+		count++
+	}
+}
+
+func TestBn256MapG2(t *testing.T) {
+	process := exec.NewProcess(newTestVM())
+	testcases := mustReadExternalFuncTestCase("testdata/wasm/bn256_map_g2.json", t)
+
+	count := 0
+	for _, p := range testcases {
+		buf, err := hex.DecodeString(p.Input[0])
+		if err != nil {
+			t.Error(err)
+		}
+
+		x11 := buf[:]
+
+		process.WriteAt(x11, 1024)
+		res := Bn256MapG2(process, 1024, uint32(len(x11)), 1024+64, 1024+96, 1024+128, 1024+160)
+		if res != 0 {
+			t.Error("map g2 error")
+		}
+
+		for i, e := range p.Expected {
+			buf = make([]byte, 32)
+			process.ReadAt(buf, 1024+64+int64(i)*32)
+			assert.Equal(t, e, hex.EncodeToString(buf))
+		}
+		checkGasCost(t, process, p.Gas)
+		count++
+	}
 }

@@ -1,0 +1,54 @@
+[
+  {
+    "Input": [
+      "0c4c429f7ccbb349abc3e818f34fcbf1d0ae08e143629d7a053c4ad27fc0dfe8"
+    ],
+    "Return": 0,
+    "Expected": [
+      "026e9a768e5fafd8d9747595590d82622c1922a9d09b00015fb7819693f7a2f2",
+      "26c011e00c00d9753b0b541843a6752536af839445b02eeb2d8ec77023ed7213"
+    ],
+    "Gas": 600,
+    "Name": "bn256_map_g1_0",
+    "NoBenchmark": false
+  },
+  {
+    "Input": [
+      "1a3e299e0c6a92bcd2d97b998800a7dd0c71d2d6fd253950c171bf3fc6993ca7"
+    ],
+    "Return": 0,
+    "Expected": [
+      "2fbece01384de1c60789daa2ffd1cd30e5af27789ef2fa3fd37a7f73909e4f5e",
+      "03d901d458363f0a32b67d6b3a20ed1444c8e218d84b5a411706953f836a73a8"
+    ],
+    "Gas": 600,
+    "Name": "bn256_map_g1_1",
+    "NoBenchmark": false
+  },
+  {
+    "Input": [
+      "0327eacd87be428586ca8b1444d01e3d9b9f8438be670215578c41a1d193b419"
+    ],
+    "Return": 0,
+    "Expected": [
+      "1fea2ff6bb31843ece17d570d5cc0333d78bdfe3c9a957f1683e7baca3a688ad",
+      "0aa80b66112213ba3ded34621302bff148810642dca00b426fb37994afd71076"
+    ],
+    "Gas": 600,
+    "Name": "bn256_map_g1_2",
+    "NoBenchmark": false
+  },
+  {
+    "Input": [
+      "1739174d0bf7a998478300139de96e2c0ece44864d13a2fde38f6af6c4ae3860"
+    ],
+    "Return": 0,
+    "Expected": [
+      "184bdea36d95d5d7fa5e4b7a891f1a114dc0a2a6c804cae0f8901810d87674f3",
+      "137f5ee078ef3ee9b56acee0cdced5b932d08ff8eae4d3a63b489d4f1e6ca0ab"
+    ],
+    "Gas": 600,
+    "Name": "bn256_map_g1_3",
+    "NoBenchmark": false
+  }
+]
