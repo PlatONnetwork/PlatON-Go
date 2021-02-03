@@ -159,7 +159,6 @@ type Config struct {
 	Logger log.Logger `toml:",omitempty"`
 
 	staticNodesWarning     bool
-	allowNodesWarning      bool
 	trustedNodesWarning    bool
 	oldGethResourceWarning bool
 }

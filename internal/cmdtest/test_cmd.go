@@ -109,6 +109,7 @@ func (tt *TestCmd) Expect(tplsource string) {
 	want := bytes.TrimPrefix(wantbuf.Bytes(), []byte("\n"))
 
 	if err := tt.matchExactOutput(want); err != nil {
+		tt.Log(tt.StderrText())
 		tt.Fatal(err)
 	}
 	tt.Logf("Matched stdout text:\n%s", want)

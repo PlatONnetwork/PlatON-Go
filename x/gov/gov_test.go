@@ -18,9 +18,10 @@ package gov
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -286,8 +287,6 @@ func TestGov_GetCurrentActiveVersion_NewActiveVersion(t *testing.T) {
 func TestGov_Submit(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	commit_sndb(chain)
 	prepair_sndb(chain)

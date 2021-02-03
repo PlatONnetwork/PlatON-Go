@@ -2,15 +2,11 @@ package dag
 
 import (
 	"fmt"
-	"os"
 	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 func TestDag(t *testing.T) {
 
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	dag := NewDag(10)
 	dag.AddEdge(0, 1)
 	dag.AddEdge(0, 2)
