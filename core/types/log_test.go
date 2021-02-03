@@ -34,9 +34,9 @@ var unmarshalLogTests = map[string]struct {
 	wantError error
 }{
 	"ok": {
-		input: `{"address":"atx1anu0sluppm852z2qe8mqqe4557jsr448psd9as","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","blockNumber":"0x1ecfa4","data":"0x000000000000000000000000000000000000000000000001a055690d9db80000","logIndex":"0x2","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x00000000000000000000000080b2c9d7cbbf30a1b0fc8983c647d754c6525615"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3"}`,
+		input: `{"address":"apt1anu0sluppm852z2qe8mqqe4557jsr448l8vyyh","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","blockNumber":"0x1ecfa4","data":"0x000000000000000000000000000000000000000000000001a055690d9db80000","logIndex":"0x2","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x00000000000000000000000080b2c9d7cbbf30a1b0fc8983c647d754c6525615"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3"}`,
 		want: &Log{
-			Address:     common.MustBech32ToAddress("atx1anu0sluppm852z2qe8mqqe4557jsr448psd9as"),
+			Address:     common.MustBech32ToAddress("apt1anu0sluppm852z2qe8mqqe4557jsr448l8vyyh"),
 			BlockHash:   common.HexToHash("0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056"),
 			BlockNumber: 2019236,
 			Data:        hexutil.MustDecode("0x000000000000000000000000000000000000000000000001a055690d9db80000"),
@@ -50,9 +50,9 @@ var unmarshalLogTests = map[string]struct {
 		},
 	},
 	"empty data": {
-		input: `{"address":"atx1anu0sluppm852z2qe8mqqe4557jsr448psd9as","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","blockNumber":"0x1ecfa4","data":"0x","logIndex":"0x2","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x00000000000000000000000080b2c9d7cbbf30a1b0fc8983c647d754c6525615"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3"}`,
+		input: `{"address":"apt1anu0sluppm852z2qe8mqqe4557jsr448l8vyyh","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","blockNumber":"0x1ecfa4","data":"0x","logIndex":"0x2","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x00000000000000000000000080b2c9d7cbbf30a1b0fc8983c647d754c6525615"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3"}`,
 		want: &Log{
-			Address:     common.MustBech32ToAddress("atx1anu0sluppm852z2qe8mqqe4557jsr448psd9as"),
+			Address:     common.MustBech32ToAddress("apt1anu0sluppm852z2qe8mqqe4557jsr448l8vyyh"),
 			BlockHash:   common.HexToHash("0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056"),
 			BlockNumber: 2019236,
 			Data:        []byte{},
@@ -66,9 +66,9 @@ var unmarshalLogTests = map[string]struct {
 		},
 	},
 	"missing block fields (pending logs)": {
-		input: `{"address":"atx1anu0sluppm852z2qe8mqqe4557jsr448psd9as","data":"0x","logIndex":"0x0","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3"}`,
+		input: `{"address":"apt1anu0sluppm852z2qe8mqqe4557jsr448l8vyyh","data":"0x","logIndex":"0x0","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3"}`,
 		want: &Log{
-			Address:     common.MustBech32ToAddress("atx1anu0sluppm852z2qe8mqqe4557jsr448psd9as"),
+			Address:     common.MustBech32ToAddress("apt1anu0sluppm852z2qe8mqqe4557jsr448l8vyyh"),
 			BlockHash:   common.Hash{},
 			BlockNumber: 0,
 			Data:        []byte{},
@@ -81,9 +81,9 @@ var unmarshalLogTests = map[string]struct {
 		},
 	},
 	"Removed: true": {
-		input: `{"address":"atx1anu0sluppm852z2qe8mqqe4557jsr448psd9as","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","blockNumber":"0x1ecfa4","data":"0x","logIndex":"0x2","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3","removed":true}`,
+		input: `{"address":"apt1anu0sluppm852z2qe8mqqe4557jsr448l8vyyh","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","blockNumber":"0x1ecfa4","data":"0x","logIndex":"0x2","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3","removed":true}`,
 		want: &Log{
-			Address:     common.MustBech32ToAddress("atx1anu0sluppm852z2qe8mqqe4557jsr448psd9as"),
+			Address:     common.MustBech32ToAddress("apt1anu0sluppm852z2qe8mqqe4557jsr448l8vyyh"),
 			BlockHash:   common.HexToHash("0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056"),
 			BlockNumber: 2019236,
 			Data:        []byte{},
@@ -97,7 +97,7 @@ var unmarshalLogTests = map[string]struct {
 		},
 	},
 	"missing data": {
-		input:     `{"address":"atx1anu0sluppm852z2qe8mqqe4557jsr448psd9as","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","blockNumber":"0x1ecfa4","logIndex":"0x2","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x00000000000000000000000080b2c9d7cbbf30a1b0fc8983c647d754c6525615","0x000000000000000000000000f9dff387dcb5cc4cca5b91adb07a95f54e9f1bb6"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3"}`,
+		input:     `{"address":"apt1anu0sluppm852z2qe8mqqe4557jsr448l8vyyh","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","blockNumber":"0x1ecfa4","logIndex":"0x2","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x00000000000000000000000080b2c9d7cbbf30a1b0fc8983c647d754c6525615","0x000000000000000000000000f9dff387dcb5cc4cca5b91adb07a95f54e9f1bb6"],"transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3"}`,
 		wantError: fmt.Errorf("missing required field 'data' for Log"),
 	},
 }

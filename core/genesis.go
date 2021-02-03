@@ -22,11 +22,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"io"
 	"math/big"
 	"os"
 	"strings"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -156,12 +157,10 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		if genesis == nil {
 			panic("Please specify network")
 		} else {
-			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
+			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressHRP", genesis.Config.AddressHRP)
 		}
-		if genesis.Config.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || genesis.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+		if err := common.SetAddressHRP(genesis.Config.AddressHRP); err != nil {
+			return nil, common.Hash{}, err
 		}
 
 		// check EconomicModel configuration
@@ -192,26 +191,20 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
-		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || newcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+
+		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
+			return newcfg, stored, err
 		}
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
-
-	if genesis == nil && stored != params.MainnetGenesisHash {
-		if storedcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || storedcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+	if genesis == nil {
+		if err := common.SetAddressHRP(storedcfg.AddressHRP); err != nil {
+			return newcfg, stored, err
 		}
 	} else {
-		if newcfg.ChainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || newcfg.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
-			common.SetAddressPrefix(common.MainNetAddressPrefix)
-		} else {
-			common.SetAddressPrefix(common.TestNetAddressPrefix)
+		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
+			return newcfg, stored, err
 		}
 	}
 
@@ -255,16 +248,16 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
-func (g *Genesis) UnmarshalChainID(r io.Reader) (*big.Int, error) {
-	var genesisChaind struct {
+func (g *Genesis) UnmarshalAddressHRP(r io.Reader) (string, error) {
+	var genesisAddressHRP struct {
 		Config *struct {
-			ChainID *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+			AddressHRP string `json:"addressHRP"`
 		} `json:"config"`
 	}
-	if err := json.NewDecoder(r).Decode(&genesisChaind); err != nil {
-		return nil, fmt.Errorf("invalid genesis file chain id: %v", err)
+	if err := json.NewDecoder(r).Decode(&genesisAddressHRP); err != nil {
+		return "", fmt.Errorf("invalid genesis file address prefix: %v", err)
 	}
-	return genesisChaind.Config.ChainID, nil
+	return genesisAddressHRP.Config.AddressHRP, nil
 }
 
 func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
@@ -286,14 +279,13 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
 	}
 	defer file.Close()
-	chainID, err := g.UnmarshalChainID(file)
+	hrp, err := g.UnmarshalAddressHRP(file)
 	if err != nil {
 		return err
 	}
-	if chainID != nil && (chainID.Cmp(params.MainnetChainConfig.ChainID) == 0 || chainID.Cmp(params.AlayaChainConfig.ChainID) == 0) {
-		common.SetAddressPrefix(common.MainNetAddressPrefix)
-	} else {
-		common.SetAddressPrefix(common.TestNetAddressPrefix)
+
+	if err := common.SetAddressHRP(hrp); err != nil {
+		return err
 	}
 
 	g.EconomicModel = xcom.GetEc(xcom.DefaultAlayaNet)
@@ -433,6 +425,14 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 				panic("Failed Store EcHash0140: " + err.Error())
 			}
 		}
+
+		if g.Config != nil && g.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) != 0 {
+			if g.Config.AddressHRP != "" {
+				statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, g.Config.AddressHRP)
+			} else {
+				statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, common.DefaultAddressHRP)
+			}
+		}
 	}
 
 	root := statedb.IntermediateRoot(false)
@@ -508,6 +508,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 	rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
+
 	return block, nil
 }
 

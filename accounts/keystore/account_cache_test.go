@@ -38,15 +38,15 @@ var (
 	cachetestDir, _   = filepath.Abs(filepath.Join("testdata", "keystore"))
 	cachetestAccounts = []accounts.Account{
 		{
-			Address: common.MustBech32ToAddress("atx10m66vy6lrlt2qfvnamwgd8rdg8vnfthc7wlna0"),
+			Address: common.MustBech32ToAddress("atp10m66vy6lrlt2qfvnamwgd8rdg8vnfthc5grew9"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(cachetestDir, "UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8")},
 		},
 		{
-			Address: common.MustBech32ToAddress("atx173ngt84dryedws7kyt9hflq93zpwsey2glyjdl"),
+			Address: common.MustBech32ToAddress("atp173ngt84dryedws7kyt9hflq93zpwsey2zecc74"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(cachetestDir, "aaa")},
 		},
 		{
-			Address: common.MustBech32ToAddress("atx19zw5shvhw9c5en536vun6ajwzvgeq7kvywfjhd"),
+			Address: common.MustBech32ToAddress("atp19zw5shvhw9c5en536vun6ajwzvgeq7kvwg4cy8"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(cachetestDir, "zzz")},
 		},
 	}
@@ -163,15 +163,15 @@ func TestCacheAddDeleteOrder(t *testing.T) {
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "SOMETHING.key"},
 		},
 		{
-			Address: common.MustBech32ToAddress("atx10m66vy6lrlt2qfvnamwgd8rdg8vnfthc7wlna0"),
+			Address: common.MustBech32ToAddress("atp10m66vy6lrlt2qfvnamwgd8rdg8vnfthc5grew9"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8"},
 		},
 		{
-			Address: common.MustBech32ToAddress("atx173ngt84dryedws7kyt9hflq93zpwsey2glyjdl"),
+			Address: common.MustBech32ToAddress("atp173ngt84dryedws7kyt9hflq93zpwsey2zecc74"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "aaa"},
 		},
 		{
-			Address: common.MustBech32ToAddress("atx19zw5shvhw9c5en536vun6ajwzvgeq7kvywfjhd"),
+			Address: common.MustBech32ToAddress("atp19zw5shvhw9c5en536vun6ajwzvgeq7kvwg4cy8"),
 			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: "zzz"},
 		},
 	}
@@ -253,7 +253,7 @@ func TestCacheFind(t *testing.T) {
 	}
 
 	nomatchAccount := accounts.Account{
-		Address: common.MustBech32ToAddress("atx173ngt84dryedws7kyt9hflq93zpwsey2glyjdl"),
+		Address: common.MustBech32ToAddress("atp173ngt84dryedws7kyt9hflq93zpwsey2zecc74"),
 		URL:     accounts.URL{Scheme: KeyStoreScheme, Path: filepath.Join(dir, "something")},
 	}
 	tests := []struct {

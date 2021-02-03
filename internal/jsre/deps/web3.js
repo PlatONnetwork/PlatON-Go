@@ -5584,6 +5584,11 @@ Object.defineProperty(Eth.prototype, 'defaultAccount', {
 });
 
 var methods = function () {
+    var getAddressHrp = new Method({
+        name: 'getAddressHrp',
+        call: 'platon_getAddressHrp',
+        params: 0,
+    });
 
     var getBalance = new Method({
         name: 'getBalance',
@@ -5709,6 +5714,7 @@ var methods = function () {
     });
 
     return [
+        getAddressHrp,
         getBalance,
         getStorageAt,
         getCode,
