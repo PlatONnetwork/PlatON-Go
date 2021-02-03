@@ -36,7 +36,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 
 	if bcr != nil {
 		// BeginBlocker()
-		if err := bcr.BeginBlocker(block.Header(), statedb); nil != err {
+		if err := bcr.BeginBlocker(header, statedb); nil != err {
 			log.Error("Failed to call BeginBlocker on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
@@ -78,7 +78,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 
 	if bcr != nil {
 		// EndBlocker()
-		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
+		if err := bcr.EndBlocker(header, statedb); nil != err {
 			log.Error("Failed to call EndBlocker on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
