@@ -272,7 +272,6 @@ var isOldPlatONResource = map[string]bool{
 	"nodes":              true,
 	"nodekey":            true,
 	"static-nodes.json":  false, // no warning for these because they have their
-	"allow-nodes.json":   false,
 	"trusted-nodes.json": false, // own separate warning.
 }
 
