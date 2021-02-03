@@ -52,4 +52,3 @@ func decodeFuncAndParams(input []byte) (uint64, []byte, error) {
 	}
 	return common.BytesToUint64(funcName), params, nil
 }
-

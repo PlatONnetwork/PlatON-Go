@@ -28,24 +28,33 @@ import (
 )
 
 type VMContext struct {
-	evm      *EVM
-	contract *Contract
-	config   Config
-	gasTable params.GasTable
-	db       StateDB
-	Input    []byte
-	CallOut  []byte
-	Output   []byte
+	evm            *EVM
+	contract       *Contract
+	config         Config
+	gasTable       params.GasTable
+	db             StateDB
+	Input          []byte
+	CallOut        []byte
+	Output         []byte
 	VariableResult []byte
-	readOnly bool // Whether to throw on stateful modifications
-	Revert   bool
-	Log      *WasmLogger
+	readOnly       bool // Whether to throw on stateful modifications
+	Revert         bool
+	Log            *WasmLogger
 }
 
 var (
 	ptrSize = uint32(4)
 )
 
+func NewVMContext(evm *EVM, contract *Contract, config Config, gasTable params.GasTable, db StateDB) *VMContext {
+	return &VMContext{
+		evm:      evm,
+		contract: contract,
+		config:   config,
+		gasTable: gasTable,
+		db:       db,
+	}
+}
 func addFuncExport(m *wasm.Module, sig wasm.FunctionSig, function wasm.Function, export wasm.ExportEntry) {
 	typesLen := len(m.Types.Entries)
 	m.Types.Entries = append(m.Types.Entries, sig)
@@ -850,6 +859,124 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
+	// int bn256_g1_add(byte x1[32], byte y1[32], byte x2[32], byte y2[32], byte x3[32], byte y3[32]);
+	// func $bn256_g1_add(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Bn256G1Add),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "bn256_g1_add",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int bn256_g1_mul(byte x1[32], byte y1[32], byte bigint[32], byte x2[32], byte y2[32]);
+	// func $bn256_g1_mul(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Bn256G1Mul),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "bn256_g1_mul",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int bn256_g2_add(byte x11[32], byte y11[32], byte x12[32], byte y12[32], byte x21[32], byte y21[32], byte x22[32], byte y22[32], byte x31[32], byte y31[32], byte x32[32], byte y32[32]);
+	// func $bn256_g2_add(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (param $8 i32) (param $9 i32) (param $10 i32) (param $11 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Bn256G2Add),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "bn256_g2_add",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int bn256_g2_mul(byte x11[32], byte y11[32], byte x12[32], byte y12[32], byte bigint[32] byte x21[32], byte y21[32], byte x22[32], byte y22[32]);
+	// func $bn256_g2_mul(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (param $8 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Bn256G2Mul),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "bn256_g2_mul",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int bn256_pairing(byte x1[32][], byte y1[32][], byte x21[32][], byte y21[32][], byte x22[32][], byte x22[32][], size_t len);
+	// func $bn256_pairing(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Bn256Pairing),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "bn256_pairing",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int bn256_map_g1(byte fe[], size_t len, byte x1[32], byte y1[32]);
+	// func $bn256_map_g1(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Bn256MapG1),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "bn256_map_g1",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
+
+	// int bn256_map_g2(byte fe[], size_t len, byte x11[32], byte y11[32], byte x12[32], byte y12[32]);
+	// func $bn256_map_g2(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
+	addFuncExport(m,
+		wasm.FunctionSig{
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+		},
+		wasm.Function{
+			Host: reflect.ValueOf(Bn256MapG2),
+			Body: &wasm.FunctionBody{},
+		},
+		wasm.ExportEntry{
+			FieldStr: "bn256_map_g2",
+			Kind:     wasm.ExternalFunction,
+		},
+	)
 	return m
 }
 
@@ -2359,7 +2486,7 @@ func PlatonClone(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLe
 func ConfidentialTxVerify(proc *exec.Process, txData uint32, txLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 
-	checkGas(ctx, params.ConfidentialTxVerifyBaseGas + uint64(txLen/256)*params.ConfidentialTxPerNoteGas)
+	checkGas(ctx, params.ConfidentialTxVerifyBaseGas+uint64(txLen/256)*params.ConfidentialTxPerNoteGas)
 
 	// read data
 	dataBuf := make([]byte, txLen)
@@ -2395,7 +2522,6 @@ func VariableLengthResult(proc *exec.Process, result uint32, resultLen uint32) i
 
 	return int32(len(ctx.VariableResult))
 }
-
 
 // int bn256_g1_add(byte x1[32], byte y1[32], byte x2[32], byte y2[32], byte x3[32], byte y3[32]);
 // func $bn256_g1_add(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (result i32)
@@ -2462,7 +2588,6 @@ func Bn256G1Mul(proc *exec.Process, x1, y1, bigint, x2, y2 uint32) int32 {
 	return 0
 }
 
-
 // int bn256_g2_add(byte x11[32], byte y11[32], byte x12[32], byte y12[32], byte x21[32], byte y21[32], byte x22[32], byte y22[32], byte x31[32], byte y31[32], byte x32[32], byte y32[32]);
 // func $bn256_g2_add(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (result i32)
 func Bn256G2Add(proc *exec.Process, x11, y11, x12, y12, x21, y21, x22, y22, x31, y31, x32, y32 uint32) int32 {
@@ -2488,7 +2613,6 @@ func Bn256G2Add(proc *exec.Process, x11, y11, x12, y12, x21, y21, x22, y22, x31,
 	mustReadAt(proc, y21Bytes[:], int64(y21))
 	mustReadAt(proc, x22Bytes[:], int64(x22))
 	mustReadAt(proc, y22Bytes[:], int64(y22))
-
 
 	var gx1, gx2 bn256.G2
 	if _, err := gx1.Unmarshal(append(x11Bytes[:], append(y11Bytes[:], append(x12Bytes[:], y12Bytes[:]...)...)...)); err != nil {
@@ -2531,7 +2655,6 @@ func Bn256G2Mul(proc *exec.Process, x11, y11, x12, y12, bigint, x21, y21, x22, y
 	mustReadAt(proc, y12Bytes[:], int64(y12))
 	mustReadAt(proc, bigintBytes[:], int64(bigint))
 
-
 	var gx1 bn256.G2
 	if _, err := gx1.Unmarshal(append(x11Bytes[:], append(y11Bytes[:], append(x12Bytes[:], y12Bytes[:]...)...)...)); err != nil {
 		return -1
@@ -2555,15 +2678,15 @@ func Bn256G2Mul(proc *exec.Process, x11, y11, x12, y12, bigint, x21, y21, x22, y
 // func $bn256_pairing(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
 func Bn256Pairing(proc *exec.Process, x1, y1, x21, y21, x22, y22, len uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
-	checkGas(ctx, params.Bn256PairingCheckBaseGas + params.Bn256PairingCheckPerPairGas * uint64(len))
+	checkGas(ctx, params.Bn256PairingCheckBaseGas+params.Bn256PairingCheckPerPairGas*uint64(len))
 
-	x1Array := make([]byte, len * ptrSize)
-	y1Array := make([]byte, len * ptrSize)
+	x1Array := make([]byte, len*ptrSize)
+	y1Array := make([]byte, len*ptrSize)
 
-	x21Array := make([]byte, len * ptrSize)
-	y21Array := make([]byte, len * ptrSize)
-	x22Array := make([]byte, len * ptrSize)
-	y22Array := make([]byte, len * ptrSize)
+	x21Array := make([]byte, len*ptrSize)
+	y21Array := make([]byte, len*ptrSize)
+	x22Array := make([]byte, len*ptrSize)
+	y22Array := make([]byte, len*ptrSize)
 
 	mustReadAt(proc, x1Array[:], int64(x1))
 	mustReadAt(proc, y1Array[:], int64(y1))
