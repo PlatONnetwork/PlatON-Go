@@ -18,10 +18,11 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
@@ -159,10 +160,12 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				if err := fixSharesPlugin.fix(blockHash, govPlugin.chainID, state); err != nil {
 					return err
 				}
-				log.Info("Successfully upgraded the new version 0.16.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
-			}
 
-			if versionProposal.NewVersion == params.FORKVERSION_0_16_0 {
+				fixPlugin := NewFixIssue1583Plugin()
+				if err := fixPlugin.fix(blockHash, govPlugin.chainID, state); err != nil {
+					return err
+				}
+
 				if err := gov.Write0160EcParams(govPlugin.chainDb, state); nil != err {
 					log.Error("save EcHash0160 to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 					return err
@@ -171,6 +174,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 					log.Error("save  version 0160 Param failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID, "err", err)
 					return err
 				}
+
 				log.Info("Successfully upgraded the new version 0.16.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 			}
 
