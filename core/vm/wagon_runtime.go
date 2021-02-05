@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bulletproof/tx"
 
@@ -995,15 +996,15 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// uint32_t bigint_exp_operators(const uint8_t *left, uint8_t left_negative, const uint8_t *right, uint8_t right_negative, const uint8_t *mod, uint8_t mod_negative, uint8_t *result, size_t arr_siz);
-	//	func $bigint_exp_operators(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result  i32)
+	// uint32_t bigint_exp_mod(const uint8_t *left, uint8_t left_negative, const uint8_t *right, uint8_t right_negative, const uint8_t *mod, uint8_t mod_negative, uint8_t *result, size_t arr_siz);
+	//	func $bigint_exp_mod(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result  i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
-			Host: reflect.ValueOf(BigintExpOperators),
+			Host: reflect.ValueOf(BigintExpMod),
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
@@ -2968,9 +2969,9 @@ func BigintBinaryOperators(proc *exec.Process, left uint32, leftNegative uint32,
 	return returnResult
 }
 
-// uint32_t bigint_exp_operators(const uint8_t *left, uint8_t left_negative, const uint8_t *right, uint8_t right_negative, const uint8_t *mod, uint8_t mod_negative, uint8_t *result, size_t arr_siz);
-//	func $bigint_exp_operators(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result  i32)
-func BigintExpOperators(proc *exec.Process, left uint32, leftNegative uint32, right uint32, rightNegative uint32, mod uint32, modNegative uint32,
+// uint32_t bigint_exp_mod(const uint8_t *left, uint8_t left_negative, const uint8_t *right, uint8_t right_negative, const uint8_t *mod, uint8_t mod_negative, uint8_t *result, size_t arr_siz);
+//	func $bigint_exp_mod(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result  i32)
+func BigintExpMod(proc *exec.Process, left uint32, leftNegative uint32, right uint32, rightNegative uint32, mod uint32, modNegative uint32,
 	result uint32, arrSize uint32) uint32 {
 	// read left data
 	dataBuf := make([]byte, arrSize)
