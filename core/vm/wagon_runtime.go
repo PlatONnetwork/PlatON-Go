@@ -1008,7 +1008,7 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "bigint_exp_operators",
+			FieldStr: "bigint_exp_mod",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
