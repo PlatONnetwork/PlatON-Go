@@ -3,9 +3,6 @@ package vm
 import (
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
-	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bulletproof/tx"
 
@@ -915,7 +912,7 @@ func NewHostModule() *wasm.Module {
 	// func $bn256_g2_mul(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (param $8 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
-			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
@@ -928,7 +925,7 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// int bn256_pairing(byte x1[32][], byte y1[32][], byte x21[32][], byte y21[32][], byte x22[32][], byte x22[32][], size_t len);
+	// int bn256_pairing(uint8_t* x1[], uint8_t* y1[], uint8_t* x21[], uint8_t* y21[], uint8_t* x22[], uint8_t* y22[], size_t len);
 	// func $bn256_pairing(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -2632,8 +2629,6 @@ func Bn256G1Add(proc *exec.Process, x1, y1, x2, y2, x3, y3 uint32) int32 {
 	if _, err := gx2.Unmarshal(append(x2Bytes[:], y2Bytes[:]...)); err != nil {
 		return -1
 	}
-	//fmt.Println(hex.EncodeToString(append(x1Bytes[:], y1Bytes[:]...)))
-	//fmt.Println(hex.EncodeToString(append(x2Bytes[:], y2Bytes[:]...)))
 
 	gx3 := new(bn256.G1)
 
@@ -2707,8 +2702,6 @@ func Bn256G2Add(proc *exec.Process, x11, y11, x12, y12, x21, y21, x22, y22, x31,
 	if _, err := gx2.Unmarshal(append(x21Bytes[:], append(y21Bytes[:], append(x22Bytes[:], y22Bytes[:]...)...)...)); err != nil {
 		return -1
 	}
-	fmt.Println(hex.EncodeToString(append(x11Bytes[:], append(y11Bytes[:], append(x12Bytes[:], y12Bytes[:]...)...)...)))
-	fmt.Println(hex.EncodeToString(append(x21Bytes[:], append(y21Bytes[:], append(x22Bytes[:], y22Bytes[:]...)...)...)))
 
 	gx3 := new(bn256.G2)
 
@@ -2745,7 +2738,6 @@ func Bn256G2Mul(proc *exec.Process, x11, y11, x12, y12, bigint, x21, y21, x22, y
 	if _, err := gx1.Unmarshal(append(x11Bytes[:], append(y11Bytes[:], append(x12Bytes[:], y12Bytes[:]...)...)...)); err != nil {
 		return -1
 	}
-	fmt.Println(hex.EncodeToString(append(x11Bytes[:], append(y11Bytes[:], append(x12Bytes[:], y12Bytes[:]...)...)...)))
 
 	gx3 := new(bn256.G2)
 
@@ -2760,7 +2752,7 @@ func Bn256G2Mul(proc *exec.Process, x11, y11, x12, y12, bigint, x21, y21, x22, y
 	return 0
 }
 
-// int bn256_pairing(byte x1[32][], byte y1[32][], byte x21[32][], byte y21[32][], byte x22[32][], byte x22[32][], size_t len);
+// int bn256_pairing(uint8_t* x1[], uint8_t* y1[], uint8_t* x21[], uint8_t* y21[], uint8_t* x22[], uint8_t* y22[], size_t len);
 // func $bn256_pairing(param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
 func Bn256Pairing(proc *exec.Process, x1, y1, x21, y21, x22, y22, len uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
