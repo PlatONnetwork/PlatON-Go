@@ -84,7 +84,7 @@ func (s *snapshotDB) recover() error {
 	sort.Sort(sortBlockWals)
 	if len(sortBlockWals) > 0 {
 		if sortBlockWals[0].Number > baseNum.Uint64()+1 {
-			return fmt.Errorf("wal is not enough,want recover  from %v,have %v", baseNum.Uint64()+1, s.committed[0].Number.Uint64())
+			return fmt.Errorf("wal is not enough,want recover  from %v,have %v", baseNum.Uint64()+1, sortBlockWals[0].Number)
 		}
 		var journalBrokenNum uint64
 

@@ -394,6 +394,30 @@ func init0140VersionParam() []*GovernParam {
 	}
 }
 
+func init0160VersionParams() []*GovernParam {
+	return []*GovernParam{
+		{
+			ParamItem: &ParamItem{ModuleStaking, KeyUnDelegateFreezeDuration,
+				fmt.Sprintf("quantity of epoch for delegate withdrawal, range: (0, %d]", xcom.CeilUnStakeFreezeDuration)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.UnDelegateFreezeDuration())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				num, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("Parsed unDelegateFreezeDuration is failed: %v", err)
+				}
+
+				if err := xcom.CheckUnDelegateFreezeDuration(num); nil != err {
+					return err
+				}
+
+				return nil
+
+			},
+		},
+	}
+}
+
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
 func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, genesisVersion uint32) (common.Hash, error) {
@@ -403,6 +427,10 @@ func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, gene
 
 	if genesisVersion >= params.FORKVERSION_0_14_0 {
 		initParamList = append(initParamList, init0140VersionParam()...)
+	}
+
+	if genesisVersion >= params.FORKVERSION_0_16_0 {
+		initParamList = append(initParamList, init0160VersionParams()...)
 	}
 
 	putBasedb_genKVHash_Fn := func(key, val []byte, hash common.Hash) (common.Hash, error) {
@@ -443,6 +471,11 @@ func RegisterGovernParamVerifiers() {
 	}
 	if uint32(params.VersionMajor<<16|params.VersionMinor<<8|params.VersionPatch) >= params.FORKVERSION_0_14_0 {
 		for _, param := range init0140VersionParam() {
+			RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
+		}
+	}
+	if params.CodeVersion() >= params.FORKVERSION_0_16_0 {
+		for _, param := range init0160VersionParams() {
 			RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
 		}
 	}

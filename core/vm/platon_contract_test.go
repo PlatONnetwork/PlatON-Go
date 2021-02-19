@@ -465,9 +465,9 @@ func build_staking_data(genesisHash common.Hash) {
 	stakingDB.SetCanPowerStore(blockHash, addr_B, c2)
 	stakingDB.SetCanPowerStore(blockHash, addr_C, c3)
 
-	stakingDB.SetCandidateStore(blockHash, addr_A, c1)
-	stakingDB.SetCandidateStore(blockHash, addr_B, c2)
-	stakingDB.SetCandidateStore(blockHash, addr_C, c3)
+	stakingDB.SetCandidateStore(blockHash, addr_A, c1, false)
+	stakingDB.SetCandidateStore(blockHash, addr_B, c2, false)
+	stakingDB.SetCandidateStore(blockHash, addr_C, c3, false)
 
 	queue := make(staking.ValidatorQueue, 0)
 
@@ -671,9 +671,9 @@ func build_staking_data_new(chain *mock.Chain) {
 	stakingDB.SetCanPowerStore(chain.CurrentHeader().Hash(), addr_B, c2)
 	stakingDB.SetCanPowerStore(chain.CurrentHeader().Hash(), addr_C, c3)
 
-	stakingDB.SetCandidateStore(chain.CurrentHeader().Hash(), addr_A, c1)
-	stakingDB.SetCandidateStore(chain.CurrentHeader().Hash(), addr_B, c2)
-	stakingDB.SetCandidateStore(chain.CurrentHeader().Hash(), addr_C, c3)
+	stakingDB.SetCandidateStore(chain.CurrentHeader().Hash(), addr_A, c1, false)
+	stakingDB.SetCandidateStore(chain.CurrentHeader().Hash(), addr_B, c2, false)
+	stakingDB.SetCandidateStore(chain.CurrentHeader().Hash(), addr_C, c3, false)
 
 	queue := make(staking.ValidatorQueue, 0)
 
@@ -848,7 +848,7 @@ func build_staking_data_more(chain *mock.Chain) {
 		if err != nil {
 			fmt.Println("stakingDB.SetCanPowerStore error:", err)
 		}
-		err = stakingDB.SetCandidateStore(chain.CurrentHeader().Hash(), canAddr, canTmp)
+		err = stakingDB.SetCandidateStore(chain.CurrentHeader().Hash(), canAddr, canTmp, false)
 		if err != nil {
 			fmt.Println("stakingDB.SetCandidateStore error:", err)
 		}

@@ -51,3 +51,12 @@ func TestEcParams0140(t *testing.T) {
 		assert.True(t, bytes != nil)
 	}
 }
+
+func TestEcParams0160(t *testing.T) {
+	GetEc(DefaultAlayaNet)
+	if bytes, err := EcParams0160(); nil != err {
+		t.Fatal(err)
+	} else {
+		assert.True(t, bytes != nil)
+	}
+}

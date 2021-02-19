@@ -128,10 +128,10 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 		if err := stkDB.SetCanBaseStore(hash, queue[0].NodeAddress, can.CandidateBase); err != nil {
 			return err
 		}
-		if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+		if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable, false); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate, false); err != nil {
 			return err
 		}
 		return nil
@@ -148,7 +148,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 			if xutil.IsBeginOfEpoch(header.Number.Uint64()) {
 				can.CandidateMutable.CleanCurrentEpochDelegateReward()
-				if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+				if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable, false); err != nil {
 					return err
 				}
 			}
@@ -314,31 +314,31 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 		if err := stkDB.SetCanBaseStore(hash, queue[0].NodeAddress, can.CandidateBase); err != nil {
 			return err
 		}
-		if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+		if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable, false); err != nil {
 			return err
 		}
 
 		if err := stkDB.SetCanBaseStore(hash, queue[1].NodeAddress, can2.CandidateBase); err != nil {
 			return err
 		}
-		if err := stkDB.SetCanMutableStore(hash, queue[1].NodeAddress, can2.CandidateMutable); err != nil {
+		if err := stkDB.SetCanMutableStore(hash, queue[1].NodeAddress, can2.CandidateMutable, false); err != nil {
 			return err
 		}
 
 		if err := stkDB.SetCanBaseStore(hash, queue[2].NodeAddress, can3.CandidateBase); err != nil {
 			return err
 		}
-		if err := stkDB.SetCanMutableStore(hash, queue[2].NodeAddress, can3.CandidateMutable); err != nil {
+		if err := stkDB.SetCanMutableStore(hash, queue[2].NodeAddress, can3.CandidateMutable, false); err != nil {
 			return err
 		}
 
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate, false); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can2.CandidateBase.NodeId, can2.CandidateBase.StakingBlockNum, &delegate2); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can2.CandidateBase.NodeId, can2.CandidateBase.StakingBlockNum, &delegate2, false); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can3.CandidateBase.NodeId, can3.CandidateBase.StakingBlockNum, &delegate3); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can3.CandidateBase.NodeId, can3.CandidateBase.StakingBlockNum, &delegate3, false); err != nil {
 			return err
 		}
 		return nil
@@ -360,13 +360,13 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 		if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 			if xutil.IsBeginOfEpoch(header.Number.Uint64()) {
 				can.CandidateMutable.CleanCurrentEpochDelegateReward()
-				if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
+				if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable, false); err != nil {
 					return err
 				}
-				if err := stkDB.SetCanMutableStore(hash, queue[1].NodeAddress, can2.CandidateMutable); err != nil {
+				if err := stkDB.SetCanMutableStore(hash, queue[1].NodeAddress, can2.CandidateMutable, false); err != nil {
 					return err
 				}
-				if err := stkDB.SetCanMutableStore(hash, queue[2].NodeAddress, can3.CandidateMutable); err != nil {
+				if err := stkDB.SetCanMutableStore(hash, queue[2].NodeAddress, can3.CandidateMutable, false); err != nil {
 					return err
 				}
 			}

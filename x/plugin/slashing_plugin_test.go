@@ -204,9 +204,9 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 	stakingDB.SetCanPowerStore(blockHash, addrB, c2)
 	stakingDB.SetCanPowerStore(blockHash, addrC, c3)
 
-	stakingDB.SetCandidateStore(blockHash, addrA, c1)
-	stakingDB.SetCandidateStore(blockHash, addrB, c2)
-	stakingDB.SetCandidateStore(blockHash, addrC, c3)
+	stakingDB.SetCandidateStore(blockHash, addrA, c1, false)
+	stakingDB.SetCandidateStore(blockHash, addrB, c2, false)
+	stakingDB.SetCandidateStore(blockHash, addrC, c3, false)
 
 	log.Info("addr_A", hex.EncodeToString(addrA.Bytes()), "addr_B", hex.EncodeToString(addrB.Bytes()), "addr_C", hex.EncodeToString(addrC.Bytes()))
 

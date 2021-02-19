@@ -317,13 +317,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.MinerGasFloor, gasCeil)
 	}
 
-	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, &vmConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
+	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
 		config.MinerGasFloor, eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
 
 	//extra data for each block will be set by worker.go
 	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
-	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.chainConfig.ChainID)
+	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.chainConfig.ChainID, chainDb)
 	node.GetCryptoHandler().SetPrivateKey(ctx.NodePriKey())
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
@@ -648,6 +648,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
+	xplugin.GovPluginInstance().SetChainDB(reactor.GetChainDB())
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 
 	// set rule order

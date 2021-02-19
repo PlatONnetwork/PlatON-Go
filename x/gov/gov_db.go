@@ -283,6 +283,30 @@ func Set0140Param(hash common.Hash, curVersion uint32, db snapshotdb.DB) error {
 	return nil
 }
 
+func Set0160GovParams(hash common.Hash, db snapshotdb.DB) error {
+	list, err := db.Get(hash, KeyParamItems())
+	if err != nil {
+		return err
+	}
+	var paramItemList []*ParamItem
+	if err := rlp.DecodeBytes(list, &paramItemList); err != nil {
+		return err
+	}
+	for _, param := range init0160VersionParams() {
+		paramItemList = append(paramItemList, param.ParamItem)
+		value := common.MustRlpEncode(param.ParamValue)
+		if err := db.Put(hash, KeyParamValue(param.ParamItem.Module, param.ParamItem.Name), value); err != nil {
+			return fmt.Errorf("failed to Store govern 0160 parameter. error:%s", err.Error())
+		}
+		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
+	}
+	value := common.MustRlpEncode(paramItemList)
+	if err := db.Put(hash, KeyParamItems(), value); err != nil {
+		return fmt.Errorf("failed to Store govern 0160 parameter list. error:%s", err.Error())
+	}
+	return nil
+}
+
 // Get voting proposal
 func ListVotingProposal(blockHash common.Hash) ([]common.Hash, error) {
 	value, err := getVotingIDList(blockHash)

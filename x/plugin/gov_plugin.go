@@ -22,6 +22,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -42,6 +44,7 @@ var (
 
 type GovPlugin struct {
 	chainID *big.Int
+	chainDb ethdb.Database // Block chain database
 }
 
 var govp *GovPlugin
@@ -57,6 +60,11 @@ func GovPluginInstance() *GovPlugin {
 func (govPlugin *GovPlugin) SetChainID(chainId *big.Int) {
 	govPlugin.chainID = chainId
 }
+
+func (govPlugin *GovPlugin) SetChainDB(chainDB ethdb.Database) {
+	govPlugin.chainDb = chainDB
+}
+
 func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
@@ -146,6 +154,28 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 					return err
 				}
 				log.Info("Successfully upgraded the new version 0.15.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+			}
+			if versionProposal.NewVersion == params.FORKVERSION_0_16_0 {
+				fixSharesPlugin := NewFixIssue1654Plugin(snapshotdb.Instance())
+				if err := fixSharesPlugin.fix(blockHash, govPlugin.chainID, state); err != nil {
+					return err
+				}
+
+				fixPlugin := NewFixIssue1583Plugin()
+				if err := fixPlugin.fix(blockHash, govPlugin.chainID, state); err != nil {
+					return err
+				}
+
+				if err := gov.Write0160EcParams(govPlugin.chainDb, state); nil != err {
+					log.Error("save EcHash0160 to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+					return err
+				}
+				if err = gov.Set0160GovParams(blockHash, snapshotdb.Instance()); err != nil {
+					log.Error("save  version 0160 Param failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID, "err", err)
+					return err
+				}
+
+				log.Info("Successfully upgraded the new version 0.16.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 			}
 
 			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
