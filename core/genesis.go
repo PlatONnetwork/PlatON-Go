@@ -427,17 +427,19 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		}
 
 		// 0.16.0
-	if gov.Gte0160Version(genesisVersion) {
-		if err := gov.WriteEcHash0160(statedb); nil != err {
+		if gov.Gte0160Version(genesisVersion) {
+			if err := gov.WriteEcHash0160(statedb); nil != err {
 				panic("Failed Store EcHash0160: " + err.Error())
 			}
-	}
+		}
     
-	if g.Config != nil && g.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) != 0 {
-		if g.Config.AddressHRP != "" {
+		if g.Config != nil && g.Config.ChainID.Cmp(params.AlayaChainConfig.ChainID) != 0 {
+			if g.Config.AddressHRP != "" {
 				statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, g.Config.AddressHRP)
 			} else {
 				statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, common.DefaultAddressHRP)
+			}
+		}
 	}
 
 	root := statedb.IntermediateRoot(false)
