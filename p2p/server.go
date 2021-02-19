@@ -507,13 +507,6 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 // Determine whether the node is in the whitelist.
 func (srv *Server) IsAllowNode(nodeID discover.NodeID) bool {
 	if srv.ChainID.Cmp(params.AlayaChainConfig.ChainID) == 0 {
-		//if len(AllowNodesMap) == 0 {
-		//	nodesString := params.AllowNodes
-		//	for _, node := range nodesString {
-		//		tmp := discover.MustHexID(node)
-		//		AllowNodesMap[tmp] = struct{}{}
-		//	}
-		//}
 		_, ok := AllowNodesMap[nodeID]
 		return ok
 	}

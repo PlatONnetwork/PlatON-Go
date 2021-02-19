@@ -248,7 +248,7 @@ func loadKeyStoreTestV1(file string, t *testing.T) map[string]KeyStoreTestV1 {
 func TestKeyForDirectICAP(t *testing.T) {
 	t.Parallel()
 	key := NewKeyForDirectICAP(rand.Reader)
-	if !strings.HasPrefix(key.Address.String(), common.GetAddressPrefix()) {
+	if !strings.HasPrefix(key.Address.String(), common.GetAddressHRP()) {
 		t.Errorf("Expected first address byte to be zero, have: %s", key.Address.String())
 	}
 }
