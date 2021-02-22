@@ -298,7 +298,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TheNumberOfDelegationsReward: 20,
 			},
 			Restricting: restrictingConfig{
-				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(1)),
+				MinimumRelease: new(big.Int).Set(FloorMinimumRelease),
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x01C71CecaeFF76b78325577E6a74A94D24A86BE2"),
@@ -353,7 +353,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TheNumberOfDelegationsReward: 2,
 			},
 			Restricting: restrictingConfig{
-				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(1)),
+				MinimumRelease: new(big.Int).Set(FloorMinimumRelease),
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671Ada506ba6Ca7891F436D29185821"),
