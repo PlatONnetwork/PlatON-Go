@@ -52,7 +52,7 @@ const (
 	CeilUnStakeFreezeDuration = 168 * 2
 	CeilMaxEvidenceAge        = CeilUnStakeFreezeDuration - 1
 	// The maximum time range for the cumulative number of zero blocks (No more than 64)
-	maxZeroProduceCumulativeTime uint16 = 40
+	maxZeroProduceCumulativeTime uint16 = 50
 
 	RewardPerMaxChangeRangeUpperLimit = 2000
 	RewardPerMaxChangeRangeLowerLimit = 1
