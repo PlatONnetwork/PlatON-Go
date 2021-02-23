@@ -45,12 +45,14 @@ const (
 	Hundred                   = 100
 	TenThousand               = 10000
 	CeilBlocksReward          = 50000
-	CeilMaxValidators         = 201
+	CeilMaxValidators         = 501
 	FloorMaxConsensusVals     = 4
-	CeilMaxConsensusVals      = 25
+	CeilMaxConsensusVals      = 43
 	PositiveInfinity          = "+∞"
-	CeilUnStakeFreezeDuration = 28 * 4
+	CeilUnStakeFreezeDuration = 168 * 2
 	CeilMaxEvidenceAge        = CeilUnStakeFreezeDuration - 1
+	// The maximum time range for the cumulative number of zero blocks (No more than 64)
+	maxZeroProduceCumulativeTime uint16 = 50
 
 	RewardPerMaxChangeRangeUpperLimit = 2000
 	RewardPerMaxChangeRangeLowerLimit = 1
@@ -58,29 +60,33 @@ const (
 	RewardPerChangeIntervalLowerLimit = 2
 	IncreaseIssuanceRatioUpperLimit   = 2000
 	IncreaseIssuanceRatioLowerLimit   = 0
+
+	// When electing consensus nodes, it is used to calculate the P value of the binomial distribution
+	ElectionBaseL1 = 6000
+	ElectionBaseL2 = 10000
+	ElectionBaseL3 = 60000
 )
 
 var (
+	one, _ = new(big.Int).SetString("1000000000000000000", 10)
 
-	// 10 LAT
-	TenLAT, _ = new(big.Int).SetString("10000000000000000000", 10)
+	// 10 ATP
+	DelegateLowerLimit, _ = new(big.Int).SetString("10000000000000000000", 10)
 
-	// 10000 LAT
-	TenThousandLAT, _ = new(big.Int).SetString("10000000000000000000000", 10)
+	// 1W ATP
+	DelegateUpperLimit, _ = new(big.Int).SetString("10000000000000000000000", 10)
 
 	// hard code genesis staking balance
-	// 150W LAT
-	GeneStakingAmount, _ = new(big.Int).SetString("1500000000000000000000000", 10)
+	// 15W LAT
+	GeneStakingAmount, _ = new(big.Int).SetString("150000000000000000000000", 10)
 
-	// 100W LAT
-	MillionLAT, _ = new(big.Int).SetString("1000000000000000000000000", 10)
-	// 1000W LAT
-	TenMillionLAT, _ = new(big.Int).SetString("10000000000000000000000000", 10)
+	// 10W
+	StakeLowerLimit, _ = new(big.Int).SetString("100000000000000000000000", 10)
+	// 1000W ATP
+	StakeUpperLimit, _ = new(big.Int).SetString("10000000000000000000000000", 10)
 
-	BillionLAT, _ = new(big.Int).SetString("1000000000000000000000000000", 10)
-
-	// The maximum time range for the cumulative number of zero blocks
-	maxZeroProduceCumulativeTime uint16 = 64
+	FloorMinimumRelease = new(big.Int).Mul(new(big.Int).SetUint64(100), one)
+	CeilMinimumRelease  = new(big.Int).Mul(new(big.Int).SetUint64(10000000), one)
 )
 
 type commonConfig struct {
@@ -124,9 +130,14 @@ type governanceConfig struct {
 }
 
 type rewardConfig struct {
-	NewBlockRate          uint64 `json:"newBlockRate"`          // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
-	PlatONFoundationYear  uint32 `json:"platonFoundationYear"`  // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
-	IncreaseIssuanceRatio uint16 `json:"increaseIssuanceRatio"` // According to the total amount issued in the previous year, increase the proportion of issuance
+	NewBlockRate                 uint64 `json:"newBlockRate"`                 // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
+	PlatONFoundationYear         uint32 `json:"platonFoundationYear"`         // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
+	IncreaseIssuanceRatio        uint16 `json:"increaseIssuanceRatio"`        // According to the total amount issued in the previous year, increase the proportion of issuance
+	TheNumberOfDelegationsReward uint16 `json:"TheNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
+}
+
+type restrictingConfig struct {
+	MinimumRelease *big.Int `json:"minimumRelease"` //The minimum number of Restricting release in one epoch
 }
 
 type innerAccount struct {
@@ -140,12 +151,13 @@ type innerAccount struct {
 
 // total
 type EconomicModel struct {
-	Common   commonConfig     `json:"common"`
-	Staking  stakingConfig    `json:"staking"`
-	Slashing slashingConfig   `json:"slashing"`
-	Gov      governanceConfig `json:"gov"`
-	Reward   rewardConfig     `json:"reward"`
-	InnerAcc innerAccount     `json:"innerAcc"`
+	Common      commonConfig      `json:"common"`
+	Staking     stakingConfig     `json:"staking"`
+	Slashing    slashingConfig    `json:"slashing"`
+	Gov         governanceConfig  `json:"gov"`
+	Reward      rewardConfig      `json:"reward"`
+	Restricting restrictingConfig `json:"restricting"`
+	InnerAcc    innerAccount      `json:"innerAcc"`
 }
 
 var (
@@ -182,6 +194,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		return nil
 	}
 
+	one, _ := new(big.Int).SetString("1000000000000000000", 10)
+
 	switch netId {
 	case DefaultMainNet:
 		ec = &EconomicModel{
@@ -189,14 +203,14 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MaxEpochMinutes:     uint64(360), // 6 hours
 				NodeBlockTimeWindow: uint64(20),  // 20 seconds
 				PerRoundBlocks:      uint64(10),
-				MaxConsensusVals:    uint64(25),
+				MaxConsensusVals:    uint64(43),
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionLAT),
-				OperatingThreshold:      new(big.Int).Set(TenLAT),
-				MaxValidators:           uint64(101),
-				UnStakeFreezeDuration:   uint64(28), // freezing 28 epoch
+				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
+				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
+				MaxValidators:           uint64(201),
+				UnStakeFreezeDuration:   uint64(168), // freezing 168 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
@@ -205,9 +219,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(27),
 				SlashBlocksReward:          uint32(250),
-				ZeroProduceCumulativeTime:  uint16(30),
+				ZeroProduceCumulativeTime:  uint16(20),
 				ZeroProduceNumberThreshold: uint16(1),
-				ZeroProduceFreezeDuration:  uint64(20),
+				ZeroProduceFreezeDuration:  uint64(56),
 			},
 			Gov: governanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
@@ -223,14 +237,18 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				NewBlockRate:                 50,
+				PlatONFoundationYear:         10,
+				IncreaseIssuanceRatio:        250,
+				TheNumberOfDelegationsReward: 20,
+			},
+			Restricting: restrictingConfig{
+				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(100)),
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("lat10spacq8cz76y2n60pl7sg5yazncmjuusdrs9z0"),
+				PlatONFundAccount: common.HexToAddress("0x7c03dc00f817B4454F4F0FFD04509d14F1b97390"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("lat17tfkaghs4vded6mz6k53xyv5cvqsl63h8c2v5t"),
+				CDFAccount:        common.HexToAddress("0xf2D36ea2f0Ab1B96Eb62d5a9131194c3010FeA37"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -244,8 +262,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionLAT),
-				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
+				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
 				UnStakeFreezeDuration:   uint64(2), // freezing 2 epoch
 				RewardPerMaxChangeRange: uint16(500),
@@ -274,14 +292,18 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				NewBlockRate:                 50,
+				PlatONFoundationYear:         10,
+				IncreaseIssuanceRatio:        250,
+				TheNumberOfDelegationsReward: 20,
+			},
+			Restricting: restrictingConfig{
+				MinimumRelease: new(big.Int).Set(FloorMinimumRelease),
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("lax1q8r3em9wlamt0qe92alx5a9ff5j2s6lzrnmdyz"),
+				PlatONFundAccount: common.HexToAddress("0x01C71CecaeFF76b78325577E6a74A94D24A86BE2"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("lax1qtxa5d3defggwzdx2877z5fmytfu9f893lyygz"),
+				CDFAccount:        common.HexToAddress("0x02CddA362DCA508709a651fDe1513b22D3C2a4e5"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -295,8 +317,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:          new(big.Int).Set(MillionLAT),
-				OperatingThreshold:      new(big.Int).Set(TenLAT),
+				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
+				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(25),
 				UnStakeFreezeDuration:   uint64(2),
 				RewardPerMaxChangeRange: uint16(500),
@@ -325,14 +347,18 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalSupportRate:         6670,
 			},
 			Reward: rewardConfig{
-				NewBlockRate:          50,
-				PlatONFoundationYear:  10,
-				IncreaseIssuanceRatio: 250,
+				NewBlockRate:                 50,
+				PlatONFoundationYear:         10,
+				IncreaseIssuanceRatio:        250,
+				TheNumberOfDelegationsReward: 2,
+			},
+			Restricting: restrictingConfig{
+				MinimumRelease: new(big.Int).Set(FloorMinimumRelease),
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.MustBech32ToAddress("lax1fyeszufxwxk62p46djncj86rd553skpptsj8v6"),
+				PlatONFundAccount: common.HexToAddress("0x493301712671Ada506ba6Ca7891F436D29185821"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.MustBech32ToAddress("lax1c8enpvs5v6974shxgxxav5dsn36e5jl4v29pec"),
+				CDFAccount:        common.HexToAddress("0xC1f330B214668beAc2E6418Dd651B09C759a4Bf5"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -346,15 +372,15 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 
 func CheckStakeThreshold(threshold *big.Int) error {
 
-	if threshold.Cmp(MillionLAT) < 0 || threshold.Cmp(TenMillionLAT) > 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] LAT", MillionLAT, TenMillionLAT))
+	if threshold.Cmp(StakeLowerLimit) < 0 || threshold.Cmp(StakeUpperLimit) > 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] LAT", StakeLowerLimit, StakeUpperLimit))
 	}
 	return nil
 }
 
 func CheckOperatingThreshold(threshold *big.Int) error {
-	if threshold.Cmp(TenLAT) < 0 || threshold.Cmp(TenThousandLAT) > 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d] LAT", TenLAT, TenThousandLAT))
+	if threshold.Cmp(DelegateLowerLimit) < 0 || threshold.Cmp(DelegateUpperLimit) > 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d] LAT ", DelegateLowerLimit, DelegateUpperLimit))
 	}
 	return nil
 }
@@ -406,7 +432,7 @@ func CheckSlashBlocksReward(rewards int) error {
 }
 
 func CheckZeroProduceCumulativeTime(zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) error {
-	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > uint16(EpochSize()) {
+	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > maxZeroProduceCumulativeTime {
 		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d]", zeroProduceNumberThreshold, uint16(EpochSize())))
 	}
 	return nil
@@ -443,6 +469,13 @@ func CheckIncreaseIssuanceRatio(increaseIssuanceRatio uint16) error {
 func CheckZeroProduceFreezeDuration(zeroProduceFreezeDuration uint64, unStakeFreezeDuration uint64) error {
 	if zeroProduceFreezeDuration < 1 || zeroProduceFreezeDuration >= unStakeFreezeDuration {
 		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceFreezeDuration must be [%d, %d]", 1, unStakeFreezeDuration-1))
+	}
+	return nil
+}
+
+func CheckMinimumRelease(minimumRelease *big.Int) error {
+	if minimumRelease.Cmp(FloorMinimumRelease) < 0 || minimumRelease.Cmp(CeilMinimumRelease) > 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The MinimumRelease must be [%d, %d]", FloorMinimumRelease, CeilMinimumRelease))
 	}
 	return nil
 }
@@ -527,10 +560,6 @@ func CheckEconomicModel() error {
 		return err
 	}
 
-	if uint16(EpochSize()) > maxZeroProduceCumulativeTime {
-		return fmt.Errorf("the number of consensus rounds in a settlement cycle cannot be greater than maxZeroProduceCumulativeTime(%d)", maxZeroProduceCumulativeTime)
-	}
-
 	if err := CheckZeroProduceNumberThreshold(ec.Slashing.ZeroProduceCumulativeTime, ec.Slashing.ZeroProduceNumberThreshold); nil != err {
 		return err
 	}
@@ -552,6 +581,10 @@ func CheckEconomicModel() error {
 	}
 
 	if err := CheckZeroProduceFreezeDuration(ec.Slashing.ZeroProduceFreezeDuration, ec.Staking.UnStakeFreezeDuration); nil != err {
+		return err
+	}
+
+	if err := CheckMinimumRelease(ec.Restricting.MinimumRelease); nil != err {
 		return err
 	}
 
@@ -645,6 +678,14 @@ func RewardPerChangeInterval() uint16 {
 }
 
 /******
+ * Restricting config
+ ******/
+
+func RestrictingMinimumRelease() *big.Int {
+	return ec.Restricting.MinimumRelease
+}
+
+/******
  * Slashing config
  ******/
 func SlashFractionDuplicateSign() uint32 {
@@ -688,6 +729,10 @@ func PlatONFoundationYear() uint32 {
 
 func IncreaseIssuanceRatio() uint16 {
 	return ec.Reward.IncreaseIssuanceRatio
+}
+
+func TheNumberOfDelegationsReward() uint16 {
+	return ec.Reward.TheNumberOfDelegationsReward
 }
 
 /******
@@ -768,5 +813,17 @@ func EconomicString() string {
 		return string(ecByte)
 	} else {
 		return ""
+	}
+}
+
+// Calculate the P value of the binomial distribution
+// Parameter: The total weight of the election
+func CalcP(totalWeight float64, sqrtWeight float64) float64 {
+	if totalWeight < float64(1000000000) {
+		return float64(ElectionBaseL1) / sqrtWeight
+	} else if totalWeight < float64(10000000000) {
+		return float64(ElectionBaseL2) / sqrtWeight
+	} else {
+		return float64(ElectionBaseL3) / sqrtWeight
 	}
 }

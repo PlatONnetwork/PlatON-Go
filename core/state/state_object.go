@@ -291,13 +291,15 @@ func (self *stateObject) setState(key []byte, value []byte) {
 	self.dirtyStorage[string(key)] = cpy
 }
 
-func (self *stateObject) getPrefixValue(key, value []byte) []byte {
+func (self *stateObject) getPrefixValue(pack, key, value []byte) []byte {
 	// Empty value deleted on updateTrie
 	if len(value) == 0 {
 		return []byte{}
 	}
 	// Ensure the same Value, unique in the same trie and different trie values
-	prefix := append(self.data.StorageKeyPrefix, key...)
+	//prefix := append(self.data.StorageKeyPrefix, key...)
+	prefix := append(self.data.StorageKeyPrefix, pack...)
+	prefix = append(prefix, key...)
 	prefixHash := common.Hash{}
 	keccak := sha3.NewKeccak256()
 	keccak.Write(prefix)

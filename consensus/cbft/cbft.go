@@ -909,7 +909,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 	err = cbft.blockCacheWriter.Execute(block, parent)
 	if err != nil {
-		cbft.log.Error("Execting block fail", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash(), "err", err)
+		cbft.log.Error("Executing block failed", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash(), "err", err)
 		return errors.New("failed to executed block")
 	}
 
@@ -1584,9 +1584,14 @@ func (cbft *Cbft) Pause() {
 	cbft.log.Info("Pause cbft consensus")
 	utils.SetTrue(&cbft.syncing)
 }
+
 func (cbft *Cbft) Resume() {
 	cbft.log.Info("Resume cbft consensus")
 	utils.SetFalse(&cbft.syncing)
+}
+
+func (cbft *Cbft) Syncing() bool {
+	return utils.True(&cbft.syncing)
 }
 
 func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {

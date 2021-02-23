@@ -74,19 +74,19 @@ func funcTypeToContractAddress(funcType uint16) common.Address {
 	case funcType >= 3000 && funcType < 4000:
 		toadd = vm.SlashingContractAddr
 	case funcType >= 4000 && funcType < 5000:
-		toadd = vm.RewardManagerPoolAddr
+		toadd = vm.RestrictingContractAddr
 	case funcType >= 5000 && funcType < 6000:
 		toadd = vm.DelegateRewardPoolAddr
 	}
 	return toadd
 }
 
-func netCheck(context *cli.Context) {
-	if !context.Bool(testNetFlag.Name) {
-		common.SetAddressPrefix(common.MainNetAddressPrefix)
-	} else {
-		common.SetAddressPrefix(common.TestNetAddressPrefix)
+func netCheck(context *cli.Context) error {
+	hrp := context.String(addressHRPFlag.Name)
+	if err := common.SetAddressHRP(hrp); err != nil {
+		return err
 	}
+	return nil
 }
 
 func query(c *cli.Context, funcType uint16, params ...interface{}) error {

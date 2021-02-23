@@ -317,7 +317,6 @@ func newSnapshotdb() (snapshotdb.DB, error) {
 }
 
 func TestGetOriginAndPivotMsg(t *testing.T) {
-	//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	pm, _ := newTestProtocolManagerMust(t, downloader.FastSync, downloader.MaxBlockFetch+15, nil, nil)
 	peer, _ := newTestPeer("peer", 63, pm, true)
@@ -351,7 +350,6 @@ func TestGetOriginAndPivotMsg(t *testing.T) {
 }
 
 func TestGetPPOSStorageMsg(t *testing.T) {
-	//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, downloader.MaxBlockFetch+15, nil, nil)
 	peer, _ := newTestPeer("peer", 63, pm, true)

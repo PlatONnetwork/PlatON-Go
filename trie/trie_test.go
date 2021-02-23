@@ -840,18 +840,19 @@ func TestOneTrieCollision(t *testing.T) {
 	reopenMemdb.Commit(reopenRoot, false, false)
 	reopenTrie.Update(trieData1[0].hash, trieData1[0].value)
 	reopenRoot, _ = reopenTrie.Commit(nil)
+	reopenMemdb.IncrVersion()
 	reopenMemdb.Commit(reopenRoot, false, false)
-	reopenMemdb.Reference(root, common.Hash{})
+	reopenMemdb.ReferenceVersion(root)
 
 	reopenTrie.Delete(trieData1[0].hash)
 	reopenRoot, _ = reopenTrie.Commit(nil)
+	reopenMemdb.IncrVersion()
 	reopenMemdb.Commit(reopenRoot, false, false)
-	reopenMemdb.Reference(reopenRoot, common.Hash{})
+	reopenMemdb.ReferenceVersion(reopenRoot)
 	reopenMemdb.DereferenceDB(root)
 	reopenMemdb.UselessGC(1)
 
 	assert.NotNil(t, checkTrie(reopenTrie))
-
 }
 
 func TestTwoTrieCollision(t *testing.T) {

@@ -131,12 +131,12 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if gc.Evm.GasPrice.Cmp(params.SubmitTextProposalGasPrice) < 0 {
 		return nil, ErrUnderPrice
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
 	}
 
 	p := &gov.TextProposal{
@@ -171,12 +171,12 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if gc.Evm.GasPrice.Cmp(params.SubmitVersionProposalGasPrice) < 0 {
 		return nil, ErrUnderPrice
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
 	}
 
 	p := &gov.VersionProposal{
@@ -212,14 +212,12 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if gc.Evm.GasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
 		return nil, ErrUnderPrice
 	}
-
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 	p := &gov.CancelProposal{
 		PIPID:           pipID,
 		EndVotingRounds: endVotingRounds,
@@ -253,14 +251,13 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if gc.Evm.GasPrice.Cmp(params.SubmitParamProposalGasPrice) < 0 {
 		return nil, ErrUnderPrice
 	}
 
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 	p := &gov.ParamProposal{
 		PIPID:        pipID,
 		ProposalType: gov.Param,
@@ -474,14 +471,14 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.GovContractAddr, gc.Evm, funcName+" of GovContract",
-				bizErr.Error(), int(fcode), int(bizErr.Code)), nil
+				bizErr.Error(), int(fcode), bizErr)
 		} else {
 			log.Error("Execute GovContract failed.(System error)", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
 				"txHash", gc.Evm.StateDB.TxHash(), "err", err)
 			return nil, err
 		}
 	} else {
-		return txResultHandler(vm.GovContractAddr, gc.Evm, "", "", int(fcode), int(common.NoErr.Code)), nil
+		return txResultHandler(vm.GovContractAddr, gc.Evm, "", "", int(fcode), common.NoErr)
 	}
 }
 

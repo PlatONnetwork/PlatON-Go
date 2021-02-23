@@ -17,6 +17,10 @@
 package core
 
 import (
+	"bytes"
+	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -25,6 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -64,7 +69,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	if bcr != nil {
 		// BeginBlocker()
-		if err := bcr.BeginBlocker(block.Header(), statedb); nil != err {
+		if err := bcr.BeginBlocker(header, statedb); nil != err {
 			log.Error("Failed to call BeginBlocker on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
@@ -89,7 +94,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	if bcr != nil {
 		// EndBlocker()
-		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
+		if err := bcr.EndBlocker(header, statedb); nil != err {
 			log.Error("Failed to call EndBlocker on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash().TerminalString(), "err", err)
 			return nil, nil, 0, err
@@ -124,7 +129,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
 
 	// Apply the transaction to the current state (included in the env)
-	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
+	result, err := ApplyMessage(vmenv, msg, gp)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -132,22 +137,44 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	statedb.Finalise(true)
 
 	var root []byte
-	*usedGas += gas
+	*usedGas += result.UsedGas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
-	receipt := types.NewReceipt(root, failed, *usedGas)
+	receipt := types.NewReceipt(root, result.Failed(), *usedGas)
 	receipt.TxHash = tx.Hash()
-	receipt.GasUsed = gas
+	receipt.GasUsed = result.UsedGas
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
-	// Set the receipt logs and create a bloom for filtering
-	receipt.Logs = statedb.GetLogs(tx.Hash())
+	// Set the receipt logs
+	if result.Failed() && result.Err != nil {
+		if bizError, ok := result.Err.(*common.BizError); ok {
+			buf := new(bytes.Buffer)
+			res := strconv.Itoa(int(bizError.Code))
+			if err := rlp.Encode(buf, [][]byte{[]byte(res)}); nil != err {
+				log.Error("Cannot RlpEncode the log data", "data", bizError.Code, "err", err)
+				return nil, 0, err
+			}
+			receipt.Logs = []*types.Log{
+				&types.Log{
+					Address:     *msg.To(),
+					Topics:      nil,
+					Data:        buf.Bytes(),
+					BlockNumber: header.Number.Uint64(),
+				},
+			}
+		} else {
+			receipt.Logs = statedb.GetLogs(tx.Hash())
+		}
+	} else {
+		receipt.Logs = statedb.GetLogs(tx.Hash())
+	}
+	//create a bloom for filtering
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = header.Number
 	receipt.TransactionIndex = uint(statedb.TxIndex())
-	return receipt, gas, err
+	return receipt, result.UsedGas, err
 }
