@@ -21,8 +21,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -51,7 +49,7 @@ type Miner struct {
 	shouldStart int32 // should start indicates whether we should start after sync
 }
 
-func New(eth Backend, config *params.ChainConfig, miningConfig *core.MiningConfig, vmConfig *vm.Config, mux *event.TypeMux,
+func New(eth Backend, config *params.ChainConfig, miningConfig *core.MiningConfig, mux *event.TypeMux,
 	engine consensus.Engine, recommit time.Duration, gasFloor uint64, isLocalBlock func(block *types.Block) bool,
 	blockChainCache *core.BlockChainCache, vmTimeout uint64) *Miner {
 	miner := &Miner{
@@ -59,7 +57,7 @@ func New(eth Backend, config *params.ChainConfig, miningConfig *core.MiningConfi
 		mux:      mux,
 		engine:   engine,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, miningConfig, vmConfig, engine, eth, mux, recommit, gasFloor, isLocalBlock, blockChainCache, vmTimeout),
+		worker:   newWorker(config, miningConfig, engine, eth, mux, recommit, gasFloor, isLocalBlock, blockChainCache, vmTimeout),
 		canStart: 1,
 	}
 	go miner.update()

@@ -147,6 +147,18 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				}
 				log.Info("Successfully upgraded the new version 0.15.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 			}
+			if versionProposal.NewVersion == params.FORKVERSION_0_16_0 {
+				fixSharesPlugin := NewFixIssue1654Plugin(snapshotdb.Instance())
+				if err := fixSharesPlugin.fix(blockHash, govPlugin.chainID, state); err != nil {
+					return err
+				}
+
+				fixPlugin := NewFixIssue1583Plugin()
+				if err := fixPlugin.fix(blockHash, govPlugin.chainID, state); err != nil {
+					return err
+				}
+				log.Info("Successfully upgraded the new version 0.16.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+			}
 
 			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
