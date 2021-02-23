@@ -209,7 +209,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Staking: stakingConfig{
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
-				MaxValidators:           uint64(301),
+				MaxValidators:           uint64(201),
 				UnStakeFreezeDuration:   uint64(168), // freezing 168 epoch
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
