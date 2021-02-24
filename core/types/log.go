@@ -55,6 +55,21 @@ type Log struct {
 	Removed bool `json:"removed"`
 }
 
+type LogBlock struct {
+	// Consensus fields:
+	// address of the contract that generated the event
+	Address common.Address `json:"address" gencodec:"required"`
+	// list of topics provided by the contract.
+	Topics []common.Hash `json:"topics" gencodec:"required"`
+	// supplied by the contract, usually ABI-encoded
+	Data string `json:"data" gencodec:"required"`
+	// index of the log in the receipt
+	Index uint `json:"logIndex" gencodec:"required"`
+	// The Removed field is true if this log was reverted due to a chain reorganisation.
+	// You must pay attention to this field if you receive logs through a filter query.
+	Removed bool `json:"removed"`
+}
+
 type logMarshaling struct {
 	Data        hexutil.Bytes
 	BlockNumber hexutil.Uint64

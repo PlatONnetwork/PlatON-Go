@@ -604,6 +604,15 @@ var (
 		EnvVar: "",
 		Value:  eth.DefaultConfig.VmTimeoutDuration,
 	}
+	DBNoCacheFlag = cli.BoolFlag{
+		Name:  "db.nochache",
+		Usage: "Disable database storage of special data",
+	}
+	DBCacheEpochFlag = cli.Uint64Flag{
+		Name:  "db.chache_epoch",
+		Usage: "Number of cache epoch states, default 10",
+		Value: eth.DefaultConfig.DBCacheEpoch,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1191,6 +1200,15 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.VmTimeoutDuration = ctx.GlobalUint64(VmTimeoutDuration.Name)
 	}
 
+	if ctx.GlobalIsSet(DBNoCacheFlag.Name) {
+		cfg.DBDisabledCache = ctx.GlobalBool(DBNoCacheFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBCacheEpochFlag.Name) {
+		b := ctx.GlobalUint64(DBCacheEpochFlag.Name)
+		if b > 0 {
+			cfg.DBCacheEpoch = b
+		}
+	}
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
