@@ -493,7 +493,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 func DefaultGenesisBlock() *Genesis {
 
 	generalAddr := common.MustBech32ToAddress("lat1dl93r6fr022ca5yjqe6cgkg06er9pyqfwkwwdg")
-	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
+	generalBalance, _ := new(big.Int).SetString("9727638019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
