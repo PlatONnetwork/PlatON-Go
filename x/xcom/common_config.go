@@ -190,7 +190,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	)
 
 	// 3.31811981  thousand millions LAT
-	if cdfundBalance, ok = new(big.Int).SetString("331811981000000000000000000", 10); !ok {
+	if cdfundBalance, ok = new(big.Int).SetString("322361981000000000000000000", 10); !ok {
 		return nil
 	}
 
