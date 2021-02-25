@@ -27,10 +27,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/cespare/cp"
 	"github.com/davecgh/go-spew/spew"
+
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 var (

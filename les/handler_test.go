@@ -291,7 +291,7 @@ func testGetReceipt(t *testing.T, protocol int) {
 		block := bc.GetBlockByNumber(i)
 
 		hashes = append(hashes, block.Hash())
-		receipts = append(receipts, rawdb.ReadReceipts(server.db, block.Hash(), block.NumberU64()))
+		receipts = append(receipts, rawdb.ReadReceipts(server.db, block.Hash(), block.NumberU64(), server.pm.chainConfig))
 	}
 	// Send the hash request and verify the response
 	cost := server.tPeer.GetRequestCost(GetReceiptsMsg, len(hashes))

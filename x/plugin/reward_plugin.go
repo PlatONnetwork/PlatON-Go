@@ -18,9 +18,11 @@ package plugin
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
+	"sort"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -429,6 +431,10 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 		if len(dls) == 0 {
 			return nil, reward.ErrDelegationNotFound
 		}
+	} else {
+		if len(dls) > int(xcom.TheNumberOfDelegationsReward()) {
+			sort.Sort(staking.DelByDelegateEpoch(dls))
+		}
 	}
 
 	currentEpoch := xutil.CalculateEpoch(blockNum)
@@ -508,11 +514,9 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 	if blockHash == common.ZeroHash {
 		return rmp.nodeID, rmp.nodeADD, nil
 	}
-	sign := head.Extra[32:97]
-	sealhash := head.SealHash().Bytes()
-	pk, err := crypto.SigToPub(sealhash, sign)
-	if err != nil {
-		return discover.ZeroNodeID, common.ZeroNodeAddr, err
+	pk := head.CachePublicKey()
+	if pk == nil {
+		return discover.ZeroNodeID, common.ZeroNodeAddr, errors.New("failed to get the public key of the block producer")
 	}
 	return discover.PubkeyID(pk), crypto.PubkeyToNodeAddress(*pk), nil
 }

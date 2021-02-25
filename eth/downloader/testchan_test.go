@@ -2,9 +2,10 @@ package downloader
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 	"math/rand"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"

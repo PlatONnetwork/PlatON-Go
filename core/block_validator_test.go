@@ -17,7 +17,6 @@
 package core
 
 import (
-	"log"
 	"runtime"
 	"testing"
 	"time"
@@ -198,15 +197,4 @@ func testHeaderConcurrentAbortion(t *testing.T, threads int) {
 	if verified != len(blocks) {
 		t.Errorf("verification count too large: have %d, want below %d", verified, len(blocks))
 	}
-}
-
-func TestCalcGasLimit(t *testing.T) {
-	block := types.NewBlockWithHeader(&types.Header{GasLimit: 101009067, GasUsed: 100989000})
-
-	limit := CalcGasLimit(block, 0)
-
-	//101009067
-	//101603137
-	log.Println(limit)
-
 }

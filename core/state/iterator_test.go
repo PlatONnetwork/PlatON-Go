@@ -18,14 +18,36 @@ package state
 
 import (
 	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
+var TestPlatONPrecompiledContracts = map[common.Address]interface{}{
+	vm.ValidatorInnerContractAddr: nil,
+	// add by economic model
+	vm.StakingContractAddr:     nil,
+	vm.RestrictingContractAddr: nil,
+	vm.SlashingContractAddr:    nil,
+	vm.GovContractAddr:         nil,
+	vm.RewardManagerPoolAddr:   nil,
+	vm.DelegateRewardPoolAddr:  nil,
+}
+
+type TestPrecompiledContractCheck struct{}
+
+func (pcc *TestPrecompiledContractCheck) IsPlatONPrecompiledContract(address common.Address) bool {
+	if _, ok := TestPlatONPrecompiledContracts[address]; ok {
+		return true
+	}
+	return false
+}
+
 // Tests that the node iterator indeed walks over the entire database contents.
 func TestNodeIteratorCoverage(t *testing.T) {
+	vm.PrecompiledContractCheckInstance = &TestPrecompiledContractCheck{}
 	// Create some arbitrary test state to iterate
 	db, root, _, valueKeys := makeTestState()
 

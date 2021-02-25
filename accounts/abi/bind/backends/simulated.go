@@ -165,7 +165,7 @@ func (b *SimulatedBackend) StorageAt(ctx context.Context, contract common.Addres
 
 // TransactionReceipt returns the receipt of a transaction.
 func (b *SimulatedBackend) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
-	receipt, _, _, _ := rawdb.ReadReceipt(b.database, txHash)
+	receipt, _, _, _ := rawdb.ReadReceipt(b.database, txHash, b.config)
 	return receipt, nil
 }
 
@@ -189,8 +189,11 @@ func (b *SimulatedBackend) CallContract(ctx context.Context, call ethereum.CallM
 	if err != nil {
 		return nil, err
 	}
-	rval, _, _, err := b.callContract(ctx, call, b.blockchain.CurrentBlock(), state)
-	return rval, err
+	rval, err := b.callContract(ctx, call, b.blockchain.CurrentBlock(), state)
+	if err != nil {
+		return nil, err
+	}
+	return rval.Return(), nil
 }
 
 // PendingCallContract executes a contract call on the pending state.
@@ -199,8 +202,11 @@ func (b *SimulatedBackend) PendingCallContract(ctx context.Context, call ethereu
 	defer b.mu.Unlock()
 	defer b.pendingState.RevertToSnapshot(b.pendingState.Snapshot())
 
-	rval, _, _, err := b.callContract(ctx, call, b.pendingBlock, b.pendingState)
-	return rval, err
+	rval, err := b.callContract(ctx, call, b.pendingBlock, b.pendingState)
+	if err != nil {
+		return nil, err
+	}
+	return rval.Return(), nil
 }
 
 // PendingNonceAt implements PendingStateReader.PendingNonceAt, retrieving
@@ -242,10 +248,10 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 		call.Gas = gas
 
 		snapshot := b.pendingState.Snapshot()
-		_, _, failed, err := b.callContract(ctx, call, b.pendingBlock, b.pendingState)
+		res, err := b.callContract(ctx, call, b.pendingBlock, b.pendingState)
 		b.pendingState.RevertToSnapshot(snapshot)
 
-		if err != nil || failed {
+		if err != nil || res.Failed() {
 			return false
 		}
 		return true
@@ -270,7 +276,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 
 // callContract implements common code between normal and pending contract calls.
 // state is modified during execution, make sure to copy it if necessary.
-func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallMsg, block *types.Block, statedb *state.StateDB) ([]byte, uint64, bool, error) {
+func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallMsg, block *types.Block, statedb *state.StateDB) (*core.ExecutionResult, error) {
 	// Ensure message is initialized properly.
 	if call.GasPrice == nil {
 		call.GasPrice = big.NewInt(1)
@@ -292,7 +298,6 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallM
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(evmContext, snapshotdb.Instance(), statedb, b.config, vm.Config{})
 	gaspool := new(core.GasPool).AddGas(math.MaxUint64)
-
 	return core.NewStateTransition(vmenv, msg, gaspool).TransitionDb()
 }
 
@@ -450,7 +455,7 @@ func (fb *filterBackend) GetReceipts(ctx context.Context, hash common.Hash) (typ
 	if number == nil {
 		return nil, nil
 	}
-	return rawdb.ReadReceipts(fb.db, hash, *number), nil
+	return rawdb.ReadReceipts(fb.db, hash, *number, fb.bc.Config()), nil
 }
 
 func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
@@ -458,7 +463,7 @@ func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*ty
 	if number == nil {
 		return nil, nil
 	}
-	receipts := rawdb.ReadReceipts(fb.db, hash, *number)
+	receipts := rawdb.ReadReceipts(fb.db, hash, *number, fb.bc.Config())
 	if receipts == nil {
 		return nil, nil
 	}

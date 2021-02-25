@@ -138,7 +138,7 @@ class TestCreateStaking:
         value = get_new_value(value)
         result = client.staking.withdrew_staking(client.node.staking_address)
         assert_code(result, 0)
-        client.economic.wait_settlement_blocknum(client.node, 2)
+        client.economic.wait_settlement(client.node, 2)
         address, _ = client.economic.account.generate_account(client.node.web3, 10**18 * 10000000)
         result = client.staking.create_staking(0, address, address, reward_per=value)
         assert_code(result, 0)
@@ -160,7 +160,7 @@ class TestCreateStaking:
         assert_code(result, 0)
         verifier_list = get_pledge_list(client.ppos.getVerifierList)
         assert clients_consensus[1].node.node_id not in verifier_list
-        client.economic.wait_settlement_blocknum(client.node, 2)
+        client.economic.wait_settlement(client.node, 2)
         candidate_info = clients_consensus[1].ppos.getCandidateInfo(clients_consensus[1].node.node_id)
         log.info(candidate_info)
         address, _ = client.economic.account.generate_account(client.node.web3, 10**18 * 10000000)
@@ -189,24 +189,24 @@ class TestEditCandidate:
         value = client.staking.get_rewardper(client.node)
         newvalue = get_new_value(value)
         print(value, newvalue)
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                        reward_per=newvalue)
         # assert_code(result, 0)
         # self.assert_rewardsper(client, value, newvalue)
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                        reward_per=0)
         # print(result)
         # assert_code(result, 0)
         # self.assert_rewardsper(client, 1, 0)
         #
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                        reward_per=10000)
         # assert_code(result, 301009)
         #
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                        reward_per=10001)
         # log.info('Edit candidate information reward percent is 10001, result : {}'.format(result))
@@ -223,7 +223,7 @@ class TestEditCandidate:
         # log.info('Edit candidate information reward percent is string, result : {}'.format(result))
         # assert_code(result, 0)
 
-        # client.economic.wait_settlement_blocknum(client.node, 1)
+        # client.economic.wait_settlement(client.node, 1)
         # result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
         #                                    reward_per=10000000000000000000000000000000000000000000000)
         # assert_code(result, 301007)
@@ -236,7 +236,7 @@ class TestEditCandidate:
                                                amount=2*client.economic.genesis.economicModel.staking.stakeThreshold,
                                                reward_per=100)
         assert_code(result, 0)
-        client.economic.wait_settlement_blocknum(client.node, 1)
+        client.economic.wait_settlement(client.node, 1)
         verifier_list = get_pledge_list(client.ppos.getVerifierList)
         assert client.node.node_id in verifier_list
         address_delegate, _ = client.economic.account.generate_account(client.node.web3, init_amount)
@@ -251,7 +251,7 @@ class TestEditCandidate:
         assert_code(vaule, 100)
         assert_code(newvalue, 101)
 
-        client.economic.wait_settlement_blocknum(client.node, 1)
+        client.economic.wait_settlement(client.node, 1)
         result = client.staking.edit_candidate(address, address, reward_per=99)
 
         assert_code(result, 0)
@@ -261,7 +261,7 @@ class TestEditCandidate:
         assert_code(vaule, 101)
         assert_code(newvalue, 99)
 
-        client.economic.wait_settlement_blocknum(client.node, 1)
+        client.economic.wait_settlement(client.node, 1)
         result = client.staking.edit_candidate(address, address, reward_per=9999)
         assert_code(result, 301009)
 
@@ -296,7 +296,7 @@ class TestEditCandidate:
         result = client.staking.create_staking(0, address, address, reward_per=100)
         assert_code(result, 0)
 
-        client.economic.wait_settlement_blocknum(client.node, 1)
+        client.economic.wait_settlement(client.node, 1)
         result = client.staking.edit_candidate(address, address, reward_per=101)
         assert_code(result, 0)
         assert_code(100, client.staking.get_rewardper())
@@ -333,7 +333,7 @@ class TestEditCandidate:
         client = client_verifier
         value, nextvalue = get_pledge_list(client.ppos.getVerifierList, client.node.node_id)
         newvalue = get_new_value(value)
-        client.economic.wait_settlement_blocknum(client.node, 1)
+        client.economic.wait_settlement(client.node, 1)
         result = client.staking.edit_candidate(client.node.staking_address, client.node.staking_address,
                                                reward_per=newvalue)
         assert_code(result, 0)
@@ -372,7 +372,7 @@ class TestgetDelegateReward:
         result = client0.ppos.getDelegateInfo(staking_num0, delegate_address, client0.node.node_id)
         log.info(result)
         assert_code(result, 0)
-        client0.economic.wait_settlement_blocknum(client0.node)
+        client0.economic.wait_settlement(client0.node)
         verifier_list = get_pledge_list(client0.ppos.getVerifierList)
         assert client0.node.node_id in verifier_list
         assert client1.node.node_id in verifier_list
@@ -423,7 +423,7 @@ class TestgetDelegateReward:
             else:
                 rewardinfo.get('reward') == 0
                 rewardinfo.get('stakingNum') == staking_num1
-        client0.economic.wait_settlement_blocknum(client0.node)
+        client0.economic.wait_settlement(client0.node)
 
         reward = client0.delegate.get_delegate_reward_by_nodeid(delegate_address)
         log.info('Address {} reward : {}'.format(delegate_address, reward))
@@ -449,7 +449,7 @@ class TestgetDelegateReward:
         log.info('After repeat withdraw reward address balance : {}'.format(balance_after_1))
         gas = get_getDelegateReward_gas_fee(client0, 2, 0)
         assert balance_after - gas == balance_after_1
-        client0.economic.wait_settlement_blocknum(client0.node)
+        client0.economic.wait_settlement(client0.node)
         reward = client0.delegate.get_delegate_reward_by_nodeid(delegate_address)
         assert reward > 0
         result = client0.delegate.withdraw_delegate_reward(delegate_address)
@@ -479,7 +479,7 @@ class TestgetDelegateReward:
         epoch = math.ceil(client.node.block_number/client.economic.settlement_size)
         staking_and_delegate(client, address)
         staking_blocknum = client.staking.get_stakingblocknum()
-        client.economic.wait_settlement_blocknum(client.node)
+        client.economic.wait_settlement(client.node)
         verifier_list = get_pledge_list(client.ppos.getVerifierList)
         assert client.node.node_id in verifier_list
         rewardinfo = client.ppos.getDelegateReward(address)
@@ -487,7 +487,7 @@ class TestgetDelegateReward:
         assert len(rewardinfo.get('Ret')) == 1
         assert rewardinfo.get('Ret')[0].get('stakingNum') == staking_blocknum
         assert rewardinfo.get('Ret')[0].get('reward') == 0
-        client.economic.wait_settlement_blocknum(client.node)
+        client.economic.wait_settlement(client.node)
         delegate_info = client.ppos.getDelegateInfo(staking_blocknum, address, client.node.node_id)
         log.info('Address {} delegate information : {}'.format(address, delegate_info))
         assert_code(delegate_info, 0)
@@ -515,13 +515,13 @@ class TestgetDelegateReward:
         address, _ = client.economic.account.generate_account(client.node.web3, init_amount)
         staking_and_delegate(client_new_node, address)
         staking_blocknum = client.staking.get_stakingblocknum()
-        client.economic.wait_settlement_blocknum(client.node)
+        client.economic.wait_settlement(client.node)
         verifier_list = get_pledge_list(client.ppos.getVerifierList)
         assert client.node.node_id in verifier_list
         rewardinfo = client.ppos.getDelegateReward(address)
         log.info('Get address {} reward information : {}'.format(address, rewardinfo))
         assert rewardinfo.get('Ret')[0].get('stakingNum') == staking_blocknum
-        client.economic.wait_settlement_blocknum(client.node)
+        client.economic.wait_settlement(client.node)
         staking_info = client.ppos.getCandidateInfo(client.node.node_id)
         log.info('Node {} candidate information : {}'.format(client.node.node_id, staking_info))
         delegate_info = client.ppos.getDelegateInfo(staking_blocknum, address, client.node.node_id)
@@ -541,7 +541,7 @@ class TestgetDelegateReward:
         assert client.node.node_id not in verifier_list
         rewardinfo = client.ppos.getDelegateReward(address)
         assert reward == rewardinfo.get('Ret')[0].get('reward')
-        client.economic.wait_settlement_blocknum(client.node, client.economic.genesis.economicModel.staking.unStakeFreezeDuration)
+        client.economic.wait_settlement(client.node, client.economic.genesis.economicModel.staking.unStakeFreezeDuration)
 
         rewardinfo = client.ppos.getDelegateReward(address)
         assert reward == rewardinfo.get('Ret')[0].get('reward')
@@ -584,7 +584,7 @@ class TestgetDelegateReward:
         staking_num2 = client2.staking.get_stakingblocknum()
         log.info('Node {} staking block num : {}'.format(client2.node.node_id, staking_num2))
         client2.delegate.delegate(0, address1, amount=10**18 * 1000)
-        client1.economic.wait_settlement_blocknum(client1.node, number=1)
+        client1.economic.wait_settlement(client1.node, 1)
         reward_info_address1_1 = client1.ppos.getDelegateReward(address1)
         log.info('Not incoming nodeid, Address {} reward information : {}'.format(address1, reward_info_address1_1))
         assert_code(reward_info_address1_1, 0)
@@ -682,7 +682,7 @@ class TestgetDelegateReward:
         assert result.get('Ret')[0].get('reward') == 0
         assert result.get('Ret')[0].get('stakingNum') == stakingnum
 
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
         wait_block_number(client1.node, client1.node.block_number + 80)
         verifier_list = get_pledge_list(client1.ppos.getVerifierList)
         assert client1.node.node_id in verifier_list
@@ -716,7 +716,7 @@ class TestwithdrawDelegateReward():
         log.info('Address {} after withdraw reward balance : {}'.format(address, balance_after_withdraw))
         gas = get_getDelegateReward_gas_fee(client, 1, 0)
         assert balance_before_withdraw - gas == balance_after_withdraw
-        client.economic.wait_settlement_blocknum(client.node)
+        client.economic.wait_settlement(client.node)
         blocknum = client.node.block_number
         log.info('Block number : {}'.format(blocknum))
         verifier_list = get_pledge_list(client.ppos.getVerifierList)
@@ -774,10 +774,10 @@ class TestwithdrawDelegateReward():
         stakingnum0 = client0.staking.get_stakingblocknum(client0.node)
         stakingnum1 = client1.staking.get_stakingblocknum(client1.node)
 
-        client0.economic.wait_settlement_blocknum(client0.node)
+        client0.economic.wait_settlement(client0.node)
         result = client1.delegate.delegate(0, address0, amount=delegate_amount)
         assert_code(result, 0)
-        client0.economic.wait_settlement_blocknum(client0.node, 1)
+        client0.economic.wait_settlement(client0.node, 1)
         balance_before_withdraw0 = client0.node.eth.getBalance(address0)
         log.info('Address {} before withdraw balance : {}'.format(address0, balance_before_withdraw0))
         balance_before_withdraw1 = client0.node.eth.getBalance(address1)
@@ -821,7 +821,7 @@ class TestwithdrawDelegateReward():
         result = client1.delegate.delegate(0, address1, node_id=client0.node.node_id, amount=delegate_amount)
         assert_code(result, 0)
         epoch = math.ceil(client0.node.block_number/client0.economic.settlement_size)
-        client0.economic.wait_settlement_blocknum(client0.node, 1)
+        client0.economic.wait_settlement(client0.node, 1)
         rewards0 = client0.delegate.get_delegate_reward_by_nodeid(address0)
         log.info('Address {} delegate rewards : {}'.format(address0, rewards0))
         rewards1 = client1.delegate.get_delegate_reward_by_nodeid(address1)
@@ -865,11 +865,11 @@ class TestwithdrawDelegateReward():
         # staking_and_delegate(client1, address1)
         staking_num0 = client0.staking.get_stakingblocknum()
         # staking_num1 = client1.staking.get_stakingblocknum()
-        client0.economic.wait_settlement_blocknum(client0.node)
+        client0.economic.wait_settlement(client0.node)
         result = client0.delegate.delegate(0, address1, node_id=client0.node.node_id, amount=delegate_amount)
         assert_code(result, 0)
         # epoch = math.ceil(client0.node.block_number/client0.economic.settlement_size)
-        client0.economic.wait_settlement_blocknum(client0.node, 1)
+        client0.economic.wait_settlement(client0.node, 1)
         rewards0 = client0.delegate.get_delegate_reward_by_nodeid(address0)
         log.info('Address {} delegate rewards : {}'.format(address0, rewards0))
         rewards1 = client0.delegate.get_delegate_reward_by_nodeid(address1)
@@ -905,7 +905,7 @@ class TestwithdrawDelegateReward():
         staking_num1 = client1.staking.get_stakingblocknum()
         result = client1.delegate.delegate(0, address1, node_id=client0.node.node_id, amount=delegate_amount)
         assert_code(result, 0)
-        client0.economic.wait_settlement_blocknum(client0.node, 1)
+        client0.economic.wait_settlement(client0.node, 1)
         rewards0 = client0.delegate.get_delegate_reward_by_nodeid(address0)
         log.info('Address {} delegate rewards : {}'.format(address0, rewards0))
         assert rewards0 > 0
@@ -971,7 +971,7 @@ class TestwithdrawDelegateReward():
         result = client2.delegate.delegate(0, address2, amount=10**18 * 1000)
         assert_code(result, 0)
 
-        client1.economic.wait_settlement_blocknum(client1.node, 1)
+        client1.economic.wait_settlement(client1.node, 1)
         reward_address1 = client1.delegate.get_delegate_reward_by_nodeid(address1)
         log.info('Address {} reward : {}'.format(address1, reward_address1))
         assert reward_address1 > 0
@@ -999,7 +999,7 @@ class TestwithdrawDelegateReward():
         assert balance_before_address1 + reward_address1 - gas_address1 == balance_after_address1
         assert balance_before_address2 + reward_address2 - gas_address2 == balance_after_address2
 
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
         reward_address1 = client1.delegate.get_delegate_reward_by_nodeid(address1)
         log.info('Address {} reward : {}'.format(address1, reward_address1))
         assert reward_address1 != 0
@@ -1179,7 +1179,7 @@ class TestwithdrawDelegateReward():
         stakingnum1 = client1.staking.get_stakingblocknum(client1.node)
         result = client1.delegate.delegate(0, address2, amount=10 ** 18 * 1000)
         assert_code(result, 0)
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
         verifier_list = get_pledge_list(client1.ppos.getVerifierList)
         assert client1.node.node_id in verifier_list
         assert client2.node.node_id in verifier_list
@@ -1203,7 +1203,7 @@ class TestwithdrawDelegateReward():
         assert_code(result, 0)
         assert result.get('Ret')[0].get('reward') == 0
 
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
 
         result = client1.ppos.getDelegateReward(address1, [client1.node.node_id])
         log.info('Address {} delegate nodeid {} reward {}'.format(address1, client1.node.node_id, result))
@@ -1228,7 +1228,7 @@ class TestwithdrawDelegateReward():
         staking_and_delegate(client2, address1)
         result = client1.delegate.delegate(0, address2, amount=10 ** 18 * 1000)
         assert_code(result, 0)
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
         verifier_list = get_pledge_list(client1.ppos.getVerifierList)
         assert client1.node.node_id in verifier_list
         assert client2.node.node_id in verifier_list
@@ -1238,7 +1238,7 @@ class TestwithdrawDelegateReward():
 
         result = client1.delegate.delegate(0, address2, amount=10 ** 18 * 1000)
         assert_code(result, 0)
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
 
         reward_address1_node1 = client1.delegate.get_delegate_reward_by_nodeid(address1, [client1.node.node_id])
         log.info('Address {} delegate nodeid {} reward {}'.format(address1, client1.node.node_id, reward_address1_node1))
@@ -1280,13 +1280,13 @@ class TestwithdrawDelegateReward():
         staking_and_delegate(client2, address1)
         result = client1.delegate.delegate(0, address2, amount=10 ** 18 * 1000)
         assert_code(result, 0)
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
         verifier_list = get_pledge_list(client1.ppos.getVerifierList)
         assert client1.node.node_id in verifier_list
         assert client2.node.node_id in verifier_list
         wait_block_number(client1.node, 2*client1.economic.settlement_size - 40)
 
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
 
         reward_address1_node1 = client1.delegate.get_delegate_reward_by_nodeid(address1, [client1.node.node_id])
         log.info('Address {} delegate nodeid {} reward {}'.format(address1, client1.node.node_id, reward_address1_node1))
@@ -1367,7 +1367,7 @@ class TestGas:
                            rlp.encode(10 ** 18 * 1000)])
         gas = (21000 + 6000 + 16000 + get_the_dynamic_parameter_gas_fee(data)) * client1.node.eth.gasPrice
         assert 10 ** 18 * 9000 - gas == balance_address1
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
         verifier_list = get_pledge_list(client1.ppos.getVerifierList)
         assert client1.node.node_id in verifier_list
         assert client2.node.node_id in verifier_list
@@ -1387,7 +1387,7 @@ class TestGas:
                            rlp.encode(10**18 * 100)])
         gas = (21000 + 6000 + 8000 + get_the_dynamic_parameter_gas_fee(data)) * client1.node.eth.gasPrice
         assert balance_address1_2 + 10**18 * 100 - gas == banlance_address1_after_withdraw_1
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
 
         result = client1.delegate.delegate(0, address1, amount=10**18*1000)
         assert_code(result, 0)
@@ -1407,7 +1407,7 @@ class TestGas:
         gas = (21000 + 6000 + 8000 + get_the_dynamic_parameter_gas_fee(data)) * client1.node.eth.gasPrice
         assert balance_address1_3 + 10**18*100 - gas == balance_address1_4
 
-        client1.economic.wait_settlement_blocknum(client1.node)
+        client1.economic.wait_settlement(client1.node)
 
         result = client1.delegate.delegate(0, address1, amount=10**18 * 100)
         assert_code(result, 0)
@@ -1439,7 +1439,7 @@ class TestGas:
         gas = (21000 + 6000 + 16000 + get_the_dynamic_parameter_gas_fee(data)) * client.node.eth.gasPrice
         assert 10 ** 18 * 9000 - gas == balance_address
 
-        client.economic.wait_settlement_blocknum(client.node, 2)
+        client.economic.wait_settlement(client.node, 2)
 
         result = client.delegate.withdrew_delegate(stakingnum, address, amount=10 ** 18 * 900)
         assert_code(result, 0)
@@ -1464,7 +1464,7 @@ class TestGas:
         gas = (21000 + 6000 + 16000 + get_the_dynamic_parameter_gas_fee(data)) * client.node.eth.gasPrice
         assert 10 ** 18 * 9000 - gas == balance_address
 
-        client.economic.wait_settlement_blocknum(client.node, 3)
+        client.economic.wait_settlement(client.node, 3)
         reward = client.delegate.get_delegate_reward_by_nodeid(address)
         log.info('Address {} delegate reward {}'.format(address, reward))
 
@@ -1491,7 +1491,7 @@ class TestGas:
         gas = (21000 + 6000 + 16000 + get_the_dynamic_parameter_gas_fee(data)) * client.node.eth.gasPrice
         assert 10 ** 18 * 9000 - gas == balance_address
 
-        client.economic.wait_settlement_blocknum(client.node, 2)
+        client.economic.wait_settlement(client.node, 2)
 
         data = rlp.encode(
             [rlp.encode(int(1005)), rlp.encode(stakingnum), rlp.encode(bytes.fromhex(client.node.node_id)),
@@ -1575,7 +1575,7 @@ class TestGas:
         staking_and_delegate(client1, address1)
         staking_num0 = client0.staking.get_stakingblocknum(client0.node)
         staking_num1 = client1.staking.get_stakingblocknum(client1.node)
-        client0.economic.wait_settlement_blocknum(client0.node, 2)
+        client0.economic.wait_settlement(client0.node, 2)
         balance_before_withdraw0 = client0.node.eth.getBalance(address0)
         log.info('Before withdraw address {} balance {}'.format(address0, balance_before_withdraw0))
         balance_before_withdraw1 = client0.node.eth.getBalance(address1)
@@ -1646,7 +1646,7 @@ class TestNet:
     @pytest.mark.P2
     def test_DD_NE_002(self, global_test_env):
         test_node = self.deploy_me(global_test_env, 'testnet')
-        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 103
+        assert test_node.admin.nodeInfo.get('protocols').get('platon').get('config').get('chainId') == 104
         assert test_node.admin.nodeInfo.get('protocols').get('platon').get('network') == 2000
 
     @pytest.mark.P2

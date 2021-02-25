@@ -61,8 +61,9 @@ var (
 )
 
 const (
-	FreeVon     = uint16(0)
-	RestrictVon = uint16(1)
+	FreeVon            = uint16(0)
+	RestrictVon        = uint16(1)
+	RestrictAndFreeVon = uint16(2)
 
 	PreviousRound = uint(0)
 	CurrentRound  = uint(1)
@@ -305,6 +306,16 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 			return err
 		}
 		can.RestrictingPlanHes = amount
+	} else if typ == RestrictAndFreeVon { //  use Restricting and free von
+		restrictingPlanHes, releasedHes, err := rt.MixPledgeLockFunds(can.StakingAddress, amount, state)
+		if nil != err {
+			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting MixPledgeLockFunds() is failed",
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+				"stakeAddr", can.StakingAddress, "stakingVon", amount, "err", err)
+			return err
+		}
+		can.RestrictingPlanHes = restrictingPlanHes
+		can.ReleasedHes = releasedHes
 	} else {
 
 		log.Error("Failed to CreateCandidate on stakingPlugin", "err", staking.ErrWrongVonOptType,
@@ -1088,6 +1099,10 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 					"stakingBlockNum", stakingBlockNum, "err", err)
 				return nil, err
 			}
+		} else {
+			if can.Shares != nil && can.Shares.Cmp(realSub) > 0 {
+				can.SubShares(realSub)
+			}
 		}
 
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
@@ -1765,6 +1780,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	needRMLowVersionLen := 0
 	invalidLen := 0 // the num that the can need to remove
 
+	invalidCan := make(map[discover.NodeID]struct{})
 	removeCans := make(staking.NeedRemoveCans) // the candidates need to remove
 	withdrewCans := make(staking.CandidateMap) // the candidates had withdrew
 
@@ -1815,6 +1831,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		if checkHaveSlash(can.Status) {
 			removeCans[v.NodeId] = can
 			hasSlashLen++
+			invalidCan[can.NodeId] = struct{}{}
 			isSlash = true
 		}
 
@@ -1835,6 +1852,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 		if xutil.CalcVersion(can.ProgramVersion) < currVersion {
 			removeCans[v.NodeId] = can
+			invalidCan[can.NodeId] = struct{}{}
 			needRMLowVersionLen++
 		}
 
@@ -1894,6 +1912,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	}
 	needRMwithdrewLen = len(withdrewQueue)
+	for _, nodeID := range withdrewQueue {
+		invalidCan[nodeID] = struct{}{}
+	}
 
 	// some validators that meets the following conditions must be replaced first.
 	// eg.
@@ -1903,7 +1924,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	// 	  is lower than the version of the governance module on the current chain.
 	// 4. withdrew staking and not in the current epoch validator list
 	//
-	invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
+	//invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
+	invalidLen = len(invalidCan)
 
 	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue, blockNumber uint64, parentHash common.Hash) (staking.ValidatorQueue, error) {
 
@@ -2509,27 +2531,25 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			continue
 		}
 
-		if can.IsInvalid() {
-			log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
-			continue
-		}
-
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 			log.Error("Failed to ProposalPassedNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
-
 		can.ProgramVersion = programVersion
-
-		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
-			log.Error("Failed to ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-			return err
-		}
 		//Store full version
 		if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 			log.Error("Failed to ProposalPassedNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+			return err
+		}
+
+		if can.IsInvalid() {
+			log.Warn(" can status is invalid,no need set can power", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "status", can.Status)
+			continue
+		}
+		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
+			log.Error("Failed to ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
@@ -2870,13 +2890,15 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces))
 		return nil, staking.ErrWrongFuncParams
 	}
-	sumWeights := new(big.Int)
+	totalWeights := new(big.Int)
+	totalSqrtWeights := new(big.Int)
 	svList := make(sortValidatorQueue, 0)
 	for _, val := range validatorList {
 
 		weights := new(big.Int).Div(val.Shares, new(big.Int).SetUint64(1e18))
+		totalWeights.Add(totalWeights, weights)
 		weights = new(big.Int).Sqrt(weights)
-		sumWeights.Add(sumWeights, weights)
+		totalSqrtWeights.Add(totalSqrtWeights, weights)
 
 		sv := &sortValidator{
 			v:           val,
@@ -2888,16 +2910,19 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 		svList = append(svList, sv)
 	}
 	var maxValue float64 = (1 << 256) - 1
-	sumWeightsFloat, err := strconv.ParseFloat(sumWeights.Text(10), 64)
+	totalWeightsFloat, err := strconv.ParseFloat(totalWeights.Text(10), 64)
+	if nil != err {
+		return nil, err
+	}
+	totalSqrtWeightsFloat, err := strconv.ParseFloat(totalSqrtWeights.Text(10), 64)
 	if nil != err {
 		return nil, err
 	}
 
-	// todo This is an empirical formula, and the follow-up will make a better determination.
-	p := float64(xcom.ShiftValidatorNum()) * float64(xcom.MaxConsensusVals()) / sumWeightsFloat
+	p := xcom.CalcP(totalWeightsFloat, totalSqrtWeightsFloat)
 
 	log.Debug("Call probabilityElection Basic parameter on Election", "blockNumber", blockNumber, "currentVersion", currentVersion, "validatorListSize", len(validatorList),
-		"p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen)
+		"p", p, "totalWeights", totalWeightsFloat, "totalSqrtWeightsFloat", totalSqrtWeightsFloat, "shiftValidatorNum", shiftLen)
 
 	for index, sv := range svList {
 		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)

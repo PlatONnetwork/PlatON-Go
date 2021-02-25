@@ -99,11 +99,10 @@ var (
 		},
 	}
 
-	initialDemoNetConsensusNodes = []initNode{}
-
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(100),
+		AddressHRP:  "lat",
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
@@ -127,24 +126,11 @@ var (
 	// TestnetChainConfig is the chain parameters to run a node on the test network.
 	TestnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(104),
+		AddressHRP:  "lat",
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
-			Amount:        10,
-			ValidatorMode: "ppos",
-			Period:        20000,
-		},
-		GenesisVersion: GenesisVersion,
-	}
-
-	// DemonetChainConfig is the chain parameters to run a node on the demo network.
-	DemonetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(399),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
-		Cbft: &CbftConfig{
-			InitialNodes:  ConvertNodeUrl(initialDemoNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
 			Period:        20000,
@@ -162,6 +148,7 @@ var (
 	}
 
 	GrapeChainConfig = &ChainConfig{
+		AddressHRP:  "lat",
 		ChainID:     big.NewInt(304),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(3),
@@ -175,9 +162,9 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "lat", "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "lat", "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -199,6 +186,7 @@ type TrustedCheckpoint struct {
 // set of configuration options.
 type ChainConfig struct {
 	ChainID     *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+	AddressHRP  string   `json:"addressHRP"`
 	EmptyBlock  string   `json:"emptyBlock"`
 	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
 	EWASMBlock  *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)
@@ -354,28 +342,6 @@ func newCompatError(what string, storedblock, newblock *big.Int) *ConfigCompatEr
 
 func (err *ConfigCompatError) Error() string {
 	return fmt.Sprintf("mismatching %s in database (have %d, want %d, rewindto %d)", err.What, err.StoredConfig, err.NewConfig, err.RewindTo)
-}
-
-// Rules wraps ChainConfig and is merely syntactic sugar or can be used for functions
-// that do not have or require information about the block.
-//
-// Rules is a one time interface meaning that it shouldn't be used in between transition
-// phases.
-type Rules struct {
-	ChainID  *big.Int
-	IsEIP155 bool
-}
-
-// Rules ensures c's ChainID is not nil.
-func (c *ChainConfig) Rules(num *big.Int) Rules {
-	chainID := c.ChainID
-	if chainID == nil {
-		chainID = new(big.Int)
-	}
-	return Rules{
-		ChainID:  new(big.Int).Set(chainID),
-		IsEIP155: c.IsEIP155(num),
-	}
 }
 
 func ConvertNodeUrl(initialNodes []initNode) []CbftNode {

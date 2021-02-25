@@ -95,7 +95,7 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
                 developer_foundation)
             # log.info("{} Year additional Balance:{}".format(i + 1, total_amount_of_issuance))
             time.sleep(5)
-            economic.wait_settlement_blocknum(node)
+            economic.wait_settlement(node)
             while remaining_settlement_cycle != 1:
                 tmp_current_block = node.eth.blockNumber
                 if tmp_current_block % economic.settlement_size == 0:
@@ -121,7 +121,7 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
                 remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
                 log.info(
                     "remaining settlement cycles in the current issuance cycle： {}".format(remaining_settlement_cycle))
-                economic.wait_settlement_blocknum(node)
+                economic.wait_settlement(node)
 
         elif 0 < i < 9:
             annual_last_block = (math.ceil(node.eth.blockNumber / economic.settlement_size) - 1) * economic.settlement_size
@@ -204,7 +204,7 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
                 log.info("Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
                 remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
                 log.info("remaining settlement cycles issuance cycle： {}".format(remaining_settlement_cycle))
-                economic.wait_settlement_blocknum(node)
+                economic.wait_settlement(node)
         else:
             annual_last_block = (math.ceil(node.eth.blockNumber / economic.settlement_size) - 1) * economic.settlement_size
             # Current annual total issuance
@@ -277,6 +277,7 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
     new_file = new_genesis_env.cfg.env_tmp + "/genesis_0.13.0.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
+
     normal_node = new_genesis_env.get_a_normal_node()
     client = Client(new_genesis_env, normal_node, staking_cfg)
     economic = client.economic
@@ -295,7 +296,7 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
         benifit_balance = node.eth.getBalance(address1)
         log.info("benifit_balance: {}".format(benifit_balance))
         # Wait for the settlement round to end
-        economic.wait_settlement_blocknum(node)
+        economic.wait_settlement(node)
         # 获取当前结算周期验证人
         verifier_list = node.ppos.getVerifierList()
         log.info("verifier_list: {}".format(verifier_list))
@@ -306,13 +307,14 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
         result = client.staking.withdrew_staking(address)
         assert_code(result, 0)
         # wait settlement block
-        economic.wait_settlement_blocknum(node)
+        economic.wait_settlement(node)
         # wait consensus block
-        economic.wait_consensus_blocknum(node)
+        economic.wait_consensus(node)
         # count the number of blocks
-        blocknumber = economic.get_block_count_number(node, 10)
+        blocknumber = economic.get_block_count_number(node, roundnum=6)
         log.info("blocknumber: {}".format(blocknumber))
         # view account amount again
+        # block_high = economic.get_switchpoint_by_settlement(node) - economic.settlement_size
         benifit_balance1 = node.eth.getBalance(address1)
         log.info("benifit_balance: {}".format(benifit_balance1))
         reward = int(blocknumber * Decimal(str(block_reward)))
@@ -364,5 +366,5 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
             log.info("Remaining block height of current issuance cycle： {}".format(number_of_remaining_blocks))
             remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
             log.info("remaining settlement cycles issuance cycle： {}".format(remaining_settlement_cycle))
-            economic.wait_settlement_blocknum(node)
+            economic.wait_settlement(node)
 

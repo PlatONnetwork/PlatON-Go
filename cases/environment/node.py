@@ -223,7 +223,7 @@ class Node:
         :param is_init:
         :return:
         """
-        log.debug("Start node:{}".format(self.node_mark))
+        log.info("Start node:{}".format(self.node_mark))
 
         def __start():
             is_success = self.stop()

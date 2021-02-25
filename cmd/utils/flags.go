@@ -58,7 +58,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
@@ -143,9 +142,9 @@ var (
 		Name:  "testnet",
 		Usage: "Testnet network: pre-configured test network",
 	}
-	DemonetFlag = cli.BoolFlag{
-		Name:  "demonet",
-		Usage: "Demonet network: pre-configured demo network",
+	AddressHRPFlag = cli.StringFlag{
+		Name:  "addressHRP",
+		Usage: "set the address hrp,if not set,use default address hrp",
 	}
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",
@@ -198,11 +197,6 @@ var (
 		Name:  "txpool.rejournal",
 		Usage: "Time interval to regenerate the local transaction journal",
 		Value: core.DefaultTxPoolConfig.Rejournal,
-	}
-	TxPoolPriceLimitFlag = cli.Uint64Flag{
-		Name:  "txpool.pricelimit",
-		Usage: "Minimum gas price limit to enforce for acceptance into the pool",
-		Value: eth.DefaultConfig.TxPool.PriceLimit,
 	}
 	TxPoolPriceBumpFlag = cli.Uint64Flag{
 		Name:  "txpool.pricebump",
@@ -270,11 +264,6 @@ var (
 		Usage: "Target gas floor for mined blocks",
 		Value: eth.DefaultConfig.MinerGasFloor,
 	}
-	MinerLegacyGasTargetFlag = cli.Uint64Flag{
-		Name:  "targetgaslimit",
-		Usage: "Target gas floor for mined blocks (deprecated, use --miner.gastarget)",
-		Value: eth.DefaultConfig.MinerGasFloor,
-	}
 	/*MinerGasLimitFlag = cli.Uint64Flag{
 		Name:  "miner.gaslimit",
 		Usage: "Target gas ceiling for mined blocks",
@@ -283,11 +272,6 @@ var (
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
-		Value: eth.DefaultConfig.MinerGasPrice,
-	}
-	MinerLegacyGasPriceFlag = BigFlag{
-		Name:  "gasprice",
-		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
 		Value: eth.DefaultConfig.MinerGasPrice,
 	}
 	/*
@@ -638,8 +622,6 @@ func MakeDataDir(ctx *cli.Context) string {
 
 		if ctx.GlobalBool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
-		} else if ctx.GlobalBool(DemonetFlag.Name) {
-			return filepath.Join(path, "demonet")
 		}
 		return path
 	}
@@ -694,8 +676,6 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		}
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(DemonetFlag.Name):
-		urls = params.DemonetBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -963,8 +943,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(DemonetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "demonet")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
@@ -1006,9 +984,6 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 	if ctx.GlobalIsSet(TxPoolRejournalFlag.Name) {
 		cfg.Rejournal = ctx.GlobalDuration(TxPoolRejournalFlag.Name)
-	}
-	if ctx.GlobalIsSet(TxPoolPriceLimitFlag.Name) {
-		cfg.PriceLimit = ctx.GlobalUint64(TxPoolPriceLimitFlag.Name)
 	}
 	if ctx.GlobalIsSet(TxPoolPriceBumpFlag.Name) {
 		cfg.PriceBump = ctx.GlobalUint64(TxPoolPriceBumpFlag.Name)
@@ -1176,18 +1151,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
 				cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
 			}*/
-	if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
-		cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
-	}
 	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
 		cfg.MinerGasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
 	}
 	/*if ctx.GlobalIsSet(MinerGasLimitFlag.Name) {
 		cfg.MinerGasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
 	}*/
-	if ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
-	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
 		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
@@ -1201,12 +1170,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 2000
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
-	// Demo NetWork
-	case ctx.GlobalBool(DemonetFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 5000
-		}
-		cfg.Genesis = core.DefaultDemonetGenesisBlock()
 	}
 
 	if ctx.GlobalIsSet(DBNoGCFlag.Name) {
@@ -1383,8 +1346,6 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		genesis = core.DefaultTestnetGenesisBlock()
-	case ctx.GlobalBool(DemonetFlag.Name):
-		genesis = core.DefaultDemonetGenesisBlock()
 	}
 	return genesis
 }
@@ -1513,20 +1474,43 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 	}
 }
 
-func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
-	var networkId int8
+// CheckExclusive verifies that only a single instance of the provided flags was
+// set by the user. Each flag might optionally be followed by a string type to
+// specialize it further.
+func CheckExclusive(ctx *cli.Context, args ...interface{}) {
+	set := make([]string, 0, 1)
+	for i := 0; i < len(args); i++ {
+		// Make sure the next argument is a flag and skip if not set
+		flag, ok := args[i].(cli.Flag)
+		if !ok {
+			panic(fmt.Sprintf("invalid argument, not cli.Flag type: %T", args[i]))
+		}
+		// Check if next arg extends current and expand its name if so
+		name := flag.GetName()
 
-	// Override any default Economic configs for hard coded networks.
-	switch {
-	case ctx.GlobalBool(TestnetFlag.Name):
-		networkId = xcom.DefaultTestNet // Test Net: --testnet
-	default:
-		networkId = xcom.DefaultMainNet // main net
+		if i+1 < len(args) {
+			switch option := args[i+1].(type) {
+			case string:
+				// Extended flag check, make sure value set doesn't conflict with passed in option
+				if ctx.GlobalString(flag.GetName()) == option {
+					name += "=" + option
+					set = append(set, "--"+name)
+				}
+				// shift arguments and continue
+				i++
+				continue
+
+			case cli.Flag:
+			default:
+				panic(fmt.Sprintf("invalid argument, not cli.Flag or string extension: %T", args[i+1]))
+			}
+		}
+		// Mark the flag if it's set
+		if ctx.GlobalIsSet(flag.GetName()) {
+			set = append(set, "--"+name)
+		}
 	}
-
-	if model := xcom.GetEc(networkId); model == nil {
-		panic("get economic model failed")
-	} else {
-		return model
+	if len(set) > 1 {
+		Fatalf("Flags %v can't be used at the same time", strings.Join(set, ", "))
 	}
 }

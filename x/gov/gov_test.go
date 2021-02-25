@@ -286,8 +286,6 @@ func TestGov_Submit(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
 	commit_sndb(chain)
 	prepair_sndb(chain)
 	submitText(t, chain)

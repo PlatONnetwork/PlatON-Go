@@ -158,7 +158,7 @@ class TestVotingStatisticsVP:
         log.info('Version proposal info {}'.format(proposalinfo))
         log.info('{}'.format(clients_consensus[:2]))
         createstaking(clients_noconsensus[:2])
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         result = pip.get_accuverifiers_count(proposalinfo.get('ProposalID'))
         log.info('Get proposal vote infomation {}'.format(result))
         assert result == [6, 2, 0, 0]
@@ -184,7 +184,7 @@ class TestVotingStatisticsVP:
         proposalinfo = clients_consensus[0].pip.get_effect_proposal_info_of_vote(clients_consensus[0].pip.cfg.version_proposal)
         log.info('Version proposal info {}'.format(proposalinfo))
         createstaking(clients_noconsensus[0])
-        clients_consensus[0].pip.economic.wait_settlement_blocknum(clients_consensus[0].pip.node)
+        clients_consensus[0].pip.economic.wait_settlement(clients_consensus[0].pip.node)
         result = clients_consensus[0].pip.get_accuverifiers_count(proposalinfo.get('ProposalID'))
         log.info('Get proposal vote infomation {}'.format(result))
         assert result == [5, 1, 0, 0]
@@ -192,7 +192,7 @@ class TestVotingStatisticsVP:
         result = version_proposal_vote(clients_consensus[1].pip, clients_consensus[0].pip.cfg.vote_option_yeas)
         assert_code(result, 0)
         createstaking(clients_noconsensus[1])
-        clients_consensus[0].pip.economic.wait_settlement_blocknum(clients_consensus[0].pip.node)
+        clients_consensus[0].pip.economic.wait_settlement(clients_consensus[0].pip.node)
         result = clients_consensus[0].pip.get_accuverifiers_count(proposalinfo.get('ProposalID'))
         log.info('Get proposal vote infomation {}'.format(result))
         assert result == [6, 2, 0, 0]
@@ -328,8 +328,8 @@ class TestVotingStatisticsVP:
         log.info('Stop the node {}'.format(pip.node.node_id))
         pip.node.stop()
         wait_block_number(clients_consensus[1].node, proposalinfo.get('EndVotingBlock'))
-        assert clients_consensus[1].pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
-        assert clients_consensus[1].pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 3
+        assert clients_consensus[1].pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 2
+        assert clients_consensus[1].pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 4
 
     @pytest.mark.P2
     @allure.title('Version proposal statistics function verification')
@@ -391,7 +391,7 @@ class TestVotingStatisticsTPCP:
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
         log.info('Cancel proposal info {}'.format(proposalinfo_cancel))
         createstaking(clients_noconsensus[:2])
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         result_text = pip.get_accuverifiers_count(proposalinfo_text.get('ProposalID'))
         log.info('Get text proposal vote infomation {}'.format(result_text))
         result_cancel = pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID'))
@@ -433,7 +433,7 @@ class TestVotingStatisticsTPCP:
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
         log.info('Cancel proposal info {}'.format(proposalinfo_cancel))
         createstaking(clients_noconsensus[0])
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         result_text = pip.get_accuverifiers_count(proposalinfo_text.get('ProposalID'))
         log.info('Get proposal vote infomation {}'.format(result_text))
         result_cancel = pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID'))
@@ -448,7 +448,7 @@ class TestVotingStatisticsTPCP:
                                proposaltype=pip.cfg.text_proposal)
         assert_code(result, 0)
         createstaking(clients_noconsensus[1])
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         result_cancel = pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID'))
         log.info('Get proposal vote infomation {}'.format(result_cancel))
         result_text = pip.get_accuverifiers_count(proposalinfo_text.get('ProposalID'))
@@ -708,10 +708,10 @@ class TestVotingStatisticsTPCP:
         log.info('Get text proposal information {}'.format(proposalinfo_text))
         pip.node.stop()
         wait_block_number(pip_test.node, self.get_block(proposalinfo_cancel, proposalinfo_text))
-        assert pip_test.get_accuverifiers_count(proposalinfo_text.get('ProposalID')) == [4, 1, 0, 0]
-        assert pip_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 0, 0]
-        assert_code(pip_test.get_status_of_proposal(proposalinfo_cancel.get('ProposalID')), 3)
-        assert_code(pip_test.get_status_of_proposal(proposalinfo_text.get('ProposalID')), 3)
+        assert pip_test.get_accuverifiers_count(proposalinfo_text.get('ProposalID')) == [4, 2, 0, 0]
+        assert pip_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 2, 0, 0]
+        assert_code(pip_test.get_status_of_proposal(proposalinfo_cancel.get('ProposalID')), 2)
+        assert_code(pip_test.get_status_of_proposal(proposalinfo_text.get('ProposalID')), 2)
 
     @pytest.mark.P2
     @allure.title('Cancel proposal and text proposal statistics function verification')
@@ -727,8 +727,8 @@ class TestVotingStatisticsTPCP:
         log.info('Get text proposal information {}'.format(proposalinfo_text))
         pip.node.stop()
         wait_block_number(pip_test.node, self.get_block(proposalinfo_cancel, proposalinfo_text))
-        assert pip_test.get_accuverifiers_count(proposalinfo_text.get('ProposalID')) == [4, 1, 0, 0]
-        assert pip_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 0, 0]
+        assert pip_test.get_accuverifiers_count(proposalinfo_text.get('ProposalID')) == [4, 1, 1, 0]
+        assert pip_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 0]
         assert_code(pip_test.get_status_of_proposal(proposalinfo_cancel.get('ProposalID')), 3)
         assert_code(pip_test.get_status_of_proposal(proposalinfo_text.get('ProposalID')), 3)
 
@@ -746,8 +746,8 @@ class TestVotingStatisticsTPCP:
         log.info('Get text proposal information {}'.format(proposalinfo_text))
         pip.node.stop()
         wait_block_number(pip_test.node, self.get_block(proposalinfo_cancel, proposalinfo_text))
-        assert pip_test.get_accuverifiers_count(proposalinfo_text.get('ProposalID')) == [4, 1, 0, 0]
-        assert pip_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 0, 0]
+        assert pip_test.get_accuverifiers_count(proposalinfo_text.get('ProposalID')) == [4, 1, 0, 1]
+        assert pip_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 0, 1]
         assert_code(pip_test.get_status_of_proposal(proposalinfo_cancel.get('ProposalID')), 3)
         assert_code(pip_test.get_status_of_proposal(proposalinfo_text.get('ProposalID')), 3)
 
@@ -816,7 +816,7 @@ class TestVotingStatisticsPP:
         log.info('Param proposal info {}'.format(proposalinfo))
         log.info('{}'.format(clients_consensus[:2]))
         createstaking(clients_noconsensus[:2])
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         self.assert_accuverifiers_count(pip, proposalinfo, [6, 1, 1, 0])
 
         result = proposal_vote(clients_noconsensus[0].pip, vote_option=pip.cfg.vote_option_Abstentions)
@@ -835,13 +835,13 @@ class TestVotingStatisticsPP:
         proposalinfo = clients_consensus[0].pip.get_effect_proposal_info_of_vote(clients_consensus[0].pip.cfg.param_proposal)
         log.info('Param proposal info {}'.format(proposalinfo))
         createstaking(clients_noconsensus[0])
-        clients_consensus[0].pip.economic.wait_settlement_blocknum(clients_consensus[0].pip.node)
+        clients_consensus[0].pip.economic.wait_settlement(clients_consensus[0].pip.node)
         self.assert_accuverifiers_count(clients_consensus[0].pip, proposalinfo, [5, 1, 0, 0])
 
         result = proposal_vote(clients_consensus[1].pip, vote_option=clients_consensus[0].pip.cfg.vote_option_nays)
         assert_code(result, 0)
         createstaking(clients_noconsensus[1])
-        clients_consensus[0].pip.economic.wait_settlement_blocknum(clients_consensus[0].pip.node)
+        clients_consensus[0].pip.economic.wait_settlement(clients_consensus[0].pip.node)
         self.assert_accuverifiers_count(clients_consensus[0].pip, proposalinfo, [6, 1, 1, 0])
 
         result = proposal_vote(clients_consensus[2].pip, vote_option=clients_consensus[0].pip.cfg.vote_option_Abstentions)
@@ -1015,7 +1015,7 @@ class TestVotingStatisticsPP:
         log.info('Stop the node {}'.format(pip.node.node_id))
         pip.node.stop()
         wait_block_number(clients_consensus[1].node, proposalinfo.get('EndVotingBlock'))
-        self.assert_proposal_result(clients_consensus[1].pip, proposalinfo, [1, 0, 0, 2])
+        self.assert_proposal_result(clients_consensus[1].pip, proposalinfo, [2, 0, 0, 2])
 
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
@@ -1029,7 +1029,7 @@ class TestVotingStatisticsPP:
         log.info('Stop the node {}'.format(pip.node.node_id))
         pip.node.stop()
         wait_block_number(clients_consensus[1].node, proposalinfo.get('EndVotingBlock'))
-        self.assert_proposal_result(clients_consensus[1].pip, proposalinfo, [1, 0, 0, 2])
+        self.assert_proposal_result(clients_consensus[1].pip, proposalinfo, [1, 1, 0, 3])
 
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')
@@ -1037,13 +1037,14 @@ class TestVotingStatisticsPP:
         self.update_setting_param(new_genesis_env, 0, 10000, 2490)
         submitppandvote(clients_consensus[:2], 3, 1)
         pip = clients_consensus[0].pip
+        print(f'listGovernParam = {len(clients_consensus)}, {pip.pip.listGovernParam()}')
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Get param proposal information {}'.format(proposalinfo))
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 1]
         log.info('Stop the node {}'.format(pip.node.node_id))
         pip.node.stop()
         wait_block_number(clients_consensus[1].node, proposalinfo.get('EndVotingBlock'))
-        self.assert_proposal_result(clients_consensus[1].pip, proposalinfo, [1, 0, 0, 2])
+        self.assert_proposal_result(clients_consensus[1].pip, proposalinfo, [1, 0, 1, 3])
 
     @pytest.mark.P2
     @allure.title('Parammeter proposal statistics function verification')

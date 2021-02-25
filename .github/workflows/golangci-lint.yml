@@ -13,8 +13,7 @@ jobs:
         run: bash ./build/build_deps.sh
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v1
+        uses: golangci/golangci-lint-action@v2
         with:
-          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.26
+          version: v1.29
           args: --no-config  --issues-exit-code=0 --timeout=30m --tests=false --skip-dirs="tests" --skip-dirs-use-default=true --disable-all --enable=govet  --enable=misspell --enable=goconst --enable=gofmt --enable=goimports  --enable=gosec  --enable=unconvert  --enable=unparam  --enable=funlen

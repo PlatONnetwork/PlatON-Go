@@ -170,7 +170,7 @@ def candidate_has_proposal(clients_noconsensus, all_clients):
         result = client.staking.create_staking(0, address, address)
         log.info('Node {} staking result: {}'.format(client.node.node_id, result))
         assert_code(result, 0)
-    client.economic.wait_settlement_blocknum(client.node)
+    client.economic.wait_settlement(client.node)
     node_id_list = client.pip.get_candidate_list_not_verifier()
     if not node_id_list:
         raise Exception('Get candidate list')
@@ -222,7 +222,7 @@ def noproposal_candidate_pips(all_clients) -> List[Pip]:
                 address, _ = client.economic.account.generate_account(client.node.web3, 10**18 * 10000000)
                 result = client.staking.create_staking(0, address, address)
                 log.info('node {} staking result {}'.format(client.node.node_id, result))
-        client.economic.wait_settlement_blocknum(client.node)
+        client.economic.wait_settlement(client.node)
         nodeid_list = all_clients[0].pip.get_candidate_list_not_verifier()
         if not nodeid_list:
             raise Exception('get candidate not verifier failed')

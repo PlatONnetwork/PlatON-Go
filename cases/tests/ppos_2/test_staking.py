@@ -73,7 +73,7 @@ def test_IV_006_007_008(client_consensus):
     result = client_consensus.ppos.getCandidateInfo(client_consensus.node.node_id)
     log.info(result)
     log.info("Let's go to the next three cycles")
-    client_consensus.economic.wait_settlement_blocknum(client_consensus.node, number=2)
+    client_consensus.economic.wait_settlement(client_consensus.node, 2)
     msg = client_consensus.ppos.getCandidateInfo(client_consensus.node.node_id)
     log.info(msg)
     assert msg["Code"] == 301204, "预期验证人已退出"
@@ -273,21 +273,21 @@ def test_IV_028(clients_new_node, client_consensus):
     node = client.node
     other_node = client_consensus.node
     economic = client.economic
-    address, pri_key = economic.account.generate_account(node.web3, 10 ** 18 * 10000000)
+    address, pri_key = economic.account.generate_account(node.web3, client.economic.create_staking_limit * 2)
 
-    value = economic.create_staking_limit * 2
-    result = client.staking.create_staking(0, address, address, amount=value)
+    # value = economic.create_staking_limit * 2
+    result = client.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    economic.wait_consensus_blocknum(other_node, number=4)
+    economic.wait_consensus(other_node, 4)
     validator_list = get_pledge_list(other_node.ppos.getValidatorList)
     assert node.node_id in validator_list
     log.info("Close one node")
     node.stop()
     for i in range(4):
-        economic.wait_consensus_blocknum(other_node, number=i)
+        economic.wait_consensus(other_node, i)
         candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
         log.info(candidate_info)
-        if candidate_info["Ret"]["Released"] < value:
+        if candidate_info["Ret"]["Released"] < client.economic.create_staking_limit:
             break
     log.info("Restart the node")
     node.start()
@@ -295,7 +295,7 @@ def test_IV_028(clients_new_node, client_consensus):
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    economic.wait_settlement_blocknum(node, number=2)
+    economic.wait_settlement(node, 2)
     result = client.staking.create_staking(0, address, address)
     assert_code(result, 0)
 
@@ -309,7 +309,7 @@ def test_IV_029(client_new_node):
     :return:
     """
     address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                   10 ** 18 * 10000000)
+                                                                   10 ** 18 * 2000000)
     result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
     result = client_new_node.staking.withdrew_staking(address)
@@ -332,7 +332,7 @@ def test_IV_030(client_new_node):
     result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
     log.info("Into the next grandchild")
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.economic.wait_settlement(client_new_node.node)
     result = client_new_node.staking.withdrew_staking(address)
     assert_code(result, 0)
     result = client_new_node.staking.create_staking(0, address, address)

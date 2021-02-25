@@ -17,3 +17,4 @@ deploy/bin
 **/*.so
 **/*.egg
 **/*.egg-info
+**/*.code-workspace

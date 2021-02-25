@@ -33,6 +33,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
+const (
+	DereferenceTimeLimit = 300 * time.Millisecond
+)
+
 var (
 	memcacheCleanHitMeter   = metrics.NewRegisteredMeter("trie/memcache/clean/hit", nil)
 	memcacheCleanMissMeter  = metrics.NewRegisteredMeter("trie/memcache/clean/miss", nil)
@@ -66,10 +70,11 @@ type Database struct {
 
 	freshNodes map[common.Hash]struct{}
 
-	cleans  *fastcache.Cache
-	dirties map[common.Hash]*cachedNode // Data and references relationships of a node
-	oldest  common.Hash                 // Oldest tracked node, flush-list head
-	newest  common.Hash                 // Newest tracked node, flush-list tail
+	cleans      *fastcache.Cache
+	dirties     map[common.Hash]*cachedNode // Data and references relationships of a node
+	nodeVersion uint64
+	oldest      common.Hash // Oldest tracked node, flush-list head
+	newest      common.Hash // Newest tracked node, flush-list tail
 
 	useless []map[string]struct{}
 
@@ -142,6 +147,7 @@ type cachedNode struct {
 
 	flushPrev common.Hash // Previous node in the flush-list
 	flushNext common.Hash // Next node in the flush-list
+	version   uint64      // The version number of this node
 }
 
 // cachedNodeSize is the raw size of a cachedNode data structure without any
@@ -291,9 +297,18 @@ func NewDatabaseWithCache(diskdb ethdb.KeyValueStore, cache int) *Database {
 		dirties: map[common.Hash]*cachedNode{{}: {
 			children: make(map[common.Hash]uint16),
 		}},
-		preimages:  make(map[common.Hash][]byte),
-		freshNodes: make(map[common.Hash]struct{}),
+		nodeVersion: 0,
+		preimages:   make(map[common.Hash][]byte),
+		freshNodes:  make(map[common.Hash]struct{}),
 	}
+}
+
+func (db *Database) NodeVersion() uint64 {
+	return db.nodeVersion
+}
+
+func (db *Database) IncrVersion() {
+	db.nodeVersion++
 }
 
 // DiskDB retrieves the persistent storage backing the trie database.
@@ -315,6 +330,7 @@ func (db *Database) InsertBlob(hash common.Hash, blob []byte) {
 func (db *Database) insertFreshNode(hash common.Hash) {
 	db.freshNodes[hash] = struct{}{}
 }
+
 func (db *Database) resetFreshNode() {
 	db.freshNodes = make(map[common.Hash]struct{})
 }
@@ -333,12 +349,13 @@ func (db *Database) insert(hash common.Hash, blob []byte, node node) {
 		node:      simplifyNode(node),
 		size:      uint16(len(blob)),
 		flushPrev: db.newest,
+		version:   db.NodeVersion(),
 	}
-	entry.forChilds(func(child common.Hash) {
-		if c := db.dirties[child]; c != nil {
-			c.parents++
-		}
-	})
+	//entry.forChilds(func(child common.Hash) {
+	//	if c := db.dirties[child]; c != nil {
+	//		c.parents++
+	//	}
+	//})
 	db.dirties[hash] = entry
 	// Update the flush-list endpoints
 	if db.oldest == (common.Hash{}) {
@@ -481,6 +498,30 @@ func (db *Database) Reference(child common.Hash, parent common.Hash) {
 	db.reference(child, parent)
 }
 
+// ReferenceVersion traverses down from the root node, with a version number for each node.
+func (db *Database) ReferenceVersion(root common.Hash) {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+
+	start := time.Now()
+	db.referenceVersion(root)
+	if start.Add(400 * time.Millisecond).Before(time.Now()) {
+		log.Warn("ReferenceVersion overtime", "root", root.String(), "duration", time.Since(start))
+	}
+}
+
+// referenceVersion is the private locked version of referenceVersion.
+func (db *Database) referenceVersion(hash common.Hash) {
+	node, ok := db.dirties[hash]
+	if !ok {
+		return
+	}
+	node.forChilds(func(h common.Hash) {
+		db.referenceVersion(h)
+	})
+	node.version = db.NodeVersion()
+}
+
 // reference is the private locked version of Reference.
 func (db *Database) reference(child common.Hash, parent common.Hash) {
 	// If the node does not exist, it's a node pulled from disk, skip
@@ -509,8 +550,6 @@ func (db *Database) DereferenceDB(root common.Hash) {
 		log.Error("Attempted to dereference the trie cache meta root")
 		return
 	}
-	db.lock.Lock()
-	defer db.lock.Unlock()
 
 	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
 	useless := make(map[string]struct{})
@@ -520,7 +559,14 @@ func (db *Database) DereferenceDB(root common.Hash) {
 			db.cleans.Del(hash[:])
 		}
 	}
-	db.dereference(root, common.Hash{}, clearFn)
+
+	db.lock.Lock()
+	db.dereference(root, clearFn, start)
+	db.lock.Unlock()
+
+	//if start.Add(400 * time.Millisecond).Before(time.Now()) {
+	//	log.Warn("DereferenceDB overtime", "root", root.String(), "duration", time.Since(start))
+	//}
 
 	db.useless = append(db.useless, useless)
 	db.gcnodes += uint64(nodes - len(db.dirties))
@@ -606,7 +652,7 @@ func (db *Database) Dereference(root common.Hash) {
 	}
 
 	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
-	db.dereference(root, common.Hash{}, cleanFn)
+	db.dereference(root, cleanFn, start)
 
 	db.gcnodes += uint64(nodes - len(db.dirties))
 	db.gcsize += storage - db.dirtiesSize
@@ -621,33 +667,32 @@ func (db *Database) Dereference(root common.Hash) {
 }
 
 // dereference is the private locked version of Dereference.
-func (db *Database) dereference(child common.Hash, parent common.Hash, clearFn func([]byte)) {
-	// Dereference the parent-child
-	node := db.dirties[parent]
-
-	if node.children != nil && node.children[child] > 0 {
-		node.children[child]--
-		if node.children[child] == 0 {
-			delete(node.children, child)
-			db.childrenSize -= (common.HashLength + 2) // uint16 counter
-		}
+func (db *Database) dereference(hash common.Hash, clearFn func([]byte), start time.Time) {
+	if _, ok := db.freshNodes[hash]; ok {
+		return
 	}
+	//// Dereference the parent-child
+	//node := db.dirties[parent]
+	//
+	//if node.children != nil && node.children[child] > 0 {
+	//	node.children[child]--
+	//	if node.children[child] == 0 {
+	//		delete(node.children, child)
+	//		db.childrenSize -= (common.HashLength + 2) // uint16 counter
+	//	}
+	//}
 	// If the child does not exist, it's a previously committed node.
-	node, ok := db.dirties[child]
+	node, ok := db.dirties[hash]
 	if !ok {
 		return
 	}
-	// If there are no more references to the child, delete it and cascade
-	if node.parents > 0 {
-		// This is a special cornercase where a node loaded from disk (i.e. not in the
-		// memcache any more) gets reinjected as a new node (short node split into full,
-		// then reverted into short), causing a cached node to have no parents. That is
-		// no problem in itself, but don't make maxint parents out of it.
-		node.parents--
+	if start.Add(DereferenceTimeLimit).Before(time.Now()) {
+		log.Warn("DereferenceDB overtime, Interrupt the dereference", "duration", time.Since(start))
+		return
 	}
-	if node.parents == 0 {
+	if node.version < db.NodeVersion() {
 		// Remove the node from the flush-list
-		switch child {
+		switch hash {
 		case db.oldest:
 			db.oldest = node.flushNext
 			db.dirties[node.flushNext].flushPrev = common.Hash{}
@@ -659,15 +704,15 @@ func (db *Database) dereference(child common.Hash, parent common.Hash, clearFn f
 			db.dirties[node.flushNext].flushPrev = node.flushPrev
 		}
 		// Dereference all children and delete the node
-		node.forChilds(func(hash common.Hash) {
-			db.dereference(hash, child, clearFn)
+		node.forChilds(func(h common.Hash) {
+			db.dereference(h, clearFn, start)
 		})
-		delete(db.dirties, child)
+		delete(db.dirties, hash)
 
 		if clearFn != nil {
 			// rawNode is contract code, only remove trie node
 			if _, ok := node.node.(rawNode); !ok {
-				clearFn(child.Bytes())
+				clearFn(hash.Bytes())
 			}
 		}
 		db.dirtiesSize -= common.StorageSize(common.HashLength + int(node.size))

@@ -127,7 +127,7 @@ func (b *blockData) RevertToSnapshot(revid int) {
 		return b.validRevisions[i].id >= revid
 	})
 	if idx == len(b.validRevisions) || b.validRevisions[idx].id != revid {
-		panic(fmt.Errorf("snapshotdb , revision id %v cannot be reverted", revid))
+		panic(fmt.Errorf("snapshotdb , revision id %v cannot be reverted,now %v", revid, b.validRevisions[idx].id))
 	}
 	snapshot := b.validRevisions[idx].journalIndex
 

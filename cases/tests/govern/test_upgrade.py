@@ -1,5 +1,5 @@
 from common.log import log
-from tests.lib.utils import assert_code, wait_block_number, upload_platon, get_pledge_list
+from tests.lib.utils import assert_code, wait_block_number, upload_platon, get_pledge_list, get_block_count_number
 from tests.lib import Genesis
 from dacite import from_dict
 from tests.govern.test_voting_statistics import submittpandvote, submitcppandvote, \
@@ -359,12 +359,11 @@ class TestUpgradeVP:
         log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
         programversion = client_noconsensus.staking.get_version()
         assert_code(programversion, pip.cfg.version0)
-        pip_test.economic.wait_settlement_blocknum(pip_test.node)
-        log.info(f'blocknem ====== {pip_test.node.eth.blockNumber}')
+        pip_test.economic.wait_settlement(pip_test.node)
+
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id in verifier_list
-
         submitvpandvote(clients_consensus)
         programversion = clients_consensus[0].staking.get_version()
         assert_code(programversion, pip.cfg.version0)
@@ -372,32 +371,30 @@ class TestUpgradeVP:
         log.info('Get version proposal information : {}'.format(proposalinfo))
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock') - 1)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
-        log.info('Validator list =====: {}'.format(validator_list))
-
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         wait_block_number(pip.node, proposalinfo.get('ActiveBlock'))
-        log.info(f'blocknem ====== {pip_test.node.eth.blockNumber}')
-
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         assert pip_test.node.node_id not in validator_list
-
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
-        pip.economic.wait_settlement_blocknum(pip.node)
+        _, staking_reward = pip_test.economic.get_current_year_reward(pip_test.node, verifier_num=5)
+        pip.economic.wait_settlement(client_noconsensus.node)
+
+        count = get_block_count_number(client_noconsensus.node, 320)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         assert pip_test.node.node_id not in validator_list
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id not in verifier_list
+
         balance_before = pip.node.eth.getBalance(address, 2 * pip.economic.settlement_size - 1)
         log.info('Block number {} address balace {}'.format(2 * pip.economic.settlement_size - 1, balance_before))
         balance_after = pip.node.eth.getBalance(address, 2 * pip.economic.settlement_size)
         log.info('Block number {} address balace {}'.format(2 * pip.economic.settlement_size, balance_after))
-        _, staking_reward = pip_test.economic.get_current_year_reward(pip_test.node, verifier_num=5)
         log.info('Staking reward : {}'.format(staking_reward))
         assert balance_after - balance_before == staking_reward
 
@@ -412,7 +409,7 @@ class TestUpgradeVP:
         log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
         programversion = client_noconsensus.staking.get_version()
         assert_code(programversion, pip.cfg.version0)
-        pip_test.economic.wait_settlement_blocknum(pip_test.node)
+        pip_test.economic.wait_settlement(pip_test.node)
         verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_test.node.node_id in verifier_list
@@ -438,7 +435,7 @@ class TestUpgradeVP:
         assert pip_test.node.node_id in validator_list
 
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
-        pip.economic.wait_settlement_blocknum(pip.node)
+        pip.economic.wait_settlement(pip.node)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         assert pip_test.node.node_id in validator_list
@@ -487,46 +484,46 @@ class TestUpgradeVP:
         wait_block_number(pip.node, proposalinfo.get('ActiveBlock'))
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
 
-    def test_1(self, new_genesis_env, clients_consensus):
-        pip = clients_consensus[-1].pip
-        submitvpandvote(clients_consensus[0:2])
-        replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
-        proposalinfo = pip.get_effect_proposal_info_of_vote()
-        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
-        submitvpandvote(clients_consensus[:3])
-        proposalinfo = pip.get_effect_proposal_info_of_vote()
-        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
-        verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
-        log.info(verifier_list)
-        assert pip.node.node_id in verifier_list
-
-    def test_2(self, new_genesis_env, clients_consensus):
-        new_genesis_env.deploy_all()
-        pip = clients_consensus[0].pip
-        submitvpandvote(clients_consensus[0:2])
-        # replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
-        proposalinfo = pip.get_effect_proposal_info_of_vote()
-        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
-        submitvpandvote(clients_consensus[1:4])
-        proposalinfo = pip.get_effect_proposal_info_of_vote()
-        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
-        pip.economic.wait_consensus_blocknum(pip.node)
-        validator = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
-        log.info(validator)
-        assert pip.node.node_id not in validator
-        programversion = clients_consensus[0].staking.get_version()
-        log.info(programversion)
-
-        programversion = clients_consensus[1].staking.get_version()
-        log.info(programversion)
-
-        programversion = clients_consensus[2].staking.get_version()
-        log.info(programversion)
-
-        programversion = clients_consensus[3].staking.get_version()
-        log.info(programversion)
-
-        verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
-        log.info(verifier_list)
+    # def test_1(self, new_genesis_env, clients_consensus):
+    #     pip = clients_consensus[-1].pip
+    #     submitvpandvote(clients_consensus[0:2])
+    #     replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
+    #     proposalinfo = pip.get_effect_proposal_info_of_vote()
+    #     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+    #     submitvpandvote(clients_consensus[:3])
+    #     proposalinfo = pip.get_effect_proposal_info_of_vote()
+    #     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+    #     verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
+    #     log.info(verifier_list)
+    #     assert pip.node.node_id in verifier_list
+    #
+    # def test_2(self, new_genesis_env, clients_consensus):
+    #     new_genesis_env.deploy_all()
+    #     pip = clients_consensus[0].pip
+    #     submitvpandvote(clients_consensus[0:2])
+    #     # replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
+    #     proposalinfo = pip.get_effect_proposal_info_of_vote()
+    #     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+    #     assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+    #     submitvpandvote(clients_consensus[1:4])
+    #     proposalinfo = pip.get_effect_proposal_info_of_vote()
+    #     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+    #     assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+    #     pip.economic.wait_consensus(pip.node)
+    #     validator = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
+    #     log.info(validator)
+    #     assert pip.node.node_id not in validator
+    #     programversion = clients_consensus[0].staking.get_version()
+    #     log.info(programversion)
+    #
+    #     programversion = clients_consensus[1].staking.get_version()
+    #     log.info(programversion)
+    #
+    #     programversion = clients_consensus[2].staking.get_version()
+    #     log.info(programversion)
+    #
+    #     programversion = clients_consensus[3].staking.get_version()
+    #     log.info(programversion)
+    #
+    #     verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
+    #     log.info(verifier_list)
